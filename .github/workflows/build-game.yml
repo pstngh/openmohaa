@@ -1,0 +1,48 @@
+name: Build Game DLL
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Download and setup Flex/Bison
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip" -OutFile "flexbison.zip"
+        Expand-Archive -Path "flexbison.zip" -DestinationPath "C:\tools\flexbison"
+
+    - name: Download and setup OpenAL
+      run: |
+        Invoke-WebRequest -Uri "https://openal-soft.org/openal-binaries/openal-soft-1.24.3-bin.zip" -OutFile "openal.zip"
+        Expand-Archive -Path "openal.zip" -DestinationPath "C:\tools"
+        Rename-Item -Path "C:\tools\openal-soft-1.24.3-bin" -NewName "openal"
+
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake -DFLEX_EXECUTABLE="C:\tools\flexbison\win_flex.exe" -DBISON_EXECUTABLE="C:\tools\flexbison\win_bison.exe" -DOPENAL_INCLUDE_DIR="C:\tools\openal\include" -DOPENAL_LIBRARY="C:\tools\openal\libs\Win64\OpenAL32.lib" -DBUILD_NO_CLIENT=1 ..
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release --target game
+
+    - name: Upload game.dll artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: game-dll-windows-x64
+        path: build/Release/game.dll
+        retention-days: 30
