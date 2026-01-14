@@ -131,6 +131,7 @@ public:
     const Vector& GetTargetAngles() const;
     void          SetTargetAngles(Vector vAngles);
     void          AimAt(Vector vPos);
+    void          ResetAimState(void);
 
 private:
     SafePtr<Player> controlledEntity;
@@ -139,6 +140,12 @@ private:
     Vector m_vCurrentAng;
     Vector m_vAngDelta;
     Vector m_vAngSpeed;
+
+    // Humanized aim state
+    Vector m_vLastAimTarget;      // last target we aimed at
+    Vector m_vOvershootOffset;    // overshoot offset when acquiring new target
+    int    m_iAimStartTime;       // when we started aiming at current target
+    bool   m_bNewTarget;          // true if we just acquired a new target
 };
 
 class BotState
@@ -198,6 +205,16 @@ private:
     int m_iNextTauntTime;
     int m_iLastFireTime;
 
+    ///
+    /// Random strafe/lean behavior
+    ///
+    int  m_iStrafeTime;        // time when current strafe direction expires
+    int  m_iStrafeDir;         // -1 = left, 0 = none, 1 = right
+    int  m_iLeanTime;          // time when current lean direction expires
+    int  m_iLeanDir;           // -1 = left, 0 = none, 1 = right
+    int  m_iForwardBackTime;   // time when forward/back direction changes
+    int  m_iForwardBackDir;    // -1 = back, 1 = forward
+
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -249,6 +266,14 @@ private:
     void        State_Weapon(void);
 
     void CheckStates(void);
+
+    ///
+    /// Random strafe/lean methods
+    ///
+    void UpdateRandomStrafe(void);
+    void UpdateRandomLean(void);
+    void UpdateForwardBack(bool bFiring);
+    void ApplyStrafeLean(void);
 
 public:
     CLASS_PROTOTYPE(BotController);

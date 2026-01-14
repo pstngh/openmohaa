@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "weaputils.h"
 #include "windows.h"
 #include "g_bot.h"
+#include "gamecvars.h"
 
 // We assume that we have limited access to the server-side
 // and that most logic come from the playerstate_s structure
@@ -79,6 +80,14 @@ BotController::BotController()
     m_iNextTauntTime = 0;
 
     m_StateFlags = 0;
+
+    // Initialize strafe/lean state
+    m_iStrafeTime = 0;
+    m_iStrafeDir  = 0;
+    m_iLeanTime   = 0;
+    m_iLeanDir    = 0;
+    m_iForwardBackTime = 0;
+    m_iForwardBackDir  = 1;
 }
 
 BotController::~BotController()
@@ -178,6 +187,12 @@ void BotController::UpdateBotStates(void)
 
     movement.MoveThink(m_botCmd);
     rotation.TurnThink(m_botCmd, m_botEyes);
+
+    // Apply random strafe and lean
+    UpdateRandomStrafe();
+    UpdateRandomLean();
+    ApplyStrafeLean();
+
     CheckUse();
 
     CheckValidWeapon();
@@ -757,9 +772,15 @@ bool BotController::CheckCondition_Attack(void)
 {
     Container<Sentient *> sents       = SentientList;
     float                 maxDistance = 0;
+    bool                  bFoundEnemy = false;
 
     bot_origin = controlledEnt->origin;
     sents.Sort(sentients_compare);
+
+    maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+    if (maxDistance <= 0) {
+        maxDistance = 4096;  // fallback if not set
+    }
 
     for (int i = 1; i <= sents.NumObjects(); i++) {
         Sentient *sent = sents.ObjectAt(i);
@@ -768,11 +789,29 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+        // Use wider FOV (160 degrees) for better detection
+        // Also try a 360-degree check at closer range for "hearing" nearby enemies
+        float distSq = (sent->origin - controlledEnt->origin).lengthSquared();
+        bool bCanSee = false;
+        
+        // Close range (within 512 units) - 360 degree awareness
+        if (distSq < Square(512)) {
+            bCanSee = controlledEnt->CanSee(sent, 360, maxDistance, false);
+        }
+        // Medium range - wide FOV (160 degrees)
+        else if (distSq < Square(1500)) {
+            bCanSee = controlledEnt->CanSee(sent, 160, maxDistance, false);
+        }
+        // Long range - normal FOV (120 degrees)
+        else {
+            bCanSee = controlledEnt->CanSee(sent, 120, maxDistance, false);
+        }
 
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
+        if (bCanSee) {
             if (m_pEnemy != sent) {
                 m_iEnemyEyesTag = -1;
+                // Reset humanized aim for new target
+                rotation.ResetAimState();
             }
 
             if (!m_pEnemy) {
@@ -781,10 +820,20 @@ bool BotController::CheckCondition_Attack(void)
 
             m_pEnemy        = sent;
             m_vLastEnemyPos = m_pEnemy->origin;
+            bFoundEnemy     = true;
+            break;  // Found an enemy, stop searching
         }
+    }
 
-        if (m_pEnemy) {
-            m_iAttackTime = level.inttime + 1000;
+    if (bFoundEnemy) {
+        m_iAttackTime = level.inttime + 1000;
+        return true;
+    }
+
+    // Check if we still have a valid enemy from before (even if we can't see them right now)
+    if (m_pEnemy && IsValidEnemy(m_pEnemy)) {
+        // Keep attacking for a bit even if we lose sight
+        if (level.inttime <= m_iAttackTime) {
             return true;
         }
     }
@@ -828,8 +877,9 @@ void BotController::State_Attack(void)
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
+    // Use wider FOV (90 degrees) for determining if we can attack
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 90, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -1049,6 +1099,14 @@ void BotController::State_Attack(void)
     if (movement.IsMoving()) {
         m_iAttackTime = level.inttime + 1000;
     }
+
+    // Apply forward/back alternation when firing
+    UpdateForwardBack(bFiring);
+    if (bFiring && !bNoMove) {
+        int forwardAmount = (int)(0.5f * 127.0f);  // half intensity forward/back
+        int newForwardMove = m_botCmd.forwardmove + (m_iForwardBackDir * forwardAmount);
+        m_botCmd.forwardmove = (signed char)Q_clamp(newForwardMove, -127, 127);
+    }
 }
 
 /*
@@ -1201,6 +1259,132 @@ void BotController::UseWeaponWithAmmo()
     }
 
     controlledEnt->useWeapon(bestWeapon, WEAPON_MAIN);
+}
+
+/*
+====================
+UpdateRandomStrafe
+
+Updates the random strafe direction on a timer
+Always strafes left or right, never straight
+====================
+*/
+void BotController::UpdateRandomStrafe(void)
+{
+    if (!g_bot_strafe->integer) {
+        m_iStrafeDir = 0;
+        return;
+    }
+
+    if (level.inttime >= m_iStrafeTime) {
+        // Time to pick a new strafe direction
+        int minTime = g_bot_strafe_min_time->value * 1000;
+        int maxTime = g_bot_strafe_max_time->value * 1000;
+        int duration = minTime + (int)G_Random(maxTime - minTime);
+        
+        m_iStrafeTime = level.inttime + duration;
+        
+        // Always strafe left or right, never none
+        // Tend to switch directions
+        if (m_iStrafeDir <= 0) {
+            m_iStrafeDir = 1;   // switch to right
+        } else {
+            m_iStrafeDir = -1;  // switch to left
+        }
+        
+        // Small chance to keep same direction
+        if (rand() % 10 < 2) {
+            m_iStrafeDir = -m_iStrafeDir;
+        }
+    }
+}
+
+/*
+====================
+UpdateRandomLean
+
+Updates the random lean direction on a timer
+Mostly matches strafe direction but occasionally independent
+====================
+*/
+void BotController::UpdateRandomLean(void)
+{
+    if (!g_bot_lean->integer) {
+        m_iLeanDir = 0;
+        return;
+    }
+
+    if (level.inttime >= m_iLeanTime) {
+        // Time to pick a new lean direction
+        int minTime = g_bot_lean_min_time->value * 1000;
+        int maxTime = g_bot_lean_max_time->value * 1000;
+        int duration = minTime + (int)G_Random(maxTime - minTime);
+        
+        m_iLeanTime = level.inttime + duration;
+        
+        // 80% chance to match strafe direction, 20% chance to go opposite
+        if (rand() % 10 < 8) {
+            m_iLeanDir = m_iStrafeDir;  // match strafe
+        } else {
+            m_iLeanDir = -m_iStrafeDir; // opposite of strafe
+        }
+        
+        // Ensure we always lean if strafe is 0 for some reason
+        if (m_iLeanDir == 0) {
+            m_iLeanDir = (rand() % 2) ? 1 : -1;
+        }
+    }
+}
+
+/*
+====================
+UpdateForwardBack
+
+When firing, rapidly alternate between forward and backward movement
+====================
+*/
+void BotController::UpdateForwardBack(bool bFiring)
+{
+    if (!bFiring) {
+        m_iForwardBackDir = 1;  // default to forward when not firing
+        return;
+    }
+
+    // Very fast alternation when shooting (50-150ms)
+    if (level.inttime >= m_iForwardBackTime) {
+        int duration = 50 + (int)G_Random(100);
+        m_iForwardBackTime = level.inttime + duration;
+        
+        // Alternate direction
+        m_iForwardBackDir = -m_iForwardBackDir;
+    }
+}
+
+/*
+====================
+ApplyStrafeLean
+
+Applies the current strafe and lean to botcmd
+====================
+*/
+void BotController::ApplyStrafeLean(void)
+{
+    // Apply strafe - add to existing rightmove
+    if (m_iStrafeDir != 0) {
+        int strafeAmount = (int)(g_bot_strafe_intensity->value * 127.0f);
+        int newRightMove = m_botCmd.rightmove + (m_iStrafeDir * strafeAmount);
+        m_botCmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
+    }
+
+    // Apply lean via buttons
+    // First clear any existing lean buttons
+    m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+    
+    if (m_iLeanDir < 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_LEFT;
+    } else if (m_iLeanDir > 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_RIGHT;
+    }
 }
 
 void BotController::Spawned(void)

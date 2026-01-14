@@ -321,6 +321,41 @@ extern cvar_t *g_bot_instamsg_delay;
  */
 extern cvar_t *g_bot_initial_spawn_delay;
 
+/**
+ * @brief Enable random strafing for bots (0 = off, 1 = on).
+ */
+extern cvar_t *g_bot_strafe;
+/**
+ * @brief Minimum time in seconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_min_time;
+/**
+ * @brief Maximum time in seconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_max_time;
+/**
+ * @brief Strafe movement intensity (0.0 - 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+
+/**
+ * @brief Enable random leaning for bots (0 = off, 1 = on).
+ */
+extern cvar_t *g_bot_lean;
+/**
+ * @brief Minimum time in seconds before changing lean direction.
+ */
+extern cvar_t *g_bot_lean_min_time;
+/**
+ * @brief Maximum time in seconds before changing lean direction.
+ */
+extern cvar_t *g_bot_lean_max_time;
+
+/**
+ * @brief Enable humanized aiming for bots (0 = instant aim, 1 = human-like).
+ */
+extern cvar_t *g_bot_aim_human;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // playerbot_rotation.cpp: Manages bot rotation
 
 #include "playerbot.h"
+#include "gamecvars.h"
 
 BotRotation::BotRotation()
 {
@@ -29,6 +30,12 @@ BotRotation::BotRotation()
     m_vAngSpeed   = vec_zero;
     m_vTargetAng  = vec_zero;
     m_vCurrentAng = vec_zero;
+
+    // Humanized aim init
+    m_vLastAimTarget   = vec_zero;
+    m_vOvershootOffset = vec_zero;
+    m_iAimStartTime    = 0;
+    m_bNewTarget       = false;
 }
 
 void BotRotation::SetControlledEntity(Player *newEntity)
@@ -139,6 +146,7 @@ void BotRotation::SetTargetAngles(Vector vAngles)
 AimAt
 
 Make the bot face to the specified direction
+With humanized aim: slight overshoot on new target, two-phase acquisition
 ====================
 */
 void BotRotation::AimAt(Vector vPos)
@@ -149,5 +157,71 @@ void BotRotation::AimAt(Vector vPos)
     VectorNormalize(vDelta);
     vectoangles(vDelta, vTarget);
 
-    SetTargetAngles(vTarget);
+    // If humanized aim is disabled, use instant aim
+    if (!g_bot_aim_human->integer) {
+        SetTargetAngles(vTarget);
+        return;
+    }
+
+    // Check if this is a new target (position changed significantly)
+    float targetDist = (vPos - m_vLastAimTarget).length();
+    
+    if (targetDist > 50.0f) {
+        // New target acquired - set up overshoot
+        m_bNewTarget = true;
+        m_iAimStartTime = level.inttime;
+        m_vLastAimTarget = vPos;
+        
+        // Calculate small overshoot (5-15% past target in the aim direction)
+        float overshootAmount = 0.05f + G_Random(0.10f);
+        Vector aimDir = vTarget - m_vCurrentAng;
+        
+        // Normalize angle differences
+        for (int i = 0; i < 2; i++) {
+            if (aimDir[i] > 180.0f) aimDir[i] -= 360.0f;
+            if (aimDir[i] < -180.0f) aimDir[i] += 360.0f;
+        }
+        
+        m_vOvershootOffset[0] = aimDir[0] * overshootAmount;
+        m_vOvershootOffset[1] = aimDir[1] * overshootAmount;
+        m_vOvershootOffset[2] = 0;
+    } else {
+        // Same target - update position for tracking
+        m_vLastAimTarget = vPos;
+    }
+
+    // Two-phase aiming
+    int aimTime = level.inttime - m_iAimStartTime;
+    
+    if (m_bNewTarget && aimTime < 80) {
+        // Phase 1 (0-80ms): Fast snap WITH overshoot
+        // Aim past the target slightly
+        Vector overshootTarget = vTarget + m_vOvershootOffset;
+        SetTargetAngles(overshootTarget);
+    } else if (m_bNewTarget && aimTime < 150) {
+        // Phase 2 (80-150ms): Correct back to actual target
+        // Lerp from overshoot back to real target
+        float correction = (float)(aimTime - 80) / 70.0f; // 0 to 1 over 70ms
+        Vector correctedTarget = vTarget + m_vOvershootOffset * (1.0f - correction);
+        SetTargetAngles(correctedTarget);
+    } else {
+        // Phase 3: Normal tracking (no overshoot)
+        m_bNewTarget = false;
+        SetTargetAngles(vTarget);
+    }
+}
+
+/*
+====================
+ResetAimState
+
+Reset humanized aim state (call when enemy changes)
+====================
+*/
+void BotRotation::ResetAimState(void)
+{
+    m_vLastAimTarget   = vec_zero;
+    m_vOvershootOffset = vec_zero;
+    m_iAimStartTime    = 0;
+    m_bNewTarget       = false;
 }

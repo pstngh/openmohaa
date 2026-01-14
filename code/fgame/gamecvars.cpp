@@ -293,6 +293,17 @@ cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 
+cvar_t *g_bot_strafe;
+cvar_t *g_bot_strafe_min_time;
+cvar_t *g_bot_strafe_max_time;
+cvar_t *g_bot_strafe_intensity;
+
+cvar_t *g_bot_lean;
+cvar_t *g_bot_lean_min_time;
+cvar_t *g_bot_lean_max_time;
+
+cvar_t *g_bot_aim_human;
+
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
 
@@ -706,6 +717,20 @@ void CVAR_Init(void)
     g_textmsg_minDelay  = gi.Cvar_Get("g_textmsg_minDelay", "1000", 0);
 
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
+
+    // Bot strafe cvars
+    g_bot_strafe           = gi.Cvar_Get("g_bot_strafe", "1", 0);
+    g_bot_strafe_min_time  = gi.Cvar_Get("g_bot_strafe_min_time", "0.1", 0);
+    g_bot_strafe_max_time  = gi.Cvar_Get("g_bot_strafe_max_time", "0.4", 0);
+    g_bot_strafe_intensity = gi.Cvar_Get("g_bot_strafe_intensity", "0.8", 0);
+
+    // Bot lean cvars
+    g_bot_lean          = gi.Cvar_Get("g_bot_lean", "1", 0);
+    g_bot_lean_min_time = gi.Cvar_Get("g_bot_lean_min_time", "0.2", 0);
+    g_bot_lean_max_time = gi.Cvar_Get("g_bot_lean_max_time", "0.6", 0);
+
+    // Bot humanized aim
+    g_bot_aim_human = gi.Cvar_Get("g_bot_aim_human", "1", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
