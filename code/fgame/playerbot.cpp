@@ -144,10 +144,10 @@ void BotController::UpdateBotStates(void)
         Event *event;
 
         //
-        // Primary weapon
+        // Primary weapon - always SMG for bots
         //
         event = new Event(EV_Player_PrimaryDMWeapon);
-        event->AddString("auto");
+        event->AddString("smg");
 
         controlledEnt->ProcessEvent(event);
     }
@@ -417,15 +417,10 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
     if (m_iCuriousTime) {
         delta1 = vPos - controlledEnt->origin;
         delta2 = m_vNewCuriousPos - controlledEnt->origin;
-        if (delta1.lengthSquared() < delta2.lengthSquared()) {
+        // Only ignore if new sound is further away
+        if (delta1.lengthSquared() > delta2.lengthSquared()) {
             return;
         }
-    }
-
-    fRangeFactor = 1.0 - (fDistanceSquared / fRadiusSquared);
-
-    if (fRangeFactor < random()) {
-        return;
     }
 
     if (pEnt->IsSubclassOfSentient()) {
@@ -463,24 +458,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    switch (iType) {
-    case AI_EVENT_MISC:
-    case AI_EVENT_MISC_LOUD:
-        break;
-    case AI_EVENT_WEAPON_FIRE:
-    case AI_EVENT_WEAPON_IMPACT:
-    case AI_EVENT_EXPLOSION:
-    case AI_EVENT_AMERICAN_VOICE:
-    case AI_EVENT_GERMAN_VOICE:
-    case AI_EVENT_AMERICAN_URGENT:
-    case AI_EVENT_GERMAN_URGENT:
-    case AI_EVENT_FOOTSTEP:
-    case AI_EVENT_GRENADE:
-    default:
-        m_iCuriousTime   = level.inttime + 20000;
-        m_vNewCuriousPos = vPos;
-        break;
-    }
+    // All sounds trigger curiosity - move toward the sound
+    m_iCuriousTime   = level.inttime + 20000;
+    m_vNewCuriousPos = vPos;
 }
 
 /*
@@ -495,6 +475,11 @@ void BotController::ClearEnemy(void)
     m_iAttackTime   = 0;
     m_pEnemy        = NULL;
     m_iEnemyEyesTag = -1;
+    m_iTorsoUpperTag = -1;
+    m_iTorsoMidTag   = -1;
+    m_iTorsoLowerTag = -1;
+    m_iHeadTag       = -1;
+    m_iCombatStartTime = 0;
     m_vOldEnemyPos  = vec_zero;
     m_vLastEnemyPos = vec_zero;
 }
@@ -789,33 +774,24 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        // Use wider FOV (160 degrees) for better detection
-        // Also try a 360-degree check at closer range for "hearing" nearby enemies
-        float distSq = (sent->origin - controlledEnt->origin).lengthSquared();
-        bool bCanSee = false;
-        
-        // Close range (within 512 units) - 360 degree awareness
-        if (distSq < Square(512)) {
-            bCanSee = controlledEnt->CanSee(sent, 360, maxDistance, false);
-        }
-        // Medium range - wide FOV (160 degrees)
-        else if (distSq < Square(1500)) {
-            bCanSee = controlledEnt->CanSee(sent, 160, maxDistance, false);
-        }
-        // Long range - normal FOV (120 degrees)
-        else {
-            bCanSee = controlledEnt->CanSee(sent, 120, maxDistance, false);
-        }
+        // 360 degree awareness at all ranges
+        bool bCanSee = controlledEnt->CanSee(sent, 360, maxDistance, false);
 
         if (bCanSee) {
             if (m_pEnemy != sent) {
-                m_iEnemyEyesTag = -1;
+                m_iEnemyEyesTag  = -1;
+                m_iTorsoUpperTag = -1;
+                m_iTorsoMidTag   = -1;
+                m_iTorsoLowerTag = -1;
+                m_iHeadTag       = -1;
+                m_iCombatStartTime = level.inttime;  // Start combat warmup
                 // Reset humanized aim for new target
                 rotation.ResetAimState();
             }
 
             if (!m_pEnemy) {
                 m_iLastUnseenTime = level.inttime;
+                m_iCombatStartTime = level.inttime;  // Start combat warmup
             }
 
             m_pEnemy        = sent;
@@ -877,9 +853,9 @@ void BotController::State_Attack(void)
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
-    // Use wider FOV (90 degrees) for determining if we can attack
+    // 360 degree awareness for attacking
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 90, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 360, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -970,29 +946,7 @@ void BotController::State_Attack(void)
                 }
             }
 
-            //
-            // Burst
-            //
-
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
-
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
-                }
-            }
+            // No burst limiting - full spray
 
             m_iLastFireTime = level.inttime;
 
@@ -1030,40 +984,78 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
         Vector        vTarget;
-        orientation_t eyes_or;
+        orientation_t bone_or;
+        bool          bGotTarget = false;
 
-        if (m_iEnemyEyesTag == -1) {
-            // Cache the tag
-            m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
+        // Cache bone tags if not yet cached
+        if (m_iTorsoUpperTag == -1) {
+            m_iTorsoUpperTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "Bip01 Spine2");
+        }
+        if (m_iTorsoMidTag == -1) {
+            m_iTorsoMidTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "Bip01 Spine1");
+        }
+        if (m_iTorsoLowerTag == -1) {
+            m_iTorsoLowerTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "Bip01 Pelvis");
+        }
+        if (m_iHeadTag == -1) {
+            m_iHeadTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "Bip01 Head");
         }
 
-        if (m_iEnemyEyesTag != -1) {
-            // Use the enemy's eyes bone
-            m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
-            vTarget = eyes_or.origin;
-        } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
-            vTarget = m_pEnemy->origin;
-        }
-
-        if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
+        // Try torso bones first (upper, mid, lower) - pick randomly among them
+        int torsoChoice = rand() % 3;
+        int torsoBones[3] = {m_iTorsoUpperTag, m_iTorsoMidTag, m_iTorsoLowerTag};
+        
+        // Try the random choice first, then try others
+        for (int attempt = 0; attempt < 3 && !bGotTarget; attempt++) {
+            int boneIdx = (torsoChoice + attempt) % 3;
+            int boneTag = torsoBones[boneIdx];
+            
+            if (boneTag != -1) {
+                m_pEnemy->GetTag(boneTag, &bone_or);
+                
+                // Check if we can see this bone
+                Vector start = controlledEnt->EyePosition();
+                Vector end = bone_or.origin;
+                trace_t trace = G_Trace(start, vec_zero, vec_zero, end, controlledEnt, MASK_SHOT, false, "BotAimCheck");
+                
+                if (trace.fraction >= 0.95f || trace.ent == m_pEnemy->edict) {
+                    vTarget = bone_or.origin;
+                    bGotTarget = true;
+                }
             }
-            m_iLastAimTime = level.inttime;
         }
 
-        rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        // Fallback to head ONLY if no torso bone is visible
+        if (!bGotTarget && m_iHeadTag != -1) {
+            m_pEnemy->GetTag(m_iHeadTag, &bone_or);
+            vTarget = bone_or.origin;
+            bGotTarget = true;
+        }
+
+        // Last resort - enemy origin
+        if (!bGotTarget) {
+            vTarget = m_pEnemy->origin;
+            vTarget[2] += m_pEnemy->viewheight * 0.5f;  // roughly torso height
+        }
+
+        // Apply consistent aim scatter
+        float distance = sqrt(fDistanceSquared);
+        
+        // Fixed scatter - consistent miss distance
+        // Close range: ~35 units off
+        // Far range: ~55 units off
+        float offsetAmount = 35.0f + (distance / 1000.0f) * 20.0f;
+        
+        // Random direction only (not random amount)
+        float angle = G_Random(360.0f);
+        
+        Vector aimOffset;
+        aimOffset[0] = cos(DEG2RAD(angle)) * offsetAmount;
+        aimOffset[1] = sin(DEG2RAD(angle)) * offsetAmount;
+        aimOffset[2] = G_CRandom(offsetAmount * 0.3f);
+
+        rotation.AimAt(vTarget + aimOffset);
     } else {
         AimAtAimNode();
     }
@@ -1432,9 +1424,9 @@ void BotController::Killed(const Event& ev)
         m_vLastDeathPos = vec_zero;
     }
 
-    // Choose a new random primary weapon
+    // Choose SMG as primary weapon on respawn
     Event event(EV_Player_PrimaryDMWeapon);
-    event.AddString("auto");
+    event.AddString("smg");
 
     controlledEnt->ProcessEvent(event);
 
@@ -1452,25 +1444,9 @@ void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
     m_iCuriousTime = 0;
-
-    if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
-        //
-        // Randomly play a taunt
-        //
-        Event event("dmmessage");
-
-        event.AddInteger(0);
-
-        if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-            event.AddString("*5" + str(1 + (rand() % 8)));
-        } else {
-            event.AddString("*4" + str(1 + (rand() % 9)));
-        }
-
-        controlledEnt->ProcessEvent(event);
-
-        m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
-    }
+    
+    // Reload after every kill
+    SendCommand("reload");
 }
 
 void BotController::EventStuffText(const str& text)

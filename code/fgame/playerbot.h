@@ -191,6 +191,11 @@ private:
     Vector            m_vLastDeathPos;
     SafePtr<Sentient> m_pEnemy;
     int               m_iEnemyEyesTag;
+    int               m_iTorsoUpperTag;   // Bip01 Spine2
+    int               m_iTorsoMidTag;     // Bip01 Spine1
+    int               m_iTorsoLowerTag;   // Bip01 Pelvis
+    int               m_iHeadTag;         // Bip01 Head (fallback only)
+    int               m_iCombatStartTime; // When we started fighting this enemy
 
     // Input
     usercmd_t  m_botCmd;
