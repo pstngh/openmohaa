@@ -1532,8 +1532,23 @@ Player *DM_Manager::GetPlayer(int index) const
     return m_players.ObjectAt(index);
 }
 
-teamtype_t DM_Manager::GetAutoJoinTeam(void)
+teamtype_t DM_Manager::GetAutoJoinTeam(Player *player)
 {
+    // Check if this is a bot and g_bot_team is configured
+    // When g_bot_team is set to "axis" or "allies", all bots will join that team
+    // and automatic team balancing for bots is disabled
+    if (player && (player->edict->r.svFlags & SVF_BOT)) {
+        const char *bot_team = g_bot_team->string;
+
+        if (!Q_stricmp(bot_team, "axis")) {
+            return TEAM_AXIS;
+        } else if (!Q_stricmp(bot_team, "allies")) {
+            return TEAM_ALLIES;
+        }
+        // Fall through to auto-balancing if set to "auto" or any other value
+    }
+
+    // Default auto-balancing behavior for human players and bots when g_bot_team is "auto"
     int allies = m_team_allies.m_players.NumObjects();
     int axis   = m_team_axis.m_players.NumObjects();
 

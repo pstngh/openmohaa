@@ -6556,9 +6556,9 @@ void Player::DamageFeedback(void)
 
     //
     // Added in 2.0
-    //  Don't show damage when in god mode
+    //  Don't show damage when in god mode (if g_godmode_feedback is disabled)
     //
-    if (flags & FL_GODMODE) {
+    if ((flags & FL_GODMODE) && !g_godmode_feedback->integer) {
         damage_count  = 0;
         damage_blood  = 0;
         damage_alpha  = 0;
@@ -9633,7 +9633,7 @@ void Player::Auto_Join_DM_Team(Event *ev)
 
     Event event(EV_Player_JoinDMTeam, 1);
 
-    if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
+    if (dmManager.GetAutoJoinTeam(this) == TEAM_AXIS) {
         event.AddString("axis");
     } else {
         event.AddString("allies");

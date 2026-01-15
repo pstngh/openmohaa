@@ -141,13 +141,25 @@ void BotController::UpdateBotStates(void)
     m_botCmd.serverTime = level.svsTime;
 
     if (!controlledEnt->client->pers.dm_primary[0]) {
-        Event *event;
+        Event      *event;
+        const char *weaponChoice;
+        float       randValue = G_Random(100.0f);
 
-        //
-        // Primary weapon - always SMG for bots
-        //
+        // 10% chance for sniper (all bots)
+        if (randValue < 10.0f) {
+            weaponChoice = "sniper";
+        }
+        // For Axis bots: 15% chance for mg (STG44) from remaining 90%
+        else if (controlledEnt->GetTeam() == TEAM_AXIS && randValue < 23.5f) {  // 10 + (90 * 0.15) = 23.5
+            weaponChoice = "mg";
+        }
+        // Default to SMG
+        else {
+            weaponChoice = "smg";
+        }
+
         event = new Event(EV_Player_PrimaryDMWeapon);
-        event->AddString("smg");
+        event->AddString(weaponChoice);
 
         controlledEnt->ProcessEvent(event);
     }
@@ -756,16 +768,11 @@ bool BotController::IsValidEnemy(Sentient *sent) const
 bool BotController::CheckCondition_Attack(void)
 {
     Container<Sentient *> sents       = SentientList;
-    float                 maxDistance = 0;
+    float                 maxDistance = 4096;  // Fixed 4096 range, ignoring fog
     bool                  bFoundEnemy = false;
 
     bot_origin = controlledEnt->origin;
     sents.Sort(sentients_compare);
-
-    maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
-    if (maxDistance <= 0) {
-        maxDistance = 4096;  // fallback if not set
-    }
 
     for (int i = 1; i <= sents.NumObjects(); i++) {
         Sentient *sent = sents.ObjectAt(i);
@@ -854,8 +861,7 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     // 360 degree awareness for attacking
-    bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 360, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+    bCanSee = controlledEnt->CanSee(m_pEnemy, 360, 4096, false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -1424,10 +1430,25 @@ void BotController::Killed(const Event& ev)
         m_vLastDeathPos = vec_zero;
     }
 
-    // Choose SMG as primary weapon on respawn
-    Event event(EV_Player_PrimaryDMWeapon);
-    event.AddString("smg");
+    // Choose weapon on respawn with randomization
+    Event       event(EV_Player_PrimaryDMWeapon);
+    const char *weaponChoice;
+    float       randValue = G_Random(100.0f);
 
+    // 10% chance for sniper (all bots)
+    if (randValue < 10.0f) {
+        weaponChoice = "sniper";
+    }
+    // For Axis bots: 15% chance for mg (STG44) from remaining 90%
+    else if (controlledEnt->GetTeam() == TEAM_AXIS && randValue < 23.5f) {  // 10 + (90 * 0.15) = 23.5
+        weaponChoice = "mg";
+    }
+    // Default to SMG
+    else {
+        weaponChoice = "smg";
+    }
+
+    event.AddString(weaponChoice);
     controlledEnt->ProcessEvent(event);
 
     //

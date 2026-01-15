@@ -355,6 +355,14 @@ extern cvar_t *g_bot_lean_max_time;
  * @brief Enable humanized aiming for bots (0 = instant aim, 1 = human-like).
  */
 extern cvar_t *g_bot_aim_human;
+/**
+ * @brief Controls which team bots join. Values: "auto" (default, balance teams), "axis", "allies".
+ */
+extern cvar_t *g_bot_team;
+/**
+ * @brief Enable pain feedback (viewkick/blood) when using godmode. 1 = show feedback (default), 0 = no feedback.
+ */
+extern cvar_t *g_godmode_feedback;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

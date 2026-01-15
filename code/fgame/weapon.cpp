@@ -1043,6 +1043,12 @@ void Weapon::UseAmmo(int amount, firemode_t mode)
             warning("UseAmmo", "Used more ammo than in clip.\n");
             ammo_in_clip[mode] = 0;
         }
+
+        // Auto-refill clip when infinite ammo is active (dmflags 16384)
+        if (owner && owner->isClient() && UnlimitedAmmo(mode)) {
+            ammo_in_clip[mode] = ammo_clip_size[mode];
+        }
+
         if (!ammo_in_clip[mode]) {
             SetShouldReload(qtrue);
         }

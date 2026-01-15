@@ -303,6 +303,8 @@ cvar_t *g_bot_lean_min_time;
 cvar_t *g_bot_lean_max_time;
 
 cvar_t *g_bot_aim_human;
+cvar_t *g_bot_team;
+cvar_t *g_godmode_feedback;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -731,6 +733,12 @@ void CVAR_Init(void)
 
     // Bot humanized aim
     g_bot_aim_human = gi.Cvar_Get("g_bot_aim_human", "1", 0);
+
+    // g_bot_team: Controls which team bots join. Values: "auto" (default, balance teams), "axis", "allies"
+    g_bot_team = gi.Cvar_Get("g_bot_team", "auto", 0);
+
+    // g_godmode_feedback: Show pain feedback when using godmode (1 = show, 0 = hide)
+    g_godmode_feedback = gi.Cvar_Get("g_godmode_feedback", "1", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

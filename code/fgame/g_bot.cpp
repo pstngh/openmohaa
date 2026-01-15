@@ -34,6 +34,33 @@ static float  botInitTime          = 0;
 Container<str> alliedModelList;
 Container<str> germanModelList;
 
+// Preset bot names - used in order before falling back to generated names
+static const char *presetBotNames[] = {
+    "|PikkOn|R->|",
+    "|muSSolini|R->|",
+    "|Ubermensch|R->|",
+    "|TiTaN|R->|",
+    "|RaRe VoGeL|R->|",
+    "|C.K.|R->|",
+    "Synergy.kO",
+    "traiNee.kO",
+    ".machinae.ski.",
+    ".machinae.Konig.",
+    "boO.Gr1m-",
+    "|MoffenMoller|R->|",
+    "|mrcl|R->|",
+    "forte dim",
+    "forte kode",
+    "forte turbeau",
+    "boO.Medion",
+    "6s.Princey",
+    "6s.ReNe",
+    "ZooM.3D-Supply # Trigger",
+    "ZooM.3D-Supply # schmahlhans",
+    "[NL] IceD"
+};
+static const int numPresetBotNames = sizeof(presetBotNames) / sizeof(presetBotNames[0]);
+
 saved_bot_t::saved_bot_t()
     : userinfo {0}
 {}
@@ -465,7 +492,12 @@ gentity_t *G_AddBot(const bot_info_t *info)
         if (v && *v->string) {
             Q_strncpyz(botName, v->string, sizeof(botName));
         } else {
-            Com_sprintf(botName, sizeof(botName), "bot%d", botId);
+            // Use preset bot names in order, then fall back to generated names
+            if (botId > 0 && botId <= numPresetBotNames) {
+                Q_strncpyz(botName, presetBotNames[botId - 1], sizeof(botName));
+            } else {
+                Com_sprintf(botName, sizeof(botName), "bot%d", botId);
+            }
         }
     }
 

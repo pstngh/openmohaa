@@ -247,7 +247,7 @@ public:
     bool       IsGameActive(void) const;
     int        PlayerCount(void) const;
     Player    *GetPlayer(int index) const;
-    teamtype_t GetAutoJoinTeam(void);
+    teamtype_t GetAutoJoinTeam(Player *player = NULL);
 
     DM_Team *GetTeamAllies(void);
     DM_Team *GetTeamAxis(void);

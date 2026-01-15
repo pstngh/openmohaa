@@ -74,7 +74,7 @@ void P_DamageFeedback( gentity_t *player ) {
 	//}
 
 	// play an apropriate pain sound
-	if ( (level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE) ) {
+	if ( level.time > player->pain_debounce_time && (!(player->flags & FL_GODMODE) || g_godmode_feedback->integer) ) {
 		player->pain_debounce_time = level.time + 700;
 		//G_AddEvent( player, EV_PAIN, player->health );
 		//client->ps.damageEvent++;
