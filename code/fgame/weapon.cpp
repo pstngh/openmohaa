@@ -1036,6 +1036,11 @@ void Weapon::UseAmmo(int amount, firemode_t mode)
         return;
     }
 
+    // Bottomless clip: Skip ammo subtraction entirely if DF_INFINITE_AMMO is set
+    if (DM_FLAG(DF_INFINITE_AMMO)) {
+        return;
+    }
+
     // Remove ammo from the clip if it's available
     if (ammo_clip_size[mode]) {
         ammo_in_clip[mode] -= amount;
