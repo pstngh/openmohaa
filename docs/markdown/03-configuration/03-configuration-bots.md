@@ -125,6 +125,81 @@ The chance at which the bot sends an instant message when shooting.
 
 The minimum delay between instant messages.
 
+## Combat and targeting
+
+### `g_bot_aim_legal_zones_only`
+
+- **Default**: 1
+- **Type**: integer (boolean)
+
+#### Description
+
+Enables legal hit zone targeting, restricting bots to aim only at middle/lower torso, arms, hands, pelvis, and legs.
+
+#### Usage
+
+- `0`: Disable legal zones (bots use original aiming that targets head/eyes).
+- `1`: Enable legal zones only (default, excludes head, upper torso, and feet).
+
+#### Notes
+
+When enabled, bots will never directly target the head, upper torso, or feet unless those are the only parts visible. This creates more realistic and fair combat where bots don't consistently land headshots.
+
+### `g_bot_aim_zone_change_time`
+
+- **Default**: 0.15
+- **Type**: float (seconds)
+
+#### Description
+
+Time between aim zone changes during combat, creating a "dancing" aim effect.
+
+#### Usage
+
+- Lower values (e.g., `0.05`): Very rapid aim dancing, more erratic spray patterns.
+- Higher values (e.g., `0.3`): Slower aim changes, more predictable targeting.
+- `0.15`: Default, creates natural-looking aim adjustments during spray.
+
+#### Notes
+
+The bot dynamically switches between 10 different legal hit zones (various parts of middle/lower torso, arms, pelvis, and legs) at this interval. This prevents bots from locking onto a single spot and creates more realistic spray patterns.
+
+### `g_bot_disable_burst`
+
+- **Default**: 1
+- **Type**: integer (boolean)
+
+#### Description
+
+Disables burst fire limiting to allow full-spray continuous firing.
+
+#### Usage
+
+- `0`: Normal burst behavior (bots pause between bursts using g_bot_attack_burst_* cvars).
+- `1`: Disable bursting (default, allows continuous spray).
+
+#### Notes
+
+When enabled, bots will spray continuously without artificial pauses. When disabled, bots use the existing burst timing cvars (g_bot_attack_burst_min_time and g_bot_attack_burst_random_delay) to create firing pauses.
+
+### `g_bot_reload_after_kill`
+
+- **Default**: 1
+- **Type**: integer (boolean)
+
+#### Description
+
+Automatically reload immediately after every kill when no other enemy is in sight.
+
+#### Usage
+
+- `0`: Disable auto-reload after kills.
+- `1`: Enable auto-reload after kills (default).
+
+#### Notes
+
+This ensures bots maintain a full magazine when safe, preventing them from being caught with low ammo in the next engagement. Bots only reload if they have no current enemy target.
+
 ## Movement behavior
 
 ### `g_bot_strafe_enabled`
