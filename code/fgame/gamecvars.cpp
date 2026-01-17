@@ -289,6 +289,11 @@ cvar_t *g_bot_attack_react_min_delay;
 cvar_t *g_bot_attack_react_random_delay;
 cvar_t *g_bot_attack_spreadmult;
 cvar_t *g_bot_turn_speed;
+cvar_t *g_bot_strafe_enabled;
+cvar_t *g_bot_strafe_intensity;
+cvar_t *g_bot_strafe_min_change_time;
+cvar_t *g_bot_strafe_max_change_time;
+cvar_t *g_bot_lean_match_chance;
 cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
@@ -685,6 +690,11 @@ void CVAR_Init(void)
     g_bot_attack_react_random_delay            = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
     g_bot_attack_spreadmult                    = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
     g_bot_turn_speed                           = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
+    g_bot_strafe_enabled                       = gi.Cvar_Get("g_bot_strafe_enabled", "1", 0);
+    g_bot_strafe_intensity                     = gi.Cvar_Get("g_bot_strafe_intensity", "1.0", 0);
+    g_bot_strafe_min_change_time               = gi.Cvar_Get("g_bot_strafe_min_change_time", "0.05", 0);
+    g_bot_strafe_max_change_time               = gi.Cvar_Get("g_bot_strafe_max_change_time", "0.5", 0);
+    g_bot_lean_match_chance                    = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
     g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
     g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
 

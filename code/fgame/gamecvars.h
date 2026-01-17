@@ -306,6 +306,27 @@ extern cvar_t *g_bot_attack_spreadmult;
  */
 extern cvar_t *g_bot_turn_speed;
 /**
+ * @brief Enable/disable persistent strafe and lean behavior.
+ * 0 = disable, 1 = enable
+ */
+extern cvar_t *g_bot_strafe_enabled;
+/**
+ * @brief The intensity of bot strafing (0.0 to 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+/**
+ * @brief Minimum time before changing strafe/lean direction (in seconds).
+ */
+extern cvar_t *g_bot_strafe_min_change_time;
+/**
+ * @brief Maximum time before changing strafe/lean direction (in seconds).
+ */
+extern cvar_t *g_bot_strafe_max_change_time;
+/**
+ * @brief Percentage chance (0-100) that lean direction matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_match_chance;
+/**
  * @brief A value that determines the chance of the bot sending an instant message on kill.
  * 0 = disable
  * The higher the value, the lower the frequency of instant messages.

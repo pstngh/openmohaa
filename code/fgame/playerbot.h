@@ -45,6 +45,7 @@ public:
     void SetControlledEntity(Player *newEntity);
 
     void MoveThink(usercmd_t& botcmd);
+    void ApplyStrafe(usercmd_t& botcmd, int strafeDirection, float intensity);
 
     void AvoidPath(
         Vector vPos,
@@ -177,6 +178,13 @@ private:
     Vector m_vAimOffset;
     int    m_iLastAimTime;
 
+    // Strafe and lean states
+    int   m_iStrafeDirection;      // -1 = left, 1 = right
+    int   m_iLeanDirection;        // -1 = left, 1 = right, 0 = none
+    int   m_iNextStrafeChangeTime; // When to change strafe direction
+    int   m_iNextLeanChangeTime;   // When to change lean direction
+    float m_fStrafeIntensity;      // Current strafe intensity (0.0 to 1.0)
+
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;
@@ -212,6 +220,7 @@ private:
     void CheckUse(void);
     bool CheckWindows(void);
     void CheckValidWeapon(void);
+    void UpdateStrafeAndLean(void);
 
     void State_DefaultBegin(void);
     void State_DefaultEnd(void);

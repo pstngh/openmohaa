@@ -79,6 +79,13 @@ BotController::BotController()
     m_iNextTauntTime = 0;
 
     m_StateFlags = 0;
+
+    // Initialize strafe and lean
+    m_iStrafeDirection      = (rand() % 2) ? -1 : 1;
+    m_iLeanDirection        = 0;
+    m_iNextStrafeChangeTime = 0;
+    m_iNextLeanChangeTime   = 0;
+    m_fStrafeIntensity      = 1.0f;
 }
 
 BotController::~BotController()
@@ -176,11 +183,83 @@ void BotController::UpdateBotStates(void)
 
     CheckStates();
 
+    // Update strafe and lean directions
+    UpdateStrafeAndLean();
+
     movement.MoveThink(m_botCmd);
+
+    // Apply persistent strafing if enabled
+    if (g_bot_strafe_enabled->integer) {
+        movement.ApplyStrafe(m_botCmd, m_iStrafeDirection, m_fStrafeIntensity);
+    }
+
     rotation.TurnThink(m_botCmd, m_botEyes);
     CheckUse();
 
     CheckValidWeapon();
+}
+
+void BotController::UpdateStrafeAndLean(void)
+{
+    // Check if strafe is enabled
+    if (!g_bot_strafe_enabled->integer) {
+        return;
+    }
+
+    // Update strafe intensity from cvar
+    m_fStrafeIntensity = g_bot_strafe_intensity->value;
+
+    // Calculate time range in milliseconds
+    int minChangeTime = (int)(g_bot_strafe_min_change_time->value * 1000);
+    int maxChangeTime = (int)(g_bot_strafe_max_change_time->value * 1000);
+    int timeRange = maxChangeTime - minChangeTime;
+
+    if (timeRange < 0) {
+        timeRange = 0;
+    }
+
+    // Check if it's time to change strafe direction
+    if (level.inttime >= m_iNextStrafeChangeTime) {
+        // Change strafe direction randomly (left or right)
+        m_iStrafeDirection = (rand() % 2) ? -1 : 1;
+
+        // Set next change time using cvars
+        m_iNextStrafeChangeTime = level.inttime + minChangeTime + (rand() % (timeRange + 1));
+
+        // Use cvar for match chance
+        int matchChance = rand() % 100;
+        int matchThreshold = (int)g_bot_lean_match_chance->value;
+
+        if (matchChance < matchThreshold) {
+            // Match the strafe direction
+            m_iLeanDirection = m_iStrafeDirection;
+        } else {
+            // Independent direction (opposite or same)
+            m_iLeanDirection = (rand() % 2) ? -1 : 1;
+        }
+    }
+
+    // Check if it's time to change lean direction independently
+    if (level.inttime >= m_iNextLeanChangeTime) {
+        // Only change if not recently synced with strafe
+        // This allows for occasional independent lean changes
+        int matchThreshold = (int)g_bot_lean_match_chance->value;
+        if (rand() % 100 >= matchThreshold) {
+            m_iLeanDirection = (rand() % 2) ? -1 : 1;
+        }
+
+        // Set next lean change time
+        m_iNextLeanChangeTime = level.inttime + minChangeTime + (rand() % (timeRange + 1));
+    }
+
+    // Apply lean buttons
+    m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    if (m_iLeanDirection < 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_LEFT;
+    } else if (m_iLeanDirection > 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_RIGHT;
+    }
 }
 
 void BotController::CheckUse(void)

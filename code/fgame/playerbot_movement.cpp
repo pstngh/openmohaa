@@ -55,6 +55,27 @@ void BotMovement::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
+void BotMovement::ApplyStrafe(usercmd_t& botcmd, int strafeDirection, float intensity)
+{
+    if (!controlledEntity) {
+        return;
+    }
+
+    // Don't strafe if on ladder
+    if (controlledEntity->GetLadder()) {
+        return;
+    }
+
+    // Apply strafe movement additively to existing rightmove
+    // strafeDirection: -1 for left, 1 for right
+    // intensity: 0.0 to 1.0 multiplier
+    int strafeAmount = (int)(127 * intensity * strafeDirection);
+
+    // Add to existing rightmove, clamping to valid range
+    int newRightMove = botcmd.rightmove + strafeAmount;
+    botcmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
+}
+
 void BotMovement::MoveThink(usercmd_t& botcmd)
 {
     Vector vAngles;
