@@ -47,3 +47,4 @@ out
 # Flex and Bison
 ####################
 /code/parser/generated
+.github/workflows/build-game.yml
