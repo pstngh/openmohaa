@@ -9631,9 +9631,27 @@ void Player::Auto_Join_DM_Team(Event *ev)
         return;
     };
 
-    Event event(EV_Player_JoinDMTeam, 1);
+    Event      event(EV_Player_JoinDMTeam, 1);
+    teamtype_t team;
 
-    if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
+    // Check if this is a bot and g_bot_team is set
+    if (G_IsBot(edict)) {
+        const char *bot_team = g_bot_team->string;
+
+        if (!Q_stricmp(bot_team, "axis")) {
+            team = TEAM_AXIS;
+        } else if (!Q_stricmp(bot_team, "allies")) {
+            team = TEAM_ALLIES;
+        } else {
+            // Default to auto-balance
+            team = dmManager.GetAutoJoinTeam();
+        }
+    } else {
+        // Regular players use auto-balance
+        team = dmManager.GetAutoJoinTeam();
+    }
+
+    if (team == TEAM_AXIS) {
         event.AddString("axis");
     } else {
         event.AddString("allies");

@@ -340,6 +340,11 @@ extern cvar_t *g_bot_instamsg_delay;
  */
 extern cvar_t *g_bot_initial_spawn_delay;
 
+/**
+ * Controls bot team assignment ("axis", "allies", or "auto")
+ */
+extern cvar_t *g_bot_team;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

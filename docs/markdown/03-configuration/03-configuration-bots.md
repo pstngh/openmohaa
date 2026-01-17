@@ -21,6 +21,27 @@ This sets how long the game should wait before spawning bots after loading a new
 - Applies only once when a new map has finished loading. It is not triggered on restarts or between rounds.
 - Doesn't affect individual bot respawns during gameplay.
 
+### `g_bot_team`
+
+- **Default**: auto
+- **Type**: string
+
+#### Description
+
+Controls which team all bots will join in team-based game modes.
+
+#### Usage
+
+- `auto`: Bots auto-balance between teams (default behavior).
+- `axis`: All bots join the Axis team.
+- `allies`: All bots join the Allied team.
+
+#### Notes
+
+- Only affects bots; human players continue to use auto-balance.
+- Useful for creating asymmetric scenarios or testing specific team compositions.
+- Changes take effect when bots respawn or when new bots are added.
+
 ## Altering behavior
 
 There is no skill system yet, however some settings can be modified to alter bot difficulty:
