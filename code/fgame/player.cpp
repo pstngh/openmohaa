@@ -8778,6 +8778,33 @@ void Player::InitDeathmatch(void)
         }
     }
 
+    // Bot weapon distribution - set before EquipWeapons() is called
+    if (G_IsBot(edict) && current_team) {
+        teamtype_t team = GetTeam();
+        float      roll = G_Random();
+        const char *weapon;
+
+        if (team == TEAM_ALLIES) {
+            // Allied bots: 90% SMG, 10% Sniper
+            weapon = (roll < 0.90f) ? "smg" : "sniper";
+        } else if (team == TEAM_AXIS) {
+            // Axis bots: 80% SMG, 10% Sniper, 10% MG
+            if (roll < 0.80f) {
+                weapon = "smg";
+            } else if (roll < 0.90f) {
+                weapon = "sniper";
+            } else {
+                weapon = "mg";  // STG44 for Germans
+            }
+        } else {
+            weapon = NULL;  // No override for other teams
+        }
+
+        if (weapon) {
+            Q_strncpyz(client->pers.dm_primary, weapon, sizeof(client->pers.dm_primary));
+        }
+    }
+
     ChooseSpawnPoint();
     EquipWeapons();
 
