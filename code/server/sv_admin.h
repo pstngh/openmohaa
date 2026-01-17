@@ -132,20 +132,20 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
 void SV_AddAdminCommands(void);
 void SV_RemoveAdminCommands(void);
 
-// Command implementations
-void SV_AdminLogin_f(void);
-void SV_AdminKick_f(void);
-void SV_AdminClientKick_f(void);
-void SV_AdminBanIP_f(void);
-void SV_AdminBanID_f(void);
-void SV_AdminUnbanIP_f(void);
-void SV_AdminDisableChat_f(void);
-void SV_AdminDisableTaunt_f(void);
-void SV_AdminSay_f(void);
-void SV_AdminStatus_f(void);
-void SV_AdminListAdmins_f(void);
-void SV_AdminListIPs_f(void);
-void SV_AdminMap_f(void);
+// Command implementations (client commands - receive client_t* parameter)
+void SV_AdminLogin_f(client_t *cl);
+void SV_AdminKick_f(client_t *cl);
+void SV_AdminClientKick_f(client_t *cl);
+void SV_AdminBanIP_f(client_t *cl);
+void SV_AdminBanID_f(client_t *cl);
+void SV_AdminUnbanIP_f(client_t *cl);
+void SV_AdminDisableChat_f(client_t *cl);
+void SV_AdminDisableTaunt_f(client_t *cl);
+void SV_AdminSay_f(client_t *cl);
+void SV_AdminStatus_f(client_t *cl);
+void SV_AdminListAdmins_f(client_t *cl);
+void SV_AdminListIPs_f(client_t *cl);
+void SV_AdminMap_f(client_t *cl);
 
 //=============================================================================
 // UTILITY FUNCTIONS

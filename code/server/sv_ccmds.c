@@ -1968,9 +1968,6 @@ void SV_AddOperatorCommands(void) {
 	// Added in 2.30
     Cmd_AddCommand("reloadmap", SV_ReloadMap_f);
 
-	// Admin system commands
-	SV_AddAdminCommands();
-
 	// Changed in 2.0
 	//  Set medium mode regardless of if the developer mode is set
 	SV_MediumMode_f();
@@ -1982,9 +1979,6 @@ SV_RemoveOperatorCommands
 ==================
 */
 void SV_RemoveOperatorCommands(void) {
-	// Admin system commands
-	SV_RemoveAdminCommands();
-
 #if 0
 	// removing these won't let the server start again
 	Cmd_RemoveCommand("heartbeat");

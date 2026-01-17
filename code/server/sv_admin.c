@@ -1018,17 +1018,14 @@ Command: ad_login <username> <password>
 Authenticates an admin and creates a session
 ==================
 */
-void SV_AdminLogin_f(void)
+void SV_AdminLogin_f(client_t *cl)
 {
-    client_t *cl;
     const char *username;
     const char *password;
     adminEntry_t *admin;
     adminSession_t *session;
 
-    cl = SV_GetCallingClient();
     if (!cl) {
-        Com_Printf("ad_login can only be used by connected clients\n");
         return;
     }
 
@@ -1072,20 +1069,14 @@ Command: ad_kick <player_name>
 Kicks a player by name
 ==================
 */
-void SV_AdminKick_f(void)
+void SV_AdminKick_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     const char *playerName;
     client_t *target;
     int i;
     char targetIP[64];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_kick can only be used by connected clients\n");
-        return;
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -1139,18 +1130,13 @@ Command: ad_clientkick <client_id>
 Kicks a player by client ID
 ==================
 */
-void SV_AdminClientKick_f(void)
+void SV_AdminClientKick_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int clientId;
     client_t *target;
     char targetIP[64];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_clientkick can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1201,17 +1187,11 @@ Command: ad_banip <ip_address>
 Bans an IP address
 ==================
 */
-void SV_AdminBanIP_f(void)
+void SV_AdminBanIP_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     const char *ipMask;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_banip can only be used by connected clients\n");
-        return;
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1245,18 +1225,13 @@ Command: ad_banid <client_id>
 Bans a player by client ID (resolves their IP and adds to ban list)
 ==================
 */
-void SV_AdminBanID_f(void)
+void SV_AdminBanID_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int clientId;
     client_t *target;
     char targetIP[64];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_banid can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1310,17 +1285,11 @@ Command: ad_unbanip <ip_address>
 Removes an IP address from the ban list
 ==================
 */
-void SV_AdminUnbanIP_f(void)
+void SV_AdminUnbanIP_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     const char *ipMask;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_unbanip can only be used by connected clients\n");
-        return;
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1354,18 +1323,13 @@ Command: ad_dischat <client_id>
 Disables chat for a player (24 hour duration)
 ==================
 */
-void SV_AdminDisableChat_f(void)
+void SV_AdminDisableChat_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int clientId;
     client_t *target;
     char targetIP[64];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_dischat can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1417,18 +1381,13 @@ Command: ad_distaunt <client_id>
 Disables taunts for a player (24 hour duration)
 ==================
 */
-void SV_AdminDisableTaunt_f(void)
+void SV_AdminDisableTaunt_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int clientId;
     client_t *target;
     char targetIP[64];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_distaunt can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1480,17 +1439,12 @@ Command: ad_say <message>
 Sends a message from admin to all players
 ==================
 */
-void SV_AdminSay_f(void)
+void SV_AdminSay_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     const char *message;
     char fullMessage[256];
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_say can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1528,9 +1482,8 @@ Command: ad_status
 Shows all connected players with their IPs (Level 1+)
 ==================
 */
-void SV_AdminStatus_f(void)
+void SV_AdminStatus_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int i;
     client_t *target;
@@ -1539,10 +1492,6 @@ void SV_AdminStatus_f(void)
     int remaining = sizeof(buffer);
     int written;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_status can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1588,9 +1537,8 @@ Command: ad_listadmins
 Lists all currently logged-in admins
 ==================
 */
-void SV_AdminListAdmins_f(void)
+void SV_AdminListAdmins_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int i;
     int count = 0;
@@ -1599,10 +1547,6 @@ void SV_AdminListAdmins_f(void)
     int remaining = sizeof(buffer);
     int written;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_listadmins can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1652,9 +1596,8 @@ Command: ad_listips
 Lists all banned IPs (Level 2 only)
 ==================
 */
-void SV_AdminListIPs_f(void)
+void SV_AdminListIPs_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     int i;
     char buffer[2048];
@@ -1662,10 +1605,6 @@ void SV_AdminListIPs_f(void)
     int remaining = sizeof(buffer);
     int written;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_listips can only be used by connected clients\n");
-        return;
     }
 
     session = SV_GetClientAdminSession(cl);
@@ -1714,17 +1653,11 @@ Command: ad_map <mapname>
 Changes the current map (Level 1+)
 ==================
 */
-void SV_AdminMap_f(void)
+void SV_AdminMap_f(client_t *cl)
 {
-    client_t *cl;
     adminSession_t *session;
     const char *mapname;
 
-    cl = SV_GetCallingClient();
-    if (!cl) {
-        Com_Printf("ad_map can only be used by connected clients\n");
-        return;
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {

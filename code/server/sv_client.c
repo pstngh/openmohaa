@@ -1715,6 +1715,21 @@ static ucmd_t ucmds[] = {
 	{"voip", SV_Voip_f},
 #endif
 
+	// Admin system commands
+	{"ad_login", SV_AdminLogin_f},
+	{"ad_kick", SV_AdminKick_f},
+	{"ad_clientkick", SV_AdminClientKick_f},
+	{"ad_banip", SV_AdminBanIP_f},
+	{"ad_banid", SV_AdminBanID_f},
+	{"ad_unbanip", SV_AdminUnbanIP_f},
+	{"ad_dischat", SV_AdminDisableChat_f},
+	{"ad_distaunt", SV_AdminDisableTaunt_f},
+	{"ad_say", SV_AdminSay_f},
+	{"ad_status", SV_AdminStatus_f},
+	{"ad_listadmins", SV_AdminListAdmins_f},
+	{"ad_listips", SV_AdminListIPs_f},
+	{"ad_map", SV_AdminMap_f},
+
 	{NULL, NULL}
 };
 
