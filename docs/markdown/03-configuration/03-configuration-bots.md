@@ -97,7 +97,7 @@ Bots have **360-degree awareness** at all times. They can detect enemies in any 
 
 ### Visual Range
 
-Bots can see enemies up to **4096 units** away (limited only by the engine's far plane distance). This maximizes their detection range across all map sizes.
+Bots can see enemies up to **4096 units** away, regardless of fog settings. Unlike regular AI, bots are not affected by the map's far plane distance or fog - they maintain full vision range at all times.
 
 ### Sound Detection
 
