@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.50)
 
 if(POLICY CMP0177)
     # Policy CMP0177: install() DESTINATION paths are normalized
