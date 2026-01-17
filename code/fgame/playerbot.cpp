@@ -529,24 +529,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    switch (iType) {
-    case AI_EVENT_MISC:
-    case AI_EVENT_MISC_LOUD:
-        break;
-    case AI_EVENT_WEAPON_FIRE:
-    case AI_EVENT_WEAPON_IMPACT:
-    case AI_EVENT_EXPLOSION:
-    case AI_EVENT_AMERICAN_VOICE:
-    case AI_EVENT_GERMAN_VOICE:
-    case AI_EVENT_AMERICAN_URGENT:
-    case AI_EVENT_GERMAN_URGENT:
-    case AI_EVENT_FOOTSTEP:
-    case AI_EVENT_GRENADE:
-    default:
-        m_iCuriousTime   = level.inttime + 20000;
-        m_vNewCuriousPos = vPos;
-        break;
-    }
+    // React to all sound events by becoming curious and investigating
+    m_iCuriousTime   = level.inttime + 20000;
+    m_vNewCuriousPos = vPos;
 }
 
 /*
@@ -849,9 +834,9 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+        maxDistance = Q_min(4096.0f, world->farplane_distance * 0.828);
 
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
+        if (controlledEnt->CanSee(sent, 360, maxDistance, false)) {
             if (m_pEnemy != sent) {
                 m_iEnemyEyesTag = -1;
             }
@@ -1046,7 +1031,7 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 360, Q_min(4096.0f, world->farplane_distance * 0.828), false);
 
     if (bCanSee) {
         if (!pWeap) {

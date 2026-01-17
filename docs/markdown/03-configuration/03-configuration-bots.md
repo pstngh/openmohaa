@@ -89,6 +89,33 @@ The chance at which the bot sends an instant message when shooting.
 
 The minimum delay between instant messages.
 
+## Awareness and detection
+
+### Field of View (FOV)
+
+Bots have **360-degree awareness** at all times. They can detect enemies in any direction without needing to face them, simulating perfect spatial awareness.
+
+### Visual Range
+
+Bots can see enemies up to **4096 units** away (limited only by the engine's far plane distance). This maximizes their detection range across all map sizes.
+
+### Sound Detection
+
+Bots react to all AI sound events within their detection radius:
+- **Footsteps** (512 units): Movement sounds from enemies
+- **Weapon Fire** (2048 units): Gunshots and weapon discharge
+- **Weapon Impact** (384 units): Bullet impacts and hits
+- **Explosions** (4096 units): Grenade and explosive detonations
+- **Grenades** (384 units): Thrown grenades
+- **Voice Lines** (1024-1536 units): Team voice commands
+- **Miscellaneous Sounds** (1500-2250 units): Doors, objects, and environment
+
+When a sound is detected, bots enter a "curious" state for 20 seconds and actively move toward the sound source to investigate.
+
+### Aggressive Seeking
+
+Bots proactively move toward any detected enemy sounds or visual contacts. They do not wait passively but immediately pursue detected threats, making them highly responsive to player activity.
+
 ## Combat and targeting
 
 ### `g_bot_aim_legal_zones_only`
