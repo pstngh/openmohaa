@@ -1107,26 +1107,23 @@ void BotController::State_Attack(void)
             // Burst
             //
 
-            // Only apply burst limiting if not disabled
-            if (!g_bot_disable_burst->integer) {
-                if (m_iLastBurstTime) {
-                    if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                        m_iLastBurstTime      = 0;
-                        m_iContinuousFireTime = 0;
-                    } else {
-                        m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                    }
+            if (m_iLastBurstTime) {
+                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
+                    m_iLastBurstTime      = 0;
+                    m_iContinuousFireTime = 0;
                 } else {
-                    if (bFiring) {
-                        m_iContinuousFireTime += level.intframetime;
-                    } else {
-                        m_iContinuousFireTime = 0;
-                    }
+                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+                }
+            } else {
+                if (bFiring) {
+                    m_iContinuousFireTime += level.intframetime;
+                } else {
+                    m_iContinuousFireTime = 0;
+                }
 
-                    if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                        m_iLastBurstTime      = level.inttime;
-                        m_iContinuousFireTime = 0;
-                    }
+                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
+                    m_iLastBurstTime      = level.inttime;
+                    m_iContinuousFireTime = 0;
                 }
             }
 

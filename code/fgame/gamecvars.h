@@ -336,11 +336,6 @@ extern cvar_t *g_bot_aim_legal_zones_only;
  */
 extern cvar_t *g_bot_aim_zone_change_time;
 /**
- * @brief Disable burst limiting for full-spray firing.
- * 0 = normal burst behavior, 1 = disable bursting (always spray)
- */
-extern cvar_t *g_bot_disable_burst;
-/**
  * @brief Automatically reload after kills when no enemy is in sight.
  * 0 = disable, 1 = enable
  */

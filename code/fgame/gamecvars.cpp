@@ -296,7 +296,6 @@ cvar_t *g_bot_strafe_max_change_time;
 cvar_t *g_bot_lean_match_chance;
 cvar_t *g_bot_aim_legal_zones_only;
 cvar_t *g_bot_aim_zone_change_time;
-cvar_t *g_bot_disable_burst;
 cvar_t *g_bot_reload_after_kill;
 cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
@@ -686,10 +685,10 @@ void CVAR_Init(void)
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
-    g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0.1", 0);
-    g_bot_attack_burst_random_delay            = gi.Cvar_Get("g_bot_attack_burst_random_delay", "0.5", 0);
-    g_bot_attack_continuousfire_min_firetime    = gi.Cvar_Get("g_bot_attack_continuousfire_min_firetime", "0.5", 0);
-    g_bot_attack_continuousfire_random_firetime = gi.Cvar_Get("g_bot_attack_continuousfire_random_firetime", "1.5", 0);
+    g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0", 0);
+    g_bot_attack_burst_random_delay            = gi.Cvar_Get("g_bot_attack_burst_random_delay", "0", 0);
+    g_bot_attack_continuousfire_min_firetime    = gi.Cvar_Get("g_bot_attack_continuousfire_min_firetime", "999", 0);
+    g_bot_attack_continuousfire_random_firetime = gi.Cvar_Get("g_bot_attack_continuousfire_random_firetime", "0", 0);
     g_bot_attack_react_min_delay               = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_attack_react_random_delay            = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
     g_bot_attack_spreadmult                    = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
@@ -701,7 +700,6 @@ void CVAR_Init(void)
     g_bot_lean_match_chance                    = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
     g_bot_aim_legal_zones_only                 = gi.Cvar_Get("g_bot_aim_legal_zones_only", "1", 0);
     g_bot_aim_zone_change_time                 = gi.Cvar_Get("g_bot_aim_zone_change_time", "0.15", 0);
-    g_bot_disable_burst                        = gi.Cvar_Get("g_bot_disable_burst", "1", 0);
     g_bot_reload_after_kill                    = gi.Cvar_Get("g_bot_reload_after_kill", "1", 0);
     g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
     g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
