@@ -327,6 +327,25 @@ extern cvar_t *g_bot_strafe_max_change_time;
  */
 extern cvar_t *g_bot_lean_match_chance;
 /**
+ * @brief Enable legal hit zone targeting only (excludes head, upper torso, feet).
+ * 0 = disable, 1 = enable
+ */
+extern cvar_t *g_bot_aim_legal_zones_only;
+/**
+ * @brief Time in seconds between aim zone changes (aim dancing).
+ */
+extern cvar_t *g_bot_aim_zone_change_time;
+/**
+ * @brief Disable burst limiting for full-spray firing.
+ * 0 = normal burst behavior, 1 = disable bursting (always spray)
+ */
+extern cvar_t *g_bot_disable_burst;
+/**
+ * @brief Automatically reload after kills when no enemy is in sight.
+ * 0 = disable, 1 = enable
+ */
+extern cvar_t *g_bot_reload_after_kill;
+/**
  * @brief A value that determines the chance of the bot sending an instant message on kill.
  * 0 = disable
  * The higher the value, the lower the frequency of instant messages.

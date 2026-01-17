@@ -86,6 +86,10 @@ BotController::BotController()
     m_iNextStrafeChangeTime = 0;
     m_iNextLeanChangeTime   = 0;
     m_fStrafeIntensity      = 1.0f;
+
+    // Initialize aim zones
+    m_iCurrentAimZone        = 0;
+    m_iNextAimZoneChangeTime = 0;
 }
 
 BotController::~BotController()
@@ -880,6 +884,106 @@ bool BotController::CheckCondition_Attack(void)
     return true;
 }
 
+void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
+{
+    if (!enemy) {
+        outOffset = Vector(0, 0, 0);
+        return;
+    }
+
+    // Define legal hit zones (0-9):
+    // 0-1: Middle torso (center mass)
+    // 2-3: Lower torso
+    // 4-5: Pelvis/hip area
+    // 6-7: Left/Right arms (sides)
+    // 8-9: Left/Right legs
+
+    Vector mins = enemy->mins;
+    Vector maxs = enemy->maxs;
+    float  width  = maxs.x - mins.x;
+    float  height = maxs.z - mins.z;
+
+    // Height divisions (from bottom to top):
+    // feet: 0.0 - 0.2 (excluded)
+    // legs: 0.2 - 0.45
+    // pelvis: 0.45 - 0.55
+    // lower torso: 0.55 - 0.7
+    // middle torso: 0.7 - 0.8
+    // upper torso: 0.8 - 0.9 (excluded)
+    // head: 0.9 - 1.0 (excluded)
+
+    // Change aim zone based on timer
+    if (level.inttime >= m_iNextAimZoneChangeTime) {
+        m_iCurrentAimZone        = rand() % 10;
+        m_iNextAimZoneChangeTime = level.inttime + (int)(g_bot_aim_zone_change_time->value * 1000);
+    }
+
+    float heightRatio;
+    float sideOffset;
+
+    switch (m_iCurrentAimZone) {
+    case 0: // Middle torso center
+        heightRatio = 0.7 + G_Random(0.1);
+        sideOffset  = G_CRandom(width * 0.2);
+        break;
+
+    case 1: // Middle torso side
+        heightRatio = 0.7 + G_Random(0.1);
+        sideOffset  = G_CRandom(width * 0.4);
+        break;
+
+    case 2: // Lower torso center
+        heightRatio = 0.55 + G_Random(0.15);
+        sideOffset  = G_CRandom(width * 0.2);
+        break;
+
+    case 3: // Lower torso side
+        heightRatio = 0.55 + G_Random(0.15);
+        sideOffset  = G_CRandom(width * 0.3);
+        break;
+
+    case 4: // Pelvis center
+        heightRatio = 0.45 + G_Random(0.1);
+        sideOffset  = G_CRandom(width * 0.15);
+        break;
+
+    case 5: // Pelvis side
+        heightRatio = 0.45 + G_Random(0.1);
+        sideOffset  = G_CRandom(width * 0.35);
+        break;
+
+    case 6: // Left arm/side
+        heightRatio = 0.6 + G_Random(0.15);
+        sideOffset  = -(width * 0.4) - G_Random(width * 0.1);
+        break;
+
+    case 7: // Right arm/side
+        heightRatio = 0.6 + G_Random(0.15);
+        sideOffset  = (width * 0.4) + G_Random(width * 0.1);
+        break;
+
+    case 8: // Left leg
+        heightRatio = 0.2 + G_Random(0.25);
+        sideOffset  = -(width * 0.2) - G_Random(width * 0.1);
+        break;
+
+    case 9: // Right leg
+        heightRatio = 0.2 + G_Random(0.25);
+        sideOffset  = (width * 0.2) + G_Random(width * 0.1);
+        break;
+
+    default:
+        heightRatio = 0.7;
+        sideOffset  = 0;
+        break;
+    }
+
+    // Calculate the offset
+    outOffset[0] = sideOffset;
+    outOffset[1] = G_CRandom(width * 0.2); // Front/back variation
+    outOffset[2] = mins.z + (height * heightRatio);
+}
+
 void BotController::State_EndAttack(void)
 {
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
@@ -1003,23 +1107,26 @@ void BotController::State_Attack(void)
             // Burst
             //
 
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
+            // Only apply burst limiting if not disabled
+            if (!g_bot_disable_burst->integer) {
+                if (m_iLastBurstTime) {
+                    if (level.inttime > m_iLastBurstTime + maxBurstTime) {
+                        m_iLastBurstTime      = 0;
+                        m_iContinuousFireTime = 0;
+                    } else {
+                        m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+                    }
                 } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
+                    if (bFiring) {
+                        m_iContinuousFireTime += level.intframetime;
+                    } else {
+                        m_iContinuousFireTime = 0;
+                    }
 
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
+                    if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
+                        m_iLastBurstTime      = level.inttime;
+                        m_iContinuousFireTime = 0;
+                    }
                 }
             }
 
@@ -1063,36 +1170,48 @@ void BotController::State_Attack(void)
         Vector        vTarget;
         orientation_t eyes_or;
 
-        if (m_iEnemyEyesTag == -1) {
-            // Cache the tag
-            m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
-        }
-
-        if (m_iEnemyEyesTag != -1) {
-            // Use the enemy's eyes bone
-            m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
-            vTarget = eyes_or.origin;
-        } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
+        // Use legal zones targeting if enabled
+        if (g_bot_aim_legal_zones_only->integer) {
+            // Aim from enemy origin for legal zone calculation
             vTarget = m_pEnemy->origin;
-        }
 
-        if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
+            // Calculate legal aim offset (dancing between legal zones)
+            CalculateLegalAimOffset(m_vAimOffset, m_pEnemy);
+
+            rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        } else {
+            // Original aiming logic
+            if (m_iEnemyEyesTag == -1) {
+                // Cache the tag
+                m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
             }
-            m_iLastAimTime = level.inttime;
-        }
 
-        rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+            if (m_iEnemyEyesTag != -1) {
+                // Use the enemy's eyes bone
+                m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
+
+                //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
+                vTarget = eyes_or.origin;
+            } else {
+                //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
+                vTarget = m_pEnemy->origin;
+            }
+
+            if (level.inttime >= m_iLastAimTime + 100) {
+                if (m_iEnemyEyesTag != -1) {
+                    m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
+                    m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
+                    m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
+                } else {
+                    m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
+                    m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
+                    m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
+                }
+                m_iLastAimTime = level.inttime;
+            }
+
+            rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        }
     } else {
         AimAtAimNode();
     }
@@ -1347,6 +1466,15 @@ void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
     m_iCuriousTime = 0;
+
+    // Auto-reload after kill if no enemy is in sight
+    if (g_bot_reload_after_kill->integer && !m_pEnemy) {
+        Weapon *weap = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+
+        if (weap && weap->CheckReload(FIRE_PRIMARY)) {
+            SendCommand("reload");
+        }
+    }
 
     if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
         //
