@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
+#include "sv_admin.h"
 #include "../gamespy/sv_gamespy.h"
 #include "../qcommon/bg_compat.h"
 
@@ -396,6 +397,14 @@ void SV_DirectConnect( netadr_t from ) {
 			SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nYou are banned from this server.\n");
             Com_DPrintf("    rejected connect due to banned IP (reason unspecified)\n");
 		}
+		return;
+	}
+
+	// Check admin ban list
+	if(SV_IsBannedFromList(from))
+	{
+		SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nYou are banned from this server.\n");
+		Com_DPrintf("    rejected connect due to admin ban list\n");
 		return;
 	}
 
