@@ -71,10 +71,8 @@ BotController::BotController()
     m_iCuriousTime        = 0;
     m_iAttackTime         = 0;
     m_iEnemyEyesTag       = -1;
-    m_iContinuousFireTime = 0;
     m_iLastSeenTime       = 0;
     m_iLastUnseenTime     = 0;
-    m_iLastBurstTime      = 0;
 
     m_iNextTauntTime = 0;
 
@@ -891,12 +889,13 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
         return;
     }
 
-    // Define legal hit zones (0-9):
+    // Define legal hit zones (0-11):
     // 0-1: Middle torso (center mass)
     // 2-3: Lower torso
     // 4-5: Pelvis/hip area
     // 6-7: Left/Right arms (sides)
     // 8-9: Left/Right legs
+    // 10-11: Left/Right hands
 
     Vector mins = enemy->mins;
     Vector maxs = enemy->maxs;
@@ -914,7 +913,7 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
 
     // Change aim zone based on timer
     if (level.inttime >= m_iNextAimZoneChangeTime) {
-        m_iCurrentAimZone        = rand() % 10;
+        m_iCurrentAimZone        = rand() % 12;
         m_iNextAimZoneChangeTime = level.inttime + (int)(g_bot_aim_zone_change_time->value * 1000);
     }
 
@@ -970,6 +969,16 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
     case 9: // Right leg
         heightRatio = 0.2 + G_Random(0.25);
         sideOffset  = (width * 0.2) + G_Random(width * 0.1);
+        break;
+
+    case 10: // Left hand
+        heightRatio = 0.6 + G_Random(0.1);
+        sideOffset  = -(width * 0.45) - G_Random(width * 0.05);
+        break;
+
+    case 11: // Right hand
+        heightRatio = 0.6 + G_Random(0.1);
+        sideOffset  = (width * 0.45) + G_Random(width * 0.05);
         break;
 
     default:
@@ -1039,11 +1048,6 @@ void BotController::State_Attack(void)
             float     fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
             float     fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
 
-            const int maxcontinuousFireTime = fireDelay + g_bot_attack_continuousfire_min_firetime->value * 1000
-                                           + G_Random(g_bot_attack_continuousfire_random_firetime->value * 1000);
-            const int maxBurstTime = fireDelay + g_bot_attack_burst_min_time->value * 1000
-                                   + G_Random(g_bot_attack_burst_random_delay->value * 1000);
-
             //
             // check the fire movement speed if the weapon has a max fire movement
             //
@@ -1100,30 +1104,6 @@ void BotController::State_Attack(void)
                 } else {
                     bFiring = true;
                     m_botCmd.buttons |= BUTTON_ATTACKLEFT;
-                }
-            }
-
-            //
-            // Burst
-            //
-
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
-
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
                 }
             }
 

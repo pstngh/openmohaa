@@ -25,78 +25,6 @@ This sets how long the game should wait before spawning bots after loading a new
 
 There is no skill system yet, however some settings can be modified to alter bot difficulty:
 
-### `g_bot_attack_burst_min_time`
-
-- **Default**: 0
-- **Type**: float (seconds)
-
-#### Description
-
-Minimum time to pause firing between bursts.
-
-#### Usage
-
-- `0`: No burst pause (default, enables full-spray).
-- Higher values (e.g., `0.1`, `0.5`): Add pauses between firing bursts.
-
-#### Notes
-
-Set to 0 by default to allow continuous spray firing. Increase this value along with `g_bot_attack_burst_random_delay` to create traditional burst-fire behavior where bots pause between bursts.
-
-### `g_bot_attack_burst_random_delay`
-
-- **Default**: 0
-- **Type**: float (seconds)
-
-#### Description
-
-Random time added to burst pause duration.
-
-#### Usage
-
-- `0`: No random delay (default, enables full-spray).
-- Higher values (e.g., `0.5`, `1.0`): Add randomness to burst pauses.
-
-#### Notes
-
-Set to 0 by default for continuous spray. Works together with `g_bot_attack_burst_min_time` to create varied burst patterns when enabled.
-
-### `g_bot_attack_continuousfire_min_firetime`
-
-- **Default**: 999
-- **Type**: float (seconds)
-
-#### Description
-
-Minimum duration of continuous firing before a burst pause can occur.
-
-#### Usage
-
-- Very high values (e.g., `999`): Bots fire continuously without pauses (default).
-- Lower values (e.g., `0.5`, `2.0`): Bots pause after firing for this duration.
-
-#### Notes
-
-Set to 999 seconds by default, effectively eliminating burst pauses and enabling full-spray behavior. Reduce this value to make bots pause more frequently during combat.
-
-### `g_bot_attack_continuousfire_random_firetime`
-
-- **Default**: 0
-- **Type**: float (seconds)
-
-#### Description
-
-Random time added to the continuous firing duration.
-
-#### Usage
-
-- `0`: No randomness (default).
-- Higher values (e.g., `1.0`, `2.0`): Add randomness to how long bots fire before pausing.
-
-#### Notes
-
-Set to 0 by default. Works with `g_bot_attack_continuousfire_min_firetime` to vary burst behavior when enabled.
-
 ### `g_bot_attack_react_min_delay`
 
 - **Default**: 0.2
@@ -198,7 +126,7 @@ Time between aim zone changes during combat, creating a "dancing" aim effect.
 
 #### Notes
 
-The bot dynamically switches between 10 different legal hit zones (various parts of middle/lower torso, arms, pelvis, and legs) at this interval. This prevents bots from locking onto a single spot and creates more realistic spray patterns.
+The bot dynamically switches between 12 different legal hit zones (various parts of middle/lower torso, arms, hands, pelvis, and legs) at this interval. This prevents bots from locking onto a single spot and creates more realistic spray patterns.
 
 ### `g_bot_reload_after_kill`
 
