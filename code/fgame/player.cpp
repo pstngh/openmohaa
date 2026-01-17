@@ -8779,7 +8779,7 @@ void Player::InitDeathmatch(void)
     }
 
     // Bot weapon distribution - set before EquipWeapons() is called
-    if (G_IsBot(edict) && current_team) {
+    if ((edict->r.svFlags & SVF_BOT) && current_team) {
         teamtype_t team = GetTeam();
         float      roll = G_Random();
         const char *weapon;
@@ -9664,7 +9664,7 @@ void Player::Auto_Join_DM_Team(Event *ev)
     teamtype_t team;
 
     // Check if this is a bot and g_bot_team is set
-    if (G_IsBot(edict)) {
+    if (edict->r.svFlags & SVF_BOT) {
         const char *bot_team = g_bot_team->string;
 
         if (!Q_stricmp(bot_team, "axis")) {
