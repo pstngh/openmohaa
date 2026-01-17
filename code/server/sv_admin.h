@@ -145,6 +145,7 @@ void SV_AdminSay_f(void);
 void SV_AdminStatus_f(void);
 void SV_AdminListAdmins_f(void);
 void SV_AdminListIPs_f(void);
+void SV_AdminMap_f(void);
 
 //=============================================================================
 // UTILITY FUNCTIONS

@@ -1706,6 +1706,52 @@ void SV_AdminListIPs_f(void)
     SV_SendServerCommand(cl, "%s", buffer);
 }
 
+/*
+==================
+SV_AdminMap_f
+
+Command: ad_map <mapname>
+Changes the current map (Level 1+)
+==================
+*/
+void SV_AdminMap_f(void)
+{
+    client_t *cl;
+    adminSession_t *session;
+    const char *mapname;
+
+    cl = SV_GetCallingClient();
+    if (!cl) {
+        Com_Printf("ad_map can only be used by connected clients\n");
+        return;
+    }
+
+    session = SV_GetClientAdminSession(cl);
+    if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
+        SV_SendServerCommand(cl, "print \"You must be logged in as admin to use this command\n\"");
+        return;
+    }
+
+    if (Cmd_Argc() != 2) {
+        SV_SendServerCommand(cl, "print \"Usage: ad_map <mapname>\n\"");
+        return;
+    }
+
+    SV_UpdateSessionActivity(session);
+
+    mapname = Cmd_Argv(1);
+
+    // Log the action
+    SV_LogAdminAction(session, "ad_map", mapname, NULL);
+
+    // Announce map change
+    SV_SendServerCommand(NULL, "print \"^1[ADMIN %s]^7 Changing map to: %s\n\"", session->username, mapname);
+    Com_Printf("Admin %s changing map to: %s\n", session->username, mapname);
+
+    // Execute the map change
+    Cbuf_AddText(va("map %s\n", mapname));
+}
+
 //=============================================================================
 // COMMAND REGISTRATION
 //=============================================================================
@@ -1732,6 +1778,7 @@ void SV_AddAdminCommands(void)
     Cmd_AddCommand("ad_status", SV_AdminStatus_f);
     Cmd_AddCommand("ad_listadmins", SV_AdminListAdmins_f);
     Cmd_AddCommand("ad_listips", SV_AdminListIPs_f);
+    Cmd_AddCommand("ad_map", SV_AdminMap_f);
 }
 
 /*
@@ -1756,4 +1803,5 @@ void SV_RemoveAdminCommands(void)
     Cmd_RemoveCommand("ad_status");
     Cmd_RemoveCommand("ad_listadmins");
     Cmd_RemoveCommand("ad_listips");
+    Cmd_RemoveCommand("ad_map");
 }
