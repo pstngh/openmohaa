@@ -1477,7 +1477,7 @@ void SV_AdminStatus_f(client_t *cl)
     adminSession_t *session;
     int i;
     client_t *target;
-    char buffer[1024];
+    char buffer[2048];
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
@@ -1490,31 +1490,31 @@ void SV_AdminStatus_f(client_t *cl)
 
     SV_UpdateSessionActivity(session);
 
-    // Build status message
-    written = Com_sprintf(p, remaining, "print \"ID  Name                 IP Address\n\"");
+    // Build status text (without "print" command yet)
+    written = Com_sprintf(p, remaining, "ID  Name                 IP Address\n");
     p += written;
     remaining -= written;
 
-    written = Com_sprintf(p, remaining, "print \"--- -------------------- ---------------\n\"");
+    written = Com_sprintf(p, remaining, "--- -------------------- ---------------\n");
     p += written;
     remaining -= written;
 
     for (i = 0; i < sv_maxclients->integer; i++) {
         target = &svs.clients[i];
         if (target->state >= CS_CONNECTED) {
-            written = Com_sprintf(p, remaining, "print \"%3d %-20s %s\n\"",
+            written = Com_sprintf(p, remaining, "%3d %-20s %s\n",
                                   i, target->name, NET_AdrToString(target->netchan.remoteAddress));
             p += written;
             remaining -= written;
 
-            if (remaining <= 0) {
+            if (remaining <= 100) {
                 break;
             }
         }
     }
 
-    // Send the message
-    SV_SendServerCommand(cl, "%s", buffer);
+    // Send as single print command
+    SV_SendServerCommand(cl, "print \"%s\"", buffer);
 }
 
 /*
@@ -1530,7 +1530,7 @@ void SV_AdminListAdmins_f(client_t *cl)
     adminSession_t *session;
     int i;
     int count = 0;
-    char buffer[1024];
+    char buffer[2048];
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
@@ -1543,14 +1543,14 @@ void SV_AdminListAdmins_f(client_t *cl)
 
     SV_UpdateSessionActivity(session);
 
-    // Build admin list
-    written = Com_sprintf(p, remaining, "print \"Currently logged-in admins:\n\"");
+    // Build admin list text (without "print" command yet)
+    written = Com_sprintf(p, remaining, "Currently logged-in admins:\n");
     p += written;
     remaining -= written;
 
     for (i = 0; i < MAX_ADMIN_SESSIONS; i++) {
         if (adminSessions[i].active) {
-            written = Com_sprintf(p, remaining, "print \"  %s (Level %d) - %s\n\"",
+            written = Com_sprintf(p, remaining, "  %s (Level %d) - %s\n",
                                   adminSessions[i].username,
                                   adminSessions[i].level,
                                   NET_AdrToString(adminSessions[i].ip));
@@ -1558,20 +1558,20 @@ void SV_AdminListAdmins_f(client_t *cl)
             remaining -= written;
             count++;
 
-            if (remaining <= 0) {
+            if (remaining <= 100) {
                 break;
             }
         }
     }
 
     if (count == 0) {
-        written = Com_sprintf(p, remaining, "print \"  (none)\n\"");
+        written = Com_sprintf(p, remaining, "  (none)\n");
         p += written;
         remaining -= written;
     }
 
-    // Send the message
-    SV_SendServerCommand(cl, "%s", buffer);
+    // Send as single print command
+    SV_SendServerCommand(cl, "print \"%s\"", buffer);
 }
 
 /*
@@ -1605,12 +1605,13 @@ void SV_AdminListIPs_f(client_t *cl)
         return;
     }
 
-    written = Com_sprintf(p, remaining, "print \"Banned IPs (%d total):\n\"", numBansInList);
+    // Build ban list text (without "print" command yet)
+    written = Com_sprintf(p, remaining, "Banned IPs (%d total):\n", numBansInList);
     p += written;
     remaining -= written;
 
     for (i = 0; i < numBansInList && i < 50; i++) {  // Limit to first 50 to avoid overflow
-        written = Com_sprintf(p, remaining, "print \"  %3d: %s\n\"", i + 1, banListIPs[i]);
+        written = Com_sprintf(p, remaining, "  %3d: %s\n", i + 1, banListIPs[i]);
         p += written;
         remaining -= written;
 
@@ -1620,13 +1621,13 @@ void SV_AdminListIPs_f(client_t *cl)
     }
 
     if (numBansInList > 50) {
-        written = Com_sprintf(p, remaining, "print \"  ... and %d more\n\"", numBansInList - 50);
+        written = Com_sprintf(p, remaining, "  ... and %d more\n", numBansInList - 50);
         p += written;
         remaining -= written;
     }
 
-    // Send the message
-    SV_SendServerCommand(cl, "%s", buffer);
+    // Send as single print command
+    SV_SendServerCommand(cl, "print \"%s\"", buffer);
 }
 
 /*
