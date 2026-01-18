@@ -1065,18 +1065,16 @@ void SV_AdminLogin_f(client_t *cl)
 ==================
 SV_AdminKick_f
 
-Command: ad_kick <player_name>
-Kicks a player by name
+Command: ad_kick <client_id>
+Kicks a player by client ID
 ==================
 */
 void SV_AdminKick_f(client_t *cl)
 {
     adminSession_t *session;
-    const char *playerName;
+    int clientId;
     client_t *target;
-    int i;
     char targetIP[64];
-
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -1085,39 +1083,23 @@ void SV_AdminKick_f(client_t *cl)
     }
 
     if (Cmd_Argc() != 2) {
-        SV_SendServerCommand(cl, "print \"Usage: ad_kick <player_name_or_id>\n\"");
+        SV_SendServerCommand(cl, "print \"Usage: ad_kick <client_id>\n\"");
         return;
     }
 
     SV_UpdateSessionActivity(session);
 
-    playerName = Cmd_Argv(1);
+    clientId = atoi(Cmd_Argv(1));
 
-    // Check if argument is a number (client ID)
-    target = NULL;
-    if (playerName[0] >= '0' && playerName[0] <= '9') {
-        int clientId = atoi(playerName);
-        if (clientId >= 0 && clientId < sv_maxclients->integer) {
-            if (svs.clients[clientId].state >= CS_CONNECTED) {
-                target = &svs.clients[clientId];
-            }
-        }
+    if (clientId < 0 || clientId >= sv_maxclients->integer) {
+        SV_SendServerCommand(cl, "print \"Invalid client ID: %d\n\"", clientId);
+        return;
     }
 
-    // If not found by ID, try finding by name
-    if (!target) {
-        for (i = 0; i < sv_maxclients->integer; i++) {
-            if (svs.clients[i].state >= CS_CONNECTED) {
-                if (Q_stricmp(svs.clients[i].name, playerName) == 0) {
-                    target = &svs.clients[i];
-                    break;
-                }
-            }
-        }
-    }
+    target = &svs.clients[clientId];
 
-    if (!target) {
-        SV_SendServerCommand(cl, "print \"Player not found: %s\n\"", playerName);
+    if (target->state < CS_CONNECTED) {
+        SV_SendServerCommand(cl, "print \"Client %d is not connected\n\"", clientId);
         return;
     }
 
