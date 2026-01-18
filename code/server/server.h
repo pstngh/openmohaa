@@ -547,6 +547,13 @@ unsigned int SV_Client_GetMaxPendingCommands(client_t *cl);
 //
 void SV_Heartbeat_f( void );
 
+// Ban system wrappers for admin system
+qboolean SV_AddBan_Client(client_t *cl, const char *reason);
+qboolean SV_AddBan_IP(const char *ipString, const char *reason);
+qboolean SV_RemoveBan_IP(const char *ipString);
+int SV_GetBanCount(void);
+qboolean SV_GetBanEntry(int index, char *ipString, int ipStringSize, char *reason, int reasonSize);
+
 //
 // sv_snapshot.c
 //

@@ -1192,6 +1192,281 @@ static void SV_ExceptDel_f(void)
 }
 
 /*
+==================
+SV_AddBan_Client
+
+Public wrapper to add a ban for a specific client with a reason.
+Used by the admin system.
+==================
+*/
+qboolean SV_AddBan_Client(client_t *cl, const char *reason)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+
+	if (!cl) {
+		return qfalse;
+	}
+
+	ip = cl->netchan.remoteAddress;
+	mask = (ip.type == NA_IP6) ? 128 : 32;
+
+	if (ip.type != NA_IP && ip.type != NA_IP6) {
+		return qfalse;
+	}
+
+	if (serverBansCount >= ARRAY_LEN(serverBans)) {
+		return qfalse;
+	}
+
+	// Check for conflicting bans
+	for (index = 0; index < serverBansCount; index++) {
+		curban = &serverBans[index];
+		if (curban->subnet <= mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, curban->subnet)) {
+			// Already banned
+			return qfalse;
+		}
+	}
+
+	// Delete superseded bans
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+		if (curban->subnet > mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+		} else {
+			index++;
+		}
+	}
+
+	// Add the ban
+	serverBans[serverBansCount].ip = ip;
+	serverBans[serverBansCount].subnet = mask;
+	serverBans[serverBansCount].isexception = qfalse;
+
+	if (reason) {
+		Q_strncpyz(serverBans[serverBansCount].reason, reason, sizeof(serverBans[serverBansCount].reason));
+	} else {
+		serverBans[serverBansCount].reason[0] = '\0';
+	}
+
+	serverBansCount++;
+	SV_WriteBans();
+
+	// Kick the client
+	if (reason) {
+		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
+			"droperror\nYou have been banned from this server for:\n%s", reason);
+		SV_DropClient(cl, va("was banned for %s", reason));
+	} else {
+		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
+			"droperror\nYou have been banned from this server");
+		SV_DropClient(cl, "was banned");
+	}
+
+	return qtrue;
+}
+
+/*
+==================
+SV_AddBan_IP
+
+Public wrapper to add a ban for an IP address with a reason.
+Used by the admin system.
+Returns qtrue on success, qfalse on failure.
+==================
+*/
+qboolean SV_AddBan_IP(const char *ipString, const char *reason)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+	char ipCopy[NET_ADDRSTRMAXLEN];
+
+	if (!ipString) {
+		return qfalse;
+	}
+
+	// Make a copy since SV_ParseCIDRNotation modifies the string
+	Q_strncpyz(ipCopy, ipString, sizeof(ipCopy));
+
+	if (SV_ParseCIDRNotation(&ip, &mask, ipCopy)) {
+		return qfalse;
+	}
+
+	if (ip.type != NA_IP && ip.type != NA_IP6) {
+		return qfalse;
+	}
+
+	if (serverBansCount >= ARRAY_LEN(serverBans)) {
+		return qfalse;
+	}
+
+	// Check for conflicting bans
+	for (index = 0; index < serverBansCount; index++) {
+		curban = &serverBans[index];
+		if (curban->subnet <= mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, curban->subnet)) {
+			// Already banned
+			return qfalse;
+		}
+	}
+
+	// Delete superseded bans
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+		if (curban->subnet > mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+		} else {
+			index++;
+		}
+	}
+
+	// Add the ban
+	serverBans[serverBansCount].ip = ip;
+	serverBans[serverBansCount].subnet = mask;
+	serverBans[serverBansCount].isexception = qfalse;
+
+	if (reason) {
+		Q_strncpyz(serverBans[serverBansCount].reason, reason, sizeof(serverBans[serverBansCount].reason));
+	} else {
+		serverBans[serverBansCount].reason[0] = '\0';
+	}
+
+	serverBansCount++;
+	SV_WriteBans();
+
+	// Find and kick any connected clients matching the banned IP
+	for (index = 0; index < sv_maxclients->integer; index++) {
+		client_t *kickcl = &svs.clients[index];
+
+		if (!kickcl->state) {
+			continue;
+		}
+
+		if (NET_CompareBaseAdrMask(kickcl->netchan.remoteAddress, ip, mask)) {
+			if (reason) {
+				SV_NET_OutOfBandPrint(&svs.netprofile, kickcl->netchan.remoteAddress,
+					"droperror\nYou have been banned from this server for:\n%s", reason);
+				SV_DropClient(kickcl, va("was banned for %s", reason));
+			} else {
+				SV_NET_OutOfBandPrint(&svs.netprofile, kickcl->netchan.remoteAddress,
+					"droperror\nYou have been banned from this server");
+				SV_DropClient(kickcl, "was banned");
+			}
+			kickcl->lastPacketTime = svs.time;
+		}
+	}
+
+	return qtrue;
+}
+
+/*
+==================
+SV_RemoveBan_IP
+
+Public wrapper to remove a ban for an IP address.
+Used by the admin system.
+Returns qtrue on success, qfalse on failure.
+==================
+*/
+qboolean SV_RemoveBan_IP(const char *ipString)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+	char ipCopy[NET_ADDRSTRMAXLEN];
+	qboolean removed = qfalse;
+
+	if (!ipString) {
+		return qfalse;
+	}
+
+	// Make a copy since SV_ParseCIDRNotation modifies the string
+	Q_strncpyz(ipCopy, ipString, sizeof(ipCopy));
+
+	if (SV_ParseCIDRNotation(&ip, &mask, ipCopy)) {
+		return qfalse;
+	}
+
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+
+		if (!curban->isexception && curban->subnet >= mask && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+			removed = qtrue;
+		} else {
+			index++;
+		}
+	}
+
+	if (removed) {
+		SV_WriteBans();
+	}
+
+	return removed;
+}
+
+/*
+==================
+SV_GetBanCount
+
+Returns the number of active bans (not exceptions).
+Used by the admin system.
+==================
+*/
+int SV_GetBanCount(void)
+{
+	int count = 0;
+	int i;
+
+	for (i = 0; i < serverBansCount; i++) {
+		if (!serverBans[i].isexception) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/*
+==================
+SV_GetBanEntry
+
+Get a specific ban entry by index (only counting non-exceptions).
+Used by the admin system for listing bans.
+Returns qtrue if the entry exists, qfalse otherwise.
+==================
+*/
+qboolean SV_GetBanEntry(int index, char *ipString, int ipStringSize, char *reason, int reasonSize)
+{
+	int count = 0;
+	int i;
+
+	for (i = 0; i < serverBansCount; i++) {
+		if (!serverBans[i].isexception) {
+			if (count == index) {
+				if (ipString) {
+					Com_sprintf(ipString, ipStringSize, "%s/%d",
+						NET_AdrToString(serverBans[i].ip), serverBans[i].subnet);
+				}
+				if (reason && serverBans[i].reason[0]) {
+					Q_strncpyz(reason, serverBans[i].reason, reasonSize);
+				} else if (reason) {
+					reason[0] = '\0';
+				}
+				return qtrue;
+			}
+			count++;
+		}
+	}
+
+	return qfalse;
+}
+
+/*
 ** SV_Strlen -- skips color escape codes
 */
 static int SV_Strlen( const char *str ) {

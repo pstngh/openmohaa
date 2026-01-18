@@ -32,11 +32,6 @@ adminEntry_t adminList[MAX_ADMINS];
 adminSession_t adminSessions[MAX_ADMIN_SESSIONS];
 muteEntry_t muteList[MAX_MUTES];
 
-// Ban list data (simplified)
-#define MAX_ADMIN_BANS 1024
-static char banListIPs[MAX_ADMIN_BANS][64];
-static int numBansInList = 0;
-
 //=============================================================================
 // UTILITY FUNCTIONS
 //=============================================================================
@@ -226,9 +221,8 @@ void SV_InitAdminSystem(void)
     svs.numAdmins = 0;
     svs.numMutes = 0;
 
-    // Load admin list and ban list
+    // Load admin list (ban list is managed by official OpenMOHAA ban system)
     SV_LoadAdminList();
-    SV_LoadBanListTxt();
 
     Com_Printf("Admin system initialized.\n");
 }
@@ -668,251 +662,6 @@ void SV_RestoreMuteStatus(client_t *cl, netadr_t from)
     // This function exists for potential future use
 }
 
-//=============================================================================
-// BAN SYSTEM (Simplified for banlist.txt)
-//=============================================================================
-
-/*
-==================
-SV_LoadBanListTxt
-
-Loads the simplified ban list from banlist.txt
-Format: One IP address (or IP/subnet) per line
-==================
-*/
-void SV_LoadBanListTxt(void)
-{
-    fileHandle_t f;
-    int len;
-    char *buffer;
-    char *p;
-    char line[256];
-    int lineNum = 0;
-
-    Com_Printf("Loading ban list from banlist.txt...\n");
-
-    // Clear existing ban list
-    memset(banListIPs, 0, sizeof(banListIPs));
-    numBansInList = 0;
-
-    // Try to open the file (reads from game directory)
-    len = FS_FOpenFileRead("banlist.txt", &f, qtrue, qtrue);
-    if (!f) {
-        Com_Printf("banlist.txt not found. No bans loaded.\n");
-        return;
-    }
-
-    // Allocate buffer for file contents
-    buffer = (char *)Z_Malloc(len + 1);
-    FS_Read(buffer, len, f);
-    buffer[len] = '\0';
-    FS_FCloseFile(f);
-
-    // Parse line by line
-    p = buffer;
-    while (*p) {
-        // Extract one line
-        int i = 0;
-        while (*p && *p != '\n' && *p != '\r' && i < sizeof(line) - 1) {
-            line[i++] = *p++;
-        }
-        line[i] = '\0';
-
-        // Skip newline characters
-        while (*p == '\n' || *p == '\r') {
-            p++;
-        }
-
-        lineNum++;
-
-        // Trim whitespace
-        SV_TrimWhitespace(line);
-
-        // Skip empty lines and comments
-        if (line[0] == '\0' || line[0] == '#' || line[0] == ';') {
-            continue;
-        }
-
-        // Add to ban list
-        if (numBansInList >= MAX_ADMIN_BANS) {
-            Com_Printf("Warning: Maximum number of bans (%d) reached. Ignoring remaining entries.\n", MAX_ADMIN_BANS);
-            break;
-        }
-
-        Q_strncpyz(banListIPs[numBansInList], line, sizeof(banListIPs[numBansInList]));
-        numBansInList++;
-
-        Com_DPrintf("  Loaded ban: %s\n", line);
-    }
-
-    Z_Free(buffer);
-    Com_Printf("Loaded %d ban(s) from banlist.txt\n", numBansInList);
-}
-
-/*
-==================
-SV_SaveBanList
-
-Saves the ban list to banlist.txt
-==================
-*/
-void SV_SaveBanList(void)
-{
-    fileHandle_t f;
-    int i;
-    char buffer[65536];
-    char *p = buffer;
-    int remaining = sizeof(buffer);
-    int written;
-
-    // Build the file contents
-    for (i = 0; i < numBansInList; i++) {
-        written = Com_sprintf(p, remaining, "%s\n", banListIPs[i]);
-        p += written;
-        remaining -= written;
-
-        if (remaining <= 0) {
-            Com_Printf("Warning: Ban list too large to save completely\n");
-            break;
-        }
-    }
-
-    // Write to file (writes to game directory)
-    f = FS_FOpenFileWrite_HomeData("banlist.txt");
-    if (!f) {
-        Com_Printf("Failed to open banlist.txt for writing\n");
-        return;
-    }
-
-    FS_Write(buffer, p - buffer, f);
-    FS_FCloseFile(f);
-
-    Com_Printf("Saved %d ban(s) to banlist.txt\n", numBansInList);
-}
-
-/*
-==================
-SV_IsBannedFromList
-
-Checks if an IP address is in the ban list
-Supports wildcards and CIDR notation
-==================
-*/
-qboolean SV_AdminBanList_Check(netadr_t from)
-{
-    int i;
-    char ipStr[64];
-
-    // Don't ban local or bot players
-    if (from.type == NA_LOOPBACK || from.type == NA_BOT) {
-        return qfalse;
-    }
-
-    Q_strncpyz(ipStr, NET_AdrToString(from), sizeof(ipStr));
-
-    // Check against each ban entry
-    for (i = 0; i < numBansInList; i++) {
-        // Simple string comparison for now
-        // TODO: Add proper CIDR and wildcard matching if needed
-        if (Q_stricmp(ipStr, banListIPs[i]) == 0) {
-            return qtrue;
-        }
-
-        // Check if ban entry is a prefix match (e.g., "192.168.1" matches "192.168.1.50")
-        if (Q_stricmpn(ipStr, banListIPs[i], strlen(banListIPs[i])) == 0) {
-            return qtrue;
-        }
-    }
-
-    return qfalse;
-}
-
-/*
-==================
-SV_AddBanToList
-
-Adds an IP address to the ban list
-==================
-*/
-qboolean SV_AdminBanList_Add(const char *ipMask)
-{
-    int i;
-
-    // Check if already banned
-    for (i = 0; i < numBansInList; i++) {
-        if (Q_stricmp(banListIPs[i], ipMask) == 0) {
-            return qfalse; // Already exists
-        }
-    }
-
-    // Add new ban
-    if (numBansInList >= MAX_ADMIN_BANS) {
-        return qfalse; // List full
-    }
-
-    Q_strncpyz(banListIPs[numBansInList], ipMask, sizeof(banListIPs[numBansInList]));
-    numBansInList++;
-
-    // Save immediately
-    SV_SaveBanList();
-
-    return qtrue;
-}
-
-/*
-==================
-SV_RemoveBanFromList
-
-Removes an IP address from the ban list
-==================
-*/
-qboolean SV_AdminBanList_Remove(const char *ipMask)
-{
-    int i;
-
-    // Find the ban
-    for (i = 0; i < numBansInList; i++) {
-        if (Q_stricmp(banListIPs[i], ipMask) == 0) {
-            // Remove by shifting remaining entries
-            int j;
-            for (j = i; j < numBansInList - 1; j++) {
-                Q_strncpyz(banListIPs[j], banListIPs[j + 1], sizeof(banListIPs[j]));
-            }
-            numBansInList--;
-
-            // Save immediately
-            SV_SaveBanList();
-
-            return qtrue;
-        }
-    }
-
-    return qfalse;
-}
-
-/*
-==================
-SV_ListBans
-
-Lists all bans from banlist.txt
-==================
-*/
-void SV_ListBans(void)
-{
-    int i;
-
-    if (numBansInList == 0) {
-        Com_Printf("No bans in banlist.txt\n");
-        return;
-    }
-
-    Com_Printf("Ban list (%d entries):\n", numBansInList);
-    for (i = 0; i < numBansInList; i++) {
-        Com_Printf("  %3d: %s\n", i + 1, banListIPs[i]);
-    }
-}
-
-//=============================================================================
 // LOGGING SYSTEM
 //=============================================================================
 
@@ -1151,7 +900,7 @@ void SV_AdminBanIP_f(client_t *cl)
 {
     adminSession_t *session;
     const char *ipMask;
-
+    char reason[256];
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1159,8 +908,8 @@ void SV_AdminBanIP_f(client_t *cl)
         return;
     }
 
-    if (Cmd_Argc() != 2) {
-        SV_SendServerCommand(cl, "print \"Usage: ad_banip <ip_address>\n\"");
+    if (Cmd_Argc() < 2) {
+        SV_SendServerCommand(cl, "print \"Usage: ad_banip <ip_address> [reason]\n\"");
         return;
     }
 
@@ -1168,7 +917,15 @@ void SV_AdminBanIP_f(client_t *cl)
 
     ipMask = Cmd_Argv(1);
 
-    if (SV_AdminBanList_Add(ipMask)) {
+    // Build reason if provided
+    if (Cmd_Argc() > 2) {
+        Com_sprintf(reason, sizeof(reason), "Banned by %s: %s", session->username, Cmd_ArgsFrom(2));
+    } else {
+        Com_sprintf(reason, sizeof(reason), "Banned by admin %s", session->username);
+    }
+
+    // Use official ban system
+    if (SV_AddBan_IP(ipMask, reason)) {
         SV_SendServerCommand(cl, "print \"Added ban: %s\n\"", ipMask);
         SV_LogAdminAction(session, "ad_banip", ipMask, NULL);
         Com_Printf("Admin %s banned IP: %s\n", session->username, ipMask);
@@ -1191,6 +948,7 @@ void SV_AdminBan_f(client_t *cl)
     int clientId;
     client_t *target;
     char targetIP[64];
+    char reason[256];
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1198,8 +956,8 @@ void SV_AdminBan_f(client_t *cl)
         return;
     }
 
-    if (Cmd_Argc() != 2) {
-        SV_SendServerCommand(cl, "print \"Usage: ad_ban <client_id>\n\"");
+    if (Cmd_Argc() < 2) {
+        SV_SendServerCommand(cl, "print \"Usage: ad_ban <client_id> [reason]\n\"");
         return;
     }
 
@@ -1219,19 +977,23 @@ void SV_AdminBan_f(client_t *cl)
         return;
     }
 
-    // Get target IP
+    // Get target IP for logging
     Q_strncpyz(targetIP, NET_AdrToString(target->netchan.remoteAddress), sizeof(targetIP));
 
-    // Add ban
-    if (SV_AdminBanList_Add(targetIP)) {
+    // Build reason if provided
+    if (Cmd_Argc() > 2) {
+        Com_sprintf(reason, sizeof(reason), "Banned by %s: %s", session->username, Cmd_ArgsFrom(2));
+    } else {
+        Com_sprintf(reason, sizeof(reason), "Banned by admin %s", session->username);
+    }
+
+    // Use official ban system
+    if (SV_AddBan_Client(target, reason)) {
         SV_LogAdminAction(session, "ad_ban", target->name, targetIP);
         Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
 
         // Announce the ban to all players (in-game)
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was banned by %s\n\"", target->name, session->username);
-
-        // Kick the player
-        SV_DropClient(target, "You have been banned from the server");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "[ADMIN] %s was banned by %s\n\"", target->name, session->username);
     } else {
         SV_SendServerCommand(cl, "print \"Failed to add ban\n\"");
     }
@@ -1250,7 +1012,6 @@ void SV_AdminUnbanIP_f(client_t *cl)
     adminSession_t *session;
     const char *ipMask;
 
-
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
         SV_SendServerCommand(cl, "print \"You must be logged in as Level 2 admin to use this command\n\"");
@@ -1266,7 +1027,8 @@ void SV_AdminUnbanIP_f(client_t *cl)
 
     ipMask = Cmd_Argv(1);
 
-    if (SV_AdminBanList_Remove(ipMask)) {
+    // Use official ban system
+    if (SV_RemoveBan_IP(ipMask)) {
         SV_SendServerCommand(cl, "print \"Removed ban: %s\n\"", ipMask);
         SV_LogAdminAction(session, "ad_unbanip", ipMask, NULL);
         Com_Printf("Admin %s unbanned IP: %s\n", session->username, ipMask);
@@ -1549,11 +1311,13 @@ Lists all banned IPs (Level 2 only)
 void SV_AdminListIPs_f(client_t *cl)
 {
     adminSession_t *session;
-    int i;
+    int i, banCount;
     char buffer[2048];
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
+    char ipString[128];
+    char reason[128];
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1563,29 +1327,37 @@ void SV_AdminListIPs_f(client_t *cl)
 
     SV_UpdateSessionActivity(session);
 
-    // Build ban list
-    if (numBansInList == 0) {
+    // Get ban count from official ban system
+    banCount = SV_GetBanCount();
+
+    if (banCount == 0) {
         SV_SendServerCommand(cl, "print \"No banned IPs\n\"");
         return;
     }
 
     // Build ban list text (without "print" command yet)
-    written = Com_sprintf(p, remaining, "Banned IPs (%d total):\n", numBansInList);
+    written = Com_sprintf(p, remaining, "Banned IPs (%d total):\n", banCount);
     p += written;
     remaining -= written;
 
-    for (i = 0; i < numBansInList && i < 50; i++) {  // Limit to first 50 to avoid overflow
-        written = Com_sprintf(p, remaining, "  %3d: %s\n", i + 1, banListIPs[i]);
-        p += written;
-        remaining -= written;
+    for (i = 0; i < banCount && i < 50; i++) {  // Limit to first 50 to avoid overflow
+        if (SV_GetBanEntry(i, ipString, sizeof(ipString), reason, sizeof(reason))) {
+            if (reason[0]) {
+                written = Com_sprintf(p, remaining, "  %3d: %s - %s\n", i + 1, ipString, reason);
+            } else {
+                written = Com_sprintf(p, remaining, "  %3d: %s\n", i + 1, ipString);
+            }
+            p += written;
+            remaining -= written;
 
-        if (remaining <= 100) {
-            break;
+            if (remaining <= 100) {
+                break;
+            }
         }
     }
 
-    if (numBansInList > 50) {
-        written = Com_sprintf(p, remaining, "  ... and %d more\n", numBansInList - 50);
+    if (banCount > 50) {
+        written = Com_sprintf(p, remaining, "  ... and %d more\n", banCount - 50);
         p += written;
         remaining -= written;
     }
