@@ -277,9 +277,9 @@ void SV_LoadAdminList(void)
     svs.numAdmins = 0;
 
     // Try to open the file (reads from game directory)
-    len = FS_FOpenFileRead("main/admins.ini", &f, qtrue, qtrue);
+    len = FS_FOpenFileRead("admins.ini", &f, qtrue, qtrue);
     if (!f) {
-        Com_Printf("main/admins.ini not found. No admins loaded.\n");
+        Com_Printf("admins.ini not found. No admins loaded.\n");
         return;
     }
 
@@ -738,9 +738,9 @@ void SV_LoadBanListTxt(void)
     numBansInList = 0;
 
     // Try to open the file (reads from game directory)
-    len = FS_FOpenFileRead("main/banlist.txt", &f, qtrue, qtrue);
+    len = FS_FOpenFileRead("banlist.txt", &f, qtrue, qtrue);
     if (!f) {
-        Com_Printf("main/banlist.txt not found. No bans loaded.\n");
+        Com_Printf("banlist.txt not found. No bans loaded.\n");
         return;
     }
 
@@ -819,10 +819,10 @@ void SV_SaveBanList(void)
         }
     }
 
-    // Write to file (writes to game directory main/ folder)
-    f = FS_FOpenFileWrite_HomeData("main/banlist.txt");
+    // Write to file (writes to game directory)
+    f = FS_FOpenFileWrite_HomeData("banlist.txt");
     if (!f) {
-        Com_Printf("Failed to open main/banlist.txt for writing\n");
+        Com_Printf("Failed to open banlist.txt for writing\n");
         return;
     }
 
@@ -996,13 +996,13 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
                     timestamp, session->username, adminIP, command, target);
     }
 
-    // Append to log file (writes to game directory main/ folder)
-    f = FS_FOpenFileAppend_HomeData("main/admin_log.txt");
+    // Append to log file (writes to game directory)
+    f = FS_FOpenFileAppend_HomeData("admin_log.txt");
     if (f) {
         FS_Write(logLine, strlen(logLine), f);
         FS_FCloseFile(f);
     } else {
-        Com_Printf("Warning: Failed to open main/admin_log.txt for writing\n");
+        Com_Printf("Warning: Failed to open admin_log.txt for writing\n");
     }
 }
 
