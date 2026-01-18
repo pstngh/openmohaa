@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "server.h"
+#include "sv_admin.h"
 
 #ifndef DEDICATED
 #    include "../client/client.h"
@@ -593,30 +594,40 @@ Load saved bans from file.
 static void SV_RehashBans_f(void)
 {
 	int index, filelen;
-	fileHandle_t readfrom;
+	FILE *readfrom;
 	char *textbuf, *curpos, *maskpos, *newlinepos, *endpos, *reasonpos;
-	char filepath[MAX_QPATH];
-	
+	char filepath[MAX_OSPATH];
+
 	serverBansCount = 0;
-	
+
 	if(!sv_banFile->string || !*sv_banFile->string)
 		return;
 
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
+	// Read from server's main/ directory instead of AppData for dedicated server use
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s/%s",
+		Cvar_VariableString("fs_basepath"),
+		FS_GetCurrentGameDir(),
+		sv_banFile->string);
 
-	if((filelen = FS_BaseDir_FOpenFileRead(filepath, &readfrom)) >= 0)
+	readfrom = Sys_FOpen(filepath, "rb");
+	if(readfrom)
 	{
+		// Get file size
+		fseek(readfrom, 0, SEEK_END);
+		filelen = ftell(readfrom);
+		fseek(readfrom, 0, SEEK_SET);
+
 		if(filelen < 2)
 		{
 			// Don't bother if file is too short.
-			FS_FCloseFile(readfrom);
+			fclose(readfrom);
 			return;
 		}
 
 		curpos = textbuf = Z_Malloc(filelen);
-		
-		filelen = FS_Read(textbuf, filelen, readfrom);
-		FS_FCloseFile(readfrom);
+
+		filelen = fread(textbuf, 1, filelen, readfrom);
+		fclose(readfrom);
 		
 		endpos = textbuf + filelen;
 		
@@ -692,23 +703,28 @@ Save bans to file.
 static void SV_WriteBans(void)
 {
 	int index;
-	fileHandle_t writeto;
-	char filepath[MAX_QPATH];
-	
+	FILE *writeto;
+	char filepath[MAX_OSPATH];
+
 	if(!sv_banFile->string || !*sv_banFile->string)
 		return;
-	
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
 
-	if((writeto = FS_BaseDir_FOpenFileWrite_HomeState(filepath)))
+	// Write to server's main/ directory instead of AppData for dedicated server use
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s/%s",
+		Cvar_VariableString("fs_basepath"),
+		FS_GetCurrentGameDir(),
+		sv_banFile->string);
+
+	writeto = Sys_FOpen(filepath, "wb");
+	if(writeto)
 	{
 		char writebuf[128 + MAX_REASON_LENGTH];
 		serverBan_t *curban;
-		
+
 		for(index = 0; index < serverBansCount; index++)
 		{
 			curban = &serverBans[index];
-			
+
 			if(curban->reason[0]) {
 				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d:%s\n",
 						curban->isexception, NET_AdrToString(curban->ip), curban->subnet, curban->reason);
@@ -716,11 +732,11 @@ static void SV_WriteBans(void)
 				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d\n",
 						curban->isexception, NET_AdrToString(curban->ip), curban->subnet);
 			}
-			
-			FS_Write(writebuf, strlen(writebuf), writeto);
+
+			fwrite(writebuf, 1, strlen(writebuf), writeto);
 		}
 
-		FS_FCloseFile(writeto);
+		fclose(writeto);
 	}
 }
 
@@ -1188,6 +1204,283 @@ static void SV_BanDel_f(void)
 static void SV_ExceptDel_f(void)
 {
 	SV_DelBanFromList(qtrue);
+}
+
+/*
+==================
+SV_AddBan_Client
+
+Public wrapper to add a ban for a specific client with a reason.
+Used by the admin system.
+==================
+*/
+qboolean SV_AddBan_Client(client_t *cl, const char *reason)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+
+	if (!cl) {
+		return qfalse;
+	}
+
+	ip = cl->netchan.remoteAddress;
+	mask = (ip.type == NA_IP6) ? 128 : 32;
+
+	if (ip.type != NA_IP && ip.type != NA_IP6) {
+		return qfalse;
+	}
+
+	if (serverBansCount >= ARRAY_LEN(serverBans)) {
+		return qfalse;
+	}
+
+	// Check for conflicting bans
+	for (index = 0; index < serverBansCount; index++) {
+		curban = &serverBans[index];
+		if (curban->subnet <= mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, curban->subnet)) {
+			// Already banned
+			return qfalse;
+		}
+	}
+
+	// Delete superseded bans
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+		if (curban->subnet > mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+		} else {
+			index++;
+		}
+	}
+
+	// Add the ban
+	serverBans[serverBansCount].ip = ip;
+	serverBans[serverBansCount].subnet = mask;
+	serverBans[serverBansCount].isexception = qfalse;
+
+	if (reason) {
+		Q_strncpyz(serverBans[serverBansCount].reason, reason, sizeof(serverBans[serverBansCount].reason));
+	} else {
+		serverBans[serverBansCount].reason[0] = '\0';
+	}
+
+	serverBansCount++;
+	SV_WriteBans();
+
+	// Kick the client
+	if (reason) {
+		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
+			"droperror\nYou have been banned from this server for:\n%s", reason);
+	} else {
+		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
+			"droperror\nYou have been banned from this server");
+	}
+
+	// Drop with empty reason to avoid duplicate broadcast
+	// (broadcast is handled by the calling admin command)
+	SV_DropClient(cl, "");
+
+	return qtrue;
+}
+
+/*
+==================
+SV_AddBan_IP
+
+Public wrapper to add a ban for an IP address with a reason.
+Used by the admin system.
+Returns qtrue on success, qfalse on failure.
+==================
+*/
+qboolean SV_AddBan_IP(const char *ipString, const char *reason)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+	char ipCopy[NET_ADDRSTRMAXLEN];
+
+	if (!ipString) {
+		return qfalse;
+	}
+
+	// Make a copy since SV_ParseCIDRNotation modifies the string
+	Q_strncpyz(ipCopy, ipString, sizeof(ipCopy));
+
+	if (SV_ParseCIDRNotation(&ip, &mask, ipCopy)) {
+		return qfalse;
+	}
+
+	if (ip.type != NA_IP && ip.type != NA_IP6) {
+		return qfalse;
+	}
+
+	if (serverBansCount >= ARRAY_LEN(serverBans)) {
+		return qfalse;
+	}
+
+	// Check for conflicting bans
+	for (index = 0; index < serverBansCount; index++) {
+		curban = &serverBans[index];
+		if (curban->subnet <= mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, curban->subnet)) {
+			// Already banned
+			return qfalse;
+		}
+	}
+
+	// Delete superseded bans
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+		if (curban->subnet > mask && !curban->isexception && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+		} else {
+			index++;
+		}
+	}
+
+	// Add the ban
+	serverBans[serverBansCount].ip = ip;
+	serverBans[serverBansCount].subnet = mask;
+	serverBans[serverBansCount].isexception = qfalse;
+
+	if (reason) {
+		Q_strncpyz(serverBans[serverBansCount].reason, reason, sizeof(serverBans[serverBansCount].reason));
+	} else {
+		serverBans[serverBansCount].reason[0] = '\0';
+	}
+
+	serverBansCount++;
+	SV_WriteBans();
+
+	// Find and kick any connected clients matching the banned IP
+	for (index = 0; index < sv_maxclients->integer; index++) {
+		client_t *kickcl = &svs.clients[index];
+
+		if (!kickcl->state) {
+			continue;
+		}
+
+		if (NET_CompareBaseAdrMask(kickcl->netchan.remoteAddress, ip, mask)) {
+			if (reason) {
+				SV_NET_OutOfBandPrint(&svs.netprofile, kickcl->netchan.remoteAddress,
+					"droperror\nYou have been banned from this server for:\n%s", reason);
+				SV_DropClient(kickcl, va("was banned for %s", reason));
+			} else {
+				SV_NET_OutOfBandPrint(&svs.netprofile, kickcl->netchan.remoteAddress,
+					"droperror\nYou have been banned from this server");
+				SV_DropClient(kickcl, "was banned");
+			}
+			kickcl->lastPacketTime = svs.time;
+		}
+	}
+
+	return qtrue;
+}
+
+/*
+==================
+SV_RemoveBan_IP
+
+Public wrapper to remove a ban for an IP address.
+Used by the admin system.
+Returns qtrue on success, qfalse on failure.
+==================
+*/
+qboolean SV_RemoveBan_IP(const char *ipString)
+{
+	netadr_t ip;
+	int mask, index;
+	serverBan_t *curban;
+	char ipCopy[NET_ADDRSTRMAXLEN];
+	qboolean removed = qfalse;
+
+	if (!ipString) {
+		return qfalse;
+	}
+
+	// Make a copy since SV_ParseCIDRNotation modifies the string
+	Q_strncpyz(ipCopy, ipString, sizeof(ipCopy));
+
+	if (SV_ParseCIDRNotation(&ip, &mask, ipCopy)) {
+		return qfalse;
+	}
+
+	index = 0;
+	while (index < serverBansCount) {
+		curban = &serverBans[index];
+
+		if (!curban->isexception && curban->subnet >= mask && NET_CompareBaseAdrMask(curban->ip, ip, mask)) {
+			SV_DelBanEntryFromList(index);
+			removed = qtrue;
+		} else {
+			index++;
+		}
+	}
+
+	if (removed) {
+		SV_WriteBans();
+	}
+
+	return removed;
+}
+
+/*
+==================
+SV_GetBanCount
+
+Returns the number of active bans (not exceptions).
+Used by the admin system.
+==================
+*/
+int SV_GetBanCount(void)
+{
+	int count = 0;
+	int i;
+
+	for (i = 0; i < serverBansCount; i++) {
+		if (!serverBans[i].isexception) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/*
+==================
+SV_GetBanEntry
+
+Get a specific ban entry by index (only counting non-exceptions).
+Used by the admin system for listing bans.
+Returns qtrue if the entry exists, qfalse otherwise.
+==================
+*/
+qboolean SV_GetBanEntry(int index, char *ipString, int ipStringSize, char *reason, int reasonSize)
+{
+	int count = 0;
+	int i;
+
+	for (i = 0; i < serverBansCount; i++) {
+		if (!serverBans[i].isexception) {
+			if (count == index) {
+				if (ipString) {
+					Com_sprintf(ipString, ipStringSize, "%s/%d",
+						NET_AdrToString(serverBans[i].ip), serverBans[i].subnet);
+				}
+				if (reason && serverBans[i].reason[0]) {
+					Q_strncpyz(reason, serverBans[i].reason, reasonSize);
+				} else if (reason) {
+					reason[0] = '\0';
+				}
+				return qtrue;
+			}
+			count++;
+		}
+	}
+
+	return qfalse;
 }
 
 /*

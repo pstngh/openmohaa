@@ -323,6 +323,10 @@ typedef struct {
 #endif
 	// Added in 2.0
 	netprofclient_t netprofile;
+
+	// Admin system data
+	int				numAdmins;
+	int				numMutes;
 } serverStatic_t;
 
 #define SERVER_MAXBANS	1024
@@ -393,6 +397,15 @@ extern  cvar_t  *sv_logContext;
 
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
+
+// Admin system - forward declarations from sv_admin.h
+typedef struct adminEntry_s adminEntry_t;
+typedef struct adminSession_s adminSession_t;
+typedef struct muteEntry_s muteEntry_t;
+
+extern	adminEntry_t adminList[128];     // MAX_ADMINS
+extern	adminSession_t adminSessions[32]; // MAX_ADMIN_SESSIONS
+extern	muteEntry_t muteList[256];       // MAX_MUTES
 
 #ifdef USE_VOIP
 extern	cvar_t	*sv_voip;
@@ -533,6 +546,13 @@ unsigned int SV_Client_GetMaxPendingCommands(client_t *cl);
 // sv_ccmds.c
 //
 void SV_Heartbeat_f( void );
+
+// Ban system wrappers for admin system
+qboolean SV_AddBan_Client(client_t *cl, const char *reason);
+qboolean SV_AddBan_IP(const char *ipString, const char *reason);
+qboolean SV_RemoveBan_IP(const char *ipString);
+int SV_GetBanCount(void);
+qboolean SV_GetBanEntry(int index, char *ipString, int ipStringSize, char *reason, int reasonSize);
 
 //
 // sv_snapshot.c

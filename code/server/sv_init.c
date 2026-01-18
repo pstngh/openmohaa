@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "server.h"
+#include "sv_admin.h"
 #include "../client/client.h"
 #include "../corepp/tiki.h"
 #include "../qcommon/bg_compat.h"
@@ -742,6 +743,11 @@ void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qb
 
 	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
 
+	// Reload admin list on map load
+	SV_LoadAdminList();
+	// Clear all mutes on map change
+	SV_CleanupExpiredMutes();
+
 	// toggle the server bit so clients can detect that a
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
@@ -1133,6 +1139,9 @@ void SV_Init (void)
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
 
+	// Initialize admin system
+	SV_InitAdminSystem();
+
     if (com_gotOriginalConfig) {
         // Added in OPM
         //  Apply config tweaks after loading the original config
@@ -1197,6 +1206,7 @@ void SV_Shutdown( const char *finalmsg ) {
 	}
 
 	SV_RemoveOperatorCommands();
+	SV_ShutdownAdminSystem();
 	SV_ShutdownGamespy();
 	SV_MasterShutdown();
 	SV_ShutdownGameProgs();

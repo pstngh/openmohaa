@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
+#include "sv_admin.h"
 #include "../gamespy/sv_gamespy.h"
 #include "../qcommon/bg_compat.h"
 
@@ -398,6 +399,8 @@ void SV_DirectConnect( netadr_t from ) {
 		}
 		return;
 	}
+
+	// Admin bans are now integrated with the official ban system (checked above in SV_CheckDRDoS)
 
 	if (com_target_game->integer >= TG_MOHTT) {
 		const char* clientType;
@@ -1706,6 +1709,21 @@ static ucmd_t ucmds[] = {
 	{"voip", SV_Voip_f},
 #endif
 
+	// Admin system commands
+	{"ad_login", SV_AdminLogin_f},
+	{"ad_kick", SV_AdminKick_f},
+	{"ad_clientkick", SV_AdminClientKick_f},
+	{"ad_banip", SV_AdminBanIP_f},
+	{"ad_ban", SV_AdminBan_f},
+	{"ad_unbanip", SV_AdminUnbanIP_f},
+	{"ad_dischat", SV_AdminDisableChat_f},
+	{"ad_distaunt", SV_AdminDisableTaunt_f},
+	{"ad_say", SV_AdminSay_f},
+	{"ad_status", SV_AdminStatus_f},
+	{"ad_listadmins", SV_AdminListAdmins_f},
+	{"ad_listips", SV_AdminListIPs_f},
+	{"ad_map", SV_AdminMap_f},
+
 	{NULL, NULL}
 };
 
@@ -1743,6 +1761,40 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	if (clientOK) {
 		// pass unknown strings to the game
 		if (!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED)) {
+			const char *cmd = Cmd_Argv(0);
+
+			Com_Printf("DEBUG: Client command: %s from %s\n", cmd, cl->name);
+
+			// Check for muted chat/taunts via dmmessage command
+			if (!Q_stricmp(cmd, "dmmessage")) {
+				const char *message = Cmd_Argv(2);
+				qboolean isTaunt = qfalse;
+
+				Com_Printf("DEBUG: dmmessage from %s, message arg: %s\n", cl->name, message);
+
+				// Check if it's a taunt (starts with * followed by 2 digits)
+				if (message && message[0] == '*' && message[1] >= '0' && message[1] <= '9' &&
+				    message[2] >= '0' && message[2] <= '9' && message[3] == '\0') {
+					isTaunt = qtrue;
+				}
+
+				if (isTaunt) {
+					Com_Printf("DEBUG: Checking taunt mute for %s\n", cl->name);
+					if (SV_IsPlayerTauntMuted(cl->netchan.remoteAddress)) {
+						Com_Printf("DEBUG: Player %s taunt is muted, blocking\n", cl->name);
+						SV_SendServerCommand(cl, "print \"Your taunts have been disabled by an admin\n\"");
+						return;
+					}
+				} else {
+					Com_Printf("DEBUG: Checking chat mute for %s\n", cl->name);
+					if (SV_IsPlayerChatMuted(cl->netchan.remoteAddress)) {
+						Com_Printf("DEBUG: Player %s chat is muted, blocking\n", cl->name);
+						SV_SendServerCommand(cl, "print \"You have been muted by an admin\n\"");
+						return;
+					}
+				}
+			}
+
 			Cmd_Args_Sanitize();
 			ge->ClientCommand( ( gentity_t * )SV_GentityNum( cl - svs.clients ) );
 

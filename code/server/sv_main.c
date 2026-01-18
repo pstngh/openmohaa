@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "server.h"
+#include "sv_admin.h"
 #include "../gamespy/sv_gamespy.h"
 #include "../gamespy/sv_gqueryreporting.h"
 
@@ -1149,6 +1150,14 @@ void SV_Frame( int msec ) {
 
 	// check timeouts
 	SV_CheckTimeouts();
+
+	// Cleanup expired admin sessions (every 60 seconds)
+	// Mutes are cleared on map change instead
+	static int lastAdminCleanup = 0;
+	if (svs.time - lastAdminCleanup > 60000) {
+		SV_CleanupExpiredSessions();
+		lastAdminCleanup = svs.time;
+	}
 
 	// send messages back to the clients
 	SV_SendClientMessages();
