@@ -1462,6 +1462,8 @@ void BotController::GotKill(const Event& ev)
         }
     }
 
+    // Bot taunts disabled
+    /*
     if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
         //
         // Randomly play a taunt
@@ -1480,6 +1482,7 @@ void BotController::GotKill(const Event& ev)
 
         m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
     }
+    */
 }
 
 void BotController::EventStuffText(const str& text)
