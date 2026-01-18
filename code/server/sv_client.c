@@ -1767,6 +1767,24 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	if (clientOK) {
 		// pass unknown strings to the game
 		if (!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED)) {
+			const char *cmd = Cmd_Argv(0);
+
+			// Check for muted chat
+			if (!Q_stricmp(cmd, "say") || !Q_stricmp(cmd, "say_team")) {
+				if (SV_IsPlayerChatMuted(cl->netchan.remoteAddress)) {
+					SV_SendServerCommand(cl, "print \"You have been muted by an admin\n\"");
+					return;
+				}
+			}
+
+			// Check for muted taunts
+			if (!Q_stricmp(cmd, "taunt")) {
+				if (SV_IsPlayerTauntMuted(cl->netchan.remoteAddress)) {
+					SV_SendServerCommand(cl, "print \"Your taunts have been disabled by an admin\n\"");
+					return;
+				}
+			}
+
 			Cmd_Args_Sanitize();
 			ge->ClientCommand( ( gentity_t * )SV_GentityNum( cl - svs.clients ) );
 

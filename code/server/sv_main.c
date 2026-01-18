@@ -1151,11 +1151,11 @@ void SV_Frame( int msec ) {
 	// check timeouts
 	SV_CheckTimeouts();
 
-	// Cleanup expired admin sessions and mutes (every 60 seconds)
+	// Cleanup expired admin sessions (every 60 seconds)
+	// Mutes are cleared on map change instead
 	static int lastAdminCleanup = 0;
 	if (svs.time - lastAdminCleanup > 60000) {
 		SV_CleanupExpiredSessions();
-		SV_CleanupExpiredMutes();
 		lastAdminCleanup = svs.time;
 	}
 

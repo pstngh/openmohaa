@@ -745,6 +745,8 @@ void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qb
 
 	// Reload admin list on map load
 	SV_LoadAdminList();
+	// Clear all mutes on map change
+	SV_CleanupExpiredMutes();
 
 	// toggle the server bit so clients can detect that a
 	// server has changed

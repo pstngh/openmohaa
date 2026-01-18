@@ -610,90 +610,42 @@ void SV_UnmutePlayerTaunt(netadr_t ip)
 ==================
 SV_IsPlayerChatMuted
 
-Checks if a player's chat is muted (and not expired)
+Checks if a player's chat is muted
 ==================
 */
 qboolean SV_IsPlayerChatMuted(netadr_t ip)
 {
     muteEntry_t *mute = SV_FindMuteEntry(ip, qfalse);
-    if (!mute || !mute->chatMuted) {
-        return qfalse;
-    }
-
-    // Check if mute has expired (24 hours)
-    if (svs.time - mute->chatMuteTime > MUTE_DURATION) {
-        mute->chatMuted = qfalse;
-        return qfalse;
-    }
-
-    return qtrue;
+    return (mute && mute->chatMuted);
 }
 
 /*
 ==================
 SV_IsPlayerTauntMuted
 
-Checks if a player's taunts are muted (and not expired)
+Checks if a player's taunts are muted
 ==================
 */
 qboolean SV_IsPlayerTauntMuted(netadr_t ip)
 {
     muteEntry_t *mute = SV_FindMuteEntry(ip, qfalse);
-    if (!mute || !mute->tauntMuted) {
-        return qfalse;
-    }
-
-    // Check if mute has expired (24 hours)
-    if (svs.time - mute->tauntMuteTime > MUTE_DURATION) {
-        mute->tauntMuted = qfalse;
-        return qfalse;
-    }
-
-    return qtrue;
+    return (mute && mute->tauntMuted);
 }
 
 /*
 ==================
 SV_CleanupExpiredMutes
 
-Removes expired mutes
-Called periodically from SV_Frame
+Clears all mutes (no longer time-based, cleared on map change)
+Called from map change
 ==================
 */
 void SV_CleanupExpiredMutes(void)
 {
-    int i;
-    int cleaned = 0;
-
-    for (i = 0; i < MAX_MUTES; i++) {
-        if (muteList[i].active) {
-            qboolean chatExpired = qfalse;
-            qboolean tauntExpired = qfalse;
-
-            if (muteList[i].chatMuted && svs.time - muteList[i].chatMuteTime > MUTE_DURATION) {
-                muteList[i].chatMuted = qfalse;
-                chatExpired = qtrue;
-            }
-
-            if (muteList[i].tauntMuted && svs.time - muteList[i].tauntMuteTime > MUTE_DURATION) {
-                muteList[i].tauntMuted = qfalse;
-                tauntExpired = qtrue;
-            }
-
-            // If both mutes expired, mark entry as inactive
-            if (!muteList[i].chatMuted && !muteList[i].tauntMuted) {
-                muteList[i].active = qfalse;
-                if (chatExpired || tauntExpired) {
-                    cleaned++;
-                    svs.numMutes--;
-                }
-            }
-        }
-    }
-
-    if (cleaned > 0) {
-        Com_DPrintf("Cleaned up %d expired mute(s)\n", cleaned);
-    }
+    // Clear all mutes
+    memset(muteList, 0, sizeof(muteList));
+    svs.numMutes = 0;
+    Com_Printf("Cleared all mutes\n");
 }
 
 /*
@@ -1037,10 +989,9 @@ void SV_AdminLogin_f(client_t *cl)
     username = Cmd_Argv(1);
     password = Cmd_Argv(2);
 
-    // Debug: Check if any admins are loaded
+    // Check if any admins are loaded
     if (svs.numAdmins == 0) {
         SV_SendServerCommand(cl, "print \"No admins loaded. Check server console for errors.\n\"");
-        Com_Printf("Admin login failed: No admins loaded from admins.ini\n");
         return;
     }
 
@@ -1048,14 +999,12 @@ void SV_AdminLogin_f(client_t *cl)
     admin = SV_FindAdminByUsername(username);
     if (!admin) {
         SV_SendServerCommand(cl, "print \"Login failed: Invalid username or password\n\"");
-        Com_Printf("Admin login failed: Username '%s' not found (have %d admins loaded)\n", username, svs.numAdmins);
         return;
     }
 
     // Check password
     if (!SV_ComparePasswords(password, admin->password)) {
         SV_SendServerCommand(cl, "print \"Login failed: Invalid username or password\n\"");
-        Com_Printf("Admin login failed: Password mismatch for user '%s'\n", username);
         return;
     }
 
@@ -1371,8 +1320,8 @@ void SV_AdminDisableChat_f(client_t *cl)
     // Log the action
     SV_LogAdminAction(session, "ad_dischat", target->name, targetIP);
 
-    SV_SendServerCommand(cl, "print \"Disabled chat for %s (24 hour mute)\n\"", target->name);
-    SV_SendServerCommand(target, "print \"Your chat has been disabled by an admin (24 hour mute)\n\"");
+    SV_SendServerCommand(cl, "print \"Disabled chat for %s\n\"", target->name);
+    SV_SendServerCommand(target, "print \"Your chat has been disabled by an admin\n\"");
     Com_Printf("Admin %s disabled chat for %s (%s)\n", session->username, target->name, targetIP);
 }
 
@@ -1427,8 +1376,8 @@ void SV_AdminDisableTaunt_f(client_t *cl)
     // Log the action
     SV_LogAdminAction(session, "ad_distaunt", target->name, targetIP);
 
-    SV_SendServerCommand(cl, "print \"Disabled taunts for %s (24 hour mute)\n\"", target->name);
-    SV_SendServerCommand(target, "print \"Your taunts have been disabled by an admin (24 hour mute)\n\"");
+    SV_SendServerCommand(cl, "print \"Disabled taunts for %s\n\"", target->name);
+    SV_SendServerCommand(target, "print \"Your taunts have been disabled by an admin\n\"");
     Com_Printf("Admin %s disabled taunts for %s (%s)\n", session->username, target->name, targetIP);
 }
 
@@ -1462,7 +1411,7 @@ void SV_AdminSay_f(client_t *cl)
     message = Cmd_ArgsFrom(1);
 
     // Build the message with console prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "^1[CONSOLE]^7 %s\n\"", message);
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "[CONSOLE] %s\n\"", message);
 
     // Send to all clients
     SV_SendServerCommand(NULL, "%s", fullMessage);
