@@ -594,30 +594,40 @@ Load saved bans from file.
 static void SV_RehashBans_f(void)
 {
 	int index, filelen;
-	fileHandle_t readfrom;
+	FILE *readfrom;
 	char *textbuf, *curpos, *maskpos, *newlinepos, *endpos, *reasonpos;
-	char filepath[MAX_QPATH];
-	
+	char filepath[MAX_OSPATH];
+
 	serverBansCount = 0;
-	
+
 	if(!sv_banFile->string || !*sv_banFile->string)
 		return;
 
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
+	// Read from server's main/ directory instead of AppData for dedicated server use
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s/%s",
+		Cvar_VariableString("fs_basepath"),
+		FS_GetCurrentGameDir(),
+		sv_banFile->string);
 
-	if((filelen = FS_BaseDir_FOpenFileRead(filepath, &readfrom)) >= 0)
+	readfrom = Sys_FOpen(filepath, "rb");
+	if(readfrom)
 	{
+		// Get file size
+		fseek(readfrom, 0, SEEK_END);
+		filelen = ftell(readfrom);
+		fseek(readfrom, 0, SEEK_SET);
+
 		if(filelen < 2)
 		{
 			// Don't bother if file is too short.
-			FS_FCloseFile(readfrom);
+			fclose(readfrom);
 			return;
 		}
 
 		curpos = textbuf = Z_Malloc(filelen);
-		
-		filelen = FS_Read(textbuf, filelen, readfrom);
-		FS_FCloseFile(readfrom);
+
+		filelen = fread(textbuf, 1, filelen, readfrom);
+		fclose(readfrom);
 		
 		endpos = textbuf + filelen;
 		
@@ -693,23 +703,28 @@ Save bans to file.
 static void SV_WriteBans(void)
 {
 	int index;
-	fileHandle_t writeto;
-	char filepath[MAX_QPATH];
-	
+	FILE *writeto;
+	char filepath[MAX_OSPATH];
+
 	if(!sv_banFile->string || !*sv_banFile->string)
 		return;
-	
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
 
-	if((writeto = FS_BaseDir_FOpenFileWrite_HomeState(filepath)))
+	// Write to server's main/ directory instead of AppData for dedicated server use
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s/%s",
+		Cvar_VariableString("fs_basepath"),
+		FS_GetCurrentGameDir(),
+		sv_banFile->string);
+
+	writeto = Sys_FOpen(filepath, "wb");
+	if(writeto)
 	{
 		char writebuf[128 + MAX_REASON_LENGTH];
 		serverBan_t *curban;
-		
+
 		for(index = 0; index < serverBansCount; index++)
 		{
 			curban = &serverBans[index];
-			
+
 			if(curban->reason[0]) {
 				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d:%s\n",
 						curban->isexception, NET_AdrToString(curban->ip), curban->subnet, curban->reason);
@@ -717,11 +732,11 @@ static void SV_WriteBans(void)
 				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d\n",
 						curban->isexception, NET_AdrToString(curban->ip), curban->subnet);
 			}
-			
-			FS_Write(writebuf, strlen(writebuf), writeto);
+
+			fwrite(writebuf, 1, strlen(writebuf), writeto);
 		}
 
-		FS_FCloseFile(writeto);
+		fclose(writeto);
 	}
 }
 
