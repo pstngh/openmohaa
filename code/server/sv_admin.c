@@ -1198,10 +1198,10 @@ void SV_AdminSay_f(client_t *cl)
 
     message = Cmd_ArgsFrom(1);
 
-    // Build the message with admin prefix
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"[ADMIN] %s\n\"", message);
+    // Build the message with admin prefix and send as in-game chat (like rcon say)
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "[ADMIN] %s\n\"", message);
 
-    // Send to all clients
+    // Send to all clients (in-game chat)
     SV_SendServerCommand(NULL, "%s", fullMessage);
 
     // Log the action
