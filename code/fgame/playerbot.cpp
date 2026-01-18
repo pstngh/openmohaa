@@ -1164,7 +1164,21 @@ void BotController::State_Attack(void)
             // Calculate legal aim offset (dancing between legal zones)
             CalculateLegalAimOffset(m_vAimOffset, m_pEnemy);
 
-            rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+            // Apply spread with downward-only vertical deviation
+            Vector adjustedOffset = m_vAimOffset;
+            adjustedOffset[0] *= g_bot_attack_spreadmult->value;  // Horizontal: Left/Right
+            adjustedOffset[1] *= g_bot_attack_spreadmult->value;  // Horizontal: Front/Back
+
+            // Vertical: only allow downward deviation to prevent headshots
+            if (adjustedOffset[2] > 0) {
+                // Positive Z aims higher - clamp to prevent upward deviation
+                adjustedOffset[2] = 0;
+            } else {
+                // Negative Z aims lower - allow spread to increase downward error
+                adjustedOffset[2] *= g_bot_attack_spreadmult->value;
+            }
+
+            rotation.AimAt(vTarget + adjustedOffset);
         } else {
             // Original aiming logic
             if (m_iEnemyEyesTag == -1) {
@@ -1196,7 +1210,21 @@ void BotController::State_Attack(void)
                 m_iLastAimTime = level.inttime;
             }
 
-            rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+            // Apply spread with downward-only vertical deviation
+            Vector adjustedOffset = m_vAimOffset;
+            adjustedOffset[0] *= g_bot_attack_spreadmult->value;  // Horizontal: Left/Right
+            adjustedOffset[1] *= g_bot_attack_spreadmult->value;  // Horizontal: Front/Back
+
+            // Vertical: only allow downward deviation to prevent headshots
+            if (adjustedOffset[2] > 0) {
+                // Positive Z aims higher - clamp to prevent upward deviation
+                adjustedOffset[2] = 0;
+            } else {
+                // Negative Z aims lower - allow spread to increase downward error
+                adjustedOffset[2] *= g_bot_attack_spreadmult->value;
+            }
+
+            rotation.AimAt(vTarget + adjustedOffset);
         }
     } else {
         AimAtAimNode();
