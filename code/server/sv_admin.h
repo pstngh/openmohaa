@@ -49,7 +49,7 @@ extern "C" {
 //=============================================================================
 
 // Admin entry loaded from admins.ini
-typedef struct {
+typedef struct adminEntry_s {
     char        username[MAX_ADMIN_NAME];
     char        password[MAX_ADMIN_PASSWORD];
     int         level;                      // 1 = Junior, 2 = Senior
@@ -57,7 +57,7 @@ typedef struct {
 } adminEntry_t;
 
 // Active admin session (IP-based, survives reconnects)
-typedef struct {
+typedef struct adminSession_s {
     netadr_t    ip;                         // Admin's IP address
     char        username[MAX_ADMIN_NAME];   // Logged-in username
     int         level;                      // Permission level
@@ -66,7 +66,7 @@ typedef struct {
 } adminSession_t;
 
 // Mute entry (IP-based, persists across reconnects)
-typedef struct {
+typedef struct muteEntry_s {
     netadr_t    ip;                         // Muted player's IP
     qboolean    chatMuted;                  // Is chat disabled?
     qboolean    tauntMuted;                 // Are taunts disabled?

@@ -1137,8 +1137,6 @@ void SV_AdminClientKick_f(client_t *cl)
     client_t *target;
     char targetIP[64];
 
-    }
-
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
         SV_SendServerCommand(cl, "print \"You must be logged in as admin to use this command\n\"");
@@ -1231,8 +1229,6 @@ void SV_AdminBanID_f(client_t *cl)
     int clientId;
     client_t *target;
     char targetIP[64];
-
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
@@ -1330,8 +1326,6 @@ void SV_AdminDisableChat_f(client_t *cl)
     client_t *target;
     char targetIP[64];
 
-    }
-
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
         SV_SendServerCommand(cl, "print \"You must be logged in as admin to use this command\n\"");
@@ -1388,8 +1382,6 @@ void SV_AdminDisableTaunt_f(client_t *cl)
     client_t *target;
     char targetIP[64];
 
-    }
-
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
         SV_SendServerCommand(cl, "print \"You must be logged in as admin to use this command\n\"");
@@ -1445,8 +1437,6 @@ void SV_AdminSay_f(client_t *cl)
     const char *message;
     char fullMessage[256];
 
-    }
-
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
         SV_SendServerCommand(cl, "print \"You must be logged in as admin to use this command\n\"");
@@ -1491,8 +1481,6 @@ void SV_AdminStatus_f(client_t *cl)
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
-
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -1546,8 +1534,6 @@ void SV_AdminListAdmins_f(client_t *cl)
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
-
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -1604,8 +1590,6 @@ void SV_AdminListIPs_f(client_t *cl)
     char *p = buffer;
     int remaining = sizeof(buffer);
     int written;
-
-    }
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_SENIOR) {
