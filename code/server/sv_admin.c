@@ -675,10 +675,11 @@ Format: [timestamp] admin_name (admin_ip) command target (target_ip)
 */
 void SV_LogAdminAction(adminSession_t *session, const char *command, const char *target, const char *targetIP)
 {
-    fileHandle_t f;
+    FILE *f;
     char timestamp[64];
     char logLine[512];
     char adminIP[64];
+    char logPath[MAX_OSPATH];
     qtime_t time;
 
     if (!session) {
@@ -703,13 +704,18 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
                     timestamp, session->username, adminIP, command, target);
     }
 
-    // Append to log file (writes to game directory)
-    f = FS_FOpenFileAppend_HomeData("admin_log.txt");
+    // Build path to server's main/admin.log
+    Com_sprintf(logPath, sizeof(logPath), "%s/%s/admin.log",
+                Cvar_VariableString("fs_basepath"),
+                FS_GetCurrentGameDir());
+
+    // Append to log file (writes to server directory, not AppData)
+    f = Sys_FOpen(logPath, "ab");
     if (f) {
-        FS_Write(logLine, strlen(logLine), f);
-        FS_FCloseFile(f);
+        fwrite(logLine, 1, strlen(logLine), f);
+        fclose(f);
     } else {
-        Com_Printf("Warning: Failed to open admin_log.txt for writing\n");
+        Com_Printf("Warning: Failed to open %s for writing\n", logPath);
     }
 }
 

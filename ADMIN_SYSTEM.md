@@ -7,9 +7,9 @@ A comprehensive, native admin system for OpenMOHAA game servers with IP-based au
 - **IP-based Authentication**: Secure login system tied to client IP addresses
 - **Two-tier Permission System**: Junior and Senior admin levels
 - **Session Management**: 1-hour automatic session timeout with activity tracking
-- **Persistent Bans**: IP-based ban system with CIDR notation support
+- **Integrated Ban System**: Uses official OpenMOHAA ban system (`serverbans.dat`) with full CIDR notation support
 - **Chat & Taunt Mutes**: Temporary mutes that clear on map change
-- **Comprehensive Logging**: All admin actions logged to `admin_log.txt`
+- **Comprehensive Logging**: All admin actions logged to `main/admin.log`
 - **Cross-platform**: Works on all platforms supported by OpenMOHAA
 
 ## Installation
@@ -48,8 +48,14 @@ login=moderator password=ModPass456 level=1
 
 The admin system will automatically:
 - Load the admin list from `main/admins.ini`
-- Create `main/banlist.txt` (if it doesn't exist)
-- Create `main/admin_log.txt` for logging
+- Use the official OpenMOHAA ban system (`main/serverbans.dat`)
+- Log all admin actions to `main/admin.log`
+
+**File Locations:**
+All files are stored in the server's `main/` directory for easy access and backup:
+- `main/admins.ini` - Admin credentials configuration
+- `main/serverbans.dat` - Banned IPs (managed by OpenMOHAA ban system)
+- `main/admin.log` - Admin action audit log
 
 ## Admin Commands
 
@@ -286,45 +292,61 @@ login=helper password=HelperPass789 level=1
 
 ---
 
-### banlist.txt
+### serverbans.dat
 
-Located in: `main/banlist.txt`
+Located in: `main/serverbans.dat` (configurable with `sv_banFile` cvar)
 
-Format: One IP address per line (supports CIDR notation)
+**Format:** Managed by the official OpenMOHAA ban system
 
 **Example:**
 ```
-192.168.1.100
-10.0.0.0/24
-172.16.5.50
+0 192.168.1.100 32
+0 10.0.0.0 24:Banned by admin test: Cheating
+0 172.16.5.50 32:Banned by admin moderator
 ```
 
+**Format Details:**
+- First field: 0 = ban, 1 = exception
+- Second field: IP address
+- Third field: Subnet mask (32 for single IP, 24 for /24 network, etc.)
+- Optional: Reason after colon
+
 **Notes:**
-- Automatically created if missing
-- Modified by `ad_ban`, `ad_banip`, and `ad_unbanip` commands
-- Supports CIDR ranges (e.g., `10.0.0.0/24` bans 256 addresses)
+- Uses the same ban system as console commands (`banaddr`, `bandel`, `listbans`, etc.)
+- Modified by admin commands (`ad_ban`, `ad_banip`, `ad_unbanip`) and console commands
+- Full CIDR notation support (e.g., `10.0.0.0/24` bans 256 addresses)
+- Supports ban exceptions for whitelisting
+- Checked on every client connection
+
+**Related Console Commands:**
+- `rehashbans` - Reload bans from file
+- `listbans` - List all bans
+- `banaddr <ip>` - Ban an IP address
+- `bandel <ip>` - Remove a ban
+- `flushbans` - Remove all bans
 
 ---
 
-### admin_log.txt
+### admin.log
 
-Located in: `main/admin_log.txt`
+Located in: `main/admin.log` (in server directory, not AppData)
 
-Format: Automatic logging of all admin actions
+**Format:** Automatic logging of all admin actions
 
 **Example:**
 ```
-[2026-01-18 15:30:45] admin (Level 2) - ad_login: Successful login
-[2026-01-18 15:31:12] admin (Level 2) - ad_kick: Kicked PlayerName (192.168.1.100)
-[2026-01-18 15:32:05] admin (Level 2) - ad_say: Server restart in 5 minutes!
-[2026-01-18 15:33:20] admin (Level 2) - ad_ban: Banned PlayerTwo (192.168.1.101)
+[2026-01-18 15:30:45] admin (38.133.36.82) ad_login
+[2026-01-18 15:31:12] admin (38.133.36.82) ad_kick PlayerName (192.168.1.100)
+[2026-01-18 15:32:05] admin (38.133.36.82) ad_say Server restart in 5 minutes!
+[2026-01-18 15:33:20] admin (38.133.36.82) ad_ban PlayerTwo (192.168.1.101)
 ```
 
 **Notes:**
 - Timestamp format: `[YYYY-MM-DD HH:MM:SS]`
-- Includes admin username and level
+- Includes admin username and IP address
 - Records command used and target/message
 - Automatically appends (never truncated)
+- Written to server directory for easy access and backup
 
 ---
 
@@ -349,11 +371,14 @@ Format: Automatic logging of all admin actions
 
 ### Ban System
 
-- **Storage**: `main/banlist.txt` (persistent)
-- **Format**: Plain text, one IP per line
-- **CIDR Support**: Yes (e.g., `192.168.1.0/24`)
-- **Checking**: On client connection
-- **Action**: Immediate disconnect with "You are banned from this server"
+- **Storage**: `main/serverbans.dat` (persistent, configurable with `sv_banFile`)
+- **Integration**: Uses official OpenMOHAA ban system
+- **Format**: Binary format managed by engine (0/1 exception IP subnet:reason)
+- **CIDR Support**: Full support (e.g., `192.168.1.0/24`, IPv6)
+- **Features**: Ban exceptions, conflict detection, reason tracking
+- **Checking**: On client connection via `SV_CheckDRDoS()`
+- **Action**: Immediate disconnect with ban reason
+- **Commands**: Works with both `ad_*` admin commands and console `ban*` commands
 
 ### Authentication
 
@@ -515,18 +540,33 @@ chmod 644 main/admin_log.txt
 - IP-based authentication system
 - Two-tier permission hierarchy
 - Session management with 1-hour timeout
-- Persistent ban system with CIDR support
+- Integrated with official OpenMOHAA ban system
 - Temporary mute system (chat and taunts)
-- Comprehensive admin logging
+- Comprehensive admin logging to server directory
 - 13 admin commands
 - File-based configuration
 
-**Bug Fixes**
-- Fixed file paths (removed incorrect "main/" prefix duplication)
-- Fixed mute enforcement (now intercepts `dmmessage` command)
+**Major Features**
+- **Integrated Ban System**: Admin ban commands use official OpenMOHAA ban system
+  - Shared ban list with console commands (`banaddr`, `bandel`, `listbans`)
+  - Full CIDR notation support for IPv4 and IPv6
+  - Ban reasons tracked and displayed
+  - Ban exceptions/whitelist support
+  - Automatic conflict detection
+  - Single source of truth: `serverbans.dat`
+- **Server Directory Storage**: All files stored in `main/` for easy access
+  - `main/admins.ini` - Admin credentials
+  - `main/serverbans.dat` - Banned IPs (official format)
+  - `main/admin.log` - Action audit log
+
+**Bug Fixes & Improvements**
+- Fixed file paths to write to server directory instead of AppData
+- Fixed mute enforcement (intercepts `dmmessage` command for both chat and taunts)
 - Fixed output buffering for `ad_status` and `ad_listadmins`
 - Changed `ad_say` prefix from "CONSOLE" to "ADMIN"
 - Renamed `ad_banid` to `ad_ban` for consistency
+- Changed file extensions to match OpenMOHAA conventions (.log instead of .txt)
+- Removed 240+ lines of duplicate ban code
 
 ---
 
