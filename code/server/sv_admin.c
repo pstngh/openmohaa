@@ -794,6 +794,7 @@ void SV_AdminKick_f(client_t *cl)
     int clientId;
     client_t *target;
     char targetIP[64];
+    char targetName[MAX_NAME_LENGTH];
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -822,19 +823,20 @@ void SV_AdminKick_f(client_t *cl)
         return;
     }
 
-    // Get target IP for logging
+    // Save target name and IP BEFORE kicking (kicking clears the name)
+    Q_strncpyz(targetName, target->name, sizeof(targetName));
     Q_strncpyz(targetIP, NET_AdrToString(target->netchan.remoteAddress), sizeof(targetIP));
 
-    // Log the action
-    SV_LogAdminAction(session, "ad_kick", target->name, targetIP);
-
     // Announce the kick to all players (in-game)
-    SV_SendServerCommand(NULL, "print \"[ADMIN] %s was kicked by %s\n\"", target->name, session->username);
+    SV_SendServerCommand(NULL, "print \"[ADMIN] %s has been kicked\n\"", targetName);
 
     // Kick the player
     SV_DropClient(target, "You have been kicked by an admin");
 
-    Com_Printf("Admin %s kicked player %s (%s)\n", session->username, target->name, targetIP);
+    // Log the action
+    SV_LogAdminAction(session, "ad_kick", targetName, targetIP);
+
+    Com_Printf("Admin %s kicked player %s (%s)\n", session->username, targetName, targetIP);
 }
 
 /*
@@ -851,6 +853,7 @@ void SV_AdminClientKick_f(client_t *cl)
     int clientId;
     client_t *target;
     char targetIP[64];
+    char targetName[MAX_NAME_LENGTH];
 
     session = SV_GetClientAdminSession(cl);
     if (!session || session->level < ADMIN_LEVEL_JUNIOR) {
@@ -879,19 +882,20 @@ void SV_AdminClientKick_f(client_t *cl)
         return;
     }
 
-    // Get target IP for logging
+    // Save target name and IP BEFORE kicking (kicking clears the name)
+    Q_strncpyz(targetName, target->name, sizeof(targetName));
     Q_strncpyz(targetIP, NET_AdrToString(target->netchan.remoteAddress), sizeof(targetIP));
 
-    // Log the action
-    SV_LogAdminAction(session, "ad_clientkick", target->name, targetIP);
-
     // Announce the kick to all players (in-game)
-    SV_SendServerCommand(NULL, "print \"[ADMIN] %s was kicked by %s\n\"", target->name, session->username);
+    SV_SendServerCommand(NULL, "print \"[ADMIN] %s has been kicked\n\"", targetName);
 
     // Kick the player
     SV_DropClient(target, "You have been kicked by an admin");
 
-    Com_Printf("Admin %s kicked client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
+    // Log the action
+    SV_LogAdminAction(session, "ad_clientkick", targetName, targetIP);
+
+    Com_Printf("Admin %s kicked client %d %s (%s)\n", session->username, clientId, targetName, targetIP);
 }
 
 /*
@@ -954,6 +958,7 @@ void SV_AdminBan_f(client_t *cl)
     int clientId;
     client_t *target;
     char targetIP[64];
+    char targetName[MAX_NAME_LENGTH];
     char reason[256];
 
     session = SV_GetClientAdminSession(cl);
@@ -983,23 +988,24 @@ void SV_AdminBan_f(client_t *cl)
         return;
     }
 
-    // Get target IP for logging
+    // Save target name and IP BEFORE banning (banning clears the name)
+    Q_strncpyz(targetName, target->name, sizeof(targetName));
     Q_strncpyz(targetIP, NET_AdrToString(target->netchan.remoteAddress), sizeof(targetIP));
 
-    // Build reason if provided
+    // Build reason for ban record
     if (Cmd_Argc() > 2) {
         Com_sprintf(reason, sizeof(reason), "Banned by %s: %s", session->username, Cmd_ArgsFrom(2));
     } else {
-        Com_sprintf(reason, sizeof(reason), "Banned by admin %s", session->username);
+        Com_sprintf(reason, sizeof(reason), "Banned by %s", session->username);
     }
 
-    // Use official ban system
-    if (SV_AddBan_Client(target, reason)) {
-        SV_LogAdminAction(session, "ad_ban", target->name, targetIP);
-        Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
+    // Announce BEFORE banning
+    SV_SendServerCommand(NULL, "print \"[ADMIN] %s has been banned\n\"", targetName);
 
-        // Announce the ban to all players (in-game)
-        SV_SendServerCommand(NULL, "print \"[ADMIN] %s was banned by %s\n\"", target->name, session->username);
+    // Use official ban system (this will drop the client)
+    if (SV_AddBan_Client(target, reason)) {
+        SV_LogAdminAction(session, "ad_ban", targetName, targetIP);
+        Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, targetName, targetIP);
     } else {
         SV_SendServerCommand(cl, "print \"Failed to add ban\n\"");
     }
