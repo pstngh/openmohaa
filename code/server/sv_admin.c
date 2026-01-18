@@ -1115,10 +1115,12 @@ void SV_AdminKick_f(client_t *cl)
     // Log the action
     SV_LogAdminAction(session, "ad_kick", target->name, targetIP);
 
-    // Kick the player
-    SV_DropClient(target, "You have been kicked from the server");
+    // Announce the kick to all players (in-game)
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was kicked by %s\n\"", target->name, session->username);
 
-    SV_SendServerCommand(cl, "print \"Kicked player: %s\n\"", playerName);
+    // Kick the player
+    SV_DropClient(target, "You have been kicked by an admin");
+
     Com_Printf("Admin %s kicked player %s (%s)\n", session->username, target->name, targetIP);
 }
 
@@ -1170,10 +1172,12 @@ void SV_AdminClientKick_f(client_t *cl)
     // Log the action
     SV_LogAdminAction(session, "ad_clientkick", target->name, targetIP);
 
-    // Kick the player
-    SV_DropClient(target, "You have been kicked from the server");
+    // Announce the kick to all players (in-game)
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was kicked by %s\n\"", target->name, session->username);
 
-    SV_SendServerCommand(cl, "print \"Kicked client %d: %s\n\"", clientId, target->name);
+    // Kick the player
+    SV_DropClient(target, "You have been kicked by an admin");
+
     Com_Printf("Admin %s kicked client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
 }
 
@@ -1262,9 +1266,11 @@ void SV_AdminBanID_f(client_t *cl)
 
     // Add ban
     if (SV_AdminBanList_Add(targetIP)) {
-        SV_SendServerCommand(cl, "print \"Banned client %d (%s): %s\n\"", clientId, target->name, targetIP);
         SV_LogAdminAction(session, "ad_banid", target->name, targetIP);
         Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
+
+        // Announce the ban to all players (in-game)
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was banned by %s\n\"", target->name, session->username);
 
         // Kick the player
         SV_DropClient(target, "You have been banned from the server");
@@ -1452,8 +1458,8 @@ void SV_AdminSay_f(client_t *cl)
 
     message = Cmd_ArgsFrom(1);
 
-    // Build the message with admin prefix
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"^1[ADMIN %s]^7 %s\n\"", session->username, message);
+    // Build the message with admin prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN %s]^7 %s\n\"", session->username, message);
 
     // Send to all clients
     SV_SendServerCommand(NULL, "%s", fullMessage);
@@ -1662,8 +1668,8 @@ void SV_AdminMap_f(client_t *cl)
     // Log the action
     SV_LogAdminAction(session, "ad_map", mapname, NULL);
 
-    // Announce map change
-    SV_SendServerCommand(NULL, "print \"^1[ADMIN %s]^7 Changing map to: %s\n\"", session->username, mapname);
+    // Announce map change (in-game)
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN %s]^7 Changing map to: %s\n\"", session->username, mapname);
     Com_Printf("Admin %s changing map to: %s\n", session->username, mapname);
 
     // Execute the map change
