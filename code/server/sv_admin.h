@@ -110,16 +110,6 @@ void SV_CleanupExpiredMutes(void);
 void SV_RestoreMuteStatus(client_t *cl, netadr_t from);
 
 //=============================================================================
-// BAN SYSTEM
-//=============================================================================
-
-qboolean SV_AdminBanList_Add(const char *ipMask);
-qboolean SV_AdminBanList_Remove(const char *ipMask);
-qboolean SV_AdminBanList_Check(netadr_t from);
-void SV_SaveBanList(void);
-void SV_ListBans(void);
-
-//=============================================================================
 // LOGGING SYSTEM
 //=============================================================================
 

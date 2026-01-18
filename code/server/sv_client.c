@@ -400,13 +400,7 @@ void SV_DirectConnect( netadr_t from ) {
 		return;
 	}
 
-	// Check admin ban list
-	if(SV_AdminBanList_Check(from))
-	{
-		SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nYou are banned from this server.\n");
-		Com_DPrintf("    rejected connect due to admin ban list\n");
-		return;
-	}
+	// Admin bans are now integrated with the official ban system (checked above in SV_CheckDRDoS)
 
 	if (com_target_game->integer >= TG_MOHTT) {
 		const char* clientType;
