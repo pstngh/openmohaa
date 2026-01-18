@@ -113,9 +113,9 @@ void SV_RestoreMuteStatus(client_t *cl, netadr_t from);
 // BAN SYSTEM
 //=============================================================================
 
-qboolean SV_AddBanToList(const char *ipMask);
-qboolean SV_RemoveBanFromList(const char *ipMask);
-qboolean SV_IsBannedFromList(netadr_t from);
+qboolean SV_AdminBanList_Add(const char *ipMask);
+qboolean SV_AdminBanList_Remove(const char *ipMask);
+qboolean SV_AdminBanList_Check(netadr_t from);
 void SV_SaveBanList(void);
 void SV_ListBans(void);
 
@@ -129,10 +129,8 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
 // ADMIN COMMANDS
 //=============================================================================
 
-void SV_AddAdminCommands(void);
-void SV_RemoveAdminCommands(void);
-
 // Command implementations (client commands - receive client_t* parameter)
+// NOTE: These are registered in the ucmds[] array in sv_client.c
 void SV_AdminLogin_f(client_t *cl);
 void SV_AdminKick_f(client_t *cl);
 void SV_AdminClientKick_f(client_t *cl);

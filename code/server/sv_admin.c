@@ -277,7 +277,7 @@ void SV_LoadAdminList(void)
     svs.numAdmins = 0;
 
     // Try to open the file
-    len = FS_FOpenFileRead("admins.ini", &f, qtrue);
+    len = FS_FOpenFileRead("admins.ini", &f, qtrue, qtrue);
     if (!f) {
         Com_Printf("admins.ini not found. No admins loaded.\n");
         return;
@@ -738,7 +738,7 @@ void SV_LoadBanListTxt(void)
     numBansInList = 0;
 
     // Try to open the file
-    len = FS_FOpenFileRead("banlist.txt", &f, qtrue);
+    len = FS_FOpenFileRead("banlist.txt", &f, qtrue, qtrue);
     if (!f) {
         Com_Printf("banlist.txt not found. No bans loaded.\n");
         return;
@@ -840,7 +840,7 @@ Checks if an IP address is in the ban list
 Supports wildcards and CIDR notation
 ==================
 */
-qboolean SV_IsBannedFromList(netadr_t from)
+qboolean SV_AdminBanList_Check(netadr_t from)
 {
     int i;
     char ipStr[64];
@@ -876,7 +876,7 @@ SV_AddBanToList
 Adds an IP address to the ban list
 ==================
 */
-qboolean SV_AddBanToList(const char *ipMask)
+qboolean SV_AdminBanList_Add(const char *ipMask)
 {
     int i;
 
@@ -908,7 +908,7 @@ SV_RemoveBanFromList
 Removes an IP address from the ban list
 ==================
 */
-qboolean SV_RemoveBanFromList(const char *ipMask)
+qboolean SV_AdminBanList_Remove(const char *ipMask)
 {
     int i;
 
@@ -1206,7 +1206,7 @@ void SV_AdminBanIP_f(client_t *cl)
 
     ipMask = Cmd_Argv(1);
 
-    if (SV_AddBanToList(ipMask)) {
+    if (SV_AdminBanList_Add(ipMask)) {
         SV_SendServerCommand(cl, "print \"Added ban: %s\n\"", ipMask);
         SV_LogAdminAction(session, "ad_banip", ipMask, NULL);
         Com_Printf("Admin %s banned IP: %s\n", session->username, ipMask);
@@ -1261,7 +1261,7 @@ void SV_AdminBanID_f(client_t *cl)
     Q_strncpyz(targetIP, NET_AdrToString(target->netchan.remoteAddress), sizeof(targetIP));
 
     // Add ban
-    if (SV_AddBanToList(targetIP)) {
+    if (SV_AdminBanList_Add(targetIP)) {
         SV_SendServerCommand(cl, "print \"Banned client %d (%s): %s\n\"", clientId, target->name, targetIP);
         SV_LogAdminAction(session, "ad_banid", target->name, targetIP);
         Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
@@ -1302,7 +1302,7 @@ void SV_AdminUnbanIP_f(client_t *cl)
 
     ipMask = Cmd_Argv(1);
 
-    if (SV_RemoveBanFromList(ipMask)) {
+    if (SV_AdminBanList_Remove(ipMask)) {
         SV_SendServerCommand(cl, "print \"Removed ban: %s\n\"", ipMask);
         SV_LogAdminAction(session, "ad_unbanip", ipMask, NULL);
         Com_Printf("Admin %s unbanned IP: %s\n", session->username, ipMask);
@@ -1673,52 +1673,6 @@ void SV_AdminMap_f(client_t *cl)
 // COMMAND REGISTRATION
 //=============================================================================
 
-/*
-==================
-SV_AddAdminCommands
-
-Registers all admin commands
-Called from SV_AddOperatorCommands
-==================
-*/
-void SV_AddAdminCommands(void)
-{
-    Cmd_AddCommand("ad_login", SV_AdminLogin_f);
-    Cmd_AddCommand("ad_kick", SV_AdminKick_f);
-    Cmd_AddCommand("ad_clientkick", SV_AdminClientKick_f);
-    Cmd_AddCommand("ad_banip", SV_AdminBanIP_f);
-    Cmd_AddCommand("ad_banid", SV_AdminBanID_f);
-    Cmd_AddCommand("ad_unbanip", SV_AdminUnbanIP_f);
-    Cmd_AddCommand("ad_dischat", SV_AdminDisableChat_f);
-    Cmd_AddCommand("ad_distaunt", SV_AdminDisableTaunt_f);
-    Cmd_AddCommand("ad_say", SV_AdminSay_f);
-    Cmd_AddCommand("ad_status", SV_AdminStatus_f);
-    Cmd_AddCommand("ad_listadmins", SV_AdminListAdmins_f);
-    Cmd_AddCommand("ad_listips", SV_AdminListIPs_f);
-    Cmd_AddCommand("ad_map", SV_AdminMap_f);
-}
-
-/*
-==================
-SV_RemoveAdminCommands
-
-Unregisters all admin commands
-Called from SV_RemoveOperatorCommands
-==================
-*/
-void SV_RemoveAdminCommands(void)
-{
-    Cmd_RemoveCommand("ad_login");
-    Cmd_RemoveCommand("ad_kick");
-    Cmd_RemoveCommand("ad_clientkick");
-    Cmd_RemoveCommand("ad_banip");
-    Cmd_RemoveCommand("ad_banid");
-    Cmd_RemoveCommand("ad_unbanip");
-    Cmd_RemoveCommand("ad_dischat");
-    Cmd_RemoveCommand("ad_distaunt");
-    Cmd_RemoveCommand("ad_say");
-    Cmd_RemoveCommand("ad_status");
-    Cmd_RemoveCommand("ad_listadmins");
-    Cmd_RemoveCommand("ad_listips");
-    Cmd_RemoveCommand("ad_map");
-}
+// NOTE: Admin commands are registered as client commands in the ucmds[] array
+// in sv_client.c, not as server console commands. This allows players to execute
+// them from their in-game console.

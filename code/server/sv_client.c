@@ -401,7 +401,7 @@ void SV_DirectConnect( netadr_t from ) {
 	}
 
 	// Check admin ban list
-	if(SV_IsBannedFromList(from))
+	if(SV_AdminBanList_Check(from))
 	{
 		SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nYou are banned from this server.\n");
 		Com_DPrintf("    rejected connect due to admin ban list\n");
