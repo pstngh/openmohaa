@@ -557,6 +557,9 @@ void SV_MutePlayerChat(netadr_t ip)
     if (mute) {
         mute->chatMuted = qtrue;
         mute->chatMuteTime = svs.time;
+        Com_Printf("DEBUG: Muted chat for IP %s\n", NET_AdrToString(ip));
+    } else {
+        Com_Printf("DEBUG: Failed to find/create mute entry for IP %s\n", NET_AdrToString(ip));
     }
 }
 
@@ -616,7 +619,10 @@ Checks if a player's chat is muted
 qboolean SV_IsPlayerChatMuted(netadr_t ip)
 {
     muteEntry_t *mute = SV_FindMuteEntry(ip, qfalse);
-    return (mute && mute->chatMuted);
+    qboolean result = (mute && mute->chatMuted);
+    Com_Printf("DEBUG: IsPlayerChatMuted for %s: %s (mute=%p, chatMuted=%d)\n",
+               NET_AdrToString(ip), result ? "YES" : "NO", mute, mute ? mute->chatMuted : 0);
+    return result;
 }
 
 /*

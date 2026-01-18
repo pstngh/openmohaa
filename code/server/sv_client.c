@@ -1769,9 +1769,13 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 		if (!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED)) {
 			const char *cmd = Cmd_Argv(0);
 
+			Com_Printf("DEBUG: Client command: %s from %s\n", cmd, cl->name);
+
 			// Check for muted chat
 			if (!Q_stricmp(cmd, "say") || !Q_stricmp(cmd, "say_team")) {
+				Com_Printf("DEBUG: Checking chat mute for %s\n", cl->name);
 				if (SV_IsPlayerChatMuted(cl->netchan.remoteAddress)) {
+					Com_Printf("DEBUG: Player %s is muted, blocking chat\n", cl->name);
 					SV_SendServerCommand(cl, "print \"You have been muted by an admin\n\"");
 					return;
 				}
