@@ -1273,12 +1273,14 @@ qboolean SV_AddBan_Client(client_t *cl, const char *reason)
 	if (reason) {
 		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
 			"droperror\nYou have been banned from this server for:\n%s", reason);
-		SV_DropClient(cl, "has been banned");
 	} else {
 		SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress,
 			"droperror\nYou have been banned from this server");
-		SV_DropClient(cl, "has been banned");
 	}
+
+	// Drop with empty reason to avoid duplicate broadcast
+	// (broadcast is handled by the calling admin command)
+	SV_DropClient(cl, "");
 
 	return qtrue;
 }

@@ -830,8 +830,12 @@ void SV_AdminKick_f(client_t *cl)
     // Announce the kick to all players (in-game)
     SV_SendServerCommand(NULL, "print \"[ADMIN] %s has been kicked\n\"", targetName);
 
-    // Kick the player
-    SV_DropClient(target, "You have been kicked by an admin");
+    // Send kick message to the client
+    SV_NET_OutOfBandPrint(&svs.netprofile, target->netchan.remoteAddress,
+        "droperror\nYou have been kicked by an admin");
+
+    // Kick the player (empty reason to avoid duplicate broadcast)
+    SV_DropClient(target, "");
 
     // Log the action
     SV_LogAdminAction(session, "ad_kick", targetName, targetIP);
@@ -889,8 +893,12 @@ void SV_AdminClientKick_f(client_t *cl)
     // Announce the kick to all players (in-game)
     SV_SendServerCommand(NULL, "print \"[ADMIN] %s has been kicked\n\"", targetName);
 
-    // Kick the player
-    SV_DropClient(target, "You have been kicked by an admin");
+    // Send kick message to the client
+    SV_NET_OutOfBandPrint(&svs.netprofile, target->netchan.remoteAddress,
+        "droperror\nYou have been kicked by an admin");
+
+    // Kick the player (empty reason to avoid duplicate broadcast)
+    SV_DropClient(target, "");
 
     // Log the action
     SV_LogAdminAction(session, "ad_clientkick", targetName, targetIP);
