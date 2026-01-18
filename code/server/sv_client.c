@@ -1771,21 +1771,33 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 
 			Com_Printf("DEBUG: Client command: %s from %s\n", cmd, cl->name);
 
-			// Check for muted chat
-			if (!Q_stricmp(cmd, "say") || !Q_stricmp(cmd, "say_team")) {
-				Com_Printf("DEBUG: Checking chat mute for %s\n", cl->name);
-				if (SV_IsPlayerChatMuted(cl->netchan.remoteAddress)) {
-					Com_Printf("DEBUG: Player %s is muted, blocking chat\n", cl->name);
-					SV_SendServerCommand(cl, "print \"You have been muted by an admin\n\"");
-					return;
-				}
-			}
+			// Check for muted chat/taunts via dmmessage command
+			if (!Q_stricmp(cmd, "dmmessage")) {
+				const char *message = Cmd_Argv(2);
+				qboolean isTaunt = qfalse;
 
-			// Check for muted taunts
-			if (!Q_stricmp(cmd, "taunt")) {
-				if (SV_IsPlayerTauntMuted(cl->netchan.remoteAddress)) {
-					SV_SendServerCommand(cl, "print \"Your taunts have been disabled by an admin\n\"");
-					return;
+				Com_Printf("DEBUG: dmmessage from %s, message arg: %s\n", cl->name, message);
+
+				// Check if it's a taunt (starts with * followed by 2 digits)
+				if (message && message[0] == '*' && message[1] >= '0' && message[1] <= '9' &&
+				    message[2] >= '0' && message[2] <= '9' && message[3] == '\0') {
+					isTaunt = qtrue;
+				}
+
+				if (isTaunt) {
+					Com_Printf("DEBUG: Checking taunt mute for %s\n", cl->name);
+					if (SV_IsPlayerTauntMuted(cl->netchan.remoteAddress)) {
+						Com_Printf("DEBUG: Player %s taunt is muted, blocking\n", cl->name);
+						SV_SendServerCommand(cl, "print \"Your taunts have been disabled by an admin\n\"");
+						return;
+					}
+				} else {
+					Com_Printf("DEBUG: Checking chat mute for %s\n", cl->name);
+					if (SV_IsPlayerChatMuted(cl->netchan.remoteAddress)) {
+						Com_Printf("DEBUG: Player %s chat is muted, blocking\n", cl->name);
+						SV_SendServerCommand(cl, "print \"You have been muted by an admin\n\"");
+						return;
+					}
 				}
 			}
 
