@@ -829,7 +829,7 @@ void SV_AdminKick_f(client_t *cl)
     SV_LogAdminAction(session, "ad_kick", target->name, targetIP);
 
     // Announce the kick to all players (in-game)
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was kicked by %s\n\"", target->name, session->username);
+    SV_SendServerCommand(NULL, "print \"[ADMIN] %s was kicked by %s\n\"", target->name, session->username);
 
     // Kick the player
     SV_DropClient(target, "You have been kicked by an admin");
@@ -886,7 +886,7 @@ void SV_AdminClientKick_f(client_t *cl)
     SV_LogAdminAction(session, "ad_clientkick", target->name, targetIP);
 
     // Announce the kick to all players (in-game)
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN]^7 %s was kicked by %s\n\"", target->name, session->username);
+    SV_SendServerCommand(NULL, "print \"[ADMIN] %s was kicked by %s\n\"", target->name, session->username);
 
     // Kick the player
     SV_DropClient(target, "You have been kicked by an admin");
@@ -999,7 +999,7 @@ void SV_AdminBan_f(client_t *cl)
         Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
 
         // Announce the ban to all players (in-game)
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "[ADMIN] %s was banned by %s\n\"", target->name, session->username);
+        SV_SendServerCommand(NULL, "print \"[ADMIN] %s was banned by %s\n\"", target->name, session->username);
     } else {
         SV_SendServerCommand(cl, "print \"Failed to add ban\n\"");
     }
@@ -1184,8 +1184,8 @@ void SV_AdminSay_f(client_t *cl)
 
     message = Cmd_ArgsFrom(1);
 
-    // Build the message with admin prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "[ADMIN] %s\n\"", message);
+    // Build the message with admin prefix
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"[ADMIN] %s\n\"", message);
 
     // Send to all clients
     SV_SendServerCommand(NULL, "%s", fullMessage);
@@ -1405,7 +1405,7 @@ void SV_AdminMap_f(client_t *cl)
     SV_LogAdminAction(session, "ad_map", mapname, NULL);
 
     // Announce map change (in-game)
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN %s]^7 Changing map to: %s\n\"", session->username, mapname);
+    SV_SendServerCommand(NULL, "print \"[ADMIN] Changing map to: %s\n\"", mapname);
     Com_Printf("Admin %s changing map to: %s\n", session->username, mapname);
 
     // Execute the map change
