@@ -1416,8 +1416,8 @@ void SV_AdminSay_f(client_t *cl)
 
     message = Cmd_ArgsFrom(1);
 
-    // Build the message with console prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "[CONSOLE] %s\n\"", message);
+    // Build the message with admin prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "[ADMIN] %s\n\"", message);
 
     // Send to all clients
     SV_SendServerCommand(NULL, "%s", fullMessage);
