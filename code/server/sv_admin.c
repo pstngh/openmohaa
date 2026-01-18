@@ -820,7 +820,7 @@ void SV_SaveBanList(void)
     }
 
     // Write to file
-    f = FS_FOpenFileWrite("banlist.txt");
+    f = FS_FOpenFileWrite_HomeData("banlist.txt");
     if (!f) {
         Com_Printf("Failed to open banlist.txt for writing\n");
         return;
@@ -861,7 +861,7 @@ qboolean SV_AdminBanList_Check(netadr_t from)
         }
 
         // Check if ban entry is a prefix match (e.g., "192.168.1" matches "192.168.1.50")
-        if (Q_strnicmp(ipStr, banListIPs[i], strlen(banListIPs[i])) == 0) {
+        if (Q_stricmpn(ipStr, banListIPs[i], strlen(banListIPs[i])) == 0) {
             return qtrue;
         }
     }
@@ -997,7 +997,7 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
     }
 
     // Append to log file
-    f = FS_FOpenFileAppend("admin_log.txt");
+    f = FS_FOpenFileAppend_HomeData("admin_log.txt");
     if (f) {
         FS_Write(logLine, strlen(logLine), f);
         FS_FCloseFile(f);
