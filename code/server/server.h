@@ -500,6 +500,7 @@ void SV_SetUserinfo( int index, const char *val );
 void SV_GetUserinfo( int index, char *buffer, int bufferSize );
 
 int SV_NumClients(void);
+int SV_GetReportedPlayerCount(void);
 void SV_ChangeMaxClients( void );
 void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qboolean bTransition );
 

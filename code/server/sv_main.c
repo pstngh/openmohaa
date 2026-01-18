@@ -82,6 +82,7 @@ cvar_t	*sv_strictAuth;
 cvar_t	*sv_banFile;
 
 cvar_t  *sv_logContext;
+cvar_t  *sv_fake_players;
 
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
@@ -560,6 +561,28 @@ void SVC_Status( netadr_t from ) {
 }
 
 /*
+==================
+SV_GetReportedPlayerCount
+
+Returns real player count + fake players cvar
+==================
+*/
+int SV_GetReportedPlayerCount(void) {
+	int realPlayers = 0;
+	int i;
+
+	// Count only real (non-bot) players
+	for (i = 0; i < svs.iNumClients; i++) {
+		if (svs.clients[i].state >= CS_CONNECTED &&
+			svs.clients[i].netchan.remoteAddress.type != NA_BOT) {
+			realPlayers++;
+		}
+	}
+
+	return realPlayers + sv_fake_players->integer;
+}
+
+/*
 ================
 SVC_Info
 
@@ -617,7 +640,7 @@ void SVC_Info( netadr_t from ) {
 	Info_SetValueForKey( infostring, "protocol", va("%i", com_protocol->integer) );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string );
-	Info_SetValueForKey( infostring, "clients", va("%i", count) );
+	Info_SetValueForKey( infostring, "clients", va("%i", SV_GetReportedPlayerCount()) );
 	Info_SetValueForKey( infostring, "sv_maxclients", 
 		va("%i", svs.iNumClients - sv_privateClients->integer ) );
 	Info_SetValueForKey( infostring, "gametype", va("%i", g_gametype->integer ) );
