@@ -399,14 +399,12 @@ extern  cvar_t  *sv_fake_players;
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 
-// Admin system - forward declarations from sv_admin.h
-typedef struct adminEntry_s adminEntry_t;
-typedef struct adminSession_s adminSession_t;
-typedef struct muteEntry_s muteEntry_t;
+// Admin system - include full definitions
+#include "sv_admin.h"
 
-extern	adminEntry_t adminList[128];     // MAX_ADMINS
-extern	adminSession_t adminSessions[32]; // MAX_ADMIN_SESSIONS
-extern	muteEntry_t muteList[256];       // MAX_MUTES
+extern	adminEntry_t adminList[MAX_ADMINS];
+extern	adminSession_t adminSessions[MAX_ADMIN_SESSIONS];
+extern	muteEntry_t muteList[MAX_MUTES];
 
 #ifdef USE_VOIP
 extern	cvar_t	*sv_voip;
