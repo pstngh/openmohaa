@@ -1037,16 +1037,25 @@ void SV_AdminLogin_f(client_t *cl)
     username = Cmd_Argv(1);
     password = Cmd_Argv(2);
 
+    // Debug: Check if any admins are loaded
+    if (svs.numAdmins == 0) {
+        SV_SendServerCommand(cl, "print \"No admins loaded. Check server console for errors.\n\"");
+        Com_Printf("Admin login failed: No admins loaded from admins.ini\n");
+        return;
+    }
+
     // Find admin by username
     admin = SV_FindAdminByUsername(username);
     if (!admin) {
         SV_SendServerCommand(cl, "print \"Login failed: Invalid username or password\n\"");
+        Com_Printf("Admin login failed: Username '%s' not found (have %d admins loaded)\n", username, svs.numAdmins);
         return;
     }
 
     // Check password
     if (!SV_ComparePasswords(password, admin->password)) {
         SV_SendServerCommand(cl, "print \"Login failed: Invalid username or password\n\"");
+        Com_Printf("Admin login failed: Password mismatch for user '%s'\n", username);
         return;
     }
 
