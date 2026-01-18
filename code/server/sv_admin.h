@@ -135,7 +135,7 @@ void SV_AdminLogin_f(client_t *cl);
 void SV_AdminKick_f(client_t *cl);
 void SV_AdminClientKick_f(client_t *cl);
 void SV_AdminBanIP_f(client_t *cl);
-void SV_AdminBanID_f(client_t *cl);
+void SV_AdminBan_f(client_t *cl);
 void SV_AdminUnbanIP_f(client_t *cl);
 void SV_AdminDisableChat_f(client_t *cl);
 void SV_AdminDisableTaunt_f(client_t *cl);

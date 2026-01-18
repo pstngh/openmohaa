@@ -276,10 +276,10 @@ void SV_LoadAdminList(void)
     memset(adminList, 0, sizeof(adminList));
     svs.numAdmins = 0;
 
-    // Try to open the file
-    len = FS_FOpenFileRead("admins.ini", &f, qtrue, qtrue);
+    // Try to open the file (reads from game directory)
+    len = FS_FOpenFileRead("main/admins.ini", &f, qtrue, qtrue);
     if (!f) {
-        Com_Printf("admins.ini not found. No admins loaded.\n");
+        Com_Printf("main/admins.ini not found. No admins loaded.\n");
         return;
     }
 
@@ -737,10 +737,10 @@ void SV_LoadBanListTxt(void)
     memset(banListIPs, 0, sizeof(banListIPs));
     numBansInList = 0;
 
-    // Try to open the file
-    len = FS_FOpenFileRead("banlist.txt", &f, qtrue, qtrue);
+    // Try to open the file (reads from game directory)
+    len = FS_FOpenFileRead("main/banlist.txt", &f, qtrue, qtrue);
     if (!f) {
-        Com_Printf("banlist.txt not found. No bans loaded.\n");
+        Com_Printf("main/banlist.txt not found. No bans loaded.\n");
         return;
     }
 
@@ -819,10 +819,10 @@ void SV_SaveBanList(void)
         }
     }
 
-    // Write to file
-    f = FS_FOpenFileWrite_HomeData("banlist.txt");
+    // Write to file (writes to game directory main/ folder)
+    f = FS_FOpenFileWrite_HomeData("main/banlist.txt");
     if (!f) {
-        Com_Printf("Failed to open banlist.txt for writing\n");
+        Com_Printf("Failed to open main/banlist.txt for writing\n");
         return;
     }
 
@@ -996,13 +996,13 @@ void SV_LogAdminAction(adminSession_t *session, const char *command, const char 
                     timestamp, session->username, adminIP, command, target);
     }
 
-    // Append to log file
-    f = FS_FOpenFileAppend_HomeData("admin_log.txt");
+    // Append to log file (writes to game directory main/ folder)
+    f = FS_FOpenFileAppend_HomeData("main/admin_log.txt");
     if (f) {
         FS_Write(logLine, strlen(logLine), f);
         FS_FCloseFile(f);
     } else {
-        Com_Printf("Warning: Failed to open admin_log.txt for writing\n");
+        Com_Printf("Warning: Failed to open main/admin_log.txt for writing\n");
     }
 }
 
@@ -1085,7 +1085,7 @@ void SV_AdminKick_f(client_t *cl)
     }
 
     if (Cmd_Argc() != 2) {
-        SV_SendServerCommand(cl, "print \"Usage: ad_kick <player_name>\n\"");
+        SV_SendServerCommand(cl, "print \"Usage: ad_kick <player_name_or_id>\n\"");
         return;
     }
 
@@ -1093,13 +1093,25 @@ void SV_AdminKick_f(client_t *cl)
 
     playerName = Cmd_Argv(1);
 
-    // Find player by name
+    // Check if argument is a number (client ID)
     target = NULL;
-    for (i = 0; i < sv_maxclients->integer; i++) {
-        if (svs.clients[i].state >= CS_CONNECTED) {
-            if (Q_stricmp(svs.clients[i].name, playerName) == 0) {
-                target = &svs.clients[i];
-                break;
+    if (playerName[0] >= '0' && playerName[0] <= '9') {
+        int clientId = atoi(playerName);
+        if (clientId >= 0 && clientId < sv_maxclients->integer) {
+            if (svs.clients[clientId].state >= CS_CONNECTED) {
+                target = &svs.clients[clientId];
+            }
+        }
+    }
+
+    // If not found by ID, try finding by name
+    if (!target) {
+        for (i = 0; i < sv_maxclients->integer; i++) {
+            if (svs.clients[i].state >= CS_CONNECTED) {
+                if (Q_stricmp(svs.clients[i].name, playerName) == 0) {
+                    target = &svs.clients[i];
+                    break;
+                }
             }
         }
     }
@@ -1221,13 +1233,13 @@ void SV_AdminBanIP_f(client_t *cl)
 
 /*
 ==================
-SV_AdminBanID_f
+SV_AdminBan_f
 
-Command: ad_banid <client_id>
+Command: ad_ban <client_id>
 Bans a player by client ID (resolves their IP and adds to ban list)
 ==================
 */
-void SV_AdminBanID_f(client_t *cl)
+void SV_AdminBan_f(client_t *cl)
 {
     adminSession_t *session;
     int clientId;
@@ -1241,7 +1253,7 @@ void SV_AdminBanID_f(client_t *cl)
     }
 
     if (Cmd_Argc() != 2) {
-        SV_SendServerCommand(cl, "print \"Usage: ad_banid <client_id>\n\"");
+        SV_SendServerCommand(cl, "print \"Usage: ad_ban <client_id>\n\"");
         return;
     }
 
@@ -1266,7 +1278,7 @@ void SV_AdminBanID_f(client_t *cl)
 
     // Add ban
     if (SV_AdminBanList_Add(targetIP)) {
-        SV_LogAdminAction(session, "ad_banid", target->name, targetIP);
+        SV_LogAdminAction(session, "ad_ban", target->name, targetIP);
         Com_Printf("Admin %s banned client %d %s (%s)\n", session->username, clientId, target->name, targetIP);
 
         // Announce the ban to all players (in-game)
@@ -1458,8 +1470,8 @@ void SV_AdminSay_f(client_t *cl)
 
     message = Cmd_ArgsFrom(1);
 
-    // Build the message with admin prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
-    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "^1[ADMIN %s]^7 %s\n\"", session->username, message);
+    // Build the message with console prefix (using HUD_MESSAGE_CHAT_WHITE to display in-game)
+    Com_sprintf(fullMessage, sizeof(fullMessage), "print \"" HUD_MESSAGE_CHAT_WHITE "^1[CONSOLE]^7 %s\n\"", message);
 
     // Send to all clients
     SV_SendServerCommand(NULL, "%s", fullMessage);
