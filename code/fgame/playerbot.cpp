@@ -881,10 +881,10 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
     // 6-7: Upper arms (left/right, shoulder area)
     // 8-9: Lower arms (left/right, forearm area)
     // 10-11: Hands (left/right)
-    // 12-13: Upper torso (left/right, chest area)
-    // 14-15: Upper torso (left/right, chest area)
+    // 12-13: Middle torso (additional coverage)
+    // 14-15: Lower torso (additional coverage)
     //
-    // Excluded zones: head, helmet, neck, feet, lower legs, upper legs
+    // Excluded zones: head, helmet, neck, feet, lower legs, upper legs, upper torso
 
     Vector mins = enemy->mins;
     Vector maxs = enemy->maxs;
@@ -897,7 +897,7 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
     // pelvis: 0.45 - 0.55
     // lower torso: 0.55 - 0.7
     // middle torso: 0.7 - 0.8
-    // upper torso: 0.8 - 0.9
+    // upper torso: 0.8 - 0.9 (excluded)
     // head/helmet/neck: 0.9 - 1.0 (excluded)
 
     // Change aim zone based on timer
@@ -970,23 +970,23 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
         sideOffset  = (width * 0.45) + G_Random(width * 0.05);
         break;
 
-    case 12: // Left upper torso (chest area)
-        heightRatio = 0.8 + G_Random(0.1);
-        sideOffset  = -(width * 0.2) - G_Random(width * 0.1);
-        break;
-
-    case 13: // Right upper torso (chest area)
-        heightRatio = 0.8 + G_Random(0.1);
-        sideOffset  = (width * 0.2) + G_Random(width * 0.1);
-        break;
-
-    case 14: // Left upper torso (chest area)
-        heightRatio = 0.8 + G_Random(0.1);
+    case 12: // Left middle torso
+        heightRatio = 0.7 + G_Random(0.1);
         sideOffset  = -(width * 0.25) - G_Random(width * 0.1);
         break;
 
-    case 15: // Right upper torso (chest area)
-        heightRatio = 0.8 + G_Random(0.1);
+    case 13: // Right middle torso
+        heightRatio = 0.7 + G_Random(0.1);
+        sideOffset  = (width * 0.25) + G_Random(width * 0.1);
+        break;
+
+    case 14: // Left lower torso
+        heightRatio = 0.55 + G_Random(0.15);
+        sideOffset  = -(width * 0.25) - G_Random(width * 0.1);
+        break;
+
+    case 15: // Right lower torso
+        heightRatio = 0.55 + G_Random(0.15);
         sideOffset  = (width * 0.25) + G_Random(width * 0.1);
         break;
 
