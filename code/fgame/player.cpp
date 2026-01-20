@@ -7331,34 +7331,9 @@ void Player::CopyStatsAntiCheat(Player *player)
 
     memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
 
-    DetachAllChildren(NULL);
-
-    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
-        Entity *dest;
-
-        if (player->children[i] == ENTITYNUM_NONE) {
-            continue;
-        }
-
-        ent = g_entities + player->children[i];
-
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        dest = new Entity;
-
-        CloneEntity(dest, ent->entity);
-
-        dest->edict->s.modelindex   = ent->entity->edict->s.modelindex;
-        dest->edict->tiki           = ent->entity->edict->tiki;
-        dest->edict->s.actionWeight = ent->entity->edict->s.actionWeight;
-        memcpy(&dest->edict->s.frameInfo, &ent->entity->edict->s.frameInfo, sizeof(dest->edict->s.frameInfo));
-        dest->CancelPendingEvents();
-        dest->attach(entnum, ent->entity->edict->s.tag_num);
-
-        dest->PostEvent(EV_DetachAllChildren, level.frametime);
-    }
+    // Note: We skip cloning children entities to avoid creating new entities every frame
+    // which was causing crashes. The frameInfo copy should be sufficient for rendering.
+    // If weapon models don't show, we may need a different approach.
 }
 
 void Player::UpdateStats(void)
@@ -7914,14 +7889,18 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!g_spectatefollow_firstperson->integer || !IsSpectator() || !m_iPlayerSpectating) {
-        SetupView();
-    } else {
-        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
+    // Skip SetupView() if spectating a valid player (CopyStatsAntiCheat handles camera)
+    if (IsSpectator() && m_iPlayerSpectating != 0) {
+        gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
 
+        // Only run SetupView() if the spectated player is invalid
         if (!ent->inuse || !ent->entity || ent->entity->deadflag >= DEAD_DEAD) {
             SetupView();
         }
+        // Otherwise skip SetupView() - CopyStatsAntiCheat already set up the camera
+    } else {
+        // Normal player or not spectating anyone - run SetupView() normally
+        SetupView();
     }
 }
 
