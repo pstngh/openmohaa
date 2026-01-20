@@ -667,6 +667,7 @@ public:
     void  DamageFeedback(void);
 
     void CopyStats(Player *player);
+    void CopyStatsAntiCheat(Player *player);
     void UpdateStats(void);
     void UpdateMusic(void);
     void UpdateReverb(void);

@@ -7264,6 +7264,103 @@ void Player::CopyStats(Player *player)
     }
 }
 
+void Player::CopyStatsAntiCheat(Player *player)
+{
+    gentity_t *ent;
+    int        i;
+
+    // CS2-style spectate: Copy all player state for authentic view
+    // But zero lean angle to prevent exploit
+
+    origin = player->origin;
+    SetViewAngles(player->GetViewAngles());
+
+    client->ps.bobCycle = player->client->ps.bobCycle;
+
+    client->ps.pm_flags |=
+        player->client->ps.pm_flags & (PMF_DUCKED | PMF_VIEW_DUCK_RUN | PMF_VIEW_JUMP_START | PMF_VIEW_PRONE);
+
+    memcpy(&client->ps.stats, &player->client->ps.stats, sizeof(client->ps.stats));
+    memcpy(&client->ps.activeItems, &player->client->ps.activeItems, sizeof(client->ps.activeItems));
+    memcpy(&client->ps.ammo_name_index, &player->client->ps.ammo_name_index, sizeof(client->ps.ammo_name_index));
+    memcpy(&client->ps.ammo_amount, &player->client->ps.ammo_amount, sizeof(client->ps.ammo_amount));
+    memcpy(&client->ps.max_ammo_amount, &player->client->ps.max_ammo_amount, sizeof(client->ps.max_ammo_amount));
+
+    VectorCopy(player->client->ps.origin, client->ps.origin);
+    VectorCopy(player->client->ps.velocity, client->ps.velocity);
+
+    client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
+    client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
+
+    client->ps.gravity = player->client->ps.gravity;
+    client->ps.speed   = player->client->ps.speed;
+
+    // copy angles
+    memcpy(&client->ps.delta_angles, &player->client->ps.delta_angles, sizeof(client->ps.delta_angles));
+
+    memcpy(&client->ps.blend, &player->client->ps.blend, sizeof(client->ps.blend));
+    memcpy(&client->ps.damage_angles, &player->client->ps.damage_angles, sizeof(client->ps.damage_angles));
+    memcpy(&client->ps.viewangles, &player->client->ps.viewangles, sizeof(client->ps.delta_angles));
+
+    // Anti-cheat: Zero out lean angle to prevent exploit
+    // This prevents third-person view advantage while maintaining authentic first-person perspective
+    client->ps.fLeanAngle = 0.0f;
+
+    client->ps.fov = player->client->ps.fov;
+
+    client->ps.viewheight      = player->client->ps.viewheight;
+    client->ps.walking         = player->client->ps.walking;
+    client->ps.groundPlane     = player->client->ps.groundPlane;
+    client->ps.groundEntityNum = player->client->ps.groundEntityNum;
+    memcpy(&client->ps.groundTrace, &player->client->ps.groundTrace, sizeof(trace_t));
+
+    // Copy eye position for accurate view
+    VectorCopy(player->client->ps.vEyePos, client->ps.vEyePos);
+
+    edict->s.eFlags &= ~EF_UNARMED;
+    edict->r.svFlags &= ~SVF_NOCLIENT;
+    edict->s.renderfx &= ~RF_DONTDRAW;
+
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
+
+    edict->r.svFlags |= SVF_SINGLECLIENT;
+    edict->r.singleClient = client->ps.clientNum;
+
+    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION;
+
+    memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
+
+    DetachAllChildren(NULL);
+
+    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
+        Entity *dest;
+
+        if (player->children[i] == ENTITYNUM_NONE) {
+            continue;
+        }
+
+        ent = g_entities + player->children[i];
+
+        if (!ent->inuse || !ent->entity) {
+            continue;
+        }
+
+        dest = new Entity;
+
+        CloneEntity(dest, ent->entity);
+
+        dest->edict->s.modelindex   = ent->entity->edict->s.modelindex;
+        dest->edict->tiki           = ent->entity->edict->tiki;
+        dest->edict->s.actionWeight = ent->entity->edict->s.actionWeight;
+        memcpy(&dest->edict->s.frameInfo, &ent->entity->edict->s.frameInfo, sizeof(dest->edict->s.frameInfo));
+        dest->CancelPendingEvents();
+        dest->attach(entnum, ent->entity->edict->s.tag_num);
+
+        dest->PostEvent(EV_DetachAllChildren, level.frametime);
+    }
+}
+
 void Player::UpdateStats(void)
 {
     int    i, count;
@@ -7274,6 +7371,16 @@ void Player::UpdateStats(void)
     //
     // Health
     //
+
+    // CS2-style spectate: Full state replication for authentic player view
+    if (IsSpectator() && m_iPlayerSpectating != 0) {
+        gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
+
+        if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
+            CopyStatsAntiCheat((Player *)ent->entity);
+            return;
+        }
+    }
 
     if (g_spectatefollow_firstperson->integer && IsSpectator() && m_iPlayerSpectating != 0) {
         //
