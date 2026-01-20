@@ -7343,9 +7343,25 @@ void Player::CopyStatsAntiCheat(Player *player)
     vPos[2] -= viewheight;
     setOrigin(vPos);
 
-    // Note: We skip cloning children entities to avoid creating new entities every frame
-    // which was causing crashes. The frameInfo copy should be sufficient for rendering.
-    // If weapon models don't show, we may need a different approach.
+    // Make player's children (weapons) visible to spectator
+    // Without this, weapon viewmodels won't show since player is hidden from spectator
+    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
+        if (player->children[i] == ENTITYNUM_NONE) {
+            continue;
+        }
+
+        ent = g_entities + player->children[i];
+
+        if (!ent->inuse || !ent->entity) {
+            continue;
+        }
+
+        // Add spectator to the list of clients who can see this child (weapon)
+        // singleClient appears to be used as a bitmask in some contexts
+        if (ent->r.svFlags & SVF_SINGLECLIENT) {
+            ent->r.singleClient |= (1 << client->ps.clientNum);
+        }
+    }
 }
 
 void Player::UpdateStats(void)
