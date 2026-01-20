@@ -9460,14 +9460,12 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
     if (!g_spectatefollow_firstperson->integer) {
         // Anti-cheat: Force first-person spectate view to prevent lean exploit
         //
-        // Position camera exactly at player's eye position (no offsets)
-        // Use player's exact view angles (no pitch adjustment)
-        // This prevents dead spectators from seeing around corners/over walls
+        // Use player's actual animated eye position (from eye bone/tag)
+        // This accounts for model animations and gives exact player perspective
+        // Prevents dead spectators from seeing around corners/over walls
 
-        vAng = pPlayer->GetVAngles();
-
-        vPos = pPlayer->origin;
-        vPos[2] += pPlayer->viewheight;
+        vAng = pPlayer->m_vViewAng;
+        vPos = pPlayer->m_vViewPos;
     } else {
         vAng = pPlayer->angles;
         vPos = pPlayer->origin;
