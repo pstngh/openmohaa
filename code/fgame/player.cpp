@@ -9457,43 +9457,17 @@ void Player::SetPlayerSpectateRandom(void)
 
 void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector& vAng)
 {
-    Vector  forward, right, up;
-    Vector  vCamOfs;
-    Vector  start;
-    trace_t trace;
-
     if (!g_spectatefollow_firstperson->integer) {
-        // spectating a player
+        // Anti-cheat: Force first-person spectate view to prevent lean exploit
+        //
+        // Position camera exactly at player's eye position (no offsets)
+        // Use player's exact view angles (no pitch adjustment)
+        // This prevents dead spectators from seeing around corners/over walls
+
         vAng = pPlayer->GetVAngles();
 
-        AngleVectors(vAng, forward, right, up);
-
-        vCamOfs = pPlayer->origin;
-        vCamOfs[2] += pPlayer->viewheight;
-
-        // Anti-cheat: Force first-person spectate view
-        // Removed camera offsets to prevent third-person advantage:
-        // vCamOfs += forward * g_spectatefollow_forward->value;
-        // vCamOfs += right * g_spectatefollow_right->value;
-        // vCamOfs += up * g_spectatefollow_up->value;
-
-        // Anti-cheat: Remove lean exploit
-        // Removed lean offset to prevent seeing around corners:
-        // if (pPlayer->client->ps.fLeanAngle != 0.0f) {
-        //     vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
-        // }
-
-        start = pPlayer->origin;
-        start[2] += pPlayer->maxs[2] - 2.0;
-
-        Vector vMins = Vector(-2, -2, 2);
-        Vector vMaxs = Vector(2, 2, 2);
-
-        trace =
-            G_Trace(start, vMins, vMaxs, vCamOfs, pPlayer, MASK_SHOT, false, "Player::GetSpectateFollowOrientation");
-
-        vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
-        vPos = trace.endpos;
+        vPos = pPlayer->origin;
+        vPos[2] += pPlayer->viewheight;
     } else {
         vAng = pPlayer->angles;
         vPos = pPlayer->origin;
