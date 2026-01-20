@@ -9471,13 +9471,17 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs = pPlayer->origin;
         vCamOfs[2] += pPlayer->viewheight;
 
-        vCamOfs += forward * g_spectatefollow_forward->value;
-        vCamOfs += right * g_spectatefollow_right->value;
-        vCamOfs += up * g_spectatefollow_up->value;
+        // Anti-cheat: Force first-person spectate view
+        // Removed camera offsets to prevent third-person advantage:
+        // vCamOfs += forward * g_spectatefollow_forward->value;
+        // vCamOfs += right * g_spectatefollow_right->value;
+        // vCamOfs += up * g_spectatefollow_up->value;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
-        }
+        // Anti-cheat: Remove lean exploit
+        // Removed lean offset to prevent seeing around corners:
+        // if (pPlayer->client->ps.fLeanAngle != 0.0f) {
+        //     vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
+        // }
 
         start = pPlayer->origin;
         start[2] += pPlayer->maxs[2] - 2.0;
