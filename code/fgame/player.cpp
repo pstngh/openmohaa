@@ -7331,6 +7331,18 @@ void Player::CopyStatsAntiCheat(Player *player)
 
     memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
 
+    // Setup spectator camera to follow player's view
+    Vector vPos, vAng;
+    GetSpectateFollowOrientation(player, vPos, vAng);
+
+    VectorCopy(vAng, client->ps.camera_angles);
+    VectorCopy(vPos, client->ps.camera_origin);
+
+    SetViewAngles(vAng);
+
+    vPos[2] -= viewheight;
+    setOrigin(vPos);
+
     // Note: We skip cloning children entities to avoid creating new entities every frame
     // which was causing crashes. The frameInfo copy should be sufficient for rendering.
     // If weapon models don't show, we may need a different approach.
