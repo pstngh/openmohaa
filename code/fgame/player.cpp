@@ -7327,7 +7327,9 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
 
-    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION;
+    // PMF_FROZEN and PMF_NO_MOVE prevent spectator from moving
+    // Removed PMF_NO_PREDICTION so client can apply damage_angles (recoil) to view
+    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE;
 
     memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
 
@@ -7344,7 +7346,7 @@ void Player::CopyStatsAntiCheat(Player *player)
     setOrigin(vPos);
 
     // Make player's children (weapons) visible to spectator
-    // Without this, weapon viewmodels won't show since player is hidden from spectator
+    // Clear SVF_SINGLECLIENT so spectator can see weapon viewmodel
     for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
         if (player->children[i] == ENTITYNUM_NONE) {
             continue;
@@ -7356,11 +7358,10 @@ void Player::CopyStatsAntiCheat(Player *player)
             continue;
         }
 
-        // Add spectator to the list of clients who can see this child (weapon)
-        // singleClient appears to be used as a bitmask in some contexts
-        if (ent->r.svFlags & SVF_SINGLECLIENT) {
-            ent->r.singleClient |= (1 << client->ps.clientNum);
-        }
+        // Remove single-client restriction so both player and spectator can see weapon
+        // This will make weapon visible to spectator positioned at player's eyes
+        ent->r.svFlags &= ~SVF_SINGLECLIENT;
+        ent->r.singleClient = 0;
     }
 }
 
