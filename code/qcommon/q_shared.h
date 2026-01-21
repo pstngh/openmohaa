@@ -1804,12 +1804,12 @@ typedef struct playerState_s {
 	// Team Assault
 	int			radarInfo;
 	qboolean	voted;
+	int			playerSpectating;	// Anti-cheat spectator: which player is being spectated (0 = none)
 	// --
 
 	// not communicated over the net at all
 	int			ping;			// server to game info for scoreboard
 	float		vEyePos[3];
-	int			playerSpectating;	// Anti-cheat spectator: which player is being spectated (0 = none)
 } playerState_t;
 
 
