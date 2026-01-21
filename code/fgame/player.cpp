@@ -7320,8 +7320,10 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    player->edict->r.singleClient = client->ps.clientNum;
+    // Don't hide player entity from spectator - needed for weapon sounds
+    // Spectator positioned inside player's head so won't see the model anyway
+    // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    // player->edict->r.singleClient = client->ps.clientNum;
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
