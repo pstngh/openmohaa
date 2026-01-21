@@ -1294,8 +1294,19 @@ void CG_DrawSpectatorView_ver_6()
     cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
 
     if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
-        pszString =
-            cgi.LV_ConvertString(va("Press Use(%s) to follow a different player.", cgi.Key_KeynumToBindString(iKey1)));
+        // Show spectated player name if available
+        if (cg.snap && cg.snap->ps.stats[STAT_INFOCLIENT] != -1) {
+            int iClientNum = cg.snap->ps.stats[STAT_INFOCLIENT];
+            pszString = cgi.LV_ConvertString(
+                va("Spectating: %s - Press Use(%s) to switch",
+                   cg.clientinfo[iClientNum].name,
+                   cgi.Key_KeynumToBindString(iKey1))
+            );
+        } else {
+            pszString = cgi.LV_ConvertString(
+                va("Press Use(%s) to follow a different player.", cgi.Key_KeynumToBindString(iKey1))
+            );
+        }
     } else {
         pszString = cgi.LV_ConvertString(va("Press Use(%s) to follow a player.", cgi.Key_KeynumToBindString(iKey1)));
     }
