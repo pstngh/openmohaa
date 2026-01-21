@@ -7416,13 +7416,7 @@ void Player::UpdateStats(void)
         gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
 
         if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
-            Player *spectatedPlayer = (Player *)ent->entity;
-            CopyStatsAntiCheat(spectatedPlayer);
-
-            // Display spectated player's name on HUD every 2 seconds
-            if (level.inttime % 2000 < 50) {
-                HUDPrint(va("Spectating: %s", spectatedPlayer->client->pers.netname));
-            }
+            CopyStatsAntiCheat((Player *)ent->entity);
             return;
         }
     }
