@@ -7320,12 +7320,11 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    // Don't hide player entity - needed for weapon sounds to work
-    // Spectator positioned inside player's head so won't see model exterior
-    // Use surfaces array to hide all body parts from rendering
-    memset(player->edict->s.surfaces, 0xFF, sizeof(player->edict->s.surfaces));
-    // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    // player->edict->r.singleClient = client->ps.clientNum;
+    // Hide player entity from spectator using SVF_NOTSINGLECLIENT
+    // This makes player entity invisible to the spectator only
+    // Entity is still transmitted to other clients normally
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
