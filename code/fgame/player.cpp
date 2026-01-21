@@ -7272,6 +7272,41 @@ void Player::CopyStatsAntiCheat(Player *player)
     // CS2-style spectate: Copy all player state for authentic view
     // But zero lean angle to prevent exploit
 
+    // First, build a list of players being spectated by anyone
+    // Then restore scale for players NOT being spectated
+    int spectatedPlayers[MAX_CLIENTS];
+    int numSpectated = 0;
+
+    for (i = 0; i < game.maxclients; i++) {
+        gentity_t *checkEnt = &g_entities[i];
+        if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
+            Player *p = (Player *)checkEnt->entity;
+            if (p->IsSpectator() && p->m_iPlayerSpectating != 0) {
+                // This player is a spectator watching someone
+                spectatedPlayers[numSpectated++] = p->m_iPlayerSpectating - 1;
+            }
+        }
+    }
+
+    // Now restore scale for anyone not being spectated
+    for (i = 0; i < game.maxclients; i++) {
+        gentity_t *checkEnt = &g_entities[i];
+        if (checkEnt->inuse && checkEnt->entity && checkEnt->s.scale < 0.1f) {
+            // Check if this player is being spectated by anyone
+            qboolean isBeingSpectated = qfalse;
+            for (int j = 0; j < numSpectated; j++) {
+                if (spectatedPlayers[j] == i) {
+                    isBeingSpectated = qtrue;
+                    break;
+                }
+            }
+            // Restore scale if not being spectated
+            if (!isBeingSpectated) {
+                checkEnt->s.scale = 1.0f;
+            }
+        }
+    }
+
     origin = player->origin;
     SetViewAngles(player->GetViewAngles());
 
@@ -7369,6 +7404,7 @@ void Player::UpdateStats(void)
     //
     // Health
     //
+
 
     // CS2-style spectate: Full state replication for authentic player view
     if (IsSpectator() && m_iPlayerSpectating != 0) {
