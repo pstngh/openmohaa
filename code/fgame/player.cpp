@@ -7275,34 +7275,13 @@ void Player::CopyStatsAntiCheat(Player *player)
 
     // CS2-style spectate: Copy all player state for authentic view
 
-    // Build a list of ALL players currently being spectated by anyone
-    int spectatedPlayers[MAX_CLIENTS];
-    int numSpectated = 0;
-
+    // Restore ALL players to normal scale, except the one THIS spectator is watching
+    // This ensures each spectator sees all enemies, even ones being spectated by others
     for (i = 0; i < game.maxclients; i++) {
         gentity_t *checkEnt = &g_entities[i];
         if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
-            Player *p = (Player *)checkEnt->entity;
-            if (p->IsSpectator() && p->m_iPlayerSpectating != 0) {
-                spectatedPlayers[numSpectated++] = p->m_iPlayerSpectating - 1;
-            }
-        }
-    }
-
-    // Restore scale=1.0 for ALL players NOT being spectated by anyone
-    for (i = 0; i < game.maxclients; i++) {
-        gentity_t *checkEnt = &g_entities[i];
-        if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
-            // Check if this player is in the spectated list
-            qboolean isBeingSpectated = qfalse;
-            for (int j = 0; j < numSpectated; j++) {
-                if (spectatedPlayers[j] == i) {
-                    isBeingSpectated = qtrue;
-                    break;
-                }
-            }
-            // Always ensure non-spectated players are visible
-            if (!isBeingSpectated) {
+            // Don't restore the player THIS spectator is watching (will be shrunk below)
+            if (checkEnt->entity != player) {
                 checkEnt->s.scale = 1.0f;
             }
         }
