@@ -7365,10 +7365,9 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
 
-    // PMF_NO_MOVE prevents spectator from moving
-    // Don't use PMF_FROZEN - it prevents view bob calculation
-    // Removed PMF_NO_PREDICTION so client can apply damage_angles (recoil) and view bob
-    client->ps.pm_flags |= PMF_NO_MOVE;
+    // PMF_FROZEN and PMF_NO_MOVE prevent spectator from moving
+    // Removed PMF_NO_PREDICTION so client can apply damage_angles (recoil) to view
+    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE;
 
     // Don't copy frameInfo - spectator entity shouldn't animate
     // Don't copy viewmodel animation either to prevent arms from rendering
@@ -7383,7 +7382,9 @@ void Player::CopyStatsAntiCheat(Player *player)
     GetSpectateFollowOrientation(player, vPos, vAng);
 
     // Apply lean angle as camera roll for proper lean visualization
-    vAng[2] = player->client->ps.fLeanAngle;
+    // Scale down the lean angle by 30% for camera roll (lean is 45 degrees max)
+    // Full lean angle looks too exaggerated when applied as camera roll
+    vAng[2] = player->client->ps.fLeanAngle * 0.3f;
 
     VectorCopy(vAng, client->ps.camera_angles);
     VectorCopy(vPos, client->ps.camera_origin);
