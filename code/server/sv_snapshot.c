@@ -1127,6 +1127,17 @@ static void SV_BuildClientSnapshot( client_t *client ) {
 
 		state = &svs.snapshotEntities[svs.nextSnapshotEntities % svs.numSnapshotEntities];
 		*state = ent->s;
+
+		// Per-client model hiding for anti-cheat spectator
+		// If this client is spectating this player, shrink the model in their view only
+		if (client->gentity && client->gentity->client && client->gentity->client->playerSpectating != 0) {
+			int spectatedNum = client->gentity->client->playerSpectating - 1;
+			if (ent->s.number == spectatedNum) {
+				// This is the player being spectated - shrink model only for this client
+				state->scale = 0.001f;
+			}
+		}
+
 		svs.nextSnapshotEntities++;
 		// this should never hit, map should always be restarted first in SV_Frame
 		if ( svs.nextSnapshotEntities >= 0x7FFFFFFE ) {

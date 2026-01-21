@@ -7270,43 +7270,10 @@ void Player::CopyStats(Player *player)
 
 void Player::CopyStatsAntiCheat(Player *player)
 {
-    gentity_t *ent;
-    int        i;
-
     // CS2-style spectate: Copy all player state for authentic view
 
-    // Build a list of ALL players currently being spectated by anyone
-    int spectatedPlayers[MAX_CLIENTS];
-    int numSpectated = 0;
-
-    for (i = 0; i < game.maxclients; i++) {
-        gentity_t *checkEnt = &g_entities[i];
-        if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
-            Player *p = (Player *)checkEnt->entity;
-            if (p->IsSpectator() && p->m_iPlayerSpectating != 0) {
-                spectatedPlayers[numSpectated++] = p->m_iPlayerSpectating - 1;
-            }
-        }
-    }
-
-    // Restore scale=1.0 for ALL players NOT being spectated by anyone
-    for (i = 0; i < game.maxclients; i++) {
-        gentity_t *checkEnt = &g_entities[i];
-        if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
-            // Check if this player is in the spectated list
-            qboolean isBeingSpectated = qfalse;
-            for (int j = 0; j < numSpectated; j++) {
-                if (spectatedPlayers[j] == i) {
-                    isBeingSpectated = qtrue;
-                    break;
-                }
-            }
-            // Always ensure non-spectated players are visible
-            if (!isBeingSpectated) {
-                checkEnt->s.scale = 1.0f;
-            }
-        }
-    }
+    // Store which player we're spectating so server can hide them per-client
+    client->playerSpectating = m_iPlayerSpectating;
 
     origin = player->origin;
     SetViewAngles(player->GetViewAngles());
@@ -7356,12 +7323,8 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    // Don't hide player entity - need it transmitted for weapon sounds
-    // Instead, shrink the player model to make it effectively invisible
-    // Set scale to very small value (0.001) so model is too tiny to see
-    player->edict->s.scale = 0.001f;
-    // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    // player->edict->r.singleClient = client->ps.clientNum;
+    // Per-client model hiding is now handled in sv_snapshot.c
+    // No need to globally modify player->edict->s.scale
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
