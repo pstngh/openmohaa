@@ -7302,9 +7302,8 @@ void Player::CopyStatsAntiCheat(Player *player)
     memcpy(&client->ps.damage_angles, &player->client->ps.damage_angles, sizeof(client->ps.damage_angles));
     memcpy(&client->ps.viewangles, &player->client->ps.viewangles, sizeof(client->ps.delta_angles));
 
-    // Anti-cheat: Zero out lean angle to prevent exploit
-    // This prevents third-person view advantage while maintaining authentic first-person perspective
-    client->ps.fLeanAngle = 0.0f;
+    // Copy lean angle so spectators can see when player leans
+    client->ps.fLeanAngle = player->client->ps.fLeanAngle;
 
     client->ps.fov = player->client->ps.fov;
 
