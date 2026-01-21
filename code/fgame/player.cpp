@@ -7320,12 +7320,11 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    // Use RF_FIRST_PERSON on player entity to hide body from external view
-    // RF_FIRST_PERSON = "only draw through eyes", so it's only visible in first-person
-    // This keeps entity transmitted (sounds work) but hides the body geometry
-    player->edict->s.renderfx |= RF_FIRST_PERSON;
-    // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    // player->edict->r.singleClient = client->ps.clientNum;
+    // Hide player entity from spectator using SVF_NOTSINGLECLIENT
+    // This makes player entity invisible to the spectator only
+    // Entity is still transmitted to other clients normally
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
