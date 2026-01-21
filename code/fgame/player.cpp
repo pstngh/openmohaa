@@ -2023,6 +2023,7 @@ Player::Player()
     m_bAllowFighting           = false;
     m_bReady                   = false;
     m_iPlayerSpectating        = 0;
+    m_iLastPlayerSpectating    = 0;
     dm_team                    = TEAM_NONE;
     m_fTeamSelectTime          = -30;
     votecount                  = 0;
@@ -4832,12 +4833,14 @@ void Player::Think(void)
                     // Changed in 2.0
                     //  Use = clear spectator
                     if (m_iPlayerSpectating && (server_new_buttons & BUTTON_USE)) {
-                        m_iPlayerSpectating = 0;
+                        m_iPlayerSpectating     = 0;
+                        m_iLastPlayerSpectating = 0;
                     }
                 } else {
                     // On 1.11 and below, up = clear spectator
                     if (last_ucmd.upmove) {
-                        m_iPlayerSpectating = 0;
+                        m_iPlayerSpectating     = 0;
+                        m_iLastPlayerSpectating = 0;
                     }
                 }
 
@@ -4857,7 +4860,8 @@ void Player::Think(void)
                 }
             }
         } else {
-            m_iPlayerSpectating = 0;
+            m_iPlayerSpectating     = 0;
+            m_iLastPlayerSpectating = 0;
         }
     }
 
@@ -7416,7 +7420,14 @@ void Player::UpdateStats(void)
         gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
 
         if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
-            CopyStatsAntiCheat((Player *)ent->entity);
+            Player *spectatedPlayer = (Player *)ent->entity;
+            CopyStatsAntiCheat(spectatedPlayer);
+
+            // Display spectated player's name once when switching to a new player
+            if (m_iPlayerSpectating != m_iLastPlayerSpectating) {
+                HUDPrint(va("Spectating: %s", spectatedPlayer->client->pers.netname));
+                m_iLastPlayerSpectating = m_iPlayerSpectating;
+            }
             return;
         }
     }
@@ -9455,9 +9466,10 @@ void Player::Spectator(void)
     CancelEventsOfType(EV_Player_DMDeathDrop);
     CancelEventsOfType(EV_Player_Dead);
 
-    m_bSpectator        = !m_bTempSpectator;
-    m_iPlayerSpectating = 0;
-    takedamage          = DAMAGE_NO;
+    m_bSpectator            = !m_bTempSpectator;
+    m_iPlayerSpectating     = 0;
+    m_iLastPlayerSpectating = 0;
+    takedamage              = DAMAGE_NO;
     deadflag            = DEAD_NO;
     health              = max_health;
 
@@ -9547,7 +9559,8 @@ void Player::SetPlayerSpectate(bool bNext)
     }
 
     if (m_iPlayerSpectating) {
-        m_iPlayerSpectating = 0;
+        m_iPlayerSpectating     = 0;
+        m_iLastPlayerSpectating = 0;
         SetPlayerSpectate(bNext);
     }
 }
@@ -9578,7 +9591,8 @@ void Player::SetPlayerSpectateRandom(void)
 
         // Added in OPM.
         //  Clear the player spectating value
-        m_iPlayerSpectating = 0;
+        m_iPlayerSpectating     = 0;
+        m_iLastPlayerSpectating = 0;
         return;
     }
 
