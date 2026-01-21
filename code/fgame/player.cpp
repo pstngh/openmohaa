@@ -7321,8 +7321,9 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->s.renderfx &= ~RF_DONTDRAW;
 
     // Don't hide player entity - need it transmitted for weapon sounds
-    // Spectator camera will be positioned inside player's head
-    // so they won't see the exterior of the model
+    // Instead, shrink the player model to make it effectively invisible
+    // Set scale to very small value (0.001) so model is too tiny to see
+    player->edict->s.scale = 0.001f;
     // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
     // player->edict->r.singleClient = client->ps.clientNum;
 
