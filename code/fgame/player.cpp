@@ -7341,7 +7341,8 @@ void Player::CopyStatsAntiCheat(Player *player)
 
     SetViewAngles(vAng);
 
-    vPos[2] -= viewheight;
+    // Position spectator entity at player's eye position for proper sound spatialization
+    // Don't subtract viewheight - we want spectator's "ears" at player's head level
     setOrigin(vPos);
 
     // Make player's children (weapons) visible to spectator
