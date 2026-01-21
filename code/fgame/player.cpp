@@ -7295,7 +7295,7 @@ void Player::CopyStatsAntiCheat(Player *player)
     // Now restore scale for anyone not being spectated
     for (i = 0; i < game.maxclients; i++) {
         gentity_t *checkEnt = &g_entities[i];
-        if (checkEnt->inuse && checkEnt->entity && checkEnt->s.scale < 0.1f) {
+        if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
             // Check if this player is being spectated by anyone
             qboolean isBeingSpectated = qfalse;
             for (int j = 0; j < numSpectated; j++) {
@@ -7304,7 +7304,7 @@ void Player::CopyStatsAntiCheat(Player *player)
                     break;
                 }
             }
-            // Restore scale if not being spectated
+            // Restore normal scale for players not being spectated (so enemies are visible)
             if (!isBeingSpectated) {
                 checkEnt->s.scale = 1.0f;
             }
