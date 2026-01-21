@@ -7270,29 +7270,43 @@ void Player::CopyStats(Player *player)
 
 void Player::CopyStatsAntiCheat(Player *player)
 {
-    // CS2-style spectate: Copy all player state for authentic view
+    gentity_t *ent;
+    int        i;
 
-    // Clean up RF_THIRD_PERSON flag from players not being spectated
-    int i;
+    // CS2-style spectate: Copy all player state for authentic view
+    // But zero lean angle to prevent exploit
+
+    // First, build a list of players being spectated by anyone
+    // Then restore scale for players NOT being spectated
+    int spectatedPlayers[MAX_CLIENTS];
+    int numSpectated = 0;
+
     for (i = 0; i < game.maxclients; i++) {
         gentity_t *checkEnt = &g_entities[i];
         if (checkEnt->inuse && checkEnt->entity && checkEnt->entity->IsSubclassOfPlayer()) {
             Player *p = (Player *)checkEnt->entity;
+            if (p->IsSpectator() && p->m_iPlayerSpectating != 0) {
+                // This player is a spectator watching someone
+                spectatedPlayers[numSpectated++] = p->m_iPlayerSpectating - 1;
+            }
+        }
+    }
+
+    // Now restore scale for anyone not being spectated
+    for (i = 0; i < game.maxclients; i++) {
+        gentity_t *checkEnt = &g_entities[i];
+        if (checkEnt->inuse && checkEnt->entity && checkEnt->s.scale < 0.1f) {
             // Check if this player is being spectated by anyone
             qboolean isBeingSpectated = qfalse;
-            for (int j = 0; j < game.maxclients; j++) {
-                gentity_t *specEnt = &g_entities[j];
-                if (specEnt->inuse && specEnt->entity && specEnt->entity->IsSubclassOfPlayer()) {
-                    Player *spec = (Player *)specEnt->entity;
-                    if (spec->IsSpectator() && spec->m_iPlayerSpectating == (i + 1)) {
-                        isBeingSpectated = qtrue;
-                        break;
-                    }
+            for (int j = 0; j < numSpectated; j++) {
+                if (spectatedPlayers[j] == i) {
+                    isBeingSpectated = qtrue;
+                    break;
                 }
             }
-            // Clear RF_THIRD_PERSON if not being spectated
+            // Restore scale if not being spectated
             if (!isBeingSpectated) {
-                checkEnt->s.renderfx &= ~RF_THIRD_PERSON;
+                checkEnt->s.scale = 1.0f;
             }
         }
     }
@@ -7345,10 +7359,12 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    // Use RF_THIRD_PERSON to hide spectated player's body from first-person view
-    // "don't draw through eyes, only mirrors" - hides from spectator but visible to others
-    // This keeps entity transmitted for weapon sounds while hiding the model
-    player->edict->s.renderfx |= RF_THIRD_PERSON;
+    // Don't hide player entity - need it transmitted for weapon sounds
+    // Instead, shrink the player model to make it effectively invisible
+    // Set scale to very small value (0.001) so model is too tiny to see
+    player->edict->s.scale = 0.001f;
+    // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    // player->edict->r.singleClient = client->ps.clientNum;
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
