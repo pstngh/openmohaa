@@ -1130,8 +1130,8 @@ static void SV_BuildClientSnapshot( client_t *client ) {
 
 		// Per-client model hiding for anti-cheat spectator
 		// If this client is spectating this player, shrink the model in their view only
-		if (client->gentity && client->gentity->client && client->gentity->client->playerSpectating != 0) {
-			int spectatedNum = client->gentity->client->playerSpectating - 1;
+		if (client->gentity && client->gentity->client && client->gentity->client->ps.playerSpectating != 0) {
+			int spectatedNum = client->gentity->client->ps.playerSpectating - 1;
 			if (ent->s.number == spectatedNum) {
 				// This is the player being spectated - shrink model only for this client
 				state->scale = 0.001f;

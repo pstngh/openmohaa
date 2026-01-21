@@ -7273,7 +7273,7 @@ void Player::CopyStatsAntiCheat(Player *player)
     // CS2-style spectate: Copy all player state for authentic view
 
     // Store which player we're spectating so server can hide them per-client
-    client->playerSpectating = m_iPlayerSpectating;
+    client->ps.playerSpectating = m_iPlayerSpectating;
 
     origin = player->origin;
     SetViewAngles(player->GetViewAngles());

@@ -159,8 +159,6 @@ struct gclient_s {
     int lastActiveTime;
     int activeWarning;
 
-    int playerSpectating; // Added for anti-cheat spectator: which player entity number is being spectated (0 = none)
-
     struct gentity_s *ent;
     struct gclient_s *next;
     struct gclient_s *prev;

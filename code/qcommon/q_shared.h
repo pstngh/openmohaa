@@ -1804,6 +1804,7 @@ typedef struct playerState_s {
 	// Team Assault
 	int			radarInfo;
 	qboolean	voted;
+	int			playerSpectating;	// Anti-cheat spectator: which player is being spectated (0 = none)
 	// --
 
 	// not communicated over the net at all
