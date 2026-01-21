@@ -7320,8 +7320,10 @@ void Player::CopyStatsAntiCheat(Player *player)
     edict->r.svFlags &= ~SVF_NOCLIENT;
     edict->s.renderfx &= ~RF_DONTDRAW;
 
-    // Don't hide player entity from spectator - needed for weapon sounds
-    // Spectator positioned inside player's head so won't see the model anyway
+    // Use RF_FIRST_PERSON on player entity to hide body from external view
+    // RF_FIRST_PERSON = "only draw through eyes", so it's only visible in first-person
+    // This keeps entity transmitted (sounds work) but hides the body geometry
+    player->edict->s.renderfx |= RF_FIRST_PERSON;
     // player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
     // player->edict->r.singleClient = client->ps.clientNum;
 
@@ -7332,7 +7334,13 @@ void Player::CopyStatsAntiCheat(Player *player)
     // Removed PMF_NO_PREDICTION so client can apply damage_angles (recoil) to view
     client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE;
 
-    memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
+    // Don't copy frameInfo - spectator entity shouldn't animate
+    // Don't copy viewmodel animation either to prevent arms from rendering
+    client->ps.iViewModelAnim = 0;
+    client->ps.iViewModelAnimChanged = 0;
+
+    // Clear spectator's model so it has no visual representation
+    edict->s.modelindex = 0;
 
     // Setup spectator camera to follow player's view
     Vector vPos, vAng;
@@ -7347,24 +7355,8 @@ void Player::CopyStatsAntiCheat(Player *player)
     // Don't subtract viewheight - we want spectator's "ears" at player's head level
     setOrigin(vPos);
 
-    // Make player's children (weapons) visible to spectator
-    // Clear SVF_SINGLECLIENT so spectator can see weapon viewmodel
-    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
-        if (player->children[i] == ENTITYNUM_NONE) {
-            continue;
-        }
-
-        ent = g_entities + player->children[i];
-
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        // Remove single-client restriction so both player and spectator can see weapon
-        // This will make weapon visible to spectator positioned at player's eyes
-        ent->r.svFlags &= ~SVF_SINGLECLIENT;
-        ent->r.singleClient = 0;
-    }
+    // Don't modify weapon children - keep them as SINGLECLIENT to player only
+    // This prevents spectator from seeing the player's weapon arms
 }
 
 void Player::UpdateStats(void)
