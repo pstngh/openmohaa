@@ -539,20 +539,36 @@ void SVC_Status( netadr_t from ) {
 	status[0] = 0;
 	statusLength = 0;
 
-	for (i=0 ; i < sv_maxclients->integer ; i++) {
-		cl = &svs.clients[i];
-		if ( cl->state >= CS_CONNECTED ) {
-			ps = SV_GameClientNum( i );
-			Com_sprintf (player, sizeof(player), "%i \"%s\"\n", 
-			// su44: ps->persistant is not avaible in MoHAA
-			//	ps->persistant[PERS_SCORE], cl->ping, cl->name);
-				cl->ping, cl->name);
-			playerLength = strlen(player);
-			if (statusLength + playerLength >= sizeof(status) ) {
-				break;		// can't hold any more
+	// Use game exports to get all players including bots
+	if (ge && ge->GetNumActivePlayers && ge->GetPlayerInfo) {
+		int numPlayers = ge->GetNumActivePlayers();
+		for (i = 0; i < numPlayers; i++) {
+			char name[MAX_NAME_LENGTH];
+			int ping, kills, deaths;
+
+			if (ge->GetPlayerInfo(i, name, sizeof(name), &ping, &kills, &deaths)) {
+				Com_sprintf(player, sizeof(player), "%i \"%s\"\n", ping, name);
+				playerLength = strlen(player);
+				if (statusLength + playerLength >= sizeof(status)) {
+					break;		// can't hold any more
+				}
+				Q_strncpyz(status + statusLength, player, sizeof(status) - statusLength);
+				statusLength += playerLength;
 			}
-			Q_strncpyz (status + statusLength, player, sizeof(status) - statusLength);
-			statusLength += playerLength;
+		}
+	} else {
+		// Fallback to server client list
+		for (i=0 ; i < sv_maxclients->integer ; i++) {
+			cl = &svs.clients[i];
+			if ( cl->state >= CS_CONNECTED ) {
+				Com_sprintf (player, sizeof(player), "%i \"%s\"\n", cl->ping, cl->name);
+				playerLength = strlen(player);
+				if (statusLength + playerLength >= sizeof(status) ) {
+					break;		// can't hold any more
+				}
+				Q_strncpyz (status + statusLength, player, sizeof(status) - statusLength);
+				statusLength += playerLength;
+			}
 		}
 	}
 
@@ -567,10 +583,15 @@ Returns player count (including bots)
 ==================
 */
 int SV_GetReportedPlayerCount(void) {
+	// Use game exports to get accurate count including bots
+	if (ge && ge->GetNumActivePlayers) {
+		return ge->GetNumActivePlayers();
+	}
+
+	// Fallback to server client count
 	int playerCount = 0;
 	int i;
 
-	// Count all connected players (including bots)
 	for (i = 0; i < svs.iNumClients; i++) {
 		if (svs.clients[i].state >= CS_CONNECTED) {
 			playerCount++;

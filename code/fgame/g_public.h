@@ -576,6 +576,11 @@ typedef struct gameExport_s {
     unsigned int (*GetNumSimulatedPlayers)();
     const char * (*GetSimulatedPlayersSkill)();
 
+    /** Get number of active players including bots for status responses */
+    int (*GetNumActivePlayers)();
+    /** Get player info for status response. Returns false if index invalid. */
+    qboolean (*GetPlayerInfo)(int index, char *name, int nameSize, int *ping, int *kills, int *deaths);
+
     //
     // global variables shared between game and server
     //

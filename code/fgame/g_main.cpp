@@ -1700,6 +1700,8 @@ extern "C" game_export_t *GetGameAPI(game_import_t *import)
 
     globals.GetNumSimulatedPlayers   = G_GetNumBots;
     globals.GetSimulatedPlayersSkill = G_GetBotSkill;
+    globals.GetNumActivePlayers      = G_GetNumActivePlayers;
+    globals.GetPlayerInfo            = G_GetPlayerInfo;
 
     return &globals;
 }

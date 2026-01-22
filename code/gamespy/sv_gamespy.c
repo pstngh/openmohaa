@@ -222,54 +222,81 @@ static void rules_callback(char *outbuf, int maxlen, void *userdata)
 
 static void players_callback(char *outbuf, int maxlen, void *userdata)
 {
-    client_t      *cl;
-    playerState_t *ps;
     size_t         infolen;
     size_t         currlen = 0;
     int            i;
-    int            index;
     char           infostring[128];
 
     outbuf[0] = 0;
 
-    if (!svs.clients) {
-        return;
-    }
+    // Use game exports to get all players including bots
+    if (ge && ge->GetNumActivePlayers && ge->GetPlayerInfo) {
+        int numPlayers = ge->GetNumActivePlayers();
+        for (i = 0; i < numPlayers; i++) {
+            char name[MAX_NAME_LENGTH];
+            int ping, kills, deaths;
 
-    for (i = 0, index = 0; i < svs.iNumClients; i++) {
-        cl = &svs.clients[i];
+            if (ge->GetPlayerInfo(i, name, sizeof(name), &ping, &kills, &deaths)) {
+                infolen = Com_sprintf(
+                    infostring,
+                    sizeof(infostring),
+                    "\\player_%d\\%s\\frags_%d\\%d\\deaths_%d\\%d\\ping_%d\\%d",
+                    i,
+                    name,
+                    i,
+                    kills,
+                    i,
+                    deaths,
+                    i,
+                    ping
+                );
 
-        if (cl->state == CS_FREE) {
-            // ignore inactive clients
-            continue;
+                if (currlen + infolen < maxlen) {
+                    strcat(outbuf, infostring);
+                    currlen += infolen;
+                }
+            }
+        }
+    } else {
+        // Fallback to server client list
+        client_t      *cl;
+        playerState_t *ps;
+        int            index;
+
+        if (!svs.clients) {
+            return;
         }
 
-        ps = SV_GameClientNum(i);
+        for (i = 0, index = 0; i < svs.iNumClients; i++) {
+            cl = &svs.clients[i];
 
-        infolen = Com_sprintf(
-            infostring,
-            sizeof(infostring),
-            "\\player_%d\\%s\\frags_%d\\%d\\deaths_%d\\%d\\ping_%d\\%d",
-            index,
-            cl->name,
-            index,
-            ps->stats[STAT_KILLS],
-            index,
-            ps->stats[STAT_DEATHS],
-            index,
-            cl->ping
-        );
+            if (cl->state == CS_FREE) {
+                continue;
+            }
 
-        if (currlen + infolen < maxlen) {
-            strcat(outbuf, infostring);
-            currlen += infolen;
+            ps = SV_GameClientNum(i);
+
+            infolen = Com_sprintf(
+                infostring,
+                sizeof(infostring),
+                "\\player_%d\\%s\\frags_%d\\%d\\deaths_%d\\%d\\ping_%d\\%d",
+                index,
+                cl->name,
+                index,
+                ps->stats[STAT_KILLS],
+                index,
+                ps->stats[STAT_DEATHS],
+                index,
+                cl->ping
+            );
+
+            if (currlen + infolen < maxlen) {
+                strcat(outbuf, infostring);
+                currlen += infolen;
+            }
+
+            index++;
         }
-
-        //
-        // Fixed in OPM
-        //  Some programs enumerate by testing indexes, and stop iterating if the index doesn't exist
-        //
-        index++;
     }
 }
 

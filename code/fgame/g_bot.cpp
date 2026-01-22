@@ -627,6 +627,67 @@ const char *G_GetBotSkill()
 
 /*
 ===========
+G_GetNumActivePlayers
+
+Get number of active players including bots for status responses
+============
+*/
+int G_GetNumActivePlayers()
+{
+    int count = 0;
+    int i;
+    gentity_t *ent;
+
+    for (i = 0; i < game.maxclients; i++) {
+        ent = &g_entities[i];
+        if (ent->inuse && ent->client && ent->entity) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+/*
+===========
+G_GetPlayerInfo
+
+Get player info for status response by index
+============
+*/
+qboolean G_GetPlayerInfo(int index, char *name, int nameSize, int *ping, int *kills, int *deaths)
+{
+    int count = 0;
+    int i;
+    gentity_t *ent;
+
+    for (i = 0; i < game.maxclients; i++) {
+        ent = &g_entities[i];
+        if (ent->inuse && ent->client && ent->entity) {
+            if (count == index) {
+                // Found the player at this index
+                Q_strncpyz(name, ent->client->pers.netname, nameSize);
+
+                // Bots get 50 ping, real players use their actual ping
+                if (ent->r.svFlags & SVF_BOT) {
+                    *ping = 50;
+                } else {
+                    *ping = ent->client->ps.ping;
+                }
+
+                *kills = ent->client->pers.kills;
+                *deaths = ent->client->pers.deaths;
+                return qtrue;
+            }
+            count++;
+        }
+    }
+
+    return qfalse;
+}
+
+/*
+===========
 G_SaveBots
 
 Save bot persistent data
