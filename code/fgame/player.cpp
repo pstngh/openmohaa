@@ -4516,7 +4516,7 @@ void Player::ClientThink(void)
 
         m_vViewAng[0] = current_eyeinfo->angles[0];
         m_vViewAng[1] = current_eyeinfo->angles[1];
-        m_vViewAng[2] = 0.0f;
+        m_vViewAng[2] = current_eyeinfo->angles[2];
     }
 
     VectorCopy(m_vViewPos, client->ps.vEyePos);
@@ -7346,9 +7346,8 @@ void Player::CopyStatsAntiCheat(Player *player)
     GetSpectateFollowOrientation(player, vPos, vAng);
 
     // Apply lean angle as camera roll for proper lean visualization
-    // Scale down the lean angle by 30% for camera roll (lean is 45 degrees max)
-    // Full lean angle looks too exaggerated when applied as camera roll
-    vAng[2] = player->client->ps.fLeanAngle * 0.3f;
+    // Using full lean angle (1.0) for testing - original client may need stronger signal
+    vAng[2] = player->client->ps.fLeanAngle * 1.0f;
 
     VectorCopy(vAng, client->ps.camera_angles);
     VectorCopy(vPos, client->ps.camera_origin);
