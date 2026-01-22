@@ -678,7 +678,7 @@ void CVAR_Init(void)
 
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
     sv_maxbots     = gi.Cvar_Get("sv_maxbots", "0", CVAR_LATCH);
-    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
+    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "1", CVAR_LATCH);
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
