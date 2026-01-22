@@ -623,6 +623,20 @@ void SVC_Info( netadr_t from ) {
 	Info_SetValueForKey( infostring, "gametypestring", g_gametypestring->string );
 	Info_SetValueForKey( infostring, "pure", va("%i", sv_pure->integer ) );
 
+	// Added in OPM
+	//  Bot-specific information for server browsers
+	//  Report both the number of bots and the minplayers field for compatibility
+	//  with different server browser implementations
+	if (ge) {
+		unsigned int numBots = ge->GetNumSimulatedPlayers();
+		if (numBots > 0) {
+			Info_SetValueForKey( infostring, "bots", va("%i", numBots) );
+			Info_SetValueForKey( infostring, "minplayers", va("%i", numBots + count) );
+		} else {
+			Info_SetValueForKey( infostring, "minplayers", "0" );
+		}
+	}
+
 #ifdef USE_VOIP
 	if (sv_voipProtocol->string && *sv_voipProtocol->string) {
 		Info_SetValueForKey( infostring, "voip", sv_voipProtocol->string );
