@@ -564,22 +564,21 @@ void SVC_Status( netadr_t from ) {
 ==================
 SV_GetReportedPlayerCount
 
-Returns real player count + fake players cvar
+Returns player count (including bots) + fake players cvar
 ==================
 */
 int SV_GetReportedPlayerCount(void) {
-	int realPlayers = 0;
+	int playerCount = 0;
 	int i;
 
-	// Count only real (non-bot) players
+	// Count all connected players (including bots)
 	for (i = 0; i < svs.iNumClients; i++) {
-		if (svs.clients[i].state >= CS_CONNECTED &&
-			svs.clients[i].netchan.remoteAddress.type != NA_BOT) {
-			realPlayers++;
+		if (svs.clients[i].state >= CS_CONNECTED) {
+			playerCount++;
 		}
 	}
 
-	return realPlayers + sv_fake_players->integer;
+	return playerCount + sv_fake_players->integer;
 }
 
 /*
@@ -908,6 +907,11 @@ static void SV_CalcPings( void ) {
 		}
 		if ( cl->gentity->r.svFlags & SVF_MONSTER ) {
 			cl->ping = 0;
+			continue;
+		}
+		// Bots get a fixed ping of 50
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			cl->ping = 50;
 			continue;
 		}
 
