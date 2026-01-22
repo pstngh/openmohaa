@@ -7346,8 +7346,8 @@ void Player::CopyStatsAntiCheat(Player *player)
     GetSpectateFollowOrientation(player, vPos, vAng);
 
     // Apply lean angle as camera roll for proper lean visualization
-    // Using full lean angle (1.0) for testing - original client may need stronger signal
-    vAng[2] = player->client->ps.fLeanAngle * 1.0f;
+    // Scale down to 30% for a subtle but visible lean effect
+    vAng[2] = player->client->ps.fLeanAngle * 0.3f;
 
     VectorCopy(vAng, client->ps.camera_angles);
     VectorCopy(vPos, client->ps.camera_origin);
