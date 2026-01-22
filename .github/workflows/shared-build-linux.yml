@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'amd64',   os: "ubuntu-22.04-arm", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'}
+          {name: 'amd64',   os: "ubuntu-22.04", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'}
         ]
 
     name: "Building for platform linux-${{matrix.architecture.name}}"
