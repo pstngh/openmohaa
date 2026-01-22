@@ -694,7 +694,7 @@ void CVAR_Init(void)
     g_bot_aim_legal_zones_only                 = gi.Cvar_Get("g_bot_aim_legal_zones_only", "1", 0);
     g_bot_aim_zone_change_time                 = gi.Cvar_Get("g_bot_aim_zone_change_time", "0.15", 0);
     g_bot_reload_after_kill                    = gi.Cvar_Get("g_bot_reload_after_kill", "1", 0);
-    g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
+    g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "0", 0);
     g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);

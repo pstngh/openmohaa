@@ -896,6 +896,11 @@ static void SV_CalcPings( void ) {
 
 	for (i=0 ; i < sv_maxclients->integer ; i++) {
 		cl = &svs.clients[i];
+		// Bots get a fixed ping of 50 regardless of state
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			cl->ping = 50;
+			continue;
+		}
 		if ( cl->state != CS_ACTIVE ) {
 			cl->ping = 999;
 			continue;
@@ -906,11 +911,6 @@ static void SV_CalcPings( void ) {
 		}
 		if ( cl->gentity->r.svFlags & SVF_MONSTER ) {
 			cl->ping = 0;
-			continue;
-		}
-		// Bots get a fixed ping of 50
-		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
-			cl->ping = 50;
 			continue;
 		}
 
