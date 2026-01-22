@@ -394,7 +394,6 @@ extern	cvar_t	*sv_strictAuth;
 extern	cvar_t	*sv_banFile;
 
 extern  cvar_t  *sv_logContext;
-extern  cvar_t  *sv_fake_players;
 
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;

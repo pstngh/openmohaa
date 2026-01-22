@@ -82,7 +82,6 @@ cvar_t	*sv_strictAuth;
 cvar_t	*sv_banFile;
 
 cvar_t  *sv_logContext;
-cvar_t  *sv_fake_players;
 
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
@@ -564,7 +563,7 @@ void SVC_Status( netadr_t from ) {
 ==================
 SV_GetReportedPlayerCount
 
-Returns player count (including bots) + fake players cvar
+Returns player count (including bots)
 ==================
 */
 int SV_GetReportedPlayerCount(void) {
@@ -578,7 +577,7 @@ int SV_GetReportedPlayerCount(void) {
 		}
 	}
 
-	return playerCount + sv_fake_players->integer;
+	return playerCount;
 }
 
 /*

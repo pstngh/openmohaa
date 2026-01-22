@@ -1124,7 +1124,6 @@ void SV_Init (void)
 
     // Added in OPM
     sv_logContext = Cvar_Get("sv_logContext", "1", 0);
-    sv_fake_players = Cvar_Get("sv_fake_players", "5", CVAR_SERVERINFO);
 
 	Q_strncpyz( svs.gameName, "current", sizeof(svs.gameName) );
 
