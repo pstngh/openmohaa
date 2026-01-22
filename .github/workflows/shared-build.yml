@@ -17,8 +17,3 @@ jobs:
     uses: ./.github/workflows/shared-build-windows.yml
     with:
       environment: ${{inputs.environment}}
-
-  build-platform-macos:
-    uses: ./.github/workflows/shared-build-macos.yml
-    with:
-      environment: ${{inputs.environment}}
