@@ -675,8 +675,8 @@ qboolean G_GetPlayerInfo(int index, char *name, int nameSize, int *ping, int *ki
                     *ping = ent->client->ps.ping;
                 }
 
-                *kills = ent->client->pers.kills;
-                *deaths = ent->client->pers.deaths;
+                *kills = ent->client->ps.stats[STAT_KILLS];
+                *deaths = ent->client->ps.stats[STAT_DEATHS];
                 return qtrue;
             }
             count++;
