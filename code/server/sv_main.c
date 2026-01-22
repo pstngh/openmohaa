@@ -542,7 +542,7 @@ void SVC_Status( netadr_t from ) {
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
 			ps = SV_GameClientNum( i );
-			Com_sprintf (player, sizeof(player), "%i \"%s\"\n", 
+			Com_sprintf (player, sizeof(player), "%i \"%s\"\n",
 			// su44: ps->persistant is not avaible in MoHAA
 			//	ps->persistant[PERS_SCORE], cl->ping, cl->name);
 				cl->ping, cl->name);
@@ -552,6 +552,26 @@ void SVC_Status( netadr_t from ) {
 			}
 			Q_strncpyz (status + statusLength, player, sizeof(status) - statusLength);
 			statusLength += playerLength;
+		}
+	}
+
+	// Added in OPM
+	//  Append bots to player list for server browsers
+	if (ge) {
+		unsigned int numBots = ge->GetNumSimulatedPlayers();
+		char botName[MAX_NAME_LENGTH];
+		int botKills, botDeaths, botPing;
+
+		for (i = 0; i < (int)numBots; i++) {
+			if (ge->GetSimulatedPlayerInfo(i, botName, sizeof(botName), &botKills, &botDeaths, &botPing)) {
+				Com_sprintf(player, sizeof(player), "%i \"%s\"\n", botPing, botName);
+				playerLength = strlen(player);
+				if (statusLength + playerLength >= sizeof(status)) {
+					break;		// can't hold any more
+				}
+				Q_strncpyz(status + statusLength, player, sizeof(status) - statusLength);
+				statusLength += playerLength;
+			}
 		}
 	}
 

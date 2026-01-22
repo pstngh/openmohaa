@@ -627,6 +627,56 @@ const char *G_GetBotSkill()
 
 /*
 ===========
+G_GetBotPlayerInfo
+
+Get information about a bot by index for server browser player lists
+============
+*/
+qboolean G_GetBotPlayerInfo(unsigned int index, char *name, int nameSize, int *kills, int *deaths, int *ping)
+{
+    const BotControllerManager& manager = botManager.getControllerManager();
+    unsigned int numBots = manager.getControllers().NumObjects();
+
+    if (index >= numBots) {
+        return qfalse;
+    }
+
+    // Container is 1-indexed
+    const BotController *controller = manager.getControllers().ObjectAt(index + 1);
+    if (!controller) {
+        return qfalse;
+    }
+
+    Player *player = controller->getControlledEntity();
+    if (!player || !player->client) {
+        return qfalse;
+    }
+
+    // Get bot name
+    if (name && nameSize > 0) {
+        Q_strncpyz(name, player->client->pers.netname, nameSize);
+    }
+
+    // Get kills
+    if (kills) {
+        *kills = player->client->ps.stats[STAT_KILLS];
+    }
+
+    // Get deaths
+    if (deaths) {
+        *deaths = player->client->ps.stats[STAT_DEATHS];
+    }
+
+    // Bots have 0 ping
+    if (ping) {
+        *ping = 0;
+    }
+
+    return qtrue;
+}
+
+/*
+===========
 G_SaveBots
 
 Save bot persistent data

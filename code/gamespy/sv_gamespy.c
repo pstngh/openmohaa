@@ -271,6 +271,40 @@ static void players_callback(char *outbuf, int maxlen, void *userdata)
         //
         index++;
     }
+
+    // Added in OPM
+    //  Append bots to player list for server browsers
+    {
+        unsigned int numBots = ge->GetNumSimulatedPlayers();
+        char         botName[MAX_NAME_LENGTH];
+        int          botKills, botDeaths, botPing;
+        unsigned int botIndex;
+
+        for (botIndex = 0; botIndex < numBots; botIndex++) {
+            if (ge->GetSimulatedPlayerInfo(botIndex, botName, sizeof(botName), &botKills, &botDeaths, &botPing)) {
+                infolen = Com_sprintf(
+                    infostring,
+                    sizeof(infostring),
+                    "\\player_%d\\%s\\frags_%d\\%d\\deaths_%d\\%d\\ping_%d\\%d",
+                    index,
+                    botName,
+                    index,
+                    botKills,
+                    index,
+                    botDeaths,
+                    index,
+                    botPing
+                );
+
+                if (currlen + infolen < maxlen) {
+                    strcat(outbuf, infostring);
+                    currlen += infolen;
+                }
+
+                index++;
+            }
+        }
+    }
 }
 
 void SV_GamespyHeartbeat()

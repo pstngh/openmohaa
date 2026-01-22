@@ -575,6 +575,10 @@ typedef struct gameExport_s {
     /** Add more information related to game */
     unsigned int (*GetNumSimulatedPlayers)();
     const char * (*GetSimulatedPlayersSkill)();
+    /** Get information about a simulated player (bot) by index.
+     *  Returns qtrue if the bot exists at the given index, qfalse otherwise.
+     *  Index is 0-based and should be < GetNumSimulatedPlayers(). */
+    qboolean (*GetSimulatedPlayerInfo)(unsigned int index, char *name, int nameSize, int *kills, int *deaths, int *ping);
 
     //
     // global variables shared between game and server

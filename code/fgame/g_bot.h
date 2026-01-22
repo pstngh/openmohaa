@@ -44,6 +44,7 @@ void         G_RemoveBot(gentity_t *ent);
 void         G_RemoveBots(unsigned int num);
 unsigned int G_GetNumBots();
 const char  *G_GetBotSkill();
+qboolean     G_GetBotPlayerInfo(unsigned int index, char *name, int nameSize, int *kills, int *deaths, int *ping);
 bool         G_IsBot(gentity_t *ent);
 bool         G_IsPlayer(gentity_t *ent);
 void         G_ResetBots();
