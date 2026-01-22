@@ -142,7 +142,6 @@ static const char *ConvertMapFilename(const char *mapname)
 static void basic_callback(char *outbuf, int maxlen, void *userdata)
 {
     Info_SetValueForKey(outbuf, "gamename", GS_GetCurrentGameName());
-    Info_SetValueForKey(outbuf, "gamever", GS_GetCurrentGameVersion());
     Info_SetValueForKey(outbuf, "location", va("%i", sv_location->integer));
 
     if (sv_debug_gamespy->integer) {
