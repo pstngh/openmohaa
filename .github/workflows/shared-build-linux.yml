@@ -25,13 +25,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'amd64',   os: "ubuntu-22.04-arm", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'},
-          {name: 'i686',    os: "ubuntu-22.04-arm", package: 'i686-linux-gnu',        triple: 'i686-linux-gnu',        arch_option: 'linux-x86'},
-          {name: 'arm64',   os: "ubuntu-22.04-arm", package: 'aarch64-linux-gnu',     triple: 'aarch64-linux-gnu',     arch_option: 'linux-aarch64'},
-          {name: 'armhf',   os: "ubuntu-22.04-arm", package: 'arm-linux-gnueabihf',   triple: 'arm-linux-gnueabihf',   arch_option: 'linux-armv4'},
-          {name: 'powerpc', os: "ubuntu-22.04",     package: 'powerpc-linux-gnu',     triple: 'powerpc-linux-gnu',     arch_option: 'linux-ppc'},
-          {name: 'ppc64',   os: "ubuntu-22.04",     package: 'powerpc64-linux-gnu',   triple: 'powerpc64-linux-gnu',   arch_option: 'linux-ppc64'},
-          {name: 'ppc64el', os: "ubuntu-22.04-arm", package: 'powerpc64le-linux-gnu', triple: 'powerpc64le-linux-gnu', arch_option: 'linux-ppc64le'}
+          {name: 'amd64',   os: "ubuntu-22.04-arm", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'}
         ]
 
     name: "Building for platform linux-${{matrix.architecture.name}}"
