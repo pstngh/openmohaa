@@ -321,7 +321,20 @@ static void CL_Bot_ThinkRoaming(void)
         CL_Bot_PickNewRoamTarget();
     }
 
+    // Keep moving in the current direction
     clBot.isMoving = qtrue;
+
+    // In roaming, we move forward relative to where we're looking
+    // The target yaw was set by PickNewRoamTarget, and we're turning towards it
+    // Update moveDir to match our current view so movement is always forward
+    vec3_t angles;
+    angles[PITCH] = 0;
+    angles[YAW] = clBot.currentAngles[YAW];
+    angles[ROLL] = 0;
+
+    vec3_t forward;
+    AngleVectors(angles, forward, NULL, NULL);
+    VectorCopy(forward, clBot.moveDir);
 }
 
 /*
@@ -606,9 +619,18 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
     if (frameTime <= 0) frameTime = 0.016f; // Default to ~60fps
     float maxChange = aimSpeed * frameTime;
 
+    // Deadzone: don't make tiny corrections that cause shaking
+    // Use larger deadzone when roaming, smaller when attacking
+    float deadzone = (clBot.state == CLBOT_STATE_ATTACKING) ? 1.0f : 3.0f;
+
     // Smoothly interpolate current angles towards target angles
     for (int i = 0; i < 2; i++) {
         float diff = CL_Bot_AngleDiff(clBot.targetAngles[i], clBot.currentAngles[i]);
+
+        // Skip tiny corrections within deadzone
+        if (fabs(diff) <= deadzone) {
+            continue;
+        }
 
         if (fabs(diff) <= maxChange) {
             clBot.currentAngles[i] = clBot.targetAngles[i];
@@ -804,13 +826,27 @@ Select a new roaming target/direction
 */
 static void CL_Bot_PickNewRoamTarget(void)
 {
-    // Random direction based on current yaw with some variation
-    float yaw = clBot.currentAngles[YAW] + (rand() % 180) - 90;
+    // Pick a mostly forward direction with small random deviation
+    // This prevents the erratic zig-zagging behavior
+    // Occasionally make a bigger turn (20% chance)
+    float deviation;
+    if (rand() % 100 < 20) {
+        // Bigger turn: ±45 to ±90 degrees
+        deviation = (float)(45 + (rand() % 45));
+        if (rand() % 2) {
+            deviation = -deviation;
+        }
+    } else {
+        // Small adjustment: ±30 degrees max
+        deviation = (float)((rand() % 60) - 30);
+    }
+
+    float yaw = clBot.currentAngles[YAW] + deviation;
 
     clBot.targetAngles[YAW] = AngleMod(yaw);
     clBot.targetAngles[PITCH] = 0;
 
-    // Set move direction based on yaw
+    // Set move direction based on the NEW target yaw
     vec3_t angles;
     angles[PITCH] = 0;
     angles[YAW] = clBot.targetAngles[YAW];
@@ -823,7 +859,7 @@ static void CL_Bot_PickNewRoamTarget(void)
     clBot.lastMoveChangeTime = cls.realtime;
 
     if (cl_bot_debug && cl_bot_debug->integer) {
-        Com_Printf("Bot new roam direction: yaw=%.1f\n", clBot.targetAngles[YAW]);
+        Com_Printf("Bot new roam direction: yaw=%.1f (deviation=%.1f)\n", clBot.targetAngles[YAW], deviation);
     }
 }
 
