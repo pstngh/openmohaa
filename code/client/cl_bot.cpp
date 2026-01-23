@@ -67,7 +67,7 @@ static void     CL_Bot_HandleRespawn(usercmd_t *cmd);
 static float    CL_Bot_AngleDiff(float ang1, float ang2);
 static void     CL_Bot_PickNewRoamTarget(void);
 static entityState_t* CL_Bot_FindEntityByNumber(int entityNum);
-static int      CL_Bot_CheckObstacles(void);
+static float    CL_Bot_CheckObstacles(void);
 
 /*
 ====================
@@ -252,6 +252,61 @@ void CL_Bot_Frame(void)
 
 /*
 ====================
+CL_Bot_RecordPosition
+
+Record current position in history buffer
+====================
+*/
+#define POS_RECORD_INTERVAL 1000  // Record position every second
+#define POS_HISTORY_REVISIT_DIST 100.0f  // Distance to consider "revisiting"
+
+static void CL_Bot_RecordPosition(void)
+{
+    // Don't record too frequently
+    if (cls.realtime - clBot.lastPosRecordTime < POS_RECORD_INTERVAL) {
+        return;
+    }
+
+    // Don't record if dead
+    if (cl.snap.ps.pm_type == PM_DEAD) {
+        return;
+    }
+
+    clBot.lastPosRecordTime = cls.realtime;
+
+    // Store current position
+    VectorCopy(cl.snap.ps.origin, clBot.posHistory[clBot.posHistoryIndex]);
+    clBot.posHistoryIndex = (clBot.posHistoryIndex + 1) % CLBOT_POS_HISTORY_SIZE;
+}
+
+/*
+====================
+CL_Bot_IsRevisitingArea
+
+Check if a given position is close to a recently visited position
+====================
+*/
+static qboolean CL_Bot_IsRevisitingArea(vec3_t testPos)
+{
+    for (int i = 0; i < CLBOT_POS_HISTORY_SIZE; i++) {
+        // Skip if position is zeroed (not recorded yet)
+        if (clBot.posHistory[i][0] == 0 && clBot.posHistory[i][1] == 0 && clBot.posHistory[i][2] == 0) {
+            continue;
+        }
+
+        vec3_t delta;
+        VectorSubtract(testPos, clBot.posHistory[i], delta);
+        float dist = VectorLength(delta);
+
+        if (dist < POS_HISTORY_REVISIT_DIST) {
+            return qtrue;
+        }
+    }
+    return qfalse;
+}
+
+/*
+====================
 CL_Bot_CheckStuck
 
 Check if bot is stuck and try to get unstuck
@@ -328,6 +383,9 @@ static void CL_Bot_Think(void)
     // Check if stuck
     CL_Bot_CheckStuck();
 
+    // Record position for history
+    CL_Bot_RecordPosition();
+
     // Update state based on conditions
     if (cl.snap.ps.pm_type == PM_DEAD) {
         CL_Bot_SetState(CLBOT_STATE_DEAD);
@@ -386,10 +444,10 @@ static void CL_Bot_ThinkRoaming(void)
     }
 
     // Check for obstacles and adjust direction
-    int obstacleDir = CL_Bot_CheckObstacles();
-    if (obstacleDir != 0) {
-        // Turn to avoid obstacle (45 degrees per detection)
-        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + (obstacleDir * 45.0f));
+    float turnAngle = CL_Bot_CheckObstacles();
+    if (turnAngle != 0) {
+        // Turn toward the clearest path
+        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + turnAngle);
         clBot.lastMoveChangeTime = cls.realtime; // Reset roam timer
     }
 
@@ -803,17 +861,18 @@ static qboolean CL_Bot_CanSeePoint(vec3_t targetPos)
 ====================
 CL_Bot_CheckObstacles
 
-Check for obstacles ahead and return a turn direction if blocked
-Returns: 0 = clear, 1 = turn right, -1 = turn left
+Scan multiple directions to find the best path
+Returns: angle offset to turn (0 = clear ahead, positive = turn right, negative = turn left)
 ====================
 */
-#define OBSTACLE_CHECK_DIST 100.0f
-#define OBSTACLE_CHECK_INTERVAL 100  // Check every 100ms
+#define OBSTACLE_CHECK_DIST 150.0f
+#define OBSTACLE_CHECK_INTERVAL 150  // Check every 150ms
+#define NUM_SCAN_RAYS 9  // Scan from -80 to +80 degrees in 20 degree increments
 
-static int CL_Bot_CheckObstacles(void)
+static float CL_Bot_CheckObstacles(void)
 {
     static int lastCheckTime = 0;
-    static int lastResult = 0;
+    static float lastResult = 0;
 
     // Don't check too frequently
     if (cls.realtime - lastCheckTime < OBSTACLE_CHECK_INTERVAL) {
@@ -821,60 +880,80 @@ static int CL_Bot_CheckObstacles(void)
     }
     lastCheckTime = cls.realtime;
 
-    trace_t trace;
-    vec3_t start, end;
-    vec3_t forward, right;
-    vec3_t mins = {-16, -16, 0};
-    vec3_t maxs = {16, 16, 32};
+    vec3_t start;
+    vec3_t mins = {-12, -12, 0};
+    vec3_t maxs = {12, 12, 40};
 
-    // Get forward direction from current yaw
-    vec3_t angles;
-    angles[PITCH] = 0;
-    angles[YAW] = clBot.currentAngles[YAW];
-    angles[ROLL] = 0;
-    AngleVectors(angles, forward, right, NULL);
-
-    // Start from player position (at knee height to detect low obstacles)
+    // Start from player position
     VectorCopy(cl.snap.ps.origin, start);
     start[2] += 20;
 
-    // Trace forward
-    VectorMA(start, OBSTACLE_CHECK_DIST, forward, end);
-    CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+    float baseYaw = clBot.currentAngles[YAW];
+    float bestScore = -1;
+    float bestAngle = 0;
+    float forwardScore = 0;
 
-    if (trace.fraction < 0.8f) {
-        // Obstacle ahead, check left and right to decide which way to turn
-        vec3_t leftEnd, rightEnd;
-        trace_t leftTrace, rightTrace;
+    // Scan in a fan pattern
+    for (int i = 0; i < NUM_SCAN_RAYS; i++) {
+        float angleOffset = -80.0f + (i * 20.0f);  // -80, -60, -40, -20, 0, 20, 40, 60, 80
+        float testYaw = AngleMod(baseYaw + angleOffset);
 
-        // Check left
-        VectorMA(start, OBSTACLE_CHECK_DIST, forward, leftEnd);
-        VectorMA(leftEnd, -50, right, leftEnd);  // 50 units to the left
-        CM_BoxTrace(&leftTrace, start, leftEnd, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+        vec3_t angles, forward, end;
+        angles[PITCH] = 0;
+        angles[YAW] = testYaw;
+        angles[ROLL] = 0;
+        AngleVectors(angles, forward, NULL, NULL);
 
-        // Check right
-        VectorMA(start, OBSTACLE_CHECK_DIST, forward, rightEnd);
-        VectorMA(rightEnd, 50, right, rightEnd);  // 50 units to the right
-        CM_BoxTrace(&rightTrace, start, rightEnd, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+        VectorMA(start, OBSTACLE_CHECK_DIST, forward, end);
 
-        // Turn towards the clearer direction
-        if (rightTrace.fraction > leftTrace.fraction) {
-            lastResult = 1;  // Turn right
-        } else {
-            lastResult = -1; // Turn left
+        trace_t trace;
+        CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+        // Score based on how far we can go, with preference for forward
+        float score = trace.fraction;
+
+        // Penalize large turns slightly to prefer going straight when possible
+        float turnPenalty = fabs(angleOffset) / 200.0f;  // Max 0.4 penalty at 80 degrees
+        score -= turnPenalty;
+
+        // Penalize directions that lead back to recently visited areas
+        if (trace.fraction > 0.3f) {  // Only check if path is somewhat clear
+            vec3_t futurePos;
+            VectorMA(cl.snap.ps.origin, OBSTACLE_CHECK_DIST * trace.fraction, forward, futurePos);
+            if (CL_Bot_IsRevisitingArea(futurePos)) {
+                score -= 0.3f;  // Significant penalty for going back
+            }
         }
 
-        if (cl_bot_debug && cl_bot_debug->integer) {
-            Com_Printf("Obstacle ahead! Turn %s (L:%.2f R:%.2f)\n",
-                lastResult > 0 ? "right" : "left",
-                leftTrace.fraction, rightTrace.fraction);
+        if (angleOffset == 0) {
+            forwardScore = trace.fraction;
         }
 
-        return lastResult;
+        if (score > bestScore) {
+            bestScore = score;
+            bestAngle = angleOffset;
+        }
     }
 
-    lastResult = 0;
-    return 0;  // Clear ahead
+    // If forward is reasonably clear (>60%), don't turn
+    if (forwardScore > 0.6f) {
+        lastResult = 0;
+        return 0;
+    }
+
+    // If best direction is forward-ish (within 20 degrees), don't turn
+    if (fabs(bestAngle) <= 20.0f && bestScore > 0.3f) {
+        lastResult = 0;
+        return 0;
+    }
+
+    if (cl_bot_debug && cl_bot_debug->integer) {
+        Com_Printf("Navigation scan: best=%.0f° (score=%.2f) forward=%.2f\n",
+            bestAngle, bestScore, forwardScore);
+    }
+
+    lastResult = bestAngle;
+    return bestAngle;
 }
 
 /*

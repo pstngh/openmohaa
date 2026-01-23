@@ -78,6 +78,12 @@ typedef struct {
     int         lastStuckCheckTime; // When we last checked if stuck
     int         stuckCount;         // How many times we've been stuck recently
 
+    // Position history (to avoid going in circles)
+    #define CLBOT_POS_HISTORY_SIZE 16
+    vec3_t      posHistory[CLBOT_POS_HISTORY_SIZE];  // Recent positions
+    int         posHistoryIndex;    // Current index in circular buffer
+    int         lastPosRecordTime;  // When we last recorded position
+
     // Team/spawn handling
     qboolean    hasJoinedTeam;      // Whether we've sent team join command
     int         joinTeamTime;       // When we requested to join a team
