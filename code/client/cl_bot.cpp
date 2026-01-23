@@ -566,6 +566,18 @@ static void CL_Bot_ThinkAttacking(void)
     VectorNormalize(aimDir);
     vectoangles(aimDir, clBot.targetAngles);
 
+    // Normalize pitch to -180 to 180 range (vectoangles can return 0-360)
+    if (clBot.targetAngles[PITCH] > 180.0f) {
+        clBot.targetAngles[PITCH] -= 360.0f;
+    }
+
+    // Clamp pitch to valid range
+    if (clBot.targetAngles[PITCH] > 89.0f) {
+        clBot.targetAngles[PITCH] = 89.0f;
+    } else if (clBot.targetAngles[PITCH] < -89.0f) {
+        clBot.targetAngles[PITCH] = -89.0f;
+    }
+
     if (cl_bot_debug && cl_bot_debug->integer > 1) {
         Com_Printf("Enemy at %.0f,%.0f,%.0f dist=%.0f aim=%.1f,%.1f\n",
             enemy->origin[0], enemy->origin[1], enemy->origin[2],
