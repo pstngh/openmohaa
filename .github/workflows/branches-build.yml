@@ -41,7 +41,7 @@ jobs:
       matrix:
         target_os: [
           'linux-amd64',
-          'windows-x64-pdb',
+          'windows-x64',
         ]
 
     runs-on: ubuntu-24.04
