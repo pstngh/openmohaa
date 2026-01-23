@@ -432,29 +432,46 @@ static void CL_Bot_ThinkAttacking(void)
             dist, clBot.targetAngles[PITCH], clBot.targetAngles[YAW]);
     }
 
-    // Move towards or away from enemy based on distance
+    // Move towards enemy while attacking, with some strafing mixed in
     float attackDist = cl_bot_attackdist ? cl_bot_attackdist->value : 2048;
 
-    if (dist > attackDist * 0.8f) {
-        // Move towards enemy
-        VectorCopy(delta, clBot.moveDir);
-        VectorNormalize(clBot.moveDir);
-        clBot.isMoving = qtrue;
-    } else if (dist < 200) {
+    if (dist < 150) {
         // Too close, back up
         VectorCopy(delta, clBot.moveDir);
         VectorNormalize(clBot.moveDir);
         VectorNegate(clBot.moveDir, clBot.moveDir);
         clBot.isMoving = qtrue;
-    } else {
-        // Good distance, strafe
-        vec3_t right;
+    } else if (dist > 400) {
+        // Far away - move towards enemy with slight strafe
+        vec3_t forward, right;
+        VectorCopy(delta, forward);
+        forward[2] = 0;
+        VectorNormalize(forward);
+
+        // Add slight strafe to make movement less predictable
         AngleVectors(clBot.currentAngles, NULL, right, NULL);
-        if ((cls.realtime / 1500) % 2 == 0) {
-            VectorCopy(right, clBot.moveDir);
-        } else {
-            VectorNegate(right, clBot.moveDir);
-        }
+        float strafeAmount = ((cls.realtime / 2000) % 2 == 0) ? 0.2f : -0.2f;
+
+        clBot.moveDir[0] = forward[0] + right[0] * strafeAmount;
+        clBot.moveDir[1] = forward[1] + right[1] * strafeAmount;
+        clBot.moveDir[2] = 0;
+        VectorNormalize(clBot.moveDir);
+        clBot.isMoving = qtrue;
+    } else {
+        // Medium range - strafe while slowly advancing
+        vec3_t forward, right;
+        VectorCopy(delta, forward);
+        forward[2] = 0;
+        VectorNormalize(forward);
+
+        AngleVectors(clBot.currentAngles, NULL, right, NULL);
+        float strafeDir = ((cls.realtime / 1500) % 2 == 0) ? 1.0f : -1.0f;
+
+        // 70% strafe, 30% forward
+        clBot.moveDir[0] = forward[0] * 0.3f + right[0] * strafeDir * 0.7f;
+        clBot.moveDir[1] = forward[1] * 0.3f + right[1] * strafeDir * 0.7f;
+        clBot.moveDir[2] = 0;
+        VectorNormalize(clBot.moveDir);
         clBot.isMoving = qtrue;
     }
 }
@@ -670,18 +687,14 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
 {
     // Only attack if we have an enemy and we're not in spawn protection
     if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
-        // Check fire delay
-        int fireDelay = cl_bot_firedelay ? cl_bot_firedelay->integer : CLBOT_MIN_FIRE_DELAY;
-
         // Don't fire immediately after spawning
         if (cls.realtime - clBot.spawnedTime < CLBOT_SPAWN_GRACE_TIME) {
             return;
         }
 
-        if (cls.realtime - clBot.lastFireTime >= fireDelay) {
-            cmd->buttons |= BUTTON_ATTACKLEFT;
-            clBot.lastFireTime = cls.realtime;
-        }
+        // Hold fire button continuously while attacking
+        // Most weapons need the button held, not just pressed once
+        cmd->buttons |= BUTTON_ATTACKLEFT;
     }
 }
 
@@ -781,19 +794,30 @@ static void CL_Bot_HandleTeamJoin(void)
                 }
                 CL_AddReliableCommand("auto_join_team", qfalse);
                 clBot.hasJoinedTeam = qtrue;
+                clBot.weaponSelectTime = cls.realtime; // Start weapon select timer
             }
         }
     } else {
-        clBot.hasJoinedTeam = qtrue;
+        if (!clBot.hasJoinedTeam) {
+            clBot.hasJoinedTeam = qtrue;
+            clBot.weaponSelectTime = cls.realtime; // Start weapon select timer
+        }
     }
 
-    // Handle primary weapon selection
-    if (!clBot.hasPrimaryWeapon && clBot.hasJoinedTeam && team != TEAM_SPECTATOR && team != TEAM_NONE) {
-        if (cl_bot_debug && cl_bot_debug->integer) {
-            Com_Printf("Bot selecting primary weapon\n");
+    // Handle primary weapon selection - retry multiple times with delay
+    if (clBot.hasJoinedTeam && team != TEAM_SPECTATOR && team != TEAM_NONE) {
+        // Send weapon select command after a short delay, retry a few times
+        if (clBot.weaponSelectAttempts < 3) {
+            int delay = 500 + (clBot.weaponSelectAttempts * 1000); // 500ms, 1500ms, 2500ms
+            if (cls.realtime - clBot.weaponSelectTime > delay) {
+                if (cl_bot_debug && cl_bot_debug->integer) {
+                    Com_Printf("Bot selecting primary weapon (attempt %d)\n", clBot.weaponSelectAttempts + 1);
+                }
+                CL_AddReliableCommand("primarydmweapon smg", qfalse);
+                clBot.weaponSelectAttempts++;
+                clBot.weaponSelectTime = cls.realtime;
+            }
         }
-        CL_AddReliableCommand("primarydmweapon auto", qfalse);
-        clBot.hasPrimaryWeapon = qtrue;
     }
 }
 

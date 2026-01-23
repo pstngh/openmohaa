@@ -76,7 +76,8 @@ typedef struct {
     // Team/spawn handling
     qboolean    hasJoinedTeam;      // Whether we've sent team join command
     int         joinTeamTime;       // When we requested to join a team
-    qboolean    hasPrimaryWeapon;   // Whether we've selected primary weapon
+    int         weaponSelectTime;   // When we last sent weapon select command
+    int         weaponSelectAttempts; // Number of weapon select attempts
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
 } clientBot_t;
