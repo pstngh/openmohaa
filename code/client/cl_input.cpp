@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "client.h"
 #include "cl_ui.h"
+#include "cl_bot.h"
 
 unsigned	frame_msec;
 int			old_com_frameTime;
@@ -726,6 +727,13 @@ CL_CreateCmd
 usercmd_t CL_CreateCmd( void ) {
 	usercmd_t	cmd;
 	vec3_t		oldAngles;
+	usereyes_t	botEyeInfo;
+
+	// Check if client bot mode is active
+	if (CL_Bot_CreateCmd(&cmd, &botEyeInfo)) {
+		// Bot handled the command generation
+		return cmd;
+	}
 
 	VectorCopy( cl.viewangles, oldAngles );
 
@@ -1132,6 +1140,9 @@ CL_InitInput
 ============
 */
 void CL_InitInput( void ) {
+	// Initialize client bot system
+	CL_Bot_Init();
+
 	Cmd_AddCommand("centerview", IN_CenterView);
 
 	Cmd_AddCommand("+moveup", IN_UpDown);
@@ -1219,6 +1230,9 @@ CL_ShutdownInput
 */
 void CL_ShutdownInput(void)
 {
+	// Shutdown client bot system
+	CL_Bot_Shutdown();
+
 	Cmd_RemoveCommand("centerview");
 
 	Cmd_RemoveCommand("+moveup");

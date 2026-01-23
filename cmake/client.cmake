@@ -11,6 +11,7 @@ include(renderer_common)
 
 set(CLIENT_SOURCES
     ${SOURCE_DIR}/client/cl_avi.cpp
+    ${SOURCE_DIR}/client/cl_bot.cpp
     ${SOURCE_DIR}/client/cl_cgame.cpp
     ${SOURCE_DIR}/client/cl_cin.cpp
     ${SOURCE_DIR}/client/cl_consolecmds.cpp
