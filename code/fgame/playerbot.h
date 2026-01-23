@@ -183,10 +183,6 @@ private:
     int   m_iNextLeanChangeTime;   // When to change lean direction
     float m_fStrafeIntensity;      // Current strafe intensity (0.0 to 1.0)
 
-    // Aim zone targeting
-    int m_iCurrentAimZone;         // Current legal hit zone being targeted
-    int m_iNextAimZoneChangeTime;  // When to switch to a different zone
-
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;

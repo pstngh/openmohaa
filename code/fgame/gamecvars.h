@@ -316,10 +316,6 @@ extern cvar_t *g_bot_lean_match_chance;
  */
 extern cvar_t *g_bot_aim_legal_zones_only;
 /**
- * @brief Time in seconds between aim zone changes (aim dancing).
- */
-extern cvar_t *g_bot_aim_zone_change_time;
-/**
  * @brief Automatically reload after kills when no enemy is in sight.
  * 0 = disable, 1 = enable
  */

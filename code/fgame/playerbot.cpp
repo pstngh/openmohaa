@@ -84,10 +84,6 @@ BotController::BotController()
     m_iNextStrafeChangeTime = 0;
     m_iNextLeanChangeTime   = 0;
     m_fStrafeIntensity      = 1.0f;
-
-    // Initialize aim zones
-    m_iCurrentAimZone        = 0;
-    m_iNextAimZoneChangeTime = 0;
 }
 
 BotController::~BotController()
@@ -874,57 +870,17 @@ void BotController::CalculateLegalAimOffset(Vector& outOffset, Sentient *enemy)
         return;
     }
 
-    // Define legal hit zones (0-3):
-    // 0: Torso center (pelvis to middle torso)
-    // 1: Torso sides
-    // 2: Left arm
-    // 3: Right arm
+    // Legal zone: pelvis to middle torso (0.45 - 0.8 height ratio)
+    // Uses same ±50% width offsets as main branch
 
     Vector mins = enemy->mins;
     Vector maxs = enemy->maxs;
     float  width  = maxs.x - mins.x;
     float  height = maxs.z - mins.z;
 
-    // Change aim zone based on timer
-    if (level.inttime >= m_iNextAimZoneChangeTime) {
-        m_iCurrentAimZone        = rand() % 4;
-        m_iNextAimZoneChangeTime = level.inttime + (int)(g_bot_aim_zone_change_time->value * 1000);
-    }
-
-    float heightRatio;
-    float sideOffset;
-
-    switch (m_iCurrentAimZone) {
-    case 0: // Torso center (pelvis to middle torso)
-        heightRatio = 0.45 + G_Random(0.35);
-        sideOffset  = G_CRandom(width * 0.2);
-        break;
-
-    case 1: // Torso sides
-        heightRatio = 0.45 + G_Random(0.35);
-        sideOffset  = G_CRandom(width * 0.4);
-        break;
-
-    case 2: // Left arm
-        heightRatio = 0.55 + G_Random(0.2);
-        sideOffset  = -(width * 0.4) - G_Random(width * 0.1);
-        break;
-
-    case 3: // Right arm
-        heightRatio = 0.55 + G_Random(0.2);
-        sideOffset  = (width * 0.4) + G_Random(width * 0.1);
-        break;
-
-    default:
-        heightRatio = 0.6;
-        sideOffset  = 0;
-        break;
-    }
-
-    // Calculate the offset
-    outOffset[0] = sideOffset;
-    outOffset[1] = G_CRandom(width * 0.2); // Front/back variation
-    outOffset[2] = mins.z + (height * heightRatio);
+    outOffset[0] = G_CRandom(width * 0.5);
+    outOffset[1] = G_CRandom(width * 0.5);
+    outOffset[2] = mins.z + (height * (0.45 + G_Random(0.35)));
 }
 
 void BotController::State_EndAttack(void)

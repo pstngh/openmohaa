@@ -146,35 +146,16 @@ Bots proactively move toward any detected enemy sounds or visual contacts. They 
 
 #### Description
 
-Enables legal hit zone targeting, restricting bots to aim only at torso (pelvis to middle torso) and arms.
+Enables legal hit zone targeting, restricting bots to aim at the torso area (pelvis to middle torso).
 
 #### Usage
 
 - `0`: Disable legal zones (bots use original aiming that targets head/eyes).
-- `1`: Enable legal zones only (default, excludes head and legs).
+- `1`: Enable legal zones only (default, targets torso area).
 
 #### Notes
 
-When enabled, bots will never directly target the head or legs. This creates more realistic and fair combat where bots don't consistently land headshots.
-
-### `g_bot_aim_zone_change_time`
-
-- **Default**: 0.15
-- **Type**: float (seconds)
-
-#### Description
-
-Time between aim zone changes during combat, creating a "dancing" aim effect.
-
-#### Usage
-
-- Lower values (e.g., `0.05`): Very rapid aim dancing, more erratic spray patterns.
-- Higher values (e.g., `0.3`): Slower aim changes, more predictable targeting.
-- `0.15`: Default, creates natural-looking aim adjustments during spray.
-
-#### Notes
-
-The bot dynamically switches between 4 legal hit zones (torso center, torso sides, left arm, right arm) at this interval. This prevents bots from locking onto a single spot and creates more realistic spray patterns.
+When enabled, bots target the torso area instead of the head, creating more realistic combat.
 
 ### `g_bot_reload_after_kill`
 
