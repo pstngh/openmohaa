@@ -67,6 +67,7 @@ static void     CL_Bot_HandleRespawn(usercmd_t *cmd);
 static float    CL_Bot_AngleDiff(float ang1, float ang2);
 static void     CL_Bot_PickNewRoamTarget(void);
 static entityState_t* CL_Bot_FindEntityByNumber(int entityNum);
+static int      CL_Bot_CheckObstacles(void);
 
 /*
 ====================
@@ -384,8 +385,19 @@ static void CL_Bot_ThinkRoaming(void)
         CL_Bot_PickNewRoamTarget();
     }
 
+    // Check for obstacles and adjust direction
+    int obstacleDir = CL_Bot_CheckObstacles();
+    if (obstacleDir != 0) {
+        // Turn to avoid obstacle (45 degrees per detection)
+        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + (obstacleDir * 45.0f));
+        clBot.lastMoveChangeTime = cls.realtime; // Reset roam timer
+    }
+
     // Keep moving in the current direction
     clBot.isMoving = qtrue;
+
+    // Always keep pitch level when roaming (look straight ahead)
+    clBot.targetAngles[PITCH] = 0;
 
     // In roaming, we move forward relative to where we're looking
     // The target yaw was set by PickNewRoamTarget, and we're turning towards it
@@ -785,6 +797,84 @@ static qboolean CL_Bot_CanSeePoint(vec3_t targetPos)
 
     // If trace completed without hitting anything, we can see the point
     return (trace.fraction >= 0.98f);
+}
+
+/*
+====================
+CL_Bot_CheckObstacles
+
+Check for obstacles ahead and return a turn direction if blocked
+Returns: 0 = clear, 1 = turn right, -1 = turn left
+====================
+*/
+#define OBSTACLE_CHECK_DIST 100.0f
+#define OBSTACLE_CHECK_INTERVAL 100  // Check every 100ms
+
+static int CL_Bot_CheckObstacles(void)
+{
+    static int lastCheckTime = 0;
+    static int lastResult = 0;
+
+    // Don't check too frequently
+    if (cls.realtime - lastCheckTime < OBSTACLE_CHECK_INTERVAL) {
+        return lastResult;
+    }
+    lastCheckTime = cls.realtime;
+
+    trace_t trace;
+    vec3_t start, end;
+    vec3_t forward, right;
+    vec3_t mins = {-16, -16, 0};
+    vec3_t maxs = {16, 16, 32};
+
+    // Get forward direction from current yaw
+    vec3_t angles;
+    angles[PITCH] = 0;
+    angles[YAW] = clBot.currentAngles[YAW];
+    angles[ROLL] = 0;
+    AngleVectors(angles, forward, right, NULL);
+
+    // Start from player position (at knee height to detect low obstacles)
+    VectorCopy(cl.snap.ps.origin, start);
+    start[2] += 20;
+
+    // Trace forward
+    VectorMA(start, OBSTACLE_CHECK_DIST, forward, end);
+    CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+    if (trace.fraction < 0.8f) {
+        // Obstacle ahead, check left and right to decide which way to turn
+        vec3_t leftEnd, rightEnd;
+        trace_t leftTrace, rightTrace;
+
+        // Check left
+        VectorMA(start, OBSTACLE_CHECK_DIST, forward, leftEnd);
+        VectorMA(leftEnd, -50, right, leftEnd);  // 50 units to the left
+        CM_BoxTrace(&leftTrace, start, leftEnd, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+        // Check right
+        VectorMA(start, OBSTACLE_CHECK_DIST, forward, rightEnd);
+        VectorMA(rightEnd, 50, right, rightEnd);  // 50 units to the right
+        CM_BoxTrace(&rightTrace, start, rightEnd, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+        // Turn towards the clearer direction
+        if (rightTrace.fraction > leftTrace.fraction) {
+            lastResult = 1;  // Turn right
+        } else {
+            lastResult = -1; // Turn left
+        }
+
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Obstacle ahead! Turn %s (L:%.2f R:%.2f)\n",
+                lastResult > 0 ? "right" : "left",
+                leftTrace.fraction, rightTrace.fraction);
+        }
+
+        return lastResult;
+    }
+
+    lastResult = 0;
+    return 0;  // Clear ahead
 }
 
 /*
