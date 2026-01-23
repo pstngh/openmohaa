@@ -23,9 +23,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'x64',   os: 'windows-2025',   config: 'x64',    toolset: 'x64',        arch_option: 'VC-WIN64A'    },
-          {name: 'x86',   os: 'windows-2025',   config: 'Win32',  toolset: 'x64_x86',    arch_option: 'VC-WIN32'     },
-          {name: 'arm64', os: 'windows-11-arm', config: 'ARM64',  toolset: 'x64_arm64',  arch_option: 'VC-WIN64-ARM' }
+          {name: 'x64',   os: 'windows-2025',   config: 'x64',    toolset: 'x64',        arch_option: 'VC-WIN64A'    }
         ]
 
     name: "Building for platform windows-${{matrix.architecture.name}}"
