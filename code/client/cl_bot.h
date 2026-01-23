@@ -98,6 +98,8 @@ void        CL_Bot_Shutdown(void);
 //
 void        CL_Bot_Frame(void);
 qboolean    CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo);
+qboolean    CL_Bot_IsActive(void);
+qboolean    CL_Bot_GetEyeInfo(usereyes_t *eyeinfo);
 
 //
 // State management

@@ -28,6 +28,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Bot instance
 clientBot_t clBot;
 
+// Store the last eye info for CL_EyeInfo to use
+static usereyes_t clBotEyeInfo;
+static qboolean clBotEyeInfoValid = qfalse;
+
 // CVars
 cvar_t *cl_bot           = NULL;
 cvar_t *cl_bot_movespeed = NULL;
@@ -35,15 +39,16 @@ cvar_t *cl_bot_aimspeed  = NULL;
 cvar_t *cl_bot_attackdist = NULL;
 cvar_t *cl_bot_firedelay = NULL;
 cvar_t *cl_bot_roamtime  = NULL;
+cvar_t *cl_bot_debug     = NULL;
 
 // Constants
 #define CLBOT_ROAM_CHANGE_TIME      3000    // Change roam direction every 3 seconds
 #define CLBOT_ATTACK_TIMEOUT        5000    // Stop attacking if no enemy seen for 5 seconds
-#define CLBOT_RESPAWN_DELAY         1000    // Wait 1 second between respawn attempts
+#define CLBOT_RESPAWN_DELAY         500     // Wait between respawn attempts
 #define CLBOT_TEAM_JOIN_DELAY       2000    // Wait 2 seconds before joining team
 #define CLBOT_JUMP_COOLDOWN         1000    // Minimum time between jumps
 #define CLBOT_MIN_FIRE_DELAY        100     // Minimum time between shots
-#define CLBOT_SPAWN_GRACE_TIME      1000    // Grace period after spawning
+#define CLBOT_SPAWN_GRACE_TIME      500     // Grace period after spawning
 
 //
 // Forward declarations
@@ -54,15 +59,14 @@ static void     CL_Bot_ThinkRoaming(void);
 static void     CL_Bot_ThinkAttacking(void);
 static void     CL_Bot_ThinkDead(void);
 static void     CL_Bot_UpdateMovement(usercmd_t *cmd);
-static void     CL_Bot_UpdateAiming(usercmd_t *cmd, usereyes_t *eyeinfo);
+static void     CL_Bot_UpdateAiming(usercmd_t *cmd);
 static void     CL_Bot_UpdateButtons(usercmd_t *cmd);
 static void     CL_Bot_CheckForEnemies(void);
 static void     CL_Bot_HandleTeamJoin(void);
 static void     CL_Bot_HandleRespawn(usercmd_t *cmd);
-static qboolean CL_Bot_CanSeeEntity(int entityNum);
 static float    CL_Bot_AngleDiff(float ang1, float ang2);
 static void     CL_Bot_PickNewRoamTarget(void);
-static void     CL_Bot_SetRandomMoveDir(void);
+static entityState_t* CL_Bot_FindEntityByNumber(int entityNum);
 
 /*
 ====================
@@ -78,10 +82,11 @@ void CL_Bot_Init(void)
     // Register cvars
     cl_bot           = Cvar_Get("cl_bot", "0", CVAR_ARCHIVE);
     cl_bot_movespeed = Cvar_Get("cl_bot_movespeed", "127", CVAR_ARCHIVE);
-    cl_bot_aimspeed  = Cvar_Get("cl_bot_aimspeed", "180", CVAR_ARCHIVE);
+    cl_bot_aimspeed  = Cvar_Get("cl_bot_aimspeed", "360", CVAR_ARCHIVE);
     cl_bot_attackdist = Cvar_Get("cl_bot_attackdist", "2048", CVAR_ARCHIVE);
-    cl_bot_firedelay = Cvar_Get("cl_bot_firedelay", "200", CVAR_ARCHIVE);
+    cl_bot_firedelay = Cvar_Get("cl_bot_firedelay", "150", CVAR_ARCHIVE);
     cl_bot_roamtime  = Cvar_Get("cl_bot_roamtime", "3000", CVAR_ARCHIVE);
+    cl_bot_debug     = Cvar_Get("cl_bot_debug", "0", 0);
 
     // Register commands
     Cmd_AddCommand("bot_enable", CL_Bot_Enable_f);
@@ -120,6 +125,7 @@ void CL_Bot_Reset(void)
     memset(&clBot, 0, sizeof(clBot));
     clBot.enemyEntityNum = -1;
     clBot.state = CLBOT_STATE_IDLE;
+    clBotEyeInfoValid = qfalse;
 }
 
 /*
@@ -134,6 +140,7 @@ void CL_Bot_Enable_f(void)
     Cvar_Set("cl_bot", "1");
     CL_Bot_Reset();
     clBot.active = qtrue;
+    clBot.initialized = qtrue;
     Com_Printf("Client bot mode enabled.\n");
 }
 
@@ -148,6 +155,7 @@ void CL_Bot_Disable_f(void)
 {
     Cvar_Set("cl_bot", "0");
     clBot.active = qfalse;
+    clBotEyeInfoValid = qfalse;
     Com_Printf("Client bot mode disabled.\n");
 }
 
@@ -161,6 +169,11 @@ Change bot state
 void CL_Bot_SetState(clBotState_t newState)
 {
     if (clBot.state != newState) {
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            const char *stateNames[] = {"IDLE", "ROAMING", "ATTACKING", "DEAD"};
+            Com_Printf("Bot state: %s -> %s\n", stateNames[clBot.state], stateNames[newState]);
+        }
+
         clBot.state = newState;
         clBot.stateTime = cls.realtime;
 
@@ -172,10 +185,42 @@ void CL_Bot_SetState(clBotState_t newState)
         case CLBOT_STATE_ATTACKING:
             clBot.attackStartTime = cls.realtime;
             break;
+        case CLBOT_STATE_DEAD:
+            clBot.enemyEntityNum = -1;
+            break;
         default:
             break;
         }
     }
+}
+
+/*
+====================
+CL_Bot_IsActive
+
+Check if bot mode is currently active
+====================
+*/
+qboolean CL_Bot_IsActive(void)
+{
+    return cl_bot && cl_bot->integer && clc.state == CA_ACTIVE && cl.snap.valid;
+}
+
+/*
+====================
+CL_Bot_GetEyeInfo
+
+Get the bot's eye info for CL_EyeInfo
+====================
+*/
+qboolean CL_Bot_GetEyeInfo(usereyes_t *eyeinfo)
+{
+    if (!CL_Bot_IsActive() || !clBotEyeInfoValid) {
+        return qfalse;
+    }
+
+    *eyeinfo = clBotEyeInfo;
+    return qtrue;
 }
 
 /*
@@ -187,16 +232,18 @@ Called every frame when bot mode is active
 */
 void CL_Bot_Frame(void)
 {
-    if (!cl_bot || !cl_bot->integer) {
+    if (!CL_Bot_IsActive()) {
         clBot.active = qfalse;
         return;
     }
 
     clBot.active = qtrue;
 
-    // Only think if we're connected and have a valid snapshot
-    if (clc.state != CA_ACTIVE || !cl.snap.valid) {
-        return;
+    // Initialize angles from player state if not done
+    if (!clBot.initialized) {
+        VectorCopy(cl.snap.ps.viewangles, clBot.currentAngles);
+        VectorCopy(cl.snap.ps.viewangles, clBot.targetAngles);
+        clBot.initialized = qtrue;
     }
 
     CL_Bot_Think();
@@ -279,6 +326,29 @@ static void CL_Bot_ThinkRoaming(void)
 
 /*
 ====================
+CL_Bot_FindEntityByNumber
+
+Find an entity in the snapshot by entity number
+====================
+*/
+static entityState_t* CL_Bot_FindEntityByNumber(int entityNum)
+{
+    int i;
+
+    for (i = 0; i < cl.snap.numEntities; i++) {
+        int entityIndex = (cl.snap.parseEntitiesNum + i) & (MAX_PARSE_ENTITIES - 1);
+        entityState_t *ent = &cl.parseEntities[entityIndex];
+
+        if (ent->number == entityNum) {
+            return ent;
+        }
+    }
+
+    return NULL;
+}
+
+/*
+====================
 CL_Bot_ThinkAttacking
 
 Attacking state - engaging an enemy
@@ -291,7 +361,7 @@ static void CL_Bot_ThinkAttacking(void)
     float dist;
 
     // Check if enemy is still valid
-    if (clBot.enemyEntityNum < 0 || clBot.enemyEntityNum >= MAX_GENTITIES) {
+    if (clBot.enemyEntityNum < 0) {
         CL_Bot_SetState(CLBOT_STATE_ROAMING);
         return;
     }
@@ -303,8 +373,27 @@ static void CL_Bot_ThinkAttacking(void)
         return;
     }
 
-    // Get enemy entity
-    enemy = &cl.parseEntities[(cl.snap.parseEntitiesNum + clBot.enemyEntityNum) & (MAX_PARSE_ENTITIES - 1)];
+    // Find the enemy entity in the snapshot
+    enemy = CL_Bot_FindEntityByNumber(clBot.enemyEntityNum);
+
+    if (!enemy) {
+        // Enemy not in snapshot anymore, use last known position for a bit
+        if (cls.realtime - clBot.lastEnemySeenTime > 2000) {
+            clBot.enemyEntityNum = -1;
+            CL_Bot_SetState(CLBOT_STATE_ROAMING);
+        }
+        return;
+    }
+
+    // Check if enemy is dead
+    if (enemy->eFlags & EF_DEAD) {
+        clBot.enemyEntityNum = -1;
+        CL_Bot_SetState(CLBOT_STATE_ROAMING);
+        return;
+    }
+
+    // Update last seen time
+    clBot.lastEnemySeenTime = cls.realtime;
 
     // Calculate distance to enemy
     VectorSubtract(enemy->origin, cl.snap.ps.origin, delta);
@@ -313,31 +402,42 @@ static void CL_Bot_ThinkAttacking(void)
     // Update aim target
     VectorCopy(enemy->origin, clBot.enemyLastPos);
 
-    // Calculate aim angles
+    // Calculate aim angles - aim at center mass
     vec3_t aimDir;
-    VectorCopy(delta, aimDir);
-    aimDir[2] += 40; // Aim at upper body
+    vec3_t aimTarget;
+    VectorCopy(enemy->origin, aimTarget);
+    aimTarget[2] += 40; // Aim at upper body
+
+    VectorSubtract(aimTarget, cl.snap.ps.origin, aimDir);
+    aimDir[2] -= cl.snap.ps.viewheight; // Account for our eye height
     VectorNormalize(aimDir);
     vectoangles(aimDir, clBot.targetAngles);
+
+    if (cl_bot_debug && cl_bot_debug->integer > 1) {
+        Com_Printf("Enemy at %.0f,%.0f,%.0f dist=%.0f aim=%.1f,%.1f\n",
+            enemy->origin[0], enemy->origin[1], enemy->origin[2],
+            dist, clBot.targetAngles[PITCH], clBot.targetAngles[YAW]);
+    }
 
     // Move towards or away from enemy based on distance
     float attackDist = cl_bot_attackdist ? cl_bot_attackdist->value : 2048;
 
     if (dist > attackDist * 0.8f) {
         // Move towards enemy
-        VectorNormalize(delta);
         VectorCopy(delta, clBot.moveDir);
+        VectorNormalize(clBot.moveDir);
         clBot.isMoving = qtrue;
-    } else if (dist < 256) {
+    } else if (dist < 200) {
         // Too close, back up
-        VectorNormalize(delta);
-        VectorNegate(delta, clBot.moveDir);
+        VectorCopy(delta, clBot.moveDir);
+        VectorNormalize(clBot.moveDir);
+        VectorNegate(clBot.moveDir, clBot.moveDir);
         clBot.isMoving = qtrue;
     } else {
         // Good distance, strafe
         vec3_t right;
         AngleVectors(clBot.currentAngles, NULL, right, NULL);
-        if ((cls.realtime / 1000) % 2 == 0) {
+        if ((cls.realtime / 1500) % 2 == 0) {
             VectorCopy(right, clBot.moveDir);
         } else {
             VectorNegate(right, clBot.moveDir);
@@ -369,11 +469,13 @@ Returns qtrue if bot handled the command, qfalse to use normal input
 */
 qboolean CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo)
 {
-    if (!cl_bot || !cl_bot->integer || !clBot.active) {
+    if (!cl_bot || !cl_bot->integer) {
+        clBotEyeInfoValid = qfalse;
         return qfalse;
     }
 
     if (clc.state != CA_ACTIVE || !cl.snap.valid) {
+        clBotEyeInfoValid = qfalse;
         return qfalse;
     }
 
@@ -381,10 +483,25 @@ qboolean CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo)
     memset(cmd, 0, sizeof(*cmd));
     cmd->serverTime = cl.serverTime;
 
+    // Run bot frame logic first
+    CL_Bot_Frame();
+
     // Handle respawning
     if (cl.snap.ps.pm_type == PM_DEAD) {
         CL_Bot_HandleRespawn(cmd);
-        CL_Bot_UpdateAiming(cmd, eyeinfo);
+        CL_Bot_UpdateAiming(cmd);
+
+        // Store eye info
+        clBotEyeInfo.ofs[0] = 0;
+        clBotEyeInfo.ofs[1] = 0;
+        clBotEyeInfo.ofs[2] = 0;
+        clBotEyeInfo.angles[0] = clBot.currentAngles[PITCH];
+        clBotEyeInfo.angles[1] = clBot.currentAngles[YAW];
+        clBotEyeInfoValid = qtrue;
+
+        if (eyeinfo) {
+            *eyeinfo = clBotEyeInfo;
+        }
         return qtrue;
     }
 
@@ -393,20 +510,35 @@ qboolean CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo)
         clBot.spawnedTime = cls.realtime;
     }
 
-    // Run bot frame logic
-    CL_Bot_Frame();
-
     // Generate movement
     CL_Bot_UpdateMovement(cmd);
 
     // Generate aiming
-    CL_Bot_UpdateAiming(cmd, eyeinfo);
+    CL_Bot_UpdateAiming(cmd);
 
     // Generate buttons (attack, use, etc)
     CL_Bot_UpdateButtons(cmd);
 
     // Always run
     cmd->buttons |= BUTTON_RUN;
+
+    // Store eye info for CL_EyeInfo
+    clBotEyeInfo.ofs[0] = 0;
+    clBotEyeInfo.ofs[1] = 0;
+    clBotEyeInfo.ofs[2] = (signed char)cl.snap.ps.viewheight;
+    clBotEyeInfo.angles[0] = clBot.currentAngles[PITCH];
+    clBotEyeInfo.angles[1] = clBot.currentAngles[YAW];
+    clBotEyeInfoValid = qtrue;
+
+    if (eyeinfo) {
+        *eyeinfo = clBotEyeInfo;
+    }
+
+    if (cl_bot_debug && cl_bot_debug->integer > 2) {
+        Com_Printf("Bot cmd: fwd=%d right=%d btn=%x ang=%.1f,%.1f\n",
+            cmd->forwardmove, cmd->rightmove, cmd->buttons,
+            clBot.currentAngles[PITCH], clBot.currentAngles[YAW]);
+    }
 
     return qtrue;
 }
@@ -426,7 +558,13 @@ static void CL_Bot_UpdateMovement(usercmd_t *cmd)
 
     // Convert move direction to forward/right relative to view
     vec3_t forward, right, up;
-    AngleVectors(clBot.currentAngles, forward, right, up);
+    vec3_t flatAngles;
+
+    flatAngles[PITCH] = 0;
+    flatAngles[YAW] = clBot.currentAngles[YAW];
+    flatAngles[ROLL] = 0;
+
+    AngleVectors(flatAngles, forward, right, up);
 
     // Project move direction onto horizontal plane
     vec3_t moveDir;
@@ -440,7 +578,8 @@ static void CL_Bot_UpdateMovement(usercmd_t *cmd)
 
     // Apply movement speed
     int moveSpeed = cl_bot_movespeed ? cl_bot_movespeed->integer : 127;
-    moveSpeed = Q_clamp(moveSpeed, 0, 127);
+    if (moveSpeed > 127) moveSpeed = 127;
+    if (moveSpeed < 0) moveSpeed = 0;
 
     cmd->forwardmove = (signed char)(forwardMove * moveSpeed);
     cmd->rightmove = (signed char)(rightMove * moveSpeed);
@@ -460,18 +599,26 @@ CL_Bot_UpdateAiming
 Update aiming portion of usercmd
 ====================
 */
-static void CL_Bot_UpdateAiming(usercmd_t *cmd, usereyes_t *eyeinfo)
+static void CL_Bot_UpdateAiming(usercmd_t *cmd)
 {
-    float aimSpeed = cl_bot_aimspeed ? cl_bot_aimspeed->value : 180.0f;
+    float aimSpeed = cl_bot_aimspeed ? cl_bot_aimspeed->value : 360.0f;
     float frameTime = cls.frametime / 1000.0f;
+    if (frameTime <= 0) frameTime = 0.016f; // Default to ~60fps
     float maxChange = aimSpeed * frameTime;
-    int i;
 
     // Smoothly interpolate current angles towards target angles
-    for (i = 0; i < 2; i++) {
-        float diff = CL_Bot_AngleDiff(clBot.currentAngles[i], clBot.targetAngles[i]);
-        float change = Q_clamp(diff, -maxChange, maxChange);
-        clBot.currentAngles[i] = AngleMod(clBot.currentAngles[i] - change);
+    for (int i = 0; i < 2; i++) {
+        float diff = CL_Bot_AngleDiff(clBot.targetAngles[i], clBot.currentAngles[i]);
+
+        if (fabs(diff) <= maxChange) {
+            clBot.currentAngles[i] = clBot.targetAngles[i];
+        } else if (diff > 0) {
+            clBot.currentAngles[i] += maxChange;
+        } else {
+            clBot.currentAngles[i] -= maxChange;
+        }
+
+        clBot.currentAngles[i] = AngleMod(clBot.currentAngles[i]);
     }
 
     // Clamp pitch
@@ -481,17 +628,10 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd, usereyes_t *eyeinfo)
         clBot.currentAngles[PITCH] = -89;
     }
 
-    // Set command angles (relative to delta_angles)
-    cmd->angles[PITCH] = ANGLE2SHORT(clBot.currentAngles[PITCH]) - cl.snap.ps.delta_angles[PITCH];
-    cmd->angles[YAW] = ANGLE2SHORT(clBot.currentAngles[YAW]) - cl.snap.ps.delta_angles[YAW];
-    cmd->angles[ROLL] = 0;
-
-    // Set eye info
-    eyeinfo->ofs[0] = 0;
-    eyeinfo->ofs[1] = 0;
-    eyeinfo->ofs[2] = cl.snap.ps.viewheight;
-    eyeinfo->angles[0] = clBot.currentAngles[PITCH];
-    eyeinfo->angles[1] = clBot.currentAngles[YAW];
+    // Set command angles (these are delta from delta_angles)
+    for (int i = 0; i < 3; i++) {
+        cmd->angles[i] = ANGLE2SHORT(clBot.currentAngles[i]) - cl.snap.ps.delta_angles[i];
+    }
 
     // Update client viewangles for prediction
     VectorCopy(clBot.currentAngles, cl.viewangles);
@@ -560,7 +700,6 @@ static void CL_Bot_CheckForEnemies(void)
 
         // Skip teammates in team games
         if (myTeam == TEAM_ALLIES || myTeam == TEAM_AXIS) {
-            // Check if same team
             qboolean sameTeam = qfalse;
             if ((myTeam == TEAM_ALLIES && (ent->eFlags & EF_ALLIES)) ||
                 (myTeam == TEAM_AXIS && (ent->eFlags & EF_AXIS))) {
@@ -578,10 +717,11 @@ static void CL_Bot_CheckForEnemies(void)
 
         // Check if this is closer than current best
         if (dist < bestDist) {
-            // Check if we can "see" this entity (basic visibility)
-            if (CL_Bot_CanSeeEntity(ent->number)) {
-                bestDist = dist;
-                bestEnemy = ent->number;
+            bestDist = dist;
+            bestEnemy = ent->number;
+
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Found enemy %d at distance %.0f\n", ent->number, dist);
             }
         }
     }
@@ -595,21 +735,6 @@ static void CL_Bot_CheckForEnemies(void)
 
 /*
 ====================
-CL_Bot_CanSeeEntity
-
-Basic visibility check using trace
-Note: This is a simplified check - we don't have full trace access on client
-====================
-*/
-static qboolean CL_Bot_CanSeeEntity(int entityNum)
-{
-    // For now, just assume we can see entities in our snapshot
-    // A more sophisticated implementation could use CG_Trace
-    return qtrue;
-}
-
-/*
-====================
 CL_Bot_HandleTeamJoin
 
 Handle automatic team joining
@@ -617,7 +742,6 @@ Handle automatic team joining
 */
 static void CL_Bot_HandleTeamJoin(void)
 {
-    // Check if we need to join a team
     int team = cl.snap.ps.stats[STAT_TEAM];
 
     if (team == TEAM_NONE || team == TEAM_SPECTATOR) {
@@ -625,8 +749,14 @@ static void CL_Bot_HandleTeamJoin(void)
         if (!clBot.hasJoinedTeam) {
             if (clBot.joinTeamTime == 0) {
                 clBot.joinTeamTime = cls.realtime;
+                if (cl_bot_debug && cl_bot_debug->integer) {
+                    Com_Printf("Bot waiting to join team...\n");
+                }
             } else if (cls.realtime - clBot.joinTeamTime > CLBOT_TEAM_JOIN_DELAY) {
                 // Send auto-join command
+                if (cl_bot_debug && cl_bot_debug->integer) {
+                    Com_Printf("Bot sending auto_join_team command\n");
+                }
                 CL_AddReliableCommand("auto_join_team", qfalse);
                 clBot.hasJoinedTeam = qtrue;
             }
@@ -636,7 +766,10 @@ static void CL_Bot_HandleTeamJoin(void)
     }
 
     // Handle primary weapon selection
-    if (!clBot.hasPrimaryWeapon && clBot.hasJoinedTeam && team != TEAM_SPECTATOR) {
+    if (!clBot.hasPrimaryWeapon && clBot.hasJoinedTeam && team != TEAM_SPECTATOR && team != TEAM_NONE) {
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot selecting primary weapon\n");
+        }
         CL_AddReliableCommand("primarydmweapon auto", qfalse);
         clBot.hasPrimaryWeapon = qtrue;
     }
@@ -653,8 +786,12 @@ static void CL_Bot_HandleRespawn(usercmd_t *cmd)
 {
     // Toggle attack button to respawn
     if (cls.realtime - clBot.lastRespawnTime > CLBOT_RESPAWN_DELAY) {
-        cmd->buttons ^= BUTTON_ATTACKLEFT;
+        cmd->buttons |= BUTTON_ATTACKLEFT;
         clBot.lastRespawnTime = cls.realtime;
+
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot attempting respawn\n");
+        }
     }
 }
 
@@ -667,61 +804,45 @@ Select a new roaming target/direction
 */
 static void CL_Bot_PickNewRoamTarget(void)
 {
-    // Random direction based on current position
-    float yaw = (rand() % 360);
-    float pitch = 0;
+    // Random direction based on current yaw with some variation
+    float yaw = clBot.currentAngles[YAW] + (rand() % 180) - 90;
 
-    clBot.targetAngles[YAW] = yaw;
-    clBot.targetAngles[PITCH] = pitch;
+    clBot.targetAngles[YAW] = AngleMod(yaw);
+    clBot.targetAngles[PITCH] = 0;
 
     // Set move direction based on yaw
-    vec3_t forward;
-    AngleVectors(clBot.targetAngles, forward, NULL, NULL);
-    VectorCopy(forward, clBot.moveDir);
-
-    clBot.lastMoveChangeTime = cls.realtime;
-}
-
-/*
-====================
-CL_Bot_SetRandomMoveDir
-
-Set a random movement direction
-====================
-*/
-static void CL_Bot_SetRandomMoveDir(void)
-{
-    float yaw = (rand() % 360);
-
     vec3_t angles;
     angles[PITCH] = 0;
-    angles[YAW] = yaw;
+    angles[YAW] = clBot.targetAngles[YAW];
     angles[ROLL] = 0;
 
     vec3_t forward;
     AngleVectors(angles, forward, NULL, NULL);
     VectorCopy(forward, clBot.moveDir);
+
+    clBot.lastMoveChangeTime = cls.realtime;
+
+    if (cl_bot_debug && cl_bot_debug->integer) {
+        Com_Printf("Bot new roam direction: yaw=%.1f\n", clBot.targetAngles[YAW]);
+    }
 }
 
 /*
 ====================
 CL_Bot_AngleDiff
 
-Calculate difference between two angles
+Calculate shortest difference between two angles
 ====================
 */
 static float CL_Bot_AngleDiff(float ang1, float ang2)
 {
     float diff = ang1 - ang2;
 
-    if (ang1 > ang2) {
-        if (diff > 180.0f) {
-            diff -= 360.0f;
-        }
-    } else {
-        if (diff < -180.0f) {
-            diff += 360.0f;
-        }
+    while (diff > 180.0f) {
+        diff -= 360.0f;
+    }
+    while (diff < -180.0f) {
+        diff += 360.0f;
     }
 
     return diff;

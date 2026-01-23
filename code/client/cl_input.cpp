@@ -827,6 +827,11 @@ void CL_EyeInfo(usereyes_t* info) {
 	int i;
 	vec3_t vAngles, vOfs;
 
+	// Check if bot mode is active and has eye info
+	if (CL_Bot_GetEyeInfo(info)) {
+		return;
+	}
+
 	if (cge) {
 		// copy the eye offset
 		cge->CG_EyeOffset(&vOfs);
