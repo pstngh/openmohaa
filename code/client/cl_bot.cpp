@@ -551,11 +551,18 @@ static void CL_Bot_ThinkAttacking(void)
     // Calculate aim angles - aim at center mass
     vec3_t aimDir;
     vec3_t aimTarget;
+    vec3_t eyePos;
+
+    // Enemy chest position
     VectorCopy(enemy->origin, aimTarget);
     aimTarget[2] += 40; // Aim at upper body
 
-    VectorSubtract(aimTarget, cl.snap.ps.origin, aimDir);
-    aimDir[2] -= cl.snap.ps.viewheight; // Account for our eye height
+    // Our eye position
+    VectorCopy(cl.snap.ps.origin, eyePos);
+    eyePos[2] += cl.snap.ps.viewheight;
+
+    // Direction from our eyes to enemy chest
+    VectorSubtract(aimTarget, eyePos, aimDir);
     VectorNormalize(aimDir);
     vectoangles(aimDir, clBot.targetAngles);
 
