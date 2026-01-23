@@ -1036,10 +1036,17 @@ void BotController::State_Attack(void)
         Vector        vTarget;
         orientation_t eyes_or;
 
+        // Calculate lag offset based on simulated ping
+        Vector vLagOffset(0, 0, 0);
+        if (g_bot_simulated_ping->value > 0) {
+            float lagSeconds = g_bot_simulated_ping->value / 1000.0f;
+            vLagOffset = m_pEnemy->velocity * lagSeconds;
+        }
+
         // Use legal zones targeting if enabled
         if (g_bot_aim_legal_zones_only->integer) {
             // Aim from enemy origin for legal zone calculation
-            vTarget = m_pEnemy->origin;
+            vTarget = m_pEnemy->origin - vLagOffset;
 
             // Calculate legal aim offset (dancing between legal zones)
             CalculateLegalAimOffset(m_vAimOffset, m_pEnemy);
@@ -1057,10 +1064,10 @@ void BotController::State_Attack(void)
                 m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
 
                 //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
-                vTarget = eyes_or.origin;
+                vTarget = eyes_or.origin - vLagOffset;
             } else {
                 //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
-                vTarget = m_pEnemy->origin;
+                vTarget = m_pEnemy->origin - vLagOffset;
             }
 
             if (level.inttime >= m_iLastAimTime + 100) {

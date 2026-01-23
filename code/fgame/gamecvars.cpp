@@ -291,6 +291,7 @@ cvar_t *g_bot_strafe_min_change_time;
 cvar_t *g_bot_strafe_max_change_time;
 cvar_t *g_bot_lean_match_chance;
 cvar_t *g_bot_aim_legal_zones_only;
+cvar_t *g_bot_simulated_ping;
 cvar_t *g_bot_reload_after_kill;
 cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
@@ -691,6 +692,7 @@ void CVAR_Init(void)
     g_bot_strafe_max_change_time               = gi.Cvar_Get("g_bot_strafe_max_change_time", "0.5", 0);
     g_bot_lean_match_chance                    = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
     g_bot_aim_legal_zones_only                 = gi.Cvar_Get("g_bot_aim_legal_zones_only", "1", 0);
+    g_bot_simulated_ping                       = gi.Cvar_Get("g_bot_simulated_ping", "0", 0);
     g_bot_reload_after_kill                    = gi.Cvar_Get("g_bot_reload_after_kill", "1", 0);
     g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
     g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);

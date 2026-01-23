@@ -316,6 +316,12 @@ extern cvar_t *g_bot_lean_match_chance;
  */
 extern cvar_t *g_bot_aim_legal_zones_only;
 /**
+ * @brief Simulated ping in milliseconds for bot aiming.
+ * Bots will aim at where the enemy was X ms ago.
+ * 0 = disabled (perfect aim), 100 = 100ms lag, etc.
+ */
+extern cvar_t *g_bot_simulated_ping;
+/**
  * @brief Automatically reload after kills when no enemy is in sight.
  * 0 = disable, 1 = enable
  */
