@@ -73,6 +73,11 @@ typedef struct {
     int         lastJumpTime;       // Time of last jump
     qboolean    shouldJump;         // Whether we should jump this frame
 
+    // Stuck detection
+    vec3_t      lastPosition;       // Position at last stuck check
+    int         lastStuckCheckTime; // When we last checked if stuck
+    int         stuckCount;         // How many times we've been stuck recently
+
     // Team/spawn handling
     qboolean    hasJoinedTeam;      // Whether we've sent team join command
     int         joinTeamTime;       // When we requested to join a team

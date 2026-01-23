@@ -251,6 +251,66 @@ void CL_Bot_Frame(void)
 
 /*
 ====================
+CL_Bot_CheckStuck
+
+Check if bot is stuck and try to get unstuck
+====================
+*/
+#define STUCK_CHECK_INTERVAL 500  // Check every 500ms
+#define STUCK_DISTANCE_THRESHOLD 10.0f  // Must move at least 10 units
+
+static void CL_Bot_CheckStuck(void)
+{
+    // Only check periodically
+    if (cls.realtime - clBot.lastStuckCheckTime < STUCK_CHECK_INTERVAL) {
+        return;
+    }
+
+    // Don't check if dead or just spawned
+    if (cl.snap.ps.pm_type == PM_DEAD || cls.realtime - clBot.spawnedTime < 1000) {
+        VectorCopy(cl.snap.ps.origin, clBot.lastPosition);
+        clBot.lastStuckCheckTime = cls.realtime;
+        return;
+    }
+
+    // Calculate how far we've moved
+    vec3_t delta;
+    VectorSubtract(cl.snap.ps.origin, clBot.lastPosition, delta);
+    float distMoved = VectorLength(delta);
+
+    // If we haven't moved much and we're trying to move, we're stuck
+    if (distMoved < STUCK_DISTANCE_THRESHOLD && clBot.isMoving) {
+        clBot.stuckCount++;
+
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot stuck! (count=%d, moved=%.1f)\n", clBot.stuckCount, distMoved);
+        }
+
+        // Try to get unstuck
+        if (clBot.stuckCount >= 2) {
+            // Jump to try to get over obstacles
+            clBot.shouldJump = qtrue;
+        }
+        if (clBot.stuckCount >= 3) {
+            // Turn around and pick new direction
+            clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 90 + (rand() % 180));
+            CL_Bot_PickNewRoamTarget();
+            clBot.stuckCount = 0;
+        }
+    } else {
+        // We moved, reset stuck counter
+        if (clBot.stuckCount > 0) {
+            clBot.stuckCount = 0;
+        }
+    }
+
+    // Update position for next check
+    VectorCopy(cl.snap.ps.origin, clBot.lastPosition);
+    clBot.lastStuckCheckTime = cls.realtime;
+}
+
+/*
+====================
 CL_Bot_Think
 
 Main bot thinking logic
@@ -263,6 +323,9 @@ static void CL_Bot_Think(void)
 
     // Check for enemies
     CL_Bot_CheckForEnemies();
+
+    // Check if stuck
+    CL_Bot_CheckStuck();
 
     // Update state based on conditions
     if (cl.snap.ps.pm_type == PM_DEAD) {
@@ -656,11 +719,12 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
         } else {
             clBot.currentAngles[i] -= maxChange;
         }
-
-        clBot.currentAngles[i] = AngleMod(clBot.currentAngles[i]);
     }
 
-    // Clamp pitch
+    // Normalize yaw to 0-360, but keep pitch in -89 to 89
+    clBot.currentAngles[YAW] = AngleMod(clBot.currentAngles[YAW]);
+
+    // Clamp pitch (don't use AngleMod on pitch - it breaks negative angles)
     if (clBot.currentAngles[PITCH] > 89) {
         clBot.currentAngles[PITCH] = 89;
     } else if (clBot.currentAngles[PITCH] < -89) {
@@ -696,6 +760,31 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
         // Most weapons need the button held, not just pressed once
         cmd->buttons |= BUTTON_ATTACKLEFT;
     }
+}
+
+/*
+====================
+CL_Bot_CanSeePoint
+
+Check if there's a clear line of sight from bot's eye to a point
+====================
+*/
+static qboolean CL_Bot_CanSeePoint(vec3_t targetPos)
+{
+    trace_t trace;
+    vec3_t start;
+    vec3_t mins = {0, 0, 0};
+    vec3_t maxs = {0, 0, 0};
+
+    // Start from our eye position
+    VectorCopy(cl.snap.ps.origin, start);
+    start[2] += cl.snap.ps.viewheight;
+
+    // Trace against world geometry only (clipHandle 0 = world)
+    CM_BoxTrace(&trace, start, targetPos, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+    // If trace completed without hitting anything, we can see the point
+    return (trace.fraction >= 0.98f);
 }
 
 /*
@@ -752,6 +841,18 @@ static void CL_Bot_CheckForEnemies(void)
 
         // Check if this is closer than current best
         if (dist < bestDist) {
+            // Check line of sight - can we actually see this enemy?
+            vec3_t enemyCenter;
+            VectorCopy(ent->origin, enemyCenter);
+            enemyCenter[2] += 40; // Aim at chest level
+
+            if (!CL_Bot_CanSeePoint(enemyCenter)) {
+                if (cl_bot_debug && cl_bot_debug->integer > 1) {
+                    Com_Printf("Enemy %d blocked by wall\n", ent->number);
+                }
+                continue;
+            }
+
             bestDist = dist;
             bestEnemy = ent->number;
 
