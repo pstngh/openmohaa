@@ -43,6 +43,11 @@ BotMovement::BotMovement()
 
     m_bAvoidCollision     = false;
     m_iCollisionCheckTime = 0;
+
+    // Strafe state for navigation compensation
+    m_bStrafeActive            = false;
+    m_iCurrentStrafeDirection  = 0;
+    m_fCurrentStrafeIntensity  = 0.0f;
 }
 
 BotMovement::~BotMovement()
@@ -58,13 +63,20 @@ void BotMovement::SetControlledEntity(Player *newEntity)
 void BotMovement::ApplyStrafe(usercmd_t& botcmd, int strafeDirection, float intensity)
 {
     if (!controlledEntity) {
+        m_bStrafeActive = false;
         return;
     }
 
     // Don't strafe if on ladder
     if (controlledEntity->GetLadder()) {
+        m_bStrafeActive = false;
         return;
     }
+
+    // Store strafe state for navigation compensation
+    m_bStrafeActive           = true;
+    m_iCurrentStrafeDirection = strafeDirection;
+    m_fCurrentStrafeIntensity = intensity;
 
     // Apply strafe movement additively to existing rightmove
     // strafeDirection: -1 for left, 1 for right
@@ -157,8 +169,16 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         }
 
         if (!m_pPath->IsQuerying() && !controlledEntity->GetLadder()) {
+            // Use a higher velocity threshold when strafing to avoid false positives
+            // Strafe causes velocity fluctuations that can trigger false "blocked" states
+            float velocityThreshold = 8.0f;
+            if (m_bStrafeActive && m_fCurrentStrafeIntensity > 0) {
+                // Scale threshold based on strafe intensity (8 -> 24 at full intensity)
+                velocityThreshold = 8.0f + 16.0f * m_fCurrentStrafeIntensity;
+            }
+
             if (controlledEntity->GetMoveResult() >= MOVERESULT_BLOCKED
-                || controlledEntity->velocity.lengthSquared() <= Square(8)) {
+                || controlledEntity->velocity.lengthSquared() <= Square(velocityThreshold)) {
                 blocked = true;
             } else if ((controlledEntity->origin - m_vLastCheckPos[0]).lengthSquared() <= Square(64)
                        && (controlledEntity->origin - m_vLastCheckPos[1]).lengthSquared() <= Square(64)) {
@@ -258,6 +278,17 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     // Forward to the specified direction
     float x = vWishDir.x * 127;
     float y = -vWishDir.y * 127;
+
+    // Compensate for strafe drift to keep the bot on the path
+    // When strafe is applied later, it adds lateral movement that causes drift
+    // Pre-compensate by adjusting our rightmove in the opposite direction
+    if (m_bStrafeActive && m_fCurrentStrafeIntensity > 0) {
+        // Strafe will add (127 * intensity * direction) to rightmove
+        // Partially counteract this to maintain path accuracy
+        // Use 0.5 factor to allow some strafe effect while reducing drift
+        float strafeCompensation = 127.0f * m_fCurrentStrafeIntensity * m_iCurrentStrafeDirection * 0.5f;
+        y -= strafeCompensation;
+    }
 
     botcmd.forwardmove = (signed char)Q_clamp(x, -127, 127);
     botcmd.rightmove   = (signed char)Q_clamp(y, -127, 127);
@@ -503,7 +534,16 @@ void BotMovement::CheckJumpOverEdge(usercmd_t& botcmd)
     // Check if there is an edge at the end
     //
 
-    end = start + dir * controlledEntity->GetRunSpeed() / 2.0;
+    // Calculate effective jump distance, accounting for strafe speed reduction
+    // When strafing, actual forward movement is reduced due to diagonal movement
+    float jumpSpeedMult = 1.0f;
+    if (m_bStrafeActive && m_fCurrentStrafeIntensity > 0) {
+        // Strafe reduces effective forward speed by combining with lateral movement
+        // At full strafe intensity, effective forward speed is roughly 0.85x
+        jumpSpeedMult = 1.0f - (0.15f * m_fCurrentStrafeIntensity);
+    }
+
+    end = start + dir * controlledEntity->GetRunSpeed() * jumpSpeedMult / 2.0;
     end -= Vector(0, 0, STEPSIZE * 2);
 
     trace = G_Trace(
@@ -892,6 +932,17 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     VectorToAngles(forward, angles);
     AngleVectors(angles, forward, right, up);
 
+    // Account for strafe direction in collision prediction
+    // When strafing, the actual movement direction is offset from the path direction
+    Vector predictedForward = forward;
+    if (m_bStrafeActive && m_fCurrentStrafeIntensity > 0) {
+        // Strafe adds lateral movement - adjust predicted direction
+        // pm_strafespeed is 0.85, so strafe contribution is significant
+        float strafeOffset = m_iCurrentStrafeDirection * m_fCurrentStrafeIntensity * 0.3f;
+        predictedForward = forward + right * strafeOffset;
+        VectorNormalize(predictedForward);
+    }
+
     mins = controlledEntity->mins;
     maxs = controlledEntity->maxs;
     maxs.z -= STEPSIZE;
@@ -899,7 +950,7 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     maxDist = Q_min(dist, 32);
 
     stepOrg       = controlledEntity->origin + Vector(0, 0, STEPSIZE);
-    target        = controlledEntity->origin + forward * maxDist;
+    target        = controlledEntity->origin + predictedForward * maxDist;
     targetStepOrg = target + Vector(0, 0, STEPSIZE);
 
     trace = G_Trace(stepOrg, mins, maxs, targetStepOrg, controlledEntity, MASK_PLAYERSOLID, qtrue, "GetCurrentDelta");

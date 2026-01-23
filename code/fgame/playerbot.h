@@ -119,6 +119,14 @@ private:
     bool   m_bJump;
     int    m_iJumpCheckTime;
     Vector m_vJumpLocation;
+
+    ///
+    /// Strafe state (for navigation compensation)
+    ///
+
+    bool  m_bStrafeActive;
+    int   m_iCurrentStrafeDirection;
+    float m_fCurrentStrafeIntensity;
 };
 
 class BotRotation
