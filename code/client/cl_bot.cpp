@@ -502,12 +502,12 @@ static void CL_Bot_ThinkRoaming(void)
     vec3_t forward, right;
     AngleVectors(angles, forward, right, NULL);
 
-    // Strafe pattern: alternate left/right every 800ms (same as attacking)
-    float strafeDir = ((cls.realtime / 800) % 2 == 0) ? 1.0f : -1.0f;
+    // Strafe pattern: alternate left/right every 600ms (same as attacking)
+    float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
 
-    // Mix forward movement (80%) with strafing (20%) for casual roaming
-    clBot.moveDir[0] = forward[0] * 0.8f + right[0] * strafeDir * 0.2f;
-    clBot.moveDir[1] = forward[1] * 0.8f + right[1] * strafeDir * 0.2f;
+    // Mix forward movement (60%) with strafing (40%) for noticeable side-to-side
+    clBot.moveDir[0] = forward[0] * 0.6f + right[0] * strafeDir * 0.4f;
+    clBot.moveDir[1] = forward[1] * 0.6f + right[1] * strafeDir * 0.4f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
 }
@@ -672,7 +672,37 @@ static void CL_Bot_ThinkAttacking(void)
             clBot.targetAngles[PITCH], clBot.targetAngles[YAW], dist);
     }
 
-    // PISTOL-WHIP MODE: Charge at enemy with strafing movement
+    // Check if we're facing a wall while attacking - if so, give up and turn around
+    vec3_t wallCheck, wallEnd, wallForward;
+    vec3_t wallAngles;
+    wallAngles[PITCH] = 0;
+    wallAngles[YAW] = clBot.currentAngles[YAW];
+    wallAngles[ROLL] = 0;
+
+    VectorCopy(cl.snap.ps.origin, wallCheck);
+    wallCheck[2] += 20;
+    AngleVectors(wallAngles, wallForward, NULL, NULL);
+    VectorMA(wallCheck, 100.0f, wallForward, wallEnd);
+
+    trace_t wallTrace;
+    vec3_t wallMins = {-12, -12, 0};
+    vec3_t wallMaxs = {12, 12, 40};
+    CM_BoxTrace(&wallTrace, wallCheck, wallEnd, wallMins, wallMaxs, 0, CONTENTS_SOLID, qfalse);
+
+    if (wallTrace.fraction < 0.3f) {
+        // Wall very close ahead - turn around and give up on enemy
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot facing wall during attack (%.1f units), giving up on enemy\n",
+                wallTrace.fraction * 100.0f);
+        }
+        clBot.enemyEntityNum = -1;
+        CL_Bot_SetState(CLBOT_STATE_ROAMING);
+        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 180);
+        CL_Bot_PickNewRoamTarget();
+        return;
+    }
+
+    // PISTOL-WHIP MODE: Charge at enemy with aggressive strafing movement
     vec3_t forward, right;
     VectorCopy(delta, forward);
     forward[2] = 0;
@@ -681,12 +711,12 @@ static void CL_Bot_ThinkAttacking(void)
     // Calculate right vector for strafing
     AngleVectors(clBot.currentAngles, NULL, right, NULL);
 
-    // Strafe pattern: alternate left/right every 800ms
-    float strafeDir = ((cls.realtime / 800) % 2 == 0) ? 1.0f : -1.0f;
+    // Strafe pattern: alternate left/right every 600ms for faster side-to-side
+    float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
 
-    // Mix forward movement (70%) with strafing (30%) for aggressive approach
-    clBot.moveDir[0] = forward[0] * 0.7f + right[0] * strafeDir * 0.3f;
-    clBot.moveDir[1] = forward[1] * 0.7f + right[1] * strafeDir * 0.3f;
+    // Mix forward movement (50%) with strafing (50%) for very aggressive dodging
+    clBot.moveDir[0] = forward[0] * 0.5f + right[0] * strafeDir * 0.5f;
+    clBot.moveDir[1] = forward[1] * 0.5f + right[1] * strafeDir * 0.5f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
     clBot.isMoving = qtrue;
@@ -945,10 +975,10 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
     }
     // Button is released for remaining 50ms
 
-    // PISTOL-WHIP MODE: Lean in the direction we're strafing (matches 800ms strafe cycle)
+    // PISTOL-WHIP MODE: Lean in the direction we're strafing (matches 600ms strafe cycle)
     // This makes movement look more tactical and harder to hit
     if (clBot.state == CLBOT_STATE_ATTACKING || clBot.state == CLBOT_STATE_ROAMING) {
-        if ((cls.realtime / 800) % 2 == 0) {
+        if ((cls.realtime / 600) % 2 == 0) {
             cmd->buttons |= BUTTON_LEAN_RIGHT;
         } else {
             cmd->buttons |= BUTTON_LEAN_LEFT;
