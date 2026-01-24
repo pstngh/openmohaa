@@ -312,7 +312,7 @@ CL_Bot_CheckStuck
 Check if bot is stuck and try to get unstuck
 ====================
 */
-#define STUCK_CHECK_INTERVAL 500  // Check every 500ms
+#define STUCK_CHECK_INTERVAL 200  // Check every 200ms (faster response)
 #define STUCK_DISTANCE_THRESHOLD 10.0f  // Must move at least 10 units
 
 static void CL_Bot_CheckStuck(void)
@@ -342,21 +342,56 @@ static void CL_Bot_CheckStuck(void)
             Com_Printf("Bot stuck! (count=%d, moved=%.1f)\n", clBot.stuckCount, distMoved);
         }
 
-        // Try to get unstuck
+        // Act faster - only need 2 stuck checks instead of 3
         if (clBot.stuckCount >= 2) {
-            // Jump to try to get over obstacles
-            clBot.shouldJump = qtrue;
-        }
-        if (clBot.stuckCount >= 3) {
-            // Turn around and pick new direction
-            clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 90 + (rand() % 180));
-            CL_Bot_PickNewRoamTarget();
-            clBot.stuckCount = 0;
+            // Check if there's a wall directly ahead
+            vec3_t start, end, forward;
+            vec3_t mins = {-12, -12, 0};
+            vec3_t maxs = {12, 12, 40};
+            vec3_t angles;
+
+            VectorCopy(cl.snap.ps.origin, start);
+            start[2] += 20;
+
+            angles[PITCH] = 0;
+            angles[YAW] = clBot.currentAngles[YAW];
+            angles[ROLL] = 0;
+            AngleVectors(angles, forward, NULL, NULL);
+            VectorMA(start, 50.0f, forward, end);
+
+            trace_t trace;
+            CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+            // If wall very close ahead (< 20 units), turn immediately - don't jump
+            if (trace.fraction < 0.4f) {
+                if (cl_bot_debug && cl_bot_debug->integer) {
+                    Com_Printf("Wall detected ahead (%.1f units), turning instead of jumping\n",
+                        trace.fraction * 50.0f);
+                }
+
+                // Find best clear direction from obstacle scan
+                float bestAngle = CL_Bot_CheckObstacles();
+                if (bestAngle != 0) {
+                    clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + bestAngle);
+                } else {
+                    // If obstacle scan says all blocked, turn around
+                    clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 180);
+                }
+                CL_Bot_PickNewRoamTarget();
+                clBot.stuckCount = 0;
+            } else {
+                // Not a wall, try jumping over obstacle
+                clBot.shouldJump = qtrue;
+            }
         }
     } else {
-        // We moved, reset stuck counter
+        // We moved - decay stuck counter instead of instant reset
+        // This prevents sliding along walls from resetting progress
         if (clBot.stuckCount > 0) {
-            clBot.stuckCount = 0;
+            clBot.stuckCount--;
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Bot moved, decaying stuck count to %d\n", clBot.stuckCount);
+            }
         }
     }
 
@@ -964,14 +999,15 @@ static float CL_Bot_CheckObstacles(void)
         }
     }
 
-    // If forward is reasonably clear (>60%), don't turn
-    if (forwardScore > 0.6f) {
+    // If forward is reasonably clear (>40%), don't turn
+    // More aggressive than before (was 0.6) to avoid running into walls
+    if (forwardScore > 0.4f) {
         lastResult = 0;
         return 0;
     }
 
     // If best direction is forward-ish (within 20 degrees), don't turn
-    if (fabs(bestAngle) <= 20.0f && bestScore > 0.3f) {
+    if (fabs(bestAngle) <= 20.0f && bestScore > 0.25f) {
         lastResult = 0;
         return 0;
     }
