@@ -891,6 +891,14 @@ Update button portion of usercmd (attack, use, etc)
 */
 static void CL_Bot_UpdateButtons(usercmd_t *cmd)
 {
+    // Don't attack immediately after spawning
+    if (cls.realtime - clBot.spawnedTime < CLBOT_SPAWN_GRACE_TIME) {
+        return;
+    }
+
+    // PISTOL-WHIP MODE: Constantly spam melee attack (right-click)
+    cmd->buttons |= BUTTON_ATTACKRIGHT;
+
     // PISTOL-WHIP MODE: Encode weapon command for pistol switching
     // Weapon commands are encoded as button bits (shifted left by 7)
     // Send the command 3 times like cgame does, then wait before sending again
@@ -908,17 +916,6 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
     } else if (cls.realtime - clBot.weaponSelectTime > 500) {
         // Re-send weapon command every 500ms to ensure pistol stays selected
         clBot.weaponCommandSendCount = 1;
-    }
-
-    // Only attack if we have an enemy and we're not in spawn protection
-    if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
-        // Don't attack immediately after spawning
-        if (cls.realtime - clBot.spawnedTime < CLBOT_SPAWN_GRACE_TIME) {
-            return;
-        }
-
-        // PISTOL-WHIP MODE: Hold melee attack button while attacking
-        cmd->buttons |= BUTTON_ATTACKRIGHT;
     }
 }
 
