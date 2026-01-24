@@ -62,6 +62,7 @@ typedef struct {
     vec3_t      enemyLastPos;       // Last known enemy position
     int         lastEnemySeenTime;  // Time when enemy was last seen
     int         lastFireTime;       // Time of last fire
+    int         lastMeleeTime;      // Time of last melee attack button toggle
     int         attackStartTime;    // When attack started
 
     // Aiming
