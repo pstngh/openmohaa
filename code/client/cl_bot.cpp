@@ -584,14 +584,25 @@ static void CL_Bot_ThinkAttacking(void)
     if (canSeeEnemy) {
         // Update last seen time only if we can actually see them
         clBot.lastEnemySeenTime = cls.realtime;
+
+        if (cl_bot_debug && cl_bot_debug->integer > 2) {
+            Com_Printf("Attacking enemy %d - have LOS\n", clBot.enemyEntityNum);
+        }
     } else {
         // Can't see enemy - they're behind a wall
+        int timeSinceSeen = cls.realtime - clBot.lastEnemySeenTime;
+
         if (cl_bot_debug && cl_bot_debug->integer) {
-            Com_Printf("Lost sight of enemy %d (wall blocking)\n", clBot.enemyEntityNum);
+            Com_Printf("Lost LOS to enemy %d (time since seen: %dms)\n",
+                clBot.enemyEntityNum, timeSinceSeen);
         }
 
         // If we haven't seen them for 1 second, stop attacking
-        if (cls.realtime - clBot.lastEnemySeenTime > 1000) {
+        if (timeSinceSeen > 1000) {
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Giving up on enemy %d - no LOS for %dms\n",
+                    clBot.enemyEntityNum, timeSinceSeen);
+            }
             clBot.enemyEntityNum = -1;
             CL_Bot_SetState(CLBOT_STATE_ROAMING);
             return;
@@ -943,8 +954,14 @@ static qboolean CL_Bot_CanSeePoint(vec3_t targetPos)
     // Trace against world geometry only (clipHandle 0 = world)
     CM_BoxTrace(&trace, start, targetPos, mins, maxs, 0, CONTENTS_SOLID, qfalse);
 
+    if (cl_bot_debug && cl_bot_debug->integer > 2) {
+        Com_Printf("LOS trace: fraction=%.3f startsolid=%d allsolid=%d entityNum=%d\n",
+            trace.fraction, trace.startsolid, trace.allsolid, trace.entityNum);
+    }
+
     // If trace completed without hitting anything, we can see the point
-    return (trace.fraction >= 0.98f);
+    // Use 0.95 threshold to allow some tolerance for player bounding boxes
+    return (trace.fraction >= 0.95f);
 }
 
 /*
@@ -1106,9 +1123,14 @@ static void CL_Bot_CheckForEnemies(void)
             VectorCopy(ent->origin, enemyCenter);
             enemyCenter[2] += 40; // Aim at chest level
 
+            if (cl_bot_debug && cl_bot_debug->integer > 1) {
+                Com_Printf("Checking enemy %d at dist %.0f, pos=(%.1f,%.1f,%.1f)\n",
+                    ent->number, dist, enemyCenter[0], enemyCenter[1], enemyCenter[2]);
+            }
+
             if (!CL_Bot_CanSeePoint(enemyCenter)) {
                 if (cl_bot_debug && cl_bot_debug->integer > 1) {
-                    Com_Printf("Enemy %d blocked by wall\n", ent->number);
+                    Com_Printf("  -> Enemy %d blocked by wall/obstacle\n", ent->number);
                 }
                 continue;
             }
@@ -1117,7 +1139,7 @@ static void CL_Bot_CheckForEnemies(void)
             bestEnemy = ent->number;
 
             if (cl_bot_debug && cl_bot_debug->integer) {
-                Com_Printf("Found enemy %d at distance %.0f\n", ent->number, dist);
+                Com_Printf("Found visible enemy %d at distance %.0f\n", ent->number, dist);
             }
         }
     }
