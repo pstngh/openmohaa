@@ -89,6 +89,7 @@ typedef struct {
     int         joinTeamTime;       // When we requested to join a team
     int         weaponSelectTime;   // When we last sent weapon select command
     int         weaponSelectAttempts; // Number of weapon select attempts
+    int         weaponCommandSendCount; // Weapon command send counter (like cg.iWeaponCommandSend)
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
 } clientBot_t;

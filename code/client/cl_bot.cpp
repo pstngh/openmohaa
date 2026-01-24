@@ -737,12 +737,12 @@ qboolean CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo)
     // Track spawn time and switch to pistol after spawning
     if (clBot.state == CLBOT_STATE_DEAD) {
         clBot.spawnedTime = cls.realtime;
-        // PISTOL-WHIP MODE: Switch to pistol immediately after spawn
-        if (cl_bot_debug && cl_bot_debug->integer) {
-            Com_Printf("Bot spawned, sending: useweaponclass pistol\n");
-        }
-        Cbuf_AddText("useweaponclass pistol\n");
+        // PISTOL-WHIP MODE: Trigger weapon command to switch to pistol immediately after spawn
+        clBot.weaponCommandSendCount = 1;
         clBot.weaponSelectTime = cls.realtime;
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot spawned, triggering pistol weapon command\n");
+        }
     }
 
     // Generate movement
@@ -898,6 +898,25 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
 
     // PISTOL-WHIP MODE: Constantly spam melee attack (right-click)
     cmd->buttons |= BUTTON_ATTACKRIGHT;
+
+    // PISTOL-WHIP MODE: Encode weapon command for pistol switching
+    // Weapon commands are encoded as button bits (shifted left by 7)
+    // Send the command 3 times like cgame does, then wait before sending again
+    if (clBot.weaponCommandSendCount > 0 && clBot.weaponCommandSendCount <= 3) {
+        cmd->buttons |= (WEAPON_COMMAND_USE_PISTOL << 7);
+        clBot.weaponCommandSendCount++;
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot encoding pistol weapon command in buttons (send %d/3)\n",
+                      clBot.weaponCommandSendCount - 1);
+        }
+        if (clBot.weaponCommandSendCount > 3) {
+            clBot.weaponCommandSendCount = 0;
+            clBot.weaponSelectTime = cls.realtime;
+        }
+    } else if (cls.realtime - clBot.weaponSelectTime > 500) {
+        // Re-send weapon command every 500ms to ensure pistol stays selected
+        clBot.weaponCommandSendCount = 1;
+    }
 }
 
 /*
@@ -1147,23 +1166,14 @@ static void CL_Bot_HandleTeamJoin(void)
             }
         }
     } else {
-        // On a team - spam pistol switch
+        // On a team - trigger pistol weapon command encoding
         if (!clBot.hasJoinedTeam) {
             clBot.hasJoinedTeam = qtrue;
-            clBot.weaponSelectTime = 0; // Send immediately on first check
-            if (cl_bot_debug && cl_bot_debug->integer) {
-                Com_Printf("Bot is now on team %d, starting pistol switch spam\n", team);
-            }
-        }
-
-        // Continuously send "useweaponclass pistol" to switch and stay on pistol
-        // Send immediately first time, then every 500ms
-        if (cls.realtime - clBot.weaponSelectTime > 500 || clBot.weaponSelectTime == 0) {
-            if (cl_bot_debug && cl_bot_debug->integer) {
-                Com_Printf("Bot sending: useweaponclass pistol\n");
-            }
-            Cbuf_AddText("useweaponclass pistol\n");
+            clBot.weaponCommandSendCount = 1; // Start sending weapon command
             clBot.weaponSelectTime = cls.realtime;
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Bot is now on team %d, triggering pistol weapon command\n", team);
+            }
         }
     }
 }
