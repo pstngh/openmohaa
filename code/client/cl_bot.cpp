@@ -734,9 +734,15 @@ qboolean CL_Bot_CreateCmd(usercmd_t *cmd, usereyes_t *eyeinfo)
         return qtrue;
     }
 
-    // Track spawn time
+    // Track spawn time and switch to pistol after spawning
     if (clBot.state == CLBOT_STATE_DEAD) {
         clBot.spawnedTime = cls.realtime;
+        // PISTOL-WHIP MODE: Switch to pistol immediately after spawn
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Bot spawned, sending: useweaponclass pistol\n");
+        }
+        Cbuf_AddText("useweaponclass pistol\n");
+        clBot.weaponSelectTime = cls.realtime;
     }
 
     // Generate movement
@@ -1141,15 +1147,19 @@ static void CL_Bot_HandleTeamJoin(void)
             }
         }
     } else {
-        // On a team - spam pistol switch every 500ms
+        // On a team - spam pistol switch
         if (!clBot.hasJoinedTeam) {
             clBot.hasJoinedTeam = qtrue;
-            clBot.weaponSelectTime = cls.realtime;
+            clBot.weaponSelectTime = 0; // Send immediately on first check
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Bot is now on team %d, starting pistol switch spam\n", team);
+            }
         }
 
         // Continuously send "useweaponclass pistol" to switch and stay on pistol
-        if (cls.realtime - clBot.weaponSelectTime > 500) {
-            if (cl_bot_debug && cl_bot_debug->integer > 1) {
+        // Send immediately first time, then every 500ms
+        if (cls.realtime - clBot.weaponSelectTime > 500 || clBot.weaponSelectTime == 0) {
+            if (cl_bot_debug && cl_bot_debug->integer) {
                 Com_Printf("Bot sending: useweaponclass pistol\n");
             }
             Cbuf_AddText("useweaponclass pistol\n");
