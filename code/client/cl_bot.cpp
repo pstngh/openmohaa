@@ -603,8 +603,8 @@ static void CL_Bot_ThinkAttacking(void)
                 clBot.enemyEntityNum, timeSinceSeen);
         }
 
-        // If we haven't seen them for 1 second, stop attacking
-        if (timeSinceSeen > 1000) {
+        // Sticky lock - wait 2.5 seconds before giving up
+        if (timeSinceSeen > 2500) {
             if (cl_bot_debug && cl_bot_debug->integer) {
                 Com_Printf("Giving up on enemy %d - no LOS for %dms\n",
                     clBot.enemyEntityNum, timeSinceSeen);
@@ -1199,6 +1199,12 @@ static void CL_Bot_CheckForEnemies(void)
 
     // Update enemy tracking
     if (bestEnemy >= 0) {
+        if (clBot.enemyEntityNum != bestEnemy) {
+            // New enemy acquired - reset tracking
+            clBot.enemyAcquiredTime = cls.realtime;
+            VectorClear(clBot.enemyLastPos);
+            VectorClear(clBot.enemyVelocity);
+        }
         clBot.enemyEntityNum = bestEnemy;
         clBot.lastEnemySeenTime = cls.realtime;
     }
