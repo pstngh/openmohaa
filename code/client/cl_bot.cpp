@@ -893,25 +893,60 @@ static void CL_Bot_UpdateMovement(usercmd_t *cmd)
 ====================
 CL_Bot_UpdateAiming
 
-Update aiming portion of usercmd
+Adaptive aim speed based on state and distance to target
 ====================
 */
 static void CL_Bot_UpdateAiming(usercmd_t *cmd)
 {
-    float aimSpeed = cl_bot_aimspeed ? cl_bot_aimspeed->value : 360.0f;
-    float frameTime = cls.frametime / 1000.0f;
-    if (frameTime <= 0) frameTime = 0.016f; // Default to ~60fps
-    float maxChange = aimSpeed * frameTime;
+    float aimSpeed;
+    float frameTime;
+    float maxChange;
+    float deadzone;
+    qboolean freshLock;
+    float pitchDiff;
+    float yawDiff;
+    float totalDiff;
+    int i;
+    float diff;
 
-    // Deadzone: don't make tiny corrections that cause shaking
-    // Use larger deadzone when roaming, smaller when attacking
-    float deadzone = (clBot.state == CLBOT_STATE_ATTACKING) ? 1.0f : 3.0f;
+    /* Adaptive aim speed for aimbot behavior */
+    if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
+        /* Check if enemy was just acquired */
+        freshLock = (cls.realtime - clBot.enemyAcquiredTime) < 100;
 
-    // Smoothly interpolate current angles towards target angles
-    for (int i = 0; i < 2; i++) {
-        float diff = CL_Bot_AngleDiff(clBot.targetAngles[i], clBot.currentAngles[i]);
+        /* Calculate distance to target */
+        pitchDiff = fabs(CL_Bot_AngleDiff(clBot.targetAngles[PITCH], clBot.currentAngles[PITCH]));
+        yawDiff = fabs(CL_Bot_AngleDiff(clBot.targetAngles[YAW], clBot.currentAngles[YAW]));
+        totalDiff = pitchDiff + yawDiff;
 
-        // Skip tiny corrections within deadzone
+        if (freshLock || totalDiff > 15.0f) {
+            /* Snap mode: very fast on new target or far off */
+            aimSpeed = 1800.0f;
+            deadzone = 0.5f;
+        } else if (totalDiff > 5.0f) {
+            /* Tracking mode: medium speed */
+            aimSpeed = 600.0f;
+            deadzone = 1.0f;
+        } else {
+            /* Precision mode: slow when on target */
+            aimSpeed = 180.0f;
+            deadzone = 2.0f;
+        }
+    } else {
+        /* Roaming: slow casual aiming */
+        aimSpeed = 240.0f;
+        deadzone = 3.0f;
+    }
+
+    frameTime = cls.frametime / 1000.0f;
+    if (frameTime <= 0) frameTime = 0.016f;
+    maxChange = aimSpeed * frameTime;
+
+    /* Interpolate current angles towards target */
+    for (i = 0; i < 2; i++) {
+        diff = CL_Bot_AngleDiff(clBot.targetAngles[i], clBot.currentAngles[i]);
+
+        /* Skip tiny corrections within deadzone */
         if (fabs(diff) <= deadzone) {
             continue;
         }
@@ -925,10 +960,10 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
         }
     }
 
-    // Normalize yaw to 0-360, but keep pitch in -89 to 89
+    /* Normalize yaw to 0-360, but keep pitch in -89 to 89 */
     clBot.currentAngles[YAW] = AngleMod(clBot.currentAngles[YAW]);
 
-    // Clamp pitch (don't use AngleMod on pitch - it breaks negative angles)
+    /* Clamp pitch */
     if (clBot.currentAngles[PITCH] > 89) {
         clBot.currentAngles[PITCH] = 89;
     } else if (clBot.currentAngles[PITCH] < -89) {
