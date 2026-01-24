@@ -60,6 +60,8 @@ typedef struct {
     // Combat
     int         enemyEntityNum;     // Entity number of current enemy (-1 if none)
     vec3_t      enemyLastPos;       // Last known enemy position
+    vec3_t      enemyVelocity;      // Enemy velocity for lead targeting
+    int         enemyAcquiredTime;  // When enemy was first acquired
     int         lastEnemySeenTime;  // Time when enemy was last seen
     int         lastFireTime;       // Time of last fire
     int         lastMeleeTime;      // Time of last melee attack button toggle
