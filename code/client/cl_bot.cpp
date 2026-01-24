@@ -68,6 +68,7 @@ static float    CL_Bot_AngleDiff(float ang1, float ang2);
 static void     CL_Bot_PickNewRoamTarget(void);
 static entityState_t* CL_Bot_FindEntityByNumber(int entityNum);
 static float    CL_Bot_CheckObstacles(void);
+static qboolean CL_Bot_CanSeePoint(vec3_t targetPos);
 
 /*
 ====================
