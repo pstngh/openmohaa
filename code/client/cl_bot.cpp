@@ -493,17 +493,23 @@ static void CL_Bot_ThinkRoaming(void)
     // Always keep pitch level when roaming (look straight ahead)
     clBot.targetAngles[PITCH] = 0;
 
-    // In roaming, we move forward relative to where we're looking
-    // The target yaw was set by PickNewRoamTarget, and we're turning towards it
-    // Update moveDir to match our current view so movement is always forward
+    // In roaming, move forward with strafing for dynamic movement
     vec3_t angles;
     angles[PITCH] = 0;
     angles[YAW] = clBot.currentAngles[YAW];
     angles[ROLL] = 0;
 
-    vec3_t forward;
-    AngleVectors(angles, forward, NULL, NULL);
-    VectorCopy(forward, clBot.moveDir);
+    vec3_t forward, right;
+    AngleVectors(angles, forward, right, NULL);
+
+    // Strafe pattern: alternate left/right every 800ms (same as attacking)
+    float strafeDir = ((cls.realtime / 800) % 2 == 0) ? 1.0f : -1.0f;
+
+    // Mix forward movement (80%) with strafing (20%) for casual roaming
+    clBot.moveDir[0] = forward[0] * 0.8f + right[0] * strafeDir * 0.2f;
+    clBot.moveDir[1] = forward[1] * 0.8f + right[1] * strafeDir * 0.2f;
+    clBot.moveDir[2] = 0;
+    VectorNormalize(clBot.moveDir);
 }
 
 /*
@@ -666,12 +672,23 @@ static void CL_Bot_ThinkAttacking(void)
             clBot.targetAngles[PITCH], clBot.targetAngles[YAW], dist);
     }
 
-    // PISTOL-WHIP MODE: Always charge directly at enemy for melee combat
-    vec3_t forward;
+    // PISTOL-WHIP MODE: Charge at enemy with strafing movement
+    vec3_t forward, right;
     VectorCopy(delta, forward);
     forward[2] = 0;
     VectorNormalize(forward);
-    VectorCopy(forward, clBot.moveDir);
+
+    // Calculate right vector for strafing
+    AngleVectors(clBot.currentAngles, NULL, right, NULL);
+
+    // Strafe pattern: alternate left/right every 800ms
+    float strafeDir = ((cls.realtime / 800) % 2 == 0) ? 1.0f : -1.0f;
+
+    // Mix forward movement (70%) with strafing (30%) for aggressive approach
+    clBot.moveDir[0] = forward[0] * 0.7f + right[0] * strafeDir * 0.3f;
+    clBot.moveDir[1] = forward[1] * 0.7f + right[1] * strafeDir * 0.3f;
+    clBot.moveDir[2] = 0;
+    VectorNormalize(clBot.moveDir);
     clBot.isMoving = qtrue;
 }
 
@@ -927,6 +944,16 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
         cmd->buttons |= BUTTON_ATTACKRIGHT;
     }
     // Button is released for remaining 50ms
+
+    // PISTOL-WHIP MODE: Lean in the direction we're strafing (matches 800ms strafe cycle)
+    // This makes movement look more tactical and harder to hit
+    if (clBot.state == CLBOT_STATE_ATTACKING || clBot.state == CLBOT_STATE_ROAMING) {
+        if ((cls.realtime / 800) % 2 == 0) {
+            cmd->buttons |= BUTTON_LEAN_RIGHT;
+        } else {
+            cmd->buttons |= BUTTON_LEAN_LEFT;
+        }
+    }
 }
 
 /*
