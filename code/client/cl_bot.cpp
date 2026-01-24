@@ -666,48 +666,13 @@ static void CL_Bot_ThinkAttacking(void)
             clBot.targetAngles[PITCH], clBot.targetAngles[YAW], dist);
     }
 
-    // Move towards enemy while attacking, with some strafing mixed in
-    float attackDist = cl_bot_attackdist ? cl_bot_attackdist->value : 2048;
-
-    if (dist < 150) {
-        // Too close, back up
-        VectorCopy(delta, clBot.moveDir);
-        VectorNormalize(clBot.moveDir);
-        VectorNegate(clBot.moveDir, clBot.moveDir);
-        clBot.isMoving = qtrue;
-    } else if (dist > 400) {
-        // Far away - move towards enemy with slight strafe
-        vec3_t forward, right;
-        VectorCopy(delta, forward);
-        forward[2] = 0;
-        VectorNormalize(forward);
-
-        // Add slight strafe to make movement less predictable
-        AngleVectors(clBot.currentAngles, NULL, right, NULL);
-        float strafeAmount = ((cls.realtime / 2000) % 2 == 0) ? 0.2f : -0.2f;
-
-        clBot.moveDir[0] = forward[0] + right[0] * strafeAmount;
-        clBot.moveDir[1] = forward[1] + right[1] * strafeAmount;
-        clBot.moveDir[2] = 0;
-        VectorNormalize(clBot.moveDir);
-        clBot.isMoving = qtrue;
-    } else {
-        // Medium range - strafe while slowly advancing
-        vec3_t forward, right;
-        VectorCopy(delta, forward);
-        forward[2] = 0;
-        VectorNormalize(forward);
-
-        AngleVectors(clBot.currentAngles, NULL, right, NULL);
-        float strafeDir = ((cls.realtime / 1500) % 2 == 0) ? 1.0f : -1.0f;
-
-        // 70% strafe, 30% forward
-        clBot.moveDir[0] = forward[0] * 0.3f + right[0] * strafeDir * 0.7f;
-        clBot.moveDir[1] = forward[1] * 0.3f + right[1] * strafeDir * 0.7f;
-        clBot.moveDir[2] = 0;
-        VectorNormalize(clBot.moveDir);
-        clBot.isMoving = qtrue;
-    }
+    // PISTOL-WHIP MODE: Always charge directly at enemy for melee combat
+    vec3_t forward;
+    VectorCopy(delta, forward);
+    forward[2] = 0;
+    VectorNormalize(forward);
+    VectorCopy(forward, clBot.moveDir);
+    clBot.isMoving = qtrue;
 }
 
 /*
@@ -920,17 +885,13 @@ Update button portion of usercmd (attack, use, etc)
 */
 static void CL_Bot_UpdateButtons(usercmd_t *cmd)
 {
-    // Only attack if we have an enemy and we're not in spawn protection
-    if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
-        // Don't fire immediately after spawning
-        if (cls.realtime - clBot.spawnedTime < CLBOT_SPAWN_GRACE_TIME) {
-            return;
-        }
-
-        // Hold fire button continuously while attacking
-        // Most weapons need the button held, not just pressed once
-        cmd->buttons |= BUTTON_ATTACKLEFT;
+    // Don't attack immediately after spawning
+    if (cls.realtime - clBot.spawnedTime < CLBOT_SPAWN_GRACE_TIME) {
+        return;
     }
+
+    // PISTOL-WHIP MODE: Constantly spam melee attack (right-click)
+    cmd->buttons |= BUTTON_ATTACKRIGHT;
 }
 
 /*
@@ -1162,8 +1123,8 @@ static void CL_Bot_HandleTeamJoin(void)
 {
     int team = cl.snap.ps.stats[STAT_TEAM];
 
+    // Not on a team yet - send batched join command
     if (team == TEAM_NONE || team == TEAM_SPECTATOR) {
-        // Wait a bit before joining
         if (!clBot.hasJoinedTeam) {
             if (clBot.joinTeamTime == 0) {
                 clBot.joinTeamTime = cls.realtime;
@@ -1171,35 +1132,28 @@ static void CL_Bot_HandleTeamJoin(void)
                     Com_Printf("Bot waiting to join team...\n");
                 }
             } else if (cls.realtime - clBot.joinTeamTime > CLBOT_TEAM_JOIN_DELAY) {
-                // Send auto-join command
+                // PISTOL-WHIP MODE: Send batched command to join team and select weapon
                 if (cl_bot_debug && cl_bot_debug->integer) {
-                    Com_Printf("Bot sending auto_join_team command\n");
+                    Com_Printf("Bot sending: join_team allies;wait 2000;primarydmweapon rifle\n");
                 }
-                CL_AddReliableCommand("auto_join_team", qfalse);
+                Cbuf_AddText("join_team allies;wait 2000;primarydmweapon rifle\n");
                 clBot.hasJoinedTeam = qtrue;
-                clBot.weaponSelectTime = cls.realtime; // Start weapon select timer
             }
         }
     } else {
+        // On a team - spam pistol switch every 500ms
         if (!clBot.hasJoinedTeam) {
             clBot.hasJoinedTeam = qtrue;
-            clBot.weaponSelectTime = cls.realtime; // Start weapon select timer
+            clBot.weaponSelectTime = cls.realtime;
         }
-    }
 
-    // Handle primary weapon selection - retry multiple times with delay
-    if (clBot.hasJoinedTeam && team != TEAM_SPECTATOR && team != TEAM_NONE) {
-        // Send weapon select command after a short delay, retry a few times
-        if (clBot.weaponSelectAttempts < 3) {
-            int delay = 500 + (clBot.weaponSelectAttempts * 1000); // 500ms, 1500ms, 2500ms
-            if (cls.realtime - clBot.weaponSelectTime > delay) {
-                if (cl_bot_debug && cl_bot_debug->integer) {
-                    Com_Printf("Bot selecting primary weapon (attempt %d)\n", clBot.weaponSelectAttempts + 1);
-                }
-                CL_AddReliableCommand("primarydmweapon smg", qfalse);
-                clBot.weaponSelectAttempts++;
-                clBot.weaponSelectTime = cls.realtime;
+        // Continuously send "useweaponclass pistol" to switch and stay on pistol
+        if (cls.realtime - clBot.weaponSelectTime > 500) {
+            if (cl_bot_debug && cl_bot_debug->integer > 1) {
+                Com_Printf("Bot sending: useweaponclass pistol\n");
             }
+            Cbuf_AddText("useweaponclass pistol\n");
+            clBot.weaponSelectTime = cls.realtime;
         }
     }
 }
