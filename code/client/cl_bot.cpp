@@ -623,16 +623,31 @@ static void CL_Bot_ThinkAttacking(void)
     VectorSubtract(enemy->origin, cl.snap.ps.origin, delta);
     dist = VectorLength(delta);
 
-    // Update aim target
-    VectorCopy(enemy->origin, clBot.enemyLastPos);
+    // Track enemy velocity for prediction
+    vec3_t enemyPos;
+    VectorCopy(enemy->origin, enemyPos);
 
-    // Calculate aim angles - aim at center mass
+    if (VectorLength(clBot.enemyLastPos) > 0) {
+        VectorSubtract(enemyPos, clBot.enemyLastPos, clBot.enemyVelocity);
+        VectorScale(clBot.enemyVelocity, 62.5f, clBot.enemyVelocity);
+    } else {
+        VectorClear(clBot.enemyVelocity);
+    }
+    VectorCopy(enemyPos, clBot.enemyLastPos);
+
+    // Predict enemy position based on distance
+    vec3_t predictedPos;
+    float predictionTime;
+    predictionTime = dist / 3000.0f;
+    VectorMA(enemyPos, predictionTime, clBot.enemyVelocity, predictedPos);
+
+    // Calculate aim angles with prediction
     vec3_t aimDir;
     vec3_t aimTarget;
     vec3_t eyePos;
 
-    // Enemy chest position
-    VectorCopy(enemy->origin, aimTarget);
+    // Aim at predicted position
+    VectorCopy(predictedPos, aimTarget);
     aimTarget[2] += 40; // Aim at upper body
 
     // Our eye position
