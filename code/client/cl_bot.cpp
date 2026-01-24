@@ -573,8 +573,33 @@ static void CL_Bot_ThinkAttacking(void)
         return;
     }
 
-    // Update last seen time
-    clBot.lastEnemySeenTime = cls.realtime;
+    // Check line of sight to enemy - don't shoot through walls
+    vec3_t enemyCheckPos;
+    VectorCopy(enemy->origin, enemyCheckPos);
+    enemyCheckPos[2] += 40; // Check chest level
+
+    qboolean canSeeEnemy = CL_Bot_CanSeePoint(enemyCheckPos);
+
+    if (canSeeEnemy) {
+        // Update last seen time only if we can actually see them
+        clBot.lastEnemySeenTime = cls.realtime;
+    } else {
+        // Can't see enemy - they're behind a wall
+        if (cl_bot_debug && cl_bot_debug->integer) {
+            Com_Printf("Lost sight of enemy %d (wall blocking)\n", clBot.enemyEntityNum);
+        }
+
+        // If we haven't seen them for 1 second, stop attacking
+        if (cls.realtime - clBot.lastEnemySeenTime > 1000) {
+            clBot.enemyEntityNum = -1;
+            CL_Bot_SetState(CLBOT_STATE_ROAMING);
+            return;
+        }
+
+        // Don't move toward enemy we can't see, just track them briefly
+        clBot.isMoving = qfalse;
+        return;
+    }
 
     // Calculate distance to enemy
     VectorSubtract(enemy->origin, cl.snap.ps.origin, delta);
