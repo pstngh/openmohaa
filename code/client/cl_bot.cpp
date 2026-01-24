@@ -564,12 +564,23 @@ static void CL_Bot_ThinkAttacking(void)
     // Direction from our eyes to enemy chest
     VectorSubtract(aimTarget, eyePos, aimDir);
     VectorNormalize(aimDir);
+
+    if (cl_bot_debug && cl_bot_debug->integer > 1) {
+        Com_Printf("Aim calc: eyePos=(%.1f,%.1f,%.1f) target=(%.1f,%.1f,%.1f) dir=(%.3f,%.3f,%.3f)\n",
+            eyePos[0], eyePos[1], eyePos[2],
+            aimTarget[0], aimTarget[1], aimTarget[2],
+            aimDir[0], aimDir[1], aimDir[2]);
+    }
+
     vectoangles(aimDir, clBot.targetAngles);
 
-    // Normalize pitch to -180 to 180 range (vectoangles can return 0-360)
-    if (clBot.targetAngles[PITCH] > 180.0f) {
-        clBot.targetAngles[PITCH] -= 360.0f;
+    if (cl_bot_debug && cl_bot_debug->integer > 1) {
+        Com_Printf("Angles from vectoangles: pitch=%.1f yaw=%.1f\n",
+            clBot.targetAngles[PITCH], clBot.targetAngles[YAW]);
     }
+
+    // Normalize pitch to -180 to 180 range (vectoangles can return negative angles beyond -180)
+    clBot.targetAngles[PITCH] = AngleNormalize180(clBot.targetAngles[PITCH]);
 
     // Clamp pitch to valid range
     if (clBot.targetAngles[PITCH] > 89.0f) {
@@ -579,9 +590,8 @@ static void CL_Bot_ThinkAttacking(void)
     }
 
     if (cl_bot_debug && cl_bot_debug->integer > 1) {
-        Com_Printf("Enemy at %.0f,%.0f,%.0f dist=%.0f aim=%.1f,%.1f\n",
-            enemy->origin[0], enemy->origin[1], enemy->origin[2],
-            dist, clBot.targetAngles[PITCH], clBot.targetAngles[YAW]);
+        Com_Printf("Final aim angles: pitch=%.1f yaw=%.1f (dist=%.0f)\n",
+            clBot.targetAngles[PITCH], clBot.targetAngles[YAW], dist);
     }
 
     // Move towards enemy while attacking, with some strafing mixed in
