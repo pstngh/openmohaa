@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "client.h"
 #include "../server/server.h"
 #include "cl_ui.h"
+#include "cl_bot.h"
 #include "../corepp/tiki.h"
 #include "../qcommon/cm_terrain.h"
 #include "../qcommon/localization.h"
@@ -2670,6 +2671,22 @@ void CL_Frame ( int msec ) {
 
 	if ( !com_cl_running->integer ) {
 		return;
+	}
+
+	// Bot auto-reconnect - detect disconnection and run reconnect command
+	if (cl_bot && cl_bot->integer) {
+		qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
+		                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
+
+		if (isConnected) {
+			clBot.wasConnected = qtrue;
+		} else if (clBot.wasConnected) {
+			// We were connected but now we're not - disconnected!
+			Com_Printf("Bot detected disconnection, reconnecting...\n");
+			Cbuf_AddText("reconnect\n");
+			clBot.wasConnected = qfalse;
+			clBot.hasJoinedTeam = qfalse; // Reset team join flag
+		}
 	}
 
 #ifdef USE_CURL

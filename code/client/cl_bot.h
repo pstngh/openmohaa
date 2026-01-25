@@ -95,6 +95,7 @@ typedef struct {
     int         weaponCommandSendCount; // Weapon command send counter (like cg.iWeaponCommandSend)
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
+    qboolean    wasConnected;       // Whether we were connected last frame (for auto-reconnect)
 } clientBot_t;
 
 extern clientBot_t  clBot;
