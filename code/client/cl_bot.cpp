@@ -1207,19 +1207,17 @@ static void CL_Bot_CheckForEnemies(void)
             continue;
         }
 
-        /* Score enemy based on distance and field of view */
-        /* Closer = better, in front = better */
+        /* Score based purely on distance for 360-degree instant detection */
+        /* Closer = always better, no FOV penalty */
+        score = (maxDist - dist) / maxDist * 1000.0f;
+
+        /* Tiny bonus for enemies in front (10 points max) to break ties */
         VectorCopy(delta, dirToEnemy);
         VectorNormalize(dirToEnemy);
-
         AngleVectors(clBot.currentAngles, forward, NULL, NULL);
         dotProduct = DotProduct(dirToEnemy, forward);
-
-        /* Score: distance factor + FOV factor */
-        /* Closer distance = higher score, FOV bonus if in front */
-        score = (maxDist - dist) / maxDist * 100.0f;
         if (dotProduct > 0) {
-            score += dotProduct * 50.0f; /* Bonus for enemies in front */
+            score += dotProduct * 10.0f;
         }
 
         if (score > bestScore) {
