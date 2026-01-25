@@ -1178,31 +1178,41 @@ static void CL_Bot_CheckForEnemies(void)
 {
     int i;
     entityState_t *ent;
-    float bestDist = cl_bot_attackdist ? cl_bot_attackdist->value : 2048;
+    float bestScore = -1;
     int bestEnemy = -1;
     int myTeam = cl.snap.ps.stats[STAT_TEAM];
+    float maxDist = cl_bot_attackdist ? cl_bot_attackdist->value : 2048;
 
-    // Go through all entities in the snapshot
+    /* Go through all entities in the snapshot */
     for (i = 0; i < cl.snap.numEntities; i++) {
-        int entityIndex = (cl.snap.parseEntitiesNum + i) & (MAX_PARSE_ENTITIES - 1);
+        int entityIndex;
+        vec3_t delta;
+        float dist;
+        vec3_t enemyCenter;
+        vec3_t dirToEnemy;
+        vec3_t forward;
+        float dotProduct;
+        float score;
+
+        entityIndex = (cl.snap.parseEntitiesNum + i) & (MAX_PARSE_ENTITIES - 1);
         ent = &cl.parseEntities[entityIndex];
 
-        // Skip non-players
+        /* Skip non-players */
         if (ent->eType != ET_PLAYER) {
             continue;
         }
 
-        // Skip self
+        /* Skip self */
         if (ent->number == cl.snap.ps.clientNum) {
             continue;
         }
 
-        // Skip dead players
+        /* Skip dead players */
         if (ent->eFlags & EF_DEAD) {
             continue;
         }
 
-        // Skip teammates in team games
+        /* Skip teammates in team games */
         if (myTeam == TEAM_ALLIES || myTeam == TEAM_AXIS) {
             qboolean sameTeam = qfalse;
             if ((myTeam == TEAM_ALLIES && (ent->eFlags & EF_ALLIES)) ||
@@ -1214,43 +1224,48 @@ static void CL_Bot_CheckForEnemies(void)
             }
         }
 
-        // Calculate distance
-        vec3_t delta;
+        /* Calculate distance */
         VectorSubtract(ent->origin, cl.snap.ps.origin, delta);
-        float dist = VectorLength(delta);
+        dist = VectorLength(delta);
 
-        // Check if this is closer than current best
-        if (dist < bestDist) {
-            // Check line of sight - can we actually see this enemy?
-            vec3_t enemyCenter;
-            VectorCopy(ent->origin, enemyCenter);
-            enemyCenter[2] += 40; // Aim at chest level
+        /* Skip if too far */
+        if (dist > maxDist) {
+            continue;
+        }
 
-            if (cl_bot_debug && cl_bot_debug->integer > 1) {
-                Com_Printf("Checking enemy %d at dist %.0f, pos=(%.1f,%.1f,%.1f)\n",
-                    ent->number, dist, enemyCenter[0], enemyCenter[1], enemyCenter[2]);
-            }
+        /* Check line of sight */
+        VectorCopy(ent->origin, enemyCenter);
+        enemyCenter[2] += 40;
 
-            if (!CL_Bot_CanSeePoint(enemyCenter)) {
-                if (cl_bot_debug && cl_bot_debug->integer > 1) {
-                    Com_Printf("  -> Enemy %d blocked by wall/obstacle\n", ent->number);
-                }
-                continue;
-            }
+        if (!CL_Bot_CanSeePoint(enemyCenter)) {
+            continue;
+        }
 
-            bestDist = dist;
+        /* Score enemy based on distance and field of view */
+        /* Closer = better, in front = better */
+        VectorCopy(delta, dirToEnemy);
+        VectorNormalize(dirToEnemy);
+
+        AngleVectors(clBot.currentAngles, forward, NULL, NULL);
+        dotProduct = DotProduct(dirToEnemy, forward);
+
+        /* Score: distance factor + FOV factor */
+        /* Closer distance = higher score, FOV bonus if in front */
+        score = (maxDist - dist) / maxDist * 100.0f;
+        if (dotProduct > 0) {
+            score += dotProduct * 50.0f; /* Bonus for enemies in front */
+        }
+
+        if (score > bestScore) {
+            bestScore = score;
             bestEnemy = ent->number;
-
-            if (cl_bot_debug && cl_bot_debug->integer) {
-                Com_Printf("Found visible enemy %d at distance %.0f\n", ent->number, dist);
-            }
         }
     }
 
-    // Update enemy tracking
+    /* Update enemy tracking */
     if (bestEnemy >= 0) {
         if (clBot.enemyEntityNum != bestEnemy) {
-            // New enemy acquired - reset tracking
+            /* New enemy acquired - reset tracking */
             clBot.enemyAcquiredTime = cls.realtime;
             VectorClear(clBot.enemyLastPos);
             VectorClear(clBot.enemyVelocity);
