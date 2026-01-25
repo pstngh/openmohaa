@@ -43,7 +43,7 @@ cvar_t *cl_bot_debug     = NULL;
 
 // Constants
 #define CLBOT_ROAM_CHANGE_TIME      3000    // Change roam direction every 3 seconds
-#define CLBOT_ATTACK_TIMEOUT        5000    // Stop attacking if no enemy seen for 5 seconds
+#define CLBOT_ATTACK_TIMEOUT        10000   // Stop attacking if no enemy seen for 10 seconds
 #define CLBOT_RESPAWN_DELAY         500     // Wait between respawn attempts
 #define CLBOT_TEAM_JOIN_DELAY       2000    // Wait 2 seconds before joining team
 #define CLBOT_JUMP_COOLDOWN         1000    // Minimum time between jumps
@@ -603,8 +603,8 @@ static void CL_Bot_ThinkAttacking(void)
                 clBot.enemyEntityNum, timeSinceSeen);
         }
 
-        // Sticky lock - wait 2.5 seconds before giving up
-        if (timeSinceSeen > 2500) {
+        // Sticky lock - wait 10 seconds before giving up
+        if (timeSinceSeen > 10000) {
             if (cl_bot_debug && cl_bot_debug->integer) {
                 Com_Printf("Giving up on enemy %d - no LOS for %dms\n",
                     clBot.enemyEntityNum, timeSinceSeen);
@@ -657,37 +657,8 @@ static void CL_Bot_ThinkAttacking(void)
     clBot.targetAngles[PITCH] = newTargetAngles[PITCH] * 0.8f + clBot.targetAngles[PITCH] * 0.2f;
     clBot.targetAngles[YAW] = AngleMod(newTargetAngles[YAW] * 0.8f + clBot.targetAngles[YAW] * 0.2f);
 
-    // Check if we're facing a wall while attacking - if so, give up and turn around
-    vec3_t wallCheck, wallEnd, wallForward;
-    vec3_t wallAngles;
-    wallAngles[PITCH] = 0;
-    wallAngles[YAW] = clBot.currentAngles[YAW];
-    wallAngles[ROLL] = 0;
-
-    VectorCopy(cl.snap.ps.origin, wallCheck);
-    wallCheck[2] += 20;
-    AngleVectors(wallAngles, wallForward, NULL, NULL);
-    VectorMA(wallCheck, 100.0f, wallForward, wallEnd);
-
-    trace_t wallTrace;
-    vec3_t wallMins = {-12, -12, 0};
-    vec3_t wallMaxs = {12, 12, 40};
-    CM_BoxTrace(&wallTrace, wallCheck, wallEnd, wallMins, wallMaxs, 0, CONTENTS_SOLID, qfalse);
-
-    if (wallTrace.fraction < 0.3f) {
-        // Wall very close ahead - turn around and give up on enemy
-        if (cl_bot_debug && cl_bot_debug->integer) {
-            Com_Printf("Bot facing wall during attack (%.1f units), giving up on enemy\n",
-                wallTrace.fraction * 100.0f);
-        }
-        clBot.enemyEntityNum = -1;
-        CL_Bot_SetState(CLBOT_STATE_ROAMING);
-        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 180);
-        CL_Bot_PickNewRoamTarget();
-        return;
-    }
-
     // PISTOL-WHIP MODE: Always charge forward at enemy with strafing
+    // (Removed wall check - bot will never give up on enemy due to walls)
     vec3_t forward, right;
     VectorCopy(delta, forward);
     forward[2] = 0;
@@ -1029,8 +1000,8 @@ static qboolean CL_Bot_CanSeePoint(vec3_t targetPos)
     }
 
     // If trace completed without hitting anything, we can see the point
-    // Use 0.95 threshold to allow some tolerance for player bounding boxes
-    return (trace.fraction >= 0.95f);
+    // Use 0.90 threshold to be more forgiving for player detection
+    return (trace.fraction >= 0.90f);
 }
 
 /*
