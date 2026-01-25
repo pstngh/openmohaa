@@ -493,7 +493,7 @@ static void CL_Bot_ThinkRoaming(void)
     // Always keep pitch level when roaming (look straight ahead)
     clBot.targetAngles[PITCH] = 0;
 
-    // In roaming, move forward with strafing for dynamic movement
+    // Always move forward - W key held 24/7
     vec3_t angles;
     angles[PITCH] = 0;
     angles[YAW] = clBot.currentAngles[YAW];
@@ -502,12 +502,12 @@ static void CL_Bot_ThinkRoaming(void)
     vec3_t forward, right;
     AngleVectors(angles, forward, right, NULL);
 
-    // Strafe pattern: alternate left/right every 600ms (same as attacking)
+    // Strafe pattern: alternate left/right every 600ms
     float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
 
-    // Mix forward movement (60%) with strafing (40%) for noticeable side-to-side
-    clBot.moveDir[0] = forward[0] * 0.6f + right[0] * strafeDir * 0.4f;
-    clBot.moveDir[1] = forward[1] * 0.6f + right[1] * strafeDir * 0.4f;
+    // 100% forward + 30% strafe for constant forward movement with dodging
+    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.3f;
+    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.3f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
 }
@@ -614,8 +614,7 @@ static void CL_Bot_ThinkAttacking(void)
             return;
         }
 
-        // Don't move toward enemy we can't see, just track them briefly
-        clBot.isMoving = qfalse;
+        // Keep moving forward even if we can't see enemy
         return;
     }
 
@@ -623,75 +622,40 @@ static void CL_Bot_ThinkAttacking(void)
     VectorSubtract(enemy->origin, cl.snap.ps.origin, delta);
     dist = VectorLength(delta);
 
-    /* Track enemy velocity for prediction with smoothing */
-    vec3_t enemyPos;
-    vec3_t newVelocity;
-    VectorCopy(enemy->origin, enemyPos);
-
-    if (VectorLength(clBot.enemyLastPos) > 0) {
-        /* Calculate instantaneous velocity */
-        VectorSubtract(enemyPos, clBot.enemyLastPos, newVelocity);
-        VectorScale(newVelocity, 62.5f, newVelocity);
-
-        /* Smooth velocity: 70% old + 30% new to reduce jitter */
-        VectorScale(clBot.enemyVelocity, 0.7f, clBot.enemyVelocity);
-        VectorMA(clBot.enemyVelocity, 0.3f, newVelocity, clBot.enemyVelocity);
-    } else {
-        VectorClear(clBot.enemyVelocity);
-    }
-    VectorCopy(enemyPos, clBot.enemyLastPos);
-
-    /* Predict enemy position - reduce prediction for stability */
-    vec3_t predictedPos;
-    float predictionTime;
-    predictionTime = dist / 4000.0f; /* Reduced from 3000 for less aggressive lead */
-    VectorMA(enemyPos, predictionTime, clBot.enemyVelocity, predictedPos);
-
-    // Calculate aim angles with prediction
+    // Simple direct aim - no prediction, no complexity
     vec3_t aimDir;
     vec3_t aimTarget;
     vec3_t eyePos;
+    vec3_t newTargetAngles;
 
-    // Aim at predicted position
-    VectorCopy(predictedPos, aimTarget);
-    aimTarget[2] += 40; // Aim at upper body
+    // Aim directly at enemy chest
+    VectorCopy(enemy->origin, aimTarget);
+    aimTarget[2] += 40;
 
     // Our eye position
     VectorCopy(cl.snap.ps.origin, eyePos);
     eyePos[2] += cl.snap.ps.viewheight;
 
-    // Direction from our eyes to enemy chest
+    // Direction from our eyes to enemy
     VectorSubtract(aimTarget, eyePos, aimDir);
     VectorNormalize(aimDir);
 
-    if (cl_bot_debug && cl_bot_debug->integer > 1) {
-        Com_Printf("Aim calc: eyePos=(%.1f,%.1f,%.1f) target=(%.1f,%.1f,%.1f) dir=(%.3f,%.3f,%.3f)\n",
-            eyePos[0], eyePos[1], eyePos[2],
-            aimTarget[0], aimTarget[1], aimTarget[2],
-            aimDir[0], aimDir[1], aimDir[2]);
+    // Calculate what the aim angles SHOULD be
+    vectoangles(aimDir, newTargetAngles);
+    newTargetAngles[PITCH] = AngleNormalize180(newTargetAngles[PITCH]);
+
+    // Clamp pitch
+    if (newTargetAngles[PITCH] > 89.0f) {
+        newTargetAngles[PITCH] = 89.0f;
+    } else if (newTargetAngles[PITCH] < -89.0f) {
+        newTargetAngles[PITCH] = -89.0f;
     }
 
-    vectoangles(aimDir, clBot.targetAngles);
-
-    if (cl_bot_debug && cl_bot_debug->integer > 1) {
-        Com_Printf("Angles from vectoangles: pitch=%.1f yaw=%.1f\n",
-            clBot.targetAngles[PITCH], clBot.targetAngles[YAW]);
-    }
-
-    // Normalize pitch to -180 to 180 range (vectoangles can return negative angles beyond -180)
-    clBot.targetAngles[PITCH] = AngleNormalize180(clBot.targetAngles[PITCH]);
-
-    // Clamp pitch to valid range
-    if (clBot.targetAngles[PITCH] > 89.0f) {
-        clBot.targetAngles[PITCH] = 89.0f;
-    } else if (clBot.targetAngles[PITCH] < -89.0f) {
-        clBot.targetAngles[PITCH] = -89.0f;
-    }
-
-    if (cl_bot_debug && cl_bot_debug->integer > 1) {
-        Com_Printf("Final aim angles: pitch=%.1f yaw=%.1f (dist=%.0f)\n",
-            clBot.targetAngles[PITCH], clBot.targetAngles[YAW], dist);
-    }
+    // SMOOTH the target angles - don't just replace them
+    // This prevents jitter from frame-to-frame enemy position changes
+    // 80% new + 20% old = responsive but smooth
+    clBot.targetAngles[PITCH] = newTargetAngles[PITCH] * 0.8f + clBot.targetAngles[PITCH] * 0.2f;
+    clBot.targetAngles[YAW] = AngleMod(newTargetAngles[YAW] * 0.8f + clBot.targetAngles[YAW] * 0.2f);
 
     // Check if we're facing a wall while attacking - if so, give up and turn around
     vec3_t wallCheck, wallEnd, wallForward;
@@ -723,7 +687,7 @@ static void CL_Bot_ThinkAttacking(void)
         return;
     }
 
-    // PISTOL-WHIP MODE: Charge at enemy with aggressive strafing movement
+    // PISTOL-WHIP MODE: Always charge forward at enemy with strafing
     vec3_t forward, right;
     VectorCopy(delta, forward);
     forward[2] = 0;
@@ -732,12 +696,12 @@ static void CL_Bot_ThinkAttacking(void)
     // Calculate right vector for strafing
     AngleVectors(clBot.currentAngles, NULL, right, NULL);
 
-    // Strafe pattern: alternate left/right every 600ms for faster side-to-side
+    // Strafe pattern: alternate left/right every 600ms
     float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
 
-    // Mix forward movement (50%) with strafing (50%) for very aggressive dodging
-    clBot.moveDir[0] = forward[0] * 0.5f + right[0] * strafeDir * 0.5f;
-    clBot.moveDir[1] = forward[1] * 0.5f + right[1] * strafeDir * 0.5f;
+    // 100% forward + 30% strafe - W key always held
+    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.3f;
+    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.3f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
     clBot.isMoving = qtrue;
@@ -915,7 +879,7 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
     int i;
     float diff;
 
-    /* Adaptive aim speed for aimbot behavior */
+    /* Simplified aim speed - just snap and track */
     if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
         /* Check if enemy was just acquired */
         freshLock = (cls.realtime - clBot.enemyAcquiredTime) < 100;
@@ -925,22 +889,14 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
         yawDiff = fabs(CL_Bot_AngleDiff(clBot.targetAngles[YAW], clBot.currentAngles[YAW]));
         totalDiff = pitchDiff + yawDiff;
 
-        if (freshLock || totalDiff > 15.0f) {
-            /* Snap mode: very fast on new target or far off */
-            aimSpeed = 1800.0f;
+        if (freshLock || totalDiff > 10.0f) {
+            /* Snap mode: instant lock on new target */
+            aimSpeed = 3600.0f;
             deadzone = 0.5f;
-        } else if (totalDiff > 5.0f) {
-            /* Tracking mode: medium speed */
-            aimSpeed = 450.0f;
-            deadzone = 1.5f;
-        } else if (totalDiff > 2.0f) {
-            /* Fine tracking: slower when close */
-            aimSpeed = 120.0f;
-            deadzone = 2.5f;
         } else {
-            /* Precision mode: very slow, large deadzone for stability */
-            aimSpeed = 45.0f;
-            deadzone = 4.0f;
+            /* Track mode: smooth tracking once locked */
+            aimSpeed = 720.0f;
+            deadzone = 2.0f;
         }
     } else {
         /* Roaming: slow casual aiming */
@@ -1275,10 +1231,8 @@ static void CL_Bot_CheckForEnemies(void)
     /* Update enemy tracking */
     if (bestEnemy >= 0) {
         if (clBot.enemyEntityNum != bestEnemy) {
-            /* New enemy acquired - reset tracking */
+            /* New enemy acquired */
             clBot.enemyAcquiredTime = cls.realtime;
-            VectorClear(clBot.enemyLastPos);
-            VectorClear(clBot.enemyVelocity);
         }
         clBot.enemyEntityNum = bestEnemy;
         clBot.lastEnemySeenTime = cls.realtime;
