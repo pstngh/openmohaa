@@ -2673,20 +2673,22 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
-	// Bot auto-reconnect - check every 10000 frames to prevent spam
+	// Bot auto-reconnect - track connection every frame, attempt reconnect every 10000 frames
 	if (cl_bot && cl_bot->integer) {
-		clBot.reconnectFrameCount++;
+		qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
+		                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
 
-		// Only check connection state every 10000 frames
+		// Track connection state every frame
+		if (isConnected) {
+			clBot.wasConnected = qtrue;
+		}
+
+		// Only attempt reconnect every 10000 frames
+		clBot.reconnectFrameCount++;
 		if (clBot.reconnectFrameCount >= 10000) {
 			clBot.reconnectFrameCount = 0;
 
-			qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
-			                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
-
-			if (isConnected) {
-				clBot.wasConnected = qtrue;
-			} else if (clBot.wasConnected) {
+			if (!isConnected && clBot.wasConnected) {
 				// We were connected but now we're not - disconnected!
 				const char *serverIP = CL_Bot_GetServerIP();
 				if (serverIP) {
