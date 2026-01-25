@@ -502,12 +502,12 @@ static void CL_Bot_ThinkRoaming(void)
     vec3_t forward, right;
     AngleVectors(angles, forward, right, NULL);
 
-    // Strafe pattern: alternate left/right every 600ms
-    float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
+    // Strafe pattern: alternate left/right every 300ms for aggressive dodging
+    float strafeDir = ((cls.realtime / 300) % 2 == 0) ? 1.0f : -1.0f;
 
-    // 100% forward + 30% strafe for constant forward movement with dodging
-    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.3f;
-    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.3f;
+    // 100% forward + 60% strafe for constant aggressive strafing
+    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.6f;
+    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.6f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
 }
@@ -696,12 +696,12 @@ static void CL_Bot_ThinkAttacking(void)
     // Calculate right vector for strafing
     AngleVectors(clBot.currentAngles, NULL, right, NULL);
 
-    // Strafe pattern: alternate left/right every 600ms
-    float strafeDir = ((cls.realtime / 600) % 2 == 0) ? 1.0f : -1.0f;
+    // Strafe pattern: alternate left/right every 300ms for aggressive dodging
+    float strafeDir = ((cls.realtime / 300) % 2 == 0) ? 1.0f : -1.0f;
 
-    // 100% forward + 30% strafe - W key always held
-    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.3f;
-    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.3f;
+    // 100% forward + 60% strafe - W key always held with aggressive strafing
+    clBot.moveDir[0] = forward[0] + right[0] * strafeDir * 0.6f;
+    clBot.moveDir[1] = forward[1] + right[1] * strafeDir * 0.6f;
     clBot.moveDir[2] = 0;
     VectorNormalize(clBot.moveDir);
     clBot.isMoving = qtrue;
@@ -991,10 +991,10 @@ static void CL_Bot_UpdateButtons(usercmd_t *cmd)
     }
     // Button is released for remaining 50ms
 
-    // PISTOL-WHIP MODE: Lean in the direction we're strafing (matches 600ms strafe cycle)
+    // PISTOL-WHIP MODE: Lean in the direction we're strafing (matches 300ms strafe cycle)
     // This makes movement look more tactical and harder to hit
     if (clBot.state == CLBOT_STATE_ATTACKING || clBot.state == CLBOT_STATE_ROAMING) {
-        if ((cls.realtime / 600) % 2 == 0) {
+        if ((cls.realtime / 300) % 2 == 0) {
             cmd->buttons |= BUTTON_LEAN_RIGHT;
         } else {
             cmd->buttons |= BUTTON_LEAN_LEFT;
