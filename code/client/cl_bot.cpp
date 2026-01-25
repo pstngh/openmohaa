@@ -1149,17 +1149,8 @@ static void CL_Bot_CheckForEnemies(void)
             continue;
         }
 
-        /* Skip teammates in team games */
-        if (myTeam == TEAM_ALLIES || myTeam == TEAM_AXIS) {
-            qboolean sameTeam = qfalse;
-            if ((myTeam == TEAM_ALLIES && (ent->eFlags & EF_ALLIES)) ||
-                (myTeam == TEAM_AXIS && (ent->eFlags & EF_AXIS))) {
-                sameTeam = qtrue;
-            }
-            if (sameTeam) {
-                continue;
-            }
-        }
+        /* Attack everyone - no teammate filtering */
+        /* This works for FFA and team modes alike */
 
         /* Calculate distance */
         VectorSubtract(ent->origin, cl.snap.ps.origin, delta);
