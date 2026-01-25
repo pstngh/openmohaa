@@ -2673,12 +2673,12 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
-	// Bot auto-reconnect - check every 1000 frames to prevent spam
+	// Bot auto-reconnect - check every 10000 frames to prevent spam
 	if (cl_bot && cl_bot->integer) {
 		clBot.reconnectFrameCount++;
 
-		// Only check connection state every 1000 frames
-		if (clBot.reconnectFrameCount >= 1000) {
+		// Only check connection state every 10000 frames
+		if (clBot.reconnectFrameCount >= 10000) {
 			clBot.reconnectFrameCount = 0;
 
 			qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
@@ -2699,6 +2699,7 @@ void CL_Frame ( int msec ) {
 				}
 				clBot.wasConnected = qfalse;
 				clBot.hasJoinedTeam = qfalse; // Reset team join flag
+				clBot.joinTeamTime = 0; // Reset team join timer so it will auto-join after reconnect
 			}
 		}
 	}
