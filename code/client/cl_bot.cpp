@@ -623,22 +623,28 @@ static void CL_Bot_ThinkAttacking(void)
     VectorSubtract(enemy->origin, cl.snap.ps.origin, delta);
     dist = VectorLength(delta);
 
-    // Track enemy velocity for prediction
+    /* Track enemy velocity for prediction with smoothing */
     vec3_t enemyPos;
+    vec3_t newVelocity;
     VectorCopy(enemy->origin, enemyPos);
 
     if (VectorLength(clBot.enemyLastPos) > 0) {
-        VectorSubtract(enemyPos, clBot.enemyLastPos, clBot.enemyVelocity);
-        VectorScale(clBot.enemyVelocity, 62.5f, clBot.enemyVelocity);
+        /* Calculate instantaneous velocity */
+        VectorSubtract(enemyPos, clBot.enemyLastPos, newVelocity);
+        VectorScale(newVelocity, 62.5f, newVelocity);
+
+        /* Smooth velocity: 70% old + 30% new to reduce jitter */
+        VectorScale(clBot.enemyVelocity, 0.7f, clBot.enemyVelocity);
+        VectorMA(clBot.enemyVelocity, 0.3f, newVelocity, clBot.enemyVelocity);
     } else {
         VectorClear(clBot.enemyVelocity);
     }
     VectorCopy(enemyPos, clBot.enemyLastPos);
 
-    // Predict enemy position based on distance
+    /* Predict enemy position - reduce prediction for stability */
     vec3_t predictedPos;
     float predictionTime;
-    predictionTime = dist / 3000.0f;
+    predictionTime = dist / 4000.0f; /* Reduced from 3000 for less aggressive lead */
     VectorMA(enemyPos, predictionTime, clBot.enemyVelocity, predictedPos);
 
     // Calculate aim angles with prediction
@@ -925,12 +931,16 @@ static void CL_Bot_UpdateAiming(usercmd_t *cmd)
             deadzone = 0.5f;
         } else if (totalDiff > 5.0f) {
             /* Tracking mode: medium speed */
-            aimSpeed = 600.0f;
-            deadzone = 1.0f;
+            aimSpeed = 450.0f;
+            deadzone = 1.5f;
+        } else if (totalDiff > 2.0f) {
+            /* Fine tracking: slower when close */
+            aimSpeed = 120.0f;
+            deadzone = 2.5f;
         } else {
-            /* Precision mode: slow when on target */
-            aimSpeed = 180.0f;
-            deadzone = 2.0f;
+            /* Precision mode: very slow, large deadzone for stability */
+            aimSpeed = 45.0f;
+            deadzone = 4.0f;
         }
     } else {
         /* Roaming: slow casual aiming */
