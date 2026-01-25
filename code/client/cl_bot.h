@@ -96,6 +96,8 @@ typedef struct {
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
     qboolean    wasConnected;       // Whether we were connected last frame (for auto-reconnect)
+    char        serverIP[256];      // Server IP from botserver.txt
+    qboolean    loadedServerIP;     // Whether we tried to load server IP
 } clientBot_t;
 
 extern clientBot_t  clBot;
@@ -129,6 +131,11 @@ void        CL_Bot_Reset(void);
 //
 void        CL_Bot_Enable_f(void);
 void        CL_Bot_Disable_f(void);
+
+//
+// Auto-reconnect
+//
+const char* CL_Bot_GetServerIP(void);  // Get server IP from botserver.txt
 
 #ifdef __cplusplus
 }

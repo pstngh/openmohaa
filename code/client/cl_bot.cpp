@@ -1366,3 +1366,56 @@ static float CL_Bot_AngleDiff(float ang1, float ang2)
 
     return diff;
 }
+
+/*
+====================
+CL_Bot_GetServerIP
+
+Load and return server IP from botserver.txt
+====================
+*/
+const char* CL_Bot_GetServerIP(void)
+{
+    char *buffer;
+    char *p;
+    int len;
+
+    /* Return cached IP if already loaded */
+    if (clBot.loadedServerIP) {
+        return clBot.serverIP[0] ? clBot.serverIP : NULL;
+    }
+
+    /* Mark as loaded so we only try once */
+    clBot.loadedServerIP = qtrue;
+    clBot.serverIP[0] = '\0';
+
+    /* Try to read botserver.txt */
+    len = FS_ReadFileEx("botserver.txt", (void **)&buffer, qtrue);
+    if (!len || len < 0) {
+        Com_Printf("Bot auto-reconnect: botserver.txt not found\n");
+        return NULL;
+    }
+
+    /* Skip leading whitespace */
+    p = buffer;
+    while (*p && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) {
+        p++;
+    }
+
+    /* Copy IP until whitespace or newline */
+    len = 0;
+    while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n' && len < 255) {
+        clBot.serverIP[len++] = *p++;
+    }
+    clBot.serverIP[len] = '\0';
+
+    FS_FreeFile(buffer);
+
+    if (clBot.serverIP[0]) {
+        Com_Printf("Bot auto-reconnect: loaded server %s\n", clBot.serverIP);
+        return clBot.serverIP;
+    }
+
+    Com_Printf("Bot auto-reconnect: botserver.txt is empty\n");
+    return NULL;
+}
