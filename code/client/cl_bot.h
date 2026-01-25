@@ -96,6 +96,7 @@ typedef struct {
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
     qboolean    wasConnected;       // Whether we were connected last frame (for auto-reconnect)
+    int         reconnectFrameCount; // Frame counter for auto-reconnect check
     char        serverIP[256];      // Server IP from botserver.txt
     qboolean    loadedServerIP;     // Whether we tried to load server IP
 } clientBot_t;

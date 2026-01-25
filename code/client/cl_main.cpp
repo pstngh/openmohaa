@@ -2673,26 +2673,33 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
-	// Bot auto-reconnect - detect disconnection and connect to server from file
+	// Bot auto-reconnect - check every 1000 frames to prevent spam
 	if (cl_bot && cl_bot->integer) {
-		qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
-		                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
+		clBot.reconnectFrameCount++;
 
-		if (isConnected) {
-			clBot.wasConnected = qtrue;
-		} else if (clBot.wasConnected) {
-			// We were connected but now we're not - disconnected!
-			const char *serverIP = CL_Bot_GetServerIP();
-			if (serverIP) {
-				char cmd[512];
-				Com_Printf("Bot detected disconnection, reconnecting to %s...\n", serverIP);
-				Com_sprintf(cmd, sizeof(cmd), "connect %s\n", serverIP);
-				Cbuf_AddText(cmd);
-			} else {
-				Com_Printf("Bot detected disconnection, but no server IP in botserver.txt\n");
+		// Only check connection state every 1000 frames
+		if (clBot.reconnectFrameCount >= 1000) {
+			clBot.reconnectFrameCount = 0;
+
+			qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
+			                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
+
+			if (isConnected) {
+				clBot.wasConnected = qtrue;
+			} else if (clBot.wasConnected) {
+				// We were connected but now we're not - disconnected!
+				const char *serverIP = CL_Bot_GetServerIP();
+				if (serverIP) {
+					char cmd[512];
+					Com_Printf("Bot detected disconnection, reconnecting to %s...\n", serverIP);
+					Com_sprintf(cmd, sizeof(cmd), "connect %s\n", serverIP);
+					Cbuf_AddText(cmd);
+				} else {
+					Com_Printf("Bot detected disconnection, but no server IP in botserver.txt\n");
+				}
+				clBot.wasConnected = qfalse;
+				clBot.hasJoinedTeam = qfalse; // Reset team join flag
 			}
-			clBot.wasConnected = qfalse;
-			clBot.hasJoinedTeam = qfalse; // Reset team join flag
 		}
 	}
 
