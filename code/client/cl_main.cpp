@@ -2699,7 +2699,7 @@ void CL_Frame ( int msec ) {
 				} else {
 					Com_Printf("Bot detected disconnection, but no server IP in botserver.txt\n");
 				}
-				clBot.wasConnected = qfalse;
+				// Don't reset wasConnected - keep retrying until reconnected
 				clBot.hasJoinedTeam = qfalse; // Reset team join flag
 				clBot.joinTeamTime = 0; // Reset team join timer so it will auto-join after reconnect
 			}
