@@ -345,7 +345,7 @@ static void CL_Bot_CheckStuck(void)
 
         // Act faster - only need 2 stuck checks instead of 3
         if (clBot.stuckCount >= 2) {
-            // Check if there's a wall directly ahead
+            // Check if there's a tall wall directly ahead
             vec3_t start, end, forward;
             vec3_t mins = {-12, -12, 0};
             vec3_t maxs = {12, 12, 40};
@@ -363,10 +363,10 @@ static void CL_Bot_CheckStuck(void)
             trace_t trace;
             CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
 
-            // If wall very close ahead (< 20 units), turn immediately - don't jump
-            if (trace.fraction < 0.4f) {
+            // Only turn if wall is VERY close (< 10 units) - otherwise jump
+            if (trace.fraction < 0.2f) {
                 if (cl_bot_debug && cl_bot_debug->integer) {
-                    Com_Printf("Wall detected ahead (%.1f units), turning instead of jumping\n",
+                    Com_Printf("Tall wall detected ahead (%.1f units), turning instead of jumping\n",
                         trace.fraction * 50.0f);
                 }
 
@@ -381,7 +381,7 @@ static void CL_Bot_CheckStuck(void)
                 CL_Bot_PickNewRoamTarget();
                 clBot.stuckCount = 0;
             } else {
-                // Not a wall, try jumping over obstacle
+                // Not a very close wall, try jumping over obstacle
                 clBot.shouldJump = qtrue;
             }
         }
