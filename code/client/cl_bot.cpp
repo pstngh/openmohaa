@@ -345,44 +345,53 @@ static void CL_Bot_CheckStuck(void)
 
         // Act faster - only need 2 stuck checks instead of 3
         if (clBot.stuckCount >= 2) {
-            // Check if there's a tall wall directly ahead
-            vec3_t start, end, forward;
-            vec3_t mins = {-12, -12, 0};
-            vec3_t maxs = {12, 12, 40};
-            vec3_t angles;
-
-            VectorCopy(cl.snap.ps.origin, start);
-            start[2] += 20;
-
-            angles[PITCH] = 0;
-            angles[YAW] = clBot.currentAngles[YAW];
-            angles[ROLL] = 0;
-            AngleVectors(angles, forward, NULL, NULL);
-            VectorMA(start, 50.0f, forward, end);
-
-            trace_t trace;
-            CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
-
-            // Only turn if wall is VERY close (< 10 units) - otherwise jump
-            if (trace.fraction < 0.2f) {
+            // If attacking an enemy, always jump to chase them (through windows, over obstacles)
+            if (clBot.state == CLBOT_STATE_ATTACKING && clBot.enemyEntityNum >= 0) {
                 if (cl_bot_debug && cl_bot_debug->integer) {
-                    Com_Printf("Tall wall detected ahead (%.1f units), turning instead of jumping\n",
-                        trace.fraction * 50.0f);
+                    Com_Printf("Bot stuck while attacking - jumping to chase enemy\n");
                 }
-
-                // Find best clear direction from obstacle scan
-                float bestAngle = CL_Bot_CheckObstacles();
-                if (bestAngle != 0) {
-                    clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + bestAngle);
-                } else {
-                    // If obstacle scan says all blocked, turn around
-                    clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 180);
-                }
-                CL_Bot_PickNewRoamTarget();
+                clBot.shouldJump = qtrue;
                 clBot.stuckCount = 0;
             } else {
-                // Not a very close wall, try jumping over obstacle
-                clBot.shouldJump = qtrue;
+                // When roaming, check if there's a tall wall directly ahead
+                vec3_t start, end, forward;
+                vec3_t mins = {-12, -12, 0};
+                vec3_t maxs = {12, 12, 40};
+                vec3_t angles;
+
+                VectorCopy(cl.snap.ps.origin, start);
+                start[2] += 20;
+
+                angles[PITCH] = 0;
+                angles[YAW] = clBot.currentAngles[YAW];
+                angles[ROLL] = 0;
+                AngleVectors(angles, forward, NULL, NULL);
+                VectorMA(start, 50.0f, forward, end);
+
+                trace_t trace;
+                CM_BoxTrace(&trace, start, end, mins, maxs, 0, CONTENTS_SOLID, qfalse);
+
+                // Only turn if wall is VERY close (< 10 units) - otherwise jump
+                if (trace.fraction < 0.2f) {
+                    if (cl_bot_debug && cl_bot_debug->integer) {
+                        Com_Printf("Tall wall detected ahead (%.1f units), turning instead of jumping\n",
+                            trace.fraction * 50.0f);
+                    }
+
+                    // Find best clear direction from obstacle scan
+                    float bestAngle = CL_Bot_CheckObstacles();
+                    if (bestAngle != 0) {
+                        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + bestAngle);
+                    } else {
+                        // If obstacle scan says all blocked, turn around
+                        clBot.targetAngles[YAW] = AngleMod(clBot.currentAngles[YAW] + 180);
+                    }
+                    CL_Bot_PickNewRoamTarget();
+                    clBot.stuckCount = 0;
+                } else {
+                    // Not a very close wall, try jumping over obstacle
+                    clBot.shouldJump = qtrue;
+                }
             }
         }
     } else {
