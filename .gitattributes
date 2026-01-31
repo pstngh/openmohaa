@@ -1,0 +1,4 @@
+# CMakeLists.txt merge=keepMine
+.github/workflows/shared-build-windows.yml merge=keepMine
+.github/workflows/shared-build-linux.yml merge=keepMine
+.github/workflows/shared-build.yml merge=keepMine
