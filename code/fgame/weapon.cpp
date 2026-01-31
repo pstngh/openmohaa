@@ -1031,6 +1031,11 @@ int Weapon::GetClipSize(firemode_t mode)
 //======================
 void Weapon::UseAmmo(int amount, firemode_t mode)
 {
+    // Bottomless clip mode - infinite ammo via dmflags
+    if (DM_FLAG(DF_INFINITE_AMMO)) {
+        return;
+    }
+
     mode = m_bShareClip ? FIRE_PRIMARY : mode;
 
     if (UnlimitedAmmo(mode) && (!owner || !owner->isClient())) {
