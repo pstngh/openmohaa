@@ -1251,24 +1251,7 @@ void BotController::GotKill(const Event& ev)
     ClearEnemy();
     m_iCuriousTime = 0;
 
-    if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
-        //
-        // Randomly play a taunt
-        //
-        Event event("dmmessage");
-
-        event.AddInteger(0);
-
-        if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-            event.AddString("*5" + str(1 + (rand() % 8)));
-        } else {
-            event.AddString("*4" + str(1 + (rand() % 9)));
-        }
-
-        controlledEnt->ProcessEvent(event);
-
-        m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
-    }
+    // Bot taunts disabled
 }
 
 void BotController::EventStuffText(const str& text)
