@@ -767,7 +767,7 @@ bool BotController::CheckCondition_Attack(void)
 
         maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
 
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
+        if (controlledEnt->CanSee(sent, 360, maxDistance, false)) {
             if (m_pEnemy != sent) {
                 m_iEnemyEyesTag = -1;
             }
@@ -826,7 +826,7 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 360, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
 
     if (bCanSee) {
         if (!pWeap) {
