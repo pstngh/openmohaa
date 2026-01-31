@@ -41,16 +41,7 @@ jobs:
       matrix:
         target_os: [
           'linux-amd64',
-          'linux-i686',
-          'linux-arm64',
-          'linux-armhf',
-          'linux-powerpc',
-          'linux-ppc64',
-          'linux-ppc64el',
-          'windows-x64-pdb',
-          'windows-x86-pdb',
-          'windows-arm64-pdb',
-          'macos-multiarch-arm64-x86_64',
+          'windows-x64',
         ]
 
     runs-on: ubuntu-24.04
