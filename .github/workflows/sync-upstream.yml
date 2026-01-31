@@ -1,0 +1,42 @@
+name: Sync with Upstream
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git & Merge Driver
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          # This line makes the 'keepMine' setting in .gitattributes actually work
+          git config merge.keepMine.driver true
+
+      - name: Sync with Upstream
+        run: |
+          # 1. Add upstream
+          git remote add upstream https://github.com/openmoh/openmohaa.git
+          
+          # 2. Fetch updates
+          git fetch upstream
+          
+          # 3. Merge
+          # CMakeLists.txt will try to standard merge (because we commented it out).
+          # The 3 .yml files will stay exactly as they are (because of keepMine).
+          git merge upstream/main
+          
+          # 4. Push
+          git push origin main
