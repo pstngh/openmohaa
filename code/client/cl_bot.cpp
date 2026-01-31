@@ -40,6 +40,7 @@ cvar_t *cl_bot_attackdist = NULL;
 cvar_t *cl_bot_firedelay = NULL;
 cvar_t *cl_bot_roamtime  = NULL;
 cvar_t *cl_bot_debug     = NULL;
+cvar_t *bot_server       = NULL;
 
 // Constants
 #define CLBOT_ROAM_CHANGE_TIME      3000    // Change roam direction every 3 seconds
@@ -89,6 +90,7 @@ void CL_Bot_Init(void)
     cl_bot_firedelay = Cvar_Get("cl_bot_firedelay", "150", CVAR_ARCHIVE);
     cl_bot_roamtime  = Cvar_Get("cl_bot_roamtime", "3000", CVAR_ARCHIVE);
     cl_bot_debug     = Cvar_Get("cl_bot_debug", "0", 0);
+    bot_server       = Cvar_Get("bot_server", "127.0.0.1:12203", CVAR_ARCHIVE);
 
     // Register commands
     Cmd_AddCommand("bot_enable", CL_Bot_Enable_f);
@@ -1336,55 +1338,3 @@ static float CL_Bot_AngleDiff(float ang1, float ang2)
     return diff;
 }
 
-/*
-====================
-CL_Bot_GetServerIP
-
-Load and return server IP from botserver.txt
-====================
-*/
-const char* CL_Bot_GetServerIP(void)
-{
-    char *buffer;
-    char *p;
-    int len;
-
-    /* Return cached IP if already loaded */
-    if (clBot.loadedServerIP) {
-        return clBot.serverIP[0] ? clBot.serverIP : NULL;
-    }
-
-    /* Mark as loaded so we only try once */
-    clBot.loadedServerIP = qtrue;
-    clBot.serverIP[0] = '\0';
-
-    /* Try to read botserver.txt */
-    len = FS_ReadFileEx("botserver.txt", (void **)&buffer, qtrue);
-    if (!len || len < 0) {
-        Com_Printf("Bot auto-reconnect: botserver.txt not found\n");
-        return NULL;
-    }
-
-    /* Skip leading whitespace */
-    p = buffer;
-    while (*p && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) {
-        p++;
-    }
-
-    /* Copy IP until whitespace or newline */
-    len = 0;
-    while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n' && len < 255) {
-        clBot.serverIP[len++] = *p++;
-    }
-    clBot.serverIP[len] = '\0';
-
-    FS_FreeFile(buffer);
-
-    if (clBot.serverIP[0]) {
-        Com_Printf("Bot auto-reconnect: loaded server %s\n", clBot.serverIP);
-        return clBot.serverIP;
-    }
-
-    Com_Printf("Bot auto-reconnect: botserver.txt is empty\n");
-    return NULL;
-}

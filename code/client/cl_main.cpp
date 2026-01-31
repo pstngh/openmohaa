@@ -2690,14 +2690,13 @@ void CL_Frame ( int msec ) {
 
 			if (!isConnected && clBot.wasConnected) {
 				// We were connected but now we're not - disconnected!
-				const char *serverIP = CL_Bot_GetServerIP();
-				if (serverIP) {
+				if (bot_server && bot_server->string && bot_server->string[0]) {
 					char cmd[512];
-					Com_Printf("Bot detected disconnection, reconnecting to %s...\n", serverIP);
-					Com_sprintf(cmd, sizeof(cmd), "connect %s\n", serverIP);
+					Com_Printf("Bot detected disconnection, reconnecting to %s...\n", bot_server->string);
+					Com_sprintf(cmd, sizeof(cmd), "connect %s\n", bot_server->string);
 					Cbuf_AddText(cmd);
 				} else {
-					Com_Printf("Bot detected disconnection, but no server IP in botserver.txt\n");
+					Com_Printf("Bot detected disconnection, but bot_server cvar is not set\n");
 				}
 				// Don't reset wasConnected - keep retrying until reconnected
 				clBot.hasJoinedTeam = qfalse; // Reset team join flag
