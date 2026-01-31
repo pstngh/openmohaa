@@ -392,6 +392,12 @@ extern cvar_t *g_cap_firespreadmult;
  */
 extern cvar_t *g_firespreadmult_scale;
 
+/**
+ * @brief Force bots to a specific team.
+ * Values: "auto" (default), "axis", "allies"
+ */
+extern cvar_t *g_bot_team;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

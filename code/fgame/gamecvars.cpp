@@ -303,6 +303,7 @@ cvar_t *g_bot_cap_firespreadmult;
 cvar_t *g_bot_firespreadmult_scale;
 cvar_t *g_cap_firespreadmult;
 cvar_t *g_firespreadmult_scale;
+cvar_t *g_bot_team;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -719,6 +720,7 @@ void CVAR_Init(void)
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
+    g_bot_team       = gi.Cvar_Get("g_bot_team", "auto", 0);
 
     g_bot_aggressive_movement  = gi.Cvar_Get("g_bot_aggressive_movement", "1", 0);
     g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
