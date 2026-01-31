@@ -860,6 +860,7 @@ void BotController::State_Attack(void)
 
             //
             // check the fire movement speed if the weapon has a max fire movement
+            // NOTE: We no longer stop movement - bots should always keep moving
             //
             if (pWeap->GetMaxFireMovement() < 1 && pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
                 float length;
@@ -867,7 +868,7 @@ void BotController::State_Attack(void)
                 length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
-                    movement.ClearMove();
+                    // movement.ClearMove(); - Removed: bots never stop moving
                 }
             }
 
@@ -909,7 +910,7 @@ void BotController::State_Attack(void)
                         }
                     } else {
                         bNoMove = true;
-                        movement.ClearMove();
+                        // movement.ClearMove(); - Removed: bots never stop moving
                     }
                 } else {
                     bFiring = true;
