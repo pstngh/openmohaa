@@ -8783,6 +8783,29 @@ void Player::InitDeathmatch(void)
     }
 
     ChooseSpawnPoint();
+
+    // Assign random weapons to bots based on team
+    if (edict->r.svFlags & SVF_BOT) {
+        float roll = G_Random();
+        if (GetTeam() == TEAM_ALLIES) {
+            // 90% SMG, 10% Sniper
+            if (roll < 0.90f) {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            }
+        } else if (GetTeam() == TEAM_AXIS) {
+            // 80% SMG, 10% Sniper, 10% MG
+            if (roll < 0.80f) {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            } else if (roll < 0.90f) {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
+            }
+        }
+    }
+
     EquipWeapons();
 
     if (current_team) {
