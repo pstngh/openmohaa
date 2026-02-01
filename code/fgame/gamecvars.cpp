@@ -281,16 +281,10 @@ cvar_t *sv_minPlayers;
 //  the bot will be relocated to a free entity slot
 cvar_t *sv_sharedbots;
 
-cvar_t *g_bot_attack_burst_min_time;
-cvar_t *g_bot_attack_burst_random_delay;
-cvar_t *g_bot_attack_continuousfire_min_firetime;
-cvar_t *g_bot_attack_continuousfire_random_firetime;
 cvar_t *g_bot_attack_react_min_delay;
 cvar_t *g_bot_attack_react_random_delay;
 cvar_t *g_bot_attack_spreadmult;
 cvar_t *g_bot_turn_speed;
-cvar_t *g_bot_instamsg_chance;
-cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
 cvar_t *g_bot_team;
@@ -679,16 +673,10 @@ void CVAR_Init(void)
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
-    g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0.1", 0);
-    g_bot_attack_burst_random_delay            = gi.Cvar_Get("g_bot_attack_burst_random_delay", "0.5", 0);
-    g_bot_attack_continuousfire_min_firetime    = gi.Cvar_Get("g_bot_attack_continuousfire_min_firetime", "0.5", 0);
-    g_bot_attack_continuousfire_random_firetime = gi.Cvar_Get("g_bot_attack_continuousfire_random_firetime", "1.5", 0);
-    g_bot_attack_react_min_delay               = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
-    g_bot_attack_react_random_delay            = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
-    g_bot_attack_spreadmult                    = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
-    g_bot_turn_speed                           = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
-    g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
-    g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
+    g_bot_attack_react_min_delay    = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
+    g_bot_attack_react_random_delay = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
+    g_bot_attack_spreadmult         = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
+    g_bot_turn_speed                = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
