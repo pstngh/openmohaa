@@ -1221,31 +1221,11 @@ void BotController::ApplyStrafeAndLean(void)
         return;
     }
 
-    // Wall collision detection - flip direction before hitting wall
-    Vector right;
-    controlledEnt->angles.AngleVectorsLeft(NULL, &right, NULL);
-
-    Vector testPos = controlledEnt->origin + right * (m_iStrafeDirection * 40);
-    trace_t trace = G_Trace(
-        controlledEnt->origin,
-        controlledEnt->mins,
-        controlledEnt->maxs,
-        testPos,
-        controlledEnt,
-        MASK_PLAYERSOLID,
-        false,
-        "BotController::ApplyStrafeAndLean"
-    );
-
-    if (trace.fraction < 0.8f) {
-        // Wall detected, flip strafe direction
-        m_iStrafeDirection = -m_iStrafeDirection;
-        // ALWAYS match lean when avoiding wall (no random - lean away from wall)
-        m_iLeanDirection = m_iStrafeDirection;
-    }
-
-    // Apply strafe - full intensity (127)
-    m_botCmd.rightmove = (signed char)(m_iStrafeDirection * 127);
+    // ADD strafe to pathfinding movement (don't overwrite it)
+    // Use reduced intensity so strafe doesn't overpower navigation
+    int strafeAmount = m_iStrafeDirection * 64;
+    int newRightMove = (int)m_botCmd.rightmove + strafeAmount;
+    m_botCmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
 
     // Apply lean
     m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
