@@ -194,6 +194,14 @@ private:
 
     int m_iLastFireTime;
 
+    // Strafe and lean
+    int   m_iStrafeDirection;       // -1 (left) or 1 (right), never 0
+    int   m_iLeanDirection;         // -1 (left) or 1 (right), never 0
+    float m_fNextStrafeChangeTime;
+    int   m_iShootMoveMode;         // 0=forward, 1=forward/back, 2=strafe only
+    float m_fNextShootMoveTime;
+    int   m_iShootMoveDirection;    // 1=forward, -1=backward
+
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -258,6 +266,8 @@ public:
     void GetUsercmd(usercmd_t *ucmd);
 
     void UpdateBotStates(void);
+    void UpdateStrafeAndLean(void);
+    void ApplyStrafeAndLean(void);
     void CheckReload(void);
 
     void AimAtAimNode(void);

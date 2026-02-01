@@ -289,6 +289,12 @@ cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
 cvar_t *g_bot_team;
 
+// Bot strafe and lean
+cvar_t *g_bot_strafe;
+cvar_t *g_bot_strafe_min_time;
+cvar_t *g_bot_strafe_max_time;
+cvar_t *g_bot_lean_match_chance;
+
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
 
@@ -699,6 +705,12 @@ void CVAR_Init(void)
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
     g_bot_team       = gi.Cvar_Get("g_bot_team", "auto", 0);
+
+    // Bot strafe and lean
+    g_bot_strafe            = gi.Cvar_Get("g_bot_strafe", "1", 0);
+    g_bot_strafe_min_time   = gi.Cvar_Get("g_bot_strafe_min_time", "0.4", 0);
+    g_bot_strafe_max_time   = gi.Cvar_Get("g_bot_strafe_max_time", "1.0", 0);
+    g_bot_lean_match_chance = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

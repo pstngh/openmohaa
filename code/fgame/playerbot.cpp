@@ -73,6 +73,14 @@ BotController::BotController()
     m_iLastUnseenTime = 0;
 
     m_StateFlags = 0;
+
+    // Strafe and lean - always start with a direction (never neutral)
+    m_iStrafeDirection      = (rand() % 2) ? 1 : -1;
+    m_iLeanDirection        = m_iStrafeDirection;
+    m_fNextStrafeChangeTime = 0;
+    m_iShootMoveMode        = 0;
+    m_fNextShootMoveTime    = 0;
+    m_iShootMoveDirection   = 1;
 }
 
 BotController::~BotController()
@@ -1158,12 +1166,126 @@ void BotController::Spawned(void)
     m_botCmd.buttons = 0;
 }
 
+void BotController::UpdateStrafeAndLean(void)
+{
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // Check if it's time to change strafe direction
+    if (level.time >= m_fNextStrafeChangeTime) {
+        // Flip strafe direction (always -1 or 1, never 0)
+        m_iStrafeDirection = -m_iStrafeDirection;
+
+        // Lean matches strafe 85% of the time
+        if (rand() % 100 < g_bot_lean_match_chance->integer) {
+            m_iLeanDirection = m_iStrafeDirection;
+        } else {
+            m_iLeanDirection = -m_iStrafeDirection;
+        }
+
+        // Calculate next change time
+        float minTime = g_bot_strafe_min_time->value;
+        float maxTime = g_bot_strafe_max_time->value;
+        m_fNextStrafeChangeTime = level.time + minTime + G_Random(maxTime - minTime);
+    }
+
+    // Update shooting movement mode (varies between forward, forward/back, strafe-only)
+    bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
+    if (isAttacking && level.time >= m_fNextShootMoveTime) {
+        // Pick a random mode: 0=forward, 1=forward/back, 2=strafe only
+        m_iShootMoveMode = rand() % 3;
+
+        // For forward/back mode, pick initial direction
+        if (m_iShootMoveMode == 1) {
+            m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
+        }
+
+        // Next mode change in 0.2-0.5s
+        m_fNextShootMoveTime = level.time + 0.2f + G_Random(0.3f);
+    }
+}
+
+void BotController::ApplyStrafeAndLean(void)
+{
+    if (!controlledEnt) {
+        return;
+    }
+
+    // Skip on ladders
+    if (controlledEnt->GetLadder()) {
+        return;
+    }
+
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // Wall collision detection - flip direction before hitting wall
+    Vector right;
+    controlledEnt->angles.AngleVectorsLeft(NULL, &right, NULL);
+
+    Vector testPos = controlledEnt->origin + right * (m_iStrafeDirection * 40);
+    trace_t trace = G_Trace(
+        controlledEnt->origin,
+        controlledEnt->mins,
+        controlledEnt->maxs,
+        testPos,
+        controlledEnt,
+        MASK_PLAYERSOLID,
+        false,
+        "BotController::ApplyStrafeAndLean"
+    );
+
+    if (trace.fraction < 0.8f) {
+        // Wall detected ahead, flip strafe direction
+        m_iStrafeDirection = -m_iStrafeDirection;
+        // Also flip lean to match (most of the time)
+        if (rand() % 100 < g_bot_lean_match_chance->integer) {
+            m_iLeanDirection = m_iStrafeDirection;
+        }
+    }
+
+    // Apply strafe - full intensity (127)
+    m_botCmd.rightmove = (signed char)(m_iStrafeDirection * 127);
+
+    // Apply lean
+    m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+    if (m_iLeanDirection > 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_RIGHT;
+    } else {
+        m_botCmd.buttons |= BUTTON_LEAN_LEFT;
+    }
+
+    // Handle forward/backward movement when shooting
+    bool isAttacking = (m_StateFlags & 1);
+    if (isAttacking) {
+        switch (m_iShootMoveMode) {
+        case 0:
+            // Forward only - keep existing forward movement
+            break;
+        case 1:
+            // Forward/backward alternation
+            m_botCmd.forwardmove = (signed char)(m_iShootMoveDirection * 127);
+            // Flip direction for next frame
+            m_iShootMoveDirection = -m_iShootMoveDirection;
+            break;
+        case 2:
+            // Strafe only - no forward movement
+            m_botCmd.forwardmove = 0;
+            break;
+        }
+    }
+}
+
 void BotController::Think()
 {
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
 
+    UpdateStrafeAndLean();
     UpdateBotStates();
+    ApplyStrafeAndLean();
     GetUsercmd(&ucmd);
     GetEyeInfo(&eyeinfo);
 
