@@ -1238,12 +1238,10 @@ void BotController::ApplyStrafeAndLean(void)
     );
 
     if (trace.fraction < 0.8f) {
-        // Wall detected ahead, flip strafe direction
+        // Wall detected, flip strafe direction
         m_iStrafeDirection = -m_iStrafeDirection;
-        // Also flip lean to match (most of the time)
-        if (rand() % 100 < g_bot_lean_match_chance->integer) {
-            m_iLeanDirection = m_iStrafeDirection;
-        }
+        // ALWAYS match lean when avoiding wall (no random - lean away from wall)
+        m_iLeanDirection = m_iStrafeDirection;
     }
 
     // Apply strafe - full intensity (127)
