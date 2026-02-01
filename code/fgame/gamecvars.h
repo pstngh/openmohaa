@@ -372,6 +372,23 @@ extern cvar_t *g_firespreadmult_scale;
  */
 extern cvar_t *g_bot_team;
 
+/**
+ * @brief Enable bot strafe and lean movement.
+ */
+extern cvar_t *g_bot_strafe;
+/**
+ * @brief Minimum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_min_time;
+/**
+ * @brief Maximum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_max_time;
+/**
+ * @brief Chance (0-100) that lean matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_match_chance;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

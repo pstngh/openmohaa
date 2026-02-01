@@ -299,6 +299,12 @@ cvar_t *g_cap_firespreadmult;
 cvar_t *g_firespreadmult_scale;
 cvar_t *g_bot_team;
 
+// Bot strafe and lean
+cvar_t *g_bot_strafe;
+cvar_t *g_bot_strafe_min_time;
+cvar_t *g_bot_strafe_max_time;
+cvar_t *g_bot_lean_match_chance;
+
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
 
@@ -720,6 +726,12 @@ void CVAR_Init(void)
     g_bot_firespreadmult_scale = gi.Cvar_Get("g_bot_firespreadmult_scale", "-1", 0);
     g_cap_firespreadmult       = gi.Cvar_Get("g_cap_firespreadmult", "0", 0);
     g_firespreadmult_scale     = gi.Cvar_Get("g_firespreadmult_scale", "-1", 0);
+
+    // Bot strafe and lean (alternative cvars from IddQ1 branch)
+    g_bot_strafe            = gi.Cvar_Get("g_bot_strafe", "1", 0);
+    g_bot_strafe_min_time   = gi.Cvar_Get("g_bot_strafe_min_time", "0.4", 0);
+    g_bot_strafe_max_time   = gi.Cvar_Get("g_bot_strafe_max_time", "1.0", 0);
+    g_bot_lean_match_chance = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
