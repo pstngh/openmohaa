@@ -937,36 +937,19 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
-        Vector        vTarget;
-        orientation_t eyes_or;
+        Vector vTarget;
 
-        if (m_iEnemyEyesTag == -1) {
-            // Cache the tag
-            m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
-        }
-
-        if (m_iEnemyEyesTag != -1) {
-            // Use the enemy's eyes bone
-            m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
-            vTarget = eyes_or.origin;
-        } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
-            vTarget = m_pEnemy->origin;
-        }
+        // Always aim at center body (chest area), never head/neck
+        // Chest height is roughly 60-70% of viewheight
+        float chestHeight = m_pEnemy->viewheight * 0.65f;
+        vTarget = m_pEnemy->origin;
+        vTarget[2] += chestHeight;
 
         if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-            }
+            // Spread only goes left/right or DOWN (never up toward head)
+            m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
+            m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
+            m_vAimOffset[2] = -G_Random(chestHeight * 0.5f);  // Only negative (down toward legs)
             m_iLastAimTime = level.inttime;
         }
 
