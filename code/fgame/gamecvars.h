@@ -286,6 +286,14 @@ extern cvar_t *g_bot_attack_react_random_delay;
  */
 extern cvar_t *g_bot_attack_spreadmult;
 /**
+ * @brief Max aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_max;
+/**
+ * @brief Min aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_min;
+/**
  * @brief The degrees per seconds when the bot turns.
  */
 extern cvar_t *g_bot_turn_speed;
