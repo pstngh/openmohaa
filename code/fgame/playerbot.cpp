@@ -939,17 +939,21 @@ void BotController::State_Attack(void)
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
         Vector vTarget;
 
-        // Always aim at center body (chest area), never head/neck
-        // Chest height is roughly 60-70% of viewheight
-        float chestHeight = m_pEnemy->viewheight * 0.65f;
+        // Aim at body using cvar-controlled height range
+        // g_bot_aim_height_max = top of aim range (default 0.65 = chest)
+        // g_bot_aim_height_min = bottom of aim range (default 0.49 = waist)
+        float maxHeight = m_pEnemy->viewheight * g_bot_aim_height_max->value;
+        float minHeight = m_pEnemy->viewheight * g_bot_aim_height_min->value;
+        float spreadDown = maxHeight - minHeight;
+
         vTarget = m_pEnemy->origin;
-        vTarget[2] += chestHeight;
+        vTarget[2] += maxHeight;
 
         if (level.inttime >= m_iLastAimTime + 100) {
             // Spread only goes left/right or DOWN (never up toward head)
             m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
             m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-            m_vAimOffset[2] = -G_Random(chestHeight * 0.5f);  // Only negative (down toward legs)
+            m_vAimOffset[2] = -G_Random(spreadDown);  // Only negative (down toward min height)
             m_iLastAimTime = level.inttime;
         }
 

@@ -284,6 +284,8 @@ cvar_t *sv_sharedbots;
 cvar_t *g_bot_attack_react_min_delay;
 cvar_t *g_bot_attack_react_random_delay;
 cvar_t *g_bot_attack_spreadmult;
+cvar_t *g_bot_aim_height_max;
+cvar_t *g_bot_aim_height_min;
 cvar_t *g_bot_turn_speed;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
@@ -692,6 +694,8 @@ void CVAR_Init(void)
     g_bot_attack_react_min_delay    = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_attack_react_random_delay = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
     g_bot_attack_spreadmult         = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
+    g_bot_aim_height_max            = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
+    g_bot_aim_height_min            = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
     g_bot_turn_speed                = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
