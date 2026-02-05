@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '0 0 * * 0'   # Runs automatically every Sunday at midnight
 
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: true
+
 jobs:
   sync:
     # PROTECTION: Only runs if you are on the 'main' branch
