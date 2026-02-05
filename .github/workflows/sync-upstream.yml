@@ -33,14 +33,18 @@ jobs:
         run: |
           # 1. Add the upstream remote
           git remote add upstream https://github.com/openmoh/openmohaa.git
-          
-          # 2. Fetch the updates
+
+          # 2. Fetch the updates (both upstream and origin)
           git fetch upstream
-          
-          # 3. Merge upstream changes
+          git fetch origin main
+
+          # 3. Ensure local main is up to date with the fork's remote main
+          git reset --hard origin/main
+
+          # 4. Merge upstream changes
           # Files listed in .gitattributes as 'merge=keepMine' will NOT change.
           # All other files will update.
           git merge upstream/main
-          
-          # 4. Push changes back to your repo
+
+          # 5. Push changes back to your repo
           git push origin main
