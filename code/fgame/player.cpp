@@ -8785,10 +8785,10 @@ void Player::InitDeathmatch(void)
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
             }
         } else if (GetTeam() == TEAM_AXIS) {
-            // 5% SMG, 35% Sniper, 60% MG
-            if (roll < 0.05f) {
+            // 60% SMG, 35% Sniper, 5% MG
+            if (roll < 0.60f) {
                 Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
-            } else if (roll < 0.40f) {
+            } else if (roll < 0.95f) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
             } else {
                 Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
