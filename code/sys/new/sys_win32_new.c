@@ -131,3 +131,36 @@ void SetBelowNormalThreadPriority(void)
 {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 }
+
+/*
+==============
+Sys_ShowConsole
+
+Show or hide the Windows console window based on visLevel:
+  0 = hidden
+  1 = visible
+  2 = minimized
+==============
+*/
+void Sys_ShowConsole(int visLevel, qboolean quitOnClose)
+{
+    HWND hWnd = GetConsoleWindow();
+    if (hWnd == NULL) {
+        return;
+    }
+
+    switch (visLevel) {
+        case 0:
+            ShowWindow(hWnd, SW_HIDE);
+            break;
+        case 1:
+            ShowWindow(hWnd, SW_SHOW);
+            break;
+        case 2:
+            ShowWindow(hWnd, SW_MINIMIZE);
+            break;
+        default:
+            ShowWindow(hWnd, SW_HIDE);
+            break;
+    }
+}

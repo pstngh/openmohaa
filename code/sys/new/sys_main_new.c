@@ -55,9 +55,12 @@ void		GLimp_WakeRenderer(void* data)
 Sys_ShowConsole
 ==============
 */
+#ifndef _WIN32
 void Sys_ShowConsole(int visLevel, qboolean quitOnClose)
 {
+    // No-op on non-Windows platforms
 }
+#endif
 
 /*
 ==============
