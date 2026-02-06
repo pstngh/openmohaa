@@ -396,6 +396,10 @@ extern cvar_t *g_bot_strafe_max_time;
  * @brief Chance (0-100) that lean matches strafe direction.
  */
 extern cvar_t *g_bot_lean_match_chance;
+/**
+ * @brief Enable forward/backward bobbing when shooting (0=off, 1=on).
+ */
+extern cvar_t *g_bot_shoot_bobbing;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
