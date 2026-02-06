@@ -402,17 +402,9 @@ extern cvar_t *g_bot_lean_match_chance;
 extern cvar_t *g_bot_shoot_bobbing;
 
 /**
- * @brief Percentage of allied bots that get sniper rifles (rest get SMG).
+ * @brief Percentage of bots that get sniper rifles (rest get SMG, axis also 5% MG).
  */
-extern cvar_t *g_bot_allies_sniper;
-/**
- * @brief Percentage of axis bots that get sniper rifles.
- */
-extern cvar_t *g_bot_axis_sniper;
-/**
- * @brief Percentage of axis bots that get MG (rest after sniper get SMG).
- */
-extern cvar_t *g_bot_axis_mg;
+extern cvar_t *g_bot_sniper;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

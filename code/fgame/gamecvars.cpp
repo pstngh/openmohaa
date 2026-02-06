@@ -309,9 +309,7 @@ cvar_t *g_bot_lean_match_chance;
 cvar_t *g_bot_shoot_bobbing;
 
 // Bot weapon distribution
-cvar_t *g_bot_allies_sniper;
-cvar_t *g_bot_axis_sniper;
-cvar_t *g_bot_axis_mg;
+cvar_t *g_bot_sniper;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -744,10 +742,8 @@ void CVAR_Init(void)
     g_bot_lean_match_chance = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
     g_bot_shoot_bobbing     = gi.Cvar_Get("g_bot_shoot_bobbing", "1", 0);
 
-    // Bot weapon distribution (percentages)
-    g_bot_allies_sniper = gi.Cvar_Get("g_bot_allies_sniper", "35", 0);
-    g_bot_axis_sniper   = gi.Cvar_Get("g_bot_axis_sniper", "35", 0);
-    g_bot_axis_mg       = gi.Cvar_Get("g_bot_axis_mg", "5", 0);
+    // Bot weapon distribution
+    g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
