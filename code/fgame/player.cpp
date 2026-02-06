@@ -8774,24 +8774,25 @@ void Player::InitDeathmatch(void)
 
     ChooseSpawnPoint();
 
-    // Assign random weapons to bots based on team
+    // Assign random weapons to bots based on team (cvar controlled)
     if (edict->r.svFlags & SVF_BOT) {
         float roll = G_Random();
         if (GetTeam() == TEAM_ALLIES) {
-            // 65% SMG, 35% Sniper
-            if (roll < 0.65f) {
-                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
-            } else {
+            float sniperChance = g_bot_allies_sniper->value / 100.0f;
+            if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
             }
         } else if (GetTeam() == TEAM_AXIS) {
-            // 60% SMG, 35% Sniper, 5% MG
-            if (roll < 0.60f) {
-                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
-            } else if (roll < 0.95f) {
+            float sniperChance = g_bot_axis_sniper->value / 100.0f;
+            float mgChance = g_bot_axis_mg->value / 100.0f;
+            if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
-            } else {
+            } else if (roll < sniperChance + mgChance) {
                 Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
             }
         }
     }
