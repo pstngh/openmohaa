@@ -8774,22 +8774,21 @@ void Player::InitDeathmatch(void)
 
     ChooseSpawnPoint();
 
-    // Assign random weapons to bots based on team (cvar controlled)
+    // Assign random weapons to bots based on team
     if (edict->r.svFlags & SVF_BOT) {
         float roll = G_Random();
+        float sniperChance = g_bot_sniper->value / 100.0f;
         if (GetTeam() == TEAM_ALLIES) {
-            float sniperChance = g_bot_allies_sniper->value / 100.0f;
             if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
             } else {
                 Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
             }
         } else if (GetTeam() == TEAM_AXIS) {
-            float sniperChance = g_bot_axis_sniper->value / 100.0f;
-            float mgChance = g_bot_axis_mg->value / 100.0f;
+            // Axis: sniper%, 5% MG, rest SMG
             if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
-            } else if (roll < sniperChance + mgChance) {
+            } else if (roll < sniperChance + 0.05f) {
                 Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
             } else {
                 Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
