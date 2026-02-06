@@ -1181,7 +1181,12 @@ void BotController::UpdateStrafeAndLean(void)
     bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
     if (isAttacking && level.time >= m_fNextShootMoveTime) {
         // Pick a random mode: 0=forward, 1=forward/back, 2=strafe only
-        m_iShootMoveMode = rand() % 3;
+        if (g_bot_shoot_bobbing->integer) {
+            m_iShootMoveMode = rand() % 3;
+        } else {
+            // Skip mode 1 (forward/back) - only pick 0 or 2
+            m_iShootMoveMode = (rand() % 2) * 2;
+        }
 
         // For forward/back mode, pick initial direction
         if (m_iShootMoveMode == 1) {
