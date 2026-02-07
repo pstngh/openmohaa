@@ -365,6 +365,13 @@ extern cvar_t *g_bot_use_dmspreadmult;
  */
 extern cvar_t *g_bot_cap_firespreadmult;
 
+/**
+ * @brief Cap human client fire spread mult at full magazine level.
+ * 1 = cap spread at what a full magazine spray would produce
+ * 0 = no cap (default, original behavior)
+ */
+extern cvar_t *g_cap_firespreadmult;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

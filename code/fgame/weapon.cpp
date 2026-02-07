@@ -1664,12 +1664,16 @@ void Weapon::Shoot(Event *ev)
                 }
             }
 
-            // For bots: cap spread at what a full magazine would produce
-            if (owner && owner->client && g_bot_cap_firespreadmult->integer) {
-                if (G_IsBot(owner->edict)) {
+            // Cap spread at what a full magazine would produce
+            if (owner && owner->client) {
+                bool isBot    = G_IsBot(owner->edict);
+                bool shouldCap = (isBot && g_bot_cap_firespreadmult->integer)
+                              || (!isBot && g_cap_firespreadmult->integer);
+
+                if (shouldCap) {
                     // Calculate max spread based on clip size
-                    int   clipSize      = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
-                    float maxFromClip   = clipSize * m_fFireSpreadMultAmount[mode];
+                    int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                    float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
 
                     if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
                         m_fFireSpreadMult[mode] = maxFromClip;
