@@ -352,6 +352,12 @@ extern cvar_t *g_bot_strafe_max_interval;
  */
 extern cvar_t *g_bot_lean_coupling;
 
+/**
+ * @brief Whether bots use dmspreadmult from weapon tik files.
+ * 1 = use weapon spread multipliers (default), 0 = ignore them for bots
+ */
+extern cvar_t *g_bot_use_dmspreadmult;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "vehicleturret.h"
 #include "debuglines.h"
 #include "g_spawn.h"
+#include "g_bot.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1434,17 +1435,25 @@ void Weapon::Shoot(Event *ev)
                 if (owner) {
                     if (owner->client) {
                         Player *player = (Player *)owner.Pointer();
+                        bool    isBot  = G_IsBot(player->edict);
 
                         fSpreadFactor = GetSpreadFactor(mode);
 
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Apply fire spread mult (skip for bots if cvar disabled)
+                        if (!isBot || g_bot_use_dmspreadmult->integer) {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
-                                vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                // Apply zoom spread mult (skip for bots if cvar disabled)
+                                if (!isBot || g_bot_use_dmspreadmult->integer) {
+                                    vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                }
                             }
                         }
                     }
@@ -1504,6 +1513,7 @@ void Weapon::Shoot(Event *ev)
                 if (owner) {
                     if (owner->client) {
                         Player *player = (Player *)owner.Pointer();
+                        bool    isBot  = G_IsBot(player->edict);
 
                         fSpreadFactor = player->velocity.length() / sv_runspeed->integer;
 
@@ -1514,11 +1524,18 @@ void Weapon::Shoot(Event *ev)
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Apply fire spread mult (skip for bots if cvar disabled)
+                        if (!isBot || g_bot_use_dmspreadmult->integer) {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
-                                vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                // Apply zoom spread mult (skip for bots if cvar disabled)
+                                if (!isBot || g_bot_use_dmspreadmult->integer) {
+                                    vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                }
                             }
                         }
                     }
