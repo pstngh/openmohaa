@@ -3,3 +3,4 @@
 .github/workflows/shared-build-linux.yml merge=keepMine
 .github/workflows/shared-build.yml merge=keepMine
 .github/workflows/branches-build.yml merge=keepMine
+CLAUDE.md merge=keepMine
