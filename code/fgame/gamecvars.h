@@ -366,11 +366,31 @@ extern cvar_t *g_bot_use_dmspreadmult;
 extern cvar_t *g_bot_cap_firespreadmult;
 
 /**
+ * @brief Fixed bot fire spread as fraction of full magazine.
+ * -1 = normal accumulating behavior (default)
+ * 0 = no spread mult (base accuracy)
+ * 0.5 = always 50% of full mag spread
+ * 1.0 = always full mag spread
+ * 2.0 = always 2x full mag spread
+ */
+extern cvar_t *g_bot_firespreadmult_scale;
+
+/**
  * @brief Cap human client fire spread mult at full magazine level.
  * 1 = cap spread at what a full magazine spray would produce
  * 0 = no cap (default, original behavior)
  */
 extern cvar_t *g_cap_firespreadmult;
+
+/**
+ * @brief Fixed client fire spread as fraction of full magazine.
+ * -1 = normal accumulating behavior (default)
+ * 0 = no spread mult (base accuracy)
+ * 0.5 = always 50% of full mag spread
+ * 1.0 = always full mag spread
+ * 2.0 = always 2x full mag spread
+ */
+extern cvar_t *g_firespreadmult_scale;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

@@ -1664,21 +1664,29 @@ void Weapon::Shoot(Event *ev)
                 }
             }
 
-            // Cap spread at what a full magazine would produce
+            // Handle spread for bots and clients
             if (owner && owner->client) {
-                bool isBot    = G_IsBot(owner->edict);
-                bool shouldCap = (isBot && g_bot_cap_firespreadmult->integer)
-                              || (!isBot && g_cap_firespreadmult->integer);
+                bool  isBot       = G_IsBot(owner->edict);
+                int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
 
-                if (shouldCap) {
-                    // Calculate max spread based on clip size
-                    int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
-                    float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+                // Check for fixed scale override (takes priority over cap)
+                float scale = isBot ? g_bot_firespreadmult_scale->value : g_firespreadmult_scale->value;
 
-                    if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
-                        m_fFireSpreadMult[mode] = maxFromClip;
-                    } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
-                        m_fFireSpreadMult[mode] = maxFromClip;
+                if (scale >= 0) {
+                    // Fixed spread: override with scale * full_mag_spread
+                    m_fFireSpreadMult[mode] = maxFromClip * scale;
+                } else {
+                    // Normal accumulation - apply cap if enabled
+                    bool shouldCap = (isBot && g_bot_cap_firespreadmult->integer)
+                                  || (!isBot && g_cap_firespreadmult->integer);
+
+                    if (shouldCap) {
+                        if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
+                            m_fFireSpreadMult[mode] = maxFromClip;
+                        } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
+                            m_fFireSpreadMult[mode] = maxFromClip;
+                        }
                     }
                 }
             }
