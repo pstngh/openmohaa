@@ -1101,7 +1101,7 @@ float BotMovement::CalculateLateralClearance(int direction)
     }
 
     Vector forward, right, up;
-    AngleVectors(controlledEntity->angles, &forward, &right, &up);
+    controlledEntity->angles.AngleVectors(&forward, &right, &up);
 
     Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
     Vector end   = start + right * direction * maxCheckDist;
