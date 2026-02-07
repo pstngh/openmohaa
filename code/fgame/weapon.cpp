@@ -1663,6 +1663,21 @@ void Weapon::Shoot(Event *ev)
                     m_fFireSpreadMult[mode] = 0;
                 }
             }
+
+            // For bots: cap spread at what a full magazine would produce
+            if (owner && owner->client && g_bot_cap_firespreadmult->integer) {
+                if (G_IsBot(owner->edict)) {
+                    // Calculate max spread based on clip size
+                    int   clipSize      = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                    float maxFromClip   = clipSize * m_fFireSpreadMultAmount[mode];
+
+                    if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    }
+                }
+            }
         }
 
         m_fLastFireTime = level.time;

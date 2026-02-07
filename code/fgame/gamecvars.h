@@ -358,6 +358,13 @@ extern cvar_t *g_bot_lean_coupling;
  */
 extern cvar_t *g_bot_use_dmspreadmult;
 
+/**
+ * @brief Cap bot fire spread mult at full magazine level.
+ * 1 = cap spread at what a full magazine spray would produce (default)
+ * 0 = no cap, spread grows indefinitely (original behavior)
+ */
+extern cvar_t *g_bot_cap_firespreadmult;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
