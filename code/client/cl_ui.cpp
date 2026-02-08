@@ -1339,8 +1339,9 @@ void UI_PrintConsole(const char *msg)
 
         //
         // print to the deathmatch console
+        // Changed in OPM: skip when ui_hud is disabled
         //
-        if (dm_console && !bNormalMessage) {
+        if (dm_console && !bNormalMessage && ui_hud) {
             if (bDMMessage) {
                 dm_console->AddDMMessageText(pszString, pColor);
             } else {
@@ -1350,8 +1351,9 @@ void UI_PrintConsole(const char *msg)
 
         //
         // print to the deathmatch message box
+        // Changed in OPM: skip when ui_hud is disabled
         //
-        if (dmbox) {
+        if (dmbox && ui_hud) {
             // Changed in OPM
             //  Avoid touching/copying buffers
             /*
