@@ -1353,7 +1353,7 @@ void UI_PrintConsole(const char *msg)
         // print to the deathmatch message box
         // Changed in OPM: skip when ui_hud is disabled
         //
-        if (dmbox && ui_hud) {
+        if (dmbox) {
             // Changed in OPM
             //  Avoid touching/copying buffers
             /*
@@ -1367,15 +1367,18 @@ void UI_PrintConsole(const char *msg)
             */
 
             if (bDMMessage || bDeathMessage) {
-                dmbox->Print(msg);
+                if (ui_hud) {
+                    dmbox->Print(msg);
+                }
                 bPrintedDMBox = qtrue;
             }
         }
 
         //
         // print to the game message box
+        // Changed in OPM: skip when ui_hud is disabled
         //
-        if (gmbox && !bPrintedDMBox) {
+        if (gmbox && !bPrintedDMBox && ui_hud) {
             if (bBold) {
                 // Changed in OPM
                 //  Avoid touching/copying buffers
