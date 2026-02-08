@@ -396,7 +396,7 @@ void CVAR_Init(void)
     sv_waterspeed    = gi.Cvar_Get("sv_waterspeed", "400", 0);
 
     sv_cheats    = gi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
-    sv_fps       = gi.Cvar_Get("sv_fps", "30", CVAR_SAVEGAME);
+    sv_fps       = gi.Cvar_Get("sv_fps", "20", CVAR_SAVEGAME);
     sv_cinematic = gi.Cvar_Get("sv_cinematic", "0", CVAR_ROM);
 
     sv_maplist = gi.Cvar_Get("sv_maplist", "", CVAR_ARCHIVE | CVAR_SERVERINFO);
@@ -519,8 +519,8 @@ void CVAR_Init(void)
     g_maxintermission = gi.Cvar_Get("g_maxintermission", "15", CVAR_ARCHIVE | CVAR_SERVERINFO);
 
     g_smoothClients = gi.Cvar_Get("g_smoothClients", "1", 0);
-    pmove_fixed     = gi.Cvar_Get("pmove_fixed", "1", CVAR_SYSTEMINFO);
-    pmove_msec      = gi.Cvar_Get("pmove_msec", "8", CVAR_SYSTEMINFO);
+    pmove_fixed     = gi.Cvar_Get("pmove_fixed", "0", CVAR_SYSTEMINFO);
+    pmove_msec      = gi.Cvar_Get("pmove_msec", "0", CVAR_SYSTEMINFO);
 
     g_inactivespectate = gi.Cvar_Get("g_inactiveSpectate", "60", CVAR_ARCHIVE);
     g_inactivekick     = gi.Cvar_Get("g_inactivekick", "900", CVAR_ARCHIVE);
@@ -725,9 +725,9 @@ void CVAR_Init(void)
     g_bot_team       = gi.Cvar_Get("g_bot_team", "auto", 0);
 
     g_bot_aggressive_movement  = gi.Cvar_Get("g_bot_aggressive_movement", "1", 0);
-    g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.3", 0);
-    g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "400", 0);
-    g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "1000", 0);
+    g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
+    g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "200", 0);
+    g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "700", 0);
     g_bot_lean_coupling        = gi.Cvar_Get("g_bot_lean_coupling", "0.9", 0);
     g_bot_use_dmspreadmult     = gi.Cvar_Get("g_bot_use_dmspreadmult", "1", 0);
     g_bot_cap_firespreadmult   = gi.Cvar_Get("g_bot_cap_firespreadmult", "1", 0);
@@ -737,10 +737,10 @@ void CVAR_Init(void)
 
     // Bot strafe and lean (alternative cvars from IddQ1 branch)
     g_bot_strafe            = gi.Cvar_Get("g_bot_strafe", "1", 0);
-    g_bot_strafe_min_time   = gi.Cvar_Get("g_bot_strafe_min_time", "0.8", 0);
-    g_bot_strafe_max_time   = gi.Cvar_Get("g_bot_strafe_max_time", "2.0", 0);
+    g_bot_strafe_min_time   = gi.Cvar_Get("g_bot_strafe_min_time", "0.4", 0);
+    g_bot_strafe_max_time   = gi.Cvar_Get("g_bot_strafe_max_time", "1.0", 0);
     g_bot_lean_match_chance = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
-    g_bot_shoot_bobbing     = gi.Cvar_Get("g_bot_shoot_bobbing", "0", 0);
+    g_bot_shoot_bobbing     = gi.Cvar_Get("g_bot_shoot_bobbing", "1", 0);
 
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
