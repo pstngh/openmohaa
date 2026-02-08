@@ -893,10 +893,6 @@ void CG_DrawPlayerEntInfo()
     float       color[4];
     qhandle_t   handle;
 
-    if (!cg_hud->integer) {
-        return;
-    }
-
     if (!cg.snap || cg.snap->ps.stats[STAT_INFOCLIENT] == -1) {
         return;
     }
@@ -1158,69 +1154,94 @@ void CG_DrawSpectatorView_ver_15()
         bOnTeam = 1;
     }
 
-    if (!bOnTeam) {
-        cgi.Key_GetKeysForCommand("+attackprimary", &iKey1, &iKey2);
-        pszString = cgi.LV_ConvertString(va("Press Fire(%s) to join the battle!", cgi.Key_KeynumToBindString(iKey1)));
-        fX        = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = cgs.glconfig.vidHeight - 64.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(NULL);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
+    // Changed in OPM: hide spectator instruction text when cg_hud is disabled
+    if (cg_hud->integer) {
+        if (!bOnTeam) {
+            cgi.Key_GetKeysForCommand("+attackprimary", &iKey1, &iKey2);
+            pszString =
+                cgi.LV_ConvertString(va("Press Fire(%s) to join the battle!", cgi.Key_KeynumToBindString(iKey1)));
+            fX = (float)(cgs.glconfig.vidWidth
+                         - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
+               * 0.5;
+            fY = cgs.glconfig.vidHeight - 64.0 * cgs.uiHiResScale[1];
+            cgi.R_SetColor(NULL);
+            cgi.R_DrawString(
+                cgs.media.attackerFont,
+                pszString,
+                fX / cgs.uiHiResScale[0],
+                fY / cgs.uiHiResScale[1],
+                -1,
+                cgs.uiHiResScale
+            );
+        }
 
-    if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
-        cgi.Key_GetKeysForCommand("+moveup", &iKey1, &iKey2);
-        cgi.Key_GetKeysForCommand("+movedown", &iKey1b, &iKey2b);
+        if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
+            cgi.Key_GetKeysForCommand("+moveup", &iKey1, &iKey2);
+            cgi.Key_GetKeysForCommand("+movedown", &iKey1b, &iKey2b);
 
-        pszString = cgi.LV_ConvertString(
-            va("Press Jump(%s) or Duck(%s) to follow a different player.",
-               cgi.Key_KeynumToBindString(iKey1),
-               cgi.Key_KeynumToBindString(iKey1b))
-        );
+            pszString = cgi.LV_ConvertString(
+                va("Press Jump(%s) or Duck(%s) to follow a different player.",
+                   cgi.Key_KeynumToBindString(iKey1),
+                   cgi.Key_KeynumToBindString(iKey1b))
+            );
 
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 40.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
+            fX = (float)(cgs.glconfig.vidWidth
+                         - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
+               * 0.5;
+            fY = (float)cgs.glconfig.vidHeight - 40.0 * cgs.uiHiResScale[1];
+            cgi.R_SetColor(0);
+            cgi.R_DrawString(
+                cgs.media.attackerFont,
+                pszString,
+                fX / cgs.uiHiResScale[0],
+                fY / cgs.uiHiResScale[1],
+                -1,
+                cgs.uiHiResScale
+            );
+        }
 
-    if (!bOnTeam && (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
-        cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
-        pszString =
-            cgi.LV_ConvertString(va("Press Use(%s) to enter free spectate mode.", cgi.Key_KeynumToBindString(iKey1)));
+        if (!bOnTeam && (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
+            cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
+            pszString = cgi.LV_ConvertString(
+                va("Press Use(%s) to enter free spectate mode.", cgi.Key_KeynumToBindString(iKey1))
+            );
 
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
+            fX = (float)(cgs.glconfig.vidWidth
+                         - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
+               * 0.5;
+            fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
+            cgi.R_SetColor(0);
+            cgi.R_DrawString(
+                cgs.media.attackerFont,
+                pszString,
+                fX / cgs.uiHiResScale[0],
+                fY / cgs.uiHiResScale[1],
+                -1,
+                cgs.uiHiResScale
+            );
+        }
 
-    if (!(cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
-        cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
+        if (!(cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
+            cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
 
-        pszString = cgi.LV_ConvertString(
-            va("Press Use(%s) to enter player following spectate mode.", cgi.Key_KeynumToBindString(iKey1))
-        );
+            pszString = cgi.LV_ConvertString(
+                va("Press Use(%s) to enter player following spectate mode.", cgi.Key_KeynumToBindString(iKey1))
+            );
 
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
+            fX = (float)(cgs.glconfig.vidWidth
+                         - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
+               * 0.5;
+            fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
+            cgi.R_SetColor(0);
+            cgi.R_DrawString(
+                cgs.media.attackerFont,
+                pszString,
+                fX / cgs.uiHiResScale[0],
+                fY / cgs.uiHiResScale[1],
+                -1,
+                cgs.uiHiResScale
+            );
+        }
     }
 
     if ((cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) != 0 && cg.snap
@@ -1288,6 +1309,11 @@ void CG_DrawSpectatorView_ver_6()
     bOnTeam = qfalse;
     if (cg.snap->ps.stats[STAT_TEAM] == TEAM_ALLIES || cg.snap->ps.stats[STAT_TEAM] == TEAM_AXIS) {
         bOnTeam = 1;
+    }
+
+    // Changed in OPM: hide spectator instruction text when cg_hud is disabled
+    if (!cg_hud->integer) {
+        return;
     }
 
     // retrieve keys for +use
