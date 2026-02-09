@@ -1539,11 +1539,94 @@ void CG_DrawVote()
 
 /*
 ==============
+CG_AutoFollowPlayer
+
+Added in OPM
+  Client-side auto-follow: cycles spectator camera to the player
+  matching cg_followplayer. Works on remote servers without modified game DLL.
+==============
+*/
+static int cg_followCycleTime = 0;
+
+void CG_AutoFollowPlayer(void)
+{
+    const char *targetName;
+    int         iCurrentClient;
+
+    if (!cg_followplayer || !cg_followplayer->string[0]) {
+        return;
+    }
+
+    if (!cg.snap) {
+        return;
+    }
+
+    if (!(cg.predicted_player_state.pm_flags & PMF_SPECTATING)) {
+        return;
+    }
+
+    targetName = cg_followplayer->string;
+
+    // Check if we're already following the right player
+    if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
+        iCurrentClient = cg.snap->ps.stats[STAT_INFOCLIENT];
+        if (iCurrentClient != -1 && !Q_stricmp(cg.clientinfo[iCurrentClient].name, targetName)) {
+            // Already following the right player
+            cg_followCycleTime = 0;
+            return;
+        }
+    }
+
+    // Rate-limit cycling to avoid spamming: one attempt per 500ms
+    if (cg.time < cg_followCycleTime) {
+        return;
+    }
+    cg_followCycleTime = cg.time + 500;
+
+    // First check if the target player is even on the server
+    {
+        int  i;
+        bool bFound = false;
+        for (i = 0; i < cgs.maxclients; i++) {
+            if (cg.clientinfo[i].name[0] && !Q_stricmp(cg.clientinfo[i].name, targetName)) {
+                bFound = true;
+                break;
+            }
+        }
+        if (!bFound) {
+            return;
+        }
+    }
+
+    if (!(cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
+        // Not in follow mode yet - press Use to start following
+        if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
+            cgi.SendConsoleCommand("+use\n");
+            cgi.SendConsoleCommand("-use\n");
+        } else {
+            cgi.SendConsoleCommand("+use\n");
+            cgi.SendConsoleCommand("-use\n");
+        }
+    } else {
+        // In follow mode but wrong player - cycle to next
+        if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
+            cgi.SendConsoleCommand("+moveup\n");
+            cgi.SendConsoleCommand("-moveup\n");
+        } else {
+            cgi.SendConsoleCommand("+use\n");
+            cgi.SendConsoleCommand("-use\n");
+        }
+    }
+}
+
+/*
+==============
 CG_Draw2D
 ==============
 */
 void CG_Draw2D(void)
 {
+    CG_AutoFollowPlayer();
     CG_UpdateCountdown();
     CG_DrawZoomOverlay();
     CG_DrawLagometer();
