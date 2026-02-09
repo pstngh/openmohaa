@@ -936,7 +936,7 @@ const char *G_ClientConnect(int clientNum, qboolean firstTime, qboolean differen
         // Added in 2.1
         //  Let clients choose their primary weapon
         //  on map change
-        if (differentMap) {
+        if (differentMap && !g_weapon_persist->integer) {
             client->pers.dm_primary[0] = 0;
         }
     }

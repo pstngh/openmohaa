@@ -331,6 +331,8 @@ cvar_t *g_teambalance;
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
+cvar_t *g_weapon_persist;
+
 void CVAR_Init(void)
 {
     int i;
@@ -748,6 +750,8 @@ void CVAR_Init(void)
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
+
+    g_weapon_persist = gi.Cvar_Get("g_weapon_persist", "0", 0);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }
