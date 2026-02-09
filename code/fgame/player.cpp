@@ -4794,6 +4794,12 @@ void Player::Think(void)
         }
 
         if (IsSpectator()) {
+            // Added in OPM
+            //  Auto-follow a player by name if cg_followplayer is set
+            const char *followName = Info_ValueForKey(client->pers.userinfo, "cg_followplayer");
+            bool        bAutoFollow = followName[0] && SetPlayerSpectateByName(followName);
+
+            if (!bAutoFollow) {
             if (g_protocol >= PROTOCOL_MOHTA_MIN) {
                 if (m_iPlayerSpectating) {
                     if (last_ucmd.upmove) {
@@ -4862,6 +4868,7 @@ void Player::Think(void)
                     }
                 }
             }
+            } // !bAutoFollow
         } else {
             m_iPlayerSpectating = 0;
         }
@@ -9459,6 +9466,54 @@ void Player::SetPlayerSpectateRandom(void)
             iRandom--;
         }
     }
+}
+
+// Added in OPM
+//  Auto-follow a player by name from cg_followplayer userinfo key
+bool Player::SetPlayerSpectateByName(const char *name)
+{
+    gentity_t *ent;
+    Player    *pPlayer;
+
+    for (int i = 0; i < game.maxclients; i++) {
+        ent = &g_entities[i];
+        if (!ent->inuse || !ent->entity) {
+            continue;
+        }
+
+        pPlayer = static_cast<Player *>(ent->entity);
+
+        if (pPlayer->IsSpectator()) {
+            continue;
+        }
+
+        if (Q_stricmp(pPlayer->client->pers.netname, name) != 0) {
+            continue;
+        }
+
+        if (pPlayer->IsDead()) {
+            // Player found but dead, keep following them (don't switch away)
+            if (m_iPlayerSpectating != i + 1) {
+                m_iPlayerSpectating = i + 1;
+                client->ps.camera_flags &= ~CF_CAMERA_CUT_BIT;
+                client->ps.camera_flags |= (client->ps.camera_flags & CF_CAMERA_CUT_BIT) ^ CF_CAMERA_CUT_BIT;
+            }
+            return true;
+        }
+
+        if (!IsValidSpectatePlayer(pPlayer)) {
+            continue;
+        }
+
+        if (m_iPlayerSpectating != i + 1) {
+            m_iPlayerSpectating = i + 1;
+            client->ps.camera_flags &= ~CF_CAMERA_CUT_BIT;
+            client->ps.camera_flags |= (client->ps.camera_flags & CF_CAMERA_CUT_BIT) ^ CF_CAMERA_CUT_BIT;
+        }
+        return true;
+    }
+
+    return false;
 }
 
 void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector& vAng)

@@ -513,6 +513,7 @@ extern "C" {
     //
     extern cvar_t *cg_fov;
     extern cvar_t *cg_cheats;
+    extern cvar_t *cg_followplayer;
 
     //
     // cg_main.c
