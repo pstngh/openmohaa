@@ -833,6 +833,7 @@ public:
     void       Spectator(Event *ev);
     void       SetPlayerSpectate(bool bNext);
     void       SetPlayerSpectateRandom(void); // Added in 2.0
+    bool       SetPlayerSpectateByName(const char *name); // Added in OPM
     bool       IsValidSpectatePlayer(Player *pPlayer);
     void       GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector& vAng);
     void       UpdateStatus(const char *s);
