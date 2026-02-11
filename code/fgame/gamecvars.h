@@ -375,6 +375,20 @@ extern cvar_t *g_cap_firespreadmult;
 extern cvar_t *g_firespreadmult_scale;
 
 /**
+ * @brief Disable fire spread decay for human clients.
+ * 1 = spread builds up and stays at max (no decay)
+ * 0 = normal decay behavior (default)
+ */
+extern cvar_t *g_firespreadmult_nodecay;
+
+/**
+ * @brief Disable fire spread decay for bots.
+ * 1 = spread builds up and stays at max (no decay)
+ * 0 = normal decay behavior (default)
+ */
+extern cvar_t *g_bot_firespreadmult_nodecay;
+
+/**
  * @brief Force bots to a specific team.
  * Values: "auto" (default), "axis", "allies"
  */
