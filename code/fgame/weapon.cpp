@@ -1395,26 +1395,32 @@ void Weapon::Shoot(Event *ev)
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
         if (m_fFireSpreadMultAmount[mode] != 0.0f) {
-            float fTime = level.time - m_fFireSpreadMultTime[mode];
+            // Check if nodecay is enabled for this entity
+            bool isBot = owner && owner->client && G_IsBot(owner->edict);
+            bool nodecay = isBot ? g_bot_firespreadmult_nodecay->integer : g_firespreadmult_nodecay->integer;
 
-            if (fTime <= m_fFireSpreadMultTimeCap[mode]) {
-                float fDecay = fTime * m_fFireSpreadMultFalloff[mode];
+            if (!nodecay) {
+                float fTime = level.time - m_fFireSpreadMultTime[mode];
 
-                if (m_fFireSpreadMult[mode] <= 0.0f) {
-                    m_fFireSpreadMult[mode] -= fDecay;
+                if (fTime <= m_fFireSpreadMultTimeCap[mode]) {
+                    float fDecay = fTime * m_fFireSpreadMultFalloff[mode];
 
-                    if (m_fFireSpreadMult[mode] > 0.0f) {
-                        m_fFireSpreadMult[mode] = 0.0f;
+                    if (m_fFireSpreadMult[mode] <= 0.0f) {
+                        m_fFireSpreadMult[mode] -= fDecay;
+
+                        if (m_fFireSpreadMult[mode] > 0.0f) {
+                            m_fFireSpreadMult[mode] = 0.0f;
+                        }
+                    } else {
+                        m_fFireSpreadMult[mode] -= fDecay;
+
+                        if (m_fFireSpreadMult[mode] < 0.0f) {
+                            m_fFireSpreadMult[mode] = 0.0f;
+                        }
                     }
                 } else {
-                    m_fFireSpreadMult[mode] -= fDecay;
-
-                    if (m_fFireSpreadMult[mode] < 0.0f) {
-                        m_fFireSpreadMult[mode] = 0.0f;
-                    }
+                    m_fFireSpreadMult[mode] = 0.0f;
                 }
-            } else {
-                m_fFireSpreadMult[mode] = 0.0f;
             }
 
             m_fFireSpreadMultTime[mode] = level.time;
