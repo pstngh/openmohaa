@@ -9449,6 +9449,15 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
     Vector  start;
     trace_t trace;
 
+    // Force follow offsets to zero regardless of cvar runtime values.
+    if (g_spectatefollow_forward->value != 0.0f) {
+        gi.cvar_set("g_spectatefollow_forward", "0");
+    }
+
+    if (g_spectatefollow_up->value != 0.0f) {
+        gi.cvar_set("g_spectatefollow_up", "0");
+    }
+
     if (!g_spectatefollow_firstperson->integer) {
         // spectating a player
         vAng = pPlayer->GetVAngles();
@@ -9458,11 +9467,11 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs = pPlayer->origin;
         vCamOfs[2] += pPlayer->viewheight;
 
-        vCamOfs += forward * g_spectatefollow_forward->value;
+        vCamOfs += forward * 0.0f;
         vCamOfs += right * g_spectatefollow_right->value;
-        vCamOfs += up * g_spectatefollow_up->value;
+        vCamOfs += up * 0.0f;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
+        if (!pPlayer->IsDead() && pPlayer->client->ps.fLeanAngle != 0.0f) {
             vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
         }
 
