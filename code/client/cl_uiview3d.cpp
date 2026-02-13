@@ -134,7 +134,7 @@ void View3D::DrawFPS(void)
     fpsValue = (int)(currentfps + 0.5f);
 
     if (fps->integer == 1) {
-        Com_sprintf(string, sizeof(string), "%d", fpsValue);
+        Com_sprintf(string, sizeof(string), "FPS %d", fpsValue);
 
         if (currentfps > 23.94) {
             if (cl_greenfps->integer) {
@@ -149,7 +149,7 @@ void View3D::DrawFPS(void)
         }
 
         m_font->Print(
-            m_font->getHeight(getHighResScale()) * 10.0 / getHighResScale()[0],
+            0.0,
             (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1],
             string,
             -1,
