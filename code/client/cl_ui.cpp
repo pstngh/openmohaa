@@ -131,6 +131,7 @@ static float         scoreboard_w;
 static float         scoreboard_h;
 static qboolean      scoreboard_header;
 cvar_t              *cl_playintro;
+cvar_t              *com_skipIntro;
 cvar_t              *cl_movieaudio;
 
 unsigned char        UIListCtrlItem[8];
@@ -4910,7 +4911,7 @@ CL_TryStartIntro
 */
 void CL_TryStartIntro(void)
 {
-    if (developer->integer || !cl_playintro->integer) {
+    if (developer->integer || com_skipIntro->integer || !cl_playintro->integer) {
         UI_ToggleConsole();
     } else {
         // FIXME: no intro from now
@@ -5295,6 +5296,7 @@ void CL_InitializeUI(void)
     ui_legalscreen_fadeout = Cvar_Get("ui_legalscreen_fadeout", "1", 0);
     ui_legalscreen_stay    = Cvar_Get("ui_legalscreen_stay", "3", 0);
     cl_greenfps            = Cvar_Get("cl_greenfps", "0", 1);
+    com_skipIntro         = Cvar_Get("com_skipIntro", "1", CVAR_ARCHIVE);
     cl_playintro           = Cvar_Get("cl_playintro", "1", 0);
     cl_movieaudio          = Cvar_Get("cl_movieaudio", "1", 0);
     Cvar_Get("ui_startmap", "", 1);

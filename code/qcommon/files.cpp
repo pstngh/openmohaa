@@ -3579,7 +3579,11 @@ FS_Startup
 */
 static void FS_Startup(const char* gameName)
 {
+#ifdef DEDICATED
 	cvar_t *fs_homepath = Cvar_Get("fs_homepath", "", CVAR_INIT|CVAR_PROTECTED);
+#else
+	cvar_t *fs_homepath = Cvar_Get("fs_homepath", ".", CVAR_INIT|CVAR_PROTECTED);
+#endif
 	const char *configPath = Sys_DefaultHomeConfigPath();
 	const char *dataPath = Sys_DefaultHomeDataPath();
 	const char *statePath = Sys_DefaultHomeStatePath();
