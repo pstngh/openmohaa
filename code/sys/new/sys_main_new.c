@@ -26,6 +26,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../sys_curl.h"
 #include "../sys_update_checker.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // a pointer to the last piece of data retrieved from the clipboard is stored here,
 // so that it can be cleaned up when new data is retrieved, preventing memory leaks
 static void* clipboard_text = NULL;
@@ -57,6 +61,29 @@ Sys_ShowConsole
 */
 void Sys_ShowConsole(int visLevel, qboolean quitOnClose)
 {
+#ifdef _WIN32
+    HWND consoleWindow = GetConsoleWindow();
+
+    if (!consoleWindow) {
+        return;
+    }
+
+    switch (visLevel) {
+    case 0:
+        ShowWindow(consoleWindow, SW_HIDE);
+        break;
+    case 2:
+        ShowWindow(consoleWindow, SW_MINIMIZE);
+        break;
+    default:
+        ShowWindow(consoleWindow, SW_SHOW);
+        break;
+    }
+#else
+    (void)visLevel;
+#endif
+
+    (void)quitOnClose;
 }
 
 /*
