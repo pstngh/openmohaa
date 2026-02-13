@@ -1901,11 +1901,16 @@ void Com_Init( char *commandLine ) {
 	paused = Cvar_Get( "paused", "0", 64 );
 	autopaused = Cvar_Get( "autopaused", "1", CVAR_ARCHIVE );
 	fps = Cvar_Get( "fps", "0", CVAR_ARCHIVE );
+	Cvar_CheckRange( fps, 0, 1, qtrue );
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_fixedtime = Cvar_Get( "fixedtime", "0", CVAR_CHEAT );
 	com_showtrace = Cvar_Get( "com_showtrace", "0", CVAR_CHEAT );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
+#ifdef DEDICATED
 	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_CHEAT );
+#else
+	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_ROM );
+#endif
 	com_logfile = Cvar_Get("logfile", "0", CVAR_TEMP);
 	com_logfile_timestamps = Cvar_Get("logfile_timestamps", "1", CVAR_TEMP);
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
@@ -1978,7 +1983,7 @@ void Com_Init( char *commandLine ) {
 	else
 	{
 		CL_Init();
-		Sys_ShowConsole( com_viewlog->integer, qfalse );
+		// Keep client builds single-window: disable external/separate console.
 	}
 #else
     Sys_CloseMutex();

@@ -476,6 +476,7 @@ extern "C" {
     extern cvar_t *cg_acidtrip;
     extern cvar_t *cg_hud;
     extern cvar_t *cg_huddraw_force;
+    extern cvar_t *cg_compactScoreHud;
     extern cvar_t *cg_drawsvlag;
     extern cvar_t *cg_crosshair;
     extern cvar_t *cg_crosshair_friend;
