@@ -665,6 +665,68 @@ void CG_HudDrawElements()
     }
 }
 
+static void CG_DrawCompactScoreHud()
+{
+    const char *pszString;
+    char        szString[64];
+    float       x;
+    float       y;
+    int         iAllies;
+    int         iAxis;
+
+    if (!cg_compactScoreHud->integer || !cg_hud->integer || !cg.snap || !cgs.gametype || cgs.fraglimit) {
+        return;
+    }
+
+    if ((cg.snap->ps.pm_flags & PMF_NO_HUD) || (cg.snap->ps.pm_flags & PMF_INTERMISSION)) {
+        return;
+    }
+
+    if (cgs.gametype >= GT_TEAM) {
+        const char *info = CG_ConfigString(CS_SERVERINFO);
+
+        iAllies = atoi(Info_ValueForKey(info, "g_tempalliesscore"));
+        iAxis   = atoi(Info_ValueForKey(info, "g_tempaxisscore"));
+
+        if (!iAllies && !iAxis) {
+            if (cg.snap->ps.stats[STAT_TEAM] == TEAM_ALLIES) {
+                iAllies = cg.snap->ps.stats[STAT_KILLS];
+            } else if (cg.snap->ps.stats[STAT_TEAM] == TEAM_AXIS) {
+                iAxis = cg.snap->ps.stats[STAT_KILLS];
+            }
+        }
+
+        Com_sprintf(
+            szString,
+            sizeof(szString),
+            "%s %d : %d %s",
+            cgi.LV_ConvertString("Allies"),
+            iAllies,
+            iAxis,
+            cgi.LV_ConvertString("Axis")
+        );
+    } else {
+        Com_sprintf(
+            szString,
+            sizeof(szString),
+            "Score %d / %d",
+            cg.snap->ps.stats[STAT_KILLS],
+            cg.snap->ps.stats[STAT_HIGHEST_SCORE]
+        );
+    }
+
+    pszString = cgi.LV_ConvertString(szString);
+    x = cgs.glconfig.vidWidth
+        - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0]
+        - 10.0f * cgs.uiHiResScale[0];
+    y = 8.0f * cgs.uiHiResScale[1];
+
+    cgi.R_SetColor(NULL);
+    cgi.R_DrawString(
+        cgs.media.attackerFont, pszString, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
+    );
+}
+
 void CG_InitializeObjectives()
 {
     int i;
@@ -1044,7 +1106,7 @@ void CG_UpdateCountdown()
         }
     } else {
         // The match has not started yet
-        message = "Waiting For Players";
+        message = "";
     }
 
     if (strcmp(ui_timemessage->string, message)) {
@@ -1143,199 +1205,17 @@ void CG_DrawInstantMessageMenu()
 
 void CG_DrawSpectatorView_ver_15()
 {
-    const char *pszString;
-    int         iKey1, iKey2;
-    int         iKey1b, iKey2b;
-    float       fX, fY;
-    qboolean    bOnTeam;
-
-    if (!(cg.predicted_player_state.pm_flags & PMF_SPECTATING)) {
-        return;
-    }
-
-    bOnTeam = qfalse;
-    if (cg.snap->ps.stats[STAT_TEAM] == TEAM_ALLIES || cg.snap->ps.stats[STAT_TEAM] == TEAM_AXIS) {
-        bOnTeam = 1;
-    }
-
-    if (!bOnTeam) {
-        cgi.Key_GetKeysForCommand("+attackprimary", &iKey1, &iKey2);
-        pszString = cgi.LV_ConvertString(va("Press Fire(%s) to join the battle!", cgi.Key_KeynumToBindString(iKey1)));
-        fX        = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = cgs.glconfig.vidHeight - 64.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(NULL);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
-
-    if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
-        cgi.Key_GetKeysForCommand("+moveup", &iKey1, &iKey2);
-        cgi.Key_GetKeysForCommand("+movedown", &iKey1b, &iKey2b);
-
-        pszString = cgi.LV_ConvertString(
-            va("Press Jump(%s) or Duck(%s) to follow a different player.",
-               cgi.Key_KeynumToBindString(iKey1),
-               cgi.Key_KeynumToBindString(iKey1b))
-        );
-
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 40.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
-
-    if (!bOnTeam && (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
-        cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
-        pszString =
-            cgi.LV_ConvertString(va("Press Use(%s) to enter free spectate mode.", cgi.Key_KeynumToBindString(iKey1)));
-
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
-
-    if (!(cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
-        cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
-
-        pszString = cgi.LV_ConvertString(
-            va("Press Use(%s) to enter player following spectate mode.", cgi.Key_KeynumToBindString(iKey1))
-        );
-
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
-
-    if ((cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) != 0 && cg.snap
-        && cg.snap->ps.stats[STAT_INFOCLIENT] != -1) {
-        int       iClientNum;
-        qhandle_t hShader;
-        vec4_t    color;
-        char      buf[128];
-
-        iClientNum = cg.snap->ps.stats[STAT_INFOCLIENT];
-        Com_sprintf(
-            buf, sizeof(buf), "%s : %i", cg.clientinfo[iClientNum].name, cg.snap->ps.stats[STAT_INFOCLIENT_HEALTH]
-        );
-
-        hShader  = 0;
-        color[0] = 0.5;
-        color[1] = 1.0;
-        color[2] = 0.5;
-        color[3] = 1.0;
-
-        fX = (float)(cgs.glconfig.vidWidth
-                     - (cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) - 16) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 80.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(color);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, buf, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-
-        if (cg.clientinfo[iClientNum].team == TEAM_ALLIES) {
-            hShader = cgi.R_RegisterShader("textures/hud/allies");
-        } else if (cg.clientinfo[iClientNum].team == TEAM_AXIS) {
-            hShader = cgi.R_RegisterShader("textures/hud/axis");
-        }
-
-        if (hShader) {
-            cgi.R_SetColor(NULL);
-            cgi.R_DrawStretchPic(
-                fX - 20.0 * cgs.uiHiResScale[0],
-                fY,
-                16.0 * cgs.uiHiResScale[0],
-                16.0 * cgs.uiHiResScale[1],
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                hShader
-            );
-        }
-    }
+    // Suppress spectator helper prompts.
 }
 
 void CG_DrawSpectatorView_ver_6()
 {
-    const char *pszString;
-    int         iKey1, iKey2;
-    int         iKey1b, iKey2b;
-    float       fX, fY;
-    qboolean    bOnTeam;
-
-    if (!(cg.predicted_player_state.pm_flags & PMF_SPECTATING)) {
-        return;
-    }
-
-    bOnTeam = qfalse;
-    if (cg.snap->ps.stats[STAT_TEAM] == TEAM_ALLIES || cg.snap->ps.stats[STAT_TEAM] == TEAM_AXIS) {
-        bOnTeam = 1;
-    }
-
-    // retrieve keys for +use
-    cgi.Key_GetKeysForCommand("+use", &iKey1, &iKey2);
-
-    if (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW) {
-        pszString =
-            cgi.LV_ConvertString(va("Press Use(%s) to follow a different player.", cgi.Key_KeynumToBindString(iKey1)));
-    } else {
-        pszString = cgi.LV_ConvertString(va("Press Use(%s) to follow a player.", cgi.Key_KeynumToBindString(iKey1)));
-    }
-
-    fX = (float)(cgs.glconfig.vidWidth
-                 - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-       * 0.5;
-    fY = (float)cgs.glconfig.vidHeight - 40.0 * cgs.uiHiResScale[1];
-    cgi.R_SetColor(0);
-    cgi.R_DrawString(
-        cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-    );
-
-    if (!bOnTeam && (cg.predicted_player_state.pm_flags & PMF_CAMERA_VIEW)) {
-        cgi.Key_GetKeysForCommand("+moveup", &iKey1, &iKey2);
-        cgi.Key_GetKeysForCommand("+movedown", &iKey1b, &iKey2b);
-        pszString = cgi.LV_ConvertString(
-            va("Press Jump(%s) or Duck(%s) to free spectate.",
-               cgi.Key_KeynumToBindString(iKey1),
-               cgi.Key_KeynumToBindString(iKey1b))
-        );
-
-        fX = (float)(cgs.glconfig.vidWidth
-                     - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0])
-           * 0.5;
-        fY = (float)cgs.glconfig.vidHeight - 24.0 * cgs.uiHiResScale[1];
-        cgi.R_SetColor(0);
-        cgi.R_DrawString(
-            cgs.media.attackerFont, pszString, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-        );
-    }
+    // Suppress spectator helper prompts.
 }
 
 void CG_DrawSpectatorView()
 {
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
-        CG_DrawSpectatorView_ver_15();
-    } else {
-        CG_DrawSpectatorView_ver_6();
-    }
+    // Hide spectator helper text overlays at the bottom-center.
 }
 
 void CG_DrawCrosshair()
@@ -1522,6 +1402,7 @@ void CG_Draw2D(void)
     CG_DrawZoomOverlay();
     CG_DrawLagometer();
     CG_HudDrawElements();
+    CG_DrawCompactScoreHud();
     CG_DrawObjectives();
     CG_DrawIcons();
     CG_DrawStopwatch();
