@@ -4912,8 +4912,7 @@ CL_TryStartIntro
 void CL_TryStartIntro(void)
 {
     if (developer->integer || com_skipIntro->integer || !cl_playintro->integer) {
-        cls.startStage = 0;
-        UI_CloseConsole();
+        UI_ToggleConsole();
     } else {
         // FIXME: no intro from now
         Cvar_Set(cl_playintro->name, "0");
