@@ -722,8 +722,8 @@ static void CG_DrawCompactScoreHud()
         - 10.0f * cgs.uiHiResScale[0];
     y = 8.0f * cgs.uiHiResScale[1];
 
-    color[0] = 150.0f / 255.0f;
-    color[1] = 150.0f / 255.0f;
+    color[0] = 128.0f / 255.0f;
+    color[1] = 128.0f / 255.0f;
     color[2] = 0.0f;
     color[3] = 1.0f;
 
