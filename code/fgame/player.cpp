@@ -4021,26 +4021,40 @@ void Player::ClientMove(usercmd_t *ucmd)
 
     // Objective-family modes: apply a short no-move delay at the beginning of each round.
     if (g_gametype->integer >= GT_OBJECTIVE) {
-        static bool s_objectiveRoundWasStarted = false;
-        static int  s_objectiveMoveUnlockTime  = 0;
-        static int  s_lastLevelIntTime         = 0;
+        static bool s_objectiveRoundWasStarted    = false;
+        static int  s_objectiveMoveUnlockTime     = 0;
+        static int  s_lastLevelIntTime            = 0;
+        static int  s_objectiveLastBroadcastSecond = -1;
 
         const bool roundStarted = level.RoundStarted();
 
         if (level.inttime < s_lastLevelIntTime) {
             // map/restart time reset
-            s_objectiveRoundWasStarted = false;
-            s_objectiveMoveUnlockTime  = 0;
+            s_objectiveRoundWasStarted     = false;
+            s_objectiveMoveUnlockTime      = 0;
+            s_objectiveLastBroadcastSecond = -1;
         }
 
         if (roundStarted && !s_objectiveRoundWasStarted) {
-            s_objectiveMoveUnlockTime = level.inttime + 5000;
+            s_objectiveMoveUnlockTime      = level.inttime + 5000;
+            s_objectiveLastBroadcastSecond = -1;
         }
 
         s_objectiveRoundWasStarted = roundStarted;
         s_lastLevelIntTime         = level.inttime;
 
         if (roundStarted && level.inttime < s_objectiveMoveUnlockTime) {
+            const int secondsLeft = (s_objectiveMoveUnlockTime - level.inttime + 999) / 1000;
+
+            if (secondsLeft != s_objectiveLastBroadcastSecond) {
+                s_objectiveLastBroadcastSecond = secondsLeft;
+                gi.SendServerCommand(
+                    -1,
+                    "hudprint \"%s\"\n",
+                    va("%s %d", gi.LV_ConvertString("Round starts in"), secondsLeft)
+                );
+            }
+
             client->ps.pm_flags |= PMF_NO_MOVE;
             client->ps.pm_flags |= PMF_NO_PREDICTION;
         }
