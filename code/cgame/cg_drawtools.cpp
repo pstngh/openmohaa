@@ -1331,11 +1331,7 @@ void CG_DrawSpectatorView_ver_6()
 
 void CG_DrawSpectatorView()
 {
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
-        CG_DrawSpectatorView_ver_15();
-    } else {
-        CG_DrawSpectatorView_ver_6();
-    }
+    // Hide spectator helper text overlays at the bottom-center.
 }
 
 void CG_DrawCrosshair()
