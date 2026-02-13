@@ -665,75 +665,6 @@ void CG_HudDrawElements()
     }
 }
 
-static void CG_DrawCompactScoreHud()
-{
-    const char *pszString;
-    char        szString[64];
-    float       x;
-    float       y;
-    int         iAllies;
-    int         iAxis;
-    vec4_t      color;
-
-    if (!cg_compactScoreHud->integer || !cg_hud->integer || !cg.snap || !cgs.gametype || cgs.fraglimit) {
-        return;
-    }
-
-    if ((cg.snap->ps.pm_flags & PMF_NO_HUD) || (cg.snap->ps.pm_flags & PMF_INTERMISSION)) {
-        return;
-    }
-
-    if (cgs.gametype >= GT_TEAM) {
-        const char *info = CG_ConfigString(CS_SERVERINFO);
-
-        iAllies = atoi(Info_ValueForKey(info, "g_tempalliesscore"));
-        iAxis   = atoi(Info_ValueForKey(info, "g_tempaxisscore"));
-
-        if (!iAllies && !iAxis) {
-            if (cg.snap->ps.stats[STAT_TEAM] == TEAM_ALLIES) {
-                iAllies = cg.snap->ps.stats[STAT_KILLS];
-            } else if (cg.snap->ps.stats[STAT_TEAM] == TEAM_AXIS) {
-                iAxis = cg.snap->ps.stats[STAT_KILLS];
-            }
-        }
-
-        Com_sprintf(
-            szString,
-            sizeof(szString),
-            "%s %d : %d %s",
-            cgi.LV_ConvertString("Allies"),
-            iAllies,
-            iAxis,
-            cgi.LV_ConvertString("Axis")
-        );
-    } else {
-        Com_sprintf(
-            szString,
-            sizeof(szString),
-            "Score %d / %d",
-            cg.snap->ps.stats[STAT_KILLS],
-            cg.snap->ps.stats[STAT_HIGHEST_SCORE]
-        );
-    }
-
-    pszString = cgi.LV_ConvertString(szString);
-    x = cgs.glconfig.vidWidth
-        - cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) * cgs.uiHiResScale[0]
-        - 10.0f * cgs.uiHiResScale[0];
-    y = 8.0f * cgs.uiHiResScale[1];
-
-    color[0] = 128.0f / 255.0f;
-    color[1] = 128.0f / 255.0f;
-    color[2] = 0.0f;
-    color[3] = 1.0f;
-
-    cgi.R_SetColor(color);
-    cgi.R_DrawString(
-        cgs.media.attackerFont, pszString, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
-    );
-    cgi.R_SetColor(NULL);
-}
-
 void CG_InitializeObjectives()
 {
     int i;
@@ -1380,7 +1311,6 @@ void CG_Draw2D(void)
     CG_DrawZoomOverlay();
     CG_DrawLagometer();
     CG_HudDrawElements();
-    CG_DrawCompactScoreHud();
     CG_DrawObjectives();
     CG_DrawIcons();
     CG_DrawStopwatch();

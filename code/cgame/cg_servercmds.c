@@ -202,11 +202,7 @@ void CG_ParseServerinfo(void)
             cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_fraglimit\n");
             cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_score\n");
         } else {
-            if (cg_compactScoreHud->integer) {
-                cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_score\n");
-            } else {
-                cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_score\n");
-            }
+            cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_score\n");
             cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fraglimit\n");
         }
     } else {
