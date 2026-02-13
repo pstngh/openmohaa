@@ -1907,9 +1907,9 @@ void Com_Init( char *commandLine ) {
 	com_showtrace = Cvar_Get( "com_showtrace", "0", CVAR_CHEAT );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 #ifdef DEDICATED
-	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_CHEAT );
+	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_ARCHIVE );
 #else
-	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_ROM );
+	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_ARCHIVE );
 #endif
 	com_logfile = Cvar_Get("logfile", "0", CVAR_TEMP);
 	com_logfile_timestamps = Cvar_Get("logfile_timestamps", "1", CVAR_TEMP);
