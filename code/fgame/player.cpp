@@ -4019,6 +4019,33 @@ void Player::ClientMove(usercmd_t *ucmd)
         client->ps.pm_flags |= PMF_NO_PREDICTION;
     }
 
+    // Objective-family modes: apply a short no-move delay at the beginning of each round.
+    if (g_gametype->integer >= GT_OBJECTIVE) {
+        static bool s_objectiveRoundWasStarted = false;
+        static int  s_objectiveMoveUnlockTime  = 0;
+        static int  s_lastLevelIntTime         = 0;
+
+        const bool roundStarted = level.RoundStarted();
+
+        if (level.inttime < s_lastLevelIntTime) {
+            // map/restart time reset
+            s_objectiveRoundWasStarted = false;
+            s_objectiveMoveUnlockTime  = 0;
+        }
+
+        if (roundStarted && !s_objectiveRoundWasStarted) {
+            s_objectiveMoveUnlockTime = level.inttime + 5000;
+        }
+
+        s_objectiveRoundWasStarted = roundStarted;
+        s_lastLevelIntTime         = level.inttime;
+
+        if (roundStarted && level.inttime < s_objectiveMoveUnlockTime) {
+            client->ps.pm_flags |= PMF_NO_MOVE;
+            client->ps.pm_flags |= PMF_NO_PREDICTION;
+        }
+    }
+
     if (m_pGlueMaster) {
         //
         // Added in 2.0.
