@@ -121,46 +121,10 @@ void View3D::DrawFPS(void)
     int  fpsValue;
 
     setFont("verdana-14");
-    if (fps->integer == 2) {
-        re.SetColor(UBlack);
-        re.DrawBox(
-            0.0,
-            m_frame.pos.y + m_frame.size.height - m_font->getHeight() * 4.0,
-            m_frame.pos.x + m_frame.size.width,
-            m_font->getHeight() * 4.0
-        );
-    }
 
     fpsValue = (int)(currentfps + 0.5f);
+    Com_sprintf(string, sizeof(string), "FPS %d", fpsValue);
 
-    if (fps->integer == 1) {
-        Com_sprintf(string, sizeof(string), "FPS %d", fpsValue);
-
-        if (currentfps > 23.94) {
-            if (cl_greenfps->integer) {
-                m_font->setColor(UGreen);
-            } else {
-                m_font->setColor(UWhite);
-            }
-        } else if (currentfps > 18.0) {
-            m_font->setColor(UYellow);
-        } else {
-            m_font->setColor(URed);
-        }
-
-        m_font->Print(
-            0.0,
-            (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1],
-            string,
-            -1,
-            getHighResScale()
-        );
-
-        m_font->setColor(UBlack);
-        return;
-    }
-
-    Com_sprintf(string, sizeof(string), "FPS %4.1f", currentfps);
     if (currentfps > 23.94) {
         if (cl_greenfps->integer) {
             m_font->setColor(UGreen);
@@ -170,46 +134,11 @@ void View3D::DrawFPS(void)
     } else if (currentfps > 18.0) {
         m_font->setColor(UYellow);
     } else {
-        // low fps
         m_font->setColor(URed);
     }
 
     m_font->Print(
-        m_font->getHeight(getHighResScale()) * 10.0 / getHighResScale()[0],
-        (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale()) * 3.0) / getHighResScale()[1],
-        string,
-        -1,
-        getHighResScale()
-    );
-
-    // Draw elements count
-    if (cl_greenfps->integer) {
-        m_font->setColor(UGreen);
-    } else {
-        m_font->setColor(UWhite);
-    }
-
-    Com_sprintf(string, sizeof(string), "wt%5d wv%5d cl%d", cls.world_tris, cls.world_verts, cls.character_lights);
-
-    m_font->Print(
-        (m_font->getHeight(getHighResScale()) * 10.0) / getHighResScale()[0],
-        (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale()) * 2.0) / getHighResScale()[1],
-        string,
-        -1,
-        getHighResScale()
-    );
-
-    Com_sprintf(
-        string,
-        sizeof(string),
-        "t%5d v%5d Mtex%5.2f",
-        cls.total_tris,
-        cls.total_verts,
-        (float)cls.total_texels * 0.00000095367432
-    );
-
-    m_font->Print(
-        (m_font->getHeight(getHighResScale()) * 10.0) / getHighResScale()[0],
+        0.0,
         (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1],
         string,
         -1,
@@ -218,7 +147,6 @@ void View3D::DrawFPS(void)
 
     m_font->setColor(UBlack);
 }
-
 /*
 void ProfPrint(UIFont* m_font, float minY, int line, char* label, prof_var_t* var, int level)
 {
