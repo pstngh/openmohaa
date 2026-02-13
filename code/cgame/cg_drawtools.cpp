@@ -1303,14 +1303,13 @@ void CG_DrawVote()
 
 void CG_DrawRoundStartDelayNotice()
 {
-    static int s_lastMatchStartTime   = -1;
-    static int s_roundDelayNoticeEnds = 0;
-    int        secondsLeft;
+    int         roundDelayNoticeEnds;
+    int         secondsLeft;
     const char *text;
-    float      x;
-    float      y;
+    float       x;
+    float       y;
 
-    if (cgs.gametype < GT_OBJECTIVE || !cg_hud->integer) {
+    if (cgs.gametype < GT_TEAM_ROUNDS || !cg_hud->integer) {
         return;
     }
 
@@ -1318,26 +1317,24 @@ void CG_DrawRoundStartDelayNotice()
         return;
     }
 
-    if (cg.matchStartTime != s_lastMatchStartTime) {
-        s_lastMatchStartTime   = cg.matchStartTime;
-        s_roundDelayNoticeEnds = cg.matchStartTime + 5000;
-    }
-
-    if (cg.time >= s_roundDelayNoticeEnds) {
+    roundDelayNoticeEnds = cg.matchStartTime + 5000;
+    if (cg.time >= roundDelayNoticeEnds) {
         return;
     }
 
-    secondsLeft = (s_roundDelayNoticeEnds - cg.time + 999) / 1000;
+    secondsLeft = (roundDelayNoticeEnds - cg.time + 999) / 1000;
     if (secondsLeft < 1) {
         secondsLeft = 1;
     }
 
     text = va("Round starts in %i", secondsLeft);
     x    = 8 * cgs.uiHiResScale[0];
-    y    = 80 * cgs.uiHiResScale[1];
+    y    = 56 * cgs.uiHiResScale[1];
 
     cgi.R_SetColor(NULL);
-    cgi.R_DrawString(cgs.media.attackerFont, text, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale);
+    cgi.R_DrawString(
+        cgs.media.attackerFont, text, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
+    );
 }
 
 /*
