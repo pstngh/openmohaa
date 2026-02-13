@@ -673,6 +673,7 @@ static void CG_DrawCompactScoreHud()
     float       y;
     int         iAllies;
     int         iAxis;
+    vec4_t      color;
 
     if (!cg_compactScoreHud->integer || !cg_hud->integer || !cg.snap || !cgs.gametype || cgs.fraglimit) {
         return;
@@ -721,10 +722,16 @@ static void CG_DrawCompactScoreHud()
         - 10.0f * cgs.uiHiResScale[0];
     y = 8.0f * cgs.uiHiResScale[1];
 
-    cgi.R_SetColor(NULL);
+    color[0] = 150.0f / 255.0f;
+    color[1] = 150.0f / 255.0f;
+    color[2] = 0.0f;
+    color[3] = 1.0f;
+
+    cgi.R_SetColor(color);
     cgi.R_DrawString(
         cgs.media.attackerFont, pszString, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
     );
+    cgi.R_SetColor(NULL);
 }
 
 void CG_InitializeObjectives()
