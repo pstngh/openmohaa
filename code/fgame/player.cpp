@@ -7225,7 +7225,8 @@ void Player::CopyStats(Player *player)
     //client->ps.camera_time = player->client->ps.camera_time;
     //client->ps.camera_flags = player->client->ps.camera_flags;
 
-    client->ps.fLeanAngle = player->client->ps.fLeanAngle;
+    // Keep spectator camera independent from target leaning.
+    client->ps.fLeanAngle = 0.0f;
     client->ps.fov        = player->client->ps.fov;
 
     client->ps.viewheight      = player->client->ps.viewheight;
