@@ -9471,9 +9471,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs += right * g_spectatefollow_right->value;
         vCamOfs += up * 0.0f;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
-        }
+        // Keep spectator follow camera stable: do not apply target lean offset.
 
         start = pPlayer->origin;
         start[2] += pPlayer->maxs[2] - 2.0;
