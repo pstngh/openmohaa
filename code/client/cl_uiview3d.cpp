@@ -118,6 +118,7 @@ void View3D::OnDeactivate(Event *ev)
 void View3D::DrawFPS(void)
 {
     char string[128];
+    int  fpsValue;
 
     setFont("verdana-14");
     if (fps->integer == 2) {
@@ -128,6 +129,35 @@ void View3D::DrawFPS(void)
             m_frame.pos.x + m_frame.size.width,
             m_font->getHeight() * 4.0
         );
+    }
+
+    fpsValue = (int)(currentfps + 0.5f);
+
+    if (fps->integer == 1) {
+        Com_sprintf(string, sizeof(string), "%d", fpsValue);
+
+        if (currentfps > 23.94) {
+            if (cl_greenfps->integer) {
+                m_font->setColor(UGreen);
+            } else {
+                m_font->setColor(UWhite);
+            }
+        } else if (currentfps > 18.0) {
+            m_font->setColor(UYellow);
+        } else {
+            m_font->setColor(URed);
+        }
+
+        m_font->Print(
+            m_font->getHeight(getHighResScale()) * 10.0 / getHighResScale()[0],
+            (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1],
+            string,
+            -1,
+            getHighResScale()
+        );
+
+        m_font->setColor(UBlack);
+        return;
     }
 
     Com_sprintf(string, sizeof(string), "FPS %4.1f", currentfps);
