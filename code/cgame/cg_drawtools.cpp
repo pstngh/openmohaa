@@ -1007,15 +1007,15 @@ void CG_UpdateCountdown()
                 iMinutesLeft = iSecondsLeft / 60;
                 message      = va("%s %2i:%02i", cgi.LV_ConvertString("Time Left:"), iMinutesLeft, iSecondsLeft % 60);
             } else if (!cgs.matchEndTime) {
-                message = "";
+                message = "Waiting For Players";
             }
         } else {
             // No clock on liberation game mode
-            message = "";
+            message = "Waiting For Players";
         }
     } else {
         // The match has not started yet
-        message = "";
+        message = "Waiting For Players";
     }
 
     if (strcmp(ui_timemessage->string, message)) {

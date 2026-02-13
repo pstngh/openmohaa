@@ -9471,7 +9471,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs += right * g_spectatefollow_right->value;
         vCamOfs += up * 0.0f;
 
-        if (!pPlayer->IsDead() && pPlayer->client->ps.fLeanAngle != 0.0f) {
+        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
             vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
         }
 
