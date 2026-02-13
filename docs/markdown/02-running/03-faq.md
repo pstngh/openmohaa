@@ -119,6 +119,30 @@ Change the width and height accordingly.
 ---
 
 <details>
+<summary>Can I force the Video menu resolution list from the engine and ignore PK3 menu files?</summary>
+
+Short answer: not fully.
+
+- The visible resolution choices in Options/Video are defined by UI/menu assets, which are loaded from game data (PK3 / override files).
+- The renderer can still run additional resolutions through cvars (`r_mode`, `r_customwidth`, `r_customheight`), even if they are not listed in the menu.
+
+### What you can do
+
+1. Keep using custom resolution cvars (works without menu edits):
+
+```
+seta r_mode "-1"
+seta r_customwidth "1920"
+seta r_customheight "1080"
+```
+
+2. To change what appears in the menu list, edit/override the relevant UI assets in a custom PK3 (or higher-priority override path).
+
+</details>
+
+---
+
+<details>
 <summary>Console does not show up in OpenMoHAA. How can I enable it?</summary>
 
 ### 1. Check if console is enabled
