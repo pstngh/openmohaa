@@ -1300,6 +1300,46 @@ void CG_DrawVote()
     }
 }
 
+
+void CG_DrawRoundStartDelayNotice()
+{
+    static int s_lastMatchStartTime   = -1;
+    static int s_roundDelayNoticeEnds = 0;
+    int        secondsLeft;
+    const char *text;
+    float      x;
+    float      y;
+
+    if (cgs.gametype < GT_OBJECTIVE || !cg_hud->integer) {
+        return;
+    }
+
+    if (cg.matchStartTime <= 0) {
+        return;
+    }
+
+    if (cg.matchStartTime != s_lastMatchStartTime) {
+        s_lastMatchStartTime   = cg.matchStartTime;
+        s_roundDelayNoticeEnds = cg.matchStartTime + 5000;
+    }
+
+    if (cg.time >= s_roundDelayNoticeEnds) {
+        return;
+    }
+
+    secondsLeft = (s_roundDelayNoticeEnds - cg.time + 999) / 1000;
+    if (secondsLeft < 1) {
+        secondsLeft = 1;
+    }
+
+    text = va("Round starts in %i", secondsLeft);
+    x    = 8 * cgs.uiHiResScale[0];
+    y    = 80 * cgs.uiHiResScale[1];
+
+    cgi.R_SetColor(NULL);
+    cgi.R_DrawString(cgs.media.attackerFont, text, x / cgs.uiHiResScale[0], y / cgs.uiHiResScale[1], -1, cgs.uiHiResScale);
+}
+
 /*
 ==============
 CG_Draw2D
@@ -1318,6 +1358,7 @@ void CG_Draw2D(void)
     CG_DrawPlayerTeam();
     CG_DrawPlayerEntInfo();
     CG_UpdateAttackerDisplay();
+    CG_DrawRoundStartDelayNotice();
     CG_DrawVote();
     CG_DrawInstantMessageMenu();
     CG_DrawCrosshair();
