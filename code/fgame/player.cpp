@@ -7243,8 +7243,14 @@ void Player::CopyStats(Player *player)
     // The real followed player is still visible to everyone else via SVF_NOTSINGLECLIENT.
     edict->s.renderfx |= RF_DONTDRAW;
 
-    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    player->edict->r.singleClient = client->ps.clientNum;
+    if (ShouldSpectateFollowFirstPerson()) {
+        // Keep the real followed player networked to the spectator so weapon/step
+        // sounds and other entity-driven effects are still heard in first-person.
+        player->edict->r.svFlags &= ~SVF_NOTSINGLECLIENT;
+    } else {
+        player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+        player->edict->r.singleClient = client->ps.clientNum;
+    }
 
     edict->r.svFlags |= SVF_SINGLECLIENT;
     edict->r.singleClient = client->ps.clientNum;
