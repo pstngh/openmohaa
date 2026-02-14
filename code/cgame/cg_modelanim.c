@@ -998,6 +998,7 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     const char    *szTagName;
     int            iAnimFlags;
     qboolean       bThirdPerson = qfalse;
+    qboolean       hideSpectateFollowModel = qfalse;
 
     s1 = &cent->currentState;
 
@@ -1510,8 +1511,14 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
         }
     }
 
+    if (g_spectatefollow_firstperson->integer && cg.snap && !cg.renderingThirdPerson
+        && cg.snap->ps.stats[STAT_TEAM] == TEAM_SPECTATOR && (cg.snap->ps.pm_flags & PMF_FROZEN)
+        && cg.snap->ps.stats[STAT_INFOCLIENT] >= 0 && s1->number == cg.snap->ps.stats[STAT_INFOCLIENT]) {
+        hideSpectateFollowModel = qtrue;
+    }
+
     model.reType = RT_MODEL;
-    if (!(s1->renderfx & RF_DONTDRAW)) {
+    if (!(s1->renderfx & RF_DONTDRAW) && !hideSpectateFollowModel) {
         cgi.R_Model_GetHandle(model.hModel);
         if (VectorCompare(model.origin, vec3_origin)) {
             VectorCopy(s1->origin, model.origin);
