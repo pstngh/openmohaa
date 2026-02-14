@@ -7244,9 +7244,9 @@ void Player::CopyStats(Player *player)
     edict->s.renderfx |= RF_DONTDRAW;
 
     if (ShouldSpectateFollowFirstPerson()) {
-        // Keep the real followed player networked to the spectator so weapon/step
-        // sounds and other entity-driven effects are still heard in first-person.
-        player->edict->r.svFlags &= ~SVF_NOTSINGLECLIENT;
+        // Keep the real followed player fully networked in first-person follow
+        // so event-driven weapon/footstep sounds are always replicated.
+        player->edict->r.svFlags &= ~(SVF_NOTSINGLECLIENT | SVF_SINGLECLIENT);
     } else {
         player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
         player->edict->r.singleClient = client->ps.clientNum;
