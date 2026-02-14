@@ -1514,12 +1514,18 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     if (g_spectatefollow_firstperson->integer && cg.snap && !cg.renderingThirdPerson
         && (cg.snap->ps.pm_flags & PMF_FROZEN) && (cg.snap->ps.pm_flags & PMF_NO_MOVE)
         && (cg.snap->ps.pm_flags & PMF_NO_PREDICTION) && cg.snap->ps.stats[STAT_INFOCLIENT] >= 0
-        && s1->number == cg.snap->ps.stats[STAT_INFOCLIENT]) {
+        && (s1->number == cg.snap->ps.stats[STAT_INFOCLIENT] || s1->parent == cg.snap->ps.stats[STAT_INFOCLIENT])) {
         hideSpectateFollowModel = qtrue;
     }
 
+    if (hideSpectateFollowModel) {
+        for (i = 0; i < MAX_MODEL_SURFACES; i++) {
+            model.surfaces[i] |= MDL_SURFACE_NODRAW;
+        }
+    }
+
     model.reType = RT_MODEL;
-    if (!(s1->renderfx & RF_DONTDRAW) && !hideSpectateFollowModel) {
+    if (!(s1->renderfx & RF_DONTDRAW)) {
         cgi.R_Model_GetHandle(model.hModel);
         if (VectorCompare(model.origin, vec3_origin)) {
             VectorCopy(s1->origin, model.origin);
