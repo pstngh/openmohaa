@@ -7239,7 +7239,9 @@ void Player::CopyStats(Player *player)
 
     edict->s.eFlags &= ~EF_UNARMED;
     edict->r.svFlags &= ~SVF_NOCLIENT;
-    edict->s.renderfx &= ~RF_DONTDRAW;
+    // Hide the surrogate followed model for the spectator in first-person mode.
+    // The real followed player is still visible to everyone else via SVF_NOTSINGLECLIENT.
+    edict->s.renderfx |= RF_DONTDRAW;
 
     player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
     player->edict->r.singleClient = client->ps.clientNum;
@@ -7253,31 +7255,35 @@ void Player::CopyStats(Player *player)
 
     DetachAllChildren(NULL);
 
-    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
-        Entity *dest;
+    // In first-person follow we do not want to render the followed full-body
+    // surrogate (or any attached child models) in front of the camera.
+    if (!ShouldSpectateFollowFirstPerson()) {
+        for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
+            Entity *dest;
 
-        if (player->children[i] == ENTITYNUM_NONE) {
-            continue;
+            if (player->children[i] == ENTITYNUM_NONE) {
+                continue;
+            }
+
+            ent = g_entities + player->children[i];
+
+            if (!ent->inuse || !ent->entity) {
+                continue;
+            }
+
+            dest = new Entity;
+
+            CloneEntity(dest, ent->entity);
+
+            dest->edict->s.modelindex   = ent->entity->edict->s.modelindex;
+            dest->edict->tiki           = ent->entity->edict->tiki;
+            dest->edict->s.actionWeight = ent->entity->edict->s.actionWeight;
+            memcpy(&dest->edict->s.frameInfo, &ent->entity->edict->s.frameInfo, sizeof(dest->edict->s.frameInfo));
+            dest->CancelPendingEvents();
+            dest->attach(entnum, ent->entity->edict->s.tag_num);
+
+            dest->PostEvent(EV_DetachAllChildren, level.frametime);
         }
-
-        ent = g_entities + player->children[i];
-
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        dest = new Entity;
-
-        CloneEntity(dest, ent->entity);
-
-        dest->edict->s.modelindex   = ent->entity->edict->s.modelindex;
-        dest->edict->tiki           = ent->entity->edict->tiki;
-        dest->edict->s.actionWeight = ent->entity->edict->s.actionWeight;
-        memcpy(&dest->edict->s.frameInfo, &ent->entity->edict->s.frameInfo, sizeof(dest->edict->s.frameInfo));
-        dest->CancelPendingEvents();
-        dest->attach(entnum, ent->entity->edict->s.tag_num);
-
-        dest->PostEvent(EV_DetachAllChildren, level.frametime);
     }
 }
 
