@@ -508,7 +508,7 @@ void CVAR_Init(void)
     g_inactivespectate = gi.Cvar_Get("g_inactiveSpectate", "60", CVAR_ARCHIVE);
     g_inactivekick     = gi.Cvar_Get("g_inactivekick", "900", CVAR_ARCHIVE);
     g_teamkillwarn     = gi.Cvar_Get("g_teamkillwarn", "3", CVAR_ARCHIVE);
-    g_teamkillkick     = gi.Cvar_Get("g_teamkillkick", "5", CVAR_ARCHIVE);
+    g_teamkillkick     = gi.Cvar_Get("g_teamkillkick", "0", CVAR_ARCHIVE);
     g_teamswitchdelay  = gi.Cvar_Get("g_teamswitchdelay", "15", CVAR_ARCHIVE);
     g_shownpc          = gi.Cvar_Get("g_shownpc", "0", 0);
 
