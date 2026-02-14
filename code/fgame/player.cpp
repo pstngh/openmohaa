@@ -4028,33 +4028,6 @@ void Player::ClientMove(usercmd_t *ucmd)
         client->ps.pm_flags |= PMF_NO_MOVE;
     }
 
-    // Added in OPM
-    //  Freeze movement for 5 seconds at objective round start
-    if (g_gametype->integer >= GT_OBJECTIVE) {
-        static bool s_objectiveRoundWasStarted = false;
-        static int  s_objectiveMoveUnlockTime  = 0;
-        static int  s_lastLevelIntTime         = 0;
-
-        // Reset statics on map change / restart (time going backwards)
-        if (level.inttime < s_lastLevelIntTime) {
-            s_objectiveRoundWasStarted = false;
-            s_objectiveMoveUnlockTime  = 0;
-        }
-        s_lastLevelIntTime = level.inttime;
-
-        bool roundStarted = level.RoundStarted();
-
-        // Detect transition into round started
-        if (roundStarted && !s_objectiveRoundWasStarted) {
-            s_objectiveMoveUnlockTime = level.inttime + 5000;
-        }
-        s_objectiveRoundWasStarted = roundStarted;
-
-        if (roundStarted && level.inttime < s_objectiveMoveUnlockTime) {
-            client->ps.pm_flags |= PMF_NO_MOVE;
-            client->ps.pm_flags |= PMF_NO_PREDICTION;
-        }
-    }
 
     if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
         // Changed in 2.30
@@ -4487,6 +4460,35 @@ void Player::UpdateEnemies(void)
     }
 }
 
+static bool G_IsObjectiveRoundStartControlLockActive()
+{
+    static bool s_objectiveRoundWasStarted = false;
+    static int  s_objectiveMoveUnlockTime  = 0;
+    static int  s_lastLevelIntTime         = 0;
+
+    if (g_gametype->integer < GT_OBJECTIVE) {
+        s_objectiveRoundWasStarted = false;
+        s_objectiveMoveUnlockTime  = 0;
+        s_lastLevelIntTime         = level.inttime;
+        return false;
+    }
+
+    if (level.inttime < s_lastLevelIntTime) {
+        s_objectiveRoundWasStarted = false;
+        s_objectiveMoveUnlockTime  = 0;
+    }
+    s_lastLevelIntTime = level.inttime;
+
+    const bool roundStarted = level.RoundStarted();
+
+    if (roundStarted && !s_objectiveRoundWasStarted) {
+        s_objectiveMoveUnlockTime = level.inttime + 5000;
+    }
+    s_objectiveRoundWasStarted = roundStarted;
+
+    return roundStarted && level.inttime < s_objectiveMoveUnlockTime;
+}
+
 /*
 ==============
 ClientThink
@@ -4519,17 +4521,33 @@ void Player::ClientThink(void)
         Spectator();
     }
 
+    const bool objectiveRoundControlLock =
+        G_IsObjectiveRoundStartControlLockActive() && !IsDead() && !IsSpectator()
+        && (GetTeam() == TEAM_ALLIES || GetTeam() == TEAM_AXIS);
+    int        filteredButtons           = current_ucmd->buttons;
+
+    if (objectiveRoundControlLock) {
+        filteredButtons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT | BUTTON_USE | G_GetWeaponCommandMask());
+    }
+
     last_ucmd = *current_ucmd;
 
-    new_buttons = current_ucmd->buttons & ~buttons;
+    if (objectiveRoundControlLock) {
+        last_ucmd.buttons     = filteredButtons;
+        last_ucmd.forwardmove = 0;
+        last_ucmd.rightmove   = 0;
+        last_ucmd.upmove      = 0;
+    }
+
+    new_buttons = filteredButtons & ~buttons;
     if (new_buttons & G_GetWeaponCommandMask()) {
         // Fixed in OPM
         //  There can't be multiple weapon commands
         //  So clear the weapon commands and use the latest one
         server_new_buttons &= ~G_GetWeaponCommandMask();
     }
-    server_new_buttons |= current_ucmd->buttons & ~buttons;
-    buttons = current_ucmd->buttons;
+    server_new_buttons |= filteredButtons & ~buttons;
+    buttons = filteredButtons;
 
     if (camera) {
         // Fixed in OPM
@@ -4563,12 +4581,24 @@ void Player::ClientThink(void)
 
         moveresult = MOVERESULT_NONE;
 
+        usercmd_t filteredCmd;
+        usercmd_t *moveCmd = current_ucmd;
+
+        if (objectiveRoundControlLock) {
+            filteredCmd             = *current_ucmd;
+            filteredCmd.buttons     = filteredButtons;
+            filteredCmd.forwardmove = 0;
+            filteredCmd.rightmove   = 0;
+            filteredCmd.upmove      = 0;
+            moveCmd                 = &filteredCmd;
+        }
+
         if (m_pTurret) {
-            TurretMove(current_ucmd);
+            TurretMove(moveCmd);
         } else if (m_pVehicle) {
-            VehicleMove(current_ucmd);
+            VehicleMove(moveCmd);
         } else {
-            ClientMove(current_ucmd);
+            ClientMove(moveCmd);
         }
 
         // Save cmd angles so that we can get delta angle movements next frame
