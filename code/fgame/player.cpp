@@ -6643,7 +6643,7 @@ void Player::SetPlayerView(
                 vVec.setXYZ(0, 0, 0);
             } else {
                 VectorCopy(ang, client->ps.camera_angles);
-                VectorCopy(position, client->ps.camera_angles);
+                VectorCopy(position, client->ps.camera_origin);
 
                 vVec.setXYZ(0, 0, 0);
             }
@@ -7208,6 +7208,17 @@ void Player::CopyStats(Player *player)
     memcpy(&client->ps.blend, &player->client->ps.blend, sizeof(client->ps.blend));
     memcpy(&client->ps.damage_angles, &player->client->ps.damage_angles, sizeof(client->ps.damage_angles));
     memcpy(&client->ps.viewangles, &player->client->ps.viewangles, sizeof(client->ps.delta_angles));
+
+    // First-person spectate mirrors the followed player as if we were them,
+    // so camera-view mode must be disabled and camera transforms must stay
+    // in sync with the eye position to avoid stale spatial audio.
+    client->ps.pm_flags &= ~(PMF_CAMERA_VIEW | PMF_DAMAGE_ANGLES);
+
+    Vector cameraPos, cameraAng;
+    player->GetPlayerView(&cameraPos, &cameraAng);
+    VectorCopy(cameraPos, client->ps.camera_origin);
+    VectorCopy(cameraAng, client->ps.camera_angles);
+    VectorClear(client->ps.camera_posofs);
 
     // copy camera stuff
     //memcpy( &client->ps.camera_origin, &player->client->ps.camera_origin, sizeof( client->ps.camera_origin ) );
