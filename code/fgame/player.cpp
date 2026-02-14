@@ -7313,6 +7313,16 @@ void Player::UpdateStats(void)
 
         if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
             CopyStats((Player *)ent->entity);
+
+            // Keep info client data authoritative for cgame so the followed
+            // player can be identified even while we mirror the target stats.
+            client->ps.stats[STAT_INFOCLIENT] = m_iPlayerSpectating - 1;
+
+            float percent = ent->entity->health / ent->entity->max_health * 100.0f;
+            if (percent > 0.0f && percent < 1.0f) {
+                percent = 1.0f;
+            }
+            client->ps.stats[STAT_INFOCLIENT_HEALTH] = percent;
             return;
         }
     }

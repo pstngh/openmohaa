@@ -1512,8 +1512,9 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     }
 
     if (g_spectatefollow_firstperson->integer && cg.snap && !cg.renderingThirdPerson
-        && cg.snap->ps.stats[STAT_TEAM] == TEAM_SPECTATOR && (cg.snap->ps.pm_flags & PMF_FROZEN)
-        && cg.snap->ps.stats[STAT_INFOCLIENT] >= 0 && s1->number == cg.snap->ps.stats[STAT_INFOCLIENT]) {
+        && (cg.snap->ps.pm_flags & PMF_FROZEN) && (cg.snap->ps.pm_flags & PMF_NO_MOVE)
+        && (cg.snap->ps.pm_flags & PMF_NO_PREDICTION) && cg.snap->ps.stats[STAT_INFOCLIENT] >= 0
+        && s1->number == cg.snap->ps.stats[STAT_INFOCLIENT]) {
         hideSpectateFollowModel = qtrue;
     }
 
