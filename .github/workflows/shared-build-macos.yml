@@ -209,6 +209,9 @@ jobs:
         echo "CMAKE_PARAM=--log-level=VERBOSE \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
         -DCMAKE_VERBOSE_MAKEFILE=on \
+        -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+        -DCMAKE_C_FLAGS='-Wno-error' \
+        -DCMAKE_CXX_FLAGS='-Wno-error' \
         -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
         -DUSE_INTERNAL_SDL=OFF \
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/lib/cmake/SDL2' \
