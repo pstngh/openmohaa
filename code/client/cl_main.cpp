@@ -3193,6 +3193,7 @@ void CL_InitRef( void ) {
 #ifdef USE_RENDERER_DLOPEN
 	GetRefAPI_t		GetRefAPI;
 	char			dllName[MAX_OSPATH];
+	const char		*defaultRenderer;
 #endif
 
 	Com_Printf( "----- Initializing Renderer ----\n" );
@@ -3200,7 +3201,16 @@ void CL_InitRef( void ) {
 #define RENDERER_ARCH_DLL_EXT DLL_SUFFIX DLL_EXT
 
 #ifdef USE_RENDERER_DLOPEN
-	cl_renderer = Cvar_Get("cl_renderer", "opengl1", CVAR_ARCHIVE | CVAR_LATCH);
+	defaultRenderer = "opengl1";
+#ifdef __APPLE__
+	defaultRenderer = "opengl2";
+#endif
+
+	cl_renderer = Cvar_Get("cl_renderer", defaultRenderer, CVAR_ARCHIVE | CVAR_LATCH);
+
+#ifdef __APPLE__
+	Com_Printf("macOS renderer default: %s (cl_renderer = %s)\n", defaultRenderer, cl_renderer->string);
+#endif
 
 	Com_sprintf(dllName, sizeof(dllName), "renderer_%s" RENDERER_ARCH_DLL_EXT, cl_renderer->string);
 
