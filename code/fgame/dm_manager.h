@@ -182,6 +182,7 @@ private:
     bool m_bAllowAlliedRespawn;
     bool m_bAllowAxisRespawn;
     bool m_bRoundActive;
+    int  m_iObjectiveRoundCountdown;
 
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
@@ -222,6 +223,7 @@ public:
     bool       PlayerHitScoreLimit(void);
     void       EventDoRoundTransition(Event *ev);
     void       EventFinishRoundTransition(Event *ev);
+    void       EventObjectiveRoundCountdown(Event *ev);
     void       TeamWin(int teamnum);
     void       StartRound(void);
     void       EndRound(void);

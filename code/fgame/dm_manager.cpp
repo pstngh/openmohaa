@@ -641,10 +641,19 @@ Event EV_DM_Manager_FinishRoundTransition
     NULL,
     "delayed function call to do the actual restart for the next round"
 );
+Event EV_DM_Manager_ObjectiveRoundCountdown
+(
+    "objectiveroundcountdown",
+    EV_DEFAULT,
+    NULL,
+    NULL,
+    "sends objective round start countdown updates to all clients"
+);
 
 CLASS_DECLARATION(Listener, DM_Manager, NULL) {
     {&EV_DM_Manager_DoRoundTransition,     &DM_Manager::EventDoRoundTransition    },
     {&EV_DM_Manager_FinishRoundTransition, &DM_Manager::EventFinishRoundTransition},
+    {&EV_DM_Manager_ObjectiveRoundCountdown, &DM_Manager::EventObjectiveRoundCountdown},
     {NULL,                                 NULL                                   }
 };
 
@@ -684,6 +693,7 @@ DM_Manager::DM_Manager()
     m_bAllowAxisRespawn    = true;
     m_bAllowAlliedRespawn  = true;
     m_bRoundActive         = false;
+    m_iObjectiveRoundCountdown = 0;
     m_iTotalMapTime        = 0;
 }
 
@@ -1131,6 +1141,7 @@ void DM_Manager::InitGame(void)
     m_bIgnoringClockForBomb = false;
     m_iNumTargetsDestroyed  = 0;
     m_iNumBombsPlanted      = 0;
+    m_iObjectiveRoundCountdown = 0;
 
     if (g_gametype->integer >= 0 && g_gametype->integer < GT_MAX_GAME_TYPE) {
         if (g_gametype->integer <= GT_TEAM) {
@@ -1608,12 +1619,45 @@ void DM_Manager::StartRound(void)
 
     level.RemoveWaitTill(STRING_ROUNDSTART);
     level.Unregister(STRING_ROUNDSTART);
+
+    CancelEventsOfType(EV_DM_Manager_ObjectiveRoundCountdown);
+    m_iObjectiveRoundCountdown = 0;
+
+    if (g_gametype->integer >= GT_OBJECTIVE) {
+        m_iObjectiveRoundCountdown = 5;
+        PostEvent(EV_DM_Manager_ObjectiveRoundCountdown, 0.0f);
+    }
+
     gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
+}
+
+void DM_Manager::EventObjectiveRoundCountdown(Event *ev)
+{
+    (void)ev;
+    if (g_gametype->integer < GT_OBJECTIVE || !m_bRoundActive) {
+        m_iObjectiveRoundCountdown = 0;
+        return;
+    }
+
+    if (m_iObjectiveRoundCountdown <= 0) {
+        return;
+    }
+
+    G_CenterPrintToAllClients(va("%d", m_iObjectiveRoundCountdown));
+    G_PrintToAllClients(va("%d\n", m_iObjectiveRoundCountdown));
+
+    m_iObjectiveRoundCountdown--;
+
+    if (m_iObjectiveRoundCountdown > 0) {
+        PostEvent(EV_DM_Manager_ObjectiveRoundCountdown, 1.0f);
+    }
 }
 
 void DM_Manager::EndRound()
 {
     m_bRoundActive = false;
+    CancelEventsOfType(EV_DM_Manager_ObjectiveRoundCountdown);
+    m_iObjectiveRoundCountdown = 0;
 
     if (m_fRoundEndTime <= 0) {
         m_fRoundEndTime = level.time;
