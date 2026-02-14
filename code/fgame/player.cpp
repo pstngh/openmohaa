@@ -7217,7 +7217,9 @@ void Player::CopyStats(Player *player)
     //client->ps.camera_time = player->client->ps.camera_time;
     //client->ps.camera_flags = player->client->ps.camera_flags;
 
-    client->ps.fLeanAngle = player->client->ps.fLeanAngle;
+    // Added in OPM
+    //  Keep spectator camera independent from target leaning.
+    client->ps.fLeanAngle = 0.0f;
     client->ps.fov        = player->client->ps.fov;
 
     client->ps.viewheight      = player->client->ps.viewheight;
@@ -9477,11 +9479,15 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs = pPlayer->origin;
         vCamOfs[2] += pPlayer->viewheight;
 
-        vCamOfs += forward * g_spectatefollow_forward->value;
+        // Added in OPM
+        //  Force forward and up offsets to zero for a stable spectate camera
+        vCamOfs += forward * 0.0f;
         vCamOfs += right * g_spectatefollow_right->value;
-        vCamOfs += up * g_spectatefollow_up->value;
+        vCamOfs += up * 0.0f;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
+        // Added in OPM
+        //  Skip lean offset when the target is dead
+        if (!pPlayer->IsDead() && pPlayer->client->ps.fLeanAngle != 0.0f) {
             vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
         }
 
