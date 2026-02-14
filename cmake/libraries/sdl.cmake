@@ -44,30 +44,11 @@ if(USE_INTERNAL_SDL AND HAVE_INTERNAL_SDL)
 
         list(APPEND CLIENT_DEPLOY_LIBRARIES ${LIB_DIR}/SDL2.dll)
     elseif(APPLE)
-        set(SDL2_MACOS_MAIN_LIBRARY ${SOURCE_DIR}/thirdparty/libs/macos/libSDL2main.a)
-        file(GLOB SDL2_MACOS_DYLIBS ${SOURCE_DIR}/thirdparty/libs/macos/libSDL2*.dylib)
-
-        if(NOT EXISTS ${SDL2_MACOS_MAIN_LIBRARY})
-            message(FATAL_ERROR "Missing internal SDL main library for macOS: ${SDL2_MACOS_MAIN_LIBRARY}")
-        endif()
-
-        if(NOT SDL2_MACOS_DYLIBS)
-            message(FATAL_ERROR "Missing internal SDL dynamic library for macOS in ${SOURCE_DIR}/thirdparty/libs/macos")
-        endif()
-
-        # Pick the highest dylib version available (for example
-        # libSDL2-2.30.11.dylib over libSDL2-2.9.0.dylib).
-        list(SORT SDL2_MACOS_DYLIBS COMPARE NATURAL ORDER DESCENDING)
-        list(GET SDL2_MACOS_DYLIBS 0 SDL2_MACOS_DYLIB)
-
         set(SDL2_LIBRARIES
-            ${SDL2_MACOS_MAIN_LIBRARY}
-            ${SDL2_MACOS_DYLIB})
-
-        message(STATUS "Using internal SDL dynamic library for macOS: ${SDL2_MACOS_DYLIB}")
-
+            ${SOURCE_DIR}/thirdparty/libs/macos/libSDL2main.a
+            ${SOURCE_DIR}/thirdparty/libs/macos/libSDL2-2.0.0.dylib)
         list(APPEND CLIENT_DEPLOY_LIBRARIES
-            ${SDL2_MACOS_DYLIB})
+            ${SOURCE_DIR}/thirdparty/libs/macos/libSDL2-2.0.0.dylib)
     else()
         message(FATAL_ERROR "HAVE_INTERNAL_SDL set incorrectly; file a bug")
     endif()

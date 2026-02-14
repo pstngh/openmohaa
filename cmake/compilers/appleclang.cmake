@@ -12,13 +12,4 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	# using functions in the executable
 	# it's ok to hide them because the backtrace on macOS will still print the name of the functions
 	add_compile_options(-fvisibility=hidden)
-
-	# Newer Apple Clang versions emit additional diagnostics in legacy C code,
-	# which can break builds in environments that promote warnings to errors.
-	add_compile_options(
-		-Wno-deprecated-non-prototype
-		-Wno-incompatible-pointer-types-discards-qualifiers
-		-Wno-pointer-sign
-		-Wno-unused-function
-		-Wno-unused-variable)
 endif()

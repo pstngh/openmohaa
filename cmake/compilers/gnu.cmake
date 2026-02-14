@@ -30,20 +30,6 @@ add_compile_options(-Wno-comment)
 # Treat no return type as error
 add_compile_options(-Werror=return-type)
 
-if(APPLE AND CMAKE_C_COMPILER_ID MATCHES "Clang")
-    # Keep legacy renderer sources building on modern macOS Clang toolchains
-    # (both AppleClang and Homebrew LLVM Clang) where these diagnostics are
-    # noisy and may be promoted to errors by CI environments.
-    add_compile_options(
-        -Wno-strict-prototypes
-        -Wno-deprecated-non-prototype
-        -Wno-incompatible-pointer-types-discards-qualifiers
-        -Wno-macro-redefined
-        -Wno-pointer-sign
-        -Wno-unused-function
-        -Wno-unused-variable)
-endif()
-
 set(ASM_SOURCES)
 
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v

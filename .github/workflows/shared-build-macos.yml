@@ -209,9 +209,6 @@ jobs:
         echo "CMAKE_PARAM=--log-level=VERBOSE \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
         -DCMAKE_VERBOSE_MAKEFILE=on \
-        -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
-        -DCMAKE_C_FLAGS='-Wno-error' \
-        -DCMAKE_CXX_FLAGS='-Wno-error' \
         -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
         -DUSE_INTERNAL_SDL=OFF \
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/lib/cmake/SDL2' \
@@ -219,8 +216,7 @@ jobs:
         -DOPENAL_INCLUDE_DIR='${{github.workspace}}/thirdparties/soft-oal/install/include/AL' \
         -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
-        -DBUILD_RENDERER_GL1=OFF \
-        -DBUILD_RENDERER_GL2=ON \
+        -DBUILD_RENDERER_GL2=OFF \
         -DBUILD_MACOS_APP=OFF \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
         -DPRODUCT_VERSION_STAGE='${{ env.RELEASE_STAGE }}'" >> $GITHUB_ENV
