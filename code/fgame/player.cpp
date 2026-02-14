@@ -7824,15 +7824,9 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!ShouldSpectateFollowFirstPerson()) {
-        SetupView();
-    } else {
-        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
-
-        if (!ent->inuse || !ent->entity || ent->entity->deadflag >= DEAD_DEAD) {
-            SetupView();
-        }
-    }
+    // Always run SetupView so spectate follow camera origin/angles keep
+    // tracking the followed player every frame in both first and third person.
+    SetupView();
 }
 
 void Player::GotKill(Event *ev)
