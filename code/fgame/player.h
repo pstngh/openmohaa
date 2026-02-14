@@ -827,6 +827,7 @@ public:
     teamtype_t GetTeam() const;
     void       SetTeam(teamtype_t team);
     bool       IsSpectator(void);
+    bool       ShouldSpectateFollowFirstPerson(void) const;
     void       BeginFight(void);
     void       EndFight(void);
     void       Spectator(void);

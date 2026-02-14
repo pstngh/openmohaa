@@ -796,6 +796,13 @@ void G_ClientUserinfoChanged(gentity_t *ent, const char *u)
 
     Q_strncpyz(client->pers.dm_playergermanmodel, s, sizeof(client->pers.dm_playergermanmodel));
 
+    s = Info_ValueForKey(u, "g_spectatefollow_firstperson");
+    if (s && s[0]) {
+        client->pers.spectate_follow_firstperson = atoi(s) != 0 ? qtrue : qfalse;
+    } else {
+        client->pers.spectate_follow_firstperson = qtrue;
+    }
+
     G_SetClientConfigString(ent);
 
     if (ent->entity) {

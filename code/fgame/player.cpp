@@ -7281,7 +7281,7 @@ void Player::UpdateStats(void)
     // Health
     //
 
-    if (g_spectatefollow_firstperson->integer && IsSpectator() && m_iPlayerSpectating != 0) {
+    if (ShouldSpectateFollowFirstPerson()) {
         //
         // Added in OPM
         //  First-person spectate
@@ -7813,7 +7813,7 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!g_spectatefollow_firstperson->integer || !IsSpectator() || !m_iPlayerSpectating) {
+    if (!ShouldSpectateFollowFirstPerson()) {
         SetupView();
     } else {
         gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
@@ -9468,7 +9468,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
     Vector  start;
     trace_t trace;
 
-    if (!g_spectatefollow_firstperson->integer) {
+    if (!ShouldSpectateFollowFirstPerson()) {
         // spectating a player
         vAng = pPlayer->GetVAngles();
 
@@ -9497,8 +9497,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
         vPos = trace.endpos;
     } else {
-        vAng = pPlayer->angles;
-        vPos = pPlayer->origin;
+        pPlayer->GetPlayerView(&vPos, &vAng);
     }
 }
 
@@ -9696,6 +9695,12 @@ DM_Team *Player::GetDM_Team()
 bool Player::IsSpectator(void)
 {
     return (m_bSpectator || m_bTempSpectator);
+}
+
+bool Player::ShouldSpectateFollowFirstPerson(void) const
+{
+    return g_spectatefollow_firstperson->integer && client && client->pers.spectate_follow_firstperson
+           && (m_bSpectator || m_bTempSpectator) && m_iPlayerSpectating != 0;
 }
 
 void Player::BeginFight(void)

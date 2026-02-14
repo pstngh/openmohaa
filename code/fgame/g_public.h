@@ -142,6 +142,7 @@ typedef struct {
 
     char ip[17];
     int  port;
+    qboolean spectate_follow_firstperson;
 } client_persistant_t;
 
 // this structure is cleared on each ClientSpawn(),

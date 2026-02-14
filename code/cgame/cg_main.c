@@ -117,6 +117,7 @@ cvar_t *ui_timemessage;
 //
 cvar_t *cg_fov;
 cvar_t *cg_cheats;
+cvar_t *g_spectatefollow_firstperson;
 
 /*
 =================
@@ -213,6 +214,7 @@ void CG_RegisterCvars(void)
 
     cg_fov = cgi.Cvar_Get("cg_fov", "80", CVAR_ARCHIVE);
     cg_cheats = cgi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
+    g_spectatefollow_firstperson = cgi.Cvar_Get("g_spectatefollow_firstperson", "1", CVAR_ARCHIVE | CVAR_USERINFO);
 }
 /*
 ===============
