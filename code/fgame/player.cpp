@@ -4028,6 +4028,34 @@ void Player::ClientMove(usercmd_t *ucmd)
         client->ps.pm_flags |= PMF_NO_MOVE;
     }
 
+    // Added in OPM
+    //  Freeze movement for 5 seconds at objective round start
+    if (g_gametype->integer >= GT_OBJECTIVE) {
+        static bool s_objectiveRoundWasStarted = false;
+        static int  s_objectiveMoveUnlockTime  = 0;
+        static int  s_lastLevelIntTime         = 0;
+
+        // Reset statics on map change / restart (time going backwards)
+        if (level.inttime < s_lastLevelIntTime) {
+            s_objectiveRoundWasStarted = false;
+            s_objectiveMoveUnlockTime  = 0;
+        }
+        s_lastLevelIntTime = level.inttime;
+
+        bool roundStarted = level.RoundStarted();
+
+        // Detect transition into round started
+        if (roundStarted && !s_objectiveRoundWasStarted) {
+            s_objectiveMoveUnlockTime = level.inttime + 5000;
+        }
+        s_objectiveRoundWasStarted = roundStarted;
+
+        if (roundStarted && level.inttime < s_objectiveMoveUnlockTime) {
+            client->ps.pm_flags |= PMF_NO_MOVE;
+            client->ps.pm_flags |= PMF_NO_PREDICTION;
+        }
+    }
+
     if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
         // Changed in 2.30
         //  Only crouch or jump start is possible
