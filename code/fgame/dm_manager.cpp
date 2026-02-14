@@ -1643,7 +1643,14 @@ void DM_Manager::EventObjectiveRoundCountdown(Event *ev)
         return;
     }
 
-    G_PrintToAllClients(va("console: %d\n", m_iObjectiveRoundCountdown), 2);
+    for (int i = 0; i < game.maxclients; ++i) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse || !ent->entity) {
+            continue;
+        }
+
+        gi.SendServerCommand(i, "print \"" HUD_MESSAGE_CHAT_WHITE "console: %d\n\"", m_iObjectiveRoundCountdown);
+    }
 
     m_iObjectiveRoundCountdown--;
 
