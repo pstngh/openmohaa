@@ -30,6 +30,18 @@ add_compile_options(-Wno-comment)
 # Treat no return type as error
 add_compile_options(-Werror=return-type)
 
+if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+    # Keep legacy renderer sources building on modern AppleClang where
+    # these diagnostics are noisy and may be promoted to errors.
+    add_compile_options(
+        -Wno-strict-prototypes
+        -Wno-deprecated-non-prototype
+        -Wno-incompatible-pointer-types-discards-qualifiers
+        -Wno-pointer-sign
+        -Wno-unused-function
+        -Wno-unused-variable)
+endif()
+
 set(ASM_SOURCES)
 
 execute_process(COMMAND ${CMAKE_C_COMPILER} -v
