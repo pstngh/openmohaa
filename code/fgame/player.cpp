@@ -9484,10 +9484,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs += up * 0.0f;
 
         // Added in OPM
-        //  Skip lean offset when the target is dead
-        if (!pPlayer->IsDead() && pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
-        }
+        //  Keep spectator follow camera stable: do not apply target lean offset.
 
         start = pPlayer->origin;
         start[2] += pPlayer->maxs[2] - 2.0;
