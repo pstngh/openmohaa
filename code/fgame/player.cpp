@@ -5584,26 +5584,7 @@ void Player::EvaluateState(State *forceTorso, State *forceLegs)
                     StopPartAnimating(legs);
                     animdone_Legs = true;
                 } else if (legsAnim != "") {
-                    float oldTime;
-
-                    if (currentState_Legs == laststate_Legs) {
-                        //
-                        // Added in OPM
-                        //  This allows different animations in the same state
-                        //  to be continued at the same moment.
-                        //  This is used to avoid "ghost walking" where the player
-                        //  would switch weapons indefinitely to avoid footstep sounds
-                        //
-
-                        oldTime = GetTime(m_iPartSlot[legs]);
-                        SetPartAnim(legsAnim, legs);
-
-                        if (animtimes[m_iPartSlot[legs]] > 0) {
-                            SetTime(m_iPartSlot[legs], fmod(oldTime, animtimes[m_iPartSlot[legs]]));
-                        }
-                    } else {
-                        SetPartAnim(legsAnim, legs);
-                    }
+                    SetPartAnim(legsAnim, legs);
                 }
             } else {
                 currentState_Legs = laststate_Legs;
