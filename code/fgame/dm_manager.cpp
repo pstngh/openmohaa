@@ -1643,8 +1643,20 @@ void DM_Manager::EventObjectiveRoundCountdown(Event *ev)
         return;
     }
 
-    G_CenterPrintToAllClients(va("%d", m_iObjectiveRoundCountdown));
-    G_PrintToAllClients(va("%d\n", m_iObjectiveRoundCountdown));
+    // Added in OPM
+    //  Broadcast countdown using the same format as rcon say (console: prefix with chat-white color).
+    //  Display count-1 (4,3,2,1) so the last second is a silent freeze period
+    //  and players can't move the instant "1" appears.
+    if (m_iObjectiveRoundCountdown > 1) {
+        int displayCount = m_iObjectiveRoundCountdown - 1;
+        for (int i = 0; i < game.maxclients; i++) {
+            gentity_t *ent = &g_entities[i];
+            if (!ent->inuse || !ent->entity) {
+                continue;
+            }
+            gi.SendServerCommand(i, "print \"" HUD_MESSAGE_CHAT_WHITE "console: %d\n\"", displayCount);
+        }
+    }
 
     m_iObjectiveRoundCountdown--;
 

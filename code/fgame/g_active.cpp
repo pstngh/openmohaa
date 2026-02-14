@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 #include "entity.h"
 #include "game.h"
+#include "dm_manager.h"
+#include "player.h"
 
 // FIXME: OLD Q3 CODE
 #if 0
@@ -916,6 +918,23 @@ void G_ClientThink( gentity_t *ent, usercmd_t *cmd, usereyes_t *eyeinfo )
 	{
 		if( ent->entity )
 		{
+			// Added in OPM
+			//  Freeze players during objective round-start countdown (Volute method):
+			//  zero out movement and action buttons from the usercmd while preserving
+			//  view angles so players can still look around.
+			if (g_gametype->integer >= GT_OBJECTIVE && dmManager.IsObjectiveRoundControlLockActive()) {
+				Player *player = static_cast<Player *>(ent->entity);
+				if (ent->client
+					&& (player->GetTeam() == TEAM_ALLIES || player->GetTeam() == TEAM_AXIS)
+					&& !player->IsDead() && !player->IsSpectator()) {
+					cmd->forwardmove = 0;
+					cmd->rightmove   = 0;
+					cmd->upmove      = 0;
+					cmd->buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT | BUTTON_USE);
+					cmd->buttons &= ~GetWeaponCommandMask(WEAPON_COMMAND_MAX_VER17);
+				}
+			}
+
 			current_ucmd = cmd;
 			current_eyeinfo = eyeinfo;
 			ent->entity->ClientThink();

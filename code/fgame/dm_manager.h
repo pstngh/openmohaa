@@ -228,6 +228,7 @@ public:
     void       StartRound(void);
     void       EndRound(void);
     bool       RoundActive(void) const;
+    bool       IsObjectiveRoundControlLockActive(void) const;
     bool       GameHasRounds(void) const;
     bool       GameAllowsRespawns(void) const;
     void       SetGameAllowsRespawns(bool bAllow);
@@ -284,6 +285,12 @@ inline DM_Team *DM_Manager::GetTeamAxis(void)
 inline bool DM_Manager::RoundActive(void) const
 {
     return m_bRoundActive;
+}
+
+// Added in OPM
+inline bool DM_Manager::IsObjectiveRoundControlLockActive(void) const
+{
+    return m_bRoundActive && m_iObjectiveRoundCountdown > 0;
 }
 
 inline bool DM_Manager::GameHasRounds(void) const
