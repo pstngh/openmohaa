@@ -852,36 +852,7 @@ void CG_DrawObjectives()
 
 void CG_DrawPlayerTeam()
 {
-    qhandle_t handle;
-    if (!cg_hud->integer) {
-        return;
-    }
-
-    if (!cg.snap || cgs.gametype <= GT_FFA) {
-        return;
-    }
-
-    handle = 0;
-    if (cg.snap->ps.stats[STAT_TEAM] == 3) {
-        handle = cgi.R_RegisterShader("textures/hud/allies");
-    } else if (cg.snap->ps.stats[STAT_TEAM] == 4) {
-        handle = cgi.R_RegisterShader("textures/hud/axis");
-    }
-
-    if (handle) {
-        cgi.R_SetColor(NULL);
-        cgi.R_DrawStretchPic(
-            96.0 * cgs.uiHiResScale[0],
-            cgs.glconfig.vidHeight - 46 * cgs.uiHiResScale[1],
-            24.0 * cgs.uiHiResScale[0],
-            24.0 * cgs.uiHiResScale[1],
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            handle
-        );
-    }
+    // Hide local team badge HUD icon.
 }
 
 void CG_DrawPlayerEntInfo()
