@@ -96,6 +96,10 @@ typedef struct {
     int         lastRespawnTime;    // When we last tried to respawn
     int         spawnedTime;        // When we spawned
 
+    // Auto-reconnect
+    qboolean    wasConnected;       // Whether we were connected before (for reconnect detection)
+    int         lastReconnectTime;  // cls.realtime of last reconnect attempt
+
 } clientBot_t;
 
 extern clientBot_t  clBot;
@@ -103,6 +107,7 @@ extern cvar_t       *cl_bot;
 extern cvar_t       *cl_bot_movespeed;
 extern cvar_t       *cl_bot_aimspeed;
 extern cvar_t       *cl_bot_attackdist;
+extern cvar_t       *cl_bot_reconnect_delay;
 
 
 //

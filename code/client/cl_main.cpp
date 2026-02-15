@@ -2684,6 +2684,26 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
+	// Bot auto-reconnect using the built-in reconnect command
+	if (cl_bot && cl_bot->integer) {
+		qboolean isConnected = (clc.state >= CA_CONNECTED);
+
+		if (isConnected) {
+			clBot.wasConnected = qtrue;
+			clBot.lastReconnectTime = 0;
+		} else if (clBot.wasConnected) {
+			int delay = cl_bot_reconnect_delay ? (int)(cl_bot_reconnect_delay->value * 1000) : 10000;
+
+			if (clBot.lastReconnectTime == 0 || cls.realtime - clBot.lastReconnectTime >= delay) {
+				clBot.lastReconnectTime = cls.realtime;
+				clBot.hasJoinedTeam = qfalse;
+				clBot.joinTeamTime = 0;
+				clBot.weaponCommandSendCount = 0;
+				Com_Printf("Bot auto-reconnecting (delay: %gs)...\n", delay / 1000.0f);
+				Cbuf_AddText("reconnect\n");
+			}
+		}
+	}
 
 #ifdef USE_CURL
 	if(clc.downloadCURLM) {

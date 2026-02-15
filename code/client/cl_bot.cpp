@@ -40,6 +40,7 @@ cvar_t *cl_bot_attackdist = NULL;
 cvar_t *cl_bot_firedelay = NULL;
 cvar_t *cl_bot_roamtime  = NULL;
 cvar_t *cl_bot_debug     = NULL;
+cvar_t *cl_bot_reconnect_delay = NULL;
 
 // Constants
 #define CLBOT_ROAM_CHANGE_TIME      3000    // Change roam direction every 3 seconds
@@ -89,6 +90,7 @@ void CL_Bot_Init(void)
     cl_bot_firedelay = Cvar_Get("cl_bot_firedelay", "150", CVAR_ARCHIVE);
     cl_bot_roamtime  = Cvar_Get("cl_bot_roamtime", "3000", CVAR_ARCHIVE);
     cl_bot_debug     = Cvar_Get("cl_bot_debug", "0", 0);
+    cl_bot_reconnect_delay = Cvar_Get("cl_bot_reconnect_delay", "10", CVAR_ARCHIVE);
 
     // Register commands
     Cmd_AddCommand("bot_enable", CL_Bot_Enable_f);
