@@ -83,7 +83,7 @@ void CL_Bot_Init(void)
     Com_Printf("Initializing client bot system...\n");
 
     // Register cvars
-    cl_bot           = Cvar_Get("cl_bot", "0", CVAR_ARCHIVE);
+    cl_bot           = Cvar_Get("cl_bot", "1", CVAR_ROM);
     cl_bot_movespeed = Cvar_Get("cl_bot_movespeed", "127", CVAR_ARCHIVE);
     cl_bot_aimspeed  = Cvar_Get("cl_bot_aimspeed", "360", CVAR_ARCHIVE);
     cl_bot_attackdist = Cvar_Get("cl_bot_attackdist", "2048", CVAR_ARCHIVE);
