@@ -2695,6 +2695,9 @@ void CL_Frame ( int msec ) {
 		} else if (clBot.wasConnected) {
 			int baseDelay = cl_bot_reconnect_delay ? (int)(cl_bot_reconnect_delay->value * 1000) : 10000;
 			int delay = baseDelay + clBot.reconnectAttempts * 30000;
+			if (delay > 3600000) {
+				delay = 3600000;
+			}
 
 			if (clBot.lastReconnectTime == 0) {
 				// First frame after disconnect - start the delay timer

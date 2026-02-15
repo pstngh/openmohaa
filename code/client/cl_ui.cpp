@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "cl_ui.h"
 #include "cl_uigamespy.h"
+#include "cl_bot.h"
 
 #include <chrono>
 
@@ -4910,6 +4911,13 @@ CL_TryStartIntro
 */
 void CL_TryStartIntro(void)
 {
+    // Added in OPM
+    //  Always skip intro when cl_bot is enabled
+    if (cl_bot && cl_bot->integer) {
+        UI_ToggleConsole();
+        return;
+    }
+
     if (developer->integer || !cl_playintro->integer) {
         UI_ToggleConsole();
     } else {
