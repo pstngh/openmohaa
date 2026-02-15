@@ -1258,6 +1258,19 @@ static void CL_Bot_HandleTeamJoin(void)
                 Com_Printf("Bot is now on team %d, triggering pistol weapon command\n", team);
             }
         }
+
+        // After map change: bot is still on a team but server cleared dm_primary,
+        // so the bot is stuck in spectator (PM_NOCLIP). Re-send primarydmweapon
+        // to set dm_primary and trigger auto-spawn.
+        if (clBot.hasJoinedTeam && cl.snap.ps.pm_type == PM_NOCLIP) {
+            if (clBot.joinTeamTime == 0 || cls.realtime - clBot.joinTeamTime > CLBOT_TEAM_JOIN_DELAY) {
+                if (cl_bot_debug && cl_bot_debug->integer) {
+                    Com_Printf("Bot on team but in spectator, re-sending primarydmweapon rifle\n");
+                }
+                Cbuf_AddText("primarydmweapon rifle\n");
+                clBot.joinTeamTime = cls.realtime;
+            }
+        }
     }
 }
 
