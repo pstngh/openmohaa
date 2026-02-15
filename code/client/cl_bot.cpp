@@ -1221,6 +1221,16 @@ static void CL_Bot_HandleTeamJoin(void)
 
     // Not on a team yet - send batched join command
     if (team == TEAM_NONE || team == TEAM_SPECTATOR) {
+        // If we thought we already joined but are back to no team (map change),
+        // reset join state so we re-join and re-select weapon on the new map
+        if (clBot.hasJoinedTeam) {
+            clBot.hasJoinedTeam = qfalse;
+            clBot.joinTeamTime = 0;
+            clBot.weaponCommandSendCount = 0;
+            if (cl_bot_debug && cl_bot_debug->integer) {
+                Com_Printf("Bot detected map change, resetting team join state\n");
+            }
+        }
         if (!clBot.hasJoinedTeam) {
             if (clBot.joinTeamTime == 0) {
                 clBot.joinTeamTime = cls.realtime;
