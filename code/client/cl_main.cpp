@@ -2691,8 +2691,10 @@ void CL_Frame ( int msec ) {
 		if (isConnected) {
 			clBot.wasConnected = qtrue;
 			clBot.lastReconnectTime = 0;
+			clBot.reconnectAttempts = 0;
 		} else if (clBot.wasConnected) {
-			int delay = cl_bot_reconnect_delay ? (int)(cl_bot_reconnect_delay->value * 1000) : 10000;
+			int baseDelay = cl_bot_reconnect_delay ? (int)(cl_bot_reconnect_delay->value * 1000) : 10000;
+			int delay = baseDelay + clBot.reconnectAttempts * 30000;
 
 			if (clBot.lastReconnectTime == 0) {
 				// First frame after disconnect - start the delay timer
@@ -2700,10 +2702,12 @@ void CL_Frame ( int msec ) {
 				Com_Printf("Bot disconnected, will reconnect in %gs...\n", delay / 1000.0f);
 			} else if (cls.realtime - clBot.lastReconnectTime >= delay) {
 				clBot.lastReconnectTime = cls.realtime;
+				clBot.reconnectAttempts++;
 				clBot.hasJoinedTeam = qfalse;
 				clBot.joinTeamTime = 0;
 				clBot.weaponCommandSendCount = 0;
-				Com_Printf("Bot auto-reconnecting...\n");
+				Com_Printf("Bot auto-reconnecting (attempt %d, next retry in %gs)...\n",
+					clBot.reconnectAttempts, (baseDelay + clBot.reconnectAttempts * 30000) / 1000.0f);
 				Cbuf_AddText("reconnect\n");
 			}
 		}

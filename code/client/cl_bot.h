@@ -99,6 +99,7 @@ typedef struct {
     // Auto-reconnect
     qboolean    wasConnected;       // Whether we were connected before (for reconnect detection)
     int         lastReconnectTime;  // cls.realtime of last reconnect attempt
+    int         reconnectAttempts;  // Number of failed reconnect attempts (for backoff)
 
 } clientBot_t;
 
