@@ -54,7 +54,7 @@ jobs:
       run: |
         mkdir thirdparties && cd thirdparties
         git clone --depth 1 --single-branch --branch ${{ env.flexbison-branch }} https://github.com/lexxmark/winflexbison.git
-        cmake -B winflexbison-build -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/winflexbison-install' ./winflexbison
+        cmake -B winflexbison-build -DCMAKE_POLICY_VERSION_MINIMUM='3.5' -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/winflexbison-install' ./winflexbison
         cmake --build winflexbison-build --config Release --parallel
         cmake --install winflexbison-build --config Release
 

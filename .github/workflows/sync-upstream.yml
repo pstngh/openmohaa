@@ -1,0 +1,54 @@
+name: Sync with Upstream
+
+on:
+  workflow_dispatch:      # Allows you to click "Run workflow" manually
+  schedule:
+    - cron: '0 0 * * 0'   # Runs automatically every Sunday at midnight
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    # PROTECTION: Only runs if you are on the 'main' branch
+    if: github.ref == 'refs/heads/main'
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git & Merge Driver
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          # This enables the "keepMine" driver. 
+          # Any file marked with 'merge=keepMine' in .gitattributes will be protected.
+          git config merge.keepMine.driver true
+
+      - name: Add Upstream and Sync
+        run: |
+          # 1. Add the upstream remote
+          git remote add upstream https://github.com/openmoh/openmohaa.git
+
+          # 2. Fetch the updates (both upstream and origin)
+          git fetch upstream
+          git fetch origin main
+
+          # 3. Ensure local main is up to date with the fork's remote main
+          git reset --hard origin/main
+
+          # 4. Merge upstream changes
+          # Files listed in .gitattributes as 'merge=keepMine' will NOT change.
+          # All other files will update.
+          git merge upstream/main
+
+          # 5. Push changes back to your repo
+          git push origin main

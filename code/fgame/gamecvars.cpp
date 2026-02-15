@@ -292,6 +292,7 @@ cvar_t *g_bot_turn_speed;
 cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
+cvar_t *g_bot_manualmove;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -477,7 +478,7 @@ void CVAR_Init(void)
     g_gametype       = gi.Cvar_Get("g_gametype", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
     g_gametypestring = gi.Cvar_Get("g_gametypestring", "Free-For-All", CVAR_SERVERINFO);
     g_realismmode    = gi.Cvar_Get("g_realismmode", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
-    if (!g_gametype->integer) {
+    if (g_gametype->integer == GT_SINGLE_PLAYER) {
         gi.cvar_set("g_realismmode", "0");
     }
 
@@ -706,6 +707,8 @@ void CVAR_Init(void)
     g_textmsg_minDelay  = gi.Cvar_Get("g_textmsg_minDelay", "1000", 0);
 
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
+
+    g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
