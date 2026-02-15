@@ -2694,12 +2694,16 @@ void CL_Frame ( int msec ) {
 		} else if (clBot.wasConnected) {
 			int delay = cl_bot_reconnect_delay ? (int)(cl_bot_reconnect_delay->value * 1000) : 10000;
 
-			if (clBot.lastReconnectTime == 0 || cls.realtime - clBot.lastReconnectTime >= delay) {
+			if (clBot.lastReconnectTime == 0) {
+				// First frame after disconnect - start the delay timer
+				clBot.lastReconnectTime = cls.realtime;
+				Com_Printf("Bot disconnected, will reconnect in %gs...\n", delay / 1000.0f);
+			} else if (cls.realtime - clBot.lastReconnectTime >= delay) {
 				clBot.lastReconnectTime = cls.realtime;
 				clBot.hasJoinedTeam = qfalse;
 				clBot.joinTeamTime = 0;
 				clBot.weaponCommandSendCount = 0;
-				Com_Printf("Bot auto-reconnecting (delay: %gs)...\n", delay / 1000.0f);
+				Com_Printf("Bot auto-reconnecting...\n");
 				Cbuf_AddText("reconnect\n");
 			}
 		}
