@@ -2023,6 +2023,7 @@ Player::Player()
     m_bAllowFighting           = false;
     m_bReady                   = false;
     m_iPlayerSpectating        = 0;
+    m_bFirstPersonSpectate     = false;
     dm_team                    = TEAM_NONE;
     m_fTeamSelectTime          = -30;
     votecount                  = 0;
@@ -2133,10 +2134,11 @@ Player::Player()
 
     m_bTempSpectator      = false;
     m_bSpectator          = false;
-    m_bSpectatorSwitching = false;
-    m_bAllowFighting      = false;
-    m_bReady              = true;
-    m_fTeamSelectTime     = -30;
+    m_bSpectatorSwitching  = false;
+    m_bAllowFighting       = false;
+    m_bReady               = true;
+    m_bFirstPersonSpectate = false;
+    m_fTeamSelectTime      = -30;
     m_fTalkTime           = 0;
 
     num_deaths            = 0;
@@ -6643,7 +6645,9 @@ void Player::SetPlayerView(
                 vVec.setXYZ(0, 0, 0);
             } else {
                 VectorCopy(ang, client->ps.camera_angles);
-                VectorCopy(position, client->ps.camera_angles);
+                // Fixed in OPM
+                //  Was incorrectly writing position to camera_angles instead of camera_origin
+                VectorCopy(position, client->ps.camera_origin);
 
                 vVec.setXYZ(0, 0, 0);
             }
@@ -7176,9 +7180,6 @@ void Player::FinishMove(void)
 
 void Player::CopyStats(Player *player)
 {
-    gentity_t *ent;
-    int        i;
-
     origin = player->origin;
     SetViewAngles(player->GetViewAngles());
 
@@ -7192,6 +7193,10 @@ void Player::CopyStats(Player *player)
     memcpy(&client->ps.ammo_name_index, &player->client->ps.ammo_name_index, sizeof(client->ps.ammo_name_index));
     memcpy(&client->ps.ammo_amount, &player->client->ps.ammo_amount, sizeof(client->ps.ammo_amount));
     memcpy(&client->ps.max_ammo_amount, &player->client->ps.max_ammo_amount, sizeof(client->ps.max_ammo_amount));
+
+    // Added in OPM
+    //  Restore spectator-specific stats overwritten by the followed player's stats
+    client->ps.stats[STAT_TEAM] = dm_team;
 
     VectorCopy(player->client->ps.origin, client->ps.origin);
     VectorCopy(player->client->ps.velocity, client->ps.velocity);
@@ -7209,14 +7214,6 @@ void Player::CopyStats(Player *player)
     memcpy(&client->ps.damage_angles, &player->client->ps.damage_angles, sizeof(client->ps.damage_angles));
     memcpy(&client->ps.viewangles, &player->client->ps.viewangles, sizeof(client->ps.delta_angles));
 
-    // copy camera stuff
-    //memcpy( &client->ps.camera_origin, &player->client->ps.camera_origin, sizeof( client->ps.camera_origin ) );
-    //memcpy( &client->ps.camera_angles, &player->client->ps.camera_angles, sizeof( client->ps.camera_angles ) );
-    //memcpy( &client->ps.camera_offset, &player->client->ps.camera_offset, sizeof( client->ps.camera_offset ) );
-    //memcpy( &client->ps.camera_posofs, &player->client->ps.camera_posofs, sizeof( client->ps.camera_posofs ) );
-    //client->ps.camera_time = player->client->ps.camera_time;
-    //client->ps.camera_flags = player->client->ps.camera_flags;
-
     client->ps.fLeanAngle = player->client->ps.fLeanAngle;
     client->ps.fov        = player->client->ps.fov;
 
@@ -7226,48 +7223,43 @@ void Player::CopyStats(Player *player)
     client->ps.groundEntityNum = player->client->ps.groundEntityNum;
     memcpy(&client->ps.groundTrace, &player->client->ps.groundTrace, sizeof(trace_t));
 
-    edict->s.eFlags &= ~EF_UNARMED;
-    edict->r.svFlags &= ~SVF_NOCLIENT;
-    edict->s.renderfx &= ~RF_DONTDRAW;
+    // Added in OPM
+    //  Update vEyePos so the server builds the correct PVS from the followed player's
+    //  eye position. SetupView will also set camera_origin via GetSpectateFollowOrientation,
+    //  but vEyePos must be correct as a fallback.
+    VectorCopy(client->ps.origin, client->ps.vEyePos);
+    client->ps.vEyePos[2] += client->ps.viewheight;
 
-    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    player->edict->r.singleClient = client->ps.clientNum;
+    // Added in OPM
+    //  Sync camera state from followed player for first-person follow.
+    //  SetupView will refresh this via GetSpectateFollowOrientation each frame.
+    {
+        Vector vCamPos, vCamAng;
+        player->GetPlayerView(&vCamPos, &vCamAng);
+        VectorCopy(vCamPos, client->ps.camera_origin);
+        VectorCopy(vCamAng, client->ps.camera_angles);
+        VectorClear(client->ps.camera_posofs);
+        client->ps.camera_flags = client->ps.camera_flags & CF_CAMERA_CUT_BIT;
+    }
+    // Clear damage angles flag to prevent stale camera shake on the spectator
+    client->ps.pm_flags &= ~PMF_DAMAGE_ANGLES;
 
-    edict->r.svFlags |= SVF_SINGLECLIENT;
-    edict->r.singleClient = client->ps.clientNum;
+    // Added in OPM
+    //  Hide the spectator surrogate model with RF_DONTDRAW.
+    //  The viewmodel is rendered client-side from the FPS TIKI + iViewModelAnim.
+    edict->s.renderfx |= RF_DONTDRAW;
+
+    // Added in OPM
+    //  Keep the followed player fully networked for ALL clients.
+    //  Entity hiding is handled client-side via MDL_SURFACE_NODRAW.
+    //  Clear any stale single-client flags that would break multi-spectator.
+    player->edict->r.svFlags &= ~(SVF_NOTSINGLECLIENT | SVF_SINGLECLIENT);
 
     client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION;
 
-    memcpy(&edict->s.frameInfo, &player->edict->s.frameInfo, sizeof(edict->s.frameInfo));
-
-    DetachAllChildren(NULL);
-
-    for (i = 0; i < MAX_MODEL_CHILDREN; i++) {
-        Entity *dest;
-
-        if (player->children[i] == ENTITYNUM_NONE) {
-            continue;
-        }
-
-        ent = g_entities + player->children[i];
-
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        dest = new Entity;
-
-        CloneEntity(dest, ent->entity);
-
-        dest->edict->s.modelindex   = ent->entity->edict->s.modelindex;
-        dest->edict->tiki           = ent->entity->edict->tiki;
-        dest->edict->s.actionWeight = ent->entity->edict->s.actionWeight;
-        memcpy(&dest->edict->s.frameInfo, &ent->entity->edict->s.frameInfo, sizeof(dest->edict->s.frameInfo));
-        dest->CancelPendingEvents();
-        dest->attach(entnum, ent->entity->edict->s.tag_num);
-
-        dest->PostEvent(EV_DetachAllChildren, level.frametime);
-    }
+    // Added in OPM
+    //  Track that first-person spectate is active for cleanup in EndFrame
+    m_bFirstPersonSpectate = true;
 }
 
 void Player::UpdateStats(void)
@@ -7290,6 +7282,18 @@ void Player::UpdateStats(void)
 
         if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
             CopyStats((Player *)ent->entity);
+
+            // Added in OPM
+            //  Publish followed player identity for cgame HUD and entity hiding.
+            //  Must be set after CopyStats since it overwrites all stats.
+            client->ps.stats[STAT_INFOCLIENT] = m_iPlayerSpectating - 1;
+            {
+                float percent = ent->entity->health / ent->entity->max_health * 100.0f;
+                if (percent > 0.0f && percent < 1.0f) {
+                    percent = 1.0f;
+                }
+                client->ps.stats[STAT_INFOCLIENT_HEALTH] = (int)percent;
+            }
             return;
         }
     }
@@ -7813,13 +7817,31 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!g_spectatefollow_firstperson->integer || !IsSpectator() || !m_iPlayerSpectating) {
-        SetupView();
-    } else {
-        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
+    // Changed in OPM
+    //  Always call SetupView so PMF_CAMERA_VIEW is set and camera_origin is correct.
+    //  For first-person spectate, GetSpectateFollowOrientation provides the camera.
+    //  Previously, SetupView was skipped during first-person spectate which caused
+    //  PMF_CAMERA_VIEW to never be set, breaking PVS and client-side HUD detection.
+    SetupView();
 
-        if (!ent->inuse || !ent->entity || ent->entity->deadflag >= DEAD_DEAD) {
-            SetupView();
+    // Added in OPM
+    //  Clean up first-person spectate state when CopyStats is no longer being called.
+    //  This handles: player stops spectating, followed player dies, cvar toggled off.
+    if (m_bFirstPersonSpectate) {
+        qboolean bStillActive = qfalse;
+
+        if (g_spectatefollow_firstperson->integer && IsSpectator() && m_iPlayerSpectating) {
+            gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
+            if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
+                bStillActive = qtrue;
+            }
+        }
+
+        if (!bStillActive) {
+            // Clear flags that were set by CopyStats
+            client->ps.pm_flags &= ~(PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION);
+            edict->s.renderfx &= ~RF_DONTDRAW;
+            m_bFirstPersonSpectate = false;
         }
     }
 }
@@ -9311,9 +9333,10 @@ void Player::Spectator(void)
     CancelEventsOfType(EV_Player_DMDeathDrop);
     CancelEventsOfType(EV_Player_Dead);
 
-    m_bSpectator        = !m_bTempSpectator;
-    m_iPlayerSpectating = 0;
-    takedamage          = DAMAGE_NO;
+    m_bSpectator           = !m_bTempSpectator;
+    m_iPlayerSpectating    = 0;
+    m_bFirstPersonSpectate = false;
+    takedamage             = DAMAGE_NO;
     deadflag            = DEAD_NO;
     health              = max_health;
 
@@ -9497,8 +9520,9 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
         vPos = trace.endpos;
     } else {
-        vAng = pPlayer->angles;
-        vPos = pPlayer->origin;
+        // Fixed in OPM
+        //  Use eye position and view angles instead of body origin and angles
+        pPlayer->GetPlayerView(&vPos, &vAng);
     }
 }
 

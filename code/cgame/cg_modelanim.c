@@ -1278,6 +1278,20 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     // set surfaces
     memcpy(model.surfaces, s1->surfaces, MAX_MODEL_SURFACES);
 
+    // Added in OPM
+    //  First-person spectate: hide all surfaces of the followed player's world model.
+    //  The spectator's camera is inside this entity, so it must be invisible.
+    //  Using MDL_SURFACE_NODRAW preserves audio and event processing unlike skipping
+    //  the entity entirely.
+    if ((cg.snap->ps.pm_flags & (PMF_SPECTATING | PMF_CAMERA_VIEW | PMF_NO_PREDICTION))
+            == (PMF_SPECTATING | PMF_CAMERA_VIEW | PMF_NO_PREDICTION)
+        && cg.snap->ps.stats[STAT_INFOCLIENT] >= 0
+        && s1->number == cg.snap->ps.stats[STAT_INFOCLIENT]) {
+        for (i = 0; i < MAX_MODEL_SURFACES; i++) {
+            model.surfaces[i] |= MDL_SURFACE_NODRAW;
+        }
+    }
+
     if (!(s1->renderfx & RF_ALWAYSDRAW) && s1->parent != ENTITYNUM_NONE && s1->parent == cg.snap->ps.clientNum
         && ((!cg_drawviewmodel->integer && !bThirdPerson) || cg.snap->ps.stats[STAT_INZOOM])) {
         // hide all surfaces while zooming or if the viewmodel shouldn't be shown

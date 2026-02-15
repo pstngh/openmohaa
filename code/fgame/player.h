@@ -285,6 +285,7 @@ private:
     bool m_bAllowFighting;
     bool m_bReady;
     int  m_iPlayerSpectating;
+    bool m_bFirstPersonSpectate; // Added in OPM
 
     teamtype_t             dm_team;
     class SafePtr<DM_Team> current_team;
