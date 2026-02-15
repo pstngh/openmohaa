@@ -2684,37 +2684,6 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
-	// Bot auto-reconnect - track connection every frame, attempt reconnect every 10000 frames
-	if (cl_bot && cl_bot->integer) {
-		qboolean isConnected = (clc.state == CA_ACTIVE || clc.state == CA_CONNECTED ||
-		                        clc.state == CA_LOADING || clc.state == CA_PRIMED);
-
-		// Track connection state every frame
-		if (isConnected) {
-			clBot.wasConnected = qtrue;
-		}
-
-		// Only attempt reconnect every 10000 frames
-		clBot.reconnectFrameCount++;
-		if (clBot.reconnectFrameCount >= 10000) {
-			clBot.reconnectFrameCount = 0;
-
-			if (!isConnected && clBot.wasConnected) {
-				// We were connected but now we're not - disconnected!
-				if (bot_server && bot_server->string && bot_server->string[0]) {
-					char cmd[512];
-					Com_Printf("Bot detected disconnection, reconnecting to %s...\n", bot_server->string);
-					Com_sprintf(cmd, sizeof(cmd), "connect %s\n", bot_server->string);
-					Cbuf_AddText(cmd);
-				} else {
-					Com_Printf("Bot detected disconnection, but bot_server cvar is not set\n");
-				}
-				// Don't reset wasConnected - keep retrying until reconnected
-				clBot.hasJoinedTeam = qfalse; // Reset team join flag
-				clBot.joinTeamTime = 0; // Reset team join timer so it will auto-join after reconnect
-			}
-		}
-	}
 
 #ifdef USE_CURL
 	if(clc.downloadCURLM) {
