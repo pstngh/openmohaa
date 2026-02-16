@@ -62,6 +62,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define idppc_altivec 0
 #endif
 
+// Added in OPM
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define idarm64_neon 1
+#else
+#define idarm64_neon 0
+#endif
+
 #if defined(__sparc__) && !defined(C_ONLY)
 #define idsparc 1
 #else

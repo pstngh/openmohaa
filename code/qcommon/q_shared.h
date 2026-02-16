@@ -673,7 +673,23 @@ typedef struct {
 #define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
 #define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
+// Added in OPM
+#if idarm64_neon
+#include <arm_neon.h>
+static ID_INLINE void SnapVector(vec3_t v)
+{
+    float32x2_t xy  = vld1_f32(&v[0]);
+    float32x2_t z   = vld1_dup_f32(&v[2]);
+
+    xy = vcvt_f32_s32(vcvt_s32_f32(xy));
+    z  = vcvt_f32_s32(vcvt_s32_f32(z));
+
+    vst1_f32(&v[0], xy);
+    vst1_lane_f32(&v[2], z, 0);
+}
+#else
 #define	SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
+#endif
 
 #define DotProduct4(x,y)		((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2]+(x)[3]*(y)[3])
 #define VectorSubtract4(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2],(c)[3]=(a)[3]-(b)[3])

@@ -31,6 +31,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "q_shared.h"
 
+// Added in OPM
+#if idarm64_neon
+#include <arm_neon.h>
+#endif
+
 #define X 0
 #define Y 1
 #define Z 2
@@ -3005,6 +3010,28 @@ void Matrix4x4Multiply(const matrix_t a, const matrix_t b, matrix_t out)
 		_mm_storeu_ps(&out[i * 4], _t3);
 	}
 
+// Added in OPM
+#elif idarm64_neon
+	int              i;
+	float32x4_t      col0, col1, col2, col3;
+
+	col0 = vld1q_f32(&a[0]);
+	col1 = vld1q_f32(&a[4]);
+	col2 = vld1q_f32(&a[8]);
+	col3 = vld1q_f32(&a[12]);
+
+	for (i = 0; i < 4; i++)
+	{
+		float32x4_t result;
+
+		result = vmulq_n_f32(col0, b[i * 4 + 0]);
+		result = vmlaq_n_f32(result, col1, b[i * 4 + 1]);
+		result = vmlaq_n_f32(result, col2, b[i * 4 + 2]);
+		result = vmlaq_n_f32(result, col3, b[i * 4 + 3]);
+
+		vst1q_f32(&out[i * 4], result);
+	}
+
 #else
         out[ 0] = b[ 0]*a[ 0] + b[ 1]*a[ 4] + b[ 2]*a[ 8] + b[ 3]*a[12];
         out[ 1] = b[ 0]*a[ 1] + b[ 1]*a[ 5] + b[ 2]*a[ 9] + b[ 3]*a[13];
@@ -3514,6 +3541,18 @@ void MatrixTransform4(const matrix_t m, const vec4_t in, vec4_t out)
 	_t0 = _mm_add_ps(_t0, _t1);
 
 	_mm_storeu_ps(out, _t0);
+
+// Added in OPM
+#elif idarm64_neon
+	float32x4_t result;
+
+	result = vmulq_n_f32(vld1q_f32(&m[0]), in[0]);
+	result = vmlaq_n_f32(result, vld1q_f32(&m[4]), in[1]);
+	result = vmlaq_n_f32(result, vld1q_f32(&m[8]), in[2]);
+	result = vmlaq_n_f32(result, vld1q_f32(&m[12]), in[3]);
+
+	vst1q_f32(out, result);
+
 #else
 	out[ 0] = m[ 0] * in[ 0] + m[ 4] * in[ 1] + m[ 8] * in[ 2] + m[12] * in[ 3];
 	out[ 1] = m[ 1] * in[ 0] + m[ 5] * in[ 1] + m[ 9] * in[ 2] + m[13] * in[ 3];
