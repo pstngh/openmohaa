@@ -54,6 +54,24 @@ cvar_t *r_centerWindow;
 cvar_t *r_sdlDriver;
 cvar_t *r_preferOpenGLES;
 
+static Uint32 GLimp_GetFullscreenFlags( qboolean fullscreen )
+{
+	int fullscreenMode;
+
+	if( !fullscreen )
+		return 0;
+
+	fullscreenMode = r_fullscreenMode ? r_fullscreenMode->integer : 1;
+
+	if( fullscreenMode < 0 || fullscreenMode > 2 )
+		fullscreenMode = 1;
+
+	if( fullscreenMode == 2 )
+		return SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+	return SDL_WINDOW_FULLSCREEN;
+}
+
 int qglMajorVersion, qglMinorVersion;
 int qglesMajorVersion, qglesMinorVersion;
 
@@ -513,7 +531,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qbool
 
 	if( fullscreen )
 	{
-		flags |= SDL_WINDOW_FULLSCREEN;
+		flags |= GLimp_GetFullscreenFlags( fullscreen );
 		glConfig.isFullscreen = qtrue;
 	}
 	else
@@ -1090,6 +1108,10 @@ void GLimp_Init( qboolean fixedFunction )
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_preferOpenGLES = ri.Cvar_Get( "r_preferOpenGLES", "-1", CVAR_ARCHIVE | CVAR_LATCH );
 
+#if defined(__APPLE__) && defined(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES)
+	SDL_SetHint( SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "1" );
+#endif
+
 	if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
 	{
 		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );
@@ -1197,9 +1219,10 @@ void GLimp_EndFrame( void )
 
 	if( r_fullscreen->modified )
 	{
-		int         fullscreen;
+		qboolean    fullscreen;
 		qboolean    needToToggle;
 		qboolean    sdlToggled = qfalse;
+		Uint32      fullscreenFlags;
 
 		// Find out the current state
 		fullscreen = !!( SDL_GetWindowFlags( SDL_window ) & SDL_WINDOW_FULLSCREEN );
@@ -1211,12 +1234,14 @@ void GLimp_EndFrame( void )
 			r_fullscreen->modified = qfalse;
 		}
 
+		fullscreenFlags = GLimp_GetFullscreenFlags( r_fullscreen->integer );
+
 		// Is the state we want different from the current state?
 		needToToggle = !!r_fullscreen->integer != fullscreen;
 
 		if( needToToggle )
 		{
-			sdlToggled = SDL_SetWindowFullscreen( SDL_window, r_fullscreen->integer ) >= 0;
+			sdlToggled = SDL_SetWindowFullscreen( SDL_window, fullscreenFlags ) >= 0;
 
 			// SDL_WM_ToggleFullScreen didn't work, so do it the slow way
 			if( !sdlToggled )
