@@ -165,13 +165,13 @@ static void R_DrawElements( int numIndexes, const glIndex_t *indexes ) {
 
 	primitives = r_primitives->integer;
 
-	// default is to use triangles if compiled vertex arrays are present
+	// Changed in OPM
+	// Always default to glDrawElements, which is faster on all modern OpenGL
+	// implementations. The old code fell back to immediate-mode triangle strips
+	// when qglLockArraysEXT was unavailable, causing massive overhead on macOS
+	// where every GL call is translated to Metal.
 	if ( primitives == 0 ) {
-		if ( qglLockArraysEXT ) {
-			primitives = 2;
-		} else {
-			primitives = 1;
-		}
+		primitives = 2;
 	}
 
 
