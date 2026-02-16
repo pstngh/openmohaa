@@ -151,6 +151,7 @@ cvar_t	*r_subdivisions;
 cvar_t	*r_lodCurveError;
 
 cvar_t	*r_fullscreen;
+cvar_t  *r_fullscreenMode;
 
 cvar_t	*r_customwidth;
 cvar_t	*r_customheight;
@@ -1368,6 +1369,12 @@ void R_Register( void )
 	//	r_mode = ri.Cvar_Get("r_mode", "3", CVAR_ARCHIVE | CVAR_LATCH);
 	//}
 	r_fullscreen = ri.Cvar_Get("r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH);
+#ifdef __APPLE__
+	r_fullscreenMode = ri.Cvar_Get("r_fullscreenMode", "2", CVAR_ARCHIVE | CVAR_LATCH);
+#else
+	r_fullscreenMode = ri.Cvar_Get("r_fullscreenMode", "1", CVAR_ARCHIVE | CVAR_LATCH);
+#endif
+	ri.Cvar_CheckRange(r_fullscreenMode, 0, 2, qtrue);
 	r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customheight = ri.Cvar_Get( "r_customheight", "1024", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customaspect = ri.Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE | CVAR_LATCH );
