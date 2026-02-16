@@ -439,6 +439,11 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qbool
 	if ( r_allowResize->integer )
 		flags |= SDL_WINDOW_RESIZABLE;
 
+#ifdef __APPLE__
+	if( !fullscreen && !noborder )
+		flags |= SDL_WINDOW_RESIZABLE;
+#endif
+
 #ifdef USE_ICON
 	icon = SDL_CreateRGBSurfaceFrom(
 			(void *)CLIENT_WINDOW_ICON.pixel_data,
