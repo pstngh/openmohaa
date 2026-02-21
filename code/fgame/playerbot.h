@@ -220,7 +220,6 @@ private:
 
 private:
     Weapon *FindWeaponWithAmmo(void);
-    Weapon *FindMeleeWeapon(void);
     void    UseWeaponWithAmmo(void);
 
     void CheckUse(void);

@@ -795,7 +795,6 @@ void BotController::State_EndAttack(void)
 
 void BotController::State_Attack(void)
 {
-    bool    bMelee              = false;
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
     float   fMinDistance        = 128;
@@ -835,11 +834,9 @@ void BotController::State_Attack(void)
         }
 
         if (bCanAttack) {
-            float fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
-            float fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
-            float fSecondaryBulletRange        = pWeap->GetBulletRange(FIRE_SECONDARY);
-            float fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
-            float fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
+            float fPrimaryBulletRange        = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
+            float fPrimaryBulletRangeSquared = fPrimaryBulletRange * fPrimaryBulletRange;
+            float fSpreadFactor              = pWeap->GetSpreadFactor(FIRE_PRIMARY);
 
             //
             // check the fire movement speed if the weapon has a max fire movement
@@ -903,25 +900,6 @@ void BotController::State_Attack(void)
 
             m_iLastFireTime = level.inttime;
 
-            if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE) {
-                if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
-                    && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
-                    bMelee = true;
-                } else if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    bMelee = true;
-                }
-            }
-
-            if (bMelee) {
-                m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-
-                if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                }
-            }
-
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
             m_iLastSeenTime      = level.inttime;
@@ -970,23 +948,19 @@ void BotController::State_Attack(void)
 
     if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
         || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
-        if (!bMelee || !bCanSee) {
-            if (fEnemyDistanceSquared < fMinDistanceSquared) {
-                Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
-                VectorNormalizeFast(vDir);
+        if (fEnemyDistanceSquared < fMinDistanceSquared) {
+            Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
+            VectorNormalizeFast(vDir);
 
-                movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
-            } else {
-                movement.MoveTo(m_vLastEnemyPos);
-            }
-
-            if (!bCanSee && movement.MoveDone()) {
-                // Lost track of the enemy
-                ClearEnemy();
-                return;
-            }
+            movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
         } else {
             movement.MoveTo(m_vLastEnemyPos);
+        }
+
+        if (!bCanSee && movement.MoveDone()) {
+            // Lost track of the enemy
+            ClearEnemy();
+            return;
         }
     }
 
@@ -1092,53 +1066,9 @@ Weapon *BotController::FindWeaponWithAmmo()
     return bestweapon;
 }
 
-Weapon *BotController::FindMeleeWeapon()
-{
-    Weapon               *next;
-    int                   n;
-    int                   j;
-    int                   bestrank;
-    Weapon               *bestweapon;
-    const Container<int>& inventory = controlledEnt->getInventory();
-
-    n = inventory.NumObjects();
-
-    // Search until we find the best weapon with ammo
-    bestweapon = NULL;
-    bestrank   = -999999;
-
-    for (j = 1; j <= n; j++) {
-        next = (Weapon *)G_GetEntity(inventory.ObjectAt(j));
-
-        assert(next);
-        if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
-            continue;
-        }
-
-        if (next->GetRank() < bestrank) {
-            continue;
-        }
-
-        if (next->GetFireType(FIRE_SECONDARY) != FT_MELEE) {
-            continue;
-        }
-
-        bestweapon = (Weapon *)next;
-        bestrank   = bestweapon->GetRank();
-    }
-
-    return bestweapon;
-}
-
 void BotController::UseWeaponWithAmmo()
 {
     Weapon *bestWeapon = FindWeaponWithAmmo();
-    if (!bestWeapon) {
-        //
-        // If there is no weapon with ammo, fallback to a weapon that can melee
-        //
-        bestWeapon = FindMeleeWeapon();
-    }
 
     if (!bestWeapon || bestWeapon == controlledEnt->GetActiveWeapon(WEAPON_MAIN)) {
         return;
