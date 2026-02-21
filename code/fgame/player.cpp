@@ -6363,7 +6363,10 @@ void Player::DamageFeedback(void)
 
     damage_angles.z +=
         DotProduct(vDir, orientation[2]) * damage_blood * g_viewkick_roll->value * g_viewkick_dmmult->value;
-    damage_angles.z = Q_clamp_float(damage_angles.y, -25, 25);
+    // Fixed in OPM
+    // Was clamping damage_angles.y (yaw) instead of .z (roll),
+    // causing yaw damage to bleed into roll and produce spurious view tilt.
+    damage_angles.z = Q_clamp_float(damage_angles.z, -25, 25);
 
     damage_count += damage_blood;
     count     = damage_blood;
