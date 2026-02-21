@@ -3206,8 +3206,14 @@ openal_channel::set_sample_pan
 */
 void openal_channel::set_sample_pan(S32 pan)
 {
-    const float   panning           = (pan - 64) / 127.f;
-    const ALfloat sourcePosition[3] = {panning, 0, sqrtf(1.f - Square(panning))};
+    // Fixed in OPM
+    // The panning value was placed in X (forward in Quake coords) instead of Y (left/right).
+    // In Quake coords: X=forward, Y=left, Z=up. OpenAL derives the listener's right vector
+    // from cross(forward, up) which points along -Y, so negative Y = right.
+    // Also fixed the divisor: 127 produces an asymmetric range (-0.504..+0.496),
+    // dividing by 64 gives a symmetric -1..+1 range.
+    const float   panning           = Q_clamp_float((pan - 64) / 64.f, -1.f, 1.f);
+    const ALfloat sourcePosition[3] = {sqrtf(1.f - Square(panning)), -panning, 0};
 
     qalSourcef(source, AL_ROLLOFF_FACTOR, 0);
     qalSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
