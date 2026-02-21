@@ -37,6 +37,12 @@ Returns true if the weapon is allowed
 */
 static const char *IsWeaponAllowed(int dmFlags, int flags)
 {
+    // Added in OPM
+    // dmflags -1 allows all weapons
+    if (dmFlags == -1) {
+        return "1";
+    }
+
     return (dmFlags & flags) ? "0" : "1";
 }
 
@@ -49,6 +55,12 @@ Returns true if landmines is allowed by the map or by a dm flag
 */
 static qboolean QueryLandminesAllowed2(const char *mapname, int dmflags)
 {
+    // Added in OPM
+    // dmflags -1 allows all weapons including landmines
+    if (dmflags == -1) {
+        return qtrue;
+    }
+
     if (dmflags & DF_WEAPON_NO_LANDMINE) {
         return qfalse;
     }
