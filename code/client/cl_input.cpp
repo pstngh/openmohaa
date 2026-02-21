@@ -78,7 +78,7 @@ void IN_ToggleMouse( void ) {
 void IN_MouseOn( void ) {
 	if( !in_guimouse )
 	{
-		for( int k = 0; k <= K_MWHEELUP; k++ )
+		for( int k = K_MOUSE1; k <= K_MWHEELUP; k++ )
 		{
 			if( keys[ k ].down )
 			{
