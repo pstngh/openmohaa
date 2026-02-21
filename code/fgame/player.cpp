@@ -8779,6 +8779,12 @@ bool Player::QueryLandminesAllowed() const
         return false;
     }
 
+    // Added in OPM
+    // dmflags -1 allows all weapons including landmines
+    if (dmflags->integer == -1) {
+        return true;
+    }
+
     if (dmflags->integer & DF_WEAPON_NO_LANDMINE) {
         return false;
     }
@@ -8850,6 +8856,12 @@ void Player::EnsurePlayerHasAllowedWeapons()
     }
 
     if (!IsPrimaryWeaponValid()) {
+        return;
+    }
+
+    // Added in OPM
+    // dmflags -1 allows all weapons, no fallback needed
+    if (dmflags->integer == -1) {
         return;
     }
 
@@ -8932,7 +8944,11 @@ void Player::EquipWeapons()
 
     EnsurePlayerHasAllowedWeapons();
 
-    if (!Q_stricmp(client->pers.dm_primary, "sniper") && !(dmflags->integer & DF_WEAPON_NO_SNIPER)) {
+    // Added in OPM
+    // When dmflags is -1, treat all weapons as allowed (no weapon bans)
+    const int weaponFlags = (dmflags->integer == -1) ? 0 : dmflags->integer;
+
+    if (!Q_stricmp(client->pers.dm_primary, "sniper") && !(weaponFlags & DF_WEAPON_NO_SNIPER)) {
         switch (nationality) {
         case NA_BRITISH:
             if (g_target_game < target_game_e::TG_MOHTT) {
@@ -8978,7 +8994,7 @@ void Player::EquipWeapons()
             event->AddString("Springfield '03 Sniper");
             break;
         }
-    } else if (!Q_stricmp(client->pers.dm_primary, "smg") && !(dmflags->integer & DF_WEAPON_NO_SMG)) {
+    } else if (!Q_stricmp(client->pers.dm_primary, "smg") && !(weaponFlags & DF_WEAPON_NO_SMG)) {
         switch (nationality) {
         case NA_BRITISH:
             giveItem("weapons/sten.tik");
@@ -9002,7 +9018,7 @@ void Player::EquipWeapons()
             event->AddString("Thompson");
             break;
         }
-    } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(dmflags->integer & DF_WEAPON_NO_MG)) {
+    } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(weaponFlags & DF_WEAPON_NO_MG)) {
         switch (nationality) {
         case NA_BRITISH:
             if (g_target_game < target_game_e::TG_MOHTT) {
@@ -9028,7 +9044,7 @@ void Player::EquipWeapons()
             event->AddString("BAR");
             break;
         }
-    } else if (!Q_stricmp(client->pers.dm_primary, "heavy") && !(dmflags->integer & DF_WEAPON_NO_ROCKET)) {
+    } else if (!Q_stricmp(client->pers.dm_primary, "heavy") && !(weaponFlags & DF_WEAPON_NO_ROCKET)) {
         switch (nationality) {
         case NA_GERMAN:
         case NA_ITALIAN:
@@ -9050,7 +9066,7 @@ void Player::EquipWeapons()
             event->AddString("Bazooka");
             break;
         }
-    } else if (!Q_stricmp(client->pers.dm_primary, "shotgun") && !(dmflags->integer & DF_WEAPON_NO_SHOTGUN)) {
+    } else if (!Q_stricmp(client->pers.dm_primary, "shotgun") && !(weaponFlags & DF_WEAPON_NO_SHOTGUN)) {
         switch (nationality) {
         case NA_BRITISH:
             if (g_target_game < target_game_e::TG_MOHTT) {
@@ -9132,7 +9148,7 @@ void Player::EquipWeapons()
             }
             break;
         }
-    } else if (!(dmflags->integer & DF_WEAPON_NO_RIFLE)) {
+    } else if (!(weaponFlags & DF_WEAPON_NO_RIFLE)) {
         switch (nationality) {
         case NA_BRITISH:
             giveItem("weapons/enfield.tik");
@@ -10182,20 +10198,24 @@ void Player::EventPrimaryDMWeapon(Event *ev)
         return;
     }
 
+    // Added in OPM
+    // When dmflags is -1, treat all weapons as allowed (no weapon bans)
+    const int weaponFlags = (dmflags->integer == -1) ? 0 : dmflags->integer;
+
     if (!str::icmp(dm_weapon, "shotgun")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_SHOTGUN);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_SHOTGUN);
     } else if (!str::icmp(dm_weapon, "rifle")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_RIFLE);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_RIFLE);
     } else if (!str::icmp(dm_weapon, "sniper")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_SNIPER);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_SNIPER);
     } else if (!str::icmp(dm_weapon, "smg")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_SMG);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_SMG);
     } else if (!str::icmp(dm_weapon, "mg")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_MG);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_MG);
     } else if (!str::icmp(dm_weapon, "heavy")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_ROCKET);
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_ROCKET);
     } else if (!str::icmp(dm_weapon, "landmine")) {
-        bIsBanned = (dmflags->integer & DF_WEAPON_NO_LANDMINE) || !QueryLandminesAllowed();
+        bIsBanned = (weaponFlags & DF_WEAPON_NO_LANDMINE) || !QueryLandminesAllowed();
     } else if (!str::icmp(dm_weapon, "auto")) {
         const char *primaryList[7];
         size_t      numPrimaries = 0;
@@ -10204,25 +10224,25 @@ void Player::EventPrimaryDMWeapon(Event *ev)
         // Added in OPM
         //  Choose a random allowed weapon
         //
-        if (!(dmflags->integer & DF_WEAPON_NO_SHOTGUN)) {
+        if (!(weaponFlags & DF_WEAPON_NO_SHOTGUN)) {
             primaryList[numPrimaries++] = "shotgun";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_RIFLE)) {
+        if (!(weaponFlags & DF_WEAPON_NO_RIFLE)) {
             primaryList[numPrimaries++] = "rifle";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_SNIPER)) {
+        if (!(weaponFlags & DF_WEAPON_NO_SNIPER)) {
             primaryList[numPrimaries++] = "sniper";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_SMG)) {
+        if (!(weaponFlags & DF_WEAPON_NO_SMG)) {
             primaryList[numPrimaries++] = "smg";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_MG)) {
+        if (!(weaponFlags & DF_WEAPON_NO_MG)) {
             primaryList[numPrimaries++] = "mg";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_ROCKET)) {
+        if (!(weaponFlags & DF_WEAPON_NO_ROCKET)) {
             primaryList[numPrimaries++] = "heavy";
         }
-        if (!(dmflags->integer & DF_WEAPON_NO_LANDMINE) && QueryLandminesAllowed()) {
+        if (!(weaponFlags & DF_WEAPON_NO_LANDMINE) && QueryLandminesAllowed()) {
             primaryList[numPrimaries++] = "landmine";
         }
 
@@ -12150,7 +12170,9 @@ void Player::UserSelectWeapon(bool bWait)
         Q_strncpyz(buf, "stufftext \"pushmenu ", sizeof(buf));
     }
 
-    if (dmflags->integer & DF_WEAPON_NO_RIFLE && dmflags->integer & DF_WEAPON_NO_SNIPER
+    // Added in OPM
+    // dmflags -1 allows all weapons, skip the emergency "all banned" check
+    if (dmflags->integer != -1 && dmflags->integer & DF_WEAPON_NO_RIFLE && dmflags->integer & DF_WEAPON_NO_SNIPER
         && dmflags->integer & DF_WEAPON_NO_SMG && dmflags->integer & DF_WEAPON_NO_MG
         && dmflags->integer & DF_WEAPON_NO_ROCKET && dmflags->integer & DF_WEAPON_NO_SHOTGUN
         && dmflags->integer & DF_WEAPON_NO_LANDMINE && !QueryLandminesAllowed()) {

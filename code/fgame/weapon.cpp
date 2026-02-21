@@ -1036,6 +1036,12 @@ void Weapon::UseAmmo(int amount, firemode_t mode)
         return;
     }
 
+    // Added in OPM
+    // dmflags -1 gives bottomless clip for all weapons
+    if (dmflags->integer == -1) {
+        return;
+    }
+
     // Remove ammo from the clip if it's available
     if (ammo_clip_size[mode]) {
         ammo_in_clip[mode] -= amount;
@@ -2961,6 +2967,12 @@ qboolean Weapon::CheckReload(firemode_t mode)
     mode = m_bShareClip ? FIRE_PRIMARY : mode;
 
     if (putaway) {
+        return false;
+    }
+
+    // Added in OPM
+    // dmflags -1 gives bottomless clip, no reloading needed
+    if (dmflags->integer == -1) {
         return false;
     }
 
