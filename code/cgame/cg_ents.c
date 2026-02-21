@@ -677,7 +677,11 @@ void CG_GetOrigin(centity_t *cent, vec3_t origin)
 
         parent = cgi.R_GetRenderEntity(cent->currentState.parent);
 
+        // Fixed in OPM
+        // Was returning without writing to origin, leaving it as uninitialized
+        // stack data. Fall back to the entity's own interpolated position instead.
         if (!parent) {
+            VectorCopy(cent->lerpOrigin, origin);
             return;
         }
 
