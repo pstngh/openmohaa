@@ -642,9 +642,20 @@ Event EV_DM_Manager_FinishRoundTransition
     "delayed function call to do the actual restart for the next round"
 );
 
+// Added in OPM
+Event EV_DM_Manager_Countdown
+(
+    "roundcountdown",
+    EV_DEFAULT,
+    NULL,
+    NULL,
+    "countdown tick before a round-based match starts"
+);
+
 CLASS_DECLARATION(Listener, DM_Manager, NULL) {
     {&EV_DM_Manager_DoRoundTransition,     &DM_Manager::EventDoRoundTransition    },
     {&EV_DM_Manager_FinishRoundTransition, &DM_Manager::EventFinishRoundTransition},
+    {&EV_DM_Manager_Countdown,             &DM_Manager::Countdown                 },
     {NULL,                                 NULL                                   }
 };
 
@@ -684,6 +695,7 @@ DM_Manager::DM_Manager()
     m_bAllowAxisRespawn    = true;
     m_bAllowAlliedRespawn  = true;
     m_bRoundActive         = false;
+    m_iCountdownSeconds    = 0;
     m_iTotalMapTime        = 0;
 }
 
@@ -1606,9 +1618,21 @@ void DM_Manager::StartRound(void)
         }
     }
 
-    level.RemoveWaitTill(STRING_ROUNDSTART);
-    level.Unregister(STRING_ROUNDSTART);
-    gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
+    // Added in OPM
+    //  Freeze players and run a 5-second countdown before the round begins.
+    //  m_fRoundTime is adjusted after the countdown so the round clock
+    //  does not include the freeze period.
+    if (m_bRoundBasedGame) {
+        m_iCountdownSeconds = 5;
+        level.playerfrozen  = true;
+
+        G_CenterPrintToAllClients(va("\n\n\n%d\n", m_iCountdownSeconds));
+        PostEvent(EV_DM_Manager_Countdown, 1.0f);
+    } else {
+        level.RemoveWaitTill(STRING_ROUNDSTART);
+        level.Unregister(STRING_ROUNDSTART);
+        gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
+    }
 }
 
 void DM_Manager::EndRound()
@@ -1618,6 +1642,44 @@ void DM_Manager::EndRound()
     if (m_fRoundEndTime <= 0) {
         m_fRoundEndTime = level.time;
         PostEvent(EV_DM_Manager_DoRoundTransition, 2);
+    }
+
+    // Added in OPM
+    //  Cancel any in-progress countdown when the round ends early
+    if (m_iCountdownSeconds > 0) {
+        CancelEventsOfType(EV_DM_Manager_Countdown);
+        m_iCountdownSeconds = 0;
+        level.playerfrozen  = false;
+    }
+}
+
+/*
+====================
+DM_Manager::Countdown
+
+Added in OPM
+Ticks once per second during the pre-round freeze.
+When the counter reaches zero the players are unfrozen and the round begins.
+====================
+*/
+void DM_Manager::Countdown(Event *ev)
+{
+    m_iCountdownSeconds--;
+
+    if (m_iCountdownSeconds > 0) {
+        G_CenterPrintToAllClients(va("\n\n\n%d\n", m_iCountdownSeconds));
+        PostEvent(EV_DM_Manager_Countdown, 1.0f);
+    } else {
+        G_CenterPrintToAllClients(va("\n\n\n%s\n", gi.LV_ConvertString("Fight!")));
+
+        level.playerfrozen = false;
+
+        // Reset round time so the round clock starts now, after the freeze
+        m_fRoundTime = level.time;
+
+        level.RemoveWaitTill(STRING_ROUNDSTART);
+        level.Unregister(STRING_ROUNDSTART);
+        gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
     }
 }
 

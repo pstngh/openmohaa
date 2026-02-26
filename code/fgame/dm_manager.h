@@ -183,6 +183,10 @@ private:
     bool m_bAllowAxisRespawn;
     bool m_bRoundActive;
 
+    // Added in OPM
+    //  Countdown seconds remaining before round starts (0 = no countdown active)
+    int m_iCountdownSeconds;
+
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
     size_t scoreLength;
