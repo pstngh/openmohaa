@@ -118,77 +118,19 @@ void View3D::OnDeactivate(Event *ev)
 void View3D::DrawFPS(void)
 {
     char string[128];
+    float x;
+    float y;
 
     setFont("verdana-14");
-    if (fps->integer == 2) {
-        re.SetColor(UBlack);
-        re.DrawBox(
-            0.0,
-            m_frame.pos.y + m_frame.size.height - m_font->getHeight() * 4.0,
-            m_frame.pos.x + m_frame.size.width,
-            m_font->getHeight() * 4.0
-        );
-    }
+    m_font->setColor(UWhite);
 
-    Com_sprintf(string, sizeof(string), "FPS %4.1f", currentfps);
-    if (currentfps > 23.94) {
-        if (cl_greenfps->integer) {
-            m_font->setColor(UGreen);
-        } else {
-            m_font->setColor(UWhite);
-        }
-    } else if (currentfps > 18.0) {
-        m_font->setColor(UYellow);
-    } else {
-        // low fps
-        m_font->setColor(URed);
-    }
+    Com_sprintf(string, sizeof(string), "FPS %d", (int)currentfps);
 
-    m_font->Print(
-        m_font->getHeight(getHighResScale()) * 10.0 / getHighResScale()[0],
-        (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale()) * 3.0) / getHighResScale()[1],
-        string,
-        -1,
-        getHighResScale()
-    );
+    x = 0.0f;
+    y = (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1];
 
-    // Draw elements count
-    if (cl_greenfps->integer) {
-        m_font->setColor(UGreen);
-    } else {
-        m_font->setColor(UWhite);
-    }
-
-    Com_sprintf(string, sizeof(string), "wt%5d wv%5d cl%d", cls.world_tris, cls.world_verts, cls.character_lights);
-
-    m_font->Print(
-        (m_font->getHeight(getHighResScale()) * 10.0) / getHighResScale()[0],
-        (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale()) * 2.0) / getHighResScale()[1],
-        string,
-        -1,
-        getHighResScale()
-    );
-
-    Com_sprintf(
-        string,
-        sizeof(string),
-        "t%5d v%5d Mtex%5.2f",
-        cls.total_tris,
-        cls.total_verts,
-        (float)cls.total_texels * 0.00000095367432
-    );
-
-    m_font->Print(
-        (m_font->getHeight(getHighResScale()) * 10.0) / getHighResScale()[0],
-        (m_frame.pos.y + m_frame.size.height - m_font->getHeight(getHighResScale())) / getHighResScale()[1],
-        string,
-        -1,
-        getHighResScale()
-    );
-
-    m_font->setColor(UBlack);
+    m_font->Print(x, y, string, -1, getHighResScale());
 }
-
 /*
 void ProfPrint(UIFont* m_font, float minY, int line, char* label, prof_var_t* var, int level)
 {
