@@ -307,6 +307,14 @@ void DM_Team::BeginFight(void)
     }
 }
 
+// Added in OPM
+void DM_Team::EndFight(void)
+{
+    for (int i = 1; i <= m_players.NumObjects(); i++) {
+        m_players.ObjectAt(i)->EndFight();
+    }
+}
+
 float DM_Team::PlayersRangeFromSpot(PlayerStart *spot)
 {
     float      bestplayerdistance = 9999999.0f;
@@ -785,6 +793,10 @@ bool DM_Manager::JoinTeam(Player *player, teamtype_t teamType)
     player->SetDM_Team(pDMTeam);
 
     if (teamType == TEAM_SPECTATOR) {
+        player->EndFight();
+    } else if (m_iCountdownSeconds > 0) {
+        // Added in OPM
+        //  Player joins during the countdown freeze, keep them frozen
         player->EndFight();
     } else {
         player->BeginFight();
@@ -1604,6 +1616,23 @@ void DM_Manager::StartRound(void)
     m_fRoundEndTime = 0.0f;
     m_bRoundActive  = true;
 
+    // Added in OPM
+    //  Freeze players and run a 5-second countdown before the round begins.
+    //  The freeze and countdown are set up BEFORE spawning so that players
+    //  appear in the world already frozen (spawn + freeze simultaneously).
+    //  m_fRoundTime is adjusted after the countdown so the round clock
+    //  does not include the freeze period.
+    if (m_bRoundBasedGame) {
+        m_iCountdownSeconds = 5;
+        level.playerfrozen  = true;
+
+        m_team_allies.EndFight();
+        m_team_axis.EndFight();
+
+        G_CenterPrintToAllClients(va("\n\n\n%d\n", m_iCountdownSeconds));
+        PostEvent(EV_DM_Manager_Countdown, 1.0f);
+    }
+
     // respawn all players
     for (i = 0, ent = g_entities; i < game.maxclients; i++, ent++) {
         if (!ent->inuse || !ent->client || !ent->entity) {
@@ -1618,17 +1647,7 @@ void DM_Manager::StartRound(void)
         }
     }
 
-    // Added in OPM
-    //  Freeze players and run a 5-second countdown before the round begins.
-    //  m_fRoundTime is adjusted after the countdown so the round clock
-    //  does not include the freeze period.
-    if (m_bRoundBasedGame) {
-        m_iCountdownSeconds = 5;
-        level.playerfrozen  = true;
-
-        G_CenterPrintToAllClients(va("\n\n\n%d\n", m_iCountdownSeconds));
-        PostEvent(EV_DM_Manager_Countdown, 1.0f);
-    } else {
+    if (!m_bRoundBasedGame) {
         level.RemoveWaitTill(STRING_ROUNDSTART);
         level.Unregister(STRING_ROUNDSTART);
         gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
@@ -1650,6 +1669,9 @@ void DM_Manager::EndRound()
         CancelEventsOfType(EV_DM_Manager_Countdown);
         m_iCountdownSeconds = 0;
         level.playerfrozen  = false;
+
+        m_team_allies.BeginFight();
+        m_team_axis.BeginFight();
     }
 }
 
@@ -1670,9 +1692,12 @@ void DM_Manager::Countdown(Event *ev)
         G_CenterPrintToAllClients(va("\n\n\n%d\n", m_iCountdownSeconds));
         PostEvent(EV_DM_Manager_Countdown, 1.0f);
     } else {
-        G_CenterPrintToAllClients(va("\n\n\n%s\n", gi.LV_ConvertString("Fight!")));
+        G_CenterPrintToAllClients(va("\n\n\n%s\n", gi.LV_ConvertString("Go!")));
 
         level.playerfrozen = false;
+
+        m_team_allies.BeginFight();
+        m_team_axis.BeginFight();
 
         // Reset round time so the round clock starts now, after the freeze
         m_fRoundTime = level.time;
