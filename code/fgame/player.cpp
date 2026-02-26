@@ -8731,7 +8731,14 @@ void Player::InitDeathmatch(void)
             case GT_TOW:
             case GT_LIBERATION:
                 if (!m_bTempSpectator) {
-                    BeginFight();
+                    // Added in OPM
+                    //  If a countdown is active, the player spawns frozen
+                    //  and must wait for the countdown to finish.
+                    if (dmManager.IsCountdownActive()) {
+                        EndFight();
+                    } else {
+                        BeginFight();
+                    }
                 } else {
                     Spectator();
                 }
