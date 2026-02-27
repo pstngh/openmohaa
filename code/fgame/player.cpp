@@ -7256,6 +7256,46 @@ void Player::CopyStats(Player *player)
     }
 }
 
+// Added in OPM
+//  CS2-style state replication for first-person spectating.
+//  Copies only playerState values without cloning entities,
+//  avoiding the memory leaks caused by CopyStats() entity cloning every frame.
+void Player::CopyStatsAntiCheat(Player *player)
+{
+    // Copy position and view state
+    VectorCopy(player->client->ps.origin, client->ps.origin);
+    client->ps.bobCycle = player->client->ps.bobCycle;
+
+    // Copy movement flags (preserve ducking, prone, jumping states)
+    client->ps.pm_flags = player->client->ps.pm_flags;
+
+    // Copy stats arrays (health, ammo, weapons)
+    memcpy(client->ps.stats, player->client->ps.stats, sizeof(client->ps.stats));
+    memcpy(client->ps.activeItems, player->client->ps.activeItems, sizeof(client->ps.activeItems));
+    memcpy(client->ps.ammo_amount, player->client->ps.ammo_amount, sizeof(client->ps.ammo_amount));
+    memcpy(client->ps.ammo_name_index, player->client->ps.ammo_name_index, sizeof(client->ps.ammo_name_index));
+    memcpy(client->ps.max_ammo_amount, player->client->ps.max_ammo_amount, sizeof(client->ps.max_ammo_amount));
+
+    // Copy physics for view bob calculations
+    VectorCopy(player->client->ps.velocity, client->ps.velocity);
+    client->ps.gravity = player->client->ps.gravity;
+    client->ps.speed   = player->client->ps.speed;
+
+    // Copy view feedback (damage angles for recoil)
+    VectorCopy(player->client->ps.damage_angles, client->ps.damage_angles);
+    client->ps.blend[0] = player->client->ps.blend[0];
+    client->ps.blend[1] = player->client->ps.blend[1];
+    client->ps.blend[2] = player->client->ps.blend[2];
+    client->ps.blend[3] = player->client->ps.blend[3];
+
+    // Copy lean angle for visualization
+    client->ps.fLeanAngle = player->client->ps.fLeanAngle;
+
+    // Copy FOV and view height
+    client->ps.fov        = player->client->ps.fov;
+    client->ps.viewheight = player->client->ps.viewheight;
+}
+
 void Player::UpdateStats(void)
 {
     int    i, count;
@@ -7274,8 +7314,8 @@ void Player::UpdateStats(void)
         //
         gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
 
-        if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
-            CopyStats((Player *)ent->entity);
+        if (ent->inuse && ent->entity && ent->entity->deadflag < DEAD_DEAD) {
+            CopyStatsAntiCheat(static_cast<Player *>(ent->entity));
             return;
         }
     }
