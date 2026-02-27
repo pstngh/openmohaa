@@ -1498,16 +1498,13 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 
 		if (bGood) {
 			cl->pureAuthentic = 1;
-		} 
+		}
 		else {
 			cl->pureAuthentic = 0;
-			cl->lastSnapshotTime = 0;
-			cl->state = CS_ACTIVE;
-			SV_SendClientSnapshot( cl );
-			SV_DropClient( cl, "Unpure Client. "
-				"You may need to enable in-game downloads "
-				"to connect to this server (set "
-				"cl_allowDownload 1)" );
+			// Changed in OPM
+			// Don't kick unpure clients, just mark them as not pure-authenticated.
+			// The game module will display pure status to all players via HUD.
+			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}
 	}
 }
@@ -1911,32 +1908,23 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	// save time for ping calculation
 	cl->frames[ cl->messageAcknowledge & PACKET_MASK ].messageAcked = svs.time;
 
-	// TTimo
-	// catch the no-cp-yet situation before SV_ClientEnterWorld
-	// if CS_ACTIVE, then it's time to trigger a new gamestate emission
-	// if not, then we are getting remaining parasite usermove commands, which we should ignore
-	if (sv_pure->integer != 0 && cl->pureAuthentic == 0 && !cl->gotCP) {
-		if (cl->state == CS_ACTIVE)
-		{
-			// we didn't get a cp yet, don't assume anything and just send the gamestate all over again
-			Com_DPrintf( "%s: didn't get cp command, resending gamestate\n", cl->name);
-			SV_SendClientGameState( cl );
-		}
-		return;
-	}			
-	
+	// Changed in OPM
+	// The original code blocked clients from entering the world until a "cp" (pure checksum)
+	// command was received. Since OpenMoHAA clients have pure client behavior disabled
+	// (cl_connectedToPureServer = 0), the cp command is never sent, causing clients to get
+	// stuck forever during map load. We skip this gate entirely and allow all clients to enter
+	// the world regardless of pure status. Pure status is tracked passively for HUD display.
+
 	// if this is the first usercmd we have received
 	// this gamestate, put the client into the world
 	if ( cl->state == CS_PRIMED ) {
 		SV_ClientEnterWorld( cl, &cmds[0] );
 		// the moves can be processed normaly
 	}
-	
-	// a bad cp command was sent, drop the client
-	if (sv_pure->integer != 0 && cl->pureAuthentic == 0) {		
-		SV_DropClient( cl, "Cannot validate pure client!");
-		return;
-	}
+
+	// Changed in OPM
+	// Don't drop unpure clients, allow them to continue playing.
+	// The game module tracks pure status and displays it via HUD.
 
 	if ( cl->state != CS_ACTIVE ) {
 		cl->deltaMessage = -1;
