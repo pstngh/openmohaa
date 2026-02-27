@@ -9497,8 +9497,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
         vPos = trace.endpos;
     } else {
-        vAng = pPlayer->angles;
-        vPos = pPlayer->origin;
+        pPlayer->GetPlayerView(&vPos, &vAng);
     }
 }
 
