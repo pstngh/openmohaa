@@ -1556,6 +1556,20 @@ void CL_SendPureChecksums( void ) {
 	char cMsg[MAX_INFO_VALUE];
 	int i;
 
+	// Added in OPM
+	// Send feed-independent checksums via "cp2" BEFORE "cp" so the server
+	// has the whitelist data available when it processes the "cp" command.
+	pChecksums = FS_ReferencedPakNonPureChecksums();
+
+	// "cp2"
+	// "Yf2"
+	Com_sprintf(cMsg, sizeof(cMsg), "Yf2 ");
+	Q_strcat(cMsg, sizeof(cMsg), pChecksums);
+	for (i = 0; i < 2; i++) {
+		cMsg[i] += '\n';
+	}
+	CL_AddReliableCommand( cMsg, qfalse );
+
 	// if we are pure we need to send back a command with our referenced pk3 checksums
 	pChecksums = FS_ReferencedPakPureChecksums();
 

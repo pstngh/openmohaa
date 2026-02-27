@@ -192,6 +192,11 @@ typedef struct client_s {
 	int				snapshotMsec;		// requests a snapshot every snapshotMsec unless rate choked
 	int				pureAuthentic;
 	qboolean  gotCP; // TTimo - additional flag to distinguish between a bad pure checksum, and no cp command at all
+	// Added in OPM
+	// Feed-independent checksums received via "cp2" command, used for whitelist validation
+	int				nonPureChecksums[1024];
+	int				nNonPureChecksums;
+	qboolean		gotCP2;
     netchan_t		netchan;
 	// Added in 2.0
     netprofclient_t netprofile;

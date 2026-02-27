@@ -478,10 +478,9 @@ When sv_pure is enabled, broadcasts a "x/y Players Clean" HUD element
 at the bottom-right corner of the screen for all clients.
 ================
 */
-static void G_UpdatePureStatusHUD(void)
+void G_UpdatePureStatusHUD(void)
 {
-    static cvar_t *sv_pure       = NULL;
-    static int     lastCheckTime = -1;
+    static cvar_t *sv_pure = NULL;
 
     if (!sv_pure) {
         sv_pure = gi.Cvar_Find("sv_pure");
@@ -490,16 +489,6 @@ static void G_UpdatePureStatusHUD(void)
     if (!sv_pure || !sv_pure->integer) {
         return;
     }
-
-    // Detect level/round restart (level time resets) or first call
-    qboolean forceUpdate = (level.inttime < lastCheckTime);
-
-    // Resend every 5 seconds so clients that become CS_ACTIVE after the
-    // initial broadcast will receive the HUD element in their snapshots.
-    if (!forceUpdate && lastCheckTime >= 0 && (level.inttime - lastCheckTime < 5000)) {
-        return;
-    }
-    lastCheckTime = level.inttime;
 
     int totalPlayers = 0;
     int purePlayers  = 0;
@@ -812,13 +801,6 @@ void G_RunFrame(int levelTime, int frameTime)
             G_SpawnBots();
         }
 
-        //
-        // Added in OPM
-        //
-        // Update the sv_pure status HUD element for all clients
-        if (g_gametype->integer != GT_SINGLE_PLAYER) {
-            G_UpdatePureStatusHUD();
-        }
     }
 
     catch (const char *error) {
@@ -1029,6 +1011,11 @@ void G_Restart(void)
 
     // Added in OPM
     G_RestartBots();
+
+    // Added in OPM
+    if (g_gametype->integer != GT_SINGLE_PLAYER) {
+        G_UpdatePureStatusHUD();
+    }
 }
 
 void G_SetFrameNumber(int framenum)
