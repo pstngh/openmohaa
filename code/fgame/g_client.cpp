@@ -1024,6 +1024,12 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
         if (ent->entity) {
             ent->entity->EndFrame();
         }
+
+        // Added in OPM
+        //  Refresh the sv_pure HUD so the new player count is shown
+        if (g_gametype->integer != GT_SINGLE_PLAYER) {
+            G_UpdatePureStatusHUD();
+        }
     } catch (const char *error) {
         G_ExitWithError(error);
     }
@@ -1090,6 +1096,12 @@ void G_ClientDisconnect(gentity_t *ent)
         ent->entity = NULL;
 
         G_InitClientPersistant(ent->client);
+
+        // Added in OPM
+        //  Refresh the sv_pure HUD so the updated player count is shown
+        if (g_gametype->integer != GT_SINGLE_PLAYER) {
+            G_UpdatePureStatusHUD();
+        }
     }
 
     catch (const char *error) {

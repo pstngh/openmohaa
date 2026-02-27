@@ -3905,6 +3905,46 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 	return info;
 }
 
+// Added in OPM
+/*
+=====================
+FS_ReferencedPakNonPureChecksums
+
+Returns a space separated string containing the feed-independent checksums of all
+referenced pk3 files, in the same order as FS_ReferencedPakPureChecksums().
+Used by the client to send a cp2 command so the server can validate unknown paks
+against a hardcoded whitelist of known-good checksums.
+=====================
+*/
+const char *FS_ReferencedPakNonPureChecksums( void ) {
+	static char	info[BIG_INFO_STRING];
+	searchpath_t	*search;
+	int nFlags, numPaks, checksum;
+
+	info[0] = 0;
+
+	checksum = fs_checksumFeed;
+	numPaks = 0;
+	for (nFlags = FS_GENERAL_REF; nFlags; nFlags = nFlags >> 1) {
+		for ( search = fs_searchpaths ; search ; search = search->next ) {
+			// is the element a pak file and has it been referenced based on flag?
+			if ( search->pack && (search->pack->referenced & nFlags)) {
+				Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
+				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
+					break;
+				}
+				checksum ^= search->pack->checksum;
+				numPaks++;
+			}
+		}
+	}
+	// last checksum is the encoded number of referenced pk3s
+	checksum ^= numPaks;
+	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
+
+	return info;
+}
+
 /*
 =====================
 FS_ReferencedPakNames
