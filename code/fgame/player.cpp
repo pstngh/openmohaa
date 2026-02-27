@@ -6635,6 +6635,13 @@ void Player::SetPlayerView(
             VectorCopy(vVec, client->ps.camera_posofs);
             client->ps.pm_flags |= PMF_CAMERA_VIEW;
             client->ps.camera_flags = client->ps.camera_flags & CF_CAMERA_CUT_BIT;
+
+            // Added in OPM
+            //  Mark first-person spectate so the client renders in first-person
+            //  (shows weapon viewmodel, hides body) instead of third-person.
+            if (g_spectatefollow_firstperson->integer && camera->IsSubclassOfPlayer()) {
+                client->ps.camera_flags |= CF_CAMERA_FIRSTPERSON_SPECTATE;
+            }
         }
     } else {
         client->ps.pm_flags &= ~PMF_CAMERA_VIEW;
@@ -7266,8 +7273,13 @@ void Player::CopyStatsAntiCheat(Player *player)
     VectorCopy(player->client->ps.origin, client->ps.origin);
     client->ps.bobCycle = player->client->ps.bobCycle;
 
-    // Copy movement flags (preserve ducking, prone, jumping states)
-    client->ps.pm_flags = player->client->ps.pm_flags;
+    // Selectively copy visual movement flags from target (like CopyStats does).
+    // Don't replace pm_flags entirely — preserve the spectator's own flags
+    // (PMF_SPECTATING, etc.) so that SetupView and the client behave correctly.
+    client->ps.pm_flags |=
+        player->client->ps.pm_flags & (PMF_DUCKED | PMF_VIEW_DUCK_RUN | PMF_VIEW_JUMP_START | PMF_VIEW_PRONE);
+    // Freeze spectator input so the client doesn't predict movement
+    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION;
 
     // Copy stats arrays (health, ammo, weapons)
     memcpy(client->ps.stats, player->client->ps.stats, sizeof(client->ps.stats));
@@ -7294,6 +7306,16 @@ void Player::CopyStatsAntiCheat(Player *player)
     // Copy FOV and view height
     client->ps.fov        = player->client->ps.fov;
     client->ps.viewheight = player->client->ps.viewheight;
+
+    // Copy viewmodel animation so the spectator sees the target's weapon
+    client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
+    client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
+
+    // Hide the target player entity from the spectator.
+    // Note: SVF_NOTSINGLECLIENT only supports hiding from one client at a time,
+    // so only the last spectator to watch a player will have it hidden.
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
 }
 
 void Player::UpdateStats(void)
@@ -7839,15 +7861,11 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!g_spectatefollow_firstperson->integer || !IsSpectator() || !m_iPlayerSpectating) {
-        SetupView();
-    } else {
-        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
-
-        if (!ent->inuse || !ent->entity || ent->entity->deadflag >= DEAD_DEAD) {
-            SetupView();
-        }
-    }
+    // Fixed in OPM
+    //  Always call SetupView, even for first-person spectate.
+    //  SetupView sets camera_angles, camera_origin, and PMF_CAMERA_VIEW
+    //  so the client follows the spectated player's crosshair.
+    SetupView();
 }
 
 void Player::GotKill(Event *ev)
@@ -9547,8 +9565,12 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
         vPos = trace.endpos;
     } else {
-        vAng = pPlayer->angles;
+        // Fixed in OPM
+        //  Use view angles (includes pitch from mouse look) instead of body angles,
+        //  and eye position instead of feet position.
+        vAng = pPlayer->GetVAngles();
         vPos = pPlayer->origin;
+        vPos[2] += pPlayer->viewheight;
     }
 }
 

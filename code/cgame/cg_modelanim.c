@@ -1003,8 +1003,10 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
 
     bThirdPerson |= cg_3rd_person->integer ? qtrue : qfalse;
     // Fixed in OPM
-    //  Draw world model body when in camera
-    bThirdPerson |= (cg.snap->ps.pm_flags & PMF_CAMERA_VIEW && !(cg.snap->ps.pm_flags & PMF_TURRET));
+    //  Draw world model body when in camera, except for first-person spectate
+    //  where we want the weapon viewmodel instead of the body.
+    bThirdPerson |= (cg.snap->ps.pm_flags & PMF_CAMERA_VIEW && !(cg.snap->ps.pm_flags & PMF_TURRET)
+                     && !(cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE));
 
     if ((cg.snap->ps.pm_flags & PMF_INTERMISSION) && s1->number == cg.snap->ps.clientNum && !bThirdPerson) {
         // Don't render the first-person model during intermission

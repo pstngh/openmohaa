@@ -446,7 +446,10 @@ movement on the server game.
 #define CF_CAMERA_ANGLES_IGNORE_YAW   (1 << 2)
 #define CF_CAMERA_ANGLES_ALLOWOFFSET  (1 << 3)
 #define CF_CAMERA_ANGLES_TURRETMODE   (1 << 4)
-#define CF_CAMERA_CUT_BIT             (1 << 7) // this bit gets toggled everytime we do a hard camera cut
+// Added in OPM
+//  First-person spectate: use camera view but render in first-person (show viewmodel, hide body)
+#define CF_CAMERA_FIRSTPERSON_SPECTATE (1 << 5)
+#define CF_CAMERA_CUT_BIT              (1 << 7) // this bit gets toggled everytime we do a hard camera cut
 
     // means of death
     // su44: changed to MoHAA's
