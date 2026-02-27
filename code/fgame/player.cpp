@@ -8776,6 +8776,23 @@ void Player::InitDeathmatch(void)
     }
 
     ChooseSpawnPoint();
+
+    // Added in OPM
+    //  Snap the player to the ground immediately after choosing a spawn point.
+    //  ChooseSpawnPoint() places the player 1 unit above the spawn origin.
+    //  Normally PM_GroundTrace() settles them, but during a countdown freeze
+    //  PMF_FROZEN disables all physics, so the player would float in mid-air.
+    //  Trace downward and place them on the surface so they are already
+    //  grounded before the freeze takes effect.
+    if (level.playerfrozen) {
+        trace_t trace;
+
+        trace = G_Trace(origin, mins, maxs, origin - Vector(0, 0, 18), this, MASK_PLAYERSOLID, qfalse, "GroundSnap");
+        if (trace.fraction < 1.0f && !trace.allsolid) {
+            setOrigin(Vector(trace.endpos));
+        }
+    }
+
     EquipWeapons();
 
     if (current_team) {
