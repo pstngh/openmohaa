@@ -840,6 +840,9 @@ static void SV_SendClientGameState( client_t *client ) {
 	client->state = CS_PRIMED;
 	client->pureAuthentic = 0;
 	client->gotCP = qfalse;
+	// Added in OPM
+	client->gotCP2 = qfalse;
+	client->nNonPureChecksums = 0;
 
 	// when we receive the first packet from the client, we will
 	// notice that it is from a different serverid and that the
@@ -1340,6 +1343,78 @@ static void SV_Disconnect_f( client_t *cl ) {
 	SV_DropClient( cl, "disconnected" );
 }
 
+// Added in OPM
+//==================================================================
+// Whitelist of known-good pk3 feed-independent checksums for sv_pure
+// validation. These are official MoHAA paks and approved community
+// map packs. When a client pak's pure_checksum doesn't match any
+// server-loaded pak, we check its feed-independent checksum (from the
+// cp2 command) against this whitelist.
+//==================================================================
+static const int sv_pureChecksumWhitelist[] = {
+    // ---- Official MoHAA paks ----
+    -1589950738, // pak0.pk3
+     1379145895, // pak1.pk3
+    -1583317731, // pak2.pk3
+     -467062589, // pak3.pk3
+      981818134, // pak4.pk3
+      179434094, // pak5.pk3 (Allied Assault)
+      671078817, // pak5.pk3 (Spearhead)
+     1273215132, // Pak5.pk3 (Breakthrough)
+    -1716277136, // pak6.pk3
+      596498058, // Pak6.pk3
+      927563442, // pak7.pk3
+    -1159718974, // Pak7.pk3
+    -1938713004, // pak8.pk3
+      178498079, // pak9.pk3
+     -372026498, // pak10.pk3
+     -740534367, // pak11.pk3
+       38873949, // pak12.pk3
+     -226499784, // pak13.pk3
+      730285072, // pak14.pk3
+     2077479519, // pak15.pk3
+
+    // ---- Approved community paks ----
+     -749714968, // User-CrizzBlood_2.1.pk3
+      303247773, // volute_mappack_1.pk3
+     -756050387, // volute_mappack_2.pk3
+     1913416368, // volute_mappack_3.pk3
+    -1288854016, // volute_mappack_4.pk3
+      877350490, // volute_mappack_5.pk3
+      -16647494, // zzz-antennaskin-official.pk3
+      881920717, // 1v1-maps.pk3
+      663630265, // harbor.pk3
+     1004023887, // Navarone.pk3
+    -1380949410, // obj_dessau1946.pk3
+    -1826572434, // obj_kmarzo-stlo.pk3
+     -921328328, // obj_omg_team1.pk3
+     -407734724, // obj_omg_team4.pk3
+    -1339836687, // obj_thechurch_final.pk3
+    -1375923424, // obj_thevillage.pk3
+    -1335048655, // Obj_The_Lost_Town.pk3
+      436524751, // renan.pk3
+     -514943913, // User-Stlo4.pk3
+      432297786, // V2Shelter.pk3
+     1637029406, // V2_Extended.pk3
+    -1722391857, // VSUK-AbbeyBeta.pk3
+    -1115559999, // zzz_dv_snow_obj_tdm.pk3
+     -434856894, // zzz-stockthinlinescope1024x1024.pk3
+    -1714111710, // zzz-stockthinlinescope512x512.pk3
+     1153308349, // z_M0NST3R_WAR_MENU.pk3
+};
+
+static const int sv_pureChecksumWhitelistSize = sizeof(sv_pureChecksumWhitelist) / sizeof(sv_pureChecksumWhitelist[0]);
+
+static qboolean SV_IsChecksumWhitelisted( int checksum ) {
+    int i;
+    for (i = 0; i < sv_pureChecksumWhitelistSize; i++) {
+        if (sv_pureChecksumWhitelist[i] == checksum) {
+            return qtrue;
+        }
+    }
+    return qfalse;
+}
+
 /*
 =================
 SV_VerifyPaks_f
@@ -1471,8 +1546,19 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 					}
 				}
 				if (j >= nServerPaks) {
-					bGood = qfalse;
-					break;
+					// Changed in OPM
+					// Client has a pak the server doesn't have loaded.
+					// Check the feed-independent checksum (from cp2) against the whitelist.
+					if (cl->gotCP2 && i < cl->nNonPureChecksums) {
+						if (!SV_IsChecksumWhitelisted(cl->nonPureChecksums[i])) {
+							bGood = qfalse;
+							break;
+						}
+					} else {
+						// No cp2 data available for this pak, can't whitelist-validate
+						bGood = qfalse;
+						break;
+					}
 				}
 			}
 			if ( bGood == qfalse ) {
@@ -1517,6 +1603,41 @@ SV_ResetPureClient_f
 static void SV_ResetPureClient_f( client_t *cl ) {
 	cl->pureAuthentic = 0;
 	cl->gotCP = qfalse;
+	// Added in OPM
+	cl->gotCP2 = qfalse;
+	cl->nNonPureChecksums = 0;
+}
+
+// Added in OPM
+/*
+=================
+SV_VerifyPaksExt_f
+
+Handles the "cp2" command from OpenMoHAA clients.
+Stores feed-independent checksums that correspond positionally to the
+pure checksums sent in the "cp" command. These are used by SV_VerifyPaks_f()
+to validate unknown paks against the hardcoded whitelist.
+=================
+*/
+static void SV_VerifyPaksExt_f( client_t *cl ) {
+	int nArgs, nCurArg, i;
+
+	if ( sv_pure->integer == 0 ) {
+		return;
+	}
+
+	nArgs = Cmd_Argc();
+	nCurArg = 1;
+
+	for (i = 0; nCurArg < nArgs && i < 1024; i++) {
+		cl->nonPureChecksums[i] = atoi(Cmd_Argv(nCurArg++));
+	}
+
+	// last value is integrity checksum, store count without it
+	cl->nNonPureChecksums = (i > 0) ? i - 1 : 0;
+	cl->gotCP2 = qtrue;
+
+	Com_DPrintf("Received cp2 from client %s (%d feed-independent checksums)\n", cl->name, cl->nNonPureChecksums);
 }
 
 /*
@@ -1693,6 +1814,7 @@ static ucmd_t ucmds[] = {
 	{"userinfo", SV_UpdateUserinfo_f},
 	{"disconnect", SV_Disconnect_f},
 	{"cp", SV_VerifyPaks_f},
+	{"cp2", SV_VerifyPaksExt_f}, // Added in OPM
 	{"vdr", SV_ResetPureClient_f},
 	{"download", SV_BeginDownload_f},
 	{"nextdl", SV_NextDownload_f},
