@@ -1502,6 +1502,21 @@ void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
 
 /*
 ===============
+SV_IsClientPure
+
+Added in OPM
+Returns whether a client passed sv_pure validation.
+===============
+*/
+static int SV_IsClientPure( int clientNum ) {
+	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
+		return 0;
+	}
+	return svs.clients[ clientNum ].pureAuthentic;
+}
+
+/*
+===============
 PF_centerprintf
 ===============
 */
@@ -1952,6 +1967,7 @@ void SV_InitGameProgs( void ) {
     
     import.Client_NumPendingCommands	= PF_SV_Client_NumPendingCommands;
     import.Client_MaxPendingCommands	= PF_SV_Client_MaxPendingCommands;
+    import.IsClientPure					= SV_IsClientPure;
 
 	ge = Sys_GetGameAPI( &import );
 

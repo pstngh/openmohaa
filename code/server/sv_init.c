@@ -879,15 +879,18 @@ void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qb
 		}
 
 		if ( sv_pure->integer ) {
-			// the server sends these to the clients so they will only
-			// load pk3s also loaded at the server
+			// Changed in OPM
+			// Don't send sv_paks/sv_pakNames to clients so they won't restrict
+			// their own filesystem. Pure mode is passive: the server tracks which
+			// clients match the server's paks but does not enforce it.
+			// The server still uses FS_LoadedPakPureChecksums() internally
+			// in SV_VerifyPaks_f() to validate any "cp" commands received.
 			p = FS_LoadedPakChecksums();
-			Cvar_Set( "sv_paks", p );
 			if (strlen(p) == 0) {
 				Com_Printf( "WARNING: sv_pure set but no PK3 files loaded\n" );
 			}
-			p = FS_LoadedPakNames();
-			Cvar_Set( "sv_pakNames", p );
+			Cvar_Set( "sv_paks", "" );
+			Cvar_Set( "sv_pakNames", "" );
 		}
 		else {
 			Cvar_Set( "sv_paks", "" );

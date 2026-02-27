@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "g_bot.h"
 #include "navigation_recast_load.h"
+#include "huddraw.h"
 
 #include "../corepp/tiki.h"
 
@@ -465,6 +466,78 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
     }
 }
 
+// Added in OPM
+// HUD element index reserved for sv_pure status display
+#define HUDDRAW_PURE_STATUS 255
+
+/*
+================
+G_UpdatePureStatusHUD
+
+When sv_pure is enabled, broadcasts a "x/y Players Clean" HUD element
+at the bottom-right corner of the screen for all clients.
+================
+*/
+static void G_UpdatePureStatusHUD(void)
+{
+    static cvar_t *sv_pure       = NULL;
+    static int     lastCheckTime = -1;
+
+    if (!sv_pure) {
+        sv_pure = gi.Cvar_Find("sv_pure");
+    }
+
+    if (!sv_pure || !sv_pure->integer) {
+        return;
+    }
+
+    // Detect level/round restart (level time resets) or first call
+    qboolean forceUpdate = (level.inttime < lastCheckTime);
+
+    // Resend every 5 seconds so clients that become CS_ACTIVE after the
+    // initial broadcast will receive the HUD element in their snapshots.
+    if (!forceUpdate && lastCheckTime >= 0 && (level.inttime - lastCheckTime < 5000)) {
+        return;
+    }
+    lastCheckTime = level.inttime;
+
+    int totalPlayers = 0;
+    int purePlayers  = 0;
+
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse || !ent->client || !ent->entity) {
+            continue;
+        }
+
+        // Don't count bots
+        if (ent->r.svFlags & SVF_BOT) {
+            continue;
+        }
+
+        totalPlayers++;
+
+        if (gi.IsClientPure(i)) {
+            purePlayers++;
+        }
+    }
+
+    char statusText[128];
+    Com_sprintf(statusText, sizeof(statusText), "%d/%d Players Clean", purePlayers, totalPlayers);
+
+    float color[3] = {1.0f, 1.0f, 1.0f};
+
+    // HUD_ALIGN_X_RIGHT adds vidWidth to iX, text draws left-to-right.
+    // bVirtualScreen off so the font renders at native size (no pixelation).
+    HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
+    HudDrawRect(HUDDRAW_PURE_STATUS, -100, -16, 0, 0);
+    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
+    HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
+    HudDrawColor(HUDDRAW_PURE_STATUS, color);
+    HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
+    HudDrawString(HUDDRAW_PURE_STATUS, statusText);
+}
+
 /*
 ================
 G_RunFrame
@@ -737,6 +810,14 @@ void G_RunFrame(int levelTime, int frameTime)
             //
             // Add or delete bots that were added using addbot/removebot
             G_SpawnBots();
+        }
+
+        //
+        // Added in OPM
+        //
+        // Update the sv_pure status HUD element for all clients
+        if (g_gametype->integer != GT_SINGLE_PLAYER) {
+            G_UpdatePureStatusHUD();
         }
     }
 
