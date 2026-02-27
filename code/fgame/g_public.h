@@ -501,6 +501,10 @@ typedef struct gameImport_s {
     unsigned int (*Client_NumPendingCommands)(int clientNum);
     unsigned int (*Client_MaxPendingCommands)(int clientNum);
 
+    // Added in OPM
+    //  Query whether a client passed sv_pure validation
+    int (*IsClientPure)(int clientNum);
+
     cvar_t *fsDebug;
 
 } game_import_t;
