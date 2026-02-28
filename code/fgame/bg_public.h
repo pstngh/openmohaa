@@ -556,6 +556,12 @@ movement on the server game.
         STAT_INFOCLIENT_HEALTH,
         STAT_DAMAGEDIR,
         STAT_SECONDARY_AMMO, // added in 2.0
+        // Added in OPM
+        //  Entity number of the player being spectated in first-person mode.
+        //  Used by cgame to skip rendering the spectated player's world model
+        //  while keeping the entity in the snapshot for TIKI frame command sounds.
+        //  -1 means not spectating.
+        STAT_SPECTATOR_CLIENT,
         STAT_LAST_STAT
     } playerstat_t;
 

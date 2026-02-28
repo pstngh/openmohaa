@@ -1513,7 +1513,13 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     }
 
     model.reType = RT_MODEL;
-    if (!(s1->renderfx & RF_DONTDRAW)) {
+    // Added in OPM
+    //  In first-person spectate, skip rendering the spectated player's world model
+    //  but keep processing the rest of the function (TIKI frame commands trigger
+    //  weapon sounds and other effects).
+    if (!(s1->renderfx & RF_DONTDRAW)
+        && !((cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE)
+             && s1->number == cg.snap->ps.stats[STAT_SPECTATOR_CLIENT])) {
         cgi.R_Model_GetHandle(model.hModel);
         if (VectorCompare(model.origin, vec3_origin)) {
             VectorCopy(s1->origin, model.origin);
