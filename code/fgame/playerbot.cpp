@@ -77,6 +77,14 @@ BotController::BotController()
     m_iNextTauntTime = 0;
 
     m_StateFlags = 0;
+
+    // Strafe and lean - always start with a direction (never neutral)
+    m_iStrafeDirection      = (rand() % 2) ? 1 : -1;
+    m_iLeanDirection        = m_iStrafeDirection;
+    m_fNextStrafeChangeTime = 0;
+    m_iShootMoveMode        = 0;
+    m_fNextShootMoveTime    = 0;
+    m_iShootMoveDirection   = 1;
 }
 
 BotController::~BotController()
@@ -860,6 +868,7 @@ void BotController::State_Attack(void)
 
             //
             // check the fire movement speed if the weapon has a max fire movement
+            // NOTE: We no longer stop movement - bots should always keep moving
             //
             if (pWeap->GetMaxFireMovement() < 1 && pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
                 float length;
@@ -867,7 +876,7 @@ void BotController::State_Attack(void)
                 length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
-                    movement.ClearMove();
+                    // movement.ClearMove(); - Removed: bots never stop moving
                 }
             }
 
@@ -909,7 +918,7 @@ void BotController::State_Attack(void)
                         }
                     } else {
                         bNoMove = true;
-                        movement.ClearMove();
+                        // movement.ClearMove(); - Removed: bots never stop moving
                     }
                 } else {
                     bFiring = true;
@@ -977,36 +986,23 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
-        Vector        vTarget;
-        orientation_t eyes_or;
+        Vector vTarget;
 
-        if (m_iEnemyEyesTag == -1) {
-            // Cache the tag
-            m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
-        }
+        // Aim at body using cvar-controlled height range
+        // g_bot_aim_height_max = top of aim range (default 0.65 = chest)
+        // g_bot_aim_height_min = bottom of aim range (default 0.49 = waist)
+        float maxHeight = m_pEnemy->viewheight * g_bot_aim_height_max->value;
+        float minHeight = m_pEnemy->viewheight * g_bot_aim_height_min->value;
+        float spreadDown = maxHeight - minHeight;
 
-        if (m_iEnemyEyesTag != -1) {
-            // Use the enemy's eyes bone
-            m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
-            vTarget = eyes_or.origin;
-        } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
-            vTarget = m_pEnemy->origin;
-        }
+        vTarget = m_pEnemy->origin;
+        vTarget[2] += maxHeight;
 
         if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-            }
+            // Spread only goes left/right or DOWN (never up toward head)
+            m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
+            m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
+            m_vAimOffset[2] = -G_Random(spreadDown);  // Only negative (down toward min height)
             m_iLastAimTime = level.inttime;
         }
 
@@ -1207,12 +1203,109 @@ void BotController::Spawned(void)
     m_botCmd.buttons = 0;
 }
 
+void BotController::UpdateStrafeAndLean(void)
+{
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // Check if it's time to change strafe direction
+    if (level.time >= m_fNextStrafeChangeTime) {
+        // Flip strafe direction (always -1 or 1, never 0)
+        m_iStrafeDirection = -m_iStrafeDirection;
+
+        // Lean matches strafe 85% of the time
+        if (rand() % 100 < g_bot_lean_match_chance->integer) {
+            m_iLeanDirection = m_iStrafeDirection;
+        } else {
+            m_iLeanDirection = -m_iStrafeDirection;
+        }
+
+        // Calculate next change time
+        float minTime = g_bot_strafe_min_time->value;
+        float maxTime = g_bot_strafe_max_time->value;
+        m_fNextStrafeChangeTime = level.time + minTime + G_Random(maxTime - minTime);
+    }
+
+    // Update shooting movement mode (varies between forward, forward/back, strafe-only)
+    bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
+    if (isAttacking && level.time >= m_fNextShootMoveTime) {
+        // Pick a random mode: 0=forward, 1=forward/back, 2=strafe only
+        if (g_bot_shoot_bobbing->integer) {
+            m_iShootMoveMode = rand() % 3;
+        } else {
+            // Skip mode 1 (forward/back) - only pick 0 or 2
+            m_iShootMoveMode = (rand() % 2) * 2;
+        }
+
+        // For forward/back mode, pick initial direction
+        if (m_iShootMoveMode == 1) {
+            m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
+        }
+
+        // Next mode change in 0.2-0.5s
+        m_fNextShootMoveTime = level.time + 0.2f + G_Random(0.3f);
+    }
+}
+
+void BotController::ApplyStrafeAndLean(void)
+{
+    if (!controlledEnt) {
+        return;
+    }
+
+    // Skip on ladders
+    if (controlledEnt->GetLadder()) {
+        return;
+    }
+
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // ADD strafe to pathfinding movement (don't overwrite it)
+    // Use reduced intensity so strafe doesn't overpower navigation
+    int strafeAmount = m_iStrafeDirection * 64;
+    int newRightMove = (int)m_botCmd.rightmove + strafeAmount;
+    m_botCmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
+
+    // Apply lean
+    m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+    if (m_iLeanDirection > 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_RIGHT;
+    } else {
+        m_botCmd.buttons |= BUTTON_LEAN_LEFT;
+    }
+
+    // Handle forward/backward movement when shooting
+    bool isAttacking = (m_StateFlags & 1);
+    if (isAttacking) {
+        switch (m_iShootMoveMode) {
+        case 0:
+            // Forward only - keep existing forward movement
+            break;
+        case 1:
+            // Forward/backward alternation
+            m_botCmd.forwardmove = (signed char)(m_iShootMoveDirection * 127);
+            // Flip direction for next frame
+            m_iShootMoveDirection = -m_iShootMoveDirection;
+            break;
+        case 2:
+            // Strafe only - no forward movement
+            m_botCmd.forwardmove = 0;
+            break;
+        }
+    }
+}
+
 void BotController::Think()
 {
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
 
+    UpdateStrafeAndLean();
     UpdateBotStates();
+    ApplyStrafeAndLean();
     GetUsercmd(&ucmd);
     GetEyeInfo(&eyeinfo);
 

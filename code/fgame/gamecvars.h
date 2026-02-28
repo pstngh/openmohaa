@@ -302,6 +302,14 @@ extern cvar_t *g_bot_attack_react_random_delay;
  */
 extern cvar_t *g_bot_attack_spreadmult;
 /**
+ * @brief Max aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_max;
+/**
+ * @brief Min aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_min;
+/**
  * @brief The degrees per seconds when the bot turns.
  */
 extern cvar_t *g_bot_turn_speed;
@@ -323,9 +331,55 @@ extern cvar_t *g_bot_initial_spawn_delay;
 
 /**
  * @brief When enabled, the game no longer controls bots.
- * 
  */
 extern cvar_t *g_bot_manualmove;
+
+/**
+ * @brief Enable aggressive movement (strafe + lean) for bots.
+ * 0 = disabled, 1 = enabled
+ */
+extern cvar_t *g_bot_aggressive_movement;
+
+/**
+ * @brief Strafe intensity multiplier (0.0 to 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+
+/**
+ * @brief Minimum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_min_interval;
+
+/**
+ * @brief Maximum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_max_interval;
+
+/**
+ * @brief Probability (0.0 to 1.0) that lean direction matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_coupling;
+
+/**
+ * @brief Enable bot strafe and lean movement.
+ */
+extern cvar_t *g_bot_strafe;
+/**
+ * @brief Minimum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_min_time;
+/**
+ * @brief Maximum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_max_time;
+/**
+ * @brief Chance (0-100) that lean matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_match_chance;
+/**
+ * @brief Enable forward/backward bobbing when shooting (0=off, 1=on).
+ */
+extern cvar_t *g_bot_shoot_bobbing;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

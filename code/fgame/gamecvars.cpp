@@ -288,11 +288,25 @@ cvar_t *g_bot_attack_continuousfire_random_firetime;
 cvar_t *g_bot_attack_react_min_delay;
 cvar_t *g_bot_attack_react_random_delay;
 cvar_t *g_bot_attack_spreadmult;
+cvar_t *g_bot_aim_height_max;
+cvar_t *g_bot_aim_height_min;
 cvar_t *g_bot_turn_speed;
 cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
+cvar_t *g_bot_aggressive_movement;
+cvar_t *g_bot_strafe_intensity;
+cvar_t *g_bot_strafe_min_interval;
+cvar_t *g_bot_strafe_max_interval;
+cvar_t *g_bot_lean_coupling;
+
+// Bot strafe and lean
+cvar_t *g_bot_strafe;
+cvar_t *g_bot_strafe_min_time;
+cvar_t *g_bot_strafe_max_time;
+cvar_t *g_bot_lean_match_chance;
+cvar_t *g_bot_shoot_bobbing;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -685,6 +699,8 @@ void CVAR_Init(void)
     g_bot_attack_react_min_delay               = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_attack_react_random_delay            = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
     g_bot_attack_spreadmult                    = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
+    g_bot_aim_height_max                       = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
+    g_bot_aim_height_min                       = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
     g_bot_turn_speed                           = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
     g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
     g_bot_instamsg_delay                       = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
@@ -709,6 +725,19 @@ void CVAR_Init(void)
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
+
+    g_bot_aggressive_movement  = gi.Cvar_Get("g_bot_aggressive_movement", "1", 0);
+    g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
+    g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "200", 0);
+    g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "700", 0);
+    g_bot_lean_coupling        = gi.Cvar_Get("g_bot_lean_coupling", "0.9", 0);
+
+    // Bot strafe and lean (alternative cvars from IddQ1 branch)
+    g_bot_strafe            = gi.Cvar_Get("g_bot_strafe", "1", 0);
+    g_bot_strafe_min_time   = gi.Cvar_Get("g_bot_strafe_min_time", "0.4", 0);
+    g_bot_strafe_max_time   = gi.Cvar_Get("g_bot_strafe_max_time", "1.0", 0);
+    g_bot_lean_match_chance = gi.Cvar_Get("g_bot_lean_match_chance", "85", 0);
+    g_bot_shoot_bobbing     = gi.Cvar_Get("g_bot_shoot_bobbing", "1", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

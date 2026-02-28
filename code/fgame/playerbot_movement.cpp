@@ -43,6 +43,10 @@ BotMovement::BotMovement()
 
     m_bAvoidCollision     = false;
     m_iCollisionCheckTime = 0;
+
+    // Aggressive movement
+    m_iStrafeDirection      = 1;
+    m_iNextStrafeChangeTime = 0;
 }
 
 BotMovement::~BotMovement()
@@ -241,6 +245,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.forwardmove = (signed char)Q_clamp(x, -127, 127);
     botcmd.rightmove   = (signed char)Q_clamp(y, -127, 127);
     botcmd.upmove      = 0;
+
+    // Apply aggressive evasive movement (strafe + lean)
+    UpdateAggressiveMovement(botcmd);
 
     CheckJump(botcmd);
 
@@ -1075,4 +1082,117 @@ Vector BotMovement::GetCurrentGoal() const
 Vector BotMovement::GetCurrentPathDirection() const
 {
     return m_pPath->GetCurrentDirection();
+}
+
+/*
+====================
+CalculateLateralClearance
+
+Trace laterally to determine how much space is available for strafing
+Returns distance in units (0 to maxCheckDist)
+====================
+*/
+float BotMovement::CalculateLateralClearance(int direction)
+{
+    const float maxCheckDist = 96.0f;
+
+    if (direction == 0 || !controlledEntity) {
+        return 0;
+    }
+
+    Vector forward, right, up;
+    controlledEntity->angles.AngleVectors(&forward, &right, &up);
+
+    Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    Vector end   = start + right * direction * maxCheckDist;
+
+    trace_t trace = G_Trace(
+        start,
+        controlledEntity->mins,
+        controlledEntity->maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID,
+        false,
+        "BotMovement::CalculateLateralClearance"
+    );
+
+    return trace.fraction * maxCheckDist;
+}
+
+/*
+====================
+UpdateAggressiveMovement
+
+Apply continuous strafe and lean inputs for evasive movement.
+This makes the bot zigzag toward its destination rather than moving in a straight line.
+====================
+*/
+void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
+{
+    // Skip if feature is disabled
+    if (!g_bot_aggressive_movement->integer) {
+        return;
+    }
+
+    // Skip on ladders - strafing would interfere
+    if (controlledEntity->GetLadder()) {
+        return;
+    }
+
+    // Update strafe direction when timer expires
+    if (level.inttime >= m_iNextStrafeChangeTime) {
+        // Flip direction - always strafing, no pauses
+        m_iStrafeDirection = (m_iStrafeDirection <= 0) ? 1 : -1;
+
+        // Random interval until next direction change
+        int minMs = g_bot_strafe_min_interval->integer;
+        int maxMs = g_bot_strafe_max_interval->integer;
+        m_iNextStrafeChangeTime = level.inttime + minMs + (int)G_Random(maxMs - minMs);
+    }
+
+    // Calculate safe amplitude based on lateral clearance
+    float clearance = CalculateLateralClearance(m_iStrafeDirection);
+
+    const float minSafeSpace  = 32.0f;  // Minimum space to strafe at all
+    const float fullSafeSpace = 96.0f;  // Full amplitude above this
+
+    float amplitude;
+    if (clearance < minSafeSpace) {
+        // Not enough room, try the opposite direction
+        m_iStrafeDirection = -m_iStrafeDirection;
+        clearance          = CalculateLateralClearance(m_iStrafeDirection);
+
+        if (clearance < minSafeSpace) {
+            // No room on either side (narrow corridor), skip strafe this frame
+            amplitude = 0.0f;
+        } else {
+            amplitude = (clearance - minSafeSpace) / (fullSafeSpace - minSafeSpace);
+            amplitude = Q_clamp(amplitude, 0.0f, 1.0f);
+        }
+    } else {
+        amplitude = (clearance - minSafeSpace) / (fullSafeSpace - minSafeSpace);
+        amplitude = Q_clamp(amplitude, 0.0f, 1.0f);
+    }
+
+    if (amplitude <= 0.0f) {
+        return;
+    }
+
+    // Apply strafe offset (additive to existing rightmove)
+    float strafeOffset = m_iStrafeDirection * amplitude * g_bot_strafe_intensity->value * 127.0f;
+    int   newRightMove = botcmd.rightmove + (int)strafeOffset;
+    botcmd.rightmove   = (signed char)Q_clamp(newRightMove, -127, 127);
+
+    // Apply coupled lean (match strafe direction with configurable coupling)
+    int leanDir = m_iStrafeDirection;
+    if (G_Random(1.0f) > g_bot_lean_coupling->value) {
+        leanDir = -leanDir;  // Occasional mismatch for variety
+    }
+
+    if (leanDir < 0) {
+        botcmd.buttons |= BUTTON_LEAN_LEFT;
+    } else {
+        botcmd.buttons |= BUTTON_LEAN_RIGHT;
+    }
 }

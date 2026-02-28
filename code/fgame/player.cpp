@@ -7168,6 +7168,14 @@ void Player::FinishMove(void)
     if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
         VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
         edict->s.pos.trTime = client->ps.commandTime;
+        // Added in OPM
+        //  Bots have commandTime == serverTime, giving deltaTime=0 in
+        //  BG_EvaluateTrajectory on the client, so they get no trajectory
+        //  extrapolation between snapshots (looks like cg_smoothClients 0).
+        //  Offset trTime by one frame so the client can extrapolate forward.
+        if (edict->r.svFlags & SVF_BOT) {
+            edict->s.pos.trTime -= level.intframetime;
+        }
     } else {
         VectorClear(edict->s.pos.trDelta);
         edict->s.pos.trTime = 0;
