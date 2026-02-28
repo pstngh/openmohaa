@@ -66,15 +66,11 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime        = 0;
-    m_iAttackTime         = 0;
-    m_iEnemyEyesTag       = -1;
-    m_iContinuousFireTime = 0;
-    m_iLastSeenTime       = 0;
-    m_iLastUnseenTime     = 0;
-    m_iLastBurstTime      = 0;
-
-    m_iNextTauntTime = 0;
+    m_iCuriousTime    = 0;
+    m_iAttackTime     = 0;
+    m_iEnemyEyesTag   = -1;
+    m_iLastSeenTime   = 0;
+    m_iLastUnseenTime = 0;
 
     m_StateFlags = 0;
 
@@ -854,17 +850,11 @@ void BotController::State_Attack(void)
         }
 
         if (bCanAttack) {
-            const int fireDelay                    = pWeap->FireDelay(FIRE_PRIMARY) * 1000;
-            float     fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
-            float     fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
-            float     fSecondaryBulletRange        = pWeap->GetBulletRange(FIRE_SECONDARY);
-            float     fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
-            float     fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
-
-            const int maxcontinuousFireTime = fireDelay + g_bot_attack_continuousfire_min_firetime->value * 1000
-                                           + G_Random(g_bot_attack_continuousfire_random_firetime->value * 1000);
-            const int maxBurstTime = fireDelay + g_bot_attack_burst_min_time->value * 1000
-                                   + G_Random(g_bot_attack_burst_random_delay->value * 1000);
+            float fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
+            float fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
+            float fSecondaryBulletRange        = pWeap->GetBulletRange(FIRE_SECONDARY);
+            float fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
+            float fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
 
             //
             // check the fire movement speed if the weapon has a max fire movement
@@ -923,30 +913,6 @@ void BotController::State_Attack(void)
                 } else {
                     bFiring = true;
                     m_botCmd.buttons |= BUTTON_ATTACKLEFT;
-                }
-            }
-
-            //
-            // Burst
-            //
-
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
-
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
                 }
             }
 
