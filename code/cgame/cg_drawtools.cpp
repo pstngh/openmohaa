@@ -882,6 +882,21 @@ void CG_DrawPlayerEntInfo()
     color[2] = 0.5;
     color[3] = 1.0;
 
+    // Added in OPM
+    //  First-person spectate: draw the player name at bottom-center without health.
+    if (cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE) {
+        fX = (float)(cgs.glconfig.vidWidth
+                     - cgi.UI_FontStringWidth(cgs.media.hudDrawFont, pszName, -1) * cgs.uiHiResScale[0])
+           * 0.5;
+        fY = (float)cgs.glconfig.vidHeight - 20.0 * cgs.uiHiResScale[1];
+
+        cgi.R_SetColor(color);
+        cgi.R_DrawString(
+            cgs.media.hudDrawFont, (char *)pszName, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
+        );
+        return;
+    }
+
     fX = 56.0;
     fY = (float)cgs.glconfig.vidHeight * 0.5;
 

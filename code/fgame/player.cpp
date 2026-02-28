@@ -7318,6 +7318,10 @@ void Player::CopyStatsAntiCheat(Player *player)
     client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
     client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
 
+    // Added in OPM
+    //  Set STAT_INFOCLIENT so the client can display the spectated player's name.
+    client->ps.stats[STAT_INFOCLIENT] = player->edict - g_entities;
+
     // Changed in OPM
     //  No longer hide the spectated player from the snapshot.
     //  The entity and its children (weapon) must remain in the snapshot so
