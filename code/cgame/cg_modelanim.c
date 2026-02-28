@@ -1513,34 +1513,15 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     }
 
     model.reType = RT_MODEL;
-
-    // Added in OPM
-    //  In first-person spectate, don't render the spectated player's world model.
-    //  The entity must remain in the snapshot (not hidden via SVF_NOTSINGLECLIENT)
-    //  so that TIKI animation frame commands still process, which trigger weapon sounds.
-    //  Identify the spectated entity by matching its origin to the spectator's ps.origin.
-    {
-        qboolean skipRender = (s1->renderfx & RF_DONTDRAW) ? qtrue : qfalse;
-
-        if (!skipRender && (cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE)
-            && s1->eType == ET_PLAYER && s1->number != cg.snap->ps.clientNum) {
-            vec3_t diff;
-            VectorSubtract(cent->lerpOrigin, cg.snap->ps.origin, diff);
-            if (VectorLengthSquared(diff) < 64.0f) {
-                skipRender = qtrue;
-            }
+    if (!(s1->renderfx & RF_DONTDRAW)) {
+        cgi.R_Model_GetHandle(model.hModel);
+        if (VectorCompare(model.origin, vec3_origin)) {
+            VectorCopy(s1->origin, model.origin);
+            AngleVectors(s1->angles, model.axis[0], model.axis[1], model.axis[2]);
         }
 
-        if (!skipRender) {
-            cgi.R_Model_GetHandle(model.hModel);
-            if (VectorCompare(model.origin, vec3_origin)) {
-                VectorCopy(s1->origin, model.origin);
-                AngleVectors(s1->angles, model.axis[0], model.axis[1], model.axis[2]);
-            }
-
-            // add to refresh list
-            cgi.R_AddRefEntityToScene(&model, s1->parent);
-        }
+        // add to refresh list
+        cgi.R_AddRefEntityToScene(&model, s1->parent);
     }
 
     CG_UpdateEntityEmitters(s1->number, &model, cent);
