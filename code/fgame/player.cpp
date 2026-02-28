@@ -9750,6 +9750,20 @@ void Player::Auto_Join_DM_Team(Event *ev)
 
     Event event(EV_Player_JoinDMTeam, 1);
 
+    // Check if bot should be forced to a specific team
+    if (edict->r.svFlags & SVF_BOT) {
+        if (!Q_stricmp(g_bot_team->string, "axis")) {
+            event.AddString("axis");
+            ProcessEvent(event);
+            return;
+        } else if (!Q_stricmp(g_bot_team->string, "allies")) {
+            event.AddString("allies");
+            ProcessEvent(event);
+            return;
+        }
+        // Fall through for "auto"
+    }
+
     if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
         event.AddString("axis");
     } else {

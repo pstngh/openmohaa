@@ -449,24 +449,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    switch (iType) {
-    case AI_EVENT_MISC:
-    case AI_EVENT_MISC_LOUD:
-        break;
-    case AI_EVENT_WEAPON_FIRE:
-    case AI_EVENT_WEAPON_IMPACT:
-    case AI_EVENT_EXPLOSION:
-    case AI_EVENT_AMERICAN_VOICE:
-    case AI_EVENT_GERMAN_VOICE:
-    case AI_EVENT_AMERICAN_URGENT:
-    case AI_EVENT_GERMAN_URGENT:
-    case AI_EVENT_FOOTSTEP:
-    case AI_EVENT_GRENADE:
-    default:
-        m_iCuriousTime   = level.inttime + 20000;
-        m_vNewCuriousPos = vPos;
-        break;
-    }
+    // React to all sound events
+    m_iCuriousTime   = level.inttime + 20000;
+    m_vNewCuriousPos = vPos;
 }
 
 /*
@@ -769,9 +754,9 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+        maxDistance = 4096.0f;
 
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
+        if (controlledEnt->CanSee(sent, 360, maxDistance, false)) {
             if (m_pEnemy != sent) {
                 m_iEnemyEyesTag = -1;
             }
@@ -830,7 +815,7 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 360, 4096.0f, false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -1325,24 +1310,7 @@ void BotController::GotKill(const Event& ev)
     ClearEnemy();
     m_iCuriousTime = 0;
 
-    if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
-        //
-        // Randomly play a taunt
-        //
-        Event event("dmmessage");
-
-        event.AddInteger(0);
-
-        if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-            event.AddString("*5" + str(1 + (rand() % 8)));
-        } else {
-            event.AddString("*4" + str(1 + (rand() % 9)));
-        }
-
-        controlledEnt->ProcessEvent(event);
-
-        m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
-    }
+    // Bot taunts disabled
 }
 
 void BotController::EventStuffText(const str& text)

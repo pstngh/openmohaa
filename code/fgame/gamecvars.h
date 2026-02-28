@@ -414,6 +414,12 @@ extern cvar_t *g_firespreadmult_nodecay;
  */
 extern cvar_t *g_bot_firespreadmult_nodecay;
 
+/**
+ * @brief Force bots to a specific team.
+ * Values: "auto" (default), "axis", "allies"
+ */
+extern cvar_t *g_bot_team;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
