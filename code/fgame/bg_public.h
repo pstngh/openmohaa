@@ -450,12 +450,6 @@ movement on the server game.
 //  First-person spectate: use camera view but render in first-person (show viewmodel, hide body)
 #define CF_CAMERA_FIRSTPERSON_SPECTATE (1 << 5)
 #define CF_CAMERA_CUT_BIT              (1 << 7) // this bit gets toggled everytime we do a hard camera cut
-// Added in OPM
-//  Pack the spectated player's entity number into bits 8-15 of camera_flags
-//  so the client can identify which entity to hide (but still process sounds for).
-#define CF_CAMERA_SPECTATED_ENTNUM_SHIFT 8
-#define CF_CAMERA_SPECTATED_ENTNUM_MASK  (0xFF << CF_CAMERA_SPECTATED_ENTNUM_SHIFT)
-#define CF_CAMERA_SPECTATED_ENTNUM(flags) (((flags) >> CF_CAMERA_SPECTATED_ENTNUM_SHIFT) & 0xFF)
 
     // means of death
     // su44: changed to MoHAA's

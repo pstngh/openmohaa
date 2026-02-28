@@ -6639,12 +6639,8 @@ void Player::SetPlayerView(
             // Added in OPM
             //  Mark first-person spectate so the client renders in first-person
             //  (shows weapon viewmodel, hides body) instead of third-person.
-            //  Also pack the spectated player's entity number into camera_flags
-            //  so the client can suppress rendering while still processing sounds.
             if (g_spectatefollow_firstperson->integer && camera->IsSubclassOfPlayer()) {
-                int spectatedEntNum = camera->entnum & 0xFF;
                 client->ps.camera_flags |= CF_CAMERA_FIRSTPERSON_SPECTATE;
-                client->ps.camera_flags |= (spectatedEntNum << CF_CAMERA_SPECTATED_ENTNUM_SHIFT);
             }
         }
     } else {
@@ -7315,12 +7311,11 @@ void Player::CopyStatsAntiCheat(Player *player)
     client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
     client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
 
-    // Changed in OPM
-    //  No longer hide the spectated player from the snapshot.
-    //  The entity must remain in the snapshot so its TIKI animation frame
-    //  commands (footsteps, weapon fire sounds) are processed client-side.
-    //  Rendering is suppressed on the client using CF_CAMERA_SPECTATED_ENTNUM
-    //  packed into camera_flags.
+    // Hide the target player entity from the spectator.
+    // Note: SVF_NOTSINGLECLIENT only supports hiding from one client at a time,
+    // so only the last spectator to watch a player will have it hidden.
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
 }
 
 void Player::UpdateStats(void)
