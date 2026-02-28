@@ -7311,11 +7311,12 @@ void Player::CopyStatsAntiCheat(Player *player)
     client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
     client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
 
-    // Hide the target player entity from the spectator.
-    // Note: SVF_NOTSINGLECLIENT only supports hiding from one client at a time,
-    // so only the last spectator to watch a player will have it hidden.
-    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
-    player->edict->r.singleClient = client->ps.clientNum;
+    // Note: The spectated player's entity is NOT hidden from the snapshot
+    // (no SVF_NOTSINGLECLIENT) because TIKI animation frame commands
+    // process client-side and trigger weapon sounds. Hiding the entity
+    // from the snapshot would also suppress those sounds.
+    // Instead, the cgame skips rendering the spectated player's model
+    // using CF_CAMERA_FIRSTPERSON_SPECTATE and an origin check.
 }
 
 void Player::UpdateStats(void)
