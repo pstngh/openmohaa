@@ -6642,9 +6642,14 @@ void Player::SetPlayerView(
             //  Also pack the spectated player's entity number into camera_flags
             //  so the client can suppress rendering while still processing sounds.
             if (g_spectatefollow_firstperson->integer && camera->IsSubclassOfPlayer()) {
-                int spectatedEntNum = camera->entnum & 0xFF;
+                Player *pPlayer        = (Player *)camera;
+                int     spectatedEntNum = camera->entnum & 0xFF;
                 client->ps.camera_flags |= CF_CAMERA_FIRSTPERSON_SPECTATE;
                 client->ps.camera_flags |= (spectatedEntNum << CF_CAMERA_SPECTATED_ENTNUM_SHIFT);
+
+                // Forward the spectated player's lean angle so the client
+                // can tilt the first-person camera to match.
+                client->ps.fLeanAngle = pPlayer->client->ps.fLeanAngle;
             }
         }
     } else {

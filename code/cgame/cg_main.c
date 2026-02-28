@@ -117,6 +117,7 @@ cvar_t *ui_timemessage;
 //
 cvar_t *cg_fov;
 cvar_t *cg_cheats;
+cvar_t *cg_spectate_viewbob;
 
 /*
 =================
@@ -213,6 +214,7 @@ void CG_RegisterCvars(void)
 
     cg_fov = cgi.Cvar_Get("cg_fov", "80", CVAR_ARCHIVE);
     cg_cheats = cgi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
+    cg_spectate_viewbob = cgi.Cvar_Get("cg_spectate_viewbob", "1", CVAR_ARCHIVE);
 }
 /*
 ===============
@@ -749,6 +751,9 @@ void CG_Init(clientGameImport_t *imported, int serverMessageNum, int serverComma
     cg.fCurrentViewHeight       = 0.0f;
     cg.fCurrentViewBobPhase     = 0.0f;
     cg.fCurrentViewBobAmp       = 0.0f;
+    cg.fSpectateViewBobPhase    = 0.0f;
+    cg.fSpectateViewBobAmp      = 0.0f;
+    cg.spectateLastEntNum       = -1;
     cg.pLastPlayerWorldModel    = NULL;
     cg.pPlayerFPSModel          = NULL;
     cg.hPlayerFPSModelHandle    = 0;
