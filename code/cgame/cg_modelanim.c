@@ -1513,15 +1513,32 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     }
 
     model.reType = RT_MODEL;
-    if (!(s1->renderfx & RF_DONTDRAW)) {
-        cgi.R_Model_GetHandle(model.hModel);
-        if (VectorCompare(model.origin, vec3_origin)) {
-            VectorCopy(s1->origin, model.origin);
-            AngleVectors(s1->angles, model.axis[0], model.axis[1], model.axis[2]);
+    // Added in OPM
+    //  In first-person spectate, suppress rendering of the spectated player's
+    //  world model (we render the FPS viewmodel instead). The entity must still
+    //  be in the snapshot and have its TIKI frame commands processed below so
+    //  that footstep and weapon fire sounds play correctly.
+    {
+        qboolean bSuppressRender = qfalse;
+
+        if (cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE) {
+            int spectatedEntNum = CF_CAMERA_SPECTATED_ENTNUM(cg.snap->ps.camera_flags);
+
+            if (s1->number == spectatedEntNum || s1->parent == spectatedEntNum) {
+                bSuppressRender = qtrue;
+            }
         }
 
-        // add to refresh list
-        cgi.R_AddRefEntityToScene(&model, s1->parent);
+        if (!(s1->renderfx & RF_DONTDRAW) && !bSuppressRender) {
+            cgi.R_Model_GetHandle(model.hModel);
+            if (VectorCompare(model.origin, vec3_origin)) {
+                VectorCopy(s1->origin, model.origin);
+                AngleVectors(s1->angles, model.axis[0], model.axis[1], model.axis[2]);
+            }
+
+            // add to refresh list
+            cgi.R_AddRefEntityToScene(&model, s1->parent);
+        }
     }
 
     CG_UpdateEntityEmitters(s1->number, &model, cent);
