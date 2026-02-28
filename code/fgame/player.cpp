@@ -7310,6 +7310,12 @@ void Player::CopyStatsAntiCheat(Player *player)
     // Copy viewmodel animation so the spectator sees the target's weapon
     client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
     client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
+
+    // Hide the target player entity from the spectator.
+    // Note: SVF_NOTSINGLECLIENT only supports hiding from one client at a time,
+    // so only the last spectator to watch a player will have it hidden.
+    player->edict->r.svFlags |= SVF_NOTSINGLECLIENT;
+    player->edict->r.singleClient = client->ps.clientNum;
 }
 
 void Player::UpdateStats(void)
@@ -7332,9 +7338,6 @@ void Player::UpdateStats(void)
 
         if (ent->inuse && ent->entity && ent->entity->deadflag < DEAD_DEAD) {
             CopyStatsAntiCheat(static_cast<Player *>(ent->entity));
-            // Tell the cgame which entity to hide (set after CopyStatsAntiCheat
-            // which copies all stats from the target, overwriting STAT_SPECTATOR_CLIENT).
-            client->ps.stats[STAT_SPECTATOR_CLIENT] = m_iPlayerSpectating - 1;
             return;
         }
     }
