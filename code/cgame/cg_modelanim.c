@@ -1513,6 +1513,20 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     }
 
     model.reType = RT_MODEL;
+    // Added in OPM
+    //  In first-person spectate, hide the spectated player's world model and
+    //  their children (weapon) using RF_THIRD_PERSON so they are not drawn from
+    //  the first-person camera. They must still be added to the render entity list
+    //  so parent-child attachment lookups work and TIKI frame commands (footstep,
+    //  weapon fire/reload sounds) are processed correctly.
+    if (cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE) {
+        int spectatedEntNum = CF_CAMERA_SPECTATED_ENTNUM(cg.snap->ps.camera_flags);
+
+        if (s1->number == spectatedEntNum || s1->parent == spectatedEntNum) {
+            model.renderfx |= RF_THIRD_PERSON;
+        }
+    }
+
     if (!(s1->renderfx & RF_DONTDRAW)) {
         cgi.R_Model_GetHandle(model.hModel);
         if (VectorCompare(model.origin, vec3_origin)) {
