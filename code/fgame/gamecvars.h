@@ -381,6 +381,11 @@ extern cvar_t *g_bot_lean_match_chance;
  */
 extern cvar_t *g_bot_shoot_bobbing;
 
+/**
+ * @brief Percentage of bots that get sniper rifles (rest get SMG, axis also 5% MG).
+ */
+extern cvar_t *g_bot_sniper;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
