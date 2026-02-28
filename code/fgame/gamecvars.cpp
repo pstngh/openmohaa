@@ -703,8 +703,6 @@ void CVAR_Init(void)
     g_bot_aim_height_max            = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
     g_bot_aim_height_min            = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
     g_bot_turn_speed                = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
-    g_bot_instamsg_chance           = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
-    g_bot_instamsg_delay            = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
