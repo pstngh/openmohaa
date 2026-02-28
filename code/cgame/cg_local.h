@@ -260,6 +260,12 @@ extern "C" {
         float    fCurrentViewBobPhase;
         float    fCurrentViewBobAmp;
 
+        // Added in OPM
+        //  Spectate first-person view bob state
+        float    fSpectateViewBobPhase;
+        float    fSpectateViewBobAmp;
+        int      spectateLastEntNum;
+
         // player model
         dtiki_t  *pLastPlayerWorldModel;
         dtiki_t  *pPlayerFPSModel;
@@ -513,6 +519,7 @@ extern "C" {
     //
     extern cvar_t *cg_fov;
     extern cvar_t *cg_cheats;
+    extern cvar_t *cg_spectate_viewbob;
 
     //
     // cg_main.c
