@@ -567,6 +567,115 @@ void CG_SetupPortalSky() {
 
 /*
 ===============
+CG_SpectateViewBob
+
+Added in OPM
+Applies view bobbing to the first-person spectate camera so movement
+looks natural instead of perfectly smooth.
+
+Velocity comes from cg.predicted_player_state.velocity which already
+contains the spectated player's velocity (SetPlayerView forwards it
+on the server) and is smoothly interpolated between snapshots by
+CG_InterpolatePlayerState.
+
+Walking detection uses the spectated entity's groundEntityNum from
+entityState_t, which is always networked reliably regardless of
+the spectator's own movement type.
+===============
+*/
+static void CG_SpectateViewBob(void)
+{
+    int        spectatedEntNum;
+    centity_t *spectated;
+    float      dt;
+    float      fVel, fPhase;
+    vec3_t     vForward, vLeft, vUp;
+    qboolean   walking;
+
+    if (!cg_spectate_viewbob->integer) {
+        return;
+    }
+
+    if (!(cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE)) {
+        return;
+    }
+
+    spectatedEntNum = CF_CAMERA_SPECTATED_ENTNUM(cg.snap->ps.camera_flags);
+    spectated       = &cg_entities[spectatedEntNum];
+
+    // Reset bob state when switching spectate targets
+    if (cg.spectateLastEntNum != spectatedEntNum) {
+        cg.fSpectateViewBobPhase = 0.0f;
+        cg.fSpectateViewBobAmp   = 0.0f;
+        cg.spectateLastEntNum    = spectatedEntNum;
+        return;
+    }
+
+    dt = cg.frametime / 1000.0f;
+
+    // Walking detection from the spectated entity's ground state.
+    // This is always correct because groundEntityNum is part of
+    // entityState_t and doesn't depend on the spectator's pmove.
+    walking = (spectated->currentState.groundEntityNum != ENTITYNUM_NONE);
+
+    // Velocity from predicted_player_state: SetPlayerView on the server
+    // already sets the spectator's ps.velocity to the spectated player's
+    // velocity, and CG_InterpolatePlayerState smoothly interpolates it
+    // between snapshots (spectators use PM_NOCLIP so prediction is
+    // skipped in favour of interpolation).
+    fVel = VectorLength(cg.predicted_player_state.velocity);
+
+    // Accumulate bob phase and amplitude
+    // (mirrors CG_OffsetFirstPersonView logic)
+    if (walking && fVel > 1.0f) {
+        fPhase = fVel * 0.0015f + 0.9f;
+        cg.fSpectateViewBobPhase += (dt + dt) * M_PI * fPhase;
+
+        if (cg.fSpectateViewBobAmp) {
+            cg.fSpectateViewBobAmp = fVel;
+        } else {
+            cg.fSpectateViewBobAmp = fVel * 0.5f;
+        }
+
+        if (cg.predicted_player_state.fLeanAngle != 0.0f) {
+            cg.fSpectateViewBobAmp *= 0.75f;
+        }
+
+        cg.fSpectateViewBobAmp *= (1.0f - fabs(cg.refdefViewAngles[0]) * (1.0f / 90.0f) * 0.5f) * 0.5f;
+    } else if (cg.fSpectateViewBobAmp > 0.0f) {
+        cg.fSpectateViewBobAmp -= (dt + dt) * cg.fSpectateViewBobAmp;
+
+        if (cg.fSpectateViewBobAmp < 0.1f) {
+            cg.fSpectateViewBobAmp = 0.0f;
+        }
+    }
+
+    if (cg.fSpectateViewBobAmp > 0.0f) {
+        AngleVectorsLeft(cg.refdefViewAngles, vForward, vLeft, vUp);
+
+        // Lateral bob
+        fPhase = sin(cg.fSpectateViewBobPhase) * cg.fSpectateViewBobAmp * 0.03f;
+        if (fPhase > 16.0f) {
+            fPhase = 16.0f;
+        } else if (fPhase < -16.0f) {
+            fPhase = -16.0f;
+        }
+        VectorMA(cg.refdef.vieworg, fPhase, vLeft, cg.refdef.vieworg);
+
+        // Vertical bob
+        fPhase = sin(cg.fSpectateViewBobPhase - 0.94f);
+        fPhase = (fabs(fPhase) - 0.5f) * cg.fSpectateViewBobAmp * 0.06f;
+        if (fPhase > 16.0f) {
+            fPhase = 16.0f;
+        } else if (fPhase < -16.0f) {
+            fPhase = -16.0f;
+        }
+        cg.refdef.vieworg[2] += fPhase;
+    }
+}
+
+/*
+===============
 CG_CalcViewValues
 
 Sets cg.refdef view values
@@ -689,6 +798,35 @@ static int CG_CalcViewValues(void)
             MatrixTransformVector(ps->camera_posofs, vAxis, vOrg);
             VectorAdd(cg.refdef.vieworg, vOrg, cg.refdef.vieworg);
         }
+
+        // Added in OPM
+        //  Apply the spectated player's lean tilt and position offset.
+        //  The server forwards fLeanAngle in first-person spectate mode.
+        if ((ps->camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE) && ps->fLeanAngle != 0.0f) {
+            vec3_t vForward, vStart, vDelta, vEnd;
+
+            // View roll from lean: combines the base roll (0.1 from
+            // CG_CalcViewValues) with the first-person roll (0.2 or 0.3
+            // from CG_OffsetFirstPersonView) to match normal gameplay.
+            if (cg_target_game >= TG_MOHTA) {
+                cg.refdefViewAngles[2] += ps->fLeanAngle * 0.3f;
+            } else {
+                cg.refdefViewAngles[2] += ps->fLeanAngle * 0.4f;
+            }
+
+            // Position offset: rotate camera around a pivot 28.7 units below
+            AngleVectorsLeft(cg.refdefViewAngles, vForward, NULL, NULL);
+            VectorCopy(cg.refdef.vieworg, vStart);
+            vStart[2] -= 28.7f;
+
+            VectorSubtract(cg.refdef.vieworg, vStart, vDelta);
+            RotatePointAroundVector(vEnd, vForward, vDelta, ps->fLeanAngle);
+            VectorAdd(vStart, vEnd, cg.refdef.vieworg);
+        }
+
+        // Added in OPM
+        //  Apply footstep view bob when spectating in first person
+        CG_SpectateViewBob();
 
         // copy view values
         VectorCopy(cg.refdef.vieworg, cg.currentViewPos);

@@ -6635,6 +6635,22 @@ void Player::SetPlayerView(
             VectorCopy(vVec, client->ps.camera_posofs);
             client->ps.pm_flags |= PMF_CAMERA_VIEW;
             client->ps.camera_flags = client->ps.camera_flags & CF_CAMERA_CUT_BIT;
+
+            // Added in OPM
+            //  Mark first-person spectate so the client renders in first-person
+            //  (shows weapon viewmodel, hides body) instead of third-person.
+            //  Also pack the spectated player's entity number into camera_flags
+            //  so the client can suppress rendering while still processing sounds.
+            if (g_spectatefollow_firstperson->integer && camera->IsSubclassOfPlayer()) {
+                Player *pPlayer        = (Player *)camera;
+                int     spectatedEntNum = camera->entnum & 0xFF;
+                client->ps.camera_flags |= CF_CAMERA_FIRSTPERSON_SPECTATE;
+                client->ps.camera_flags |= (spectatedEntNum << CF_CAMERA_SPECTATED_ENTNUM_SHIFT);
+
+                // Forward the spectated player's lean angle so the client
+                // can tilt the first-person camera to match.
+                client->ps.fLeanAngle = pPlayer->client->ps.fLeanAngle;
+            }
         }
     } else {
         client->ps.pm_flags &= ~PMF_CAMERA_VIEW;
@@ -7254,6 +7270,63 @@ void Player::CopyStats(Player *player)
     }
 }
 
+// Added in OPM
+//  CS2-style state replication for first-person spectating.
+//  Copies only playerState values without cloning entities,
+//  avoiding the memory leaks caused by CopyStats() entity cloning every frame.
+void Player::CopyStatsAntiCheat(Player *player)
+{
+    // Copy position and view state
+    VectorCopy(player->client->ps.origin, client->ps.origin);
+    client->ps.bobCycle = player->client->ps.bobCycle;
+
+    // Selectively copy visual movement flags from target (like CopyStats does).
+    // Don't replace pm_flags entirely — preserve the spectator's own flags
+    // (PMF_SPECTATING, etc.) so that SetupView and the client behave correctly.
+    client->ps.pm_flags |=
+        player->client->ps.pm_flags & (PMF_DUCKED | PMF_VIEW_DUCK_RUN | PMF_VIEW_JUMP_START | PMF_VIEW_PRONE);
+    // Freeze spectator input so the client doesn't predict movement
+    client->ps.pm_flags |= PMF_FROZEN | PMF_NO_MOVE | PMF_NO_PREDICTION;
+
+    // Copy stats arrays (health, ammo, weapons)
+    memcpy(client->ps.stats, player->client->ps.stats, sizeof(client->ps.stats));
+    memcpy(client->ps.activeItems, player->client->ps.activeItems, sizeof(client->ps.activeItems));
+    memcpy(client->ps.ammo_amount, player->client->ps.ammo_amount, sizeof(client->ps.ammo_amount));
+    memcpy(client->ps.ammo_name_index, player->client->ps.ammo_name_index, sizeof(client->ps.ammo_name_index));
+    memcpy(client->ps.max_ammo_amount, player->client->ps.max_ammo_amount, sizeof(client->ps.max_ammo_amount));
+
+    // Copy physics for view bob calculations
+    VectorCopy(player->client->ps.velocity, client->ps.velocity);
+    client->ps.gravity = player->client->ps.gravity;
+    client->ps.speed   = player->client->ps.speed;
+
+    // Copy view feedback (damage angles for recoil)
+    VectorCopy(player->client->ps.damage_angles, client->ps.damage_angles);
+    client->ps.blend[0] = player->client->ps.blend[0];
+    client->ps.blend[1] = player->client->ps.blend[1];
+    client->ps.blend[2] = player->client->ps.blend[2];
+    client->ps.blend[3] = player->client->ps.blend[3];
+
+    // Copy lean angle for visualization
+    client->ps.fLeanAngle = player->client->ps.fLeanAngle;
+
+    // Copy FOV and view height
+    client->ps.fov        = player->client->ps.fov;
+    client->ps.viewheight = player->client->ps.viewheight;
+
+    // Copy viewmodel animation so the spectator sees the target's weapon
+    client->ps.iViewModelAnim        = player->client->ps.iViewModelAnim;
+    client->ps.iViewModelAnimChanged = player->client->ps.iViewModelAnimChanged;
+
+    // Changed in OPM
+    //  No longer hide the spectated player from the snapshot.
+    //  The entity and its children (weapon) must remain in the snapshot so
+    //  their TIKI animation frame commands (footsteps, weapon fire/reload sounds)
+    //  are processed client-side. Rendering is suppressed on the client using
+    //  RF_THIRD_PERSON so the entity stays in the render list for parent-child
+    //  lookups but is not drawn in first-person view.
+}
+
 void Player::UpdateStats(void)
 {
     int    i, count;
@@ -7272,8 +7345,8 @@ void Player::UpdateStats(void)
         //
         gentity_t *ent = g_entities + (m_iPlayerSpectating - 1);
 
-        if (ent->inuse && ent->entity && ent->entity->deadflag <= DEAD_DYING) {
-            CopyStats((Player *)ent->entity);
+        if (ent->inuse && ent->entity && ent->entity->deadflag < DEAD_DEAD) {
+            CopyStatsAntiCheat(static_cast<Player *>(ent->entity));
             return;
         }
     }
@@ -7797,15 +7870,11 @@ void Player::EndFrame(void)
     UpdateReverb();
     UpdateMisc();
 
-    if (!g_spectatefollow_firstperson->integer || !IsSpectator() || !m_iPlayerSpectating) {
-        SetupView();
-    } else {
-        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
-
-        if (!ent->inuse || !ent->entity || ent->entity->deadflag >= DEAD_DEAD) {
-            SetupView();
-        }
-    }
+    // Fixed in OPM
+    //  Always call SetupView, even for first-person spectate.
+    //  SetupView sets camera_angles, camera_origin, and PMF_CAMERA_VIEW
+    //  so the client follows the spectated player's crosshair.
+    SetupView();
 }
 
 void Player::GotKill(Event *ev)
@@ -9504,8 +9573,12 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vAng[0] += g_spectatefollow_pitch->value * trace.fraction;
         vPos = trace.endpos;
     } else {
-        vAng = pPlayer->angles;
+        // Fixed in OPM
+        //  Use view angles (includes pitch from mouse look) instead of body angles,
+        //  and eye position instead of feet position.
+        vAng = pPlayer->GetVAngles();
         vPos = pPlayer->origin;
+        vPos[2] += pPlayer->viewheight;
     }
 }
 
