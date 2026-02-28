@@ -664,10 +664,6 @@ static void SV_AddEntitiesVisibleFromPoint(const vec3_t origin, clientSnapshot_t
 		// entities can be flagged to be sent to everyone but one client
 		if ( ent->r.svFlags & SVF_NOTSINGLECLIENT ) {
 			if ( ent->r.singleClient == frame->ps.clientNum ) {
-				// Added in OPM
-				//  Forward non-PVS sounds (e.g. weapon fire from TIKI client commands)
-				//  even when the entity is hidden from this client.
-				SV_AddNonPVSSound(client, ent);
 				continue;
 			}
 		}
