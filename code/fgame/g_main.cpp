@@ -529,6 +529,64 @@ void G_UpdatePureStatusHUD(void)
 
 /*
 ================
+G_BroadcastUncleanPlayers
+
+Added in OPM
+When sv_pure is enabled, broadcasts the names of all unclean players
+to every client via server print at the start of each round.
+================
+*/
+void G_BroadcastUncleanPlayers(void)
+{
+    static cvar_t *sv_pure = NULL;
+
+    if (!sv_pure) {
+        sv_pure = gi.Cvar_Find("sv_pure");
+    }
+
+    if (!sv_pure || !sv_pure->integer) {
+        return;
+    }
+
+    // Collect unclean player names
+    char   uncleanNames[1024];
+    int    uncleanCount = 0;
+    size_t offset       = 0;
+
+    uncleanNames[0] = '\0';
+
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse || !ent->client || !ent->entity) {
+            continue;
+        }
+
+        if (ent->r.svFlags & SVF_BOT) {
+            continue;
+        }
+
+        if (!gi.IsClientPure(i)) {
+            if (uncleanCount > 0 && offset < sizeof(uncleanNames) - 2) {
+                offset += Com_sprintf(uncleanNames + offset, sizeof(uncleanNames) - offset, ", ");
+            }
+            offset += Com_sprintf(uncleanNames + offset, sizeof(uncleanNames) - offset, "%s", ent->client->pers.netname);
+            uncleanCount++;
+        }
+    }
+
+    if (uncleanCount == 0) {
+        return;
+    }
+
+    gi.SendServerCommand(
+        -1,
+        "print \"" HUD_MESSAGE_CHAT_WHITE "Unclean players: %s\n\"",
+        uncleanNames
+    );
+}
+
+/*
+================
 G_RunFrame
 
 Advances the non-player objects in the world
