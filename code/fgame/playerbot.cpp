@@ -1185,19 +1185,18 @@ void BotController::UpdateStrafeAndLean(void)
     bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
     if (isAttacking && level.time >= m_fNextShootMoveTime) {
         //
-        // Forward/back bobbing (mode 1) is only used at close range to avoid
-        // running straight into an enemy while shooting. Even then it's random.
+        // Forward/back bobbing (mode 1) keeps the bot from running straight
+        // into an enemy at close range. Always use it when close enough.
         //
         const float closeRangeThreshold = Square(384);
         bool        bCloseRange = m_fEnemyDistanceSquared > 0 && m_fEnemyDistanceSquared < closeRangeThreshold;
 
-        if (g_bot_shoot_bobbing->integer && bCloseRange && (rand() % 4) == 0) {
-            // 1-in-4 chance at close range: pick forward/back mode
+        if (g_bot_shoot_bobbing->integer && bCloseRange) {
             m_iShootMoveMode      = 1;
             m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
             m_fNextBobFlipTime    = level.time + 0.3f + G_Random(0.4f);
         } else {
-            // Normal: forward or strafe-only
+            // Not close: forward or strafe-only
             m_iShootMoveMode = (rand() % 2) * 2;
         }
 
