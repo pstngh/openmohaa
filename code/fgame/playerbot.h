@@ -211,6 +211,8 @@ private:
     int   m_iShootMoveMode;         // 0=forward, 1=forward/back, 2=strafe only
     float m_fNextShootMoveTime;
     int   m_iShootMoveDirection;    // 1=forward, -1=backward
+    float m_fNextBobFlipTime;       // Timer for forward/back direction changes
+    float m_fEnemyDistanceSquared;  // Cached enemy distance for movement decisions
 
 private:
     DelegateHandle delegateHandle_gotKill;

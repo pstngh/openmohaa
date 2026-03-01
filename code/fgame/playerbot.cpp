@@ -81,6 +81,8 @@ BotController::BotController()
     m_iShootMoveMode        = 0;
     m_fNextShootMoveTime    = 0;
     m_iShootMoveDirection   = 1;
+    m_fNextBobFlipTime      = 0;
+    m_fEnemyDistanceSquared = 0;
 }
 
 BotController::~BotController()
@@ -811,6 +813,7 @@ void BotController::State_Attack(void)
         return;
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
+    m_fEnemyDistanceSquared = fDistanceSquared;
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
@@ -1181,21 +1184,25 @@ void BotController::UpdateStrafeAndLean(void)
     // Update shooting movement mode (varies between forward, forward/back, strafe-only)
     bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
     if (isAttacking && level.time >= m_fNextShootMoveTime) {
-        // Pick a random mode: 0=forward, 1=forward/back, 2=strafe only
-        if (g_bot_shoot_bobbing->integer) {
-            m_iShootMoveMode = rand() % 3;
+        //
+        // Forward/back bobbing (mode 1) is only used at close range to avoid
+        // running straight into an enemy while shooting. Even then it's random.
+        //
+        const float closeRangeThreshold = Square(384);
+        bool        bCloseRange = m_fEnemyDistanceSquared > 0 && m_fEnemyDistanceSquared < closeRangeThreshold;
+
+        if (g_bot_shoot_bobbing->integer && bCloseRange && (rand() % 4) == 0) {
+            // 1-in-4 chance at close range: pick forward/back mode
+            m_iShootMoveMode      = 1;
+            m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
+            m_fNextBobFlipTime    = level.time + 0.3f + G_Random(0.4f);
         } else {
-            // Skip mode 1 (forward/back) - only pick 0 or 2
+            // Normal: forward or strafe-only
             m_iShootMoveMode = (rand() % 2) * 2;
         }
 
-        // For forward/back mode, pick initial direction
-        if (m_iShootMoveMode == 1) {
-            m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
-        }
-
-        // Next mode change in 0.2-0.5s
-        m_fNextShootMoveTime = level.time + 0.2f + G_Random(0.3f);
+        // Next mode change in 0.5-1.2s
+        m_fNextShootMoveTime = level.time + 0.5f + G_Random(0.7f);
     }
 }
 
@@ -1236,10 +1243,12 @@ void BotController::ApplyStrafeAndLean(void)
             // Forward only - keep existing forward movement
             break;
         case 1:
-            // Forward/backward alternation
+            // Forward/backward alternation on a timer to avoid running into enemy
             m_botCmd.forwardmove = (signed char)(m_iShootMoveDirection * 127);
-            // Flip direction for next frame
-            m_iShootMoveDirection = -m_iShootMoveDirection;
+            if (level.time >= m_fNextBobFlipTime) {
+                m_iShootMoveDirection = -m_iShootMoveDirection;
+                m_fNextBobFlipTime    = level.time + 0.3f + G_Random(0.4f);
+            }
             break;
         case 2:
             // Strafe only - no forward movement
