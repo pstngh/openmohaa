@@ -101,6 +101,7 @@ void S_Init(qboolean full_startup)
     iStart = Sys_Milliseconds();
 
     s_volume         = Cvar_Get("s_volume", "0.9", CVAR_ARCHIVE);
+    Cvar_CheckRange(s_volume, 0, 1, qfalse);
     s_musicVolume    = Cvar_Get("s_musicvolume", "0.9", CVAR_ARCHIVE);
     s_ambientVolume  = Cvar_Get("s_ambientvolume", "0", CVAR_ARCHIVE);
     s_separation     = Cvar_Get("s_separation", "0.5", CVAR_ARCHIVE);
