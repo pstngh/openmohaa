@@ -62,9 +62,9 @@ function(finish_macos_app)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCES_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy ${MACOS_ICON_PATH} ${RESOURCES_DIR})
 
-    if(USE_RENDERER_DLOPEN)
-        set(MACOS_APP_BINARY_DIR ${CLIENT_BINARY}.app/Contents/MacOS)
+    set(MACOS_APP_BINARY_DIR ${CLIENT_BINARY}.app/Contents/MacOS)
 
+    if(USE_RENDERER_DLOPEN)
         if(BUILD_RENDERER_GL1)
             set_output_dirs(${RENDERER_GL1_BINARY} SUBDIRECTORY ${MACOS_APP_BINARY_DIR})
             add_dependencies(${CLIENT_BINARY} ${RENDERER_GL1_BINARY})
@@ -74,6 +74,13 @@ function(finish_macos_app)
             set_output_dirs(${RENDERER_GL2_BINARY} SUBDIRECTORY ${MACOS_APP_BINARY_DIR})
             add_dependencies(${CLIENT_BINARY} ${RENDERER_GL2_BINARY})
         endif()
+    endif()
+
+    if(BUILD_GAME_LIBRARIES)
+        set_output_dirs(${GAME_MODULE_BINARY_BASEGAME} SUBDIRECTORY ${MACOS_APP_BINARY_DIR})
+        set_output_dirs(${CGAME_MODULE_BINARY_BASEGAME} SUBDIRECTORY ${MACOS_APP_BINARY_DIR})
+        add_dependencies(${CLIENT_BINARY} ${GAME_MODULE_BINARY_BASEGAME})
+        add_dependencies(${CLIENT_BINARY} ${CGAME_MODULE_BINARY_BASEGAME})
     endif()
 endfunction()
 
