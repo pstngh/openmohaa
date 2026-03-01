@@ -200,6 +200,20 @@ jobs:
         cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib '${{github.workspace}}/package/'
 
+    - name: Code sign .app bundle
+      working-directory: ${{github.workspace}}
+      env:
+        CERT_ID: ${{ secrets.APPLE_CERTIFICATE_ID }}
+      run: |
+        # Sign with a developer certificate if APPLE_CERTIFICATE_ID is set,
+        # otherwise fall back to ad-hoc signing ("-").
+        # Ad-hoc signing is done after dylibs are copied into the bundle so the
+        # signature covers the final bundle contents. Without this step macOS
+        # Gatekeeper shows "damaged and can't be opened" for downloaded builds.
+        SIGN_ID="${CERT_ID:--}"
+        codesign --force --deep --sign "$SIGN_ID" \
+          '${{github.workspace}}/package/openmohaa.app'
+
     ###
     # Artifacts
     ###
