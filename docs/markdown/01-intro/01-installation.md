@@ -37,7 +37,7 @@ Alternatively, you can also use [WINE](https://www.winehq.org/) to install the g
 |---------|-------------------------------------------|-----------------------
 |Windows  |AMD/Intel                                  |`*-windows-x64.zip` **(most Windows PCs - choose this if unsure)**
 |Windows  |Qualcomm/Snapdragon (ARM-based)            |`*-windows-arm64.zip`
-|macOS    |Apple Silicon or Intel                     |`*-macos-multiarch.arm64-x86_64.zip`
+|macOS    |Apple Silicon                              |`*-macos-arm64.zip`
 |Linux    |AMD/Intel                                  |`*-linux-amd64` **(most Linux PCs - choose this if unsure)**
 |Linux    |Raspberry Pi 4 or 5                        |`*-linux-arm64`
 
