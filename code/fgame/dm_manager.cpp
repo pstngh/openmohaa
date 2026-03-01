@@ -1609,6 +1609,10 @@ void DM_Manager::StartRound(void)
     level.RemoveWaitTill(STRING_ROUNDSTART);
     level.Unregister(STRING_ROUNDSTART);
     gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
+
+    // Added in OPM
+    //  Broadcast unclean player names at the start of each round
+    G_BroadcastUncleanPlayers();
 }
 
 void DM_Manager::EndRound()
