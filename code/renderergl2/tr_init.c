@@ -1611,7 +1611,7 @@ void R_Register( void )
 	r_lodcap = ri.Cvar_Get("r_lodcap", "0.35", CVAR_ARCHIVE);
 	r_lodviewmodelcap = ri.Cvar_Get("r_lodviewmodelcap", "0.25", CVAR_ARCHIVE);
 	
-	r_uselod = ri.Cvar_Get("r_uselod", "1", CVAR_TEMP);
+	r_uselod = ri.Cvar_Get("r_uselod", "0", CVAR_TEMP);
 	lod_LOD = ri.Cvar_Get("lod_LOD", "0", CVAR_TEMP);
 	lod_minLOD = ri.Cvar_Get("lod_minLOD", "1.0", CVAR_TEMP);
 	lod_maxLOD = ri.Cvar_Get("lod_maxLOD", "0.3", CVAR_TEMP);
