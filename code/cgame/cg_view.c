@@ -825,6 +825,16 @@ static int CG_CalcViewValues(void)
         }
 
         // Added in OPM
+        //  Apply client-side weapon viewkick during first-person spectate.
+        //  The TIKI fire frame commands trigger CG_SetupViewKick() which sets
+        //  cg.viewkick, but camera view normally discards it. Re-apply it here
+        //  so the spectator sees the weapon recoil snap and smooth decay.
+        if ((ps->camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE) && cg.snap->ps.stats[STAT_HEALTH] > 0) {
+            cg.refdefViewAngles[0] += cg.viewkick[0];
+            cg.refdefViewAngles[1] += cg.viewkick[1];
+        }
+
+        // Added in OPM
         //  Apply footstep view bob when spectating in first person
         CG_SpectateViewBob();
 

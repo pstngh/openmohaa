@@ -5866,8 +5866,14 @@ void ClientGameCommandManager::EventViewKick(Event *ev)
     float fPitchMax, fYawMax, fScatterPitchMax;
     str   sPattern;
 
+    // Added in OPM
+    //  Also accept the spectated player's entity as the viewkick owner
+    //  so weapon recoil is visible during first-person spectate.
     if (current_centity->currentState.parent != cg.snap->ps.clientNum) {
-        return;
+        if (!(cg.snap->ps.camera_flags & CF_CAMERA_FIRSTPERSON_SPECTATE)
+            || current_centity->currentState.parent != CF_CAMERA_SPECTATED_ENTNUM(cg.snap->ps.camera_flags)) {
+            return;
+        }
     }
 
     if (ev->NumArgs() < 9) {
