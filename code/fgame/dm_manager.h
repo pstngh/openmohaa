@@ -79,6 +79,7 @@ public:
 
     void TeamInvulnerable(void);
     void BeginFight(void);
+    void EndFight(void);
 
     float PlayersRangeFromSpot(PlayerStart *spot);
 
@@ -183,6 +184,10 @@ private:
     bool m_bAllowAxisRespawn;
     bool m_bRoundActive;
 
+    // Added in OPM
+    //  Countdown seconds remaining before round starts (0 = no countdown active)
+    int m_iCountdownSeconds;
+
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
     size_t scoreLength;
@@ -260,6 +265,9 @@ public:
     DM_Team *GetTeam(str name);
     DM_Team *GetTeam(teamtype_t team);
 
+    // Added in OPM
+    bool IsCountdownActive(void) const;
+
 protected:
     static int compareScores(const void *elem1, const void *elem2);
 };
@@ -297,6 +305,12 @@ inline bool DM_Manager::GameAllowsRespawns(void) const
 inline void DM_Manager::SetGameAllowsRespawns(bool bAllow)
 {
     m_bAllowRespawns = bAllow;
+}
+
+// Added in OPM
+inline bool DM_Manager::IsCountdownActive(void) const
+{
+    return m_iCountdownSeconds > 0;
 }
 
 extern DM_Manager dmManager;
