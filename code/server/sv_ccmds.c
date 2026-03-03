@@ -692,7 +692,6 @@ Save bans to file.
 static void SV_WriteBans(void)
 {
 	int index;
-	fileHandle_t writeto;
 	FILE *localf;
 	char filepath[MAX_QPATH];
 	
@@ -701,31 +700,7 @@ static void SV_WriteBans(void)
 	
 	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
 
-	if((writeto = FS_BaseDir_FOpenFileWrite_HomeState(filepath)))
-	{
-		char writebuf[128 + MAX_REASON_LENGTH];
-		serverBan_t *curban;
-		
-		for(index = 0; index < serverBansCount; index++)
-		{
-			curban = &serverBans[index];
-			
-			if(curban->reason[0]) {
-				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d:%s\n",
-						curban->isexception, NET_AdrToString(curban->ip), curban->subnet, curban->reason);
-			} else {
-				Com_sprintf(writebuf, sizeof(writebuf), "%d %s %d\n",
-						curban->isexception, NET_AdrToString(curban->ip), curban->subnet);
-			}
-			
-			FS_Write(writebuf, strlen(writebuf), writeto);
-		}
-
-		FS_FCloseFile(writeto);
-	}
-
-	// Also mirror bans into the local game dir so they live next to admins.ini
-	// for server operators expecting both files under <game>/.
+	// Save bans directly in the local game dir so they live next to admins.ini.
 	localf = fopen(filepath, "w");
 	if(localf)
 	{
