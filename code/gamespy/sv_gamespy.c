@@ -52,13 +52,13 @@ static const char *GS_GAME_NAME[] = {"mohaa", "mohaas", "mohaab"};
 static const char *GS_GAME_NAME_DEMO[] = {"mohaa", "mohaas", "mohaabd"};
 
 static const char *GS_GAME_VERSION[] = {
-    TARGET_GAME_VERSION_MOH "+" PRODUCT_VERSION,
+    "1.11",
     TARGET_GAME_VERSION_MOHTA "+" PRODUCT_VERSION,
     TARGET_GAME_VERSION_MOHTT "+" PRODUCT_VERSION,
 };
 
 static const char *GS_GAME_VERSION_DEMO[] = {
-    TARGET_GAME_VERSION_MOH "+" PRODUCT_VERSION,
+    "1.11",
     "d" TARGET_GAME_VERSION_MOHTA "+" PRODUCT_VERSION,
     "d" TARGET_GAME_VERSION_MOHTT_DEMO "+" PRODUCT_VERSION,
 };
