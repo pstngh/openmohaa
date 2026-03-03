@@ -199,6 +199,26 @@ static client_t *SV_AdminFindClientByNum(int num)
     return &svs.clients[num];
 }
 
+// ---- Helper: find client by name or numeric slot ----
+static client_t *SV_AdminFindClientByHandle(const char *handle)
+{
+    int i;
+
+    if (!handle || !*handle) {
+        return NULL;
+    }
+
+    // Numeric handle
+    for (i = 0; handle[i] >= '0' && handle[i] <= '9'; i++) {
+    }
+
+    if (!handle[i]) {
+        return SV_AdminFindClientByNum(atoi(handle));
+    }
+
+    return SV_AdminFindClientByName(handle);
+}
+
 // ---- Command: ad_login <user> <pass> ----
 static void SV_Admin_Login(client_t *cl)
 {
@@ -277,23 +297,26 @@ static void SV_Admin_Restart(client_t *cl)
     Cbuf_ExecuteText(EXEC_APPEND, "restart\n");
 }
 
-// ---- Command: ad_kick <name> ----
+// ---- Command: ad_kick <name|clientnum> ----
 static void SV_Admin_Kick(client_t *cl)
 {
     client_t *target;
+    char      targetHandle[64];
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_KICK, "ad_kick")) {
         return;
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername|clientnum>\\n\"");
         return;
     }
 
-    target = SV_AdminFindClientByName(Cmd_Argv(1));
+    Q_strncpyz(targetHandle, Cmd_Argv(1), sizeof(targetHandle));
+
+    target = SV_AdminFindClientByHandle(targetHandle);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", Cmd_Argv(1));
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetHandle);
         return;
     }
 
@@ -301,7 +324,7 @@ static void SV_Admin_Kick(client_t *cl)
     SV_KickClientForReason(target, NULL);
 }
 
-// ---- Command: ad_kickr <name> <reason> ----
+// ---- Command: ad_kickr <name|clientnum> <reason> ----
 static void SV_Admin_KickReason(client_t *cl)
 {
     client_t *target;
@@ -313,14 +336,14 @@ static void SV_Admin_KickReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername|clientnum> <reason>\\n\"");
         return;
     }
 
     Q_strncpyz(targetName, Cmd_Argv(1), sizeof(targetName));
     reason = Cmd_ArgsFrom(2);
 
-    target = SV_AdminFindClientByName(targetName);
+    target = SV_AdminFindClientByHandle(targetName);
     if (!target) {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetName);
         return;
@@ -593,6 +616,40 @@ static void SV_Admin_ListAdmins(client_t *cl)
     SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- End of admin list ---\\n\"");
 }
 
+// ---- Command: ad_status ----
+static void SV_Admin_Status(client_t *cl)
+{
+    int i;
+
+    if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_LISTADMINS, "ad_status")) {
+        return;
+    }
+
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "slot score ping name\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "---- ----- ---- ------------------------------\\n\"");
+
+    for (i = 0; i < sv_maxclients->integer; i++) {
+        client_t *target = &svs.clients[i];
+        const char *name;
+        int score;
+        int ping;
+
+        if (target->state < CS_CONNECTED) {
+            continue;
+        }
+
+        name = target->name[0] ? target->name : "<unnamed>";
+        score = target->gentity ? target->gentity->client->ps.stats[STAT_KILLS] : 0;
+        ping = target->ping;
+
+        if (target->netchan.remoteAddress.type == NA_BOT) {
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%4d %5d bot  %s\\n\"", i, score, name);
+        } else {
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%4d %5d %4d %s\\n\"", i, score, ping, name);
+        }
+    }
+}
+
 // ---- Command: ad_dischat <clientnum> ----
 static void SV_Admin_DisChat(client_t *cl)
 {
@@ -620,10 +677,12 @@ static void SV_Admin_DisChat(client_t *cl)
     if (target->adminChatDisabled) {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat disabled for %s.\\n\"", target->name);
         SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin.\\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled chat for %s.\\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) disabled chat for %s\n", cl->name, cl->adminUsername, target->name);
     } else {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat re-enabled for %s.\\n\"", target->name);
         SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been re-enabled by an admin.\\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled chat for %s.\\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) re-enabled chat for %s\n", cl->name, cl->adminUsername, target->name);
     }
 }
@@ -655,10 +714,12 @@ static void SV_Admin_DisTaunt(client_t *cl)
     if (target->adminTauntDisabled) {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts disabled for %s.\\n\"", target->name);
         SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin.\\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled taunts for %s.\\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) disabled taunts for %s\n", cl->name, cl->adminUsername, target->name);
     } else {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts re-enabled for %s.\\n\"", target->name);
         SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been re-enabled by an admin.\\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled taunts for %s.\\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) re-enabled taunts for %s\n", cl->name, cl->adminUsername, target->name);
     }
 }
@@ -673,9 +734,18 @@ Returns qtrue if the command is blocked.
 */
 qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 {
+    qboolean isTauntDMMessage = qfalse;
+
+    if (!Q_stricmp(cmdName, "dmmessage") && Cmd_Argc() > 2) {
+        const char *token = Cmd_Argv(2);
+        isTauntDMMessage =
+            token && token[0] == '*' && token[1] >= '1' && token[1] <= '9' && token[2] >= '1' && token[2] <= '9' &&
+            token[3] == '\0';
+    }
+
     if (cl->adminChatDisabled) {
         if (!Q_stricmp(cmdName, "say") || !Q_stricmp(cmdName, "sayteam") ||
-            !Q_stricmp(cmdName, "tell") || !Q_stricmp(cmdName, "dmmessage")) {
+            !Q_stricmp(cmdName, "tell") || (!Q_stricmp(cmdName, "dmmessage") && !isTauntDMMessage)) {
             SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin.\\n\"");
             return qtrue;
         }
@@ -683,7 +753,8 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 
     if (cl->adminTauntDisabled) {
         if (!Q_stricmp(cmdName, "vsay") || !Q_stricmp(cmdName, "vosay") ||
-            !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg")) {
+            !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg") ||
+            (!Q_stricmp(cmdName, "dmmessage") && isTauntDMMessage)) {
             SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin.\\n\"");
             return qtrue;
         }
@@ -736,6 +807,7 @@ qboolean SV_AdminHandleClientCommand(client_t *cl)
         if (!Q_stricmp(cmd, "ad_listips"))       { SV_Admin_ListIPs(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_rcon"))          { SV_Admin_Rcon(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_listadmins"))    { SV_Admin_ListAdmins(cl); return qtrue; }
+        if (!Q_stricmp(cmd, "ad_status"))        { SV_Admin_Status(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_dischat"))       { SV_Admin_DisChat(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_distaunt"))      { SV_Admin_DisTaunt(cl); return qtrue; }
 

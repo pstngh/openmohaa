@@ -763,29 +763,33 @@ int G_CountClients()
 
 static unsigned int G_GetNumBotsToSpawn()
 {
-    unsigned int numClients;
+    unsigned int numPlayingClients;
+    unsigned int numConnectedClients;
     unsigned int numBotsToSpawn;
 
     //
     // Check the minimum bot count
     //
-    numClients = G_CountPlayingClients();
-    if (numClients < sv_minPlayers->integer) {
-        numBotsToSpawn = sv_minPlayers->integer - numClients + sv_numbots->integer;
-    } else {
-        numBotsToSpawn = sv_numbots->integer;
+    numPlayingClients = G_CountPlayingClients();
+
+    // sv_numbots is the base bot target, while sv_minPlayers is a floor for
+    // total playing population. They should not stack additively.
+    numBotsToSpawn = sv_numbots->integer;
+    if (numPlayingClients < sv_minPlayers->integer) {
+        numBotsToSpawn = Q_max(numBotsToSpawn, sv_minPlayers->integer - numPlayingClients);
     }
 
     if (sv_sharedbots->integer) {
-        numClients = G_CountClients();
+        numConnectedClients = G_CountClients();
 
         //
         // Cap to the maximum number of possible clients
         //
-        numBotsToSpawn = Q_min(numBotsToSpawn, maxclients->integer - numClients + sv_maxbots->integer);
-    } else {
-        numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
+        numBotsToSpawn = Q_min(numBotsToSpawn, Q_max(maxclients->integer - (int)numConnectedClients, 0));
     }
+
+    // Never exceed the configured maximum bot count.
+    numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
 
     return numBotsToSpawn;
 }
@@ -800,6 +804,12 @@ Save bots
 void G_RestartBots()
 {
     G_SaveBots();
+
+    // Map restarts keep the game module loaded. Clear runtime controllers now
+    // so restored bots are not duplicated after restart.
+    botManager.Cleanup();
+
+    botId = 0;
 }
 
 static void G_InitBotSessionData()
