@@ -693,6 +693,7 @@ static void SV_WriteBans(void)
 {
 	int index;
 	fileHandle_t writeto;
+	FILE *localf;
 	char filepath[MAX_QPATH];
 	
 	if(!sv_banFile->string || !*sv_banFile->string)
@@ -721,6 +722,29 @@ static void SV_WriteBans(void)
 		}
 
 		FS_FCloseFile(writeto);
+	}
+
+	// Also mirror bans into the local game dir so they live next to admins.ini
+	// for server operators expecting both files under <game>/.
+	localf = fopen(filepath, "w");
+	if(localf)
+	{
+		serverBan_t *curban;
+
+		for(index = 0; index < serverBansCount; index++)
+		{
+			curban = &serverBans[index];
+
+			if(curban->reason[0]) {
+				fprintf(localf, "%d %s %d:%s\n",
+						curban->isexception, NET_AdrToString(curban->ip), curban->subnet, curban->reason);
+			} else {
+				fprintf(localf, "%d %s %d\n",
+						curban->isexception, NET_AdrToString(curban->ip), curban->subnet);
+			}
+		}
+
+		fclose(localf);
 	}
 }
 
