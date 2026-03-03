@@ -838,16 +838,8 @@ void BotController::State_Attack(void)
         }
 
         bCanAttack = true;
-        if (m_iLastUnseenTime) {
-            const float reactionTime = Q_min(1000 * Q_min(1, fDistanceSquared / Square(2048)), 1000);
-            const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
-            const unsigned int randomDelay = g_bot_attack_react_random_delay->value * 1000;
-            if (level.inttime <= m_iLastUnseenTime + minDelay + G_Random(randomDelay)) {
-                bCanAttack = false;
-            } else {
-                m_iLastUnseenTime = 0;
-            }
-        }
+        // No reaction delay - bots attack instantly
+        m_iLastUnseenTime = 0;
 
         if (bCanAttack) {
             const int fireDelay                    = pWeap->FireDelay(FIRE_PRIMARY) * 1000;
@@ -990,7 +982,6 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
         Vector        vTarget;
         orientation_t eyes_or;
 
@@ -1002,58 +993,24 @@ void BotController::State_Attack(void)
         if (m_iEnemyEyesTag != -1) {
             // Use the enemy's eyes bone
             m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
             vTarget = eyes_or.origin;
         } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
             vTarget = m_pEnemy->origin;
         }
 
-        if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-            }
-            m_iLastAimTime = level.inttime;
-        }
-
-        rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        // Instant lock - no aim offset, no spread
+        rotation.AimAt(vTarget);
     } else {
         AimAtAimNode();
     }
 
-    if (bNoMove) {
+    // Always rush toward the enemy - get as close as possible
+    movement.MoveTo(m_vLastEnemyPos);
+
+    if (!bCanSee && movement.MoveDone()) {
+        // Lost track of the enemy
+        ClearEnemy();
         return;
-    }
-
-    fEnemyDistanceSquared = (controlledEnt->origin - m_vLastEnemyPos).lengthSquared();
-
-    if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
-        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
-        if (!bMelee || !bCanSee) {
-            if (fEnemyDistanceSquared < fMinDistanceSquared) {
-                Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
-                VectorNormalizeFast(vDir);
-
-                movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
-            } else {
-                movement.MoveTo(m_vLastEnemyPos);
-            }
-
-            if (!bCanSee && movement.MoveDone()) {
-                // Lost track of the enemy
-                ClearEnemy();
-                return;
-            }
-        } else {
-            movement.MoveTo(m_vLastEnemyPos);
-        }
     }
 
     if (movement.IsMoving()) {
