@@ -370,7 +370,7 @@ void ClientThink_real( gentity_t *ent ) {
 #endif
 
 	// save results of pmove
-	if (g_smoothClients.integer) {
+	if (g_smoothClients.integer || (ent->r.svFlags & SVF_BOT)) {
 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
 	}
 	else {
@@ -529,7 +529,7 @@ void ClientEndFrame( gentity_t *ent ) {
 	G_SetClientSound (ent);
 
 	// set the latest infor
-	if (g_smoothClients.integer) {
+	if (g_smoothClients.integer || (ent->r.svFlags & SVF_BOT)) {
 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
 	}
 	else {
