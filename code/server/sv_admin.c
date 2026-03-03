@@ -175,6 +175,34 @@ static qboolean SV_AdminCheckAccess(client_t *cl, int required, const char *cmdN
     return qtrue;
 }
 
+// ---- Helper: print a line to a specific client's console via stufftext echo ----
+static void SV_AdminConsoleEcho(client_t *cl, const char *fmt, ...)
+{
+    char raw[256];
+    char escaped[512];
+    va_list argptr;
+    size_t in, out;
+
+    va_start(argptr, fmt);
+    Q_vsnprintf(raw, sizeof(raw), fmt, argptr);
+    va_end(argptr);
+
+    for (in = 0, out = 0; raw[in] && out + 2 < sizeof(escaped); in++) {
+        char c = raw[in];
+
+        // Avoid breaking out of stufftext "echo ..." and command chaining.
+        if (c == '"' || c == '\\' || c == ';' || c == '\n' || c == '\r') {
+            escaped[out++] = ' ';
+            continue;
+        }
+
+        escaped[out++] = c;
+    }
+
+    escaped[out] = '\0';
+    SV_SendServerCommand(cl, "stufftext \"echo %s\\n\"", escaped);
+}
+
 // ---- Helper: find client by name ----
 static client_t *SV_AdminFindClientByName(const char *name)
 {
@@ -625,8 +653,8 @@ static void SV_Admin_Status(client_t *cl)
         return;
     }
 
-    SV_SendServerCommand(cl, "status \"slot score ping name\"");
-    SV_SendServerCommand(cl, "status \"---- ----- ---- ------------------------------\"");
+    SV_AdminConsoleEcho(cl, "slot score ping name");
+    SV_AdminConsoleEcho(cl, "---- ----- ---- ------------------------------");
 
     for (i = 0; i < sv_maxclients->integer; i++) {
         client_t *target = &svs.clients[i];
@@ -643,9 +671,9 @@ static void SV_Admin_Status(client_t *cl)
         ping = target->ping;
 
         if (target->netchan.remoteAddress.type == NA_BOT) {
-            SV_SendServerCommand(cl, "status \"%4d %5d bot  %s\"", i, score, name);
+            SV_AdminConsoleEcho(cl, "%4d %5d bot  %s", i, score, name);
         } else {
-            SV_SendServerCommand(cl, "status \"%4d %5d %4d %s\"", i, score, ping, name);
+            SV_AdminConsoleEcho(cl, "%4d %5d %4d %s", i, score, ping, name);
         }
     }
 }
