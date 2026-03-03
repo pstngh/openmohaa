@@ -267,6 +267,10 @@ void BotController::CheckValidWeapon()
     if (!weapon) {
         // If holstered, use the best weapon available
         UseWeaponWithAmmo();
+    } else if (!(weapon->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
+        // Added in OPM
+        //  Force bots to switch to pistol (melee-only behavior)
+        UseWeaponWithAmmo();
     } else if (!weapon->HasAmmo(FIRE_PRIMARY) && !controlledEnt->GetNewActiveWeapon()) {
         // In case the current weapon has no ammo, use the best available weapon
         UseWeaponWithAmmo();
@@ -962,6 +966,14 @@ void BotController::State_Attack(void)
                 }
             }
 
+            // Added in OPM
+            //  Force melee-only: bots never shoot, only bash/melee
+            m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+            if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE
+                && fDistanceSquared <= fSecondaryBulletRangeSquared) {
+                m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+            }
+
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
             m_iLastSeenTime      = level.inttime;
@@ -1130,6 +1142,12 @@ Weapon *BotController::FindWeaponWithAmmo()
             continue;
         }
 
+        // Added in OPM
+        //  Bots only use pistol-class weapons
+        if (!(next->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
+            continue;
+        }
+
         if (next->GetRank() < bestrank) {
             continue;
         }
@@ -1165,6 +1183,12 @@ Weapon *BotController::FindMeleeWeapon()
 
         assert(next);
         if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
+            continue;
+        }
+
+        // Added in OPM
+        //  Bots only use pistol-class weapons for melee
+        if (!(next->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
             continue;
         }
 

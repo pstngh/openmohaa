@@ -8934,6 +8934,12 @@ void Player::EquipWeapons()
         return;
     }
 
+    // Added in OPM
+    //  Bots always spawn with sniper as primary weapon
+    if (edict->r.svFlags & SVF_BOT) {
+        Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+    }
+
     // Fixed in OPM
     //  Old behavior was calling GetPlayerTeamType() regardless of the team
     if (GetTeam() == TEAM_AXIS) {
@@ -9236,6 +9242,12 @@ void Player::EquipWeapons_ver8()
         FreeInventory();
     } else {
         Event *ev = new Event("use");
+
+        // Added in OPM
+        //  Bots always spawn with sniper as primary weapon
+        if (edict->r.svFlags & SVF_BOT) {
+            Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+        }
 
         if (!Q_stricmp(client->pers.dm_primary, "rifle")) {
             if (dm_team == TEAM_ALLIES) {
