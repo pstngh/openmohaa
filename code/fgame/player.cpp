@@ -3716,7 +3716,7 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
             // Added in 2.0
             // In multiplayer mode, specify if the player can lean while moving
             //
-            if (dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) {
+            if ((dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) || (edict->r.svFlags & SVF_BOT)) {
                 pm->alwaysAllowLean = qtrue;
             } else {
                 pm->alwaysAllowLean = qfalse;

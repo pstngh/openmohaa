@@ -208,6 +208,10 @@ private:
     int m_iNextTauntTime;
     int m_iLastFireTime;
 
+    // Fake ping
+    int m_iFakePing;
+    int m_iNextPingUpdateTime;
+
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
