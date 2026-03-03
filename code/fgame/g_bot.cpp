@@ -804,6 +804,12 @@ Save bots
 void G_RestartBots()
 {
     G_SaveBots();
+
+    // Map restarts keep the game module loaded. Clear runtime controllers now
+    // so restored bots are not duplicated after restart.
+    botManager.Cleanup();
+
+    botId = 0;
 }
 
 static void G_InitBotSessionData()

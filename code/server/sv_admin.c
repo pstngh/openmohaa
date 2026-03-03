@@ -199,6 +199,26 @@ static client_t *SV_AdminFindClientByNum(int num)
     return &svs.clients[num];
 }
 
+// ---- Helper: find client by name or numeric slot ----
+static client_t *SV_AdminFindClientByHandle(const char *handle)
+{
+    int i;
+
+    if (!handle || !*handle) {
+        return NULL;
+    }
+
+    // Numeric handle
+    for (i = 0; handle[i] >= '0' && handle[i] <= '9'; i++) {
+    }
+
+    if (!handle[i]) {
+        return SV_AdminFindClientByNum(atoi(handle));
+    }
+
+    return SV_AdminFindClientByName(handle);
+}
+
 // ---- Command: ad_login <user> <pass> ----
 static void SV_Admin_Login(client_t *cl)
 {
@@ -277,23 +297,26 @@ static void SV_Admin_Restart(client_t *cl)
     Cbuf_ExecuteText(EXEC_APPEND, "restart\n");
 }
 
-// ---- Command: ad_kick <name> ----
+// ---- Command: ad_kick <name|clientnum> ----
 static void SV_Admin_Kick(client_t *cl)
 {
     client_t *target;
+    char      targetHandle[64];
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_KICK, "ad_kick")) {
         return;
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername|clientnum>\\n\"");
         return;
     }
 
-    target = SV_AdminFindClientByName(Cmd_Argv(1));
+    Q_strncpyz(targetHandle, Cmd_Argv(1), sizeof(targetHandle));
+
+    target = SV_AdminFindClientByHandle(targetHandle);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", Cmd_Argv(1));
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetHandle);
         return;
     }
 
@@ -301,7 +324,7 @@ static void SV_Admin_Kick(client_t *cl)
     SV_KickClientForReason(target, NULL);
 }
 
-// ---- Command: ad_kickr <name> <reason> ----
+// ---- Command: ad_kickr <name|clientnum> <reason> ----
 static void SV_Admin_KickReason(client_t *cl)
 {
     client_t *target;
@@ -313,14 +336,14 @@ static void SV_Admin_KickReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername|clientnum> <reason>\\n\"");
         return;
     }
 
     Q_strncpyz(targetName, Cmd_Argv(1), sizeof(targetName));
     reason = Cmd_ArgsFrom(2);
 
-    target = SV_AdminFindClientByName(targetName);
+    target = SV_AdminFindClientByHandle(targetName);
     if (!target) {
         SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetName);
         return;
@@ -675,7 +698,7 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 {
     if (cl->adminChatDisabled) {
         if (!Q_stricmp(cmdName, "say") || !Q_stricmp(cmdName, "sayteam") ||
-            !Q_stricmp(cmdName, "tell") || !Q_stricmp(cmdName, "dmmessage")) {
+            !Q_stricmp(cmdName, "tell")) {
             SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin.\\n\"");
             return qtrue;
         }
@@ -683,7 +706,8 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 
     if (cl->adminTauntDisabled) {
         if (!Q_stricmp(cmdName, "vsay") || !Q_stricmp(cmdName, "vosay") ||
-            !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg")) {
+            !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg") ||
+            !Q_stricmp(cmdName, "dmmessage")) {
             SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin.\\n\"");
             return qtrue;
         }
