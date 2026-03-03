@@ -805,8 +805,18 @@ void G_RestartBots()
 {
     G_SaveBots();
 
-    // Map restarts keep the game module loaded. Clear runtime controllers now
-    // so restored bots are not duplicated after restart.
+    // Map restarts keep the game module loaded. Remove all active bot entities
+    // before restore to avoid duplicate bots or stale pre-spawn entities.
+    while (true) {
+        gentity_t *bot = G_GetFirstBot();
+        if (!bot) {
+            break;
+        }
+
+        G_RemoveBot(bot);
+    }
+
+    // Defensive cleanup in case a controller wasn't linked to an entity.
     botManager.Cleanup();
 
     botId = 0;
