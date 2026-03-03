@@ -999,9 +999,10 @@ qboolean SV_CheckPaused( void ) {
 	}
 
 	// only pause if there is just a single client connected
+	// Count all clients including bots as real players
 	count = 0;
 	for (i=0,cl=svs.clients ; i < svs.iNumClients ; i++,cl++) {
-		if ( cl->state >= CS_CONNECTED && cl->netchan.remoteAddress.type != NA_BOT ) {
+		if ( cl->state >= CS_CONNECTED ) {
 			count++;
 		}
 	}
