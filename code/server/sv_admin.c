@@ -625,8 +625,8 @@ static void SV_Admin_Status(client_t *cl)
         return;
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "slot score ping name\\n\"");
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "---- ----- ---- ------------------------------\\n\"");
+    SV_SendServerCommand(cl, "status \"slot score ping name\"");
+    SV_SendServerCommand(cl, "status \"---- ----- ---- ------------------------------\"");
 
     for (i = 0; i < sv_maxclients->integer; i++) {
         client_t *target = &svs.clients[i];
@@ -643,9 +643,9 @@ static void SV_Admin_Status(client_t *cl)
         ping = target->ping;
 
         if (target->netchan.remoteAddress.type == NA_BOT) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%4d %5d bot  %s\\n\"", i, score, name);
+            SV_SendServerCommand(cl, "status \"%4d %5d bot  %s\"", i, score, name);
         } else {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%4d %5d %4d %s\\n\"", i, score, ping, name);
+            SV_SendServerCommand(cl, "status \"%4d %5d %4d %s\"", i, score, ping, name);
         }
     }
 }
@@ -736,8 +736,13 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 {
     qboolean isTauntDMMessage = qfalse;
 
-    if (!Q_stricmp(cmdName, "dmmessage") && Cmd_Argc() > 2) {
-        const char *token = Cmd_Argv(2);
+    if (!Q_stricmp(cmdName, "dmmessage") && Cmd_Argc() > 1) {
+        // dmmessage can come as either:
+        //   dmmessage <mode> <text>
+        // or
+        //   dmmessage <text>
+        // depending on client/UI path. Classify taunt by the final token.
+        const char *token = Cmd_Argv(Cmd_Argc() - 1);
         isTauntDMMessage =
             token && token[0] == '*' && token[1] >= '1' && token[1] <= '9' && token[2] >= '1' && token[2] <= '9' &&
             token[3] == '\0';
