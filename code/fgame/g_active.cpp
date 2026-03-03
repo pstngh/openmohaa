@@ -25,6 +25,29 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "entity.h"
 #include "game.h"
 
+
+static void G_DebugBotNetState(gentity_t *ent)
+{
+	float velocity;
+	float trDelta;
+
+	if (!ent || !(ent->r.svFlags & SVF_BOT) || !g_bot_netdebug || !g_bot_netdebug->integer) {
+		return;
+	}
+
+	velocity = VectorLength(ent->client->ps.velocity);
+	trDelta  = VectorLength(ent->s.pos.trDelta);
+
+	gi.Printf(
+		"botnetdebug ent=%d cmdTime=%d svsTime=%d vel=%.2f trDelta=%.2f\n",
+		ent->s.number,
+		ent->client->ps.commandTime,
+		level.svsTime,
+		velocity,
+		trDelta
+	);
+}
+
 // FIXME: OLD Q3 CODE
 #if 0
 
@@ -376,6 +399,8 @@ void ClientThink_real( gentity_t *ent ) {
 	else {
 		BG_PlayerStateToEntityState( &ent->client->ps, &ent->s, qtrue );
 	}
+
+	G_DebugBotNetState(ent);
 //	SendPendingPredictableEvents( &ent->client->ps );
 
 	//if ( !( ent->client->ps.eFlags & EF_FIRING ) ) {
@@ -535,6 +560,8 @@ void ClientEndFrame( gentity_t *ent ) {
 	else {
 		BG_PlayerStateToEntityState( &ent->client->ps, &ent->s, qtrue );
 	}
+
+	G_DebugBotNetState(ent);
 	SendPendingPredictableEvents( &ent->client->ps );
 
 	// set the bit for the reachability area the client is currently in
