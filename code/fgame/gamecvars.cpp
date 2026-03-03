@@ -275,10 +275,9 @@ cvar_t *sv_numbots;
 //  If the number of real players is below this number,
 //  the game will automatically add bots to fill the gap
 cvar_t *sv_minPlayers;
-// Whether or not the bots use a shared player slots
-//  NOTE: Setting this cvar is not recommended
-//  because when a client connects and the slot is used by a bot
-//  the bot will be relocated to a free entity slot
+// Whether or not the bots use shared player slots
+//  When enabled (default), bots occupy real client slots and are
+//  reported as real players to the master server
 cvar_t *sv_sharedbots;
 
 cvar_t *g_bot_attack_burst_min_time;
@@ -679,7 +678,7 @@ void CVAR_Init(void)
 
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
     sv_maxbots     = gi.Cvar_Get("sv_maxbots", "0", CVAR_LATCH);
-    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
+    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "1", CVAR_LATCH);
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 

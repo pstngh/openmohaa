@@ -854,6 +854,12 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
     client->pers.port = 0;
 
     G_ClientUserinfoChanged(ent, userinfo);
+
+    // Register the bot in the server-side client slot
+    // so it appears in status queries and master server reporting
+    if (clientNum < maxclients->integer) {
+        gi.BotConnect(clientNum, userinfo);
+    }
 }
 
 /*

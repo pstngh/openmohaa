@@ -1953,6 +1953,8 @@ void SV_InitGameProgs( void ) {
     import.Client_NumPendingCommands	= PF_SV_Client_NumPendingCommands;
     import.Client_MaxPendingCommands	= PF_SV_Client_MaxPendingCommands;
 
+    import.BotConnect                   = SV_BotConnect;
+
 	ge = Sys_GetGameAPI( &import );
 
 	if( !ge ) {

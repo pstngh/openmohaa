@@ -1459,3 +1459,35 @@ void SV_PrintfClient(int clientNum, const char *fmt, ...) {
     addr = NET_AdrToStringwPort(cl->netchan.remoteAddress);
     Com_Printf("{#%d | %s} %s %s", clientNum, addr, name, msg);
 }
+
+/*
+==================
+SV_BotConnect
+
+Register a bot in the server-side client slot so that it is
+visible to the master server, scoreboard, and status queries.
+==================
+*/
+void SV_BotConnect(int clientNum, const char *userinfo) {
+    client_t  *cl;
+    gentity_t *ent;
+    const char *name;
+
+    if (clientNum < 0 || clientNum >= svs.iNumClients) {
+        return;
+    }
+
+    cl  = &svs.clients[clientNum];
+    ent = SV_GentityNum(clientNum);
+
+    // Set up the client as a bot
+    cl->state   = CS_ACTIVE;
+    cl->gentity = ent;
+    cl->ping    = 0;
+
+    cl->netchan.remoteAddress.type = NA_BOT;
+
+    name = Info_ValueForKey(userinfo, "name");
+    Q_strncpyz(cl->name, name, sizeof(cl->name));
+    Q_strncpyz(cl->userinfo, userinfo, sizeof(cl->userinfo));
+}

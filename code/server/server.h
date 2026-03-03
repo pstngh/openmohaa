@@ -448,6 +448,7 @@ void SV_MasterShutdown (void);
 int SV_RateMsec(client_t *client);
 
 void SV_PrintfClient(int clientNum, const char *fmt, ...);
+void SV_BotConnect(int clientNum, const char *userinfo);
 
 void SV_ArchiveHudDrawElements( qboolean loading );
 void SV_HudDrawShader( int iInfo, const char *name );

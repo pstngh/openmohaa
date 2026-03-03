@@ -537,13 +537,21 @@ Remove the specified bot
 */
 void G_RemoveBot(gentity_t *ent)
 {
+    int clientNum = ent - g_entities;
+
     if (ent->entity) {
         BotController *controller = botManager.getControllerManager().findController(ent->entity);
 
         botManager.getControllerManager().removeController(controller);
     }
 
-    G_ClientDisconnect(ent);
+    // Use DropClient for bots in shared slots so the server-side
+    // client_t state is properly cleaned up
+    if (clientNum < maxclients->integer) {
+        gi.DropClient(clientNum, "removed");
+    } else {
+        G_ClientDisconnect(ent);
+    }
 }
 
 /*
