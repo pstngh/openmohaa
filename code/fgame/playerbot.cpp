@@ -956,7 +956,7 @@ void BotController::State_Attack(void)
                 m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
 
                 if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                    m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
                 } else {
                     m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
                 }
@@ -967,7 +967,9 @@ void BotController::State_Attack(void)
             m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
             if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE
                 && fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
+            } else {
+                m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
             }
 
             m_iAttackTime        = level.inttime + 1000;

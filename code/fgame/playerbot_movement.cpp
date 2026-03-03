@@ -1190,6 +1190,10 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         leanDir = -leanDir;  // Occasional mismatch for variety
     }
 
+    // Clear previous lean state so we never end up pressing both lean buttons,
+    // which causes pmove to reject leaning entirely.
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
     if (leanDir < 0) {
         botcmd.buttons |= BUTTON_LEAN_LEFT;
     } else {
