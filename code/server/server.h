@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/qcommon.h"
 #include "../fgame/bg_public.h"
 #include "../fgame/g_public.h"
+#include "sv_admin.h"
 #ifndef DEDICATED
 #  include "../client/snd_local.h"
 #endif
@@ -225,6 +226,13 @@ typedef struct client_s {
 	int radarInfo;
     int lastRadarTime[MAX_CLIENTS];
     int lastVisCheckTime[MAX_CLIENTS];
+
+    // Admin subsystem (Added in OPM)
+    qboolean    adminAuthenticated;
+    int         adminRights;
+    char        adminUsername[64];
+    qboolean    adminChatDisabled;
+    qboolean    adminTauntDisabled;
 
 #ifdef LEGACY_PROTOCOL
 	qboolean		compat;
