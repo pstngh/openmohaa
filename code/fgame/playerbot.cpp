@@ -954,12 +954,6 @@ void BotController::State_Attack(void)
 
             if (bMelee) {
                 m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-
-                if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                }
             }
 
             // Added in OPM
@@ -967,7 +961,8 @@ void BotController::State_Attack(void)
             m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
             if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE
                 && fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
+                // Pulse secondary fire so melee/bashes retrigger reliably.
+                m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
             } else {
                 m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
             }
