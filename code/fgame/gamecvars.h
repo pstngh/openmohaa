@@ -323,9 +323,34 @@ extern cvar_t *g_bot_initial_spawn_delay;
 
 /**
  * @brief When enabled, the game no longer controls bots.
- * 
  */
 extern cvar_t *g_bot_manualmove;
+
+/**
+ * @brief Enable aggressive movement (strafe + lean) for bots.
+ * 0 = disabled, 1 = enabled
+ */
+extern cvar_t *g_bot_aggressive_movement;
+
+/**
+ * @brief Strafe intensity multiplier (0.0 to 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+
+/**
+ * @brief Minimum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_min_interval;
+
+/**
+ * @brief Maximum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_max_interval;
+
+/**
+ * @brief Probability (0.0 to 1.0) that lean direction matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_coupling;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
