@@ -887,6 +887,24 @@ static void SV_CalcPings( void ) {
 			continue;
 		}
 
+		// Added in OPM
+		//  Synthesize a realistic fake ping for bots (98-108ms range)
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			static int botPingTimers[MAX_CLIENTS] = {0};
+			static int botPingValues[MAX_CLIENTS] = {0};
+			int clientNum = (int)(cl - svs.clients);
+
+			if (svs.time > botPingTimers[clientNum]) {
+				botPingValues[clientNum] = 98 + (rand() % 11);
+				botPingTimers[clientNum] = svs.time + 2000 + (rand() % 3001);
+			}
+
+			cl->ping = botPingValues[clientNum];
+			ps = SV_GameClientNum( i );
+			ps->ping = cl->ping;
+			continue;
+		}
+
 		total = 0;
 		count = 0;
 		for ( j = 0 ; j < PACKET_BACKUP ; j++ ) {
