@@ -953,6 +953,11 @@ static void SV_CheckTimeouts( void ) {
 	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
 
 	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			cl->timeoutCount = 0;
+			continue;
+		}
+
 		// message times may be wrong across a changelevel
 		if (cl->lastPacketTime > svs.time) {
 			cl->lastPacketTime = svs.time;
@@ -1481,11 +1486,13 @@ void SV_BotConnect(int clientNum, const char *userinfo) {
     ent = SV_GentityNum(clientNum);
 
     // Set up the client as a bot
-    cl->state   = CS_ACTIVE;
-    cl->gentity = ent;
-    cl->ping    = 0;
+	cl->state   = CS_ACTIVE;
+	cl->gentity = ent;
+	cl->ping    = 0;
+	cl->lastPacketTime = svs.time;
+	cl->timeoutCount = 0;
 
-    cl->netchan.remoteAddress.type = NA_BOT;
+	cl->netchan.remoteAddress.type = NA_BOT;
 
     name = Info_ValueForKey(userinfo, "name");
     Q_strncpyz(cl->name, name, sizeof(cl->name));

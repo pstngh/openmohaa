@@ -1217,6 +1217,11 @@ void SV_SendClientSnapshot( client_t *client ) {
 	byte		msg_buf[MAX_MSGLEN];
 	msg_t		msg;
 
+	// bots do not have a network channel and should never receive snapshots
+	if ( client->netchan.remoteAddress.type == NA_BOT ) {
+		return;
+	}
+
 	// build the snapshot
 	SV_BuildClientSnapshot( client );
 
