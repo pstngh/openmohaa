@@ -3,7 +3,7 @@ name: Sync with Upstream
 on:
   workflow_dispatch:      # Allows you to click "Run workflow" manually
   schedule:
-    - cron: '0 0 * * 0'   # Runs automatically every Sunday at midnight
+    - cron: '0 0 * * *'   # Runs automatically everyday at midnight
 
 concurrency:
   group: sync-upstream
