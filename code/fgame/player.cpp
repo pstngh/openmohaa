@@ -4552,6 +4552,12 @@ void Player::ClientThink(void)
             && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
             VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
             edict->s.pos.trTime = client->ps.commandTime;
+
+            if (edict->r.svFlags & SVF_BOT) {
+                // Bots typically have commandTime == serverTime; offset by one frame
+                // so clients can extrapolate bot trajectories between snapshots.
+                edict->s.pos.trTime -= level.intframetime;
+            }
         } else {
             VectorClear(edict->s.pos.trDelta);
             edict->s.pos.trTime = 0;
@@ -7170,6 +7176,12 @@ void Player::FinishMove(void)
         && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
         VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
         edict->s.pos.trTime = client->ps.commandTime;
+
+        if (edict->r.svFlags & SVF_BOT) {
+            // Bots typically have commandTime == serverTime; offset by one frame
+            // so clients can extrapolate bot trajectories between snapshots.
+            edict->s.pos.trTime -= level.intframetime;
+        }
     } else {
         VectorClear(edict->s.pos.trDelta);
         edict->s.pos.trTime = 0;

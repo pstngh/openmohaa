@@ -616,6 +616,38 @@ static void SV_Admin_Rcon(client_t *cl)
     SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Command executed.\\n\"");
 }
 
+// ---- Command: ad_say <message> ----
+static void SV_Admin_Say(client_t *cl)
+{
+    char text[1024];
+    char *p;
+
+    if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_RCON, "ad_say")) {
+        return;
+    }
+
+    if (Cmd_Argc() < 2) {
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_say <message>\\n\"");
+        return;
+    }
+
+    Q_strncpyz(text, Cmd_ArgsFrom(1), sizeof(text));
+    p = text;
+
+    if (*p == '"') {
+        size_t len;
+
+        p++;
+        len = strlen(p);
+        if (len > 0 && p[len - 1] == '"') {
+            p[len - 1] = '\0';
+        }
+    }
+
+    Com_Printf("sv_admin: %s (%s) say: %s\n", cl->name, cl->adminUsername, p);
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "admin %s: %s\n\"", cl->adminUsername, p);
+}
+
 // ---- Command: ad_listadmins ----
 static void SV_Admin_ListAdmins(client_t *cl)
 {
@@ -841,6 +873,7 @@ qboolean SV_AdminHandleClientCommand(client_t *cl)
         if (!Q_stricmp(cmd, "ad_unbanip"))       { SV_Admin_UnbanIP(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_listips"))       { SV_Admin_ListIPs(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_rcon"))          { SV_Admin_Rcon(cl); return qtrue; }
+        if (!Q_stricmp(cmd, "ad_say"))           { SV_Admin_Say(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_listadmins"))    { SV_Admin_ListAdmins(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_status"))        { SV_Admin_Status(cl); return qtrue; }
         if (!Q_stricmp(cmd, "ad_dischat"))       { SV_Admin_DisChat(cl); return qtrue; }
