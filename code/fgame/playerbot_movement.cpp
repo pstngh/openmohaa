@@ -46,7 +46,6 @@ BotMovement::BotMovement()
 
     // Aggressive movement
     m_iStrafeDirection      = 1;
-    m_iLeanDirection        = 1;
     m_iNextStrafeChangeTime = 0;
 }
 
@@ -1141,26 +1140,18 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         return;
     }
 
-    qboolean switchedStrafeDirection = qfalse;
-
     // Update strafe direction when timer expires
     if (level.inttime >= m_iNextStrafeChangeTime) {
         // Flip direction - always strafing, no pauses
         m_iStrafeDirection      = (m_iStrafeDirection <= 0) ? 1 : -1;
-        switchedStrafeDirection = qtrue;
 
-        // Random interval until next direction change
-        int minMs = g_bot_strafe_min_interval->integer;
-        int maxMs = g_bot_strafe_max_interval->integer;
-
-        if (maxMs < minMs) {
-            maxMs = minMs;
+        // Next direction change time (single cvar controls cadence)
+        int switchInterval = g_bot_strafe_switch_interval->integer;
+        if (switchInterval < 100) {
+            switchInterval = 100;
         }
 
-        m_iNextStrafeChangeTime = level.inttime + minMs;
-        if (maxMs > minMs) {
-            m_iNextStrafeChangeTime += (int)G_Random(maxMs - minMs + 1);
-        }
+        m_iNextStrafeChangeTime = level.inttime + switchInterval;
     }
 
     // Calculate safe amplitude based on lateral clearance
@@ -1173,7 +1164,6 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     if (clearance < minSafeSpace) {
         // Not enough room, try the opposite direction
         m_iStrafeDirection      = -m_iStrafeDirection;
-        switchedStrafeDirection = qtrue;
         clearance               = CalculateLateralClearance(m_iStrafeDirection);
 
         if (clearance < minSafeSpace) {
@@ -1204,20 +1194,12 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
 
     botcmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
 
-    // Update lean direction only when strafe direction switches so leaning stays stable
-    // between switches (less twitchy while still continuously strafing/leaning).
-    if (switchedStrafeDirection) {
-        m_iLeanDirection = m_iStrafeDirection;
-        if (G_Random(1.0f) > g_bot_lean_coupling->value) {
-            m_iLeanDirection = -m_iLeanDirection;  // Occasional mismatch for variety
-        }
-    }
-
+    // Lean is directly linked to strafe direction for simpler, predictable behavior.
     // Clear previous lean state so we never end up pressing both lean buttons,
     // which causes pmove to reject leaning entirely.
     botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
 
-    if (m_iLeanDirection < 0) {
+    if (m_iStrafeDirection < 0) {
         botcmd.buttons |= BUTTON_LEAN_LEFT;
     } else {
         botcmd.buttons |= BUTTON_LEAN_RIGHT;
