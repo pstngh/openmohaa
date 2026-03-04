@@ -126,19 +126,6 @@ const char *GS_GetCurrentGameVersion()
     return GS_GetGameVersion(com_target_game->integer);
 }
 
-static const char *ConvertMapFilename(const char *mapname)
-{
-    static char converted[1024];
-
-    const char *name = strstr(mapname, "/");
-    if (!name) {
-        return mapname;
-    }
-
-    strcpy(converted, name + 1);
-    return converted;
-}
-
 static void basic_callback(char *outbuf, int maxlen, void *userdata)
 {
     Info_SetValueForKey(outbuf, "gamename", GS_GetCurrentGameName());
@@ -158,7 +145,7 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
     infostring[0] = 0;
     Info_SetValueForKey(infostring, "hostname", sv_hostname->string);
     Info_SetValueForKey(infostring, "hostport", Cvar_Get("net_port", "12203", CVAR_LATCH)->string);
-    Info_SetValueForKey(infostring, "mapname", ConvertMapFilename(svs.mapName));
+    Info_SetValueForKey(infostring, "mapname", svs.mapName);
     Info_SetValueForKey(infostring, "gametype", g_gametypestring->string);
     Info_SetValueForKey(infostring, "numplayers", va("%i", SV_NumClients()));
     Info_SetValueForKey(infostring, "maxplayers", va("%i", svs.iNumClients - sv_privateClients->integer));
