@@ -888,11 +888,11 @@ static void SV_CalcPings( void ) {
 		}
 
 		// Added in OPM
-		//  Synthesize a realistic fake ping for bots using a fixed value pool
+		//  Synthesize a realistic fake ping for bots using a weighted value pool (98/100 favored)
 		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
 			static int botPingTimers[MAX_CLIENTS] = {0};
 			static int botPingValues[MAX_CLIENTS] = {0};
-			static const int botPingPool[] = {96, 98, 100, 101, 103, 105, 106, 107, 108, 109, 110};
+			static const int botPingPool[] = {98, 100, 98, 100, 98, 100, 96, 101, 103, 105, 106, 107, 108, 109, 110};
 			int clientNum = (int)(cl - svs.clients);
 
 			if (svs.time > botPingTimers[clientNum]) {
