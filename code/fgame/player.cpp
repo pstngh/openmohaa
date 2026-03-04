@@ -11006,6 +11006,10 @@ void Player::EventDMMessage(Event *ev)
         }
     }
 
+    // Close the print command payload started with `print "`.
+    // Without this terminator, instant messages can leak malformed pending server commands.
+    Q_strcat(szPrintString, sizeof(szPrintString), "\"");
+
     // ignore names containing comments
     if (g_protocol < protocol_e::PROTOCOL_MOHTA_MIN) {
         if (strstr(client->pers.netname, "//")
