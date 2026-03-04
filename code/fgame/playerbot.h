@@ -124,6 +124,7 @@ private:
     ///
 
     int m_iStrafeDirection;       // -1 = left, 0 = none, 1 = right
+    int m_iLeanDirection;         // -1 = left, 1 = right (persistent between strafe switches)
     int m_iNextStrafeChangeTime;  // When to switch strafe direction
 
     void  UpdateAggressiveMovement(usercmd_t& botcmd);
