@@ -200,7 +200,7 @@ static void SV_AdminConsoleEcho(client_t *cl, const char *fmt, ...)
     }
 
     escaped[out] = '\0';
-    SV_SendServerCommand(cl, "stufftext \"echo %s\\n\"", escaped);
+    SV_SendServerCommand(cl, "stufftext \"echo %s\"", escaped);
 }
 
 // ---- Helper: find client by name ----
@@ -653,12 +653,13 @@ static void SV_Admin_Status(client_t *cl)
         return;
     }
 
-    SV_AdminConsoleEcho(cl, "slot score ping name");
-    SV_AdminConsoleEcho(cl, "---- ----- ---- ------------------------------");
+    SV_AdminConsoleEcho(cl, "slot score ping address name");
+    SV_AdminConsoleEcho(cl, "---- ----- ---- ---------------------- ------------------------------");
 
     for (i = 0; i < sv_maxclients->integer; i++) {
         client_t *target = &svs.clients[i];
         const char *name;
+        const char *address;
         int score;
         int ping;
 
@@ -667,13 +668,14 @@ static void SV_Admin_Status(client_t *cl)
         }
 
         name = target->name[0] ? target->name : "<unnamed>";
+        address = NET_AdrToStringwPort(target->netchan.remoteAddress);
         score = target->gentity ? target->gentity->client->ps.stats[STAT_KILLS] : 0;
         ping = target->ping;
 
         if (target->netchan.remoteAddress.type == NA_BOT) {
-            SV_AdminConsoleEcho(cl, "%4d %5d bot  %s", i, score, name);
+            SV_AdminConsoleEcho(cl, "%4d %5d bot  %-22s %s", i, score, "bot", name);
         } else {
-            SV_AdminConsoleEcho(cl, "%4d %5d %4d %s", i, score, ping, name);
+            SV_AdminConsoleEcho(cl, "%4d %5d %4d %-22s %s", i, score, ping, address, name);
         }
     }
 }
