@@ -659,7 +659,7 @@ static void SV_Admin_Say(client_t *cl)
     }
 
     Com_Printf("sv_admin: %s (%s) say: %s\n", cl->name, cl->adminUsername, p);
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "admin %s: %s\n\"", cl->adminUsername, p);
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "console: %s\n\"", p);
 }
 
 // ---- Command: ad_listadmins ----
