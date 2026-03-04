@@ -1155,6 +1155,16 @@ void G_ClientDisconnect(gentity_t *ent)
 	CalculateRanks();
 
 	if ( ent->r.svFlags & SVF_BOT ) {
+		// Bots can be dropped from server code paths (e.g. making room for humans)
+		// without going through G_RemoveBot(). Ensure we also destroy the
+		// matching controller here to avoid stale/orphaned controllers.
+		if (ent->entity) {
+			BotControllerManager& controllerManager = botManager.getControllerManager();
+			if (BotController *controller = controllerManager.findController(ent->entity)) {
+				controllerManager.removeController(controller);
+			}
+		}
+
 		BotAIShutdownClient( ent->client->ps.clientNum, qfalse );
 	}
 #endif
