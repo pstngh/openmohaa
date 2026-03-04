@@ -348,6 +348,11 @@ extern cvar_t *g_bot_strafe_min_interval;
 extern cvar_t *g_bot_strafe_max_interval;
 
 /**
+ * @brief Whether aggressive bot strafe input adds to existing rightmove (1) or overrides it (0).
+ */
+extern cvar_t *g_bot_strafe_additive;
+
+/**
  * @brief Probability (0.0 to 1.0) that lean direction matches strafe direction.
  */
 extern cvar_t *g_bot_lean_coupling;

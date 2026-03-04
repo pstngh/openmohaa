@@ -1192,10 +1192,17 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         return;
     }
 
-    // Apply strafe offset (additive to existing rightmove)
+    // Apply strafe offset either additively or as an override.
     float strafeOffset = m_iStrafeDirection * amplitude * g_bot_strafe_intensity->value * 127.0f;
-    int   newRightMove = botcmd.rightmove + (int)strafeOffset;
-    botcmd.rightmove   = (signed char)Q_clamp(newRightMove, -127, 127);
+    int   newRightMove;
+
+    if (g_bot_strafe_additive->integer) {
+        newRightMove = botcmd.rightmove + (int)strafeOffset;
+    } else {
+        newRightMove = (int)strafeOffset;
+    }
+
+    botcmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
 
     // Update lean direction only when strafe direction switches so leaning stays stable
     // between switches (less twitchy while still continuously strafing/leaning).

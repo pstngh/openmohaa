@@ -296,6 +296,7 @@ cvar_t *g_bot_aggressive_movement;
 cvar_t *g_bot_strafe_intensity;
 cvar_t *g_bot_strafe_min_interval;
 cvar_t *g_bot_strafe_max_interval;
+cvar_t *g_bot_strafe_additive;
 cvar_t *g_bot_lean_coupling;
 
 cvar_t *g_rankedserver;
@@ -718,6 +719,7 @@ void CVAR_Init(void)
     g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
     g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "600", 0);
     g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "1600", 0);
+    g_bot_strafe_additive      = gi.Cvar_Get("g_bot_strafe_additive", "1", 0);
     g_bot_lean_coupling        = gi.Cvar_Get("g_bot_lean_coupling", "0.9", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
