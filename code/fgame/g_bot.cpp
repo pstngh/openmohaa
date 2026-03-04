@@ -539,11 +539,10 @@ void G_RemoveBot(gentity_t *ent)
 {
     int clientNum = ent - g_entities;
 
-    if (ent->entity) {
-        BotController *controller = botManager.getControllerManager().findController(ent->entity);
-
-        botManager.getControllerManager().removeController(controller);
-    }
+    // Controller cleanup is now handled inside G_ClientDisconnect so that
+    // both the explicit G_RemoveBot path and the server-side SV_DropClient
+    // path (which bypasses G_RemoveBot) are covered.  No need to remove
+    // the controller here – G_ClientDisconnect will take care of it.
 
     // Use DropClient for bots in shared slots so the server-side
     // client_t state is properly cleaned up
