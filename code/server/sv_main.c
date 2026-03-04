@@ -901,6 +901,12 @@ static void SV_CalcPings( void ) {
 			}
 
 			cl->ping = botPingValues[clientNum];
+
+			// Never show 99 for bots; bump to 100 if it ever appears.
+			if (cl->ping == 99) {
+				cl->ping = 100;
+			}
+
 			ps = SV_GameClientNum( i );
 			ps->ping = cl->ping;
 			continue;
