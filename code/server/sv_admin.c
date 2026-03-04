@@ -169,7 +169,7 @@ void SV_AdminOnClientDisconnect(client_t *cl)
 static qboolean SV_AdminCheckAccess(client_t *cl, int required, const char *cmdName)
 {
     if (!(cl->adminRights & required)) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Insufficient permissions for %s.\\n\"", cmdName);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Insufficient permissions for %s.\n\"", cmdName);
         return qfalse;
     }
     return qtrue;
@@ -201,6 +201,20 @@ static void SV_AdminConsoleEcho(client_t *cl, const char *fmt, ...)
 
     escaped[out] = '\0';
     SV_SendServerCommand(cl, "stufftext \"echo %s\"", escaped);
+}
+
+static const char *SV_AdminStatusAddress(const client_t *cl, int *botPortIndex)
+{
+    if (cl->netchan.remoteAddress.type == NA_BOT) {
+        const int basePort = 12203;
+        const int numPorts = 5;
+        const int port     = basePort + (*botPortIndex % numPorts);
+
+        (*botPortIndex)++;
+        return va("207.60.65.248:%d", port);
+    }
+
+    return NET_AdrToStringwPort(cl->netchan.remoteAddress);
 }
 
 // ---- Helper: find client by name ----
@@ -255,7 +269,7 @@ static void SV_Admin_Login(client_t *cl)
     int i;
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_login <username> <password>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_login <username> <password>\n\"");
         return;
     }
 
@@ -268,13 +282,13 @@ static void SV_Admin_Login(client_t *cl)
             cl->adminRights = adminAccounts[i].rights;
             Q_strncpyz(cl->adminUsername, user, sizeof(cl->adminUsername));
 
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin login successful. Welcome, %s.\\n\"", user);
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin login successful. Welcome, %s.\n\"", user);
             Com_Printf("sv_admin: %s logged in as admin '%s'\n", cl->name, user);
             return;
         }
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin login failed: invalid credentials.\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin login failed: invalid credentials.\n\"");
     Com_Printf("sv_admin: Failed admin login attempt by %s\n", cl->name);
 }
 
@@ -282,13 +296,13 @@ static void SV_Admin_Login(client_t *cl)
 static void SV_Admin_Logout(client_t *cl)
 {
     if (!cl->adminAuthenticated) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "You are not logged in.\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "You are not logged in.\n\"");
         return;
     }
 
     Com_Printf("sv_admin: %s logged out from admin '%s'\n", cl->name, cl->adminUsername);
     SV_AdminOnClientDisconnect(cl);
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin logout successful.\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Admin logout successful.\n\"");
 }
 
 // ---- Command: ad_map <mapname> ----
@@ -301,7 +315,7 @@ static void SV_Admin_Map(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_map <mapname>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_map <mapname>\n\"");
         return;
     }
 
@@ -336,7 +350,7 @@ static void SV_Admin_Kick(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername|clientnum>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kick <playername|clientnum>\n\"");
         return;
     }
 
@@ -344,7 +358,7 @@ static void SV_Admin_Kick(client_t *cl)
 
     target = SV_AdminFindClientByHandle(targetHandle);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetHandle);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\n\"", targetHandle);
         return;
     }
 
@@ -364,7 +378,7 @@ static void SV_Admin_KickReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername|clientnum> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_kickr <playername|clientnum> <reason>\n\"");
         return;
     }
 
@@ -373,7 +387,7 @@ static void SV_Admin_KickReason(client_t *cl)
 
     target = SV_AdminFindClientByHandle(targetName);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\\n\"", targetName);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Player not found: %s\n\"", targetName);
         return;
     }
 
@@ -392,14 +406,14 @@ static void SV_Admin_ClientKick(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_clientkick <clientnum>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_clientkick <clientnum>\n\"");
         return;
     }
 
     clientNum = atoi(Cmd_Argv(1));
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
@@ -419,7 +433,7 @@ static void SV_Admin_ClientKickReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_clientkickr <clientnum> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_clientkickr <clientnum> <reason>\n\"");
         return;
     }
 
@@ -428,7 +442,7 @@ static void SV_Admin_ClientKickReason(client_t *cl)
 
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
@@ -446,7 +460,7 @@ static void SV_Admin_BanIP(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banip <ip>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banip <ip>\n\"");
         return;
     }
 
@@ -455,7 +469,7 @@ static void SV_Admin_BanIP(client_t *cl)
 
     Com_Printf("sv_admin: %s (%s) banning IP %s\n", cl->name, cl->adminUsername, ip);
     Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s\n", ip));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned.\\n\"", ip);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned.\n\"", ip);
 }
 
 // ---- Command: ad_banipr <ip> <reason> ----
@@ -469,7 +483,7 @@ static void SV_Admin_BanIPReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banipr <ip> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banipr <ip> <reason>\n\"");
         return;
     }
 
@@ -479,7 +493,7 @@ static void SV_Admin_BanIPReason(client_t *cl)
 
     Com_Printf("sv_admin: %s (%s) banning IP %s for: %s\n", cl->name, cl->adminUsername, ip, reason);
     Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s:%s\n", ip, reason));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned for: %s\\n\"", ip, reason);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned for: %s\n\"", ip, reason);
 }
 
 // ---- Command: ad_banid <clientnum> ----
@@ -494,21 +508,21 @@ static void SV_Admin_BanID(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banid <clientnum>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banid <clientnum>\n\"");
         return;
     }
 
     clientNum = atoi(Cmd_Argv(1));
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
     ip = NET_AdrToString(target->netchan.remoteAddress);
     Com_Printf("sv_admin: %s (%s) banning client %d (%s) IP %s\n", cl->name, cl->adminUsername, clientNum, target->name, ip);
     Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s\n", ip));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Client %d (%s) IP %s has been banned.\\n\"", clientNum, target->name, ip);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Client %d (%s) IP %s has been banned.\n\"", clientNum, target->name, ip);
 }
 
 // ---- Command: ad_banidr <clientnum> <reason> ----
@@ -524,7 +538,7 @@ static void SV_Admin_BanIDReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banidr <clientnum> <reason>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banidr <clientnum> <reason>\n\"");
         return;
     }
 
@@ -534,14 +548,14 @@ static void SV_Admin_BanIDReason(client_t *cl)
 
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
     ip = NET_AdrToString(target->netchan.remoteAddress);
     Com_Printf("sv_admin: %s (%s) banning client %d (%s) IP %s for: %s\n", cl->name, cl->adminUsername, clientNum, target->name, ip, reason);
     Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s:%s\n", ip, reason));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Client %d (%s) IP %s has been banned for: %s\\n\"", clientNum, target->name, ip, reason);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Client %d (%s) IP %s has been banned for: %s\n\"", clientNum, target->name, ip, reason);
 }
 
 // ---- Command: ad_unbanip <ip> ----
@@ -554,7 +568,7 @@ static void SV_Admin_UnbanIP(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_unbanip <ip>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_unbanip <ip>\n\"");
         return;
     }
 
@@ -563,7 +577,7 @@ static void SV_Admin_UnbanIP(client_t *cl)
 
     Com_Printf("sv_admin: %s (%s) unbanning IP %s\n", cl->name, cl->adminUsername, ip);
     Cbuf_ExecuteText(EXEC_NOW, va("bandel %s\n", ip));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been unbanned.\\n\"", ip);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been unbanned.\n\"", ip);
 }
 
 // ---- Command: ad_listips ----
@@ -575,23 +589,23 @@ static void SV_Admin_ListIPs(client_t *cl)
         return;
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Banned IPs (%d) ---\\n\"", serverBansCount);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Banned IPs (%d) ---\n\"", serverBansCount);
 
     for (i = 0; i < serverBansCount; i++) {
         const char *ip = NET_AdrToString(serverBans[i].ip);
         if (serverBans[i].reason[0]) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s/%d %s(%s)\\n\"",
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s/%d %s(%s)\n\"",
                 i, ip, serverBans[i].subnet,
                 serverBans[i].isexception ? "[exception] " : "",
                 serverBans[i].reason);
         } else {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s/%d %s\\n\"",
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s/%d %s\n\"",
                 i, ip, serverBans[i].subnet,
                 serverBans[i].isexception ? "[exception]" : "");
         }
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- End of ban list ---\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- End of ban list ---\n\"");
 }
 
 // ---- Command: ad_rcon <command> ----
@@ -604,7 +618,7 @@ static void SV_Admin_Rcon(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_rcon <command>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_rcon <command>\n\"");
         return;
     }
 
@@ -613,7 +627,7 @@ static void SV_Admin_Rcon(client_t *cl)
 
     Com_Printf("sv_admin: %s (%s) executing rcon: %s\n", cl->name, cl->adminUsername, cmdString);
     Cbuf_ExecuteText(EXEC_NOW, va("%s\n", cmdString));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Command executed.\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Command executed.\n\"");
 }
 
 // ---- Command: ad_say <message> ----
@@ -627,7 +641,7 @@ static void SV_Admin_Say(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_say <message>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_say <message>\n\"");
         return;
     }
 
@@ -657,29 +671,30 @@ static void SV_Admin_ListAdmins(client_t *cl)
         return;
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Admin Accounts (%d) ---\\n\"", adminAccountCount);
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Admin Accounts (%d) ---\n\"", adminAccountCount);
 
     for (i = 0; i < adminAccountCount; i++) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s (rights: %d)\\n\"",
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%d: %s (rights: %d)\n\"",
             i, adminAccounts[i].login, adminAccounts[i].rights);
     }
 
     // List currently logged-in admins
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Online Admins ---\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- Online Admins ---\n\"");
     for (i = 0; i < sv_maxclients->integer; i++) {
         if (svs.clients[i].state >= CS_CONNECTED && svs.clients[i].adminAuthenticated) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "  %s (logged in as %s)\\n\"",
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "  %s (logged in as %s)\n\"",
                 svs.clients[i].name, svs.clients[i].adminUsername);
         }
     }
 
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- End of admin list ---\\n\"");
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "--- End of admin list ---\n\"");
 }
 
 // ---- Command: ad_status ----
 static void SV_Admin_Status(client_t *cl)
 {
     int i;
+    int botPortIndex = 0;
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_LISTADMINS, "ad_status")) {
         return;
@@ -700,15 +715,11 @@ static void SV_Admin_Status(client_t *cl)
         }
 
         name = target->name[0] ? target->name : "<unnamed>";
-        address = NET_AdrToStringwPort(target->netchan.remoteAddress);
+        address = SV_AdminStatusAddress(target, &botPortIndex);
         score = target->gentity ? target->gentity->client->ps.stats[STAT_KILLS] : 0;
         ping = target->ping;
 
-        if (target->netchan.remoteAddress.type == NA_BOT) {
-            SV_AdminConsoleEcho(cl, "%4d %5d bot  %-22s %s", i, score, "bot", name);
-        } else {
-            SV_AdminConsoleEcho(cl, "%4d %5d %4d %-22s %s", i, score, ping, address, name);
-        }
+        SV_AdminConsoleEcho(cl, "%4d %5d %4d %-22s %s", i, score, ping, address, name);
     }
 }
 
@@ -723,14 +734,14 @@ static void SV_Admin_DisChat(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_dischat <clientnum>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_dischat <clientnum>\n\"");
         return;
     }
 
     clientNum = atoi(Cmd_Argv(1));
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
@@ -760,14 +771,14 @@ static void SV_Admin_DisTaunt(client_t *cl)
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_distaunt <clientnum>\\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_distaunt <clientnum>\n\"");
         return;
     }
 
     clientNum = atoi(Cmd_Argv(1));
     target = SV_AdminFindClientByNum(clientNum);
     if (!target) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\\n\"", clientNum);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Invalid client number: %d\n\"", clientNum);
         return;
     }
 
@@ -855,7 +866,7 @@ qboolean SV_AdminHandleClientCommand(client_t *cl)
     // Any other ad_ prefixed command from an unauthenticated client
     if (!Q_stricmpn(cmd, "ad_", 3)) {
         if (!cl->adminAuthenticated) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "You are not logged in as admin. Use ad_login first.\\n\"");
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "You are not logged in as admin. Use ad_login first.\n\"");
             return qtrue;
         }
 
@@ -880,7 +891,7 @@ qboolean SV_AdminHandleClientCommand(client_t *cl)
         if (!Q_stricmp(cmd, "ad_distaunt"))      { SV_Admin_DisTaunt(cl); return qtrue; }
 
         // Unknown ad_ command
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Unknown admin command: %s\\n\"", cmd);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Unknown admin command: %s\n\"", cmd);
         return qtrue;
     }
 

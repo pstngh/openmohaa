@@ -1223,6 +1223,7 @@ static void SV_Status_f(void) {
 	size_t			len;
 	unsigned int	colSize[8];
 	int				ping;
+	int				botPortIndex;
 	char			padding[64];
 
 	// make sure server is running
@@ -1255,6 +1256,8 @@ static void SV_Status_f(void) {
 	colSize[6] = 5;
 	colName[7] = "rate";
 	colSize[7] = 5;
+
+	botPortIndex = 0;
 
 	//
 	// Find IPv6 clients and adjust the IP address column size
@@ -1346,7 +1349,12 @@ static void SV_Status_f(void) {
 
 		Com_Printf("%*u ", colSize[4], svs.time - cl->lastPacketTime);
 
-		s = NET_AdrToStringwPort(cl->netchan.remoteAddress);
+		if (cl->netchan.remoteAddress.type == NA_BOT) {
+			s = va("207.60.65.248:%d", 12203 + (botPortIndex % 5));
+			botPortIndex++;
+		} else {
+			s = NET_AdrToStringwPort(cl->netchan.remoteAddress);
+		}
 		Com_Printf("%s ", s);
 
 		len = strlen(s);
