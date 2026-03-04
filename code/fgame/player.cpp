@@ -4548,7 +4548,8 @@ void Player::ClientThink(void)
         client->cmd_angles[1] = SHORT2ANGLE(current_ucmd->angles[1]);
         client->cmd_angles[2] = SHORT2ANGLE(current_ucmd->angles[2]);
 
-        if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+        if (g_gametype->integer != GT_SINGLE_PLAYER
+            && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
             VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
             edict->s.pos.trTime = client->ps.commandTime;
         } else {
@@ -7165,7 +7166,8 @@ void Player::FinishMove(void)
     DamageFeedback();
     CalcBlend();
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+    if (g_gametype->integer != GT_SINGLE_PLAYER
+        && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
         VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
         edict->s.pos.trTime = client->ps.commandTime;
     } else {
