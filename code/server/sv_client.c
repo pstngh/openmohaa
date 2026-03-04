@@ -771,8 +771,10 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	// will receive many server commands during the drop
 	drop->gamestateMessageNum = -1;
 
-	// tell everyone why they got dropped
-	SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	// tell everyone why they got dropped (humans only)
+	if ( !isBot ) {
+		SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	}
 
 	// call the prog function for removing a client
 	// this will remove the body, among other things

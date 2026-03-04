@@ -1018,8 +1018,8 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
         if (level.intermissiontime && ent->entity) {
             G_MoveClientToIntermission(ent->entity);
         } else {
-            if (g_gametype->integer != GT_SINGLE_PLAYER) {
-                // send effect if in a multiplayer game
+            if (g_gametype->integer != GT_SINGLE_PLAYER && !(ent->r.svFlags & SVF_BOT)) {
+                // send effect if in a multiplayer game (humans only)
                 G_PrintfClient(ent, "has entered the battle\n");
 
                 G_PrintToAllClients(va("%s has entered the battle\n", ent->client->pers.netname), 2);
@@ -1081,9 +1081,11 @@ void G_ClientDisconnect(gentity_t *ent)
             return;
         }
 
-        G_PrintfClient(ent, "has left the battle\n");
+        if (!(ent->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(ent, "has left the battle\n");
 
-        G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+            G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+        }
 
         assert(ent->entity->IsSubclassOfPlayer());
         ((Player *)ent->entity)->Disconnect();

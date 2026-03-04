@@ -309,7 +309,7 @@ static void SV_Admin_Map(client_t *cl)
     Q_strncpyz(mapname, Cmd_Argv(1), sizeof(mapname));
 
     Com_Printf("sv_admin: %s (%s) changing map to %s\n", cl->name, cl->adminUsername, mapname);
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s is changing map to %s.\\n\"", cl->adminUsername, mapname);
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s is changing map to %s\n\"", cl->adminUsername, mapname);
     Cbuf_ExecuteText(EXEC_APPEND, va("map %s\n", mapname));
 }
 
@@ -321,7 +321,7 @@ static void SV_Admin_Restart(client_t *cl)
     }
 
     Com_Printf("sv_admin: %s (%s) restarting server\n", cl->name, cl->adminUsername);
-    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s is restarting the server.\\n\"", cl->adminUsername);
+    SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s is restarting the server\n\"", cl->adminUsername);
     Cbuf_ExecuteText(EXEC_APPEND, "restart\n");
 }
 
@@ -737,14 +737,14 @@ static void SV_Admin_DisChat(client_t *cl)
     target->adminChatDisabled = !target->adminChatDisabled;
 
     if (target->adminChatDisabled) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat disabled for %s.\\n\"", target->name);
-        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin.\\n\"");
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled chat for %s.\\n\"", cl->adminUsername, target->name);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat disabled for %s\n\"", target->name);
+        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled chat for %s\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) disabled chat for %s\n", cl->name, cl->adminUsername, target->name);
     } else {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat re-enabled for %s.\\n\"", target->name);
-        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been re-enabled by an admin.\\n\"");
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled chat for %s.\\n\"", cl->adminUsername, target->name);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Chat re-enabled for %s\n\"", target->name);
+        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your chat has been re-enabled by an admin\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled chat for %s\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) re-enabled chat for %s\n", cl->name, cl->adminUsername, target->name);
     }
 }
@@ -774,14 +774,14 @@ static void SV_Admin_DisTaunt(client_t *cl)
     target->adminTauntDisabled = !target->adminTauntDisabled;
 
     if (target->adminTauntDisabled) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts disabled for %s.\\n\"", target->name);
-        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin.\\n\"");
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled taunts for %s.\\n\"", cl->adminUsername, target->name);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts disabled for %s\n\"", target->name);
+        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s disabled taunts for %s\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) disabled taunts for %s\n", cl->name, cl->adminUsername, target->name);
     } else {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts re-enabled for %s.\\n\"", target->name);
-        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been re-enabled by an admin.\\n\"");
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled taunts for %s.\\n\"", cl->adminUsername, target->name);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Taunts re-enabled for %s\n\"", target->name);
+        SV_SendServerCommand(target, "print \"" HUD_MESSAGE_WHITE "Your taunts have been re-enabled by an admin\n\"");
+        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_WHITE "Admin %s re-enabled taunts for %s\n\"", cl->adminUsername, target->name);
         Com_Printf("sv_admin: %s (%s) re-enabled taunts for %s\n", cl->name, cl->adminUsername, target->name);
     }
 }
@@ -813,7 +813,7 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
     if (cl->adminChatDisabled) {
         if (!Q_stricmp(cmdName, "say") || !Q_stricmp(cmdName, "sayteam") ||
             !Q_stricmp(cmdName, "tell") || (!Q_stricmp(cmdName, "dmmessage") && !isTauntDMMessage)) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin.\\n\"");
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin\n\"");
             return qtrue;
         }
     }
@@ -822,7 +822,7 @@ qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
         if (!Q_stricmp(cmdName, "vsay") || !Q_stricmp(cmdName, "vosay") ||
             !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg") ||
             (!Q_stricmp(cmdName, "dmmessage") && isTauntDMMessage)) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin.\\n\"");
+            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin\n\"");
             return qtrue;
         }
     }
