@@ -10773,6 +10773,12 @@ void Player::EventDMMessage(Event *ev)
         return;
     }
 
+    // Bots are server-controlled and should never emit dmmessage/instamsg chatter.
+    // This also avoids building reliable print/CGM traffic for synthetic bot clients.
+    if (edict->r.svFlags & SVF_BOT) {
+        return;
+    }
+
     if (ev->NumArgs() <= 1) {
         return;
     }
@@ -11008,6 +11014,10 @@ void Player::EventDMMessage(Event *ev)
         }
     }
 
+    // Close the print command payload started with `print "`.
+    // Without this terminator, instant messages can leak malformed pending server commands.
+    Q_strcat(szPrintString, sizeof(szPrintString), "\"");
+
     // ignore names containing comments
     if (g_protocol < protocol_e::PROTOCOL_MOHTA_MIN) {
         if (strstr(client->pers.netname, "//")
@@ -11063,6 +11073,10 @@ void Player::EventDMMessage(Event *ev)
                 gi.SendServerCommand(i, "%s\n", szPrintString);
 
                 if (bInstaMessage) {
+                    if (ent->r.svFlags & SVF_BOT) {
+                        continue;
+                    }
+
                     gi.MSG_SetClient(i);
                     gi.MSG_StartCGM(BG_MapCGMToProtocol(g_protocol, CGM_VOICE_CHAT));
                     gi.MSG_WriteCoord(m_vViewPos[0]);
@@ -11158,6 +11172,10 @@ void Player::EventDMMessage(Event *ev)
                 }
 
                 if (bInstaMessage) {
+                    if (ent->r.svFlags & SVF_BOT) {
+                        continue;
+                    }
+
                     gi.MSG_SetClient(i);
                     gi.MSG_StartCGM(BG_MapCGMToProtocol(g_protocol, CGM_VOICE_CHAT));
                     gi.MSG_WriteCoord(m_vViewPos[0]);
