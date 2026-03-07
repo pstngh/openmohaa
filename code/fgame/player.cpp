@@ -4828,7 +4828,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     }
@@ -4853,7 +4853,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     } else if (g_gametype->integer >= GT_TEAM && GetTeam() > TEAM_FREEFORALL
