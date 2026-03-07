@@ -168,10 +168,6 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
         Info_SetValueForKey(infostring, "allowlean", va("%i", allowlean));
     }
 
-    // Added in OPM
-    //  Report bots as real players - always report 0 bots
-    Info_SetValueForKey(infostring, "minplayers", "0");
-
     if (strlen(infostring) < maxlen) {
         strcpy(outbuf, infostring);
     }

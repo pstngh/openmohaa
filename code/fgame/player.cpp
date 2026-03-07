@@ -54,6 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "portableturret.h"
 #include "fixedturret.h"
 #include "clientvote.h"
+#include "g_bot.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -2843,12 +2844,8 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
         if (bDispLocation && g_obituarylocation->integer) {
             str szConv2 = s2 + " in the " + G_LocationNumToDispString(iLocation);
 
-            G_PrintfClient(edict, "%s\n", szConv2.c_str());
-
             G_PrintDeathMessage(s1, szConv2.c_str(), "x", client->pers.netname, this, "s");
         } else {
-            G_PrintfClient(edict, "%s\n", s1.c_str());
-
             G_PrintDeathMessage(s1.c_str(), s2.c_str(), "x", client->pers.netname, this, "s");
         }
     } else if (attacker && attacker->client) {
@@ -2963,34 +2960,10 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
             G_PrintDeathMessage(
                 s1.c_str(), szConv2.c_str(), attacker->client->pers.netname, client->pers.netname, this, "p"
             );
-
-            if (dedicated->integer) {
-                str szLoc1, szLoc2;
-
-                szLoc1 = gi.LV_ConvertString(s1.c_str());
-                if (s2 == 'x') {
-                    G_PrintfClient(edict, "%s %s\n", szLoc1.c_str(), attacker->client->pers.netname);
-                } else {
-                    szLoc2 = gi.LV_ConvertString(szConv2.c_str());
-                    G_PrintfClient(edict, "%s %s%s\n", szLoc1.c_str(), attacker->client->pers.netname, szLoc2.c_str());
-                }
-            }
         } else {
             G_PrintDeathMessage(
                 s1.c_str(), s2.c_str(), attacker->client->pers.netname, client->pers.netname, this, "p"
             );
-
-            if (dedicated->integer) {
-                str szLoc1, szLoc2;
-
-                szLoc1 = gi.LV_ConvertString(s1.c_str());
-                if (s2 == 'x') {
-                    G_PrintfClient(edict, "%s %s\n", szLoc1.c_str(), attacker->client->pers.netname);
-                } else {
-                    szLoc2 = gi.LV_ConvertString(s2.c_str());
-                    G_PrintfClient(edict, "%s %s%s\n", szLoc1.c_str(), attacker->client->pers.netname, szLoc2.c_str());
-                }
-            }
         }
     } else {
         //
@@ -3039,8 +3012,6 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
         } else {
             G_PrintDeathMessage(s1.c_str(), s2.c_str(), "x", client->pers.netname, this, "w");
         }
-
-        G_PrintfClient(edict, "%s\n", gi.LV_ConvertString(s1.c_str()));
     }
 }
 
@@ -3716,7 +3687,7 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
             // Added in 2.0
             // In multiplayer mode, specify if the player can lean while moving
             //
-            if (dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) {
+            if ((dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) || (edict->r.svFlags & SVF_BOT)) {
                 pm->alwaysAllowLean = qtrue;
             } else {
                 pm->alwaysAllowLean = qfalse;
@@ -4548,9 +4519,16 @@ void Player::ClientThink(void)
         client->cmd_angles[1] = SHORT2ANGLE(current_ucmd->angles[1]);
         client->cmd_angles[2] = SHORT2ANGLE(current_ucmd->angles[2]);
 
-        if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+        if (g_gametype->integer != GT_SINGLE_PLAYER
+            && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
             VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
             edict->s.pos.trTime = client->ps.commandTime;
+
+            if (edict->r.svFlags & SVF_BOT) {
+                // Bots typically have commandTime == serverTime; offset by one frame
+                // so clients can extrapolate bot trajectories between snapshots.
+                edict->s.pos.trTime -= level.intframetime;
+            }
         } else {
             VectorClear(edict->s.pos.trDelta);
             edict->s.pos.trTime = 0;
@@ -7165,9 +7143,16 @@ void Player::FinishMove(void)
     DamageFeedback();
     CalcBlend();
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+    if (g_gametype->integer != GT_SINGLE_PLAYER
+        && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
         VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
         edict->s.pos.trTime = client->ps.commandTime;
+
+        if (edict->r.svFlags & SVF_BOT) {
+            // Bots typically have commandTime == serverTime; offset by one frame
+            // so clients can extrapolate bot trajectories between snapshots.
+            edict->s.pos.trTime -= level.intframetime;
+        }
     } else {
         VectorClear(edict->s.pos.trDelta);
         edict->s.pos.trTime = 0;
@@ -8934,6 +8919,13 @@ void Player::EquipWeapons()
         return;
     }
 
+    // Added in OPM
+    //  Override bot primary weapon via cvar, defaulting to sniper
+    if (edict->r.svFlags & SVF_BOT) {
+        const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
+        Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+    }
+
     // Fixed in OPM
     //  Old behavior was calling GetPlayerTeamType() regardless of the team
     if (GetTeam() == TEAM_AXIS) {
@@ -9236,6 +9228,13 @@ void Player::EquipWeapons_ver8()
         FreeInventory();
     } else {
         Event *ev = new Event("use");
+
+        // Added in OPM
+        //  Override bot primary weapon via cvar, defaulting to sniper
+        if (edict->r.svFlags & SVF_BOT) {
+            const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
+            Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+        }
 
         if (!Q_stricmp(client->pers.dm_primary, "rifle")) {
             if (dm_team == TEAM_ALLIES) {
@@ -9623,9 +9622,11 @@ void Player::Join_DM_Team(Event *ev)
             return;
         }
 
-        G_PrintfClient(edict, "%s\n", join_message);
+        if (!G_IsBot(edict)) {
+            G_PrintfClient(edict, "%s\n", join_message);
 
-        G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+            G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+        }
     }
 }
 
@@ -10745,6 +10746,12 @@ void Player::EventDMMessage(Event *ev)
         return;
     }
 
+    // Bots are server-controlled and should never emit dmmessage/instamsg chatter.
+    // This also avoids building reliable print/CGM traffic for synthetic bot clients.
+    if (edict->r.svFlags & SVF_BOT) {
+        return;
+    }
+
     if (ev->NumArgs() <= 1) {
         return;
     }
@@ -10980,6 +10987,10 @@ void Player::EventDMMessage(Event *ev)
         }
     }
 
+    // Close the print command payload started with `print "`.
+    // Without this terminator, instant messages can leak malformed pending server commands.
+    Q_strcat(szPrintString, sizeof(szPrintString), "\"");
+
     // ignore names containing comments
     if (g_protocol < protocol_e::PROTOCOL_MOHTA_MIN) {
         if (strstr(client->pers.netname, "//")
@@ -11035,6 +11046,10 @@ void Player::EventDMMessage(Event *ev)
                 gi.SendServerCommand(i, "%s\n", szPrintString);
 
                 if (bInstaMessage) {
+                    if (ent->r.svFlags & SVF_BOT) {
+                        continue;
+                    }
+
                     gi.MSG_SetClient(i);
                     gi.MSG_StartCGM(BG_MapCGMToProtocol(g_protocol, CGM_VOICE_CHAT));
                     gi.MSG_WriteCoord(m_vViewPos[0]);
@@ -11130,6 +11145,10 @@ void Player::EventDMMessage(Event *ev)
                 }
 
                 if (bInstaMessage) {
+                    if (ent->r.svFlags & SVF_BOT) {
+                        continue;
+                    }
+
                     gi.MSG_SetClient(i);
                     gi.MSG_StartCGM(BG_MapCGMToProtocol(g_protocol, CGM_VOICE_CHAT));
                     gi.MSG_WriteCoord(m_vViewPos[0]);
@@ -11998,6 +12017,10 @@ void Player::SetInvulnerable()
     }
 
     if (IsSpectator() || GetTeam() == TEAM_SPECTATOR) {
+        return;
+    }
+
+    if (edict->r.svFlags & SVF_BOT) {
         return;
     }
 

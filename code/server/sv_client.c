@@ -579,22 +579,8 @@ void SV_DirectConnect( netadr_t from ) {
 
 	if ( !newcl ) {
 		if ( NET_IsLocalAddress( from ) ) {
-			count = 0;
-			for ( i = startIndex; i < sv_maxclients->integer ; i++ ) {
-				cl = &svs.clients[i];
-				if (cl->netchan.remoteAddress.type == NA_BOT) {
-					count++;
-				}
-			}
-			// if they're all bots
-			if (count >= sv_maxclients->integer - startIndex) {
-				SV_DropClient(&svs.clients[sv_maxclients->integer - 1], "only bots on server");
-				newcl = &svs.clients[sv_maxclients->integer - 1];
-			}
-			else {
-				Com_Error( ERR_FATAL, "server is full on local connect\n" );
-				return;
-			}
+			Com_Error( ERR_FATAL, "server is full on local connect\n" );
+			return;
 		}
 		else {
 			SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nServer is full\n" );
@@ -773,8 +759,10 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	// will receive many server commands during the drop
 	drop->gamestateMessageNum = -1;
 
-	// tell everyone why they got dropped
-	SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	// tell everyone why they got dropped (humans only)
+	if ( !isBot ) {
+		SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	}
 
 	// call the prog function for removing a client
 	// this will remove the body, among other things

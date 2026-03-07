@@ -43,6 +43,10 @@ BotMovement::BotMovement()
 
     m_bAvoidCollision     = false;
     m_iCollisionCheckTime = 0;
+
+    // Aggressive movement
+    m_iStrafeDirection      = 1;
+    m_iNextStrafeChangeTime = 0;
 }
 
 BotMovement::~BotMovement()
@@ -61,14 +65,16 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     Vector vWishDir;
     Vector vDelta;
 
-    botcmd.forwardmove = 0;
-    botcmd.rightmove   = 0;
-
     CheckAttractiveNodes();
 
     if (!IsMoving() || !m_pPath) {
+        // Don't zero forwardmove/rightmove — let the state (idle/attack) drive movement
         return;
     }
+
+    // Pathfinding is active, override with path-directed movement
+    botcmd.forwardmove = 0;
+    botcmd.rightmove   = 0;
 
     if (m_pPath->GetNodeCount()) {
         m_vTargetPos = m_pPath->GetDestination();
@@ -241,6 +247,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.forwardmove = (signed char)Q_clamp(x, -127, 127);
     botcmd.rightmove   = (signed char)Q_clamp(y, -127, 127);
     botcmd.upmove      = 0;
+
+    // Apply aggressive evasive movement (strafe + lean)
+    UpdateAggressiveMovement(botcmd);
 
     CheckJump(botcmd);
 
@@ -1075,4 +1084,120 @@ Vector BotMovement::GetCurrentGoal() const
 Vector BotMovement::GetCurrentPathDirection() const
 {
     return m_pPath->GetCurrentDirection();
+}
+
+/*
+====================
+CalculateLateralClearance
+
+Trace laterally to determine how much space is available for strafing
+Returns distance in units (0 to maxCheckDist)
+====================
+*/
+float BotMovement::CalculateLateralClearance(int direction)
+{
+    const float maxCheckDist = 96.0f;
+
+    if (direction == 0 || !controlledEntity) {
+        return 0;
+    }
+
+    Vector forward, right, up;
+    AngleVectors(controlledEntity->angles, forward, right, up);
+
+    Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    Vector end   = start + right * direction * maxCheckDist;
+
+    trace_t trace = G_Trace(
+        start,
+        controlledEntity->mins,
+        controlledEntity->maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID,
+        false,
+        "BotMovement::CalculateLateralClearance"
+    );
+
+    return trace.fraction * maxCheckDist;
+}
+
+/*
+====================
+UpdateAggressiveMovement
+
+Apply continuous strafe and lean inputs for evasive movement.
+This makes the bot zigzag toward its destination rather than moving in a straight line.
+====================
+*/
+void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
+{
+    // Skip if feature is disabled
+    if (!g_bot_aggressive_movement->integer) {
+        return;
+    }
+
+    // Skip on ladders - strafing would interfere
+    if (controlledEntity->GetLadder()) {
+        return;
+    }
+
+    // Update strafe direction when timer expires
+    if (level.inttime >= m_iNextStrafeChangeTime) {
+        // Flip direction - always strafing, no pauses
+        m_iStrafeDirection      = (m_iStrafeDirection <= 0) ? 1 : -1;
+
+        // Next direction change time (single cvar controls cadence)
+        int switchInterval = g_bot_strafe_switch_interval->integer;
+        if (switchInterval < 100) {
+            switchInterval = 100;
+        }
+
+        m_iNextStrafeChangeTime = level.inttime + switchInterval;
+    }
+
+    // Calculate safe amplitude based on lateral clearance
+    float clearance = CalculateLateralClearance(m_iStrafeDirection);
+
+    const float minSafeSpace  = 32.0f;  // Minimum space to strafe at all
+    const float fullSafeSpace = 96.0f;  // Full amplitude above this
+
+    float amplitude;
+    if (clearance < minSafeSpace) {
+        // Not enough room, try the opposite direction
+        m_iStrafeDirection      = -m_iStrafeDirection;
+        clearance               = CalculateLateralClearance(m_iStrafeDirection);
+
+        if (clearance < minSafeSpace) {
+            // No room on either side (narrow corridor), skip strafe this frame
+            amplitude = 0.0f;
+        } else {
+            amplitude = (clearance - minSafeSpace) / (fullSafeSpace - minSafeSpace);
+            amplitude = Q_clamp(amplitude, 0.0f, 1.0f);
+        }
+    } else {
+        amplitude = (clearance - minSafeSpace) / (fullSafeSpace - minSafeSpace);
+        amplitude = Q_clamp(amplitude, 0.0f, 1.0f);
+    }
+
+    if (amplitude <= 0.0f) {
+        return;
+    }
+
+    // Apply strafe offset additively.
+    float strafeOffset = m_iStrafeDirection * amplitude * g_bot_strafe_intensity->value * 127.0f;
+    int   newRightMove  = botcmd.rightmove + (int)strafeOffset;
+
+    botcmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
+
+    // Lean is directly linked to strafe direction for simpler, predictable behavior.
+    // Clear previous lean state so we never end up pressing both lean buttons,
+    // which causes pmove to reject leaning entirely.
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    if (m_iStrafeDirection < 0) {
+        botcmd.buttons |= BUTTON_LEAN_LEFT;
+    } else {
+        botcmd.buttons |= BUTTON_LEAN_RIGHT;
+    }
 }
