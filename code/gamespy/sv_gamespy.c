@@ -126,19 +126,6 @@ const char *GS_GetCurrentGameVersion()
     return GS_GetGameVersion(com_target_game->integer);
 }
 
-static const char *ConvertMapFilename(const char *mapname)
-{
-    static char converted[1024];
-
-    const char *name = strstr(mapname, "/");
-    if (!name) {
-        return mapname;
-    }
-
-    strcpy(converted, name + 1);
-    return converted;
-}
-
 static void basic_callback(char *outbuf, int maxlen, void *userdata)
 {
     Info_SetValueForKey(outbuf, "gamename", GS_GetCurrentGameName());
@@ -154,12 +141,11 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
 {
     char         infostring[1024];
     qboolean     allowlean = qfalse;
-    unsigned int numBots;
 
     infostring[0] = 0;
     Info_SetValueForKey(infostring, "hostname", sv_hostname->string);
     Info_SetValueForKey(infostring, "hostport", Cvar_Get("net_port", "12203", CVAR_LATCH)->string);
-    Info_SetValueForKey(infostring, "mapname", ConvertMapFilename(svs.mapName));
+    Info_SetValueForKey(infostring, "mapname", svs.mapName);
     Info_SetValueForKey(infostring, "gametype", g_gametypestring->string);
     Info_SetValueForKey(infostring, "numplayers", va("%i", SV_NumClients()));
     Info_SetValueForKey(infostring, "maxplayers", va("%i", svs.iNumClients - sv_privateClients->integer));
@@ -180,17 +166,8 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
     Info_SetValueForKey(infostring, "allowlean", va("%i", allowlean));
 
     // Added in OPM
-    //  Bot-specific information
-    //  `minPlayers` means if the number of real clients is below `minPlayers`,
-    //  then bots are spawned to fill the gap.
-    //  For the caller, the number of bots is calculated using: minPlayers - numPlayers. If numPlayers is above minPlayers then there are 0 bots.
-    numBots = ge->GetNumSimulatedPlayers();
-    if (numBots > 0) {
-        Info_SetValueForKey(infostring, "minplayers", va("%i", numBots + SV_NumClients()));
-    } else {
-        Info_SetValueForKey(infostring, "minplayers", "0");
-    }
-    Info_SetValueForKey(infostring, "botskill", ge->GetSimulatedPlayersSkill());
+    //  Report bots as real players - always report 0 bots
+    Info_SetValueForKey(infostring, "minplayers", "0");
 
     if (strlen(infostring) < maxlen) {
         strcpy(outbuf, infostring);
