@@ -537,13 +537,20 @@ Remove the specified bot
 */
 void G_RemoveBot(gentity_t *ent)
 {
-    if (ent->entity) {
-        BotController *controller = botManager.getControllerManager().findController(ent->entity);
+    int clientNum = ent - g_entities;
 
-        botManager.getControllerManager().removeController(controller);
+    // Controller cleanup is now handled inside G_ClientDisconnect so that
+    // both the explicit G_RemoveBot path and the server-side SV_DropClient
+    // path (which bypasses G_RemoveBot) are covered.  No need to remove
+    // the controller here – G_ClientDisconnect will take care of it.
+
+    // Use DropClient for bots in shared slots so the server-side
+    // client_t state is properly cleaned up
+    if (clientNum < maxclients->integer) {
+        gi.DropClient(clientNum, "removed");
+    } else {
+        G_ClientDisconnect(ent);
     }
-
-    G_ClientDisconnect(ent);
 }
 
 /*
@@ -755,29 +762,33 @@ int G_CountClients()
 
 static unsigned int G_GetNumBotsToSpawn()
 {
-    unsigned int numClients;
+    unsigned int numPlayingClients;
+    unsigned int numConnectedClients;
     unsigned int numBotsToSpawn;
 
     //
     // Check the minimum bot count
     //
-    numClients = G_CountPlayingClients();
-    if (numClients < sv_minPlayers->integer) {
-        numBotsToSpawn = sv_minPlayers->integer - numClients + sv_numbots->integer;
-    } else {
-        numBotsToSpawn = sv_numbots->integer;
+    numPlayingClients = G_CountPlayingClients();
+
+    // sv_numbots is the base bot target, while sv_minPlayers is a floor for
+    // total playing population. They should not stack additively.
+    numBotsToSpawn = sv_numbots->integer;
+    if (numPlayingClients < sv_minPlayers->integer) {
+        numBotsToSpawn = Q_max(numBotsToSpawn, sv_minPlayers->integer - numPlayingClients);
     }
 
     if (sv_sharedbots->integer) {
-        numClients = G_CountClients();
+        numConnectedClients = G_CountClients();
 
         //
         // Cap to the maximum number of possible clients
         //
-        numBotsToSpawn = Q_min(numBotsToSpawn, maxclients->integer - numClients + sv_maxbots->integer);
-    } else {
-        numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
+        numBotsToSpawn = Q_min(numBotsToSpawn, Q_max(maxclients->integer - (int)numConnectedClients, 0));
     }
+
+    // Never exceed the configured maximum bot count.
+    numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
 
     return numBotsToSpawn;
 }
@@ -792,6 +803,22 @@ Save bots
 void G_RestartBots()
 {
     G_SaveBots();
+
+    // Map restarts keep the game module loaded. Remove all active bot entities
+    // before restore to avoid duplicate bots or stale pre-spawn entities.
+    while (true) {
+        gentity_t *bot = G_GetFirstBot();
+        if (!bot) {
+            break;
+        }
+
+        G_RemoveBot(bot);
+    }
+
+    // Defensive cleanup in case a controller wasn't linked to an entity.
+    botManager.Cleanup();
+
+    botId = 0;
 }
 
 static void G_InitBotSessionData()
