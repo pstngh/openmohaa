@@ -432,7 +432,51 @@ static void CG_InterpolatePlayerState(qboolean grabAngles)
     }
 
     // interpolate the lean angle
-    out->fLeanAngle = LerpAngle(prev->ps.fLeanAngle, next->ps.fLeanAngle, f);
+    {
+        float targetLeanAngle = LerpAngle(prev->ps.fLeanAngle, next->ps.fLeanAngle, f);
+
+        if (cg.demoPlayback) {
+            // Simulate lean physics toward the snapshot-interpolated target each render frame.
+            // This matches the proportional-control approach used by pmove (leanAdd, leanSpeed),
+            // giving the same exponential ease-in/out feel as live prediction instead of a
+            // flat linear interpolation between snapshot values.
+            float leanDiff = targetLeanAngle - cg.fCurrentLeanAngle;
+            float dt       = cg.frametime / 1000.0f;
+            float leanAdd, leanSpeed, leanChange, minChange;
+
+            if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
+                leanAdd   = 6.0f;
+                leanSpeed = 2.0f;
+            } else {
+                leanAdd   = 10.0f;
+                leanSpeed = 4.0f;
+            }
+
+            leanChange = dt * leanDiff * leanAdd;
+            minChange  = dt * leanSpeed;
+
+            // Apply minimum rate in the correct direction
+            if (leanDiff > 0.01f && leanChange < minChange) {
+                leanChange = minChange;
+            } else if (leanDiff < -0.01f && leanChange > -minChange) {
+                leanChange = -minChange;
+            }
+
+            // Don't overshoot the target
+            if (leanDiff >= 0.0f && leanChange > leanDiff) {
+                leanChange = leanDiff;
+            } else if (leanDiff < 0.0f && leanChange < leanDiff) {
+                leanChange = leanDiff;
+            }
+
+            cg.fCurrentLeanAngle += leanChange;
+            out->fLeanAngle = cg.fCurrentLeanAngle;
+        } else {
+            // Live play: use interpolated value directly and keep sync'd
+            out->fLeanAngle      = targetLeanAngle;
+            cg.fCurrentLeanAngle = targetLeanAngle;
+        }
+    }
 }
 
 /*

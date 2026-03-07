@@ -315,6 +315,68 @@ void CG_OffsetFirstPersonView(refEntity_t *pREnt, qboolean bUseWorldPosition)
 
     if (bUseWorldPosition) {
         iMask = MASK_VIEWSOLID;
+
+        // Apply view bobbing for the animation-driven view mode (player must be alive)
+        if (cg.snap->ps.stats[STAT_HEALTH] > 0) {
+            float  fPhase, fVel;
+            vec3_t vPivotPoint;
+            vec3_t vForward, vLeft;
+
+            vPivotPoint[0] = cg.refdefViewAngles[0];
+            vPivotPoint[1] = cg.refdefViewAngles[1];
+            vPivotPoint[2] = 0.0;
+            AngleVectorsLeft(vPivotPoint, vForward, vLeft, NULL);
+
+            if (cg.predicted_player_state.walking) {
+                fVel   = VectorLength(vVelocity);
+                fPhase = fVel * 0.0015 + 0.9;
+                cg.fCurrentViewBobPhase +=
+                    (cg.frametime / 1000.0 + cg.frametime / 1000.0) * M_PI * fPhase;
+
+                if (cg.fCurrentViewBobAmp) {
+                    cg.fCurrentViewBobAmp = fVel;
+                } else {
+                    cg.fCurrentViewBobAmp = fVel * 0.5;
+                }
+
+                if (cg.predicted_player_state.fLeanAngle != 0.0) {
+                    cg.fCurrentViewBobAmp *= 0.75;
+                }
+
+                cg.fCurrentViewBobAmp *=
+                    (1.0 - fabs(cg.refdefViewAngles[0]) * (1.0 / 90.0) * 0.5) * 0.5;
+            } else if (cg.fCurrentViewBobAmp > 0.0) {
+                cg.fCurrentViewBobAmp -= (cg.frametime / 1000.0 * cg.fCurrentViewBobAmp)
+                                         + (cg.frametime / 1000.0 * cg.fCurrentViewBobAmp);
+
+                if (cg.fCurrentViewBobAmp < 0.1) {
+                    cg.fCurrentViewBobAmp = 0.0;
+                }
+            }
+
+            if (cg.fCurrentViewBobAmp > 0.0) {
+                fPhase = sin(cg.fCurrentViewBobPhase) * cg.fCurrentViewBobAmp * 0.03;
+
+                if (fPhase > 16.0) {
+                    fPhase = 16.0;
+                } else if (fPhase < -16.0) {
+                    fPhase = -16.0;
+                }
+
+                VectorMA(origin, fPhase, vLeft, origin);
+
+                fPhase = sin(cg.fCurrentViewBobPhase - 0.94);
+                fPhase = (fabs(fPhase) - 0.5) * cg.fCurrentViewBobAmp * 0.06;
+
+                if (fPhase > 16.0) {
+                    fPhase = 16.0;
+                } else if (fPhase < -16.0) {
+                    fPhase = -16.0;
+                }
+
+                origin[2] += fPhase;
+            }
+        }
     } else {
         float  fTargHeight;
         float  fHeightDelta, fHeightChange;
