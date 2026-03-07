@@ -743,6 +743,9 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 		return;		// already dropped
 	}
 
+	// Clean up admin session state
+	SV_AdminOnClientDisconnect(drop);
+
 	if ( !isBot ) {
 		// see if we already have a challenge for this ip
 		challenge = &svs.challenges[0];
@@ -1719,8 +1722,14 @@ Also called by bot code
 void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	ucmd_t	*u;
 	qboolean bProcessed = qfalse;
-	
+
 	Cmd_TokenizeString( s );
+
+	// Added in OPM
+	//  Check if chat/taunt should be blocked by admin
+	if (SV_AdminShouldBlockClientCommand(cl, Cmd_Argv(0))) {
+		return;
+	}
 
 	// see if it is a server level command
 	for (u=ucmds ; u->name ; u++) {
@@ -1731,14 +1740,11 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 		}
 	}
 
-	// Removed in OPM
-	//  Message printing is now handled by fgame
-    //// Added in 1.11 MAC server
-    ////  Display chat messages
-    ////  NOTE: this should be handled by fgame, not server
-    ////if (!Q_stricmp(Cmd_Argv(0), "dmmessage")) {
-    ////	Com_Printf("%s (%zu): %s", cl->name, (size_t)(cl - svs.clients), s);
-    ////}
+	// Added in OPM
+	//  Admin command dispatch (after ucmd, before game DLL)
+	if (!bProcessed && SV_AdminHandleClientCommand(cl)) {
+		return;
+	}
 
 	if (clientOK) {
 		// pass unknown strings to the game
