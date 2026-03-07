@@ -1096,6 +1096,10 @@ void G_ClientDisconnect(gentity_t *ent)
             if (BotController *controller = controllerManager.findController(ent->entity)) {
                 controllerManager.removeController(controller);
             }
+
+            // Notify the bot spawner so it doesn't immediately create a
+            // replacement that would just be evicted again.
+            G_NotifyBotEvicted();
         }
 
         assert(ent->entity->IsSubclassOfPlayer());

@@ -30,6 +30,7 @@ static saved_bot_t *saved_bots     = NULL;
 static unsigned int num_saved_bots = 0;
 static unsigned int botId          = 0;
 static float  botInitTime          = 0;
+static float  lastBotEvictTime     = 0;
 
 Container<str> alliedModelList;
 Container<str> germanModelList;
@@ -236,33 +237,6 @@ gentity_t *G_FindFreeEntityForBot()
 
 /*
 ===========
-G_ChangeParent
-
-Fix parenting for entities that use the old number
-============
-*/
-void G_ChangeParent(int oldNum, int newNum)
-{
-    gentity_t *ent;
-    int        i;
-
-    for (i = 0; i < game.maxentities; i++) {
-        ent = &g_entities[i];
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        if (ent->s.parent == oldNum) {
-            ent->s.parent = newNum;
-        }
-        if (ent->r.ownerNum == oldNum) {
-            ent->r.ownerNum = newNum;
-        }
-    }
-}
-
-/*
-===========
 G_BotShift
 
 If the specified slot is used, the bot will be relocated
@@ -272,7 +246,6 @@ to the next free entity slot
 void G_BotShift(int clientNum)
 {
     gentity_t *ent;
-    gentity_t *newEnt;
 
     ent = &g_entities[clientNum];
     if (!ent->inuse || !ent->client || !ent->entity) {
@@ -283,49 +256,16 @@ void G_BotShift(int clientNum)
         return;
     }
 
-    newEnt = G_FindFreeEntityForBot();
-    if (!newEnt) {
-        G_RemoveBot(ent);
-        return;
-    }
-
+    // Simply remove the bot. G_SpawnBots() runs every frame and will
+    // recreate it automatically if the target bot count requires it.
     //
-    // Allocate the new entity
-    //
-    level.spawn_entnum = newEnt - g_entities;
-    level.AllocEdict(ent->entity);
-
-    //
-    // Copy all fields
-    //
-    newEnt->s        = ent->s;
-    newEnt->s.number = newEnt - g_entities;
-    memcpy(newEnt->client, ent->client, sizeof(*newEnt->client));
-    newEnt->r     = ent->r;
-    newEnt->solid = ent->solid;
-    newEnt->tiki  = ent->tiki;
-    AxisCopy(ent->mat, newEnt->mat);
-
-    newEnt->freetime  = ent->freetime;
-    newEnt->spawntime = ent->spawntime;
-    newEnt->radius2   = ent->radius2;
-    memcpy(newEnt->entname, ent->entname, sizeof(newEnt->entname));
-    newEnt->clipmask             = ent->clipmask;
-    newEnt->entity               = ent->entity;
-    newEnt->entity->edict        = newEnt;
-    newEnt->entity->client       = newEnt->client;
-    newEnt->entity->entnum       = newEnt->s.number;
-    newEnt->client->ps.clientNum = newEnt->s.number;
-
-    G_ChangeParent(ent->s.number, newEnt->s.number);
-
-    //
-    // Free the old entity so the real client will use it
-    //
-    level.FreeEdict(ent);
-    memset(ent->client, 0, sizeof(*ent->client));
-
-    G_SetClientConfigString(newEnt);
+    // The old approach tried to copy the game-side entity to another slot,
+    // but this left the server-side client_t at the original slot, creating
+    // a mismatch. During map restarts the bot would cascade through every
+    // reconnecting player's slot (5->6->7->...->32), eventually landing
+    // past maxclients where gi.DropClient() silently fails, leaving ghost
+    // server state.
+    G_RemoveBot(ent);
 }
 
 /*
@@ -397,6 +337,10 @@ G_GetRandomAlliedPlayerModel
 */
 const char *G_GetRandomAlliedPlayerModel()
 {
+    if (g_bot_allied_skin->string[0]) {
+        return g_bot_allied_skin->string;
+    }
+
     if (!alliedModelList.NumObjects()) {
         return "";
     }
@@ -412,6 +356,10 @@ G_GetRandomGermanPlayerModel
 */
 const char *G_GetRandomGermanPlayerModel()
 {
+    if (g_bot_axis_skin->string[0]) {
+        return g_bot_axis_skin->string;
+    }
+
     if (!germanModelList.NumObjects()) {
         return "";
     }
@@ -818,6 +766,10 @@ void G_RestartBots()
     // Defensive cleanup in case a controller wasn't linked to an entity.
     botManager.Cleanup();
 
+    // Clear the eviction cooldown so bots can be respawned immediately
+    // after an intentional restart.
+    lastBotEvictTime = 0;
+
     botId = 0;
 }
 
@@ -923,7 +875,8 @@ void G_ResetBots()
 
     botManager.Cleanup();
 
-    botId = 0;
+    botId            = 0;
+    lastBotEvictTime = 0;
 }
 
 /*
@@ -975,6 +928,20 @@ void G_BotPostInit()
 
 /*
 ===========
+G_NotifyBotEvicted
+
+Called when a bot is disconnected to make room for a real player.
+Records the time so G_SpawnBots can avoid immediately respawning
+a bot that would just be evicted again.
+============
+*/
+void G_NotifyBotEvicted()
+{
+    lastBotEvictTime = level.time;
+}
+
+/*
+===========
 G_SpawnBots
 
 Called each frame to manage bot spawning
@@ -982,7 +949,6 @@ Called each frame to manage bot spawning
 */
 void G_SpawnBots()
 {
-    unsigned int numClients;
     unsigned int numBotsToSpawn;
     unsigned int numSpawnedBots;
 
@@ -1003,6 +969,14 @@ void G_SpawnBots()
     // Spawn bots
     //
     if (numBotsToSpawn > numSpawnedBots) {
+        // Don't spawn bots right after one was evicted to make room for a
+        // real player.  Without this cooldown the server enters a tight
+        // spawn-evict loop: G_AddBot creates a bot, SV_DirectConnect
+        // immediately evicts it, next frame G_AddBot creates another, etc.
+        if (lastBotEvictTime > 0 && level.time - lastBotEvictTime < 2000) {
+            return;
+        }
+
         G_AddBots(numBotsToSpawn - numSpawnedBots);
     } else if (numBotsToSpawn < numSpawnedBots) {
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);

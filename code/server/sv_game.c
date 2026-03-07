@@ -408,6 +408,9 @@ void PF_MSG_EndCGM ()
 void PF_MSG_SetClient (int iClient)
 {
 	memset(g_CGMRecieve,0,sizeof(g_CGMRecieve));
+	if (svs.clients[iClient].netchan.remoteAddress.type == NA_BOT) {
+		return;
+	}
 	if(g_CGMessages[iClient].data && (g_CGMessages[iClient].cursize <= 3967))
 	{
 		g_CGMRecieve[iClient] = 1;
@@ -429,6 +432,11 @@ void MSG_SetBroadcastAll()
 		}
 
 		if (client->state == CS_FREE) {
+			continue;
+		}
+
+		// Bots have no network connection and never consume CGM data
+		if (client->netchan.remoteAddress.type == NA_BOT) {
 			continue;
 		}
 
@@ -480,6 +488,11 @@ void MSG_SetBroadcastVisible(const vec_t* vPos, const vec_t* vPosB)
 		}
 
 		if(pClient->state == CS_FREE) {
+			continue;
+		}
+
+		// Bots have no network connection and never consume CGM data
+		if (pClient->netchan.remoteAddress.type == NA_BOT) {
 			continue;
 		}
 
@@ -1952,6 +1965,8 @@ void SV_InitGameProgs( void ) {
     
     import.Client_NumPendingCommands	= PF_SV_Client_NumPendingCommands;
     import.Client_MaxPendingCommands	= PF_SV_Client_MaxPendingCommands;
+
+    import.BotConnect                   = SV_BotConnect;
 
 	ge = Sys_GetGameAPI( &import );
 

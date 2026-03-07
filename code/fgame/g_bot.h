@@ -52,5 +52,6 @@ void         G_BotInit();
 void         G_BotFrame();
 void         G_BotPostInit();
 void         G_SpawnBots();
+void         G_NotifyBotEvicted();
 const char  *G_GetRandomAlliedPlayerModel();
 const char  *G_GetRandomGermanPlayerModel();
