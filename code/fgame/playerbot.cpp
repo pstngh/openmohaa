@@ -76,6 +76,9 @@ BotController::BotController()
 
     m_iNextTauntTime = 0;
 
+    m_iFakePing            = 98 + (rand() % 11);
+    m_iNextPingUpdateTime  = 0;
+
     m_StateFlags = 0;
 }
 
@@ -1211,6 +1214,13 @@ void BotController::Think()
 {
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
+
+    // Simulate a realistic ping for the scoreboard
+    if (level.inttime >= m_iNextPingUpdateTime) {
+        m_iFakePing           = 98 + (rand() % 11);
+        m_iNextPingUpdateTime = level.inttime + 2000 + (rand() % 3001);
+    }
+    controlledEnt->client->ps.ping = m_iFakePing;
 
     UpdateBotStates();
     GetUsercmd(&ucmd);

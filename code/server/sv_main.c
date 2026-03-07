@@ -887,6 +887,31 @@ static void SV_CalcPings( void ) {
 			continue;
 		}
 
+		// Added in OPM
+		//  Synthesize a realistic fake ping for bots using a weighted value pool (98/100 favored)
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			static int botPingTimers[MAX_CLIENTS] = {0};
+			static int botPingValues[MAX_CLIENTS] = {0};
+			static const int botPingPool[] = {98, 100, 98, 100, 98, 100, 96, 101, 103, 105, 106, 107, 108, 109, 110};
+			int clientNum = (int)(cl - svs.clients);
+
+			if (svs.time > botPingTimers[clientNum]) {
+				botPingValues[clientNum] = botPingPool[rand() % ARRAY_LEN(botPingPool)];
+				botPingTimers[clientNum] = svs.time + 2000 + (rand() % 3001);
+			}
+
+			cl->ping = botPingValues[clientNum];
+
+			// Never show 99 for bots; bump to 100 if it ever appears.
+			if (cl->ping == 99) {
+				cl->ping = 100;
+			}
+
+			ps = SV_GameClientNum( i );
+			ps->ping = cl->ping;
+			continue;
+		}
+
 		total = 0;
 		count = 0;
 		for ( j = 0 ; j < PACKET_BACKUP ; j++ ) {
@@ -935,6 +960,11 @@ static void SV_CheckTimeouts( void ) {
 	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
 
 	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
+		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+			cl->timeoutCount = 0;
+			continue;
+		}
+
 		// message times may be wrong across a changelevel
 		if (cl->lastPacketTime > svs.time) {
 			cl->lastPacketTime = svs.time;
@@ -981,9 +1011,10 @@ qboolean SV_CheckPaused( void ) {
 	}
 
 	// only pause if there is just a single client connected
+	// Count all clients including bots as real players
 	count = 0;
 	for (i=0,cl=svs.clients ; i < svs.iNumClients ; i++,cl++) {
-		if ( cl->state >= CS_CONNECTED && cl->netchan.remoteAddress.type != NA_BOT ) {
+		if ( cl->state >= CS_CONNECTED ) {
 			count++;
 		}
 	}
@@ -1439,4 +1470,40 @@ void SV_PrintfClient(int clientNum, const char *fmt, ...) {
 
     addr = NET_AdrToStringwPort(cl->netchan.remoteAddress);
     Com_Printf("{#%d | %s} %s %s", clientNum, addr, name, msg);
+}
+
+/*
+==================
+SV_BotConnect
+
+Register a bot in the server-side client slot so that it is
+visible to the master server, scoreboard, and status queries.
+==================
+*/
+void SV_BotConnect(int clientNum, const char *userinfo) {
+    client_t  *cl;
+    gentity_t *ent;
+    const char *name;
+
+    if (clientNum < 0 || clientNum >= svs.iNumClients) {
+        return;
+    }
+
+    cl  = &svs.clients[clientNum];
+    ent = SV_GentityNum(clientNum);
+
+    // Set up the client as a bot
+    cl->state   = CS_ACTIVE;
+    cl->gentity = ent;
+    cl->ping    = 0;
+    cl->rate    = 3000;
+    cl->snapshotMsec = 50;
+    cl->lastPacketTime = svs.time;
+    cl->timeoutCount = 0;
+
+    cl->netchan.remoteAddress.type = NA_BOT;
+
+    name = Info_ValueForKey(userinfo, "name");
+    Q_strncpyz(cl->name, name, sizeof(cl->name));
+    Q_strncpyz(cl->userinfo, userinfo, sizeof(cl->userinfo));
 }
