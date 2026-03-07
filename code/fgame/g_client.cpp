@@ -854,6 +854,12 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
     client->pers.port = 0;
 
     G_ClientUserinfoChanged(ent, userinfo);
+
+    // Register the bot in the server-side client slot
+    // so it appears in status queries and master server reporting
+    if (clientNum < maxclients->integer) {
+        gi.BotConnect(clientNum, userinfo);
+    }
 }
 
 /*
@@ -1075,9 +1081,22 @@ void G_ClientDisconnect(gentity_t *ent)
             return;
         }
 
-        G_PrintfClient(ent, "has left the battle\n");
+        if (!(ent->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(ent, "has left the battle\n");
 
-        G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+            G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+        }
+
+        // Bots can be dropped from server code paths (e.g. making room for humans)
+        // without going through G_RemoveBot(). Ensure we also destroy the
+        // matching controller here to avoid stale/orphaned controllers that
+        // cause bot cycling and use-after-free crashes.
+        if (ent->r.svFlags & SVF_BOT) {
+            BotControllerManager& controllerManager = botManager.getControllerManager();
+            if (BotController *controller = controllerManager.findController(ent->entity)) {
+                controllerManager.removeController(controller);
+            }
+        }
 
         assert(ent->entity->IsSubclassOfPlayer());
         ((Player *)ent->entity)->Disconnect();
