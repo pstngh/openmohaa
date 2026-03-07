@@ -3716,7 +3716,7 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
             // Added in 2.0
             // In multiplayer mode, specify if the player can lean while moving
             //
-            if (dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) {
+            if ((dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) || (edict->r.svFlags & SVF_BOT)) {
                 pm->alwaysAllowLean = qtrue;
             } else {
                 pm->alwaysAllowLean = qfalse;
@@ -4548,9 +4548,16 @@ void Player::ClientThink(void)
         client->cmd_angles[1] = SHORT2ANGLE(current_ucmd->angles[1]);
         client->cmd_angles[2] = SHORT2ANGLE(current_ucmd->angles[2]);
 
-        if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+        if (g_gametype->integer != GT_SINGLE_PLAYER
+            && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
             VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
             edict->s.pos.trTime = client->ps.commandTime;
+
+            if (edict->r.svFlags & SVF_BOT) {
+                // Bots typically have commandTime == serverTime; offset by one frame
+                // so clients can extrapolate bot trajectories between snapshots.
+                edict->s.pos.trTime -= level.intframetime;
+            }
         } else {
             VectorClear(edict->s.pos.trDelta);
             edict->s.pos.trTime = 0;
@@ -7165,9 +7172,16 @@ void Player::FinishMove(void)
     DamageFeedback();
     CalcBlend();
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER && g_smoothClients->integer) {
+    if (g_gametype->integer != GT_SINGLE_PLAYER
+        && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
         VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
         edict->s.pos.trTime = client->ps.commandTime;
+
+        if (edict->r.svFlags & SVF_BOT) {
+            // Bots typically have commandTime == serverTime; offset by one frame
+            // so clients can extrapolate bot trajectories between snapshots.
+            edict->s.pos.trTime -= level.intframetime;
+        }
     } else {
         VectorClear(edict->s.pos.trDelta);
         edict->s.pos.trTime = 0;
@@ -8934,6 +8948,13 @@ void Player::EquipWeapons()
         return;
     }
 
+    // Added in OPM
+    //  Override bot primary weapon via cvar, defaulting to sniper
+    if (edict->r.svFlags & SVF_BOT) {
+        const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
+        Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+    }
+
     // Fixed in OPM
     //  Old behavior was calling GetPlayerTeamType() regardless of the team
     if (GetTeam() == TEAM_AXIS) {
@@ -9236,6 +9257,13 @@ void Player::EquipWeapons_ver8()
         FreeInventory();
     } else {
         Event *ev = new Event("use");
+
+        // Added in OPM
+        //  Override bot primary weapon via cvar, defaulting to sniper
+        if (edict->r.svFlags & SVF_BOT) {
+            const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
+            Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+        }
 
         if (!Q_stricmp(client->pers.dm_primary, "rifle")) {
             if (dm_team == TEAM_ALLIES) {
