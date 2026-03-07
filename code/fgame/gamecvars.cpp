@@ -151,7 +151,6 @@ cvar_t *g_spawnai;
 
 cvar_t *g_patherror;
 cvar_t *g_droppeditemlife;
-cvar_t *g_dropclips;
 cvar_t *g_animdump;
 cvar_t *g_showdamage;
 cvar_t *g_ai_notifyradius;
@@ -470,7 +469,6 @@ void CVAR_Init(void)
     g_patherror = gi.Cvar_Get("g_patherror", "1", 0);
 
     g_droppeditemlife = gi.Cvar_Get("g_droppeditemlife", "30", 0);
-    g_dropclips       = gi.Cvar_Get("g_dropclips", "2", 0);
 
     g_animdump = gi.Cvar_Get("g_animdump", "0", 0);
 
