@@ -156,7 +156,6 @@ extern cvar_t *g_spawnai;
 
 extern cvar_t *g_patherror;
 extern cvar_t *g_droppeditemlife;
-extern cvar_t *g_dropclips;
 extern cvar_t *g_animdump;
 extern cvar_t *g_showdamage;
 extern cvar_t *g_ai_notifyradius;
