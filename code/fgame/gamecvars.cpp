@@ -275,10 +275,9 @@ cvar_t *sv_numbots;
 //  If the number of real players is below this number,
 //  the game will automatically add bots to fill the gap
 cvar_t *sv_minPlayers;
-// Whether or not the bots use a shared player slots
-//  NOTE: Setting this cvar is not recommended
-//  because when a client connects and the slot is used by a bot
-//  the bot will be relocated to a free entity slot
+// Whether or not the bots use shared player slots
+//  When enabled (default), bots occupy real client slots and are
+//  reported as real players to the master server
 cvar_t *sv_sharedbots;
 
 cvar_t *g_bot_attack_burst_min_time;
@@ -293,6 +292,13 @@ cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
+cvar_t *g_bot_aggressive_movement;
+cvar_t *g_bot_strafe_intensity;
+cvar_t *g_bot_strafe_switch_interval;
+cvar_t *g_bot_strafe_additive;
+cvar_t *g_bot_allied_skin;
+cvar_t *g_bot_axis_skin;
+cvar_t *g_bot_primary_weapon;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -674,7 +680,7 @@ void CVAR_Init(void)
 
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
     sv_maxbots     = gi.Cvar_Get("sv_maxbots", "0", CVAR_LATCH);
-    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
+    sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "1", CVAR_LATCH);
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
@@ -709,6 +715,14 @@ void CVAR_Init(void)
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
+
+    g_bot_aggressive_movement  = gi.Cvar_Get("g_bot_aggressive_movement", "1", 0);
+    g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
+    g_bot_strafe_switch_interval = gi.Cvar_Get("g_bot_strafe_switch_interval", "1100", 0);
+    g_bot_strafe_additive        = gi.Cvar_Get("g_bot_strafe_additive", "1", 0);
+    g_bot_allied_skin            = gi.Cvar_Get("g_bot_allied_skin", "", 0);
+    g_bot_axis_skin              = gi.Cvar_Get("g_bot_axis_skin", "", 0);
+    g_bot_primary_weapon         = gi.Cvar_Get("g_bot_primary_weapon", "", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

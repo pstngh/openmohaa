@@ -118,6 +118,16 @@ private:
     bool   m_bJump;
     int    m_iJumpCheckTime;
     Vector m_vJumpLocation;
+
+    ///
+    /// Aggressive movement (strafe + lean)
+    ///
+
+    int m_iStrafeDirection;       // -1 = left, 0 = none, 1 = right
+    int m_iNextStrafeChangeTime;  // When to switch strafe direction
+
+    void  UpdateAggressiveMovement(usercmd_t& botcmd);
+    float CalculateLateralClearance(int direction);
 };
 
 class BotRotation
@@ -197,10 +207,6 @@ private:
     // Taunts
     int m_iNextTauntTime;
     int m_iLastFireTime;
-
-    // Fake ping
-    int m_iFakePing;
-    int m_iNextPingUpdateTime;
 
 private:
     DelegateHandle delegateHandle_gotKill;

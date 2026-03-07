@@ -397,6 +397,10 @@ G_GetRandomAlliedPlayerModel
 */
 const char *G_GetRandomAlliedPlayerModel()
 {
+    if (g_bot_allied_skin->string[0]) {
+        return g_bot_allied_skin->string;
+    }
+
     if (!alliedModelList.NumObjects()) {
         return "";
     }
@@ -412,6 +416,10 @@ G_GetRandomGermanPlayerModel
 */
 const char *G_GetRandomGermanPlayerModel()
 {
+    if (g_bot_axis_skin->string[0]) {
+        return g_bot_axis_skin->string;
+    }
+
     if (!germanModelList.NumObjects()) {
         return "";
     }

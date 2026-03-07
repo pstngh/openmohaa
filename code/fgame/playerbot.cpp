@@ -76,9 +76,6 @@ BotController::BotController()
 
     m_iNextTauntTime = 0;
 
-    m_iFakePing            = 98 + (rand() % 11);
-    m_iNextPingUpdateTime  = 0;
-
     m_StateFlags = 0;
 }
 
@@ -138,7 +135,7 @@ void BotController::UpdateBotStates(void)
         // Primary weapon
         //
         event = new Event(EV_Player_PrimaryDMWeapon);
-        event->AddString("auto");
+        event->AddString(g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "auto");
 
         controlledEnt->ProcessEvent(event);
     }
@@ -269,6 +266,10 @@ void BotController::CheckValidWeapon()
     Weapon *weapon = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
     if (!weapon) {
         // If holstered, use the best weapon available
+        UseWeaponWithAmmo();
+    } else if (!(weapon->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
+        // Added in OPM
+        //  Force bots to switch to pistol (melee-only behavior)
         UseWeaponWithAmmo();
     } else if (!weapon->HasAmmo(FIRE_PRIMARY) && !controlledEnt->GetNewActiveWeapon()) {
         // In case the current weapon has no ammo, use the best available weapon
@@ -770,7 +771,7 @@ bool BotController::CheckCondition_Attack(void)
 
         maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
 
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
+        if (controlledEnt->CanSee(sent, 360, maxDistance, false)) {
             if (m_pEnemy != sent) {
                 m_iEnemyEyesTag = -1;
             }
@@ -829,7 +830,7 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+        controlledEnt->CanSee(m_pEnemy, 360, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -837,16 +838,8 @@ void BotController::State_Attack(void)
         }
 
         bCanAttack = true;
-        if (m_iLastUnseenTime) {
-            const float reactionTime = Q_min(1000 * Q_min(1, fDistanceSquared / Square(2048)), 1000);
-            const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
-            const unsigned int randomDelay = g_bot_attack_react_random_delay->value * 1000;
-            if (level.inttime <= m_iLastUnseenTime + minDelay + G_Random(randomDelay)) {
-                bCanAttack = false;
-            } else {
-                m_iLastUnseenTime = 0;
-            }
-        }
+        // No reaction delay - bots attack instantly
+        m_iLastUnseenTime = 0;
 
         if (bCanAttack) {
             const int fireDelay                    = pWeap->FireDelay(FIRE_PRIMARY) * 1000;
@@ -863,6 +856,7 @@ void BotController::State_Attack(void)
 
             //
             // check the fire movement speed if the weapon has a max fire movement
+            // NOTE: We no longer stop movement - bots should always keep moving
             //
             if (pWeap->GetMaxFireMovement() < 1 && pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
                 float length;
@@ -870,7 +864,6 @@ void BotController::State_Attack(void)
                 length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
-                    movement.ClearMove();
                 }
             }
 
@@ -912,8 +905,7 @@ void BotController::State_Attack(void)
                         }
                     } else {
                         bNoMove = true;
-                        movement.ClearMove();
-                    }
+                        }
                 } else {
                     bFiring = true;
                     m_botCmd.buttons |= BUTTON_ATTACKLEFT;
@@ -957,12 +949,17 @@ void BotController::State_Attack(void)
 
             if (bMelee) {
                 m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+            }
 
-                if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                }
+            // Added in OPM
+            //  Force melee-only: bots never shoot, only bash/melee
+            m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+            if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE
+                && fDistanceSquared <= fSecondaryBulletRangeSquared) {
+                // Pulse secondary fire so melee/bashes retrigger reliably.
+                m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+            } else {
+                m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
             }
 
             m_iAttackTime        = level.inttime + 1000;
@@ -980,7 +977,6 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
         Vector        vTarget;
         orientation_t eyes_or;
 
@@ -992,58 +988,24 @@ void BotController::State_Attack(void)
         if (m_iEnemyEyesTag != -1) {
             // Use the enemy's eyes bone
             m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), -G_Random(32));
             vTarget = eyes_or.origin;
         } else {
-            //vRandomOffset = Vector(G_CRandom(8), G_CRandom(8), 16 + G_Random(m_pEnemy->viewheight - 16));
             vTarget = m_pEnemy->origin;
         }
 
-        if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-            }
-            m_iLastAimTime = level.inttime;
-        }
-
-        rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        // Instant lock - no aim offset, no spread
+        rotation.AimAt(vTarget);
     } else {
         AimAtAimNode();
     }
 
-    if (bNoMove) {
+    // Always rush toward the enemy - get as close as possible
+    movement.MoveTo(m_vLastEnemyPos);
+
+    if (!bCanSee && movement.MoveDone()) {
+        // Lost track of the enemy
+        ClearEnemy();
         return;
-    }
-
-    fEnemyDistanceSquared = (controlledEnt->origin - m_vLastEnemyPos).lengthSquared();
-
-    if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
-        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
-        if (!bMelee || !bCanSee) {
-            if (fEnemyDistanceSquared < fMinDistanceSquared) {
-                Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
-                VectorNormalizeFast(vDir);
-
-                movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
-            } else {
-                movement.MoveTo(m_vLastEnemyPos);
-            }
-
-            if (!bCanSee && movement.MoveDone()) {
-                // Lost track of the enemy
-                ClearEnemy();
-                return;
-            }
-        } else {
-            movement.MoveTo(m_vLastEnemyPos);
-        }
     }
 
     if (movement.IsMoving()) {
@@ -1133,6 +1095,12 @@ Weapon *BotController::FindWeaponWithAmmo()
             continue;
         }
 
+        // Added in OPM
+        //  Bots only use pistol-class weapons
+        if (!(next->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
+            continue;
+        }
+
         if (next->GetRank() < bestrank) {
             continue;
         }
@@ -1168,6 +1136,12 @@ Weapon *BotController::FindMeleeWeapon()
 
         assert(next);
         if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
+            continue;
+        }
+
+        // Added in OPM
+        //  Bots only use pistol-class weapons for melee
+        if (!(next->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
             continue;
         }
 
@@ -1215,13 +1189,6 @@ void BotController::Think()
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
 
-    // Simulate a realistic ping for the scoreboard
-    if (level.inttime >= m_iNextPingUpdateTime) {
-        m_iFakePing           = 98 + (rand() % 11);
-        m_iNextPingUpdateTime = level.inttime + 2000 + (rand() % 3001);
-    }
-    controlledEnt->client->ps.ping = m_iFakePing;
-
     UpdateBotStates();
     GetUsercmd(&ucmd);
     GetEyeInfo(&eyeinfo);
@@ -1257,7 +1224,7 @@ void BotController::Killed(const Event& ev)
 
     // Choose a new random primary weapon
     Event event(EV_Player_PrimaryDMWeapon);
-    event.AddString("auto");
+    event.AddString(g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "auto");
 
     controlledEnt->ProcessEvent(event);
 
@@ -1276,24 +1243,9 @@ void BotController::GotKill(const Event& ev)
     ClearEnemy();
     m_iCuriousTime = 0;
 
-    if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
-        //
-        // Randomly play a taunt
-        //
-        Event event("dmmessage");
-
-        event.AddInteger(0);
-
-        if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-            event.AddString("*5" + str(1 + (rand() % 8)));
-        } else {
-            event.AddString("*4" + str(1 + (rand() % 9)));
-        }
-
-        controlledEnt->ProcessEvent(event);
-
-        m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
-    }
+    // Disabled in OPM: bots should never send taunts/instamsg chatter.
+    // Keep timer state reset so re-enabling in the future won't burst.
+    m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
 }
 
 void BotController::EventStuffText(const str& text)
