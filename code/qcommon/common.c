@@ -3155,7 +3155,7 @@ void Com_InitTargetGameWithType(target_game_e target_game, qboolean bIsDemo)
 			Cvar_Set("com_legacyprotocol", va("%i", PROTOCOL_MOH_DEMO));
         }
 		protocol_version_demo = protocol_version_full = PROTOCOL_MOH;
-		Cvar_Set("com_target_shortversion", va("%s+%s", TARGET_GAME_VERSION_MOH, PRODUCT_VERSION));
+		Cvar_Set("com_target_shortversion", "1.11");
 		Cvar_Set("com_target_extension", PRODUCT_EXTENSION_MOH);
         Cvar_Set("com_target_version", va("Medal of Honor %s %s", com_target_extension->string, com_target_shortversion->string));
 		Cvar_Set("com_gamename", TARGET_GAME_NAME_MOH);
