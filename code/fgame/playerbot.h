@@ -184,14 +184,9 @@ private:
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
     int    m_iContinuousFireTime;
-    Vector m_vAimOffset;
-    int    m_iLastAimTime;
-
-    Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
-    Vector            m_vLastDeathPos;
     SafePtr<Sentient> m_pEnemy;
     int               m_iEnemyEyesTag;
 
@@ -208,6 +203,13 @@ private:
     int m_iNextTauntTime;
     int m_iLastFireTime;
 
+    // Roomba movement (all states)
+    int    m_iRoombaTurnDir;            // -1 = left, 1 = right (fixed at spawn)
+    float  m_fRoombaYaw;                // accumulated yaw angle
+    float  m_fRoombaTurnSpeed;          // turn speed (degrees/frame)
+    bool   m_bAimOverride;             // true = attack is aiming, skip roomba yaw this frame
+    int    m_iStrafeDir;                // -1 = left, 1 = right
+    int    m_iNextStrafeSwitchTime;     // when to flip strafe direction
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -273,8 +275,6 @@ public:
 
     void UpdateBotStates(void);
     void CheckReload(void);
-
-    void AimAtAimNode(void);
 
     void NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDistanceSquared, float fRadiusSquared);
     void ClearEnemy(void);

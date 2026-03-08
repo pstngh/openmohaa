@@ -65,14 +65,16 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     Vector vWishDir;
     Vector vDelta;
 
-    botcmd.forwardmove = 0;
-    botcmd.rightmove   = 0;
-
     CheckAttractiveNodes();
 
     if (!IsMoving() || !m_pPath) {
+        // Don't zero forwardmove/rightmove — let the state (idle/attack) drive movement
         return;
     }
+
+    // Pathfinding is active, override with path-directed movement
+    botcmd.forwardmove = 0;
+    botcmd.rightmove   = 0;
 
     if (m_pPath->GetNodeCount()) {
         m_vTargetPos = m_pPath->GetDestination();
