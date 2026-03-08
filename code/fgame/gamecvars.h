@@ -341,7 +341,6 @@ extern cvar_t *g_bot_strafe_intensity;
  */
 extern cvar_t *g_bot_strafe_switch_interval;
 
-/**
 extern cvar_t *g_bot_allied_skin;
 extern cvar_t *g_bot_axis_skin;
 extern cvar_t *g_bot_primary_weapon;
