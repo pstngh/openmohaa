@@ -156,14 +156,16 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
 #else
     Info_SetValueForKey(infostring, "dedicated", Cvar_Get("ui_dedicated", "0", 0)->string);
 #endif
-    Info_SetValueForKey(infostring, "sprinton", Cvar_Get("sv_sprinton", "1", 0)->string);
-    Info_SetValueForKey(infostring, "realism", Cvar_Get("g_realismmode", "0", 0)->string);
-    Info_SetValueForKey(infostring, "pure", va("%i", sv_pure->integer));
-    if ((Cvar_VariableIntegerValue("dmflags") & DF_ALLOW_LEAN_MOVEMENT) != 0) {
-        allowlean = 1;
-    }
+    if (com_target_game->integer >= TG_MOHTA) {
+        Info_SetValueForKey(infostring, "sprinton", Cvar_Get("sv_sprinton", "1", 0)->string);
+        Info_SetValueForKey(infostring, "realism", Cvar_Get("g_realismmode", "0", 0)->string);
+        Info_SetValueForKey(infostring, "pure", va("%i", sv_pure->integer));
+        if ((Cvar_VariableIntegerValue("dmflags") & DF_ALLOW_LEAN_MOVEMENT) != 0) {
+            allowlean = 1;
+        }
 
-    Info_SetValueForKey(infostring, "allowlean", va("%i", allowlean));
+        Info_SetValueForKey(infostring, "allowlean", va("%i", allowlean));
+    }
 
     if (strlen(infostring) < maxlen) {
         strcpy(outbuf, infostring);
