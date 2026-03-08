@@ -1086,7 +1086,9 @@ Weapon *BotController::FindWeaponWithAmmo()
     for (j = 1; j <= n; j++) {
         next = (Weapon *)G_GetEntity(inventory.ObjectAt(j));
 
-        assert(next);
+        if (!next) {
+            continue;
+        }
         if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
             continue;
         }
@@ -1134,7 +1136,9 @@ Weapon *BotController::FindMeleeWeapon()
     for (j = 1; j <= n; j++) {
         next = (Weapon *)G_GetEntity(inventory.ObjectAt(j));
 
-        assert(next);
+        if (!next) {
+            continue;
+        }
         if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
             continue;
         }
@@ -1186,6 +1190,10 @@ void BotController::Spawned(void)
 
 void BotController::Think()
 {
+    if (!controlledEnt) {
+        return;
+    }
+
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
 
@@ -1354,6 +1362,10 @@ void BotControllerManager::ThinkControllers()
 
     for (i = 1; i <= controllers.NumObjects(); i++) {
         BotController *controller = controllers.ObjectAt(i);
-        controller->Think();
+        try {
+            controller->Think();
+        } catch (ScriptException& exc) {
+            gi.DPrintf("*** Bot Think Exception *** bot %d: %s\n", i, exc.string.c_str());
+        }
     }
 }
