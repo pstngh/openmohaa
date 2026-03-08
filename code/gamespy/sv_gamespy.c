@@ -149,6 +149,7 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
     Info_SetValueForKey(infostring, "gametype", g_gametypestring->string);
     Info_SetValueForKey(infostring, "numplayers", va("%i", SV_NumClients()));
     Info_SetValueForKey(infostring, "maxplayers", va("%i", svs.iNumClients - sv_privateClients->integer));
+    Info_SetValueForKey(infostring, "minplayers", "0");
     Info_SetValueForKey(infostring, "gamemode", gamemode);
     Info_SetValueForKey(infostring, "gametype_i", va("%i", g_gametype->integer));
 #ifdef DEDICATED
