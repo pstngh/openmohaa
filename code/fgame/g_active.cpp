@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 #include "entity.h"
 #include "game.h"
+#include "dm_manager.h"
 
 // FIXME: OLD Q3 CODE
 #if 0
@@ -916,6 +917,16 @@ void G_ClientThink( gentity_t *ent, usercmd_t *cmd, usereyes_t *eyeinfo )
 	{
 		if( ent->entity )
 		{
+			// Added in OPM
+			//  During objective round-start freeze, zero out movement and actions
+			//  but keep view angles and lean intact so the player can look around.
+			if (dmManager.IsObjectiveRoundFreezeActive() && ent->client) {
+				cmd->forwardmove = 0;
+				cmd->rightmove   = 0;
+				cmd->upmove      = 0;
+				cmd->buttons &= (BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+			}
+
 			current_ucmd = cmd;
 			current_eyeinfo = eyeinfo;
 			ent->entity->ClientThink();

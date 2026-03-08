@@ -642,9 +642,20 @@ Event EV_DM_Manager_FinishRoundTransition
     "delayed function call to do the actual restart for the next round"
 );
 
+// Added in OPM
+Event EV_DM_Manager_Countdown
+(
+    "countdown",
+    EV_DEFAULT,
+    NULL,
+    NULL,
+    "objective round-start countdown tick"
+);
+
 CLASS_DECLARATION(Listener, DM_Manager, NULL) {
     {&EV_DM_Manager_DoRoundTransition,     &DM_Manager::EventDoRoundTransition    },
     {&EV_DM_Manager_FinishRoundTransition, &DM_Manager::EventFinishRoundTransition},
+    {&EV_DM_Manager_Countdown,             &DM_Manager::Countdown                 },
     {NULL,                                 NULL                                   }
 };
 
@@ -681,10 +692,12 @@ DM_Manager::DM_Manager()
     m_iNumTargetsToDestroy = 1;
     m_iNumTargetsDestroyed = 0;
     m_iNumBombsPlanted     = 0;
-    m_bAllowAxisRespawn    = true;
-    m_bAllowAlliedRespawn  = true;
-    m_bRoundActive         = false;
-    m_iTotalMapTime        = 0;
+    m_bAllowAxisRespawn           = true;
+    m_bAllowAlliedRespawn         = true;
+    m_bRoundActive                = false;
+    m_iTotalMapTime               = 0;
+    m_bObjectiveRoundFreezeActive = false;
+    m_iObjectiveRoundCountdown    = 0;
 }
 
 DM_Manager::~DM_Manager() {}
@@ -709,6 +722,11 @@ void DM_Manager::Reset(void)
 
     // Reset the team spawn clock
     g_teamSpawnClock.Reset();
+
+    // Added in OPM
+    m_bObjectiveRoundFreezeActive = false;
+    m_iObjectiveRoundCountdown    = 0;
+    CancelEventsOfType(EV_DM_Manager_Countdown);
 
     // Added in 2.0
     level.m_bIgnoreClock = false;
@@ -1609,11 +1627,49 @@ void DM_Manager::StartRound(void)
     level.RemoveWaitTill(STRING_ROUNDSTART);
     level.Unregister(STRING_ROUNDSTART);
     gi.setConfigstring(CS_WARMUP, va("%.0f", GetMatchStartTime()));
+
+    // Added in OPM
+    //  Start 5-second freeze countdown for round-based game types
+    if (m_bRoundBasedGame) {
+        m_iObjectiveRoundCountdown    = 5;
+        m_bObjectiveRoundFreezeActive = true;
+        PostEvent(EV_DM_Manager_Countdown, 0);
+    }
+}
+
+// Added in OPM
+void DM_Manager::Countdown(Event *ev)
+{
+    if (m_iObjectiveRoundCountdown > 0) {
+        gi.SendServerCommand(-1, "print \"" HUD_MESSAGE_CHAT_WHITE "console: %d\n\"", m_iObjectiveRoundCountdown);
+
+        m_iObjectiveRoundCountdown--;
+        PostEvent(EV_DM_Manager_Countdown, 1.0f);
+    } else {
+        m_bObjectiveRoundFreezeActive = false;
+
+        const char *uncleanSuffix = G_GetUncleanPlayerSuffix();
+        if (uncleanSuffix[0]) {
+            gi.SendServerCommand(
+                -1,
+                "print \"" HUD_MESSAGE_CHAT_WHITE "console: Go, GLHF! Unclean players: %s\n\"",
+                uncleanSuffix
+            );
+        } else {
+            gi.SendServerCommand(-1, "print \"" HUD_MESSAGE_CHAT_WHITE "console: Go, GLHF!\n\"");
+        }
+    }
 }
 
 void DM_Manager::EndRound()
 {
     m_bRoundActive = false;
+
+    // Added in OPM
+    //  Cancel any active freeze countdown when the round ends
+    m_bObjectiveRoundFreezeActive = false;
+    m_iObjectiveRoundCountdown    = 0;
+    CancelEventsOfType(EV_DM_Manager_Countdown);
 
     if (m_fRoundEndTime <= 0) {
         m_fRoundEndTime = level.time;
