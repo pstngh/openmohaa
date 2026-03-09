@@ -210,6 +210,11 @@ private:
     bool   m_bAimOverride;             // true = attack is aiming, skip roomba yaw this frame
     int    m_iStrafeDir;                // -1 = left, 1 = right
     int    m_iNextStrafeSwitchTime;     // when to flip strafe direction
+
+    // Jump detection
+    bool   m_bJump;
+    int    m_iJumpCheckTime;
+    Vector m_vJumpLocation;
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -224,6 +229,7 @@ private:
     void CheckUse(void);
     bool CheckWindows(void);
     void CheckValidWeapon(void);
+    void CheckObstacleJump(void);
 
     void State_DefaultBegin(void);
     void State_DefaultEnd(void);

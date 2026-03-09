@@ -85,6 +85,10 @@ BotController::BotController()
     m_bAimOverride          = false;
     m_iStrafeDir            = (rand() % 2) ? 1 : -1;
     m_iNextStrafeSwitchTime = 0;
+
+    m_bJump          = false;
+    m_iJumpCheckTime = 0;
+    m_vJumpLocation  = vec_zero;
 }
 
 BotController::~BotController()
@@ -217,6 +221,7 @@ void BotController::UpdateBotStates(void)
 
     rotation.TurnThink(m_botCmd, m_botEyes);
     CheckUse();
+    CheckObstacleJump();
 
     CheckValidWeapon();
 }
@@ -300,6 +305,122 @@ bool BotController::CheckWindows(void)
     }
 
     return false;
+}
+
+void BotController::CheckObstacleJump(void)
+{
+    Vector  start;
+    Vector  end;
+    Vector  dir;
+    Vector  delta;
+    trace_t trace;
+
+    // Toggle use on ladders so bots climb
+    if (controlledEnt->GetLadder()) {
+        m_botCmd.upmove = m_botCmd.upmove ? 0 : 127;
+        return;
+    }
+
+    // Don't jump while airborne
+    if (!controlledEnt->groundentity && !controlledEnt->client->ps.walking) {
+        m_bJump = false;
+        return;
+    }
+
+    // Use the bot's facing direction
+    controlledEnt->angles.AngleVectorsLeft(&dir);
+    dir[2] = 0;
+    VectorNormalize2D(dir);
+
+    // Trace forward at step height to detect obstacles
+    start = controlledEnt->origin + Vector(0, 0, STEPSIZE);
+    end   = start + dir * (controlledEnt->maxs.y - controlledEnt->mins.y);
+
+    trace = G_Trace(
+        start, controlledEnt->mins, controlledEnt->maxs, end,
+        controlledEnt, MASK_PLAYERSOLID, false, "BotController::CheckObstacleJump"
+    );
+
+    if (!trace.startsolid && trace.fraction > 0.5f) {
+        // Path is clear — check for edge jumps instead
+        m_bJump = false;
+
+        // Edge detection: is there a void ahead?
+        start = controlledEnt->origin + Vector(0, 0, STEPSIZE)
+              + dir * (controlledEnt->maxs.y - controlledEnt->mins.y);
+        end   = start - Vector(0, 0, STEPSIZE * 2);
+
+        trace = G_Trace(
+            start, controlledEnt->mins, controlledEnt->maxs, end,
+            controlledEnt, MASK_PLAYERSOLID, false, "BotController::CheckObstacleJump"
+        );
+
+        if (trace.fraction != 1.0f) {
+            // Ground exists, no edge
+            return;
+        }
+
+        // Void below — check if there's a landing spot ahead
+        end = start + dir * controlledEnt->GetRunSpeed() / 2.0f;
+        end -= Vector(0, 0, STEPSIZE * 2);
+
+        trace = G_Trace(
+            start, controlledEnt->mins, controlledEnt->maxs, end,
+            controlledEnt, MASK_PLAYERSOLID, false, "BotController::CheckObstacleJump"
+        );
+
+        if (trace.fraction < 1.0f) {
+            // Edge with landing — jump over it
+            m_botCmd.upmove = m_botCmd.upmove ? 0 : 127;
+        }
+        return;
+    }
+
+    // Obstacle detected — check if bot can jump over it
+    start = controlledEnt->origin;
+    end   = controlledEnt->origin;
+    end.z += STEPSIZE * 3;
+    end.z += STEPSIZE / 1.5f;
+
+    trace = G_Trace(
+        start, controlledEnt->mins, controlledEnt->maxs, end,
+        controlledEnt, MASK_PLAYERSOLID, true, "BotController::CheckObstacleJump"
+    );
+
+    // Check if bot can move forward at jump height
+    start = trace.endpos;
+    end   = trace.endpos + dir * (controlledEnt->maxs.y - controlledEnt->mins.y);
+
+    Vector bounds[2];
+    bounds[0] = Vector(controlledEnt->mins[0], controlledEnt->mins[1], 0);
+    bounds[1] = Vector(
+        controlledEnt->maxs[0], controlledEnt->maxs[1],
+        (controlledEnt->maxs[0] + controlledEnt->maxs[1]) * 0.5f
+    );
+
+    trace = G_Trace(
+        start, bounds[0], bounds[1], end,
+        controlledEnt, MASK_PLAYERSOLID, false, "BotController::CheckObstacleJump"
+    );
+
+    if (trace.plane.normal[2] <= MIN_WALK_NORMAL && trace.fraction < 1) {
+        m_bJump = false;
+        return;
+    }
+
+    // State machine: wait 100ms before executing jump
+    if (!m_bJump) {
+        m_bJump          = true;
+        m_iJumpCheckTime = level.inttime;
+        m_vJumpLocation  = controlledEnt->origin;
+    } else if (level.inttime > m_iJumpCheckTime + 100) {
+        m_bJump = false;
+
+        delta = m_vJumpLocation - controlledEnt->origin;
+        if (delta.lengthSquared() < Square(32)) {
+            m_botCmd.upmove = 127;
+        }
+    }
 }
 
 void BotController::CheckValidWeapon()
@@ -734,8 +855,18 @@ bool BotController::IsValidEnemy(Sentient *sent) const
 
 bool BotController::CheckCondition_Attack(void)
 {
-    Container<Sentient *> sents       = SentientList;
-    float                 maxDistance = 0;
+    float maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+
+    // Keep current target if still valid and visible — prevents oscillation
+    if (m_pEnemy && IsValidEnemy(m_pEnemy)
+        && controlledEnt->CanSee(m_pEnemy, 360, maxDistance, false)) {
+        m_vLastEnemyPos = m_pEnemy->origin;
+        m_iAttackTime   = level.inttime + 1000;
+        return true;
+    }
+
+    // Current target lost — scan for a new one (closest first)
+    Container<Sentient *> sents = SentientList;
 
     bot_origin = controlledEnt->origin;
     sents.Sort(sentients_compare);
@@ -747,18 +878,13 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
-
         if (controlledEnt->CanSee(sent, 360, maxDistance, false)) {
-            if (m_pEnemy != sent) {
-                m_iEnemyEyesTag = -1;
-            }
-
             if (!m_pEnemy) {
                 m_iLastUnseenTime = level.inttime;
             }
 
             m_pEnemy        = sent;
+            m_iEnemyEyesTag = -1;
             m_vLastEnemyPos = m_pEnemy->origin;
             m_iAttackTime   = level.inttime + 1000;
             return true;
