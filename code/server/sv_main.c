@@ -160,6 +160,14 @@ not have future snapshot_t executed before it is executed
 void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	int		index, i;
 
+	// Bots have no network connection and never acknowledge reliable commands,
+	// so their reliableSequence grows without bound until it overflows
+	// (MAX_RELIABLE_COMMANDS), causing SV_DropClient("Server command overflow").
+	// Since bots never process these commands anyway, skip them entirely.
+	if ( client->netchan.remoteAddress.type == NA_BOT ) {
+		return;
+	}
+
 	if ( com_protocol->integer >= PROTOCOL_MOHTA_MIN ) {
 		// Added in 2.0
 		//  Requires spearhead clients.
