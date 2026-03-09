@@ -151,6 +151,12 @@ void BotController::UpdateBotStates(void)
         event->AddString(g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "auto");
 
         controlledEnt->ProcessEvent(event);
+
+        // Safety: ProcessEvent may invalidate the entity via script
+        if (!controlledEnt) {
+            gi.DPrintf("BOT: UpdateBotStates: entity invalidated after ProcessEvent(EV_Player_PrimaryDMWeapon)\n");
+            return;
+        }
     }
 
     if (controlledEnt->GetTeam() == TEAM_NONE || controlledEnt->GetTeam() == TEAM_SPECTATOR) {
@@ -489,7 +495,11 @@ void BotController::SendCommand(const char *text)
     try {
         controlledEnt->ProcessEvent(ev);
     } catch (ScriptException& exc) {
-        gi.DPrintf("*** Bot Command Exception *** %s\n", exc.string.c_str());
+        gi.DPrintf("BOT: SendCommand: ScriptException for command '%s': %s\n", text, exc.string.c_str());
+    }
+
+    if (!controlledEnt) {
+        gi.DPrintf("BOT: SendCommand: entity invalidated after ProcessEvent for command '%s'\n", text);
     }
 }
 
@@ -1265,6 +1275,13 @@ void BotController::Think()
     usereyes_t eyeinfo;
 
     UpdateBotStates();
+
+    // Re-check: UpdateBotStates may have invalidated the entity
+    if (!controlledEnt) {
+        gi.DPrintf("BOT: Think: entity became NULL after UpdateBotStates\n");
+        return;
+    }
+
     GetUsercmd(&ucmd);
     GetEyeInfo(&eyeinfo);
 
@@ -1291,6 +1308,11 @@ void BotController::Killed(const Event& ev)
     event.AddString(g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "auto");
 
     controlledEnt->ProcessEvent(event);
+
+    if (!controlledEnt) {
+        gi.DPrintf("BOT: Killed: entity invalidated after ProcessEvent(EV_Player_PrimaryDMWeapon)\n");
+        return;
+    }
 
     //
     // This is useful to change nationality in Spearhead and Breakthrough
@@ -1399,14 +1421,15 @@ void BotControllerManager::ThinkControllers()
 {
     int i;
 
-    // Delete controllers that don't have associated player entity
-    // This cannot happen unless some mods remove them
+    // Delete controllers that don't have associated player entity.
+    // This can happen when an entity is removed between frames
+    // (e.g. via deferred EV_Remove processed in L_ProcessPendingEvents).
     for (i = controllers.NumObjects(); i > 0; i--) {
         BotController *controller = controllers.ObjectAt(i);
         if (!controller->getControlledEntity()) {
             gi.DPrintf(
-                "Bot %d has no associated player entity. This shouldn't happen unless the entity has been removed by a "
-                "script. The controller will be removed, please fix.\n",
+                "BOT: ThinkControllers: orphaned controller at index %d "
+                "(entity was removed between frames). Removing controller.\n",
                 i
             );
 
@@ -1421,7 +1444,20 @@ void BotControllerManager::ThinkControllers()
         try {
             controller->Think();
         } catch (ScriptException& exc) {
-            gi.DPrintf("*** Bot Think Exception *** bot %d: %s\n", i, exc.string.c_str());
+            gi.DPrintf("BOT: ThinkControllers: ScriptException in bot %d: %s\n", i, exc.string.c_str());
+        }
+
+        // Check if the entity was invalidated during Think (or by the exception).
+        // Clean up immediately instead of waiting for next frame's orphan detection.
+        if (!controller->getControlledEntity()) {
+            gi.DPrintf(
+                "BOT: ThinkControllers: bot %d entity became NULL during Think. "
+                "Removing controller immediately.\n",
+                i
+            );
+            delete controller;
+            controllers.RemoveObjectAt(i);
+            i--;
         }
     }
 }

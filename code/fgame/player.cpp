@@ -9652,9 +9652,10 @@ void Player::Join_DM_Team(Event *ev)
             return;
         }
 
-        G_PrintfClient(edict, "%s\n", join_message);
-
-        G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+        if (!(edict->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(edict, "%s\n", join_message);
+            G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+        }
     }
 }
 

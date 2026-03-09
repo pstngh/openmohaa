@@ -582,6 +582,8 @@ void SV_DirectConnect( netadr_t from ) {
 		for ( i = sv_maxclients->integer - 1; i >= startIndex; i-- ) {
 			cl = &svs.clients[i];
 			if (cl->netchan.remoteAddress.type == NA_BOT) {
+				Com_DPrintf( "BOT: SV_DirectConnect: evicting bot '%s' slot=%d to make room for real player\n",
+					cl->name, i );
 				SV_DropClient(cl, "making room for real player");
 				newcl = cl;
 				break;
@@ -739,6 +741,11 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 
 	if ( drop->state == CS_ZOMBIE ) {
 		return;		// already dropped
+	}
+
+	if ( isBot ) {
+		Com_DPrintf( "BOT: SV_DropClient: dropping bot '%s' slot=%d reason='%s'\n",
+			drop->name, (int)(drop - svs.clients), reason );
 	}
 
 	// Clean up admin session state

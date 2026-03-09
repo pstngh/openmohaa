@@ -285,9 +285,14 @@ void G_BotShift(int clientNum)
 
     newEnt = G_FindFreeEntityForBot();
     if (!newEnt) {
+        gi.DPrintf("BOT: G_BotShift: no free slot to relocate bot '%s' (slot %d), removing instead\n",
+                   ent->client->pers.netname, clientNum);
         G_RemoveBot(ent);
         return;
     }
+
+    gi.DPrintf("BOT: G_BotShift: relocating bot '%s' from slot %d to slot %d\n",
+               ent->client->pers.netname, clientNum, (int)(newEnt - g_entities));
 
     //
     // Allocate the new entity
@@ -455,27 +460,30 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     e = G_FindFreeEntityForBot();
     if (!e) {
-        gi.Printf("No free slot for a bot\n");
+        gi.Printf("BOT: G_AddBot: no free slot for a bot\n");
         return NULL;
     }
 
     clientNum = e - g_entities;
 
-    // increase the unique ID
-    botId++;
-
     if (info && info->name) {
         Q_strncpyz(botName, info->name, sizeof(botName));
+        gi.DPrintf("BOT: G_AddBot: using custom name '%s'\n", botName);
     } else {
         const unsigned int num = sv_sharedbots->integer ? clientNum : clientNum - maxclients->integer;
 
         cvar_t *v = gi.Cvar_Find(va("g_bot%d_name", num));
         if (v && *v->string) {
             Q_strncpyz(botName, v->string, sizeof(botName));
+            gi.DPrintf("BOT: G_AddBot: using cvar g_bot%d_name='%s'\n", num, botName);
         } else {
             Com_sprintf(botName, sizeof(botName), "bot%d", botId);
+            gi.DPrintf("BOT: G_AddBot: generated name 'bot%d' (botId=%u)\n", botId, botId);
         }
     }
+
+    // increase the unique ID after name assignment
+    botId++;
 
     Info_SetValueForKey(userinfo, "name", botName);
 
@@ -492,6 +500,8 @@ gentity_t *G_AddBot(const bot_info_t *info)
     // setup user info and stuff
     G_BotConnect(clientNum, qtrue, userinfo);
     G_BotBegin(e);
+
+    gi.DPrintf("BOT: G_AddBot: created bot '%s' in slot %d\n", botName, clientNum);
 
     return e;
 }
@@ -546,6 +556,13 @@ Remove the specified bot
 void G_RemoveBot(gentity_t *ent)
 {
     int clientNum = ent - g_entities;
+
+    gi.DPrintf(
+        "BOT: G_RemoveBot: removing bot '%s' slot=%d shared=%d\n",
+        ent->client ? ent->client->pers.netname : "???",
+        clientNum,
+        clientNum < maxclients->integer
+    );
 
     // Controller cleanup is now handled inside G_ClientDisconnect so that
     // both the explicit G_RemoveBot path and the server-side SV_DropClient
@@ -810,6 +827,8 @@ Save bots
 */
 void G_RestartBots()
 {
+    gi.DPrintf("BOT: G_RestartBots: saving and restarting bots, resetting botId to 0\n");
+
     G_SaveBots();
 
     // Map restarts keep the game module loaded. Remove all active bot entities
@@ -927,6 +946,8 @@ Save and reset the bot count
 */
 void G_ResetBots()
 {
+    gi.DPrintf("BOT: G_ResetBots: cleaning up and resetting botId to 0\n");
+
     G_WriteBotSessionData();
 
     botManager.Cleanup();
@@ -1011,8 +1032,12 @@ void G_SpawnBots()
     // Spawn bots
     //
     if (numBotsToSpawn > numSpawnedBots) {
+        gi.DPrintf("BOT: G_SpawnBots: adding %u bots (target=%u current=%u)\n",
+                   numBotsToSpawn - numSpawnedBots, numBotsToSpawn, numSpawnedBots);
         G_AddBots(numBotsToSpawn - numSpawnedBots);
     } else if (numBotsToSpawn < numSpawnedBots) {
+        gi.DPrintf("BOT: G_SpawnBots: removing %u bots (target=%u current=%u)\n",
+                   numSpawnedBots - numBotsToSpawn, numBotsToSpawn, numSpawnedBots);
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
         sv_numbots->modified = false;
