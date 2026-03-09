@@ -6287,7 +6287,8 @@ void Player::CalcBlend(void)
     // Do the cinematic fading
     float alpha = 1;
 
-    level.m_fade_time -= level.frametime;
+    // NOTE: level.m_fade_time is now decremented once per frame
+    // in G_ClientEndServerFrames, not here (per-player).
 
     // Return if we are completely faded in
     if ((level.m_fade_time <= 0) && (level.m_fade_type == fadein)) {
@@ -6389,7 +6390,7 @@ void Player::DamageFeedback(void)
 
     damage_angles.z +=
         DotProduct(vDir, orientation[2]) * damage_blood * g_viewkick_roll->value * g_viewkick_dmmult->value;
-    damage_angles.z = Q_clamp_float(damage_angles.y, -25, 25);
+    damage_angles.z = Q_clamp_float(damage_angles.z, -25, 25);
 
     damage_count += damage_blood;
     count     = damage_blood;
