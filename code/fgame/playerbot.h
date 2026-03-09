@@ -202,6 +202,7 @@ private:
     // Taunts
     int m_iNextTauntTime;
     int m_iLastFireTime;
+    int m_iNextMeleeTime;
 
     // Roomba movement (all states)
     int    m_iRoombaTurnDir;            // -1 = left, 1 = right (fixed at spawn)

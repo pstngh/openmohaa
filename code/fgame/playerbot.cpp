@@ -75,6 +75,7 @@ BotController::BotController()
     m_iLastBurstTime      = 0;
 
     m_iNextTauntTime = 0;
+    m_iNextMeleeTime = 0;
 
     m_StateFlags = 0;
 
@@ -1015,8 +1016,10 @@ void BotController::State_Attack(void)
         // Force melee-only: bots never shoot, only bash/melee
         m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
         if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE
-            && fDistanceSquared <= fSecondaryBulletRangeSquared) {
-            m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+            && fDistanceSquared <= fSecondaryBulletRangeSquared
+            && level.inttime >= m_iNextMeleeTime) {
+            m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
+            m_iNextMeleeTime = level.inttime + 1000;
         } else {
             m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
         }
