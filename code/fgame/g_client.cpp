@@ -1106,6 +1106,10 @@ void G_ClientDisconnect(gentity_t *ent)
             } else {
                 gi.DPrintf("BOT: G_ClientDisconnect: WARNING no controller found for bot '%s'\n", ent->client->pers.netname);
             }
+
+            // Notify the bot spawner so it doesn't immediately create a
+            // replacement that would just be evicted again.
+            G_NotifyBotEvicted();
         }
 
         assert(ent->entity->IsSubclassOfPlayer());
