@@ -3,7 +3,7 @@ if(NOT BUILD_CLIENT)
 endif()
 
 function (create_game_client name output_name target_game)
-    add_executable(${name} ${CLIENT_EXECUTABLE_OPTIONS} ${CLIENT_BINARY_SOURCES})
+    add_executable(${name} MACOSX_BUNDLE ${CLIENT_BINARY_SOURCES})
 
     target_include_directories(     ${name} PRIVATE ${CLIENT_INCLUDE_DIRS})
     target_include_directories(     ${name} PRIVATE ${SOURCE_DIR}/client)
@@ -40,10 +40,6 @@ function (create_game_client name output_name target_game)
 
     INSTALL(TARGETS ${name} DESTINATION ${INSTALL_BINDIR_FULL})
 
-    if (MSVC)
-        target_link_options(${name} PRIVATE "/MANIFEST:NO")
-        INSTALL(FILES $<TARGET_PDB_FILE:${name}> DESTINATION ${INSTALL_BINDIR_FULL} OPTIONAL)
-    endif()
 endfunction()
 
 create_game_client(openmohaash openmohaash 1)

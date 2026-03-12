@@ -1,8 +1,5 @@
-include(platforms/emscripten)
-include(platforms/linux)
 include(platforms/macos)
 include(platforms/unix)
-include(platforms/windows)
 
 if(DEBUG_MEMORY)
 	add_definitions(-D_DEBUG_MEM)
