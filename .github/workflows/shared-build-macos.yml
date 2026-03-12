@@ -35,7 +35,7 @@ jobs:
 
     - name: Install required packages
       run: |
-        brew install flex bison llvm
+        brew install flex bison llvm librsvg
     # Those packages are already installed
     #brew install git ninja cmake perl
 
@@ -168,7 +168,7 @@ jobs:
         -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
         -DBUILD_RENDERER_GL2=OFF \
-        -DBUILD_MACOS_APP=OFF \
+        -DBUILD_MACOS_APP=ON \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
         -DPRODUCT_VERSION_STAGE='${{ env.RELEASE_STAGE }}'" >> $GITHUB_ENV
 
