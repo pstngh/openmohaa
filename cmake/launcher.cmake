@@ -1,36 +1,50 @@
-set(LAUNCHER_SOURCES "${SOURCE_DIR}/Launcher/launch_main.cpp")
-
-if (WIN32)
-    list(APPEND LAUNCHER_SOURCES
-        ${SOURCE_DIR}/Launcher/launch_win32.cpp
-        ${SOURCE_DIR}/sys/win_resource.rc
-    )
-else()
-    list(APPEND LAUNCHER_SOURCES
-        ${SOURCE_DIR}/Launcher/launch_linux.cpp
-    )
+if(NOT BUILD_CLIENT)
+    return()
 endif()
 
-function (create_launcher name type)
-    if (BUILD_CLIENT)
-        add_executable(openmohaa_launcher_${name} ${LAUNCHER_SOURCES})
-        target_compile_definitions(openmohaa_launcher_${name} PRIVATE NO_RC_MANIFEST=1 TARGET_GAME=${type})
-        target_compile_features(openmohaa_launcher_${name} PRIVATE cxx_std_17)
-        set_target_properties(openmohaa_launcher_${name} PROPERTIES OUTPUT_NAME "launch_openmohaa_${name}${TARGET_BIN_SUFFIX}")
-        set_target_properties(openmohaa_launcher_${name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+function (create_game_client name output_name target_game)
+    add_executable(${name} ${CLIENT_EXECUTABLE_OPTIONS} ${CLIENT_BINARY_SOURCES})
 
-        INSTALL(TARGETS openmohaa_launcher_${name} DESTINATION ${INSTALL_BINDIR_FULL})
+    target_include_directories(     ${name} PRIVATE ${CLIENT_INCLUDE_DIRS})
+    target_include_directories(     ${name} PRIVATE ${SOURCE_DIR}/client)
+    target_compile_definitions(     ${name} PRIVATE ${CLIENT_DEFINITIONS} DEFAULT_TARGET_GAME=${target_game})
+    target_compile_options(         ${name} PRIVATE ${CLIENT_COMPILE_OPTIONS})
+    target_link_libraries(          ${name} PRIVATE ${COMMON_LIBRARIES} ${CLIENT_LIBRARIES})
+    target_link_options(            ${name} PRIVATE ${CLIENT_LINK_OPTIONS})
+
+    set_output_dirs(${name})
+
+    if(NOT USE_RENDERER_DLOPEN)
+        target_sources(${name} PRIVATE
+            ${RENDERER_GL1_BINARY_SOURCES}
+            ${RENDERER_GL2_BINARY_SOURCES})
+
+        target_include_directories( ${name} PRIVATE ${RENDERER_INCLUDE_DIRS})
+        target_compile_definitions( ${name} PRIVATE ${RENDERER_DEFINITIONS})
+        target_compile_options(     ${name} PRIVATE ${RENDERER_COMPILE_OPTIONS})
+        target_link_libraries(      ${name} PRIVATE ${RENDERER_LIBRARIES})
     endif()
 
-    #add_executable(omohaaded_launcher_${name} ${LAUNCHER_SOURCES})
-    #target_compile_definitions(omohaaded_launcher_${name} PRIVATE NO_RC_MANIFEST=1 TARGET_GAME=${type} DEDICATED=1)
-    #target_compile_features(omohaaded_launcher_${name} PRIVATE cxx_std_17)
-    #set_target_properties(omohaaded_launcher_${name} PROPERTIES OUTPUT_NAME "launch_omohaaded_${name}${TARGET_BIN_SUFFIX}")
-    #set_target_properties(omohaaded_launcher_${name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-    #
-    #INSTALL(TARGETS omohaaded_launcher_${name} DESTINATION ${CMAKE_INSTALL_BINDIR}/${PROJECT_INSTALL_SUBDIR})
+    foreach(LIBRARY IN LISTS CLIENT_DEPLOY_LIBRARIES)
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${LIBRARY}
+                $<TARGET_FILE_DIR:${name}>)
+
+        install(FILES ${LIBRARY} DESTINATION
+            $<PATH:RELATIVE_PATH,$<TARGET_FILE_DIR:${name}>,${CMAKE_BINARY_DIR}/$<CONFIG>>)
+    endforeach()
+
+    set_target_properties(${name} PROPERTIES OUTPUT_NAME "${output_name}${TARGET_BIN_SUFFIX}")
+    set_target_properties(${name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+
+    INSTALL(TARGETS ${name} DESTINATION ${INSTALL_BINDIR_FULL})
+
+    if (MSVC)
+        target_link_options(${name} PRIVATE "/MANIFEST:NO")
+        INSTALL(FILES $<TARGET_PDB_FILE:${name}> DESTINATION ${INSTALL_BINDIR_FULL} OPTIONAL)
+    endif()
 endfunction()
 
-create_launcher(base 0)
-create_launcher(spearhead 1)
-create_launcher(breakthrough 2)
+create_game_client(openmohaash openmohaash 1)
+create_game_client(openmohaabt openmohaabt 2)
