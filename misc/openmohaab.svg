@@ -16,11 +16,11 @@
       }
 
       .st3 {
+        fill: none;
         stroke: url(#linear-gradient);
       }
 
       .st3, .st4 {
-        fill: none;
         stroke-width: 136px;
       }
 
@@ -33,13 +33,14 @@
         fill-rule: evenodd;
       }
 
+      .st4 {
+        fill: #29245e;
+        stroke: url(#linear-gradient2);
+      }
+
       .st6 {
         fill: url(#linear-gradient4);
         filter: url(#drop-shadow-2);
-      }
-
-      .st4 {
-        stroke: url(#linear-gradient2);
       }
 
       .st7 {
@@ -57,7 +58,7 @@
       <stop offset=".75" stop-color="#f7cf2f"/>
       <stop offset=".83" stop-color="#f7ce2c"/>
     </linearGradient>
-    <linearGradient id="linear-gradient1" x1="5178.37" x2="5292.89" xlink:href="#linear-gradient"/>
+    <linearGradient id="linear-gradient1" x1="5178.37" y1="707.69" x2="5292.89" y2="707.69" xlink:href="#linear-gradient"/>
     <filter id="drop-shadow-1" x="4855.44" y="236.33" width="816" height="897.6" filterUnits="userSpaceOnUse">
       <feOffset dx="7" dy="7"/>
       <feGaussianBlur result="blur" stdDeviation="13.68"/>

@@ -16,7 +16,7 @@
       }
 
       .st3 {
-        fill: none;
+        fill: #2c4b32;
         stroke: url(#linear-gradient);
         stroke-width: 136px;
       }
