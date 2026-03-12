@@ -41,7 +41,7 @@ jobs:
       matrix:
         target_os: [
           'linux-amd64',
-          'macos-multiarch-arm64-x86_64',
+          'macos-arm64',
           'windows-x64',
         ]
 
