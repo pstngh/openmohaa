@@ -187,13 +187,16 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Create hard-link and copy symbolic links
         mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+        # Copy dylibs into each .app bundle (CMAKE_INSTALL_RPATH=@executable_path → must be in Contents/MacOS/)
+        for app_bundle in '${{github.workspace}}/package/'*.app; do
+          test -d "$app_bundle" || continue
+          cp -l '${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib' "$app_bundle/Contents/MacOS/"
+          cp -l '${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib' "$app_bundle/Contents/MacOS/"
+          cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib "$app_bundle/Contents/MacOS/"
+        done
 
     ###
     # Artifacts
