@@ -300,8 +300,6 @@ Cmd_Say_f
 */
 void G_Say(gentity_t *ent, qboolean team, qboolean arg0)
 {
-    int         j;
-    gentity_t  *other;
     const char *p;
     char        text[2048];
 
@@ -345,20 +343,11 @@ void G_Say(gentity_t *ent, qboolean team, qboolean arg0)
         text[150] = 0;
     }
 
-    strcat(text, "\n");
-
     if (dedicated->integer) {
-        gi.SendServerCommand(0, "print \"%s\"", text);
+        gi.Printf("%s: %s\n", ent->client->pers.netname, text);
     }
 
-    for (j = 0; j < game.maxclients; j++) {
-        other = &g_entities[j];
-        if (!other->inuse || !other->client || !other->entity) {
-            continue;
-        }
-
-        gi.SendServerCommand(0, "print \"%s\"", text);
-    }
+    gi.SendServerCommand(-1, "print \"" HUD_MESSAGE_CHAT_WHITE "%s\n\"", text);
 }
 
 qboolean G_CameraCmd(gentity_t *ent)
