@@ -196,6 +196,9 @@ jobs:
           cp -l '${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib' "$app_bundle/Contents/MacOS/"
           cp -l '${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib' "$app_bundle/Contents/MacOS/"
           cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib "$app_bundle/Contents/MacOS/"
+          # Copy game module dylibs (game.dylib, cgame.dylib, etc.) — Sys_LoadDll searches BinaryPath() first
+          find '${{github.workspace}}/package' -maxdepth 1 -name '*.dylib' \
+            -exec cp -l {} "$app_bundle/Contents/MacOS/" \;
           # Ad-hoc sign so macOS shows "unverified developer" instead of "damaged" for unsigned apps
           codesign --force --deep --sign - "$app_bundle"
         done
