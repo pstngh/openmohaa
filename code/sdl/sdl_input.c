@@ -1207,15 +1207,7 @@ static void IN_ProcessEvents( void )
 					case SDL_WINDOWEVENT_RESTORED:
 					case SDL_WINDOWEVENT_MAXIMIZED:    Cvar_SetValue( "com_minimized", 0 ); break;
 					case SDL_WINDOWEVENT_FOCUS_LOST:   Cvar_SetValue( "com_unfocused", 1 ); break;
-					case SDL_WINDOWEVENT_FOCUS_GAINED:
-						Cvar_SetValue( "com_unfocused", 0 );
-						// Reapply gamma on focus gain — macOS may ignore
-						// SDL_SetWindowGammaRamp during initial window compositing
-						{
-							cvar_t *r_gamma = Cvar_Get( "r_gamma", "1", 0 );
-							r_gamma->modified = qtrue;
-						}
-						break;
+					case SDL_WINDOWEVENT_FOCUS_GAINED: Cvar_SetValue( "com_unfocused", 0 ); break;
 				}
 				break;
 
