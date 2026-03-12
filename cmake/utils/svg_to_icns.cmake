@@ -2,13 +2,17 @@
 # Requires rsvg-convert (from librsvg) and iconutil (macOS built-in).
 #
 # Usage:
-#   svg_to_icns(<svg_path> <output_icns_path> [TARGET <target>])
+#   svg_to_icns(<svg_path> <output_icns_path> [TARGET <target>] [BACKGROUND <color>])
 #
-# If TARGET is specified, the conversion runs as a POST_BUILD step.
-# Otherwise it runs at configure time (not recommended for CI).
+# If TARGET is specified, the conversion runs as a PRE_BUILD step.
+# BACKGROUND sets the fill color behind the SVG (default: black).
 
 function(svg_to_icns SVG_PATH OUTPUT_ICNS)
-    cmake_parse_arguments(ARG "" "TARGET" "" ${ARGN})
+    cmake_parse_arguments(ARG "" "TARGET;BACKGROUND" "" ${ARGN})
+
+    if(NOT ARG_BACKGROUND)
+        set(ARG_BACKGROUND "black")
+    endif()
 
     find_program(RSVG_CONVERT rsvg-convert)
     if(NOT RSVG_CONVERT)
@@ -28,18 +32,14 @@ function(svg_to_icns SVG_PATH OUTPUT_ICNS)
     # macOS icon sizes: 16, 32, 128, 256, 512 (plus @2x variants)
     set(ICON_SIZES 16 32 128 256 512)
 
-    set(PNG_OUTPUTS "")
     set(CONVERT_COMMANDS "")
 
     foreach(SIZE IN LISTS ICON_SIZES)
         math(EXPR SIZE_2X "${SIZE} * 2")
 
-        list(APPEND PNG_OUTPUTS "${ICONSET_DIR}/icon_${SIZE}x${SIZE}.png")
-        list(APPEND PNG_OUTPUTS "${ICONSET_DIR}/icon_${SIZE}x${SIZE}@2x.png")
-
         list(APPEND CONVERT_COMMANDS
-            COMMAND ${RSVG_CONVERT} -w ${SIZE} -h ${SIZE} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}.png"
-            COMMAND ${RSVG_CONVERT} -w ${SIZE_2X} -h ${SIZE_2X} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}@2x.png"
+            COMMAND ${RSVG_CONVERT} -b "${ARG_BACKGROUND}" -w ${SIZE} -h ${SIZE} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}.png"
+            COMMAND ${RSVG_CONVERT} -b "${ARG_BACKGROUND}" -w ${SIZE_2X} -h ${SIZE_2X} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}@2x.png"
         )
     endforeach()
 
@@ -55,8 +55,8 @@ function(svg_to_icns SVG_PATH OUTPUT_ICNS)
         file(MAKE_DIRECTORY "${ICONSET_DIR}")
         foreach(SIZE IN LISTS ICON_SIZES)
             math(EXPR SIZE_2X "${SIZE} * 2")
-            execute_process(COMMAND ${RSVG_CONVERT} -w ${SIZE} -h ${SIZE} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}.png")
-            execute_process(COMMAND ${RSVG_CONVERT} -w ${SIZE_2X} -h ${SIZE_2X} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}@2x.png")
+            execute_process(COMMAND ${RSVG_CONVERT} -b "${ARG_BACKGROUND}" -w ${SIZE} -h ${SIZE} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}.png")
+            execute_process(COMMAND ${RSVG_CONVERT} -b "${ARG_BACKGROUND}" -w ${SIZE_2X} -h ${SIZE_2X} "${SVG_PATH}" -o "${ICONSET_DIR}/icon_${SIZE}x${SIZE}@2x.png")
         endforeach()
         execute_process(COMMAND ${ICONUTIL} -c icns -o "${OUTPUT_ICNS}" "${ICONSET_DIR}")
         file(REMOVE_RECURSE "${ICONSET_DIR}")
