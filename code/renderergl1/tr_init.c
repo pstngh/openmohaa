@@ -1199,6 +1199,9 @@ void BuildGfxInfo(char* dest, size_t destsize) {
 
 		// default is to use triangles if compiled vertex arrays are present
 		PrintAndAppendString( dest, destsize, "rendering primitives: " );
+#ifdef __APPLE__
+		primitives = 2;
+#else
 		primitives = r_primitives->integer;
 		if ( primitives == 0 ) {
 			if ( qglLockArraysEXT ) {
@@ -1207,6 +1210,7 @@ void BuildGfxInfo(char* dest, size_t destsize) {
 				primitives = 1;
 			}
 		}
+#endif
 		if ( primitives == -1 ) {
 			PrintAndAppendString( dest, destsize, "none\n" );
 		} else if ( primitives == 2 ) {
