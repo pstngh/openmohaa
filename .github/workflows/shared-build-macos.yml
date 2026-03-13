@@ -203,6 +203,10 @@ jobs:
             for lib in "${DYLIBS[@]}"; do
               cp "$lib" "$app/Contents/MacOS/"
             done
+            # Ad-hoc sign the complete bundle after all contents are in place
+            codesign --force --deep \
+              --entitlements '${{github.workspace}}/source/cmake/entitlements.plist' \
+              --sign - "$app"
           fi
         done
 
