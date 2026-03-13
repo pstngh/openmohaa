@@ -84,4 +84,4 @@ include(basegame)
 include(launcher)
 
 include(post_configure)
-#include(installer)
+include(installer)

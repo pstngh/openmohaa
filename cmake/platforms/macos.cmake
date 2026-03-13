@@ -15,7 +15,9 @@ list(APPEND CLIENT_LIBRARIES "-framework IOKit")
 list(APPEND RENDERER_LIBRARIES "-framework OpenGL")
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
-set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
+set(CMAKE_OSX_ARCHITECTURES arm64)
+
+include(utils/svg_to_icns)
 
 if(BUILD_MACOS_APP)
     set(CLIENT_EXECUTABLE_OPTIONS MACOSX_BUNDLE)
@@ -23,6 +25,9 @@ if(BUILD_MACOS_APP)
 endif()
 
 function(finish_macos_app)
+    # Generate .icns from SVG at build time
+    svg_to_icns("${MACOS_ICON_SVG}" "${MACOS_ICON_PATH}" TARGET ${CLIENT_BINARY})
+
     get_filename_component(MACOS_ICON_FILE ${MACOS_ICON_PATH} NAME)
 
     set(MACOS_APP_BUNDLE_NAME ${CLIENT_NAME})

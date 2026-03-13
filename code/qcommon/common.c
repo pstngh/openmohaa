@@ -3226,7 +3226,11 @@ Com_InitTargetGame
 ===============
 */
 void Com_InitTargetGame() {
+#ifdef DEFAULT_TARGET_GAME
+	com_target_game = Cvar_Get("com_target_game", XSTRING(DEFAULT_TARGET_GAME), CVAR_INIT|CVAR_PROTECTED);
+#else
 	com_target_game = Cvar_Get("com_target_game", "0", CVAR_INIT|CVAR_PROTECTED);
+#endif
 	com_target_demo = Cvar_Get("com_target_demo", "0", CVAR_INIT|CVAR_PROTECTED);
 	com_target_shortversion = Cvar_Get("com_target_shortversion", "0.00", CVAR_ROM);
 	com_target_version = Cvar_Get("com_target_version", "", CVAR_ROM);

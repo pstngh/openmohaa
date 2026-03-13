@@ -37,7 +37,7 @@ Alternatively, you can also use [WINE](https://www.winehq.org/) to install the g
 |---------|-------------------------------------------|-----------------------
 |Windows  |AMD/Intel                                  |`*-windows-x64.zip` **(most Windows PCs - choose this if unsure)**
 |Windows  |Qualcomm/Snapdragon (ARM-based)            |`*-windows-arm64.zip`
-|macOS    |Apple Silicon or Intel                     |`*-macos-multiarch.arm64-x86_64.zip`
+|macOS    |Apple Silicon                              |`*-macos-arm64.zip`
 |Linux    |AMD/Intel                                  |`*-linux-amd64` **(most Linux PCs - choose this if unsure)**
 |Linux    |Raspberry Pi 4 or 5                        |`*-linux-arm64`
 
@@ -48,7 +48,7 @@ Alternatively, you can also use [WINE](https://www.winehq.org/) to install the g
 - Extract the archive<sup>1</sup> into the game folder where MOHAA is installed (the folder that contains the `main` subfolder and the original game files).
   - On Linux/macOS, if MOHAA is installed in `/usr/games/mohaa`, then extract all files inside `/usr/games/mohaa`.
   - On Windows, if MOHAA is installed in `C:\Program Files (x86)\EA Games\Medal of Honor Allied Assault`, then extract all files inside `C:\Program Files (x86)\EA Games\Medal of Honor Allied Assault`.
-  - Not sure where your game folder is? See the [Windows quick install guide](02-installation-windows.md#find-your-game-folder) for tips on finding it.
+  - Not sure where your game folder is? See the [Windows quick install guide](02-installation-windows.md#find-your-game-folder)  for tips on finding it.
 - Create a shortcut to each of the **launch_openmohaa_\*** executable:
   - `launch_openmohaa_base` (Base game)
   - `launch_openmohaa_spearhead` (Spearhead)

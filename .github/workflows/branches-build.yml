@@ -42,6 +42,7 @@ jobs:
         target_os: [
           'linux-amd64',
           'windows-x64',
+          'macos-arm64',
         ]
 
     runs-on: ubuntu-24.04

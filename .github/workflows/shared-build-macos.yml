@@ -13,7 +13,7 @@ on:
       environment:
         required: true
         type: string
-        
+
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo
@@ -21,22 +21,10 @@ env:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        architecture: [
-          #{name: 'x86_64',   triple: 'x86_64-apple-macos10.8'},
-          #{name: 'arm64',    triple: 'arm64-apple-macos11'}
-          #{name: 'x86_64',    build_name: 'x86_64'},
-          #{name: 'arm64',     build_name: 'arm64'},
-          # Compile into an universal binary
-          {name: 'multiarch-arm64-x86_64', build_name: 'arm64;x86_64' }
-        ]
-
-    name: "Building for platform macos-${{matrix.architecture.name}}"
+    name: "Building for platform macos-arm64"
     runs-on: "macos-15"
     env:
         openal-soft-branch: '1.24.3'
-        wolfssl-version: 'v5.7.6-stable'
         curl-version: '8_12_1'
         sdl2-branch: 'release-2.32.8'
 
@@ -47,8 +35,8 @@ jobs:
 
     - name: Install required packages
       run: |
-        brew install flex bison llvm
-    # Those packages are already installed  
+        brew install flex bison llvm librsvg
+    # Those packages are already installed
     #brew install git ninja cmake perl
 
     - name: Settings
@@ -57,7 +45,7 @@ jobs:
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
     ###
     # SDL
@@ -69,7 +57,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/SDL2/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-sdl2-${{ env.sdl2-branch }}-v1
+        key: ${{ runner.os }}-arm64-sdl2-${{ env.sdl2-branch }}-v1
 
     # SDL2 setup
     - name: Checkout SDL2
@@ -86,7 +74,7 @@ jobs:
       run: |
         cmake -B ./build \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/SDL2/install' \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}'
+        -DCMAKE_OSX_ARCHITECTURES='arm64'
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
 
@@ -98,11 +86,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/soft-oal/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-openal-soft-${{ env.openal-soft-branch }}-v1
+        key: ${{ runner.os }}-arm64-openal-soft-${{ env.openal-soft-branch }}-v1
 
-    # soft-oal setup
-    # Use GCC instead of Clang because of missing SSE intrinsics
-    # It also doesn't enable altivec support on PowerPC by default
     - name: Checkout soft-oal
       if: steps.cache-openal-soft.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
@@ -118,43 +103,10 @@ jobs:
       run: |
         cmake -B ./build \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/soft-oal/install' \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
+        -DCMAKE_OSX_ARCHITECTURES='arm64' \
         -DCMAKE_VERBOSE_MAKEFILE=on
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
-
-    ###
-    # WolfSSL
-    ###
-# FIXME: Figure out how to compile WolfSSL cross-architecture
-#
-#    - name: Cache WolfSSL
-#      id: cache-wolfssl
-#      uses: actions/cache@v4
-#      with:
-#        path: 'thirdparties/wolfssl_install'
-#        key: ${{ runner.os }}-${{ matrix.architecture.name }}-wolfssl-${{ env.wolfssl-version }}-v1
-#
-#    # WolfSSL setup
-#    - name: Checkout WolfSSL
-#      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-#      uses: actions/checkout@v4
-#      with:
-#        repository: 'wolfssl/wolfssl'
-#        path: 'thirdparties/wolfssl'
-#        ref: '${{ env.wolfssl-version }}'
-#
-#    # WolfSSL build
-#    - name: Configure and install wolfssl
-#      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-#      working-directory: ${{github.workspace}}/thirdparties/wolfssl
-#      run: |
-#        cmake -B ./build \
-#            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/wolfssl_install' \
-#            -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
-#            -DBUILD_SHARED_LIBS=OFF -DWOLFSSL_OPENSSLEXTRA=ON -DWOLFSSL_ASM=OFF -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CURL=ON
-#        cmake --build ./build --config Release --parallel
-#        cmake --install ./build --config Release
 
     ###
     # cURL
@@ -164,7 +116,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/curl/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-curl-${{ env.curl-version }}-v1
+        key: ${{ runner.os }}-arm64-curl-${{ env.curl-version }}-v1
 
     # cURL setup
     - name: Checkout cURL
@@ -182,7 +134,7 @@ jobs:
       run: |
         cmake -B ./build \
             -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/curl/install' \
-            -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
+            -DCMAKE_OSX_ARCHITECTURES='arm64' \
             -DCURL_USE_LIBPSL=OFF \
             -DCURL_USE_WOLFSSL=OFF \
             -DCURL_USE_LIBSSH2=OFF \
@@ -191,8 +143,7 @@ jobs:
             -DCURL_ENABLE_SSL=OFF \
             -DCURL_ZLIB="" \
             -DCURL_BROTLI="" \
-            -DCURL_ZSTD="" \
-            -DWolfSSL_ROOT='${{github.workspace}}/thirdparties/wolfssl_install'
+            -DCURL_ZSTD=""
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
 
@@ -209,7 +160,7 @@ jobs:
         echo "CMAKE_PARAM=--log-level=VERBOSE \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
         -DCMAKE_VERBOSE_MAKEFILE=on \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
+        -DCMAKE_OSX_ARCHITECTURES='arm64' \
         -DUSE_INTERNAL_SDL=OFF \
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/lib/cmake/SDL2' \
         -DOPENAL_LIBRARY='${{github.workspace}}/thirdparties/soft-oal/install' \
@@ -217,7 +168,7 @@ jobs:
         -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
         -DBUILD_RENDERER_GL2=OFF \
-        -DBUILD_MACOS_APP=OFF \
+        -DBUILD_MACOS_APP=ON \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
         -DPRODUCT_VERSION_STAGE='${{ env.RELEASE_STAGE }}'" >> $GITHUB_ENV
 
@@ -250,7 +201,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-macos-${{matrix.architecture.name}}
+        name: out-macos-arm64
         if-no-files-found: error
         compression-level: 9
         path:

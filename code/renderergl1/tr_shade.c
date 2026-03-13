@@ -163,6 +163,9 @@ without compiled vertex arrays.
 static void R_DrawElements( int numIndexes, const glIndex_t *indexes ) {
 	int		primitives;
 
+#ifdef __APPLE__
+	primitives = 2;
+#else
 	primitives = r_primitives->integer;
 
 	// default is to use triangles if compiled vertex arrays are present
@@ -173,6 +176,7 @@ static void R_DrawElements( int numIndexes, const glIndex_t *indexes ) {
 			primitives = 1;
 		}
 	}
+#endif
 
 
 	if ( primitives == 2 ) {
