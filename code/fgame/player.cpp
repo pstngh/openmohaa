@@ -54,6 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "portableturret.h"
 #include "fixedturret.h"
 #include "clientvote.h"
+#include "g_bot.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -2843,12 +2844,8 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
         if (bDispLocation && g_obituarylocation->integer) {
             str szConv2 = s2 + " in the " + G_LocationNumToDispString(iLocation);
 
-            G_PrintfClient(edict, "%s\n", szConv2.c_str());
-
             G_PrintDeathMessage(s1, szConv2.c_str(), "x", client->pers.netname, this, "s");
         } else {
-            G_PrintfClient(edict, "%s\n", s1.c_str());
-
             G_PrintDeathMessage(s1.c_str(), s2.c_str(), "x", client->pers.netname, this, "s");
         }
     } else if (attacker && attacker->client) {
@@ -2963,34 +2960,10 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
             G_PrintDeathMessage(
                 s1.c_str(), szConv2.c_str(), attacker->client->pers.netname, client->pers.netname, this, "p"
             );
-
-            if (dedicated->integer) {
-                str szLoc1, szLoc2;
-
-                szLoc1 = gi.LV_ConvertString(s1.c_str());
-                if (s2 == 'x') {
-                    G_PrintfClient(edict, "%s %s\n", szLoc1.c_str(), attacker->client->pers.netname);
-                } else {
-                    szLoc2 = gi.LV_ConvertString(szConv2.c_str());
-                    G_PrintfClient(edict, "%s %s%s\n", szLoc1.c_str(), attacker->client->pers.netname, szLoc2.c_str());
-                }
-            }
         } else {
             G_PrintDeathMessage(
                 s1.c_str(), s2.c_str(), attacker->client->pers.netname, client->pers.netname, this, "p"
             );
-
-            if (dedicated->integer) {
-                str szLoc1, szLoc2;
-
-                szLoc1 = gi.LV_ConvertString(s1.c_str());
-                if (s2 == 'x') {
-                    G_PrintfClient(edict, "%s %s\n", szLoc1.c_str(), attacker->client->pers.netname);
-                } else {
-                    szLoc2 = gi.LV_ConvertString(s2.c_str());
-                    G_PrintfClient(edict, "%s %s%s\n", szLoc1.c_str(), attacker->client->pers.netname, szLoc2.c_str());
-                }
-            }
         }
     } else {
         //
@@ -3039,8 +3012,6 @@ void Player::Obituary(Entity *attacker, Entity *inflictor, int meansofdeath, int
         } else {
             G_PrintDeathMessage(s1.c_str(), s2.c_str(), "x", client->pers.netname, this, "w");
         }
-
-        G_PrintfClient(edict, "%s\n", gi.LV_ConvertString(s1.c_str()));
     }
 }
 
@@ -9652,9 +9623,11 @@ void Player::Join_DM_Team(Event *ev)
             return;
         }
 
-        G_PrintfClient(edict, "%s\n", join_message);
+        if (!G_IsBot(edict)) {
+            G_PrintfClient(edict, "%s\n", join_message);
 
-        G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+            G_PrintToAllClients(va("%s %s\n", client->pers.netname, join_message), 2);
+        }
     }
 }
 
