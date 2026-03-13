@@ -191,17 +191,28 @@ jobs:
         mkdir ${{github.workspace}}/package
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
-        # Copy shared libraries into each .app bundle so they work with App Translocation
+        # Bundle all required files into each .app so they are self-contained
+        # (macOS App Translocation prevents loading from outside the bundle)
         DYLIBS=(
           "${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib"
           "${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib"
         )
         # curl uses lib or lib64 depending on the platform
         DYLIBS+=(${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib)
+        LIBDIR='${{github.workspace}}/install/lib/openmohaa'
         for app in '${{github.workspace}}/package'/*.app; do
           if [ -d "$app" ]; then
+            MACOSDIR="$app/Contents/MacOS"
+            # Copy third-party shared libraries
             for lib in "${DYLIBS[@]}"; do
-              cp "$lib" "$app/Contents/MacOS/"
+              cp "$lib" "$MACOSDIR/"
+            done
+            # Copy game module libraries (game.dylib, cgame.dylib, etc.)
+            find "$LIBDIR" -name '*.dylib' -not -path '*/.*' | while read -r mod; do
+              # Preserve subdirectory structure (e.g. missionpack/)
+              relpath="${mod#$LIBDIR/}"
+              mkdir -p "$MACOSDIR/$(dirname "$relpath")"
+              cp "$mod" "$MACOSDIR/$relpath"
             done
             # Ad-hoc sign the complete bundle after all contents are in place
             codesign --force --deep \
