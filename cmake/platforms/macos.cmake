@@ -82,31 +82,36 @@ function(finish_macos_app)
     endif()
 endfunction()
 
-if(NOT "$ENV{APPLE_CERTIFICATE_ID}" STREQUAL "")
-    list(APPEND POST_CONFIGURE_FUNCTIONS codesign)
+list(APPEND POST_CONFIGURE_FUNCTIONS codesign)
 
-    function(codesign)
-        set(DEV_ID "Developer ID Application")
+function(codesign)
+    get_directory_property(INSTALL_TARGETS DIRECTORY
+        ${CMAKE_SOURCE_DIR} BUILDSYSTEM_TARGETS)
 
-        get_directory_property(INSTALL_TARGETS DIRECTORY
-            ${CMAKE_SOURCE_DIR} BUILDSYSTEM_TARGETS)
+    if(NOT "$ENV{APPLE_CERTIFICATE_ID}" STREQUAL "")
+        set(CODESIGN_ID "$ENV{APPLE_CERTIFICATE_ID}")
+        set(CODESIGN_EXTRA_FLAGS --options runtime)
+    else()
+        # Ad-hoc sign so macOS doesn't report the app as damaged
+        set(CODESIGN_ID "-")
+        set(CODESIGN_EXTRA_FLAGS "")
+    endif()
 
-        # Code sign everything that will be installed
-        foreach(TARGET IN LISTS INSTALL_TARGETS)
-            get_target_property(DESTINATION ${TARGET} INSTALL_DESTINATION)
-            if(NOT DESTINATION)
-                continue()
-            endif()
+    # Code sign everything that will be installed
+    foreach(TARGET IN LISTS INSTALL_TARGETS)
+        get_target_property(DESTINATION ${TARGET} INSTALL_DESTINATION)
+        if(NOT DESTINATION)
+            continue()
+        endif()
 
-            add_custom_command(TARGET ${TARGET} POST_BUILD
-                COMMAND codesign --force --deep --options runtime
-                    --entitlements ${CMAKE_SOURCE_DIR}/cmake/entitlements.plist
-                    --sign "$ENV{APPLE_CERTIFICATE_ID}"
-                    "$<TARGET_FILE:${TARGET}>"
-                COMMENT "Code Signing for macOS: $<TARGET_FILE_BASE_NAME:${TARGET}>")
-        endforeach()
-    endfunction()
-endif()
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND codesign --force --deep ${CODESIGN_EXTRA_FLAGS}
+                --entitlements ${CMAKE_SOURCE_DIR}/cmake/entitlements.plist
+                --sign "${CODESIGN_ID}"
+                "$<TARGET_FILE:${TARGET}>"
+            COMMENT "Code Signing for macOS: $<TARGET_FILE_BASE_NAME:${TARGET}>")
+    endforeach()
+endfunction()
 
 set(CPACK_GENERATOR "DragNDrop")
 
