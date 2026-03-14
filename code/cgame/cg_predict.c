@@ -444,13 +444,9 @@ static void CG_InterpolatePlayerState(qboolean grabAngles)
             float dt       = cg.frametime / 1000.0f;
             float leanAdd, leanSpeed, leanChange, minChange;
 
-            if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
-                leanAdd   = 6.0f;
-                leanSpeed = 2.0f;
-            } else {
-                leanAdd   = 10.0f;
-                leanSpeed = 4.0f;
-            }
+            // AA demos (.dm3) always use AA lean physics regardless of engine protocol
+            leanAdd   = 10.0f;
+            leanSpeed = 4.0f;
 
             leanChange = dt * leanDiff * leanAdd;
             minChange  = dt * leanSpeed;
