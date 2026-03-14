@@ -259,7 +259,6 @@ extern "C" {
         float    fCurrentViewHeight;
         float    fCurrentViewBobPhase;
         float    fCurrentViewBobAmp;
-        float    fCurrentLeanAngle; // smoothed lean angle for demo playback
 
         // player model
         dtiki_t  *pLastPlayerWorldModel;
