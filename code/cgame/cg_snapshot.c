@@ -172,8 +172,6 @@ void CG_SetInitialSnapshot(snapshot_t *snap)
 
     // Mirror what CG_TransitionSnapshot does: derive walking from ground entity
     cg.snap->ps.walking = cg.snap->ps.groundEntityNum != ENTITYNUM_NONE;
-    // Seed the demo lean smoother so there's no jump on the very first frame
-    cg.fCurrentLeanAngle = cg.snap->ps.fLeanAngle;
 }
 
 /*
