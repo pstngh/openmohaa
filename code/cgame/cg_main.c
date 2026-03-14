@@ -769,8 +769,6 @@ void CG_Init(clientGameImport_t *imported, int serverMessageNum, int serverComma
 
     // HUD setup
     CG_RefreshHudDrawElements();
-    // Changed in OPM: default to ui_hud 0
-    cgi.Cmd_Execute(EXEC_NOW, "ui_hud 0\n");
 }
 
 /*
