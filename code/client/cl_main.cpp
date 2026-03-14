@@ -40,6 +40,17 @@ extern "C" {
 
 #include <climits>
 
+// Added in OPM
+//====
+// Loop demos state
+#define MAX_LOOP_DEMOS 256
+
+static char loopDemoNames[MAX_LOOP_DEMOS][MAX_QPATH];
+static int  loopDemoCount;
+static int  loopDemoIndex;
+static qboolean loopDemosActive;
+//====
+
 #ifdef USE_RENDERER_DLOPEN
 cvar_t* cl_renderer;
 #endif
@@ -733,6 +744,74 @@ void CL_StartDemoLoop( void ) {
 	Key_SetCatcher( 0 );
 }
 
+// Added in OPM
+//====
+/*
+==================
+CL_LoopDemos_f
+
+Play all demos in the demos folder sequentially
+==================
+*/
+static void CL_LoopDemos_f( void ) {
+	int    numFiles;
+	char   **fileList;
+
+	fileList = FS_ListFiles("demos", "." DEMOEXT, qfalse, &numFiles);
+
+	if (!fileList || numFiles == 0) {
+		Com_Printf("No demo files found in demos/\n");
+		if (fileList) {
+			FS_FreeFileList(fileList);
+		}
+		return;
+	}
+
+	loopDemoCount = 0;
+	for (int i = 0; i < numFiles && loopDemoCount < MAX_LOOP_DEMOS; i++) {
+		// Strip the .dm3 extension for the demo command
+		Q_strncpyz(loopDemoNames[loopDemoCount], fileList[i], sizeof(loopDemoNames[0]));
+		char *ext = strrchr(loopDemoNames[loopDemoCount], '.');
+		if (ext) {
+			*ext = '\0';
+		}
+		loopDemoCount++;
+	}
+
+	FS_FreeFileList(fileList);
+
+	if (loopDemoCount == 0) {
+		Com_Printf("No demo files found in demos/\n");
+		return;
+	}
+
+	Com_Printf("Found %d demo(s), starting playback\n", loopDemoCount);
+	loopDemoIndex = 0;
+	loopDemosActive = qtrue;
+
+	Cbuf_AddText(va("demo %s\n", loopDemoNames[0]));
+}
+
+/*
+==================
+CL_StopLoopDemos_f
+
+Stop the loop demos playback
+==================
+*/
+static void CL_StopLoopDemos_f( void ) {
+	if (!loopDemosActive) {
+		Com_Printf("Loop demos not active\n");
+		return;
+	}
+
+	loopDemosActive = qfalse;
+	loopDemoCount = 0;
+	loopDemoIndex = 0;
+	Com_Printf("Loop demos stopped\n");
+}
+//====
+
 /*
 ==================
 CL_NextDemo
@@ -742,6 +821,22 @@ If the "nextdemo" cvar is set, that command will be issued
 ==================
 */
 void CL_NextDemo( void ) {
+	// Added in OPM
+	// Advance to the next demo in the loop list
+	if (loopDemosActive) {
+		loopDemoIndex++;
+		if (loopDemoIndex < loopDemoCount) {
+			Com_Printf("Playing demo %d of %d: %s\n", loopDemoIndex + 1, loopDemoCount, loopDemoNames[loopDemoIndex]);
+			Cbuf_AddText(va("demo %s\n", loopDemoNames[loopDemoIndex]));
+		} else {
+			Com_Printf("All %d demos finished\n", loopDemoCount);
+			loopDemosActive = qfalse;
+			loopDemoCount = 0;
+			loopDemoIndex = 0;
+		}
+		return;
+	}
+
 	char	v[MAX_STRING_CHARS];
 
 	Q_strncpyz( v, Cvar_VariableString ("nextdemo"), sizeof(v) );
@@ -3684,6 +3779,8 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
 	Cmd_AddCommand ("record", CL_Record_f);
 	Cmd_AddCommand ("demo", CL_PlayDemo_f);
+	Cmd_AddCommand ("loopdemos", CL_LoopDemos_f);
+	Cmd_AddCommand ("stoploopdemos", CL_StopLoopDemos_f);
 	Cmd_AddCommand ("cinematic", CL_PlayCinematic_f);
 	Cmd_AddCommand ("stoprecord", CL_StopRecord_f);
 	Cmd_AddCommand ("connect", CL_Connect_f);
