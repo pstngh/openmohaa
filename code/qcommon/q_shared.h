@@ -87,7 +87,7 @@ extern "C" {
     
 #define MAX_MASTER_SERVERS      5	// number of supported master servers
 
-#define DEMOEXT	"dm_"			// standard demo extension
+#define DEMOEXT	"dm3"			// standard demo extension
 
 #ifdef _MSC_VER
 

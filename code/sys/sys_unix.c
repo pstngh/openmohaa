@@ -283,7 +283,7 @@ qboolean Sys_MigrateToXDG(void)
 		"xdg_state_home=\"%s\"\n"
 
 		"xdg_config_pattern=\"*.cfg\"\n"
-		"xdg_data_pattern=\"demos/*.dm_* *.log *.pk3 *.txt \\\n"
+		"xdg_data_pattern=\"demos/*.dm3 *.log *.pk3 *.txt \\\n"
 		"    screenshots/*.jpg screenshots/*.tga videos/*.avi\"\n"
 		"xdg_state_pattern=\"*.dat q3history q3key\"\n"
 
