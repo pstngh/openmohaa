@@ -1,0 +1,3 @@
+exec global/DMprecache.scr
+cache models/statweapons/mg42_gun.tik
+cache models/statweapons/mg42_bipod_nonstatic.tik

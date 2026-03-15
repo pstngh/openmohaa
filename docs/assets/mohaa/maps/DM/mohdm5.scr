@@ -1,0 +1,71 @@
+// SNOWY PARK
+// ARCHITECTURE: NED
+// SCRIPTING: NED
+
+main:
+
+// set scoreboard messages
+setcvar "g_obj_alliedtext1" "Snowy Park"
+setcvar "g_obj_alliedtext2" ""
+setcvar "g_obj_alliedtext3" ""
+setcvar "g_obj_axistext1" ""
+setcvar "g_obj_axistext2" ""
+setcvar "g_obj_axistext3" ""
+
+setcvar "g_scoreboardpic" "mohdm5"
+
+	// call additional stuff for playing this map round based is needed
+	if(level.roundbased)
+		thread roundbasedthread
+
+	level waitTill prespawn
+
+	//*** Precache Dm Stuff
+	exec global/DMprecache.scr
+
+	level.script = maps/dm/mohdm5.scr
+	exec global/ambient.scr mohdm5
+
+
+
+
+
+	level waittill spawn
+
+
+snow:
+	wait 1
+
+	level.rain_speed = "32"
+	level.rain_speed_vary = "16"
+	level.rain_length = "2"
+	level.rain_width = "1"
+	level.rain_density = ".2"
+	level.rain_slant = "250"
+	level.rain_min_dist = "1800"
+	//level.rain_min_dist = "512"
+	level.rain_numshaders = 12
+	level.rain_shader = "textures/snow0"
+
+
+end
+
+//-----------------------------------------------------------------------------
+
+roundbasedthread:
+
+	// Can specify different scoreboard messages for round based games here.
+
+	level waitTill prespawn
+
+	level waittill spawn
+
+	// set the parameters for this round based match
+	level.dmrespawning = 0 // 1 or 0
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = kills // set to axis, allies, kills, or draw
+
+	level waittill roundstart
+
+end
+

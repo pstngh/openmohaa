@@ -1,0 +1,2 @@
+exec global/DMprecache.scr
+cache models/emitters/lightswarmers_small.tik
