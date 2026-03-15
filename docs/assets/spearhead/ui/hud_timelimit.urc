@@ -1,0 +1,23 @@
+menu "hud_timelimit" 256 64 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+//align centerx top
+align right top
+
+resource
+Label
+{
+title "time message"
+name "Default"
+//rect 0 0 224 24
+rect 0 32 246 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font facfont-20
+//textalign left
+textalign right
+linkcvar "ui_timemessage"
+outlinedtext 1
+}
+end.

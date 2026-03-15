@@ -1,0 +1,181 @@
+menu "SelectPrimaryWeapon_russian" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+resource
+Label
+{
+name "Select Primary Weapon"
+rect 200 96 240 280
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/selectprimary_russian"
+font "facfont-20"
+}
+
+resource
+Button
+{
+name "Default"
+rect 0 0 640 96
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+name "sign"
+rect 234 120 172 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "ui_weaponsign"
+linkcvartoshader
+
+}
+resource
+Button
+{
+name "Rifle"
+rect 234 152 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon rifle;popmenu 0"
+hovercommand "set ui_weaponsign rifle_sign"
+
+}
+resource
+Button
+{
+name "Sniper Rifle"
+rect 234 184 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon sniper;popmenu 0"
+hovercommand "set ui_weaponsign sniperrifle_sign"
+
+}
+resource
+Button
+{
+name "Sub-Machinegun"
+rect 234 216 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon smg;popmenu 0"
+hovercommand "set ui_weaponsign submachinegun_sign"
+
+}
+resource
+Button
+{
+name "Machinegun"
+rect 234 248 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon mg;popmenu 0"
+hovercommand "set ui_weaponsign machinegun_sign"
+
+}
+resource
+Button
+{
+name "Rocket Launcher"
+rect 234 280 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon heavy;popmenu 0"
+hovercommand "set ui_weaponsign rocketlauncher_sign"
+
+}
+resource
+Button
+{
+name "Shotgun"
+rect 234 312 172 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "primarydmweapon shotgun;popmenu 0"
+hovercommand "set ui_weaponsign shotgun_sign"
+
+}
+resource
+Button
+{
+name "Cancel"
+rect 280 352 80 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+font "facfont-20"
+hovercommand "set ui_weaponsign menu_button_trans"
+}
+resource
+Button
+{
+name "Default"
+rect 0 96 200 280
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 440 96 200 280
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 376 640 104
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+end.

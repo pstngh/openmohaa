@@ -1,0 +1,498 @@
+menu "FilterMenu" 640 480 NONE 1
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+virtualres 1
+include "ui/serverback.inc"
+
+
+
+
+// resource
+// Label
+// {
+// title "Free For All"
+// name "Default"
+// rect 353 153 168 24
+// fgcolor 0.00 0.00 0.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// // shader "textures/mohmenu/mp_setup_btn1"
+// textalign center
+// font facfont-20
+// }
+// 
+
+
+// resource
+// Label
+// {
+// title "Objective Match"
+// name "Default"
+// rect 353 185 168 24
+// fgcolor 0.00 0.00 0.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// // shader "textures/mohmenu/mp_setup_btn1"
+// textalign center
+// font facfont-20
+// }
+// 
+
+
+
+////////////////#@#/////#@#/////#@#/////#@#///////////begin Eben's addition
+////////////////#@#/////#@#/////#@#/////#@#/////////////end Eben's addition
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+CheckBox
+{
+name "Tug of War"
+rect 528 280 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_tow_match"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Team Match"
+rect 528 248 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_team_match"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Round-Based-Match"
+rect 528 216 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_round_based_match"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Objective-Match"
+rect 528 184 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_objective_match"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Free For All"
+rect 528 152 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_free_for_all"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Free For All Game"
+name "Default"
+rect 352 152 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Objective Based Game"
+name "Default"
+rect 352 184 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Round Based Game"
+name "Default"
+rect 352 216 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Omit Full Servers"
+name "Default"
+rect 88 152 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Omit Empty Servers"
+name "Default"
+rect 88 120 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 264 120 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_filter_empty"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Game Types:"
+name "Default"
+rect 352 120 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Server Filters"
+name "Default"
+rect 193 49 256 64
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+// shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font delima-30
+// font facfont-20
+
+}
+resource
+Label
+{
+title "Server Filters"
+name "Default"
+rect 192 48 256 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font delima-30
+// font facfont-20
+
+}
+resource
+Label
+{
+title "Team Game"
+name "Default"
+rect 352 248 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Tug of War Game"
+name "Default"
+rect 352 280 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Max Ping"
+name "Default"
+rect 88 280 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Field
+{
+title "0"
+name "Default"
+rect 264 280 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "dm_max_ping"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Default"
+rect 88 400 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 1"
+}
+resource
+Button
+{
+name "Default"
+rect 440 400 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "textures/mohmenu/apply"
+hovershader "textures/mohmenu/apply_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "PopMenu 0"
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 264 352 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_run_fast"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Fast"
+name "Default"
+rect 168 352 88 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+Label
+{
+title "Movement Speed:"
+name "Default"
+rect 240 320 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Normal"
+name "Default"
+rect 344 352 88 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 464 352 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_run_normal"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Dedicated Servers"
+name "Default"
+rect 88 184 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 264 184 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_filter_listen"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 264 152 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_filter_full"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Realism Servers"
+name "Default"
+rect 88 216 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+CheckBox
+{
+name "Tug of War"
+rect 264 216 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_realism_mode"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Show Demo Servers"
+name "Default"
+rect 88 248 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+
+}
+resource
+CheckBox
+{
+name "Demo"
+rect 264 248 24 24
+fgcolor 0.75 0.75 0.75 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+linkcvar "dm_show_demo_servers"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+end.

@@ -1,0 +1,120 @@
+menu "joinlangame" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/multiplayerback.inc"
+
+resource
+LANGameClass
+{
+name "langamelist"
+rect 16 16 608 384
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.02 0.07 0.00 0.75
+borderstyle "NONE"
+ordernumber 1
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "langame_b"
+font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "langame_a"
+font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 16 408 608 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "cl_langamerefreshstatus"
+align center
+font facfont-20
+
+}
+resource
+Button
+{
+name "Default"
+rect 16 440 80 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+stuffcommand "Popmenu 0"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/back.wav"
+
+}
+resource
+Button
+{
+name "join game"
+rect 310 440 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "widgetcommand langamelist joingame"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+//stuffcommand "globalwidgetcommand langamelist connecttoselected"
+//font facfont-20
+
+}
+resource
+Button
+{
+name "refresh"
+rect 542 440 80 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "localservers"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+//font facfont-20
+
+}
+
+// resource
+// Button
+// {
+// name "Filters"
+// rect 226 440 80 24
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// stuffcommand "pushmenu FilterMenu"
+// // shader "textures/mohmenu/filters"
+// hovershader "menu_button_glow"
+// clicksound "sound/menu/apply.wav"
+// 
+// }
+end.

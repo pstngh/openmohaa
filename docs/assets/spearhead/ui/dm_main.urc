@@ -1,0 +1,231 @@
+menu "dm_main" 640 480 NONE 0
+//fadein 0
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+// resource
+// Label
+// {
+// // title "Cancel"
+// name "Cancel"
+// rect 280 368 80 16
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.17 0.17 0.17 0.00
+// borderstyle "NONE"
+// font "facfont-20"
+// }
+// 
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 192 112 256 256
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.25 0.00 0.00 0.00
+borderstyle "NONE"
+shader "escmenu"
+}
+resource
+Label
+{
+// title "You've Already Voted"
+name "alreadyvoted"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+shader "textures/mohmenu/already_voted"
+// rect 224 304 192 32
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.17 0.17 0.17 1.00
+borderstyle "3D_BORDER"
+// font "facfont-20"
+}
+
+resource
+Label
+{
+// title "Can't Vote On This Server"
+name "cantvote"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+shader "textures/mohmenu/cant_vote"
+borderstyle "3D_BORDER"
+}
+
+resource
+BUTTON
+{
+name "callvotebutton"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushcallvote"
+// title "Call Vote"
+// rect 224 304 192 32
+// hovershader "menu_button_glow"
+// font "facfont-20"
+// ordernumber 6
+
+}
+
+resource
+Button
+{
+// title "Vote"
+name "votebutton"
+rect 200 270 238 32
+// rect 224 304 192 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/vote_button"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushvote"
+font "facfont-20"
+ordernumber 6
+}
+
+resource
+Button
+{
+name "Spectator"
+rect 200 240 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;spectator"
+// rect 224 272 192 32
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 5
+
+}
+resource
+Button
+{
+name "Multiplayer Options"
+rect 200 210 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;ui_getplayermodel;pushmenu mpoptions"
+// rect 224 240 192 32
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 4
+
+}
+resource
+Button
+{
+name "Select Team"
+rect 200 150 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushmenu_teamselect"
+// rect 224 176 192 32
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 2
+
+}
+resource
+Button
+{
+name "Main Menu"
+rect 200 120 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushmenu main"
+// rect 202 122 238 28
+// shader "menu_button_trans"
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 1
+
+}
+resource
+Button
+{
+name "Cancel"
+rect 200 330 238 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+// rect 280 368 80 16
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 7
+
+}
+resource
+Button
+{
+name "disconnect"
+rect 200 302 238 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "disconnect; wait 5; popmenu 0;pushmenu main;pushmenu multiplayer"
+// rect 224 336 192 32
+// hovershader "disconnect_h"
+font "facfont-20"
+ordernumber 7
+
+}
+resource
+Button
+{
+name "Select Weapon"
+// rect 200 150 238 32
+rect 200 179 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 50;pickweapon"
+// rect 224 208 192 32
+// hovershader "menu_button_glow"
+font "facfont-20"
+ordernumber 3
+
+}
+
+end.

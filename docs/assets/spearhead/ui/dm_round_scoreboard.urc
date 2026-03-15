@@ -1,0 +1,213 @@
+menu "DM_Round_Scoreboard" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+
+
+resource
+Label
+{
+name "backdroppiece"
+rect 416 32 192 416
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "alliesback"
+rect 424 256 176 144
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.30
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "default"
+rect 424 256 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext1"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+name "default"
+rect 424 280 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext2"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+name "default"
+rect 424 304 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext3"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+name "default"
+rect 424 328 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext1"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+name "default"
+rect 424 352 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext2"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+name "default"
+rect 424 376 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext3"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title " Ping"
+name "default"
+rect 376 32 40 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Time"
+name "default"
+rect 312 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Total"
+name "default"
+rect 248 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Kills"
+name "default"
+rect 184 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Name"
+name "default"
+rect 56 32 128 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " #"
+name "default"
+rect 32 32 24 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "picture"
+rect 424 40 176 176
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_scoreboardpic"
+linkcvartoshader
+
+}
+resource
+Label
+{
+name "pictureoverlay"
+rect 424 40 176 176
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_scoreboardpicover"
+linkcvartoshader
+
+}
+end.

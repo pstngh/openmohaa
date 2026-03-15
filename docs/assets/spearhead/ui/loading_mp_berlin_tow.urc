@@ -1,0 +1,89 @@
+menu "obj/mp_berlin_tow" 640 481 NONE 0
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+postinclude ui/loadingbar.txt
+
+resource
+Label
+{
+name "Default"
+rect 0 0 640 480
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+shader "textures/mohmenu/dmloading/dm_loading_bg"
+}
+
+resource
+Label
+{
+name "Default"
+rect 104 36 430 332
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "mp_berlin_tow"
+}
+
+resource
+Label
+{
+name "Default"
+rect 104 36 430 332
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "sepiaoverlay"
+}
+
+resource
+Label
+{
+title "Berlin"
+name "Default"
+rect 72 408 496 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font facfont-20
+}
+
+resource
+Label
+{
+title "Berlin"
+name "Default"
+rect 71 407 496 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font facfont-20
+}
+
+resource
+Label
+{
+name "border"
+rect 104 36 430 332
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/dmloading/photo_border"
+}
+
+resource
+Label
+{
+name "pushpin"
+rect 270 22 58 62
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/dmloading/pushpin"
+}
+
+end.

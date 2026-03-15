@@ -1,0 +1,59 @@
+menu "joingame" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/multiplayerback.inc"
+
+
+resource
+Label
+{
+name "Default"
+rect 192 184 256 104
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "joingame"
+}
+resource
+Button
+{
+name "join lan game"
+rect 200 192 240 32
+fgcolor 1.0 1.0 1.0 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+stuffcommand "pushmenu joinlangame;wait 100;localservers"
+}
+resource
+Button
+{
+name "join internet game"
+rect 200 224 240 32
+fgcolor 1.0 1.0 1.0 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+stuffcommand "pushmenu joininternetgame"
+}
+resource
+Button
+{
+name "cancel"
+rect 272 264 96 16
+fgcolor 1.0 1.0 1.0 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+stuffcommand "popmenu 0"
+}
+end.

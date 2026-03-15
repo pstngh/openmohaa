@@ -1,0 +1,116 @@
+menu "hud_ammo_PzB41 Anti-Tank" 261 407 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+// name "ammobar"
+name "clipbulletse"
+//rect 216 7 16 64
+rect 180 233 64 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical_stagger_even
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+
+// statbar_tileshader textures/hud/clip_rifle
+statbar_tileshader textures/hud/clip_pzb41
+//statbar_shader textures/hud/clip_thompson
+}
+
+resource
+Label
+{
+name "clipbulletso"
+//rect 216 7 16 64
+rect 188 225 64 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical_stagger_odd
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_pzb41
+//statbar_shader textures/hud/clip_thompson
+}
+ 
+// ///==================================================
+// // Ammo Count Seperator
+// 
+// resource
+// Label
+// {
+// name "ammoseperator"
+// title "|"
+// //rect 160 117 8 18
+// rect 92 373 8 18
+// fgcolor 0.70 0.60 0.05 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// textalign centerx
+// font facfont-20
+// }
+
+//==================================================
+// Total Ammo Count
+
+// resource
+// Label
+// {
+// name "ammocount"
+// //rect 168 117 32 18
+// rect 100 373 32 18
+// fgcolor 0.70 0.60 0.05 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// playerstat 4 // ammo
+// textalign left
+// font facfont-20
+// }
+
+//==================================================
+// Ammo Clip Count
+
+resource
+Label
+{
+name "reloadshots"
+//rect 128 117 32 18
+rect 80 373 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 6 // clip ammo
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Weapon Name Display
+
+resource
+Label
+{
+name "weaponname"
+//rect 0 95 200 22
+rect 20 351 120 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+
+end.

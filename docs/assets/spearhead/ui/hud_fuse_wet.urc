@@ -1,0 +1,38 @@
+menu "hud_fuse_wet" 512 96 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left centery
+
+//==================================================
+// Fuse Base
+
+resource
+Label
+{
+name "fusebase"
+rect 0 32 128 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/fusebase_shoot
+}
+
+//==================================================
+// Fuse fuse
+
+resource
+Label
+{
+name "fuse"
+rect 64 32 128 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ui_stopwatch"
+statbar horizontal 0 5000
+statbar_tileshader textures/hud/fusetile
+// rect 64 0 64 64
+statbar_shader_marker sticky_smoke
+}
+
+end.
