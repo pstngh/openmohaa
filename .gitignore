@@ -4,6 +4,7 @@ build*
 *~
 /.vscode/
 /baseq3
+__pycache__/
 
 # OS X
 ####################
