@@ -658,6 +658,9 @@ class DemoScanner:
         self.recording_client = None  # clientNum of the recording player
         # Internal state for delta decoding across snapshots
         self._prev_ps_arrays = None  # previous playerState arrays for delta
+        self._snap_ok = 0  # snapshots parsed successfully
+        self._snap_fail = 0  # snapshots that failed to parse
+        self._grenade_values = []  # all grenade counts observed (for debug)
 
     def scan(self):
         try:
@@ -850,8 +853,9 @@ class DemoScanner:
             elif cmd == SVC_SNAPSHOT and self.protocol < 15:
                 try:
                     self._parse_snapshot_ver6(reader)
+                    self._snap_ok += 1
                 except Exception:
-                    pass
+                    self._snap_fail += 1
                 # After snapshot, remaining data may be cgame messages
                 # which we can't parse, so stop
                 break
@@ -1024,8 +1028,7 @@ class DemoScanner:
                 self.weapons_seen.append(weapon_name)
 
         # Extract grenade count - track max across all snapshots
-        if weapon_idx > 0:
-            self._extract_grenade_count(arrays)
+        self._extract_grenade_count(arrays)
 
     def _extract_grenade_count(self, arrays):
         """Find the grenade ammo slot and track the maximum count seen.
@@ -1044,6 +1047,7 @@ class DemoScanner:
             ammo_name = self.configstrings.get(cs_idx, "")
             if ammo_name.lower() in ("grenade", "agrenade"):
                 count = arrays["ammo_amount"][i]
+                self._grenade_values.append(count)
                 if count > 0:
                     if self.grenade_count is None:
                         self.grenade_count = count
@@ -1221,6 +1225,11 @@ def main():
                                     % (i, ni, cs_idx, name, pa["ammo_amount"][i]))
                 else:
                     f.write("  [verbose] No snapshot arrays parsed\n")
+                f.write("  [verbose] Snapshots: %d ok, %d failed\n"
+                        % (scanner._snap_ok, scanner._snap_fail))
+                if scanner._grenade_values:
+                    f.write("  [verbose] All grenade counts observed: %s\n"
+                            % scanner._grenade_values)
             f.write("\n")
 
         f.write("# ---\n")
