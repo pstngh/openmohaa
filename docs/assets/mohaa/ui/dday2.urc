@@ -1,0 +1,22 @@
+menu "dday2" 640 487 NONE 1
+align centerx centery
+//fullscreen 1
+//vidmode 8
+bgcolor 0 0 0 0
+borderstyle NONE
+bgfill 0 0 0 0
+fadein 1
+
+resource
+Label
+{
+name "charliesector"
+rect 72 368 496 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/gametext/charliesector"
+ordernumber 1
+
+}
+end.

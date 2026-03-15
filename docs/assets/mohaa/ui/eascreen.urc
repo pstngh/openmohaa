@@ -1,0 +1,73 @@
+menu "eascreen" 640 480 NONE 0
+fullscreen 1
+//vidmode 3
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//fadein 0.5
+virtualres 1
+//include "ui/common.inc"
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 0 0 640 480
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "black"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "r_lodviewmodelcap"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "r_lodcap"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ter_maxlod"
+}
+resource
+Label
+{
+name "Default"
+rect 64 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/eascreen"
+}
+end.

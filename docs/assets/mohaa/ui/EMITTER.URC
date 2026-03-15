@@ -1,0 +1,1757 @@
+menu "emitter" 640 480 FROM_LEFT 0.1
+align bottom left
+bgcolor 0 0.1 0 0
+
+resource
+Label
+{
+title "Model"
+name "Default"
+rect 0 0 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "EffectCommand:"
+name "Default"
+rect 128 480 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "EffectCommand:"
+name "Default"
+rect 128 496 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "swarm delta"
+name "Default"
+rect 0 320 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "swarmdcvar"
+name "Default"
+rect 96 320 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_swarm_delta"
+}
+resource
+Field
+{
+title "swarmmscvar"
+name "Default"
+rect 96 304 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_swarm_maxspeed"
+}
+resource
+Label
+{
+title "swarm max speed"
+name "Default"
+rect 0 304 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "swarmfcvar"
+name "Default"
+rect 96 288 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_swarm_freq"
+}
+resource
+Label
+{
+title "swarm frequency"
+name "Default"
+rect 0 288 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randvelz"
+name "Default"
+rect 0 256 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randvely"
+name "Default"
+rect 0 240 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Acceleration"
+name "Default"
+rect 0 208 112 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.38 0.38 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "accelxcvar"
+name "Default"
+rect 112 208 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.38 0.38 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_accel_x"
+}
+resource
+Field
+{
+title "accely"
+name "Default"
+rect 168 208 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.38 0.38 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_accel_y"
+}
+resource
+Field
+{
+title "accelz"
+name "Default"
+rect 224 208 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.38 0.38 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_accel_z"
+}
+resource
+Label
+{
+title "/"
+name "Default"
+rect 600 448 24 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+name "Default"
+rect 616 448 24 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "cg_te_numCommands"
+}
+resource
+Label
+{
+name "Default"
+rect 584 448 24 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "cg_te_currCommand"
+}
+resource
+Button
+{
+title "Delete Com."
+name "Default"
+rect 576 432 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "deleteemittercommand"
+}
+resource
+Button
+{
+title "Prev Com."
+name "Default"
+rect 360 448 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "prevemittercommand"
+}
+resource
+Button
+{
+title "Next Com."
+name "Default"
+rect 424 448 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "nextemittercommand"
+}
+resource
+Button
+{
+title "New Com."
+name "Default"
+rect 512 432 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "newemittercommand"
+}
+resource
+Label
+{
+title "EffectCommand:"
+name "Default"
+rect 488 448 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randvelx"
+name "Default"
+rect 0 224 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "randaxisvel"
+name "Default"
+rect 0 272 136 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randaxis"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "ForwardVel"
+name "Default"
+rect 0 192 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "axisorgu"
+name "Default"
+rect 136 384 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "axisorgr"
+name "Default"
+rect 136 368 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "axisorgf"
+name "Default"
+rect 136 352 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randorgz"
+name "Default"
+rect 136 336 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randorgy"
+name "Default"
+rect 136 320 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "randorgx"
+name "Default"
+rect 136 304 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "AxisClamp"
+name "Default"
+rect 136 288 136 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelaxis"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Max"
+name "Default"
+rect 232 224 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "clampxmax"
+name "Default"
+rect 232 240 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmax_x"
+}
+resource
+Field
+{
+title "clampymax"
+name "Default"
+rect 232 256 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmax_y"
+}
+resource
+Field
+{
+title "clampzmax"
+name "Default"
+rect 232 272 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmax_z"
+}
+resource
+Label
+{
+title "SphereRadius"
+name "Default"
+rect 0 336 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "sphereradiuscvar"
+name "Default"
+rect 80 336 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_radius"
+}
+resource
+Label
+{
+title "ConeHeight"
+name "Default"
+rect 0 352 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "coneheightcvar"
+name "Default"
+rect 80 352 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_cone_height"
+}
+resource
+Label
+{
+title "Friction"
+name "Default"
+rect 136 192 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "forwardvelcvar"
+name "Default"
+rect 64 192 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_forwardvel"
+}
+resource
+Field
+{
+title "frictioncvar"
+name "Default"
+rect 200 192 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_friction"
+}
+resource
+Label
+{
+title "Bounce Factor"
+name "Default"
+rect 136 400 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "X clamp"
+name "Default"
+rect 136 240 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Y clamp"
+name "Default"
+rect 136 256 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Z clamp"
+name "Default"
+rect 136 272 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "clampzmin"
+name "Default"
+rect 184 272 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmin_z"
+}
+resource
+Field
+{
+title "clampymin"
+name "Default"
+rect 184 256 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmin_y"
+}
+resource
+Field
+{
+title "clampxmin"
+name "Default"
+rect 184 240 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_clampvelmin_x"
+}
+resource
+Label
+{
+title "ClampVel"
+name "Default"
+rect 136 224 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Min"
+name "Default"
+rect 184 224 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.22 0.41 0.60 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "radialscalecvar"
+name "Default"
+rect 80 368 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_radial_scale"
+}
+resource
+Field
+{
+title "radialmincvar"
+name "Default"
+rect 80 384 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_radial_min"
+}
+resource
+Field
+{
+title "radialmaxcvar"
+name "Default"
+rect 80 400 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_radial_max"
+}
+resource
+Label
+{
+title "RadialMax"
+name "Default"
+rect 0 400 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "RadialMin"
+name "Default"
+rect 0 384 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "RadialScale"
+name "Default"
+rect 0 368 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.45 0.67 0.86 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "countcvar"
+name "Default"
+rect 152 16 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.25 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_count"
+}
+resource
+Label
+{
+title "Life"
+name "Default"
+rect 192 16 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "lifecvar"
+name "Default"
+rect 224 16 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_life"
+}
+resource
+Label
+{
+title "Delay"
+name "Default"
+rect 192 32 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "delaycvar"
+name "Default"
+rect 224 32 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_command_time"
+}
+resource
+Label
+{
+title "Count"
+name "Default"
+rect 112 16 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.25 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "spawnratecvar"
+name "Default"
+rect 72 16 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_spawnrate"
+}
+resource
+Label
+{
+title "SpawnRate"
+name "Default"
+rect 0 16 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "spawnrangecvarb"
+name "Default"
+rect 136 32 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_spawnrange_b"
+}
+resource
+Field
+{
+title "spawnrangecvara"
+name "Default"
+rect 80 32 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_spawnrange_a"
+}
+resource
+Label
+{
+title "SpawnRange"
+name "Default"
+rect 0 32 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Green"
+name "Default"
+rect 88 48 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+name "Default"
+rect 128 48 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_color_g"
+}
+resource
+Label
+{
+title "Blue"
+name "Default"
+rect 184 48 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+name "Default"
+rect 216 48 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_color_b"
+}
+resource
+Field
+{
+name "Default"
+rect 32 48 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_color_r"
+}
+resource
+Label
+{
+title "Red"
+name "Default"
+rect 0 48 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "scaleratecvar"
+name "Default"
+rect 56 176 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.71 0.42 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_scalerate"
+}
+resource
+Label
+{
+title "ScaleRate"
+name "Default"
+rect 0 176 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.71 0.42 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Scale"
+name "Default"
+rect 0 160 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "scalecvar"
+name "Default"
+rect 40 160 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_scale"
+}
+resource
+Label
+{
+title "ScaleMin"
+name "Default"
+rect 88 160 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "scalemincvar"
+name "Default"
+rect 136 160 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_scalemin"
+}
+resource
+Label
+{
+title "ScaleMax"
+name "Default"
+rect 176 160 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "scalemaxcvar"
+name "Default"
+rect 232 160 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_scalemax"
+}
+resource
+Label
+{
+title "Roll"
+name "Default"
+rect 0 128 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Yaw"
+name "Default"
+rect 0 112 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Pitch"
+name "Default"
+rect 0 96 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "AVelR"
+name "Default"
+rect 136 128 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "AVelY"
+name "Default"
+rect 136 112 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "AVelP"
+name "Default"
+rect 136 96 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "Fade"
+name "Default"
+rect 200 80 72 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_fade"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "fadein time"
+name "Default"
+rect 0 80 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "fadeincvar"
+name "Default"
+rect 56 80 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_fadein"
+}
+resource
+Label
+{
+title "fade delay"
+name "Default"
+rect 96 80 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "fadedelaycvar"
+name "Default"
+rect 160 80 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_fadedelay"
+}
+resource
+Label
+{
+title "Emitter Pitch"
+name "Default"
+rect 0 432 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Emitter Yaw"
+name "Default"
+rect 0 448 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Emitter Roll"
+name "Default"
+rect 0 464 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "epitchcvar"
+name "Default"
+rect 72 432 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_xangles"
+setrange 0 359
+slidertype integer
+
+}
+resource
+Slider
+{
+title "eyawcvar"
+name "Default"
+rect 72 448 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_yangles"
+setrange 0 359
+slidertype integer
+
+}
+resource
+Slider
+{
+title "erollcvar"
+name "Default"
+rect 72 464 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_zangles"
+setrange 0 359
+slidertype integer
+
+}
+resource
+Field
+{
+name "Default"
+rect 208 432 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_xangles"
+}
+resource
+Field
+{
+name "Default"
+rect 208 448 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_yangles"
+}
+resource
+Field
+{
+name "Default"
+rect 208 464 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_zangles"
+}
+resource
+Field
+{
+title "modelcvar"
+name "Default"
+rect 56 0 216 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_model"
+}
+resource
+Label
+{
+title "SpawnTag:"
+name "Default"
+rect 272 416 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "Collision"
+name "Default"
+rect 184 144 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_collision"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "DieTouch"
+name "Default"
+rect 88 144 96 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_dietouch"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "RandRoll"
+name "Default"
+rect 0 144 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randomroll"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Field
+{
+name "Default"
+rect 232 64 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_alpha"
+}
+resource
+Label
+{
+title "Alpha"
+name "Default"
+rect 192 64 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.75 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "Flicker"
+name "Default"
+rect 104 64 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_flickeralpha"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "VaryColor"
+name "Default"
+rect 0 64 104 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_varycolor"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "Align"
+name "Default"
+rect 200 176 72 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_align"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Field
+{
+title "alignstretchcvar"
+name "Default"
+rect 160 176 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.71 0.42 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_alignstretch_scale"
+}
+resource
+CheckBox
+{
+title "Circle"
+name "Default"
+rect 192 416 80 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_circle"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "Sphere"
+name "Default"
+rect 0 416 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_sphere"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Field
+{
+title "bfact"
+name "Default"
+rect 216 400 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_bouncefactor"
+}
+resource
+Field
+{
+name "Default"
+rect 96 128 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesamp_r"
+}
+resource
+Field
+{
+name "Default"
+rect 96 112 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesamp_y"
+}
+resource
+Field
+{
+name "Default"
+rect 96 96 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesamp_p"
+}
+resource
+Field
+{
+name "Default"
+rect 56 96 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesbase_p"
+}
+resource
+Field
+{
+name "Default"
+rect 56 112 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesbase_y"
+}
+resource
+Field
+{
+name "Default"
+rect 56 128 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_anglesbase_r"
+}
+resource
+Field
+{
+name "Default"
+rect 192 112 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelbase_y"
+}
+resource
+Field
+{
+name "Default"
+rect 192 128 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelbase_r"
+}
+resource
+Field
+{
+name "Default"
+rect 192 96 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelbase_p"
+}
+resource
+Field
+{
+name "Default"
+rect 232 96 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelamp_p"
+}
+resource
+Field
+{
+name "Default"
+rect 232 112 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelamp_y"
+}
+resource
+Field
+{
+name "Default"
+rect 232 128 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_avelamp_r"
+}
+resource
+Field
+{
+name "Default"
+rect 48 224 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelbase_x"
+}
+resource
+Field
+{
+name "Default"
+rect 48 240 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelbase_y"
+}
+resource
+Field
+{
+name "Default"
+rect 48 256 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelbase_z"
+}
+resource
+Field
+{
+name "Default"
+rect 96 224 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelamp_x"
+}
+resource
+Field
+{
+name "Default"
+rect 96 240 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelamp_y"
+}
+resource
+Field
+{
+name "Default"
+rect 96 256 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_randvelamp_z"
+}
+resource
+Field
+{
+name "Default"
+rect 184 320 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsbase_y"
+}
+resource
+Field
+{
+name "Default"
+rect 184 336 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsbase_z"
+}
+resource
+Field
+{
+name "Default"
+rect 184 304 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsbase_x"
+}
+resource
+Field
+{
+name "Default"
+rect 232 304 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsamp_x"
+}
+resource
+Field
+{
+name "Default"
+rect 232 320 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsamp_y"
+}
+resource
+Field
+{
+name "Default"
+rect 232 336 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_offsamp_z"
+}
+resource
+Field
+{
+name "Default"
+rect 184 384 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsbase_z"
+}
+resource
+Field
+{
+name "Default"
+rect 184 368 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsbase_y"
+}
+resource
+Field
+{
+name "Default"
+rect 184 352 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsbase_x"
+}
+resource
+Field
+{
+name "Default"
+rect 232 352 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsamp_x"
+}
+resource
+Field
+{
+name "Default"
+rect 232 368 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsamp_y"
+}
+resource
+Field
+{
+name "Default"
+rect 232 384 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.99 0.67 0.09 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_axisoffsamp_z"
+}
+resource
+Button
+{
+title "Trigger Effect"
+name "Default"
+rect 248 432 112 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "triggertestemitter"
+}
+resource
+Button
+{
+title "PlaceEmitter"
+name "Default"
+rect 248 464 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "testemitter"
+}
+resource
+Button
+{
+title "DumpData"
+name "Default"
+rect 496 464 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dumpemitter"
+}
+resource
+Field
+{
+title "dumpfilecvar"
+name "Default"
+rect 320 464 176 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_filename"
+initdata dump/testemitter.txt
+
+}
+resource
+Button
+{
+title "LoadData"
+name "Default"
+rect 568 464 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "loademitter"
+}
+resource
+Field
+{
+title "tagnamecvar"
+name "Default"
+rect 328 416 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_tag"
+}
+resource
+Field
+{
+title "emittermodelcvar"
+name "Default"
+rect 496 416 144 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_emittermodel"
+}
+resource
+CheckBox
+{
+title "InSphere"
+name "Default"
+rect 88 416 104 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_insphere"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "AlignStretch"
+name "Default"
+rect 96 176 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.71 0.42 1.00
+borderstyle "NONE"
+}
+resource
+CheckBox
+{
+title "SpriteGridLighting"
+name "Default"
+rect 384 400 128 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_spritegridlighting"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "Volumetric"
+name "Default"
+rect 272 400 112 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.50 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cg_te_volumetric"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "EmitterModel:"
+name "Default"
+rect 424 416 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "mode name"
+name "Default"
+rect 376 432 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "cg_te_mode_name"
+}
+resource
+Button
+{
+name "mouse hider"
+rect 272 0 368 400
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "ui_hidemouse"
+}
+resource
+PulldownMenuContainer
+{
+name "mode selector"
+rect 360 432 24 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "Emitter Mode" command "set cg_te_mode 0"
+addpopup "MENU" "Model Anim Mode" command "set cg_te_mode 1"
+addpopup "MENU" "Model Init Mode" command "set cg_te_mode 2"
+addpopup "MENU" "SFX Mode" command "set cg_te_mode 3"
+
+}
+end.

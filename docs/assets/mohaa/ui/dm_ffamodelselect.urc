@@ -1,0 +1,168 @@
+menu "SelectFFAModel" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+
+
+
+
+resource
+Label
+{
+name "backdrop"
+rect 160 80 320 304
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "selectmodel"
+//font "facfont-20"
+
+}
+resource
+Button
+{
+name "Default"
+rect 0 0 640 80
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+title "Allies Player Model display"
+name "Default"
+rect 168 120 200 200
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_disp_playermodel"
+rendermodel 1
+modeloffset "60 12 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim americanselectionidle
+
+}
+resource
+Label
+{
+title "Axis Player Model display"
+name "Default"
+rect 272 120 200 200
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_disp_playergermanmodel"
+rendermodel 1
+modeloffset "60 -12 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim germanselectionidle
+
+}
+resource
+Button
+{
+name "cancel"
+rect 272 360 96 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0"
+//font "facfont-20"
+
+}
+resource
+Button
+{
+name "Default"
+rect 0 80 160 304
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 480 80 160 304
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 384 640 96
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "alliesmodelselect"
+rect 168 88 152 240
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team allies;popmenu 0"
+}
+resource
+Button
+{
+name "axismodelselect"
+rect 320 88 152 240
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team axis;popmenu 0"
+}
+resource
+Button
+{
+name "axismodelselect"
+rect 360 336 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team axis;popmenu 0"
+}
+resource
+Button
+{
+name "alliesmodelselect"
+rect 216 336 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team allies;popmenu 0"
+}
+end.

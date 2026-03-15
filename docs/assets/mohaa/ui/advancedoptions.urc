@@ -1,0 +1,541 @@
+menu "advancedoptions" 640 480 NONE 0
+fullscreen 1
+//vidmode 3
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//fadein 0.5
+virtualres 1
+//include "ui/common.inc"
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "advanced_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "advanced_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_c.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_a.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_f.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_e.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_d.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/advanced_b.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+title "hidden-r_lodscale"
+name "Default"
+rect 576 2 61 27
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "r_lodcap"
+}
+resource
+PulldownMenuContainer
+{
+title "list"
+name "shadowslist"
+rect 4 100 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "None" command "set cg_drawviewmodel 0"
+addpopup "MENU" "Gun Only" command "set cg_drawviewmodel 1"
+addpopup "MENU" "Full" command "set cg_drawviewmodel 2"
+
+}
+resource
+Label
+{
+title "viewmodeldisplay"
+name "Default"
+rect 68 124 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "cg_drawviewmodel"
+linkstring 0 "None"
+linkstring 1 "Gun Only"
+linkstring 2 "Full"
+
+}
+resource
+PulldownMenuContainer
+{
+title "tdlist"
+name "terrainlist"
+rect 4 244 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "Low Detail" command "set ter_error 10; set ter_maxlod 3; set ter_maxtris 16384"
+addpopup "MENU" "Medium Detail" command "set ter_error 9; set ter_maxlod 4; set ter_maxtris 16384"
+addpopup "MENU" "High Detail" command "set ter_error 7; set ter_maxlod 5; set ter_maxtris 16384"
+addpopup "MENU" "Max Detail" command "set ter_error 4; set ter_maxlod 6; set ter_maxtris 24576"
+
+}
+resource
+Label
+{
+title "terraindetaildisplay"
+name "Default"
+rect 68 268 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "ter_error"
+linkstring "10" "Low"
+linkstring "9" "Medium"
+linkstring "7" "High"
+linkstring "4" "Max"
+
+}
+resource
+PulldownMenuContainer
+{
+title "mdlist"
+name "modeldetaillist"
+rect 4 316 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "Lowest" command "set r_lodscale 0.25 ; set r_lodcap 0.25 ; set r_lodviewmodelcap 0.25"
+addpopup "MENU" "Low" command "set r_lodscale 0.35 ; set r_lodcap 0.35 ; set r_lodviewmodelcap 0.25"
+addpopup "MENU" "Medium" command "set r_lodscale 0.45 ; set r_lodcap 0.35 ; set r_lodviewmodelcap 0.45"
+addpopup "MENU" "High" command "set r_lodscale 0.55 ; set r_lodcap 0.5 ; set r_lodviewmodelcap 0.55"
+addpopup "MENU" "Higher" command "set r_lodscale 0.9 ; set r_lodcap 0.9 ; set r_lodviewmodelcap 0.9"
+addpopup "MENU" "Highest" command "set r_lodscale 1.1 ; set r_lodcap 1.0 ; set r_lodviewmodelcap 1.0"
+
+}
+resource
+Label
+{
+title "Model detail"
+name "Default"
+rect 68 340 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "r_lodscale"
+linkstring "0.25" "Lowest"
+linkstring "0.35" "Low"
+linkstring "0.45" "Medium"
+linkstring "0.55" "High"
+linkstring "0.9" "Higher"
+linkstring "1.1" "Highest"
+
+}
+resource
+Label
+{
+title "hidden-r_lodscale"
+name "Default"
+rect 576 2 61 27
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ter_maxlod"
+}
+resource
+CheckBox
+{
+name "Console"
+rect 470 164 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ui_console"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "effectdetaildisplay"
+name "Default"
+rect 304 124 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "cg_effectdetail"
+linkstring "0.2" "Minimum"
+linkstring "0.3" "Lower"
+linkstring "0.5" "Low"
+linkstring "0.7" "Medium"
+linkstring "0.8" "High"
+linkstring "0.95" "Higher"
+linkstring "1.0" "Max"
+
+}
+resource
+PulldownMenuContainer
+{
+title "list"
+name "effectdetailslist"
+rect 240 100 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "Minimum" command "set cg_effectdetail \"0.2\";set vss_maxcount 25"
+addpopup "MENU" "Lower" command "set cg_effectdetail \"0.3\";set vss_maxcount 23"
+addpopup "MENU" "Low" command "set cg_effectdetail \"0.5\";set vss_maxcount 22"
+addpopup "MENU" "Medium" command "set cg_effectdetail \"0.7\";set vss_maxcount 20"
+addpopup "MENU" "High" command "set cg_effectdetail \"0.8\";set vss_maxcount 18"
+addpopup "MENU" "Higher" command "set cg_effectdetail \"0.95\";set vss_maxcount 15"
+addpopup "MENU" "Max" command "set cg_effectdetail \"1.0\";set vss_maxcount 10"
+
+}
+resource
+PulldownMenuContainer
+{
+title "list"
+name "curve detail"
+rect 240 172 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "Lowest" command "set r_subdivisions 20"
+addpopup "MENU" "Low" command "set r_subdivisions 10"
+addpopup "MENU" "Medium" command "set r_subdivisions 4"
+addpopup "MENU" "High" command "set r_subdivisions 3"
+//addpopup "MENU" "Higher" command "set r_subdivisions 2"
+//addpopup "MENU" "Highest" command "set r_subdivisions 1"
+
+}
+resource
+Label
+{
+title "vssdetaildisplay"
+name "Default"
+rect 304 196 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "r_subdivisions"
+linkstring 20 "Lowest"
+linkstring 10 "Low"
+linkstring 4 "Medium"
+linkstring 3 "High"
+linkstring 2 "Higher"
+linkstring 1 "Highest"
+
+}
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "Popmenu 1"
+ordernumber 4
+
+}
+resource
+Button
+{
+name "Apply"
+rect 264 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/apply"
+hovershader "textures/mohmenu/apply_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_checkrestart; popmenu 0"
+ordernumber 3
+
+}
+resource
+Button
+{
+name "Default Settings"
+rect 536 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/default"
+hovershader "textures/mohmenu/default_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "ui_resetcvars"
+ordernumber 1
+
+}
+resource
+CheckBox
+{
+name "Full Entity Lighting"
+rect 470 260 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+linkcvar "r_fastentlight"
+checked_shader "textures/menu/checkbox_unchecked"
+unchecked_shader "textures/menu/checkbox_checked"
+
+}
+resource
+CheckBox
+{
+name "subtitles"
+rect 470 68 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "g_subtitle"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Shadows"
+name "Default"
+rect 68 196 160 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "cg_shadows"
+linkstring 0 "No Shadows"
+linkstring 1 "Simple"
+linkstring 2 "Complex"
+
+}
+resource
+PulldownMenuContainer
+{
+title "list"
+name "shadowslist"
+rect 4 172 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "None" command "set cg_shadows 0"
+addpopup "MENU" "Simple" command "set cg_shadows 1"
+addpopup "MENU" "Complex" command "set cg_shadows 2"
+
+}
+resource
+CheckBox
+{
+name "Real Dynamic Lighting"
+rect 470 228 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+linkcvar "r_fastdlights"
+checked_shader "textures/menu/checkbox_unchecked"
+unchecked_shader "textures/menu/checkbox_checked"
+
+}
+resource
+CheckBox
+{
+name "Draw Volumetric Smoke"
+rect 470 292 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+linkcvar "vss_draw"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "weaponsbar"
+rect 470 324 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+linkcvar "ui_weaponsbar"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Crosshair"
+rect 470 356 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ui_crosshair"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "r_lodviewmodelcap"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "r_lodcap"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ter_maxlod"
+}
+resource
+Label
+{
+name "dummy widget"
+rect 0 0 0 0
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "vss_maxcount"
+}
+resource
+CheckBox
+{
+name "Static Decals"
+rect 470 196 160 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+linkcvar "r_drawstaticdecals"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+end.

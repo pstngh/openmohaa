@@ -1,0 +1,144 @@
+menu "CinemaQuickmenu" 128 260 NONE
+
+resource
+Button
+{
+title "Fakeplayer"
+name "Default"
+rect 0 20 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script fakeplayer"
+}
+resource
+Button
+{
+title "Cinematic"
+name "Default"
+rect 0 40 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script cinematic"
+}
+resource
+Button
+{
+title "First Person"
+name "Default"
+rect 0 100 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cg_3rd_person 0"
+}
+resource
+Label
+{
+title "Cinema End"
+name "Default"
+rect 0 120 128 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Label
+{
+title "Cinema Start"
+name "Default"
+rect 0 0 128 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Button
+{
+title "RemoveFakeplayer"
+name "Default"
+rect 0 140 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script removefakeplayer"
+}
+resource
+Button
+{
+title "Noncinematic"
+name "Default"
+rect 0 160 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script noncinematic"
+}
+resource
+Button
+{
+title "Cueplayer"
+name "Default"
+rect 0 200 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script cueplayer 0"
+}
+resource
+Button
+{
+title "ThirdPerson"
+name "Default"
+rect 0 220 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cg_3rd_person 1"
+}
+resource
+Button
+{
+title "Noclip"
+name "Default"
+rect 0 80 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "noclip"
+}
+resource
+Button
+{
+title "Noclip"
+name "Default"
+rect 0 240 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "noclip"
+}
+resource
+Button
+{
+title "Clearletterbox"
+name "Default"
+rect 0 180 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script clearletterbox 0"
+}
+resource
+Button
+{
+title "Letterbox 1"
+name "Default"
+rect 0 60 128 20
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "script letterbox 1"
+}
+end.

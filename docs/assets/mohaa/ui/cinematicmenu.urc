@@ -1,0 +1,766 @@
+menu "camera" 640 480 NONE
+align top right
+bgcolor 0 0 0 0
+
+resource
+Label
+{
+title "Roll"
+name "Default"
+rect 1 460 32 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Slider
+{
+title "Angle Roll"
+name "Default"
+rect 33 460 74 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_roll"
+setrange -180 180
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Label
+{
+title "Pitch"
+name "Default"
+rect 1 440 32 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Slider
+{
+title "Angle Pitch"
+name "Default"
+rect 33 440 74 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_pitch"
+setrange -180 180
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Label
+{
+title "Yaw"
+name "Default"
+rect 1 420 32 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Field
+{
+name "Default"
+rect 107 420 49 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_yaw"
+}
+resource
+Field
+{
+name "Default"
+rect 107 440 50 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_pitch"
+}
+resource
+Field
+{
+name "Default"
+rect 107 460 49 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_roll"
+}
+resource
+Label
+{
+title "Origin"
+name "Default"
+rect 0 20 52 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "Angle Yaw"
+name "Default"
+rect 33 420 74 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_angles_yaw"
+setrange -180 180
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Button
+{
+title "Add"
+name "Default"
+rect 248 440 68 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam add"
+}
+resource
+Button
+{
+title "Replace"
+name "Default"
+rect 316 440 68 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam replace"
+}
+resource
+Label
+{
+title "Current Path"
+name "Default"
+rect 384 420 76 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Button
+{
+title "New"
+name "Default"
+rect 545 440 24 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam new"
+clicksound sound/menu/scroll.wav
+
+}
+resource
+Button
+{
+title "Load"
+name "Default"
+rect 569 440 32 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam load"
+}
+resource
+Button
+{
+title "Save"
+name "Default"
+rect 601 440 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam save"
+}
+resource
+Button
+{
+title "Rename"
+name "Default"
+rect 504 440 41 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam renamepath"
+}
+resource
+Button
+{
+title "-->"
+name "Default"
+rect 444 440 60 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam nextpath"
+}
+resource
+Button
+{
+title "<--"
+name "Default"
+rect 384 440 60 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam prevpath"
+}
+resource
+Field
+{
+name "Default"
+rect 460 420 180 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_filename"
+}
+resource
+Button
+{
+title "Play"
+name "Default"
+rect 0 40 44 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam play"
+}
+resource
+Button
+{
+title "Loop"
+name "Default"
+rect 44 40 44 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam loop"
+}
+resource
+Button
+{
+title "Stop"
+name "Default"
+rect 88 40 44 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam stop"
+}
+resource
+Button
+{
+title "<--"
+name "Default"
+rect 248 420 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam prev;cam moveplayer"
+}
+resource
+Button
+{
+title "-->"
+name "Default"
+rect 344 420 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam next;cam moveplayer"
+}
+resource
+Button
+{
+title ">"
+name "Default"
+rect 316 420 30 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam next"
+}
+resource
+Button
+{
+title "<"
+name "Default"
+rect 288 420 30 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam prev"
+}
+resource
+Label
+{
+title "Current Node"
+name "Default"
+rect 0 0 90 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.35 0.67 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+name "Default"
+rect 90 0 59 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_nodenum"
+}
+resource
+Field
+{
+name "Default"
+rect 402 0 158 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_watch"
+}
+resource
+Field
+{
+name "Default"
+rect 205 0 141 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_thread"
+}
+resource
+Label
+{
+title "Thread"
+name "Default"
+rect 148 0 57 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Label
+{
+title "Watch"
+name "Default"
+rect 346 0 56 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Button
+{
+title "Path"
+name "Default"
+rect 560 0 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam watch path"
+}
+resource
+Button
+{
+title "Node"
+name "Default"
+rect 600 0 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam watch node"
+}
+resource
+Field
+{
+name "Default"
+rect 564 20 76 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_fadetime"
+}
+resource
+Label
+{
+title "Fadetime"
+name "Default"
+rect 500 20 64 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Field
+{
+name "Default"
+rect 359 20 141 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_target"
+}
+resource
+Label
+{
+title "Target"
+name "Default"
+rect 305 20 54 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Field
+{
+name "Default"
+rect 52 20 253 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_origin"
+}
+resource
+Label
+{
+title "FOV"
+name "Default"
+rect 132 40 34 21
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Button
+{
+title "105"
+name "Default"
+rect 191 40 25 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 105"
+}
+resource
+Button
+{
+title "90"
+name "Default"
+rect 216 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 90"
+}
+resource
+Button
+{
+title "75"
+name "Default"
+rect 236 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 75"
+}
+resource
+Button
+{
+title "60"
+name "Default"
+rect 256 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 60"
+}
+resource
+Button
+{
+title "45"
+name "Default"
+rect 276 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 45"
+}
+resource
+Button
+{
+title "30"
+name "Default"
+rect 296 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 30"
+}
+resource
+Button
+{
+title "20"
+name "Default"
+rect 316 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 20"
+}
+resource
+Field
+{
+name "Default"
+rect 336 40 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cam_fov"
+}
+resource
+Button
+{
+title "120"
+name "Default"
+rect 166 40 25 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setfov 120"
+}
+resource
+Label
+{
+title "Speed"
+name "Default"
+rect 376 40 46 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "INDENT_BORDER"
+}
+resource
+Button
+{
+title ".5"
+name "Default"
+rect 422 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed .5"
+}
+resource
+Button
+{
+title "1"
+name "Default"
+rect 442 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 1"
+}
+resource
+Button
+{
+title "2"
+name "Default"
+rect 462 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 2"
+}
+resource
+Button
+{
+title "3"
+name "Default"
+rect 482 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 3"
+}
+resource
+Button
+{
+title "4"
+name "Default"
+rect 502 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 4"
+}
+resource
+Button
+{
+title "5"
+name "Default"
+rect 522 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 5"
+}
+resource
+Button
+{
+title "6"
+name "Default"
+rect 542 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 6"
+}
+resource
+Field
+{
+name "Default"
+rect 600 40 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "RAISED"
+linkcvar "cam_speed"
+}
+resource
+Button
+{
+title "7"
+name "Default"
+rect 562 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 7"
+}
+resource
+Button
+{
+title "8"
+name "Default"
+rect 582 40 20 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam setspeed 8"
+}
+resource
+CheckBox
+{
+title "3RD"
+name "Default"
+rect 581 460 60 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_3rd_person"
+}
+resource
+Button
+{
+title "Update Node"
+name "Default"
+rect 156 420 92 60
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 0.73 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam updateinput"
+}
+resource
+Button
+{
+title "Delete"
+name "Default"
+rect 248 460 69 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam delete"
+}
+resource
+Button
+{
+title "Hide"
+name "Default"
+rect 317 460 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam hide"
+}
+resource
+Button
+{
+title "Show"
+name "Default"
+rect 357 460 40 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "cam show"
+}
+resource
+Label
+{
+name "Default"
+rect 397 460 54 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "NONE"
+linkcvar "cam_hiddenstate"
+}
+resource
+CheckBox
+{
+title "HUD"
+name "Default"
+rect 451 460 56 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "ui_hud"
+}
+resource
+CheckBox
+{
+title "Minicon"
+name "Default"
+rect 507 460 74 20
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "ui_minicon"
+}
+resource
+Button
+{
+name "Default"
+rect 0 60 640 360
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "ui_hidemouse"
+}
+end.

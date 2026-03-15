@@ -1,0 +1,302 @@
+menu "controls" 640 480 NONE 0
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+// vidmode 3
+//fadein 0.5
+virtualres 1
+
+//include "ui/common.inc"
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 480 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "controls_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "controls_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_f.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_e.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_d.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_c.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_b.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/controls_a.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 56 168 4 192
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_left"
+}
+resource
+Label
+{
+name "Default"
+rect 380 168 4 192
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_right"
+}
+resource
+Label
+{
+name "Default"
+rect 56 356 16 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_ll"
+}
+resource
+Label
+{
+name "Default"
+rect 72 368 296 4
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_btm"
+}
+resource
+Label
+{
+name "Default"
+rect 368 356 16 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 1.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_lr"
+}
+resource
+Label
+{
+name "Default"
+rect 72 156 296 4
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_top"
+}
+resource
+Label
+{
+name "default"
+rect 56 156 16 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_ul"
+}
+resource
+Label
+{
+name "Default"
+rect 368 156 16 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/metbrd_ur"
+}
+resource
+FakkBindList
+{
+title "BindList"
+name "bindlist"
+rect 60 160 320 208
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+filename ui/bind.scr
+ordernumber 1
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 419 200 192 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "m_invert_pitch"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+checked_command "set m_pitch -0.022"
+unchecked_command "set m_pitch 0.022"
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 419 234 192 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "m_filter"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 418 366 192 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "cl_run"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Button
+{
+name "apply"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0"
+ordernumber 1
+
+}
+resource
+Button
+{
+name "apply"
+rect 280 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/apply"
+hovershader "textures/mohmenu/apply_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_checkrestart; popmenu 0"
+ordernumber 2
+
+}
+resource
+Button
+{
+name "Default"
+rect 536 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/default"
+hovershader "textures/mohmenu/default_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "ui_resetcvars;exec default.cfg"
+ordernumber 3
+
+}
+resource
+Slider
+{
+name "Default"
+rect 418 180 192 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/slider"
+linkcvar "sensitivity"
+setrange 1 20
+slidertype float
+stepsize 1
+
+}
+end.

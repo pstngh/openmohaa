@@ -1,0 +1,510 @@
+menu "animate2" 641 175 NONE 0.1
+align bottom
+bgcolor 0 0 0 0
+borderstyle NONE
+
+resource
+Label
+{
+name "Default"
+rect 0 0 640 144
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+//tileshader textures/tomtest/backthing2
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 592 64 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelclienttime"
+}
+resource
+Field
+{
+name "Default"
+rect 392 16 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+linkcvar "viewmodelusesync"
+direction from_right .2
+
+}
+resource
+Button
+{
+title "UseSync"
+name "Default"
+rect 328 16 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "viewprev"
+direction from_right .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 72 0 256 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "currentviewthing"
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 72 16 256 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewthingorigin"
+direction from_right .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 568 0 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelanimmode"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "Animate"
+name "Default"
+rect 496 0 72 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.63 1.00
+borderstyle "3D_BORDER"
+stuffcommand "viewanimate"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "Next"
+name "Default"
+rect 128 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.50 0.50 0.80
+borderstyle "3D_BORDER"
+stuffcommand "viewthingnext"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "Delete"
+name "Default"
+rect 192 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.50 0.50 0.80
+borderstyle "3D_BORDER"
+stuffcommand "viewdelete"
+direction from_left .2
+
+}
+resource
+Slider
+{
+name "Default"
+rect 0 64 256 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 1.00 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelsyncrate"
+setrange 0.0001 10.0000
+slidertype float
+stepsize 0.01
+initdata 0
+
+}
+resource
+Button
+{
+title "ScaleUp"
+name "Default"
+rect 256 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "viewscaleup"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "ScaleDn"
+name "Default"
+rect 320 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 1.00
+borderstyle "3D_BORDER"
+stuffcommand "viewscaledown"
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 432 48 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelscale"
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 472 48 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "viewscale"
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 560 48 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelframe"
+direction from_left .2
+
+}
+resource
+Slider
+{
+name "Default"
+rect 0 80 400 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.00 0.00 1.00
+borderstyle "RAISED"
+stuffcommand "viewsetanimslot"
+linkcvar "viewmodelanimslot"
+setrange 0 8
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Field
+{
+name "Default"
+rect 464 80 176 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "viewmodelanimslot"
+direction from_right .2
+
+}
+resource
+Button
+{
+title "Prev"
+name "Default"
+rect 64 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.50 0.50 0.80
+borderstyle "3D_BORDER"
+stuffcommand "viewthingprev"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "Spawn"
+name "Default"
+rect 0 48 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 1.00
+borderstyle "3D_BORDER"
+stuffcommand "viewspawnlist"
+}
+resource
+Label
+{
+title "ViewThing"
+name "Default"
+rect 0 0 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+Label
+{
+title "ViewOrigin"
+name "Default"
+rect 0 16 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_right .2
+
+}
+resource
+Label
+{
+title "Anim Slot"
+name "Default"
+rect 400 80 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+resource
+Label
+{
+title "Server Time"
+name "Default"
+rect 384 64 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+resource
+Label
+{
+title "Client Time"
+name "Default"
+rect 512 64 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+resource
+Label
+{
+title "Frame"
+name "Default"
+rect 512 48 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+Label
+{
+title "Scale"
+name "Default"
+rect 384 48 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 464 64 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelservertime"
+}
+resource
+Field
+{
+name "Default"
+rect 320 64 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "viewmodelsyncrate"
+direction from_right .2
+
+}
+resource
+Label
+{
+title "Sync Rate"
+name "Default"
+rect 256 64 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "viewmodelsyncrate"
+}
+resource
+Label
+{
+title "Weight"
+name "Default"
+rect 0 112 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+resource
+Field
+{
+name "Default"
+rect 64 112 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelblend"
+direction from_right .2
+
+}
+resource
+Label
+{
+title "Anim"
+name "Default"
+rect 128 112 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+resource
+Field
+{
+name "Default"
+rect 192 112 176 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+linkcvar "viewmodelanim2"
+direction from_right .2
+
+}
+resource
+Button
+{
+title "PrevAnim"
+name "Default"
+rect 328 0 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 0.80
+borderstyle "3D_BORDER"
+stuffcommand "viewprevanim"
+direction from_left .2
+
+}
+resource
+Button
+{
+title "NextAnim"
+name "Default"
+rect 392 0 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.25 0.00 0.50 0.80
+borderstyle "3D_BORDER"
+stuffcommand "viewnextanim"
+direction from_left .2
+
+}
+resource
+Slider
+{
+name "Default"
+rect 0 96 640 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "viewmodelblend"
+setrange 0.0000 1.0000
+slidertype float
+stepsize 0.01
+initdata 0
+
+}
+resource
+Slider
+{
+name "Default"
+rect 0 128 640 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.00 0.50 1.00 1.00
+borderstyle "RAISED"
+stuffcommand "viewsetanim2"
+linkcvar "viewmodelanimnum2"
+setrange 0 1
+slidertype float
+stepsize 0.01
+initdata 0
+
+}
+resource
+Slider
+{
+name "Default"
+rect 0 32 640 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+stuffcommand "viewscrub"
+linkcvar "viewmodelnormaltime"
+setrange 0 1
+slidertype float
+stepsize 0.01
+initdata 0
+
+}
+resource
+Slider
+{
+name "Default"
+rect 152 160 480 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "viewmodelactionweight"
+setrange 0.0000 1.0000
+slidertype float
+stepsize 0.01
+initdata 0
+
+}
+resource
+Field
+{
+title "actionWeight"
+name "Default"
+rect 8 152 120 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+}
+end.
