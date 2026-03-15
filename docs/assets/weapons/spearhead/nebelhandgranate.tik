@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/nebelhandgranate_base.txt
+
+/*QUAKED addon_playerweapon_german_nebelhandgranate (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Handy dandy smoke grenade from those crafty Germans
+*/

@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/Russian_F1_grenade_base.txt
+
+/*QUAKED addon_playerweapon_soviet_Russian-F1-grenade (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Russian grenade - Russian F1 Grenade.
+*/

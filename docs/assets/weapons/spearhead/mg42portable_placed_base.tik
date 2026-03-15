@@ -1,0 +1,14 @@
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world 
+
+	path models/weapons/mg42
+	skelmodel mg42_mounted_tripod.skd
+	surface mg42_carryable_tripod shader mg42_carryable_tripod
+}
+
+animations
+{
+	idle	mg42_mounted_tripod.skc
+}

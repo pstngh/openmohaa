@@ -1,0 +1,73 @@
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/weapons/mg42
+	skelmodel mg42_complete.skd
+	surface mg42_carryable_tripod shader mg42_carryable_tripod
+	surface mg42_carryable_gun shader mg42_carryable_gun
+}
+
+init
+{
+	server
+	{
+		setsize	"-4 -4 0" "4 4 4"
+//		classname InventoryItem
+		classname CarryableTurret
+		name "Packed MG42 Turret"
+
+		pickupsound		bazooka_snd_pickup
+		ammopickupsound	bazooka_snd_pickup_ammo
+		noammosound		bazooka_snd_noammo
+
+		rank 9 9
+		ammorequired 0		// unlimited usage
+//		firedelay 0.5		// delay between uses
+		crosshair 0
+
+		// it's secondary fire that's used to place the turret
+		secondary ammotype			none
+		secondary ammorequired		0
+		secondary firedelay 0.5		// delay between uses
+
+		turrettik	"models/weapons/mg42portable_placed.tik"
+
+		set_respawn 0 // don't respawn after being picked up
+
+	//========================================//
+	//		PLAYER MOVEMENT		  //
+	//========================================//
+
+		sp movementspeed 	0.8
+		dm movementspeed 	0.8
+		realism movementspeed 	0.8
+
+	//========================================//
+	//		SOUND, AI, OTHER	  //
+	//========================================//
+		airange			medium
+
+	}
+}
+
+animations
+{
+	idle     		mg42_complete.skc
+	secondaryfire	mg42_complete.skc
+	{
+		server
+		{
+			first placeturret
+		}
+		client
+		{
+			enter sound mg42_pack
+		}
+	}
+}
+
+/*QUAKED addOn_playerweapon_german_PortableMG42 (0.5 0.5 1.0) (-8 -8 0) (8 8 16) AUTOPLACE
+MG42 to go. Perfect for those class trips that you don't want to go on.
+AUTOPLACE makes the turret try to immediatly place itself as a setup turret
+*/

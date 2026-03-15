@@ -1,0 +1,19 @@
+// ammo type, is "agrenade" rather than "grenade", which will allow the
+// player to carry both american and german grenades seperatly in SP games.
+
+TIKI
+
+$include models/weapons/mills_grenade_base.txt
+
+init
+{
+	server
+	{
+		ammotype		"agrenade" // designate them as being american grenades
+	}
+}
+
+/*QUAKED addon_playerweapon_british_mills-grenade-singleplayer (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+British grenade - Mills Grenade.
+These are the Mills grenades to place in single player maps.
+*/

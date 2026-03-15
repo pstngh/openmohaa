@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/mills_grenade_base.txt
+
+/*QUAKED addon_playerweapon_british_mills-grenade (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+British grenade - Mills Grenade.
+*/
