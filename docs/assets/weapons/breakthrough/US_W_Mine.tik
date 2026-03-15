@@ -1,0 +1,49 @@
+TIKI
+
+setup
+{
+	scale 0.45
+			
+	path models/weapons/MineDetector
+	skelmodel US_W_Mine.skd
+
+	surface material1  shader   US_W_Mine	
+}
+
+animations
+{
+	idle		US_W_Mine.skc
+	{
+		server
+		{
+			enter surface material1 +nodraw
+		}
+	}
+	reload 		US_W_Mine.skc
+	rechamber	US_W_Mine.skc
+	idle_empty 	US_W_Mine.skc	
+	raise 		US_W_Mine.skc
+	charge 		A_W_minedetector_off_W.skc
+
+	fire 		A_W_minedetector_off_W.skc
+	{
+		server
+		{
+			enter surface material1 -nodraw
+		}
+	}
+	secondaryfire 	A_W_minedetector_off_W.skc
+	{
+		server
+		{
+			enter surface material1 -nodraw
+		}
+	}
+
+
+
+}
+
+/*QUAKED addon_weapon_Mine (0.0 0.0 0.0) (-65 -40 0) (65 40 120) Mine
+*/	
+

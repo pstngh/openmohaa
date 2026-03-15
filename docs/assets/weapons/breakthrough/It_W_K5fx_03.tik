@@ -1,0 +1,40 @@
+TIKI
+setup
+{
+	scale 1.00
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+
+init
+{
+	client
+	{
+		cache gren_explosion.spr
+	}
+}
+
+animations
+{
+	aaaa dummy2.skc // hack to allow the idle anim's entry commands to run
+	idle dummy2.skc
+	{
+		client
+		{
+		//	enter sound gas_explode
+
+			enter originspawn
+			(
+				model gren_explosion.spr
+				life 0.70
+				scalerate 12.50
+				offsetalongaxis 0 0 60
+				angles range 50 -260 range 50 -260 range 50 -260
+				scalemin 1.00
+				scalemax 2.00
+				fade
+			)
+
+		}
+	}
+}

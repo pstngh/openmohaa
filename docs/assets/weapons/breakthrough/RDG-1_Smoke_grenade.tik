@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/RDG-1_Smoke_grenade_base.txt
+
+/*QUAKED addon_playerweapon_soviet_RDG-1-Smoke-grenade (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Russian Smoke Grenade
+*/

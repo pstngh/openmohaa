@@ -1,0 +1,27 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/weapons/K5_bullet
+	skelmodel It_W_K5bullet.skd
+	surface It_W_K5Bullet shader It_W_K5Bullet
+	
+}
+
+init
+{
+	server
+	{
+		classname ScriptModel
+	}
+}
+
+
+animations
+{
+	idle		It_W_K5bullet.skc
+}
+
+/*QUAKED addon_weapon_K5bullet (0.0 0.0 0.0) (-65 -40 0) (65 40 120) K5bullet
+*/	

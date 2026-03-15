@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/It_W_Bomba_base.txt
+
+/*QUAKED addon_playerweapon_italian_Bomba (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Italian grenade - Bomba A Mano -- regular hand grenade.
+*/

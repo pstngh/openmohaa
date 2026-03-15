@@ -1,0 +1,45 @@
+TIKI
+setup
+{
+	scale 1.00
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+
+init
+{
+	client
+	{
+		cache muzzleCharge.spr
+	}
+}
+
+animations
+{
+	aaaa dummy2.skc // hack to allow the idle anim's entry commands to run
+	idle dummy2.skc
+	{
+		client
+		{
+		//	enter sound gas_explode
+
+			enter originspawn
+			(
+				spawnrate 1
+				model muzzleCharge.spr
+				count 75
+				alpha 0.5
+				life 0.4
+				scalerate 3
+				velocity 300
+				randvelaxis range 300 8000 0 random 50
+				friction 5.5
+				angles 0 0 random 360
+				scalemin 1
+				scalemax 5
+				fade
+			)
+
+		}
+	}
+}

@@ -1,0 +1,18 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/weapons/Breda
+	skelmodel It_W_Breda_clip.skd
+	surface Material1 shader It_W_Breda
+	
+}
+
+//animations
+//{
+//	idle		It_W_Breda_clip.skc
+//}
+
+/*QUAKED addon_weapon_Breda_clip (0.0 0.0 0.0) (-65 -40 0) (65 40 120) Breda clip
+*/	

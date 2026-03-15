@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/It_W_BombaBreda_base.txt
+
+/*QUAKED addon_playerweapon_italian_BombaBreda (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Italian smoke grenade - Bomba A Mano Breda -- smoke grenade.
+*/

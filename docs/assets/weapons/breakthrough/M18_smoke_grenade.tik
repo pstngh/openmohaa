@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/M18_smoke_grenade_base.txt
+
+/*QUAKED addon_playerweapon_allied_M18-smoke-grenade (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+Allied Smoke Grenade
+*/

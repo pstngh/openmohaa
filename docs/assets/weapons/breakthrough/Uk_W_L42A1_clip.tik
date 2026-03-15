@@ -1,0 +1,36 @@
+TIKI
+
+setup
+{
+	scale 0.52			
+	path models/weapons/enfieldsniper
+	skelmodel Uk_W_enfieldsniper_clip.skd
+	surface material3 shader Uk_W_L42A1
+	
+}
+init
+{
+	server
+	{
+		surface Material3 	+nodraw
+	}
+}
+animations
+{
+	idle		Uk_W_enfieldsniper_clip.skc
+         {	
+	  server
+          //frames are 30, 62, ammo at 56
+		{
+			//0  surface Material3 +nodraw
+			0 surface Material3 -nodraw
+			32 surface Material3 +nodraw
+			
+		}
+			
+	  }
+}
+/*QUAKED addon_weapon_Bereta_clip (0.0 0.0 0.0) (-65 -40 0) (65 40 120) Beretta clip
+*/	
+
+

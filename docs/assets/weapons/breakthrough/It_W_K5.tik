@@ -1,0 +1,142 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world 
+                                        //  is in 16 units per foot and model is in cm's
+
+
+	path models/weapons/K5
+	skelmodel It_W_K5.skd     
+
+	surface It_W_K5Cannon      shader It_W_K5Cannon
+	surface It_W_K5Cart        shader It_W_K5Cart
+	surface It_W_K5CanParts    shader It_W_K5CanParts
+	surface It_W_K5Misc        shader It_W_K5Misc
+	surface It_W_K5Car         shader It_W_K5Car
+	surface It_W_K5Body        shader It_W_K5Body
+      surface It_W_K5Floor       shader It_W_K5Floor
+	surface It_W_K5Wheelbox    shader It_W_K5Wheelbox
+	surface It_W_K5Wheel       shader It_W_K5Wheel
+
+        //oops
+        surface lambert1           shader It_W_K5Wheel       //hack: some faces were assigned 
+                                                             //      to lambert1, the default material
+	
+}
+
+init
+{
+	server
+	{
+		classname Vehicle
+			//this needs a setsize
+	}
+	client
+	{	
+            cache snowplume_01.spr
+            cache muzzleCharge.spr	
+		cache muzsprite.spr
+		cache models/fx/muzflash.tik
+		cache models/fx/snipesmoke.tik
+	}
+}
+
+animations
+{
+
+	idle		It_W_K5_idle.skc
+        raise           It_W_K5_raise.skc
+	{
+		server
+		{
+		}
+		client
+		{
+			first stopaliaschannel k5_snd_raise
+                        first stopaliaschannel k5_snd_lower
+                        first sound k5_snd_raise weapon
+                }
+        }
+
+         
+        lower           It_W_K5_lower.skc
+	{
+		server
+		{
+		}
+		client
+		{
+                        first stopaliaschannel k5_snd_raise
+			first stopaliaschannel k5_snd_lower
+                        first sound k5_snd_lower weapon
+                }
+        }
+
+
+        fire            It_W_K5_fire.skc
+	{
+		server
+		{
+			first shoot
+		}
+		client
+		{
+			first commanddelay 0.52 stopaliaschannel k5_snd_fire
+                        first commanddelay 0.52 sound k5_snd_fire weapon
+ 
+
+			// barrel flash
+			first commanddelay 0.52 tagdlight tag_barrel 0.25 0.2 0.05 110 0.11
+
+			first commanddelay 0.52 tagspawn tag_barrel
+			(
+			spawnrate 1
+			model muzzleCharge_K5.spr
+			count 95
+			alpha 0.4
+			color 1 1 1
+			life 0.4
+			scalerate 3
+			velocity 300
+			randvelaxis range 300 8000 0 random 50
+			friction 5.5
+			angles 0 0 random 360
+			scalemin 1
+			scalemax 5
+			fade
+			)
+
+
+			//extending smoke
+			first commanddelay 0.52 tagspawn tag_barrel
+			(
+ 			spawnrate 1
+			model snowPlume_K5.spr
+			count 60
+			color 0.32 0.3 0.3
+			varycolor
+			spritegridlighting
+			life 3
+			scalerate 1
+			velocity 300
+			randvelaxis range 300 5000 0 random 50
+			friction 5.5
+			scalemin 3
+			scalemax 9
+			fade
+			)
+			
+                          //super light burst
+                        first commanddelay 0.52 blockdlight 10 0.7 
+			(
+                              color 1.0 1.0 1.0
+				scalerate 10.0
+			)
+
+		}
+	}
+}
+
+/*QUAKED addon_weapon_K5 (0.0 0.0 0.0) (-65 -40 0) (65 40 120) K5
+*/	

@@ -1,0 +1,28 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/weapons/Howitzer_Destroyed
+	skelmodel It_W_Howitzerdes.skd
+	surface It_W_HowitzerD_M1 shader It_W_Howitzerdes
+	surface It_W_HowitzerD_M2 shader It_W_Howitzerdes
+	surface It_W_HowitzerD_M3 shader It_W_Howitzerdes
+}
+
+init
+{
+	server
+	{
+		classname ScriptModel
+	}
+}
+
+
+animations
+{
+	idle		It_W_Howitzerdes.skc
+}
+
+/*QUAKED addon_weapon_Howitzer_Destroyed (0.0 0.0 0.0) (-65 -40 0) (65 40 120) Howitzer_Destroyed
+*/	

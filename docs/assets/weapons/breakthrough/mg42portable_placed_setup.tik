@@ -1,0 +1,22 @@
+TIKI
+setup
+{
+	scale 0.52
+
+	path models/weapons/mg42
+	skelmodel mg42_complete_packup.skd
+	surface mg42_carryable_tripod shader mg42_carryable_tripod
+	surface mg42_carryable_gun shader mg42_carryable_gun
+}
+
+animations
+{
+	idle	mg42_complete_unpack.skc
+	packup	mg42_complete_packup.skc
+	{
+		client
+		{
+			enter sound mg42_pack
+		}
+	}
+}

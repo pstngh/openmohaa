@@ -1,0 +1,33 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/weapons/Vickers
+	skelmodel Uk_W_Vickers_clip.skd
+	surface Material3 shader Uk_W_Vickers
+}
+init
+{
+	server
+	{
+		surface Material3 	+nodraw
+	}
+}
+animations
+{
+	idle		A_W_vickers_reload_clip.skc
+         {	
+	  server
+          //frames are 23, 51, ammo at 85
+		{
+			0  surface Material3 +nodraw
+			19 surface Material3 -nodraw
+			51 surface Material3 +nodraw
+			
+		}
+			
+	  }
+}
+/*QUAKED addon_weapon_Vickers_clip (0.0 0.0 0.0) (-65 -40 0) (65 40 120) Vickers clip
+*/	

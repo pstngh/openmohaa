@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/steilhandgranate_base.txt
+
+/*QUAKED addon_playerweapon_german_steilhandgranate (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+German grenade - Fragmentation Grenade.
+*/

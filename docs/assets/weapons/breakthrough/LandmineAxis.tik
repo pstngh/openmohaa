@@ -1,0 +1,7 @@
+TIKI
+
+$include models/weapons/LandmineAxis_base.txt
+
+/*QUAKED addon_playerweapon_landmine_axis (0.0 0.0 1.0) (-8 -8 -8) (8 8 8)
+landmine --- woohoo! watch yer step buddy
+*/

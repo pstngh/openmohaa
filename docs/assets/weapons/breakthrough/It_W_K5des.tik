@@ -1,0 +1,328 @@
+TIKI
+
+setup
+{
+	scale 0.52		
+	path models/weapons/K5_destroyed
+	skelmodel It_W_K5des.skd
+	surface It_W_K5Cannon      shader It_W_K5Cannondes
+	surface It_W_K5Cart        Shader It_W_K5Cartdes
+	surface It_W_K5CanParts    Shader It_W_K5CanPartsdes
+	surface imlazyshhdonttell  shader It_W_K5CanPartsdes
+	surface It_W_K5Misc        Shader It_W_K5Miscdes
+	surface It_W_K5Car         Shader It_W_K5Cardes
+	surface It_W_K5Body        Shader It_W_K5Bodydes
+	surface It_W_K5Floor       Shader It_W_K5Floordes
+	surface It_W_K5Wheelbox    Shader It_W_K5Wheelboxdes
+	surface lambert1           Shader It_W_K5Wheelboxdes	
+}
+
+init
+{
+	server
+	{
+		classname animate
+		surface imlazyshhdonttell +nodraw
+	}
+	client
+	{
+		cache models/fx/fx_truck_explosion_02.tik
+		cache gren_explosion.spr
+		cache muzzleCharge.spr
+		cache explosion_burst.spr
+		cache campFire_01.spr
+		cache campFire_02.spr
+		cache campFire_03.spr
+		cache puffyStuff_dark.spr
+		cache puffyStuff_light.spr
+		
+
+//-------------------------------------------------------------------------
+//Emitter_Deck_Front
+
+	//Smoke_01
+		tagemitter emitter_deck_front bigSmoke
+		(
+			spawnrate 4
+			model puffystuff_dark.spr
+			color .3 .28 .3
+			varycolor
+			scale .5
+			life 4
+			scalerate 1.6
+			velocity 60
+			randvel crandom -60 crandom -60 10
+			accel 20 30 105
+			friction .05
+			offset crandom 150 crandom 150 range 20 30
+			angles crandom 20 crandom 30 crandom -120
+			avelocity crandom 5 crandom 5 crandom 50
+			scalemin .8
+			scalemax 1.5
+			fadein 1
+			fadedelay 2
+			)
+
+	//FireBase
+		tagemitter emitter_deck_front bigSmoke
+			(
+				spawnrate 2
+				//model bridgeCharge.spr
+				model campFire_02.spr
+				color 1 .5 .2
+				varycolor
+				scale 7
+				life 1
+				scalerate .7
+				randvel crandom 20 crandom 20 random 20
+				accel 0 0 80
+				friction 1
+				offset crandom 85 crandom 20 range 10 30
+				angles 0 0 crandom 50
+				avelocity 0 0 crandom 30
+				scalemin 1
+				scalemax 1.03
+				fadein .3
+				fadedelay .4
+				alignstretch range 40 60
+				)
+
+	//Flame_01
+		tagemitter emitter_deck_front bigSmoke
+			(
+				spawnrate 4
+				model campFire_01.spr
+				color 1 .7 .2
+				varycolor
+				scale 5
+				life .7
+				scalerate 1.2
+				randvel 0 0 random 10
+				accel 3 3 200
+				offset crandom 100 crandom 30 range 30 50
+				angles 0 0 crandom 50
+				avelocity 0 0 crandom 30
+				scalemin 1
+				scalemax 1.2
+				fadein .3
+				fadedelay .1
+				alignstretch range 40 60
+				)
+
+	//Flame_02
+		tagemitter emitter_deck_front bigSmoke
+			(
+				spawnrate 4
+				model campFire_03.spr
+				color 1 .65 .15
+				alpha .7
+				varycolor
+				scale 2
+				life .75
+				scalerate 1.2
+				randvel 0 0 random 10
+				accel 2 2 400
+				offset crandom 100 crandom 30 range 30 45
+				angles 0 0 crandom 20
+				avelocity 0 0 crandom 30
+				scalemin .7
+				scalemax 1
+				fadein .1
+				fadedelay .3
+				alignstretch range 50 80
+				)
+
+
+//-------------------------------------------------------------------------
+//K5_Barrel_Base
+
+	//Smoke_02
+		tagemitter k5_barrel_base bigSmoke
+			(
+			spawnrate 4
+			model puffystuff_light.spr
+			color .25 .23 .2
+			varycolor
+			scale .5
+			life 4
+			scalerate 1.3
+			velocity 60
+			randvel crandom -30 crandom -30 random 20
+			accel 50 40 100 
+			friction .1
+			offset crandom 200 crandom 200 range -30 -10
+			angles crandom 20 crandom 30 crandom -120
+			avelocity crandom 5 crandom 5 crandom 60
+			scalemin 1
+			scalemax 1.8
+			fadein 1
+			fadedelay 1
+			)
+	}
+}
+
+//-------------------------------------------------------------------------
+
+animations
+{
+	idle		It_W_K5des.skc
+
+	{
+		client
+		{
+            entry emitteron bigSmoke
+        }
+
+    }
+
+
+	collapse        It_W_K5des_collapse.skc
+	{
+		client
+		{
+			enter sound gas_explode
+                  entry emitteron bigSmoke
+
+	// barrel flash
+		 	entry tagdlight origin 0.25 0.2 0.05 110 0.11
+			entry tagspawnlinked origin 
+
+			entry tagspawn origin 
+			(
+				model models/weapons/It_W_K5fx_01.tik
+			)
+
+			entry tagspawn origin
+			(
+                spawnrate 1
+				model explosion_burst.spr
+				life 0.8
+				scalerate 50
+				fade
+			)
+			entry commanddelay 0.5 tagspawn emitter_broken_barrel
+			(
+                spawnrate 1
+				model explosion_burst.spr
+				life 0.8
+				scalerate 10
+				fade
+			)
+			entry commanddelay 0.3 tagspawn emitter_broken_barrel
+			(
+                spawnrate 1
+				model explosion_burst.spr
+				life 0.8
+				scalerate 10
+				fade
+			)
+
+                 entry commanddelay 0.4 tagspawn emitter_deck_front
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+                 entry commanddelay 0.1 tagspawn emitter_front
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+                 entry commanddelay 0.2 tagspawn emitter_rear
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+                 entry commanddelay 0.5 tagspawn emitter_rear
+                 (
+ 				model models/weapons/It_W_K5fx_02.tik
+                 )
+                 entry commanddelay 0.2 tagspawn emitter_deck_rear
+                 (
+				model models/weapons/It_W_K5fx_02.tik
+                 )
+                 entry commanddelay 0.1 tagspawn emitter_deck_front
+                 (
+				model models/weapons/It_W_K5fx_03.tik
+                 )
+		}
+        }
+
+	ram        It_W_K5des_ram.skc
+
+	{
+		client
+		{
+			enter sound gas_explode
+			entry emitteron bigSmoke
+
+			entry tagspawn origin 
+			(
+				model models/weapons/It_W_K5fx_01.tik
+			)
+			entry tagspawn origin
+		       (
+                  	spawnrate 1
+				model explosion_burst.spr
+				life 0.8
+				scalerate 50
+				fade
+                       )
+			entry commanddelay 0.3 tagspawn emitter_broken_barrel
+		       (
+                 	 	spawnrate 1
+				model explosion_burst.spr
+				life 0.8
+				scalerate 10
+				fade
+                       )
+                 entry commanddelay 0.4 tagspawn emitter_deck_front
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+
+                 entry commanddelay 0.1 tagspawn emitter_front
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+
+                 entry commanddelay 0.2 tagspawn emitter_rear
+                 (
+                  	model models/fx/fx_truck_explosion_02.tik
+                 )
+
+                 entry commanddelay 0.5 tagspawn emitter_rear
+                 (
+					model models/weapons/It_W_K5fx_02.tik
+                 )
+
+                 entry commanddelay 0.2 tagspawn emitter_deck_rear
+                 (
+					model models/weapons/It_W_K5fx_02.tik
+                 )
+
+                 entry commanddelay 0.1 tagspawn emitter_deck_front
+                 (
+					model models/weapons/It_W_K5fx_03.tik
+                 )
+		}
+        }
+
+	ram_idle        It_W_K5des_ram_idle.skc
+
+	{
+		client
+		{
+                  entry emitteron bigSmoke
+                }
+        }
+	collapse_idle       It_W_K5des_collapse_idle.skc
+
+	{
+		client
+		{
+                  entry emitteron bigSmoke
+                }
+        }
+}
+
+
+
+/*QUAKED addon_weapon_K5des (0.0 0.0 0.0) (-65 -40 0) (65 40 120) K5des
+*/	
