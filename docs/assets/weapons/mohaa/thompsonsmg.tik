@@ -26,10 +26,10 @@ init
 		noammosound		thompson_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -49,8 +49,8 @@ init
 //		Thompson SMG: Max Eff. Range is 50 yds with a muzzle velocity of 805 ft/s. (.45 ACP round)
 
 		bulletrange		4000	 		//the range at which bulletspread is applied
-		bulletspread	55 55 72 72 	//minpitch minyaw maxpitch maxyaw original 55 55 72 72
-		bulletdamage	25			//damage per round original 25
+		bulletspread	45 45 72 72 	//minpitch minyaw maxpitch maxyaw original 55 55 72 72
+		bulletdamage	35			//damage per round original 25
 		firespreadmult	0.08 0.35 200 0.25  //add falloff cap maxtime
 		movementspeed 	1.0
 
@@ -65,15 +65,15 @@ init
 
 		// DM Attributes
 		dmbulletcount	1
-		dmstartammo		200 //CKR modified 200
+		dmstartammo		200
 		dmammorequired	1
 		dmfiredelay		0.086
 
 		dmbulletrange	4000
-		dmbulletspread	40 40 50 50 //CKR modified 40 40 50 50
-		dmfirespreadmult	0.3 0.8 200 0.4		//0.08 0.35 200 0.25	//0.3 0.8 200 0.4 original
-		dmbulletdamage	25 //CKR modified 25
-		dmmovementspeed	0.96 //CKR modified 0.96
+		dmbulletspread	40 40 50 50			//32 32 50 50 		//26 26 48 48		//50 50 120 120		//53 53 70 70	//45 45 72 72
+		dmfirespreadmult	0.3 0.6 150 0.25		//0.08 0.35 200 0.25	//0.3 0.8 200 0.4 original
+		dmbulletdamage	25				//26			
+		dmmovementspeed	0.96
 
 		dmcrosshair		1
 
@@ -143,7 +143,7 @@ animations
 			//              		|    |       |   |     |    |     |  | |      control of the weapon and its behavior is
 			//             	 	|    |       |   |     |    |     |  | |      purely random.
 			//				V    V       V   V     V    V     V  V V
-			entry viewkick 	    -2.25 -2.25  -0.16 -0.16 1   "V"   8.5 8.6 16.0
+			entry viewkick 	    -1.58 -1.58  -0.16 -0.16 0.9   "V"   8.5 8.6 16.0
 
 //			entry viewkick 	    -2.25 -2.25  -0.16 -0.16 1   "V"   8.5 8.6 16.0 (original)
 
@@ -151,7 +151,7 @@ animations
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 150 0.11
 // Commented out to prevent hitting the max anim command error
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				color 1.00 1.00 1.00
@@ -164,7 +164,7 @@ animations
 				avelocity 0 0 crandom -30
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				color 1.00 1.00 1.00
@@ -178,7 +178,7 @@ animations
 				fade
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				color 1.00 1.00 1.00
@@ -197,7 +197,7 @@ animations
 				spritegridlighting
 				scale 0.10
 //				life 1.00
-				life 1.0 //orig 1.0
+				life 0.30 //orig 1.0
 				scalerate 7.00
 				velocity 100.00
 				accel 0.00 0.00 100.00
@@ -236,7 +236,7 @@ animations
 				spritegridlighting
 				scale 0.10
 //				life 1.00
-				life 1.0 //orig 1.0
+				life 0.30 //orig 1.0
 				scalerate 7.00
 				velocity 100.00
 				accel 0.00 0.00 100.00

@@ -24,10 +24,10 @@ init
 		noammosound		kar98sniper_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -50,7 +50,7 @@ init
 		bulletrange		4000	 		//the range at which bulletspread is applied (original)
 		bulletspread	50 50 150 150 	//minpitch minyaw maxpitch maxyaw
 		zoomspreadmult	0.055
-		bulletdamage	100	//original 100
+		bulletdamage	120	//original 100
 
 //		tracerfrequency 	2
 
@@ -60,6 +60,8 @@ init
 
 		zoom			20
 
+//		viewkick		-2 -3   -1 1
+
 		airange			sniper
 
 		// AI animation group info
@@ -67,19 +69,19 @@ init
 
 		// DM Attributes
 		dmbulletcount		1
-		dmstartammo			50 //CKR modified 50
+		dmstartammo			50
 		dmammorequired		1
 //		dmfiredelay			1.25
-		dmfiredelay			2.0 //CKR modified 2.0
+		dmfiredelay			2.0 // this makes it match the springfield
 
 		dmbulletrange		4000
-//		dmbulletdamage		100	//original 100
-		dmbulletdamage		100	//original 100
+//		dmbulletdamage		120	//original 100
+		dmbulletdamage		106	//original 100
 		dmbulletspread		59 59 150 150
-		dmzoomspreadmult		0.045 //CKR modified
+		dmzoomspreadmult		0.055
 		
 //		dmmovementspeed		0.77
-		dmmovementspeed		0.8 //CKR modified .8
+		dmmovementspeed		0.8
 
 		dmcrosshair			1
 		
@@ -187,15 +189,13 @@ animations
 			//              		|    |       |   |     |    |     |  | |      control of the weapon and its behavior is
 			//             	 	|    |       |   |     |    |     |  | |      purely random.
 			//				V    V       V   V     V    V     V  V V
-			entry viewkick 	    -5.0 -5.0    0.07 0.07   0.5  "V"   8.0 8.0 12.0  //Original as shipped with game
-//			entry viewkick 	    0 0 0 0  0.1  "V"   0.0 0.0 12.0
-//			entry viewkick 	     -35 -15    -20 20   .1  "T"     25  25 8 //CKR modified (requires client download to work)
+			entry viewkick 	    -5.0 -5.0    0.07 0.07   0.5  "V"   8.0 8.0 12.0
 //			entry viewkick 	    -1.2 -1.2    -0.2  0.2   1   "V"   3.0 1.0 1.6 	(Colt .45 Pistol)
 //			entry viewkick -4.5 -5.0   -1.0 1.0 						(original)
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.3 0.25 0.175 175 0.2 -1.0 -0.75 -0.2
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1
@@ -211,7 +211,7 @@ animations
 				alignstretch 1.00
 				randomroll
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1
@@ -227,7 +227,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1

@@ -55,7 +55,7 @@ init
 
 		bulletdamage	35
 
-		movementspeed 1.0
+		movementspeed 1.0		
 
 		tracerfrequency 	1
 
@@ -78,7 +78,7 @@ init
 		dmstartammo		100
 		dmammorequired	1
 		dmfiredelay		0.14
-		dmmovementspeed 	1.0
+		dmmovementspeed 	1.0	
 
 		dmbulletrange	4000 			//the range at which bulletspread is applied fully (5 yards)
 		dmbulletspread	60 60 130 130 	//minpitch minyaw maxpitch maxyaw(offsets in world units) spread is maximum at top movement speed
@@ -91,8 +91,8 @@ init
 		// Secondary fire DM Attributes
 		secondary dmammorequired	0
 		secondary dmbulletrange		96
-		secondary dmbulletdamage	55
-
+		secondary dmbulletdamage	35
+		
 		// this is attached to the player during reload
 		cache models/ammo/colt_clip.tik
 	}
@@ -170,7 +170,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 120 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				scale 0.2
 				alpha 0.5
@@ -182,7 +182,7 @@ animations
 				randomroll
 				fade
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				scalemin 0.25
@@ -276,7 +276,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 120 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				scale 0.2
 				alpha 0.5
@@ -288,7 +288,7 @@ animations
 				randomroll
 				fade
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				scalemin 0.25
@@ -378,7 +378,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.05 120 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				scale 0.2
 				alpha 0.5
@@ -390,7 +390,7 @@ animations
 				randomroll
 				fade
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				scalemin 0.25
@@ -481,7 +481,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.05 120 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				scale 0.2
 				alpha 0.5
@@ -493,7 +493,7 @@ animations
 				randomroll
 				fade
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				scalemin 0.25

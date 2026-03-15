@@ -25,10 +25,10 @@ init
 		noammosound		kar98_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -52,7 +52,7 @@ init
 		bulletspread	8 8 65 65 		//minpitch minyaw maxpitch maxyaw
 		bulletdamage	75
 
-		tracerfrequency 	0 //original 0
+		tracerfrequency 	2 //original 0
 
 		crosshair		1
 		airange			long
@@ -63,18 +63,18 @@ init
 
 		// DM Attributes
 		dmbulletcount		1
-		dmstartammo			60 //CKR modified 200
+		dmstartammo			200
 		dmammorequired		1
 //		dmfiredelay			1.45
 		dmfiredelay			1.1
 
 		dmbulletrange		4000
 		dmbulletspread		2 2 65 65
-//		dmbulletdamage		75	//original 75
-//		dmbulletdamage		75	//original 75
+//		dmbulletdamage		110	//original 75
+//		dmbulletdamage		115	//original 75
 //		dmbulletdamage		106 // this makes it the same as a sniper rifle
-		dmbulletdamage		90 //CKR modified 90
-		dmmovementspeed		0.94 //CKR modified 0.94
+		dmbulletdamage		90 // had to reduce the damage since it fires about twice as fast as the sniper rifles
+		dmmovementspeed		0.94
 
 		dmcrosshair			1
 
@@ -214,7 +214,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 150 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1
@@ -230,7 +230,7 @@ animations
 				alignstretch 1.00
 				randomroll
 			)
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1
@@ -246,7 +246,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				model muzsprite.spr
 				count 1

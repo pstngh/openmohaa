@@ -23,10 +23,10 @@ init
 		noammosound		panzerschreck_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		projectile
@@ -45,13 +45,13 @@ init
 		weapongroup		bazooka
 
 		// DM Attributes
-		dmprojectile	models/projectiles/panzerschrekshell_dm.tik
+		dmprojectile	models/projectiles/bazookashell_dm.tik
 		dmbulletspread	5 5 500 500
-		dmstartammo		3 //CKR modified 6
+		dmstartammo		6
 		dmammorequired	1
-		dmfiredelay		6.0 //CKR modified 1.0
+		dmfiredelay		1.0
 		dmcrosshair		1
-		dmmovementspeed	0.6 //CKR modified .75
+		dmmovementspeed	0.75
 
 
 		cache			models/projectiles/panzerschreckshell.tik
@@ -141,13 +141,13 @@ animations
 			//             	 	|    |       |   |     |    |     |  | |      purely random.
 			//				V    V       V   V     V    V     V  V V
 //			entry viewkick 	    -28.5 -28.5   -0.05 0.05 56  "T"   15 15 15
-			entry viewkick 	      -30 -30   -0.05 0.05 56  "T"   30 30 15 //CKR modified
+			entry viewkick 	      0    0   -0.05 0.05 56  "T"   15 15 15
 
 //			entry viewkick -15 -16   -10 -11
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 140 0.11
-//			entry tagspawn tag_barrel
+//			entry tagspawnlinked tag_barrel
 //			(
 //				model models/fx/muzflash.tik
 //				color 1.00 1.00 1.00
@@ -220,7 +220,7 @@ animations
 				fadedelay 0.4
 			)
 
-//			entry tagspawn tag_eject
+//			entry tagspawnlinked tag_eject
 //			(
 //				model muzsprite.spr
 //				count 1

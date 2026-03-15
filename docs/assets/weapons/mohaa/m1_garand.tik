@@ -27,10 +27,10 @@ init
 		noammosound		m1_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -66,17 +66,17 @@ init
 		// DM Attributes
 		dmcantpartialreload
 		dmbulletcount	1
-		dmstartammo		200 //CKR modified 200
+		dmstartammo		200
 		dmammorequired	1
 		dmfiredelay		0.15
 
 		dmbulletrange	4000
 		dmbulletspread	10 10 80 80
 //		dmbulletdamage	50
-		dmbulletdamage	48 //CKR modified 48
+		dmbulletdamage	48
 //		dmfirespreadmult 	0.7 0.685 200 0.8
 		dmfirespreadmult 	0.75 0.6 200 0.8
-		dmmovementspeed	0.94 //CKR modified 0.94
+		dmmovementspeed	0.94
 
 		dmcrosshair		1
 		
@@ -158,7 +158,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 150 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -170,7 +170,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -237,7 +237,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 150 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -249,7 +249,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr

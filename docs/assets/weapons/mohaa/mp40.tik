@@ -22,10 +22,10 @@ init
 		noammosound		mp40_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -61,15 +61,15 @@ init
 
 		// DM Attributes
 		dmbulletcount	1
-		dmstartammo		200 //CKR modified 200
+		dmstartammo		200
 		dmammorequired	1
 		dmfiredelay		0.086
 
 		dmbulletrange	4000
-		dmbulletspread	38 38 50 50 //CKR modified 38 38 50 50
-		dmfirespreadmult	0.3 0.8 200 0.4	//0.3 0.8 150 0.4		//0.08 0.35 200 0.25 	//0.3 0.8 200 0.4 original
-		dmbulletdamage	25 //CKR modified 25
-		dmmovementspeed	0.96 //CKR modified 0.96
+		dmbulletspread	38 38 50 50	 	//30 30 50 50 		//25 25 48 48 		//25 25 45 45		//50 50 89 89 		//50 50 120 120
+		dmfirespreadmult	0.3 0.6 150 0.25	//0.3 0.8 150 0.4		//0.08 0.35 200 0.25 	//0.3 0.8 200 0.4 original
+		dmbulletdamage	25			//26	//33
+		dmmovementspeed	0.96
 
 		dmcrosshair		1
 
@@ -150,7 +150,7 @@ animations
 			entry tagdlight tag_barrel 0.25 0.2 0.15 110 0.11
 
 /////BIG ONE START
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -163,7 +163,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -176,7 +176,7 @@ animations
 				randomroll
 			)
 
-//			entry tagspawn tag_barrel
+//			entry tagspawnlinked tag_barrel
 //			(
 //				count 1
 //				model corona_util.spr
@@ -207,7 +207,7 @@ animations
 				sphere
 			)
 
-//			entry tagspawn tag_barrel
+//			entry tagspawnlinked tag_barrel
 //			(
 //				count 1
 //				model muzsprite.spr
@@ -223,7 +223,7 @@ animations
 //				fade
 //			)
 
-//			entry tagspawn tag_barrel
+//			entry tagspawnlinked tag_barrel
 //			(
 //				count 1
 //				model models/fx/muzflash.tik
@@ -323,7 +323,7 @@ animations
 			entry tagdlight tag_barrel 0.25 0.2 0.05 110 0.11
 
 /////BIG ONE START
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -335,7 +335,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -348,7 +348,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model corona_util.spr
@@ -377,7 +377,7 @@ animations
 				sphere
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -393,7 +393,7 @@ animations
 				fade
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -489,7 +489,7 @@ animations
 			entry tagdlight tag_barrel 0.25 0.2 0.05 110 0.11
 
 /////BIG ONE START
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik
@@ -501,7 +501,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -514,7 +514,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model corona_util.spr
@@ -543,7 +543,7 @@ animations
 				sphere
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model muzsprite.spr
@@ -559,7 +559,7 @@ animations
 				fade
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				count 1
 				model models/fx/muzflash.tik

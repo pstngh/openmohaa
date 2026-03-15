@@ -23,10 +23,10 @@ init
 		noammosound		steilhandgranate_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine1"
-		holsteroffset	"3.12 10.5 3.64"
-		holsterangles	"20 -40 0"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine1"
+//		holsteroffset	"3.12 10.5 3.64"
+//		holsterangles	"20 -40 0"
+//		holsterScale	1.0
 
 		// Primary fire type info (fast, arcing throw)
 		firetype		projectile
@@ -61,7 +61,7 @@ init
 
 		// DM Attributes
 		dmprojectile		models/projectiles/steilhandgranate_primary.tik
-		dmstartammo			3
+		dmstartammo			6
 		dmammorequired		1
 		dmfiredelay			0.75
 		dmcrosshair			0
@@ -72,7 +72,6 @@ init
 
 		cache models/projectiles/steilhandgranate_primary.tik
 		cache models/projectiles/steilhandgranate.tik
-		exec global/change_nades.scr
 	}
 	client
 	{

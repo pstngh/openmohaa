@@ -21,10 +21,10 @@ init
 		noammosound		shotgun_snd_noammo
 
 		// Holstering info
-		holstertag		"Bip01 Spine2"
-		holsteroffset	"8.0 -7.75 6.5"
-		holsterangles	"0 185 -25"
-		holsterScale	1.0
+//		holstertag		"Bip01 Spine2"
+//		holsteroffset	"8.0 -7.75 6.5"
+//		holsterangles	"0 185 -25"
+//		holsterScale	1.0
 
 		// Primary fire type info
 		firetype		bullet
@@ -59,14 +59,14 @@ init
 		// DM Attributes
 		dmstartammo		50
 		dmammorequired	1
-		dmbulletcount	12 // CKR modified 20
+		dmbulletcount	20
 //		dmbulletdamage	15
-		dmbulletdamage	15 // CKR modified 17
+		dmbulletdamage	17
 		dmfiredelay		0.75
 		dmbulletrange	1000
 		dmbulletspread	80 80 95 95
 		dmcrosshair		1
-		dmmovementspeed 	1 // CKR modified 0.99
+		dmmovementspeed 	0.99
 
 	}
 	client
@@ -160,7 +160,7 @@ animations
 
 			// muzzle flash
 			entry tagdlight tag_barrel 0.25 0.2 0.15 140 0.11
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				scale 0.4
 				offsetalongaxis 1.5 0 0
@@ -187,7 +187,7 @@ animations
 				align
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				spawnrate 1.00
 				model muzsprite.spr
@@ -201,7 +201,7 @@ animations
 				randomroll
 			)
 
-			entry tagspawn tag_barrel
+			entry tagspawnlinked tag_barrel
 			(
 				spawnrate 1.00
 				model muzsprite.spr
