@@ -1,0 +1,59 @@
+menu "patch_available" 640 480 NONE 1
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+virtualres 1
+
+include "ui/multiplayerback.inc"
+
+resource
+Label
+{
+name "Default"
+rect 48 152 536 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+shader "textures/mohmenu/patch_available_bg"
+}
+
+resource
+Label
+{
+title "There is a patch available.  Would you like to download it now?"
+name "Default"
+rect 64 168 504 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+font facfont-20
+}
+
+resource
+Button
+{
+name "Back"
+rect 144 240 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 1"
+}
+resource
+Button
+{
+name "Continue"
+rect 396 240 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "textures/mohmenu/continue"
+hovershader "textures/mohmenu/continue_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "getpatch;PopMenu 0"
+}
+end.

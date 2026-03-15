@@ -1,0 +1,36 @@
+menu "e1l1" 640 481 NONE 0
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+postinclude ui/loadingbar.txt
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/loadscreens/e1l1_1.tga"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/loadscreens/e1l1_2.tga"
+
+}
+end.

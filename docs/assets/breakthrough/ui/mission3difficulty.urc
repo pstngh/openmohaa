@@ -1,0 +1,119 @@
+menu "mission3difficulty" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/briefing_room_nobuttons.inc"
+
+
+resource
+Label
+{
+name "difficulty"
+rect 192 152 256 176
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "difficulty"
+}
+resource
+Button
+{
+name "difficulty"
+rect 200 232 240 32
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+stuffcommand "difficultymedium; spmap briefing/briefinge3"
+}
+resource
+Button
+{
+name "difficulty"
+rect 200 264 240 32
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+stuffcommand "difficultyhard; spmap briefing/briefinge3"
+}
+resource
+Button
+{
+name "cancel"
+rect 272 304 96 16
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "difficulty"
+rect 200 200 240 32
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+stuffcommand "difficultyeasy; spmap briefing/briefinge3"
+}
+resource
+Button
+{
+name "cancel"
+rect 0 152 192 176
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_trans"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "cancel"
+rect 0 0 640 152
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_trans"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "cancel"
+rect 448 152 192 176
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_trans"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "cancel"
+rect 0 328 640 152
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_trans"
+stuffcommand "popmenu 0"
+}
+end.

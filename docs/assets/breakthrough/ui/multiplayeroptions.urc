@@ -1,0 +1,290 @@
+menu "mpoptions" 640 479 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+include "ui/multiplayerback.inc"
+
+
+
+
+
+
+
+
+resource
+Label
+{
+title "German Player Model display"
+name "Default"
+rect 272 136 368 344
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+linkcvar "ui_disp_playergermanmodel"
+rendermodel 1
+modeloffset "60 -8 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim germanselectionidle
+
+}
+resource
+Label
+{
+title "Allies Player Model display"
+name "Default"
+rect 0 136 368 344
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+linkcvar "ui_disp_playermodel"
+rendermodel 1
+modeloffset "60 8 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim americanselectionidle
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 0.29 0.29 0.29 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "modelselect_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 256
+fgcolor 0.29 0.29 0.29 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "modelselect_a"
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/modelselect_b"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/modelselect_a"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 424 408 112 56
+fgcolor 0.29 0.29 0.29 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "textures/mohmenu/pmshadow"
+}
+resource
+Button
+{
+name "Default"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 1"
+}
+resource
+Label
+{
+name "Default"
+rect 104 408 112 56
+fgcolor 0.29 0.29 0.29 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+shader "textures/mohmenu/pmshadow"
+}
+resource
+Field
+{
+title "nameentry"
+name "Default"
+rect 240 16 288 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_name"
+font facfont-20
+textalign left
+SetMaxChars 20
+
+}
+resource
+Button
+{
+name "Axis Player Model"
+rect 360 56 192 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "playermodel 1"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+//textalign right
+
+}
+resource
+Button
+{
+name "88 56 192 24"
+rect 88 56 192 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.75 0.75 0.75 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "playermodel 0"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+//textalign right
+
+}
+resource
+Label
+{
+title "modelentry"
+name "Default"
+rect 64 88 240 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_dm_playermodel"
+font facfont-20
+textalign xcenter
+
+}
+resource
+Label
+{
+title "modelentry"
+name "Default"
+rect 336 88 240 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+linkcvar "ui_dm_playergermanmodel"
+font facfont-20
+textalign xcenter
+
+}
+resource
+Label
+{
+title "ratedisplay"
+name "Default"
+rect 224 128 192 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/blank2"
+linkcvar "rate"
+linkstring 2500 "28.8k modem"
+linkstring 3000 "33.6k modem"
+linkstring 4000 "56k modem"
+linkstring 5000 "ISDN"
+linkstring 20000 "Cable"
+linkstring 25000 "xDSL"
+linkstring 30000 "LAN"
+
+}
+resource
+CheckBox
+{
+name "Force Models"
+rect 448 128 120 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+clicksound "sound/menu/scroll.wav"
+linkcvar "cg_forceModel"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+PulldownMenuContainer
+{
+title "list"
+name "ratelist"
+rect 200 128 16 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "multiarrow"
+selmenushader "MENU" "multiarrow_h"
+addpopup "MENU" "28.8k modem" command "set rate 2500"
+addpopup "MENU" "33.6k modem" command "set rate 3000"
+addpopup "MENU" "56k modem" command "set rate 4000"
+addpopup "MENU" "ISDN" command "set rate 5000"
+addpopup "MENU" "CABLE" command "set rate 20000"
+addpopup "MENU" "xDSL" command "set rate 25000"
+addpopup "MENU" "LAN" command "set rate 30000"
+
+}
+resource
+Button
+{
+name "Default"
+rect 536 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/apply"
+hovershader "textures/mohmenu/apply_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_applyplayermodel;ui_checkrestart;Popmenu 0"
+}
+
+resource
+Button
+{
+name "tunak"
+rect 328 187 8 12
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+stuffcommand "set tunak 1"
+}
+
+end.

@@ -1,0 +1,153 @@
+menu "MapRotationSetup" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+virtualres 1
+include "ui/serverback.inc"
+
+resource
+Label
+{
+title "Map List"
+name "Default"
+rect 112 72 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Rotation List"
+name "Default"
+rect 416 72 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+font facfont-20
+
+}
+resource
+AddToRotationButton
+{
+name "AddButton"
+rect 296 144 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/rt_arrow"
+hovershader "menu_button_glow"
+font facfont-20
+}
+
+resource
+RemoveFromRotationButton
+{
+name "RemoveButton"
+rect 296 240 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/lf_arrow"
+hovershader "menu_button_glow"
+font facfont-20
+}
+
+resource
+RotationMoveItemUpButton
+{
+name "move_map_up"
+rect 372 190 32 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/up_arrow"
+hovershader "menu_button_glow"
+font facfont-20
+}
+
+resource
+RotationMoveItemDownButton
+{
+name "move_map_down"
+rect 372 230 32 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/dn_arrow"
+hovershader "menu_button_glow"
+font facfont-20
+}
+
+resource
+RotationApplyButton
+{
+title "Apply"
+name "Apply"
+rect 432 384 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "PopMenu 0"
+font facfont-20
+
+}
+resource
+Button
+{
+title "Back"
+name "Back"
+rect 128 384 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "PopMenu 1"
+font facfont-20
+
+}
+resource
+MapListBox
+{
+title "Map List"
+name "Map List"
+rect 104 112 152 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 1.00
+borderstyle "RAISED"
+showcommand "RefreshMapList"
+
+}
+resource
+MapRotationListBox
+{
+title "Rotation List"
+name "Rotation List"
+rect 408 112 152 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 1.00
+borderstyle "RAISED"
+showcommand "RefreshRotationList"
+}
+
+resource
+Label
+{
+name "title"
+rect 170 4 300 38
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_map_rot"
+}
+
+end.

@@ -1,0 +1,248 @@
+menu "joinnetgame" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/multiplayerback.inc"
+
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/netgame_a"
+font facfont-20
+
+}
+resource
+Label
+{
+name "progressbar"
+rect 16 408 608 24
+fgcolor 0.00 0.50 0.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "dm_serverstatusbar"
+statbar horizontal 0 100
+//align center
+//align left
+font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/netgame_b"
+font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 16 408 608 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "dm_serverstatus"
+align center
+font facfont-20
+}
+
+resource
+Label
+{
+title "# Servers: "
+name "Default"
+rect 16 408 72 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign right
+font facfont-20
+}
+
+// resource
+// Label
+// {
+// title "# Servers: "
+// name "Default"
+// rect 15 407 72 24
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// textalign right
+// font facfont-20
+// }
+// 
+
+resource
+Button
+{
+name "refresh"
+rect 542 440 80 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "widgetcommand netgamelist refreshserverlist"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+//stuffcommand "widgetcommand netgamelist refreshlanserverlist"
+//stuffcommand "localservers"
+//font facfont-20
+}
+
+resource
+Button
+{
+name "Default"
+rect 16 440 80 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+stuffcommand "Popmenu 0"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/back.wav"
+
+}
+resource
+Button
+{
+name "join game"
+rect 310 440 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "widgetcommand netgamelist connect"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+//stuffcommand "globalwidgetcommand netgamelist connecttoselected"
+//stuffcommand "widgetcommand netgamelist joingame"
+//font facfont-20
+
+}
+resource
+Button
+{
+name "cancelrefresh"
+rect 542 440 80 24
+// rect 528 440 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "widgetcommand netgamelist cancelrefresh"
+shader "textures/mohmenu/cancel_button"
+hovershader "menu_button_glow"
+clicksound "sound/menu/back.wav"
+//stuffcommand "localservers"
+//font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 88 408 104 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "dm_servercount"
+textalign left
+font facfont-20
+
+}
+resource
+Button
+{
+name "update server"
+rect 410 440 128 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "widgetcommand netgamelist updateserver"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+
+}
+resource
+Label
+{
+name "Default"
+rect 584 408 40 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "dm_playercount"
+textalign left
+font facfont-20
+
+}
+resource
+Label
+{
+title "# Players: "
+name "Default"
+rect 512 408 72 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign right
+font facfont-20
+
+}
+resource
+Label
+{
+name "Default"
+rect 544 0 96 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "game_version"
+textalign right
+font facfont-20
+
+}
+resource
+FAKKServerList
+{
+name "netgamelist"
+rect 16 16 608 384
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.02 0.07 0.00 0.75
+borderstyle "NONE"
+ordernumber 1
+//lanlisting
+
+}
+resource
+Button
+{
+name "Filters"
+rect 226 440 80 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "pushmenu FilterMenu"
+// shader "textures/mohmenu/filters"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+
+}
+end.

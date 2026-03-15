@@ -1,0 +1,274 @@
+menu "medals" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+virtualres 1
+
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/medal_bg_a"
+}
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/medal_bg_b"
+}
+
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_a.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_e.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_b.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_f.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_d.tga"
+enabledcvar "ui_voodoo"
+}
+
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/medal_bg_c.tga"
+enabledcvar "ui_voodoo"
+}
+
+
+// resource
+// Label
+// {
+// name "Default"
+// rect 0 0 640 480
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// shader "black"
+// }
+// 
+// resource
+// Label
+// {
+// name "Default"
+// rect 60 40 520 400
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// shader "medalcaseback"
+// }
+
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+name "default"
+rect 108 380 424 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_medalsign"
+linkcvartoshader
+}
+
+resource
+Button
+{
+name "Default"
+rect 412 78 60 120
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "distinguishedcross_med"
+enabledcvar "g_medalbt0"
+hovercommand "set ui_medalsign distinguishedcross_sign; set ui_medaldesc distinguishedcross_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+// // voodoo ==========================================================================================
+// resource
+// Button
+// {
+// name "Default"
+// rect 412 78 60 120
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// shader "distinguishedcross_med"
+// enabledcvar "g_medal0"
+// hovercommand "set ui_medalsign distinguishedcross_sign; set ui_medaldesc distinguishedcross_desc"
+// mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+// enabledcvar "ui_voodoo"
+// }
+// 
+
+resource
+Button
+{
+name "Default"
+rect 289 78 60 120
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "silverstar_med"
+enabledcvar "g_medalbt1"
+hovercommand "set ui_medalsign silverstar_sign; set ui_medaldesc silverstar_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+resource
+Button
+{
+name "Default"
+rect 164 78 60 120
+// rect 472 228 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "bronzestar_med"
+enabledcvar "g_medalbt2"
+hovercommand "set ui_medalsign bronzestar_sign; set ui_medaldesc bronzestar_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+resource
+Button
+{
+name "Default"
+rect 164 236 60 120
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "africastar_med"
+enabledcvar "g_medalbt3"
+hovercommand "set ui_medalsign africastar_sign; set ui_medaldesc africastar_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+resource
+Button
+{
+name "Default"
+rect 289 236 60 120
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "distinguishedflyingcross_med"
+enabledcvar "g_medalbt4"
+hovercommand "set ui_medalsign distinguishedflyingcross_sign; set ui_medaldesc distinguishedflyingcross_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+resource
+Button
+{
+name "Default"
+rect 412 236 60 120
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "airmedal_med"
+enabledcvar "g_medalbt5"
+hovercommand "set ui_medalsign airmedal_sign; set ui_medaldesc airmedal_desc"
+mouseawaycommand "set ui_medalsign 0;set ui_medaldesc 0"
+}
+
+// resource
+// Label
+// {
+// name "Default"
+// rect 80 8 480 56
+// fgcolor 0.00 0.00 0.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// shader "blank_desc"
+// }
+
+resource
+Label
+{
+name "Default"
+rect 80 8 480 56
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_medaldesc"
+linkcvartoshader
+}
+end.

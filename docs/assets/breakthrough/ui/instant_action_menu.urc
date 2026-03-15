@@ -1,0 +1,304 @@
+// menu setup
+menu "iamenu" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+virtualres 1
+include "ui/serverback.inc"
+
+resource
+InstantAction
+{
+name "instantActionUI"
+rect 0 0 640 480
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.02 0.07 0.00 0.75
+borderstyle "NONE"
+ordernumber 1
+}
+
+// Menu Title
+resource
+Label
+{
+name "Default"
+rect 20 18 600 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/instant_action_game"
+}
+
+// "Back" button
+resource
+Button
+{
+name "Default"
+//title "Back"
+rect 88 400 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+//shader "textures/mohmenu/mp_setup_btn1"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "widgetcommand instantActionUI ia_cancel; Popmenu 1"
+}
+
+// "Cancel" button
+resource
+Button
+{
+name "ia_cancel_button"
+//title "Cancel"
+rect 456 400 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+//shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "menu_button_glow"
+shader "textures/mohmenu/mp_ia_cancel"
+hovershader "textures/mohmenu/mp_ia_cancel_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "widgetcommand instantActionUI ia_cancel"
+}
+
+// "Refresh" button
+resource
+Button
+{
+name "ia_refresh_button"
+//title "Refresh"
+rect 456 400 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/refresh"
+hovershader "textures/mohmenu/refresh_h"
+//shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "menu_button_glow"
+clicksound "sound/menu/back.wav"
+stuffcommand "widgetcommand instantActionUI ia_refresh"
+}
+
+// Completion status
+resource
+Label
+{
+title "Searching Servers ..."
+name "searchstatuslable"
+rect 88 200 200 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "searchstatus"
+rect 300 200 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_search_percentage"
+font facfont-20
+}
+
+// "Accept" button
+resource
+Button
+{
+name "acceptserver"
+title "Accept"
+rect 150 350 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/mp_lib_accept"
+hovershader "menu_button_glow"
+stuffcommand "widgetcommand instantActionUI acceptserver"
+clicksound "sound/menu/apply.wav"
+}
+
+// "Reject" button
+resource
+Button
+{
+name "rejectserver"
+title "Reject"
+rect 394 350 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/mp_lib_reject"
+hovershader "menu_button_glow"
+stuffcommand "widgetcommand instantActionUI rejectserver"
+clicksound "sound/menu/back.wav"
+}
+
+// Server Name
+resource
+Label
+{
+title "Server Name"
+name "iaservername_label"
+rect 100 150 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "ia_servername_field"
+rect 275 150 300 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_servername"
+textalign left
+font facfont-20
+}
+
+// Server Ping
+resource
+Label
+{
+title "Ping"
+name "ia_ping_label"
+rect 100 184 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "ia_ping_field"
+rect 275 184 50 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_ping"
+font facfont-20
+}
+
+// Game Type
+resource
+Label
+{
+title "Game Type"
+name "ia_gametype_label"
+rect 100 218 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "ia_gametype_field"
+rect 275 218 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_gametype"
+font facfont-20
+}
+
+// Current Players
+resource
+Label
+{
+title "Current Players"
+name "ia_players_label"
+rect 100 248 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "ia_players_field"
+rect 275 248 50 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_players"
+font facfont-20
+}
+
+// Max Players
+resource
+Label
+{
+title "Maximum Players"
+name "ia_maxplayers_label"
+rect 100 282 150 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+textalign center
+font facfont-20
+}
+resource
+Label
+{
+title "0"
+name "ia_maxplayers_field"
+rect 275 282 50 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ia_maxplayers"
+font facfont-20
+}
+
+// Error Message
+resource
+Label
+{
+title "No instant action games found."
+name "ia_noserverfound"
+rect 120 200 200 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign center
+font facfont-20
+}
+
+
+end.
