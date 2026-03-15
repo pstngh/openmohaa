@@ -703,6 +703,14 @@ class DemoScanner:
             return reader.read_scrambled_string()
         return reader.read_string()
 
+    @staticmethod
+    def _clean_configstring(value):
+        """Clean a configstring value: strip trailing whitespace and surrounding quotes."""
+        value = value.rstrip("\r\n")
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = value[1:-1]
+        return value
+
     def _parse_gamestate(self, data):
         reader = MsgReader(data)
 
@@ -730,6 +738,9 @@ class DemoScanner:
                 idx = reader.read_short() & 0xFFFF
                 value = self._read_string(reader)
                 cs_idx = normalize_cs_ver6(idx)
+                # Clean non-info configstrings (strip quotes/whitespace)
+                if cs_idx > CS_SYSTEMINFO:
+                    value = self._clean_configstring(value)
                 configstrings[cs_idx] = value
             elif cmd == SVC_BASELINE:
                 # Can't parse baselines without full entity delta code,
@@ -779,6 +790,8 @@ class DemoScanner:
                 idx = reader.read_short() & 0xFFFF
                 value = self._read_string(reader)
                 cs_idx = normalize_cs_ver15(idx)
+                if cs_idx > CS_SYSTEMINFO:
+                    value = self._clean_configstring(value)
                 configstrings[cs_idx] = value
             elif cmd == SVC_BASELINE:
                 break
@@ -880,7 +893,9 @@ class DemoScanner:
         else:
             cs_idx = normalize_cs_ver15(raw_idx)
 
-        # Update stored configstrings
+        # Clean and update stored configstrings
+        if cs_idx > CS_SYSTEMINFO:
+            value = self._clean_configstring(value)
         self.configstrings[cs_idx] = value
 
         if CS_PLAYERS <= cs_idx < CS_PLAYERS + MAX_CLIENTS:
@@ -1004,7 +1019,7 @@ class DemoScanner:
         weapon_idx = arrays["activeItems"][ITEM_WEAPON]
         if weapon_idx > 0 and weapon_idx < MAX_WEAPONS:
             cs_idx = CS_WEAPONS + weapon_idx
-            weapon_name = self._strip_quotes(self.configstrings.get(cs_idx, ""))
+            weapon_name = self.configstrings.get(cs_idx, "")
             if weapon_name and weapon_name not in self.weapons_seen:
                 self.weapons_seen.append(weapon_name)
 
@@ -1026,7 +1041,7 @@ class DemoScanner:
                 continue
             # ammo_name_index stores relative offset within CS_WEAPONS
             cs_idx = CS_WEAPONS + name_idx
-            ammo_name = self._strip_quotes(self.configstrings.get(cs_idx, ""))
+            ammo_name = self.configstrings.get(cs_idx, "")
             if ammo_name.lower() in ("grenade", "agrenade"):
                 count = arrays["ammo_amount"][i]
                 if count > 0:
@@ -1140,19 +1155,7 @@ def main():
                 continue
 
         # Collect weapon/grenade info, filtering out grenade items
-        weapons = [
-            DemoScanner._strip_quotes(w)
-            for w in scanner.weapons_seen
-            if not DemoScanner._is_grenade_weapon(w)
-        ]
-        # Deduplicate while preserving order
-        seen = set()
-        unique_weapons = []
-        for w in weapons:
-            if w not in seen:
-                seen.add(w)
-                unique_weapons.append(w)
-        weapons = unique_weapons
+        weapons = [w for w in scanner.weapons_seen if not DemoScanner._is_grenade_weapon(w)]
         grenade_count = scanner.grenade_count
 
         results.append((rel_path, player_names, None, weapons, grenade_count, scanner))
