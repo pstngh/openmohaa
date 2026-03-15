@@ -8,7 +8,7 @@ These files are kept here so that AI assistants and developers can read them to 
 
 Files can be organized by game:
 
-- `mohaaa/` - Medal of Honor: Allied Assault
+- `mohaa/` - Medal of Honor: Allied Assault
 - `spearhead/` - Spearhead expansion
 - `breakthrough/` - Breakthrough expansion
 
