@@ -1,0 +1,103 @@
+menu "wrongversion" 640 480 NONE 0
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+//postinclude ui/loadingbar.txt
+
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "sepiaload_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "sepiaload_a"
+}
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 0;wait 50;gotoreturnmenu"
+ordernumber 2
+
+}
+resource
+Button
+{
+name "continuebutton"
+rect 272 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "continue"
+hovershader "continue_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "gogetpatch"
+ordernumber 1
+
+}
+resource
+Label
+{
+name "message"
+rect 168 208 304 56
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "RAISED"
+linkcvar "com_errormessage"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Server is using a newer version"
+name "heading"
+rect 168 208 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Click Continue to go get the latest patch!"
+name "heading"
+rect 168 240 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font facfont-20
+
+}
+end.

@@ -1,0 +1,115 @@
+menu "votecast" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+
+
+resource
+Label
+{
+name "backdrop"
+rect 152 200 336 80
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.02 0.07 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Button
+{
+name "Default"
+rect 488 200 152 80
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 200 152 80
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 0 640 200
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 280 640 200
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+title "Cast your vote:"
+name "title"
+rect 152 224 336 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "votesubtitle"
+rect 152 200 336 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.30
+borderstyle "3D_BORDER"
+linkcvar "ui_votesubtitle"
+font "facfont-20"
+
+}
+resource
+Button
+{
+title "Yes"
+name "yesbutton"
+rect 160 248 160 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.17 0.17 0.17 0.50
+borderstyle "3D_BORDER"
+stuffcommand "popmenu 0;wait 250;vote 1"
+font "facfont-20"
+ordernumber 1
+
+}
+resource
+Button
+{
+title "No"
+name "nobutton"
+rect 320 248 160 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.17 0.17 0.17 0.50
+borderstyle "3D_BORDER"
+stuffcommand "popmenu 0;wait 250;vote 0"
+font "facfont-20"
+ordernumber 2
+}
+end.
