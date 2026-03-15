@@ -1,0 +1,266 @@
+menu "ObjSelectTeam" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+
+
+
+resource
+Label
+{
+name "backdrop"
+rect 160 48 320 384
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "objteamselect"
+font "facfont-20"
+
+}
+resource
+Button
+{
+name "Default"
+rect 0 0 640 48
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Cancel"
+rect 272 408 96 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0"
+font "facfont-20"
+
+}
+resource
+Label
+{
+title "cg_obj_alliedtext3"
+name "Default"
+rect 168 376 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext3"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "cg_obj_axistext3"
+name "Default"
+rect 320 376 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext3"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "cg_obj_axistext2"
+name "Default"
+rect 320 352 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext2"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "cg_obj_alliedtext2"
+name "Default"
+rect 168 352 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext2"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "cg_obj_alliedtext1"
+name "Default"
+rect 168 328 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext1"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "cg_obj_axistext1"
+name "Default"
+rect 320 328 152 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext1"
+font "facfont-20"
+textalign centerx
+
+}
+resource
+Label
+{
+title "Allies Player Model display"
+name "Default"
+rect 168 88 200 200
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_disp_playermodel"
+rendermodel 1
+modeloffset "60 12 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim americanselectionidle
+
+}
+resource
+Label
+{
+title "Axis Player Model display"
+name "Default"
+rect 272 88 200 200
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_disp_playergermanmodel"
+rendermodel 1
+modeloffset "60 -12 0"
+modelrotateoffset "0 0 0"
+modelangles "10 180 0"
+modelscale 1.0
+modelanim germanselectionidle
+
+}
+resource
+Button
+{
+name "Auto Select Team"
+rect 256 304 128 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "auto_join_team;popmenu 0"
+font "facfont-20"
+
+}
+resource
+Button
+{
+name "alliesmodelselect"
+rect 168 56 152 240
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team allies;popmenu 0"
+}
+resource
+Button
+{
+name "alliesmodelselect"
+rect 184 304 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team allies;popmenu 0"
+}
+resource
+Button
+{
+name "axismodelselect"
+rect 320 56 152 240
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team axis;popmenu 0"
+}
+resource
+Button
+{
+name "axismodelselect"
+rect 392 304 64 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "join_team axis;popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 48 160 384
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 480 48 160 384
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 432 640 48
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+end.

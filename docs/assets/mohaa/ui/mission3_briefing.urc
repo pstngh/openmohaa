@@ -1,0 +1,44 @@
+menu "mission3_briefing" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/missionbriefingback.inc"
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+Button
+{
+title "skip briefing"
+name "Default"
+rect 8 440 112 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+stuffcommand "spmap m3l1a"
+}
+resource
+Label
+{
+name "Default"
+rect 96 74 456 344
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "briefing3a"
+}
+end.

@@ -1,0 +1,200 @@
+menu "medals" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 0 0 640 480
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "black"
+}
+resource
+Label
+{
+name "Default"
+rect 60 40 520 400
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "medalcaseback"
+}
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+name "default"
+rect 108 376 424 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_medalsign"
+linkcvartoshader
+
+}
+resource
+Button
+{
+name "Default"
+rect 104 228 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "norwegiancross"
+enabledcvar "g_medal4"
+hovercommand "set ui_medalsign norwegiancross_sign;set ui_medaldesc norwegian_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 104 76 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "armycommendation_med"
+enabledcvar "g_medal0"
+hovercommand "set ui_medalsign armycommendation_sign;set ui_medaldesc armycommendation_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 208 76 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "distinguishedservice_med"
+enabledcvar "g_medal1"
+hovercommand "set ui_medalsign distinguishedservice_sign;set ui_medaldesc distinguishedservice_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 288 160 72 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "distinguishedcross_med"
+enabledcvar "g_eogmedal0"
+hovercommand "set ui_medalsign distinguishedcross_sign;set ui_medaldesc distinguishedcross_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 376 76 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "legionmerit_med"
+enabledcvar "g_medal2"
+hovercommand "set ui_medalsign legionmerit_sign;set ui_medaldesc legion_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 472 76 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "goodconduct_med"
+enabledcvar "g_medal3"
+hovercommand "set ui_medalsign goodconduct_sign;set ui_medaldesc goodconduct_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 376 228 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "silverstar_med"
+enabledcvar "g_eogmedal1"
+hovercommand "set ui_medalsign silverstar_sign;set ui_medaldesc silverstar_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 472 228 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "bronzestar_med"
+enabledcvar "g_eogmedal2"
+hovercommand "set ui_medalsign bronzestar_sign;set ui_medaldesc bronzestar_desc"
+
+}
+resource
+Button
+{
+name "Default"
+rect 208 228 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "americanmedal"
+enabledcvar "g_medal5"
+hovercommand "set ui_medalsign americanmedal_sign;set ui_medaldesc american_desc"
+
+}
+resource
+Label
+{
+name "Default"
+rect 80 8 480 56
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "blank_desc"
+}
+resource
+Label
+{
+name "Default"
+rect 80 8 480 56
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_medaldesc"
+linkcvartoshader
+}
+end.

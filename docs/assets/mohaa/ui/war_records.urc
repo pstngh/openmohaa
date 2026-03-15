@@ -1,0 +1,163 @@
+menu "war_records" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+
+
+resource
+Label
+{
+name "Default"
+rect 480 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "warrecords_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "warrecords_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_f"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_e"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_d"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_c"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_b"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/warrecords_a"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 575 0 64 19
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "RAISED"
+linkcvar "shortversion"
+}
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "loadsave"
+rect 456 248 128 144
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "loadsave_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu_sp loadsave;pushmenu_dm loadsave_mp"
+hovercommand "set ui_recordsign loadsave_sign"
+
+}
+resource
+Button
+{
+name "personal records"
+rect 168 256 256 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "medalscase_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu medals"
+hovercommand "set ui_recordsign personalrecords_sign"
+
+}
+resource
+Label
+{
+name "Default"
+rect 400 64 128 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_recordsign"
+linkcvartoshader
+
+}
+end.

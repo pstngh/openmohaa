@@ -1,0 +1,487 @@
+menu "LODTool" 640 144 NONE
+align top
+bgcolor 0 0 0 0
+borderstyle NONE
+
+// background
+resource
+Field
+{
+	name "minLOD_display"
+	rect 0 0 640 144
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+}
+
+// set the metric for minimum LOD (most polys)
+resource
+Slider
+{
+	name "minLOD"
+	rect 540 16 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_minLOD"
+	setrange 0.5000 10.0000
+	slidertype float
+	stepsize 0.01
+}
+
+// set the current metric (range between min and max)
+resource
+Slider
+{
+	name "LOD"
+	rect 100 16 440 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_LOD_slider"
+	setrange 0.0000 1.0000
+	slidertype float
+	stepsize 0.01
+}
+
+// set the metric for maximum LOD (least polys)
+resource
+Slider
+{
+	name "maxLOD"
+	rect 0 16 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_maxLOD"
+	setrange 0.0100 0.5000
+	slidertype float
+	stepsize 0.001
+}
+
+resource
+Field
+{
+	name "minLOD_display"
+	rect 540 0 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_minLOD"
+}
+
+resource
+Field
+{
+	name "LOD_display"
+	rect 270 0 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_LOD"
+}
+
+resource
+Field
+{
+	name "maxLOD_display"
+	rect 0 0 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_maxLOD"
+}
+
+// Spawn button
+// should spawn a new tiki
+resource
+Button
+{
+	title "Spawn"
+	name "Default"
+	rect 0 32 70 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.00 0.00 1.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_spawnlist"
+}
+
+// Turn on LOD
+// use the keyboard, stupid
+resource
+Button
+{
+	title "Use LOD"
+	name "Default"
+	rect 70 32 70 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.00 0.00 1.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "r_uselod 1"
+}
+
+// Turn off LOD
+// use the keyboard, stupid
+resource
+Button
+{
+	title "No LOD"
+	name "Default"
+	rect 140 32 70 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.00 0.00 1.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "r_uselod 0"
+}
+
+// Pitch slider
+resource
+Slider
+{
+	name "Default"
+	rect 0 48 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_pitch_val"
+	setrange -90.0 90.0
+	slidertype float
+	stepsize 1.0
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 100 48 60 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_pitch_val"
+}
+
+resource
+Label
+{
+	title "Pitch"
+	name "Default"
+	rect 160 48 50 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "RAISED"
+}
+
+// Zee slider
+resource
+Slider
+{
+	name "Default"
+	rect 0 80 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_zee_val"
+	setrange -256.0 256.0
+	slidertype float
+	stepsize 1.0
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 100 80 60 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_zee_val"
+}
+
+resource
+Label
+{
+	title "Zee"
+	name "Default"
+	rect 160 80 50 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "RAISED"
+}
+
+// Pick mesh slider 0-7
+// for multimesh objects, which part you want to work on
+resource
+Slider
+{
+	name "Default"
+	rect 0 96 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_mesh"
+	setrange 0 7
+	slidertype integer
+	stepsize 1
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 100 96 60 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_mesh"
+}
+
+resource
+Label
+{
+	title "Mesh"
+	name "Default"
+	rect 160 96 50 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "RAISED"
+}
+
+// display the currently selected mesh name
+resource
+Field
+{
+	name "Default"
+	rect 0 112 210 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_meshname"
+}
+
+// display the current lod_metric
+resource
+Field
+{
+	name "Default"
+	rect 0 128 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_metric"
+}
+
+// display the current lod_metric
+resource
+Field
+{
+	name "Default"
+	rect 100 128 110 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_tris"
+}
+
+// buttons to select the 5 tweak values
+resource
+Button
+{
+	title "---->"
+	name "Default"
+	rect 210 48 30 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 1.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_edit_0 1"
+}
+
+resource
+Button
+{
+	title "---->"
+	name "Default"
+	rect 210 64 30 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 1.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_edit_1 1"
+}
+
+resource
+Button
+{
+	title "---->"
+	name "Default"
+	rect 210 80 30 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 1.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_edit_2 1"
+}
+
+resource
+Button
+{
+	title "---->"
+	name "Default"
+	rect 210 96 30 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 1.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_edit_3 1"
+}
+
+resource
+Button
+{
+	title "---->"
+	name "Default"
+	rect 210 112 30 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 1.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_edit_4 1"
+}
+
+// sliders for the 5 tweak values
+resource
+Slider
+{
+	name "Default"
+	rect 240 48 300 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_curve_0_slider"
+	setrange 0.0 1.0
+	slidertype float
+	stepsize 0.001
+}
+
+resource
+Slider
+{
+	name "Default"
+	rect 240 64 300 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_curve_1_slider"
+	setrange 0.0 1.0
+	slidertype float
+	stepsize 0.001
+}
+
+resource
+Slider
+{
+	name "Default"
+	rect 240 80 300 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_curve_2_slider"
+	setrange 0.0 1.0
+	slidertype float
+	stepsize 0.001
+}
+
+resource
+Slider
+{
+	name "Default"
+	rect 240 96 300 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_curve_3_slider"
+	setrange 0.0 1.0
+	slidertype float
+	stepsize 0.001
+}
+
+resource
+Slider
+{
+	name "Default"
+	rect 240 112 300 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.00 0.50 1.00 1.00
+	borderstyle "RAISED"
+	linkcvar "lod_curve_4_slider"
+	setrange 0.0 1.0
+	slidertype float
+	stepsize 0.001
+}
+
+// display the 5 tweak values
+resource
+Field
+{
+	name "Default"
+	rect 540 48 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_curve_0_val"
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 540 64 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_curve_1_val"
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 540 80 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_curve_2_val"
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 540 96 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_curve_3_val"
+}
+
+resource
+Field
+{
+	name "Default"
+	rect 540 112 100 16
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 1.00
+	borderstyle "INDENT_BORDER"
+	linkcvar "lod_curve_4_val"
+}
+
+// Save button
+// save the tweaks
+resource
+Button
+{
+	title "Save"
+	name "Default"
+	rect 540 128 100 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.80 0.00 0.00 1.00
+	borderstyle "INDENT_BORDER"
+	stuffcommand "lod_save 1"
+}
+
+end.

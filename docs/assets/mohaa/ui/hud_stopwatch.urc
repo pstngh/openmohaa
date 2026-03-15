@@ -1,0 +1,40 @@
+menu "hud_stopwatch" 128 128 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left centery
+
+//==================================================
+// Stopwatch Base
+
+resource
+Label
+{
+name "stopwatchbase"
+rect 0 0 128 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/stopwatchbase
+}
+
+//==================================================
+// Stopwatch Needle
+
+resource
+Label
+{
+name "stopwatchhand"
+//rect 18 42 92 64 // this makes it match the compass base
+//rect 18 32 92 64 // this makes it match the compass top
+//rect 15.5 14 100 100 // this makes it match the compass top
+rect 0 0 128 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "ui_stopwatch"
+statbar spinner 0 60000
+statbar_endangles 0 360
+statbar_shader textures/hud/stopwatchhand
+}
+
+end.

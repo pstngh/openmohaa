@@ -1,0 +1,193 @@
+menu "options_main" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+
+
+resource
+Label
+{
+name "Default"
+rect 480 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "options_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "options_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_f.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_c.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_a.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_b.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_e.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/options_d.tga"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 575 0 64 19
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "RAISED"
+linkcvar "shortversion"
+}
+resource
+Button
+{
+name "advanced options"
+rect 278 35 190 89
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow_lite"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu advancedoptions"
+hovercommand "set ui_optionshader advanced_sign"
+
+}
+resource
+Button
+{
+name "audio button"
+rect 289 221 160 56
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu audio_options"
+hovercommand "set ui_optionshader audio_sign"
+
+}
+resource
+Button
+{
+name "controls button"
+rect 168 276 132 64
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu controls"
+hovercommand "set ui_optionshader controls_sign"
+
+}
+resource
+Button
+{
+name "video button"
+rect 434 276 143 76
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "video_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu video_options"
+hovercommand "set ui_optionshader video_sign"
+
+}
+resource
+Label
+{
+name "Default"
+rect 98 52 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_optionshader"
+linkcvartoshader
+
+}
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+end.

@@ -1,0 +1,246 @@
+menu "hud_items" 512 112 FROM_BOTTOM 0.15
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align centerx bottom
+
+//==================================================
+// empty item slot icons
+
+resource
+Label
+{
+name "slot1_empty"
+rect 32 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_empty
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot2_empty"
+rect 160 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_empty
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot3_empty"
+rect 288 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_empty
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot4_empty"
+rect 416 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_empty
+//direction from_left 0.15
+fadein 0.2
+}
+
+//==================================================
+// Main item slot icons
+
+resource
+Label
+{
+name "slot1_icon"
+rect 32 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_camera
+//direction from_left 0.15
+invmodelhand 2
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot2_icon"
+rect 160 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_camera
+//direction from_left 0.15
+invmodelhand 3
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot3_icon"
+rect 288 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_camera
+//direction from_left 0.15
+invmodelhand 4
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot4_icon"
+rect 416 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_camera
+//direction from_left 0.15
+invmodelhand 5
+fadein 0.2
+}
+
+//==================================================
+// Selected item slot icon highlights
+
+resource
+Label
+{
+name "slot1_highlight"
+rect 32 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_highlight
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot2_highlight"
+rect 160 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_highlight
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot3_highlight"
+rect 288 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_highlight
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot4_highlight"
+rect 416 16 64 64
+fgcolor 1.00 1.00 1.00 0.60
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/item_highlight
+//direction from_left 0.15
+fadein 0.2
+}
+
+//==================================================
+// item slot names
+
+resource
+Label
+{
+name "slot1_name"
+rect 0 56 128 64
+fgcolor 1.00 1.00 1.00 0.80
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 2
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot2_name"
+rect 128 56 128 64
+fgcolor 1.00 1.00 1.00 0.80
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 3
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot3_name"
+rect 256 56 128 64
+fgcolor 1.00 1.00 1.00 0.80
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 4
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "slot4_name"
+rect 384 56 128 64
+fgcolor 1.00 1.00 1.00 0.80
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 5
+//direction from_left 0.15
+fadein 0.2
+}
+
+//==================================================
+// selected item name display
+
+resource
+Label
+{
+name "currentname"
+rect 192 0 128 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+//direction from_left 0.15
+itemstat 1 // equipped item
+fadein 0.2
+}
+
+end.

@@ -1,0 +1,107 @@
+menu "joininternetgame" 640 479 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/multiplayerback.inc"
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 160 152 320 176
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "internet"
+}
+resource
+Label
+{
+name "Default"
+rect 224 76 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "fan_anim2"
+}
+resource
+Button
+{
+name "Default"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 0"
+}
+resource
+Field
+{
+title "ipaddy"
+name "Default"
+rect 168 296 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+clicksound "sound/menu/apply.wav"
+linkcvar "ui_connectip"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Connect to IP Address"
+rect 168 264 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "menuconnect ui_connectip"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Launch GameSpy"
+rect 168 200 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "launchgamespy"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Launch GameSpy"
+rect 168 160 304 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu joinnetgame;wait 250;widgetcommand netgamelist refreshserverlist"
+font facfont-20
+
+}
+end.

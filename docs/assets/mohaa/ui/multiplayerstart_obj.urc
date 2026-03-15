@@ -1,0 +1,330 @@
+menu "multiplayerstart_obj" 640 479 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+include "ui/serverback.inc"
+
+
+resource
+Label
+{
+name "Multiplayer : Free-For-All Start"
+rect 64 16 512 432
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "objectiveback"
+font facfont-20
+//textalign right
+
+}
+resource
+Label
+{
+name "default"
+rect 64 232 256 216
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/obj_c"
+font facfont-20
+//textalign right
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "default"
+rect 320 232 256 216
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/obj_d"
+font facfont-20
+//textalign right
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "default"
+rect 320 16 256 216
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/obj_b"
+font facfont-20
+//textalign right
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "default"
+rect 64 16 256 216
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/obj_a"
+font facfont-20
+//textalign right
+enabledcvar "ui_voodoo"
+}
+resource
+Button
+{
+name "Default"
+rect 8 440 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 0"
+}
+resource
+Field
+{
+title "inactive spectate entry"
+name "Default"
+rect 244 154 60 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_inactivespectate"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Label
+{
+title "map title"
+name "Default"
+rect 88 106 208 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+linkcvar "ui_dmmap"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Field
+{
+title "inactive kick entry"
+name "Default"
+rect 244 200 60 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_inactivekick"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Field
+{
+title "server name entry"
+name "Default"
+rect 260 314 292 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_hostname"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Field
+{
+title "maplist entry"
+name "Default"
+rect 212 252 344 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_maplist_obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+CheckBox
+{
+name "Dedicated Server"
+rect 86 364 214 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_dedicated"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+//textalign right
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 342 364 214 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_gamespy"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+//textalign right
+
+}
+resource
+Field
+{
+title "max player entry"
+name "Default"
+rect 498 87 60 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_maxclients"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Field
+{
+title "time limit entry"
+name "Default"
+rect 498 165 60 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_timelimit"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+Field
+{
+title "score limit entry"
+name "Default"
+rect 498 126 60 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_fraglimit"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 342 206 214 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_teamdamage"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+//textalign right
+
+}
+resource
+Button
+{
+name "Default FFA Map Rotation"
+rect 200 286 256 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "exec maplist_obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+
+}
+resource
+Button
+{
+name "Start Game"
+rect 264 416 112 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_startdmmap 4 Objective-Based-Match ui_maplist_obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Select Map"
+rect 134 84 112 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "dmmapselect obj obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+end.

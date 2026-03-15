@@ -1,0 +1,179 @@
+menu "loadsave" 640 480 NONE 0
+bgcolor 0 0 0 0
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//fadein 0.5
+//vidmode 3
+virtualres 1
+//include "ui/common.inc"
+
+
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_c"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_f"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 480 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "loadsave_b"
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_e"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_b"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_a"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/loadsave_d"
+enabledcvar "ui_voodoo"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "loadsave_a"
+}
+resource
+Label
+{
+name "LoadSaveShot"
+rect 48 64 224 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+}
+resource
+Button
+{
+name "Load Game"
+rect 320 64 128 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+shader "menu_button_trans"
+hovershader "load_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "widgetcommand LoadSaveList loadgame"
+}
+resource
+Button
+{
+name "Save Game"
+rect 320 112 128 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+shader "menu_button_trans"
+hovershader "save_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "widgetcommand LoadSaveList savegame"
+}
+resource
+Button
+{
+name "Delete Game"
+rect 304 160 160 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "RAISED"
+shader "menu_button_trans"
+hovershader "delete_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "widgetcommand LoadSaveList removegame"
+}
+resource
+Label
+{
+name "Default"
+rect 128 16 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "paperclip"
+}
+resource
+Button
+{
+name "Back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 1"
+}
+resource
+FakkLoadGameClass
+{
+name "LoadSaveList"
+rect 24 280 592 160
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.02 0.07 0.00 0.70
+borderstyle "NONE"
+}
+end.

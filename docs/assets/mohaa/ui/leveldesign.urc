@@ -1,0 +1,288 @@
+menu "LevelDesign" 640 63 NONE 1
+align bottom
+bgcolor 0 0 0 0
+borderstyle NONE
+
+resource
+Label
+{
+name "Default"
+rect 0 15 320 48
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+//shader textures/tomtest/leftside
+direction from_left .2
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 7 640 8
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+//tileshader textures/tomtest/hmlogo
+direction from_left .2
+
+}
+resource
+Label
+{
+name "Default"
+rect 320 15 320 48
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+//shader textures/tomtest/rightside
+direction from_right .2
+
+}
+resource
+List
+{
+name "Default"
+rect 73 21 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_speeds"
+additem "0"
+additem "1"
+additem "2"
+additem "3"
+additem "4"
+additem "5"
+direction from_left .2
+
+}
+resource
+Label
+{
+title "Tris"
+name "Default"
+rect 116 21 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+List
+{
+name "Default"
+rect 156 21 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_showtris"
+additem "0"
+additem "1"
+additem "2"
+direction from_left .2
+
+}
+resource
+Label
+{
+title "HSpeeds"
+name "Default"
+rect 199 21 70 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_right .2
+
+}
+resource
+List
+{
+name "Default"
+rect 269 21 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "host_speeds"
+additem "0"
+additem "1"
+additem "2"
+additem "3"
+direction from_right .2
+
+}
+resource
+Slider
+{
+name "Default"
+rect 409 39 123 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_farplane"
+setrange 0 6000
+stepsize 1
+initdata 0
+direction from_right .2
+
+}
+resource
+Field
+{
+name "Default"
+rect 532 39 65 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_farplane_color"
+direction from_right .2
+
+}
+resource
+CheckBox
+{
+title "N"
+name "Default"
+rect 597 39 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_farplane_nocull"
+direction from_right .2
+
+}
+resource
+Label
+{
+title "Rspeeds"
+name "Default"
+rect 3 21 70 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+Label
+{
+title "Bboxes"
+name "Default"
+rect 3 39 70 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+direction from_left .2
+
+}
+resource
+List
+{
+name "Default"
+rect 73 39 40 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "sv_showbboxes"
+additem "0"
+additem "1"
+additem "2"
+additem "3"
+additem "4"
+additem "5"
+direction from_left .2
+
+}
+resource
+CheckBox
+{
+title "3rdPerson"
+name "Default"
+rect 126 39 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "cg_3rd_person"
+direction from_left .2
+
+}
+resource
+CheckBox
+{
+title "FullBright"
+name "Default"
+rect 215 39 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_fullbright"
+direction from_left .2
+
+}
+resource
+CheckBox
+{
+title "EntNums"
+name "Default"
+rect 488 21 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "sv_showentnums"
+direction from_right .2
+
+}
+resource
+CheckBox
+{
+title "Routes"
+name "Default"
+rect 328 21 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "ai_showroutes"
+direction from_right .2
+
+}
+resource
+CheckBox
+{
+title "NodeNums"
+name "Default"
+rect 408 21 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "ai_shownodenums"
+direction from_right .2
+
+}
+resource
+CheckBox
+{
+title "LightLines"
+name "Default"
+rect 328 39 80 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_light_lines"
+direction from_right .2
+
+}
+resource
+CheckBox
+{
+title "Sunlines"
+name "Default"
+rect 567 21 70 18
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "r_light_sun_line"
+direction from_right .2
+
+}
+end.

@@ -1,0 +1,935 @@
+menu "zound" 640 480 NONE 0.1
+align top right
+bgcolor 0 0 0 0
+
+resource
+Label
+{
+title "Targetname"
+name "Default"
+rect 384 0 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Volume"
+name "Default"
+rect 0 16 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Min Distance"
+name "Default"
+rect 0 32 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Channel"
+name "Default"
+rect 0 48 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Origin"
+name "Default"
+rect 200 0 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Min Delay"
+name "Default"
+rect 208 16 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Max Delay"
+name "Default"
+rect 208 32 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Chance"
+name "Default"
+rect 384 16 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Type :"
+name "Default"
+rect 512 32 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Button
+{
+title "<--"
+name "Default"
+rect 0 392 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd prev;snd moveplayer"
+}
+resource
+Button
+{
+title "-->"
+name "Default"
+rect 80 392 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd next;snd moveplayer"
+}
+resource
+Label
+{
+title "Yaw"
+name "Default"
+rect 0 408 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Width"
+name "Default"
+rect 0 424 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Length"
+name "Default"
+rect 0 440 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Height"
+name "Default"
+rect 0 456 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "Width"
+name "Default"
+rect 48 424 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_width"
+setrange 0 256
+slidertype int
+stepsize 1
+initdata 16
+
+}
+resource
+Slider
+{
+title "Length"
+name "Default"
+rect 48 440 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_length"
+setrange 0 256
+slidertype int
+stepsize 1
+initdata 16
+
+}
+resource
+Slider
+{
+title "Height"
+name "Default"
+rect 48 456 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_height"
+setrange 0 256
+slidertype int
+stepsize 1
+initdata 16
+
+}
+resource
+Label
+{
+title "Current"
+name "Default"
+rect 176 408 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Fallback"
+name "Default"
+rect 176 424 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Reverb Type"
+name "Default"
+rect 176 440 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Reverb Level"
+name "Default"
+rect 176 456 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "Multi-Faceted"
+name "Default"
+rect 328 408 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Button
+{
+title "Switch Face"
+name "Default"
+rect 392 448 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd switchfacet"
+}
+resource
+Button
+{
+title "Add Music Trigger"
+name "Default"
+rect 512 408 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd addmusictrigger"
+}
+resource
+Button
+{
+title "Preview"
+name "Default"
+rect 544 440 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd previewreverb"
+}
+resource
+Button
+{
+title "Normal"
+name "Default"
+rect 544 456 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd resetreverb"
+}
+resource
+Label
+{
+name "Default"
+rect 472 448 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_currentfacet"
+}
+resource
+Button
+{
+title "Add Reverb Trigger"
+name "Default"
+rect 512 424 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd addreverbtrigger"
+}
+resource
+Label
+{
+name "Default"
+rect 472 32 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_hiddenstate"
+}
+resource
+Slider
+{
+title "Yaw"
+name "Default"
+rect 48 408 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_yaw"
+setrange 0 359
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Field
+{
+name "Default"
+rect 136 424 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_width"
+}
+resource
+Field
+{
+name "Default"
+rect 136 408 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_yaw"
+}
+resource
+Field
+{
+name "Default"
+rect 136 440 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_length"
+}
+resource
+Field
+{
+name "Default"
+rect 136 456 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_height"
+}
+resource
+List
+{
+name "Default"
+rect 248 424 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_fallbackmood"
+additem  "normal"
+additem  "action"
+additem   "suspense"
+additem   "mystery"
+additem   "success"
+additem   "failure"
+additem   "surprise"
+additem   "special"
+additem   "aux1"
+additem   "aux2"
+additem   "aux3"
+additem   "aux4"
+additem   "aux5"
+additem   "aux6"
+additem   "aux7"
+
+}
+resource
+Slider
+{
+name "Default"
+rect 248 440 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_reverbtype"
+setrange 0 25
+slidertype int
+stepsize 1
+initdata 0
+
+}
+resource
+Slider
+{
+title "Reverb Level"
+name "Default"
+rect 248 456 96 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_reverblevel"
+setrange 0 1
+slidertype float
+stepsize 0.05
+initdata 0.5
+
+}
+resource
+Field
+{
+name "Default"
+rect 344 456 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_reverblevel"
+}
+resource
+Label
+{
+name "Default"
+rect 328 440 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_reverbtypedisplay"
+}
+resource
+CheckBox
+{
+title "Use Yaw"
+name "Default"
+rect 328 424 96 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_useangles"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+title "1 Shot"
+name "Default"
+rect 424 424 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_onetime"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Button
+{
+title "Reset All"
+name "Default"
+rect 376 392 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd reset"
+}
+resource
+Button
+{
+title "Delete"
+name "Default"
+rect 448 392 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd delete"
+}
+resource
+Button
+{
+title "Replace"
+name "Default"
+rect 504 392 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd replace"
+}
+resource
+Button
+{
+title "Save"
+name "Default"
+rect 568 392 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd save"
+}
+resource
+Field
+{
+title "Sound"
+name "Default"
+rect 264 48 376 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "ui_pickedsound"
+}
+resource
+Slider
+{
+title "Minimum Distance"
+name "Default"
+rect 64 32 104 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+stuffcommand "snd updateinput"
+linkcvar "snd_mindist"
+setrange 0 1024
+slidertype float
+stepsize 1
+initdata 160
+
+}
+resource
+Field
+{
+name "Default"
+rect 168 32 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_mindist"
+}
+resource
+Slider
+{
+title "Volume Slider"
+name "Default"
+rect 64 16 104 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+stuffcommand "snd updateinput"
+linkcvar "snd_volume"
+setrange 0 1
+slidertype float
+stepsize 0.05
+initdata 1
+
+}
+resource
+Field
+{
+name "Default"
+rect 168 16 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_volume"
+}
+resource
+Label
+{
+title "Current"
+name "Default"
+rect 104 0 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+name "Default"
+rect 160 0 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_speakernum"
+}
+resource
+Field
+{
+name "Default"
+rect 240 0 144 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_origin"
+}
+resource
+Field
+{
+name "Default"
+rect 448 0 112 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_targetname"
+}
+resource
+Button
+{
+title "Add Speaker"
+name "Default"
+rect 560 0 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd addspeaker"
+}
+resource
+Button
+{
+title "Add Random"
+name "Default"
+rect 560 16 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "snd addrandomspeaker"
+}
+resource
+Slider
+{
+title "Chance"
+name "Default"
+rect 432 16 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_chance"
+setrange 0 1
+slidertype float
+stepsize 0.05
+initdata 1
+
+}
+resource
+Field
+{
+name "Default"
+rect 520 16 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_chance"
+}
+resource
+Button
+{
+title "Show"
+name "Default"
+rect 384 32 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd show"
+}
+resource
+Button
+{
+title "Hide"
+name "Default"
+rect 424 32 48 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd hide"
+}
+resource
+Label
+{
+name "Default"
+rect 552 32 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_type"
+}
+resource
+Slider
+{
+title "Minimum Delay"
+name "Default"
+rect 264 16 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_mindelay"
+setrange 0 30
+slidertype float
+stepsize 0.5
+initdata 2
+
+}
+resource
+Field
+{
+name "Default"
+rect 352 16 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_mindelay"
+}
+resource
+Slider
+{
+title "Maximum Delay"
+name "Default"
+rect 264 32 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_maxdelay"
+setrange 0 30
+slidertype float
+stepsize 0.5
+initdata 12
+
+}
+resource
+Field
+{
+name "Default"
+rect 352 32 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_maxdelay"
+}
+resource
+Button
+{
+title "Sound"
+name "Default"
+rect 208 48 56 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+stuffcommand "soundpicker;snd updateinput"
+}
+resource
+Button
+{
+title "Update"
+name "Default"
+rect 160 392 216 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.62 0.62 0.62 1.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "snd updateinput"
+}
+resource
+List
+{
+name "Default"
+rect 248 408 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_currentmood"
+additem  "normal"
+additem  "action"
+additem   "suspense"
+additem   "mystery"
+additem   "success"
+additem   "failure"
+additem   "surprise"
+additem   "special"
+additem   "aux1"
+additem   "aux2"
+additem   "aux3"
+additem   "aux4"
+additem   "aux5"
+additem   "aux6"
+additem   "aux7"
+
+}
+resource
+Label
+{
+title "Sound Menu"
+name "Default"
+rect 0 0 104 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 1.00
+borderstyle "NONE"
+}
+resource
+List
+{
+name "Default"
+rect 400 408 112 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+linkcvar "snd_multifaceted"
+additem  "Not"
+additem  "North/South"
+additem  "East/West"
+
+}
+resource
+Field
+{
+name "Default"
+rect 176 48 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+stuffcommand "snd updateinput"
+linkcvar "snd_channel"
+}
+resource
+Label
+{
+name "Default"
+rect 88 48 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+linkcvar "snd_channelname"
+}
+resource
+PulldownMenuContainer
+{
+title "Channel list"
+name "Default"
+rect 64 48 24 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "INDENT_BORDER"
+stuffcommand "snd updateinput"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "auto" command "set snd_channelname auto;set snd_channel 0"
+addpopup "MENU" "local" command "set snd_channelname local;set snd_channel 1"
+addpopup "MENU" "weapon" command "set snd_channelname weapon;set snd_channel 2"
+addpopup "MENU" "voice" command "set snd_channelname voice;set snd_channel 3"
+addpopup "MENU" "item" command "set snd_channelname item;set snd_channel 4"
+addpopup "MENU" "body" command "set snd_channelname body;set snd_channel 5"
+addpopup "MENU" "dialog" command "set snd_channelname dialog;set snd_channel 6"
+addpopup "MENU" "dialog2" command "set snd_channelname dialog2;set snd_channel 7"
+addpopup "MENU" "weaponidle" command "set snd_channelname weaponidle;set snd_channel 8"
+addpopup "MENU" "menu" command "set snd_channelname menu;set snd_channel 9"
+
+}
+resource
+Button
+{
+name "Default"
+rect 0 64 640 328
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+stuffcommand "ui_hidemouse"
+}
+end.

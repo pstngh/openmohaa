@@ -1,0 +1,101 @@
+menu "hud_fraglimit" 216 24 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right top
+
+
+resource
+Label
+{
+title "Score:"
+name "Default"
+//rect 0 0 64 24
+rect 0 0 80 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font facfont-20
+textalign right
+
+}
+resource
+Label
+{
+title "/"
+name "Default"
+rect 88 0 32 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font facfont-20
+
+}
+resource
+Label
+{
+title "score display"
+name "Default"
+rect 64 0 32 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "21"
+font facfont-20
+textalign right
+
+}
+resource
+Label
+{
+title "("
+name "Default"
+rect 136 0 24 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font facfont-20
+textalign right
+
+}
+resource
+Label
+{
+title "score limit display"
+name "Default"
+rect 112 0 32 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "cg_fraglimit"
+font facfont-20
+textalign left
+
+}
+resource
+Label
+{
+title "highest score display"
+name "Default"
+rect 160 0 40 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "25"
+font facfont-20
+//textalign left
+
+}
+resource
+Label
+{
+title ")"
+name "Default"
+rect 200 0 24 24
+fgcolor 0.69 0.69 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font facfont-20
+textalign left
+
+}
+end.

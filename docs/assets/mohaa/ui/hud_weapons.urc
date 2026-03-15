@@ -1,0 +1,266 @@
+menu "hud_weapons" 384 64 FROM_BOTTOM 0.15
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align centerx bottom
+
+//==================================================
+// Main weapon icons
+
+resource
+Label
+{
+name "pistol"
+rect 0 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_pistol
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "rifle"
+rect 64 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_rifle
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "smg"
+rect 128 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_smg
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "mg"
+rect 192 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_mg
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "grenade"
+rect 256 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_grenade
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "heavy"
+rect 320 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_heavy
+//direction from_right 0.15
+fadein 0.2
+}
+
+//==================================================
+// Equipped weapon overlay icons
+
+resource
+Label
+{
+name "pistol_equipped"
+rect 0 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_pistol_s
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "rifle_equipped"
+rect 64 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_rifle_s
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "smg_equipped"
+rect 128 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_smg_s
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "mg_equipped"
+rect 192 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_mg_s
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "grenade_equipped"
+rect 256 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_grenade_s
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "heavy_equipped"
+rect 320 16 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_heavy_s
+//direction from_right 0.15
+fadein 0.2
+}
+
+//==================================================
+// weapon not carried overlay icons
+
+resource
+Label
+{
+name "pistol_empty"
+rect 0 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_pistol_x
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "rifle_empty"
+rect 64 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_rifle_x
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "smg_empty"
+rect 128 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_smg_x
+//direction from_left 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "mg_empty"
+rect 192 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_mg_x
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "grenade_empty"
+rect 256 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_grenade_x
+//direction from_right 0.15
+fadein 0.2
+}
+
+resource
+Label
+{
+name "heavy_empty"
+rect 320 16 64 32
+fgcolor 1.00 1.00 1.00 1.0
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/weap_heavy_x
+//direction from_right 0.15
+fadein 0.2
+}
+
+//==================================================
+// selected weapon name display
+
+//resource
+//Label
+//{
+//name "currentname"
+//rect 128 0 128 16
+//fgcolor 1.00 1.00 1.00 0.60
+//bgcolor 0.50 0.50 0.50 0.00
+//borderstyle "NONE"
+////shader textures/hud/weap_pistol
+////direction from_left 0.15
+//itemstat 1 // equipped weapon
+//fadein 0.2
+//}
+
+end.

@@ -1,0 +1,272 @@
+menu "main" 639 479 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 480 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "main_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "main_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_c.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_b.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_f.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_e.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_a.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/main_d.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "default"
+rect 515 86 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "fan_anim1"
+}
+resource
+Button
+{
+name "options"
+rect 0 172 128 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/options_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu options_main"
+hovercommand "set ui_signshader options_sign"
+
+}
+resource
+Button
+{
+name "Default"
+rect 480 128 64 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/multiplayer_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu multiplayer"
+hovercommand "set ui_signshader multiplayer_sign"
+
+}
+resource
+Button
+{
+name "backtogame"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/backtogame"
+hovershader "textures/mohmenu/backtogame_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0;popmenu 0;popmenu 0;popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 536 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/quit"
+hovershader "textures/mohmenu/quit_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "quit"
+}
+resource
+Button
+{
+name "bigmap"
+rect 436 156 24 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "maplist_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "maplist"
+hovercommand "set ui_signshader maplist_sign"
+enabledcvar "developer"
+
+}
+resource
+Label
+{
+name "sign"
+rect 48 36 172 56
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_signshader"
+linkcvartoshader
+
+}
+resource
+Button
+{
+name "briefing"
+rect 363 127 64 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/briefing_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu briefingroom"
+hovercommand "set ui_signshader briefingroom_sign"
+
+}
+resource
+Button
+{
+name "records"
+rect 210 226 128 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "war_records"
+hovershader "war_records_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu war_records"
+hovercommand "set ui_signshader warrecords_sign"
+
+}
+resource
+Button
+{
+name "new game old"
+rect 139 89 192 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "bigmap"
+hovershader "bigmap_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu briefingroom"
+hovercommand "set ui_signshader newgame_sign"
+
+}
+resource
+Button
+{
+name "default"
+rect 434 280 160 160
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "gallery_h"
+stuffcommand "spmap credits"
+hovercommand "set ui_signshader credits_sign"
+
+}
+end.

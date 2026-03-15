@@ -1,0 +1,76 @@
+menu "hud_health" 128 136 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left bottom
+
+//==================================================
+// Health Backdrop
+
+resource
+Label
+{
+name "Default"
+//rect 16 24 32 96
+rect 16 56 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/healthback
+}
+
+//==================================================
+// Health Meter
+
+resource
+Label
+{
+name "healthmeter"
+//rect 16 24 32 96
+rect 16 56 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 0 // health
+maxplayerstat 1 // max health
+//statbar vertical_reverse
+statbar vertical
+statbar_shader textures/hud/healthmeter
+statbar_shader_flash textures/hud/healthmeterflash
+}
+
+//==================================================
+// Health name
+
+resource
+Label
+{
+name "healthnumber"
+title "Health"
+//rect 56 82 64 16
+//rect 40 82 64 16
+rect 40 82 150 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign left
+font facfont-20
+}
+
+//==================================================
+// Health Number
+
+resource
+Label
+{
+name "healthnumber"
+//rect 56 104 64 16
+rect 40 104 64 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 0 // health
+textalign left
+font facfont-20
+}
+
+end.

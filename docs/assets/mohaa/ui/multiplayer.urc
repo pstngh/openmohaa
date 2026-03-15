@@ -1,0 +1,140 @@
+menu "multiplayer" 640 479 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+//include "ui/common.inc"
+virtualres 1
+include "ui/multiplayerback.inc"
+
+
+
+
+
+
+
+
+resource
+Button
+{
+name "maproom"
+rect 0 64 112 384
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "maproom_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+hovercommand "set ui_multiplayersign maproom_sign"
+
+}
+resource
+Button
+{
+name "Multiplayer Options"
+rect 112 96 160 288
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "multioptions_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_getplayermodel;pushmenu mpoptions"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+hovercommand "set ui_multiplayersign multiplayeroptions_sign"
+
+}
+resource
+Label
+{
+name "sign"
+rect 352 16 128 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_multiplayersign"
+linkcvartoshader
+
+}
+resource
+Button
+{
+name "startnew"
+rect 416 80 224 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "multistart_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu multiplayerstart"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+hovercommand "set ui_multiplayersign startgame_sign"
+
+}
+resource
+Button
+{
+name "changemap"
+rect 416 80 224 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "multistart_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu multiplayerstart"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+hovercommand "set ui_multiplayersign changemap_sign"
+
+}
+resource
+Button
+{
+name "joinlan"
+rect 272 96 144 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "multijoin_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "pushmenu joingame"
+//stuffcommand "pushmenu joinlangame"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+//font facfont-20
+hovercommand "set ui_multiplayersign joingame_sign"
+
+}
+resource
+Button
+{
+name "disconnect"
+rect 232 432 208 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "disconnect"
+hovershader "disconnect_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "disconnect; pushmenu multiplayer"
+//rect 200 424 256 48
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+end.

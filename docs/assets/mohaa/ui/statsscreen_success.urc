@@ -1,0 +1,492 @@
+menu "StatsScreen_Success" 640 480 NONE 1.5
+bgcolor 1 1 1 0
+borderstyle NONE
+bgfill 1 1 1 0
+//fullscreen 1
+fadein 1.5
+virtualres 1
+//include "ui/statsback.inc"
+
+
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "statscreen_a"
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "statscreen_b"
+}
+resource
+Label
+{
+title "headshots"
+name "S8"
+rect 128 296 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_HeadShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "torsoshots"
+name "S9"
+rect 128 320 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_TorsoShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "larmshots"
+name "S13"
+rect 128 344 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_LeftArmShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "groinshots"
+name "S12"
+rect 128 368 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_GroinShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "llegshots"
+name "S10"
+rect 128 392 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_LeftLegShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Right Arm:"
+name "Default"
+rect 168 344 140 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign right
+
+}
+resource
+Label
+{
+title "rarmshots"
+name "S14"
+rect 310 344 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_RightArmShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Right Leg:"
+name "Default"
+rect 168 392 140 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign right
+
+}
+resource
+Label
+{
+title "rlegshots"
+name "S11"
+rect 310 392 32 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_RightLegShots"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Head:"
+name "Default"
+rect 16 296 120 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Torso:"
+name "Default"
+rect 16 320 120 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Left Arm:"
+name "Default"
+rect 16 344 120 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Groin:"
+name "Default"
+rect 16 368 104 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Left Leg:"
+name "Default"
+rect 16 392 120 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Objectives Completed:"
+name "Default"
+rect 16 72 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Shots Fired:"
+name "Default"
+rect 16 96 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Shots Hit:"
+name "Default"
+rect 16 120 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Accuracy:"
+name "Default"
+rect 16 144 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Preferred Weapon:"
+name "Default"
+//rect 16 168 168 24
+rect 16 168 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Hits Taken:"
+name "Default"
+rect 16 192 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "shotsfired"
+name "S16"
+rect 192 96 144 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_NumShotsFired"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "numhits"
+name "S17"
+rect 192 120 144 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_NumHits"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "accuracy"
+name "S3"
+rect 192 144 144 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_Accuracy"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "preffweap"
+name "S4"
+//rect 192 168 144 24
+rect 192 168 220 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_PreferredWeapon"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "hitstaken"
+name "S5"
+rect 192 192 144 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_NumHitsTaken"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "objnum"
+name "S1"
+rect 192 72 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_NumComplete"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Medal Awarded"
+name "Default"
+rect 392 368 208 48
+fgcolor 1.00 0.00 0.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font "facfont-20"
+enabledcvar "ui_gotmedal"
+
+}
+resource
+Label
+{
+title "Mission Success"
+name "Default"
+rect 392 56 208 48
+fgcolor 0.00 0.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font "facfont-20"
+enabledcvar "ui_success"
+
+}
+resource
+Label
+{
+title "Mission Failed"
+name "Default"
+rect 392 56 208 48
+fgcolor 1.00 0.50 0.50 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+font "facfont-20"
+enabledcvar "ui_failed"
+
+}
+resource
+Label
+{
+title "Press 'Fire' to Continue"
+name "continuebutton"
+//rect 384 424 224 32
+rect 334 424 274 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "3D_BORDER"
+font "facfont-20"
+
+}
+resource
+Label
+{
+title "Mission Statistics"
+name "Default"
+rect 0 8 640 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+title "Enemies Killed:"
+name "Default"
+rect 16 216 168 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "kills"
+name "S7"
+rect 192 216 144 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "ui_NumEnemysKilled"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Hit Locations Percentage"
+name "Default"
+rect 16 268 224 28
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+font "facfont-20"
+textalign left
+
+}
+end.
