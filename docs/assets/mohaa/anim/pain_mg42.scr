@@ -1,0 +1,38 @@
+//-----
+// Pain_mg42
+//-----
+// Script for playing pain animations while on MG42
+
+//println "pain_mg42.scr called"
+
+PainOnMG42:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self.painhandler = anim/pain_mg42.scr::PainOnMG42	
+	self.blendtime = 0.50
+	
+	switch (self.position)
+	{
+		stand:
+		walk:
+		run:
+			self setmotionanim MG42_stand_pain  
+			self waittill flaggedanimdone
+			break
+
+		crouch:
+		crouch_walk:
+		crouch_run:
+			self setmotionanim MG42_crouch_pain  
+			self waittill flaggedanimdone
+			break
+
+		//prone:
+		//prone_walk:
+		//	break
+
+		default:
+			println "Invalid position for pain on MG42 - default case reached"
+			break
+	}
+
+end

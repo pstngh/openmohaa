@@ -1,0 +1,17 @@
+//-----
+// Runaway while firing
+//-----
+
+//=================================================
+//=================================================
+RunAwayFiringMain:
+
+	//waitexec anim/default_inithandler.scr
+	//waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	//make sure we're standing up
+	//waitexec anim/attack.scr::AttackStandUp
+
+	waitexec anim/runto_inopen.scr::start
+end
+

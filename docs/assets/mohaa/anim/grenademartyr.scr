@@ -1,0 +1,21 @@
+//------
+// Grenade martyr
+//------
+
+
+
+//===================================================================================
+GrenadeMartyr:
+	//println "grenademartyr.scr"
+	waitexec "anim/default_inithandler.scr"
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	self.blendtime = 0.50
+	self setmotionanim diveongrenade 
+	self waittill flaggedanimdone
+
+	// TODO: set the death animation handler to play the grenade death
+
+	// this script shouldn't terminate, to keep it from looping
+	pause
+end

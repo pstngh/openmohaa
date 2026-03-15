@@ -1,0 +1,27 @@
+//------
+// disguise_deny.scr
+//------
+
+centerprint "You don't have the proper papers!"
+
+self lookat self.enemy
+self.blendtime = 0.50
+//self setmotionanim (self.weapongroup + "_stand_alert_legs")
+thread playidleanim
+
+self setupperanim ("den_actor_reject_" + self.voicetype)
+self waittill upperanimdone
+
+centerprint "Come back when you have them."
+
+self lookat self.enemy
+wait 10
+
+//centerprint "Warning: disguise_deny.scr has ended."
+
+end
+
+
+playidleanim:
+waitthread anim/disguise_papers.scr::playidleanim
+end

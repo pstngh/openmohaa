@@ -1,0 +1,15 @@
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+self waitthread anim/SayManager.scr::Init
+
+start:
+
+// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+// lining up perfectly.
+self.blendtime = 0.10
+
+self.painhandler = anim/pain_mg42.scr::PainOnMG42
+self thread anim/SayManager.scr::SayManager face_attack 5
+self setaimmotionanim MG42_crouch_shoot MG42_stand_shoot MG42_high_shoot
+self waittill flaggedanimdone

@@ -1,0 +1,338 @@
+//====================
+//Reload.scr
+//====================
+
+
+//======================================
+//======================================
+ReloadInit:
+	if (self.reloadinit != 1)
+	{
+		waitthread ReloadClip
+		self.reloadinit = 1
+		self.playedreloadanim = 0
+		self.playedrechamberanim = 0
+		self.needreload = 0
+	}
+	self.inreload = 0
+end
+
+
+//======================================
+//======================================
+ReloadClip:
+	switch (self.weapon)
+	{
+		//********************************************
+		//*** ALLIED WEAPONS
+		//********************************************
+		case "high standard":
+			self.maxroundsinclip = 8
+			self.roundsinclip = 8
+			break
+
+		case "colt 45":
+			self.maxroundsinclip = 7
+			self.roundsinclip = 7
+			break
+
+		case "m1 garand":
+			self.maxroundsinclip = 8
+			self.roundsinclip = 8
+			break
+
+		case "springfield '03 sniper":
+			self.maxroundsinclip = 5
+			self.roundsinclip = 5
+			break
+
+		case "thompson":
+			self.maxroundsinclip = 30
+			self.roundsinclip = 30
+			break
+
+		case "bar":
+			self.maxroundsinclip = 20
+			self.roundsinclip = 20
+			break
+
+		case "bazooka":
+			self.maxroundsinclip = 1
+			self.roundsinclip = 1
+			break
+
+
+		//********************************************
+		//*** GERMAN WEAPONS
+		//********************************************
+		case "walter p38":
+			self.maxroundsinclip = 8
+			self.roundsinclip = 8
+			break
+
+		case "mauser kar 98k":
+			self.maxroundsinclip = 5
+			self.roundsinclip = 5
+			break
+
+		case "mauser kar 98d sniper":
+			self.maxroundsinclip = 5
+			self.roundsinclip = 5
+			break
+
+		case "mp40":
+			self.maxroundsinclip = 32
+			self.roundsinclip = 32
+			break
+
+		case "stg44":
+			self.maxroundsinclip = 30
+			self.roundsinclip = 30
+			break
+
+		case "panzerschrek":
+			self.maxroundsinclip = 1
+			self.roundsinclip = 1
+			break
+
+		default:
+			println "^~^~^ Reload clip default case for weapon " self.weapon " - weapon type not supported"
+			self.maxroundsinclip = 8
+			self.roundsinclip = 8
+			break
+	}
+end
+
+//======================================
+//======================================
+//Parameters:
+//	upperbodyanimonly	0 = play fullbody on all animation and wait till anim done
+//						1 = play upperbody animation only... no legs... wait 'tll anim done
+//						2 = play upperbody anim on rechamber only (no anim wait)... full body on reload
+Reload local.upperbodyanimonly local.norechamberanim local . shootFromCover:
+	self.playedreloadanim = 0
+	self.playedrechamberanim = 0
+	self.inreload = 1
+	self.needreload = 0
+
+	if (self.reloadinit != 1)
+	{
+		waitthread ReloadInit
+	}
+
+	//determine number of shots fired and animnames based on the weapon
+	//and play rechamber animation if approriate
+	switch (self.weapon)
+	{
+		case "colt 45":
+			local.reloadanimname = "colt45"
+			local.roundsfired = 1
+			break
+		case "high standard":
+			local.reloadanimname = "highstandard"
+			local.roundsfired = 1
+			break
+		case "walter p38":
+			local.reloadanimname = "p38"
+			local.roundsfired = 1
+			break
+
+
+		case "m1 garand":
+			local.reloadanimname = "m1garand"
+			local.roundsfired = 1
+			break
+
+		case "springfield '03 sniper":
+			local.reloadanimname = "springfield"
+			local.roundsfired = 1
+			break
+		case "mauser kar 98k":
+		case "mauser kar 98d sniper":
+			local.reloadanimname = "kar98"
+			local.roundsfired = 1
+			break
+
+		case "thompson":
+			local.reloadanimname = "thompson"
+            local.roundsfired = 8 //randomint(2) + 3
+			break
+		case "bar":
+			local.reloadanimname = "bar"
+            local.roundsfired = 7 //randomint(2) + 3
+			break
+		case "mp40":
+			local.reloadanimname = "mp40"
+            local.roundsfired = 8 //randomint(2) + 3
+			break
+		case "stg44":
+			local.reloadanimname = "mp44"
+            local.roundsfired = 8 //randomint(2) + 3
+			break
+
+		case "bazooka":
+			local.reloadanimname = "bazooka"
+			local.roundsfired = 1
+			break
+		case "panzerschrek":
+			local.reloadanimname = "panzerschreck"
+			//local.reloadanimname = "bazooka"
+			local.roundsfired = 1
+			break
+
+		default:
+			println "^~^~^ Reload default case for weapon " self.weapon " - weapon type not supported"
+			local.reloadanimname = ""
+			local.roundsfired = 1
+			break
+	}
+
+    self.roundsinclip = self.roundsinclip - local.roundsfired;
+	if (self.roundsinclip <= 0 && local.reloadanimname != "")
+	{
+		//println "Player reload animation"
+		self.roundsinclip = self.maxroundsinclip
+		if (local.upperbodyanimonly == 0 || local.upperbodyanimonly == 2)
+		{
+			if (self.position == prone || self.position == pronewalk)
+			{
+				self setmotionanim (self.weapongroup + "_prone_legs")
+			}
+			else
+			{
+				self setmotionanim (self.weapongroup + "_stand_alert_legs")
+			}
+		}
+
+		self.playedreloadanim = 1
+		self.blendtime = 0.2
+		if (self.position == prone || self.position == pronewalk)
+		{
+			self setupperanim (self.weapongroup + "_prone_reload")
+		}
+		else
+		{
+			self setupperanim (local.reloadanimname + "_reload")
+		}
+
+		// set needreload and roundsinclip so when motionblend gets called from run it thinks it needs to reload
+		if ( local . shootFromCover )
+		{
+			if (self.weapongroup != "bazooka")
+			{
+				//self . roundsinclip = 0;
+				self setreloadcover 1;
+				self . forceReload = 1;
+				//self . needreload = 1;
+			}
+		}
+		self waittill upperanimdone;
+		self.forceReload = 0
+	}
+//	else
+//	{
+//		if (self.position != prone && self.position != pronewalk && local.norechamberanim != 1) //no prone re-chamber yet
+//		{
+//			//play re-chamber animation if appropriate
+//			switch (self.weapon)
+//			{
+//				case "springfield '03 sniper":
+//				case "mauser kar 98k":
+//				case "mauser kar 98d sniper":
+//					//println "playing re-chamber animation"
+//					if (local.upperbodyanimonly == 0)
+//					{
+//						self setmotionanim (self.weapongroup + "_stand_alert_legs")
+//					}
+//					self.playedrechamberanim = 1
+//					if (local.upperbodyanimonly == 2)
+//					{
+//						self setupperanim (kar98_rechamber)
+//					}
+//					else
+//					{
+//						self.blendtime = 0.2
+//						self setupperanim (kar98_rechamber)
+//						self waittill upperanimdone
+//					}
+//					break
+//				default:
+//					break
+//			}
+//		}
+//	}
+
+	self.inreload = 0
+end
+
+
+//======================================
+//======================================
+CheckForCornerReload:
+
+	self.needreload = 0
+
+	switch (self.weapon)
+	{
+		case "colt 45":
+			local.roundsfired = 1
+			break
+		case "high standard":
+			local.roundsfired = 1
+			break
+		case "walter p38":
+			local.roundsfired = 1
+			break
+
+
+		case "m1 garand":
+			local.roundsfired = 1
+			break
+
+		case "springfield '03 sniper":
+			local.roundsfired = 1
+			break
+		case "mauser kar 98k":
+		case "mauser kar 98d sniper":
+			local.roundsfired = 1
+			break
+
+		case "thompson":
+			local.reloadanimname = "thompson"
+            local.roundsfired = 5 //randomint(2) + 3
+			break
+		case "bar":
+			local.reloadanimname = "bar"
+            local.roundsfired = 5 //randomint(2) + 3
+			break
+		case "mp40":
+			local.reloadanimname = "mp40"
+            local.roundsfired = 5 //randomint(2) + 3
+			break
+		case "stg44":
+			local.reloadanimname = "mp44"
+            local.roundsfired = 5 //randomint(2) + 3
+			break
+
+		case "bazooka":
+			local.reloadanimname = "bazooka"
+			local.roundsfired = 1
+			break
+		case "panzerschrek":
+			local.reloadanimname = "panzerschreck"
+			//local.reloadanimname = "bazooka"
+			local.roundsfired = 1
+			break
+
+		default:
+			println "^~^~^ Reload::CheckForCornerReload default case for weapon " self.weapon " - weapon type not supported"
+			local.roundsfired = 1
+			break
+	}
+
+	self.roundsinclip = self.roundsinclip - local.roundsfired
+	if (self.roundsinclip <= 0)
+	{
+		self.needreload = 1
+	}
+end

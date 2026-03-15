@@ -1,0 +1,24 @@
+//------
+// disguise_enemy.scr
+//------
+
+//centerprint "Holy shit, it's Powell!"
+
+self lookat self.enemy
+self.blendtime = 0.50
+self setmotionanim (self.weapongroup + "_stand_alert_legs")
+self setupperanim ("den_actor_alert_" + self.voicetype)
+self waittill upperanimdone
+
+thread playaggressivewaitanim
+self lookat self.enemy
+
+wait 10
+
+//centerprint "Warning: disguise_papers.scr has ended."
+
+end
+
+playaggressivewaitanim:
+waitthread anim/disguise_papers.scr::playaggressivewaitanim
+end

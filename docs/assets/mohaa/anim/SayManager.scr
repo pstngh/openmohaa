@@ -1,0 +1,48 @@
+//=============================================================
+// Init - initializes variables for the SayManager
+Init:
+	if ( (self.saying == NIL) || (self.saying == NULL) )
+	{
+		self.saying = 0
+		self.sayimportance = 0
+		self.silent = 0
+	}
+end
+
+//=============================================================
+// SayManager - keeps track of what I'm trying to say and what is more important
+// Importance is on a scale of 1 to 10 by convention (ie, it's not enforced)
+SayManager local.sayanimation local.sayimportance:
+
+	//thread anim/attack.scr::DPrintln "Trying to say " local.sayanimation " (importance " local.sayimportance ")"
+	// check if I'm in the waiting state or if the new line is important enough to interrupt
+	if ( (self.silent == 0) && ( self.saying == 0 || local.sayimportance > self.sayimportance ) )
+	{
+		//thread anim/attack.scr::DPrintln "   Say successful"
+		// Leave the waiting state
+		self.saying = 1
+		self.sayimportance = local.sayimportance
+		if ( (self.saymanager != NIL) && (self.saymanager != NULL) )
+		{
+			self.saymanager end
+		}
+		self.saymanager = local
+
+		// Say the line
+		self setsay local.sayanimation
+
+		// Wait until we finish saying this line
+		//self waittill saydone
+		wait 1
+		thread anim/attack.scr::DPrintln "Say animation " local.sayanimation " finished!"
+
+		// Return to the waiting state
+		self.saying = 0
+	}
+	else
+	{
+		thread anim/attack.scr::DPrintln "   Say failed (old animation had importance of " self.sayimportance ")"
+		waitframe
+	}
+end
+

@@ -1,0 +1,29 @@
+
+
+//=================================================
+//=================================================
+start:
+	//println "Running runto_flee.scr with move dir" self.movedir
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+	
+	waitexec anim/stand.scr::transition
+
+	//self waitexec anim/standshock.scr
+	self.blendtime = 0.5
+	self setmotionanim scared_run_intro
+	self waittill flaggedanimdone
+	self.position = run
+
+	//while (1)
+	//{
+	//	self.blendtime = 0.50
+	//	self setmotionanim (self.weapongroup + "_run_forward")
+	//	self waittill flaggedanimdone
+	//}
+	
+	waitexec anim/runto_inopen.scr
+
+end

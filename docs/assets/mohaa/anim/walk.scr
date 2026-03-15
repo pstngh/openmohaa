@@ -1,0 +1,129 @@
+//------
+// Walk
+//------
+// Walk.  Simple.  This is the standing walk, so if the character is not standing up 
+// then this script will delegate to the stand script first.
+// TODO: Need to set upper body animations too!
+
+//println "Entering walk.scr"
+//println "Called walk.scr with mood " self.mood
+
+
+//=================================================
+//=================================================
+start:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = walk
+	
+	while (1)
+	{
+		self.blendtime = 0.30
+
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			unarmed:
+			bazooka:
+				if (self.ground == water)
+				{
+					self setmotionanim (walk_rifle_water)
+					self waittill flaggedanimdone
+				}
+				else
+				{
+					switch (self.mood)
+					{
+						case curious:
+							if (self.weapongroup == bazooka)
+							{
+								//self setmotionanim (self.weapongroup + "_walk_alert_forward")
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_alert_")
+							}
+							else
+							{
+								//self setmotionanim (self.weapongroup + "_walk_curious_forward")
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_curious_")
+							}
+							break
+						case alert:
+							if (self.normal_health < 40)
+							{
+								//self setmotionanim (walk_injured)
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim "walk_injured_"
+							}
+							else
+							{
+								//self setmotionanim (self.weapongroup + "_walk_alert_forward")
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_alert_")
+							}
+							break
+						case nervous:
+							if (self.normal_health < 40)
+							{
+								//self setmotionanim (walk_injured)
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim "walk_injured_"
+							}
+							else
+							{
+								//self setmotionanim (self.weapongroup + "_walk_forward")
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_")
+							}
+							break
+						case bored:
+							//self setmotionanim (self.weapongroup + "_walk_forward")
+							waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_")
+							break
+						default:
+							//println "Stand default case for mood " self.mood
+							if (self.normal_health < 40)
+							{
+								//self setmotionanim (walk_injured)
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim "walk_injured_"
+							}
+							else
+							{
+								//self setmotionanim (self.weapongroup + "_walk_forward")
+								waitexec anim/walk.scr::WalkPlayMotionBlendAnim (self.weapongroup + "_walk_")
+							}
+							break
+					}
+				}
+				break
+				
+			default:
+				println "Walk default case for " self.weapongroup " weapongroup - fix walk.scr"
+				self setmotionanim rifle_walk_forward
+				self waittill flaggedanimdone
+				break
+		}
+	}
+
+end
+
+
+//=================================================
+//=================================================
+WalkPlayMotionBlendAnim local.animbasenme:
+	if (self.movedir != (0 0 0))
+	{
+		//println "Walk.scr using motion blend with movedir: " self.movedir
+		waitexec anim/motionblend.scr::PlayAnim local.animbasenme
+	}
+	else
+	{
+		//println "Walk.scr with **NO** motion blend"
+		self setmotionanim (local.animbasenme + "forward")
+		self waittill flaggedanimdone
+	}
+end

@@ -1,0 +1,86 @@
+// in level script- self.enemy = $player to set an aim target
+
+
+//=================================================
+//=================================================
+start:
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+	self.inreload = 0
+
+
+//	self attackplayer
+//	self.blendtime = 0.30
+//	self setmotionanim (self.weapongroup + "_run_forward")
+//	println self.enemy
+
+	
+	if (self.weapongroup == bazooka)
+	{
+		self.shootpct = 0
+	}
+	else
+	{
+		self.shootpct = 50
+	}
+	
+		
+	switch (self.weapongroup)
+	{
+		pistol:
+		rifle:
+		mp40:
+		mp44:
+		bar:
+		thompson:
+		unarmed:
+		bazooka:
+			switch (self.position)
+			{
+				prone:
+				pronewalk:
+					waitexec anim/crouch.scr::transition
+					// Deliberately fall through to crouched running now that we're crouched.
+				crouch:
+				crouchwalk:
+				crouchrun:
+					if (self.forceReload == 1)
+					{
+						waitexec anim/stand.scr::transition
+					}
+					else
+					{
+						self.position = crouchrun
+						thread CrouchRunThread
+						local.crouchthread = parm.previousthread
+						local.crouchthread end
+					}
+					// Deliberately fall through to regular running.
+				default:
+					self.position = run
+					waitexec anim/motionblend.scr::Start (self.weapongroup + "_run_") 1 self.shootpct
+					break
+			}
+			break
+		
+		default:
+			println "Runto_inopen default case for " self.weapongroup " weapongroup - fix runto_inopen.scr"
+			while (1)
+			{
+				self.position = run
+				self.blendtime = 0.30
+				self setmotionanim rifle_run_forward
+				self waittill flaggedanimdone
+			}
+			break
+	}
+end
+
+
+//===============
+// CrouchRunThread
+CrouchRunThread:
+	waitexec anim/motionblend.scr::Start (self.weapongroup + "_crouchrun_") 1 self.shootpct
+	println "runto_inopen.scr: AAAARGH! crouchrun thread ended! BUGBUGBUG!"
+end

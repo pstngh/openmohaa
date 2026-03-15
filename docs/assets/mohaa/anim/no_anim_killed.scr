@@ -1,0 +1,6 @@
+// used by balcony guy
+
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+self setsay death_generic	// Death facial animation/sound
+self.position = "dead"
+pause

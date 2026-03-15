@@ -1,0 +1,4 @@
+
+start:
+	self setmotionanim (self.weapongroup + "_standtocrouch_dive")
+end

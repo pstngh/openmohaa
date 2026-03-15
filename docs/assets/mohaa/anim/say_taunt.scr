@@ -1,0 +1,9 @@
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+if (self.team == "german")
+	self thread anim/SayManager.scr::SayManager ("den_head_taunt_" + self.voicetype) 3
+// Americans don't have taunt lines
+//else
+//	self thread anim/SayManager.scr::SayManager ("dfr_head_taunt_" + self.voicetype) 3
+end

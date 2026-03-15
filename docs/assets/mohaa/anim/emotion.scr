@@ -1,0 +1,59 @@
+// obsolete - this has been transfered to code
+
+// Sets the name of the animation a character should use on his face
+// for a given emotion mode. We can do fancy things in here if we want,
+// as long as it returns a valid animation alias
+
+start local.emotionmode:
+
+switch (local.emotionmode)
+{
+case emotion_none:
+	self.emotionanim = facial_idle_neutral
+	break
+case emotion_neutral:
+	self.emotionanim = facial_idle_neutral
+	break
+case emotion_worry:
+	self.emotionanim = facial_idle_worry
+	break
+case emotion_panic:
+	self.emotionanim = facial_idle_panic
+	break
+case emotion_fear:
+	self.emotionanim = facial_idle_fear
+	break
+case emotion_disgust:
+	self.emotionanim = facial_idle_disgust
+	break
+case emotion_anger:
+	self.emotionanim = facial_idle_anger
+	break
+case emotion_determined:
+	self.emotionanim = facial_idle_determined
+	break
+case emotion_dead:
+	self.emotionanim = facial_idle_dead
+	break
+case emotion_curious:
+//	println "No curious emotion yet; using determined instead"
+	self.emotionanim = facial_idle_determined
+	break;
+default:
+	self.emotionanim = facial_idle_neutral
+	println "Illegal emotion mode supplied to emotion.scr"
+	println "Legal values are:"
+	println "  emotion_none"
+	println "  emotion_neutral"
+	println "  emotion_worry"
+	println "  emotion_panic"
+	println "  emotion_fear"
+	println "  emotion_disgust"
+	println "  emotion_anger"
+	println "  emotion_determined"
+	println "  emotion_dead"
+	println "  emotion_curious"
+	break
+}
+
+end

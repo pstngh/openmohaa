@@ -1,0 +1,29 @@
+//-----
+// Run
+//-----
+// Basic run used by level designers.
+
+//println "run.scr"
+
+//=================================================
+//=================================================
+start:
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	switch (self.mood)
+	{
+		attack:
+		curious:
+			waitexec anim/runto_inopen.scr
+			break
+		nervous:
+		bored:
+		default:
+			waitexec anim/runto_casual.scr
+			break
+	}
+
+end
+

@@ -1,0 +1,15 @@
+//------
+// Dog Idle
+//------
+
+//======================================================================
+//======================================================================
+IdleMain:
+
+	waitexec "anim/dog_inithandler.scr"
+
+	self setmotionanim dog_stand_idle
+	self waittill flaggedanimdone
+
+	goto IdleMain
+end

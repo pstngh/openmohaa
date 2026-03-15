@@ -1,0 +1,272 @@
+start:
+
+self.blendtime = 0.25
+
+switch (self.position)
+{
+// Pain positions
+// This is actually the main pain handling script.  People in pain will go through 
+// this script in an attempt to stand back up, and should, in the process, do lots 
+// of cool, agonized-looking stuff.  There is also a section in crouch.scr to handle 
+// going from knees to the crouch pose.
+knees:
+	// Try to stand up - allow for the fact that chances are we're in too much 
+	// pain and we'll just fall about on the floor some more.
+	local.randnum = randomint 100
+	if ( self.normal_health > local.randnum )
+	{
+		// Recover - stand up
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees pain recover, hold Grenade"	
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_kneestostand
+			break
+	
+		rifle:
+			//println "Knees pain recover, hold Rifle"
+			self setmotionanim rifle_pain_kneestostand
+			break
+	
+		smg:
+			//println "Knees pain recover, hold SMG"
+			self setmotionanim thompson_pain_kneestostand
+			break
+	
+		bazooka:
+			println "^~^~^ Knees pain recover, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneestostand
+			break
+	
+		default:
+			println "^~^~^ Knees pain recover, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_kneestostand
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = stand
+	}
+	else if ( self.normal_health < local.randnum - 30 )
+	{
+		// I'm in so much pain!  I can't even stay on my knees, I'm so weak.
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees, hold Grenade"			
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_kneestocrawl
+			break
+
+		rifle:
+			//println "Knees, hold Rifle"
+			self setmotionanim rifle_pain_kneestocrawl
+			break
+
+		smg:
+			//println "Knees, hold SMG"
+			self setmotionanim thompson_pain_kneestocrawl
+			break
+
+		bazooka:
+			println "^~^~^ Knees, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneestocrawl
+			break
+
+		default:
+			println "^~^~^ Knees, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_kneestocrawl
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = crawl
+		goto start
+	}
+	// Don't do kneestofloor, that's only for when you get shot.
+	else 
+	{
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees, hold Grenade"			
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_kneesidle
+			break
+
+		rifle:
+			//println "Knees, hold Rifle"
+			self setmotionanim rifle_pain_kneesidle
+			break
+
+		smg:
+			//println "Knees, hold SMG"
+			self setmotionanim thompson_pain_kneesidle
+			break
+
+		bazooka:
+			println "^~^~^ Knees, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneesidle
+			break
+
+		default:
+			println "^~^~^ Knee pain idle, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_kneesidle
+			break
+		}
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+crawl:
+	// Falling to the floor from crawl could be considered a recovery, or the 
+	// opposite, so let's just do it randomly.
+	local.randnum = randomint 100
+	if ( local.randnum > 50 )
+	{
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Crawl pain floor, hold Grenade"	
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_crawltofloor
+			break
+	
+		rifle:
+			//println "Crawl pain floor, hold Rifle"
+			self setmotionanim rifle_pain_crawltofloor
+			break
+	
+		smg:
+			//println "Crawl pain floor, hold SMG"
+			self setmotionanim thompson_pain_crawltofloor
+			break
+	
+		bazooka:
+			println "^~^~^ Crawl pain floor, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_crawltofloor
+			break
+	
+		default:
+			println "^~^~^ Crawl pain floor, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_crawltofloor
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = floor
+		goto start
+	}
+	else
+	{
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Crawl pain, hold Grenade"		
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_crawl
+			break
+	
+		rifle:
+			//println "Crawl pain, hold Rifle"
+			self setmotionanim rifle_pain_crawl
+			break
+	
+		smg:
+			//println "Crawl pain, hold SMG"
+			self setmotionanim thompson_pain_crawl
+			break
+	
+		bazooka:
+			println "^~^~^ Crawl pain, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_crawl
+			break
+	
+		default:
+			println "^~^~^ Crawl pain, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_crawl
+			break
+		}
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+floor:
+	// Try to stand up - allow for the fact that chances are we're in too much 
+	// pain and we'll just fall about on the floor some more.
+	local.randnum = randomint 100
+	if ( self.normal_health > local.randnum )
+	{
+		// Climb to knees
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Floor pain recover, hold Grenade"	
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_floortoknees
+			break
+	
+		rifle:
+			//println "Floor pain recover, hold Rifle"
+			self setmotionanim rifle_pain_floortoknees
+			break
+	
+		smg:
+			//println "Floor pain recover, hold SMG"
+			self setmotionanim thompson_pain_floortoknees
+			break
+	
+		bazooka:
+			println "^~^~^ Floor pain recover, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_floortoknees
+			break
+	
+		default:
+			println "^~^~^ Floor pain recover, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_floortoknees
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = knees
+		goto start
+	}
+	else
+	{
+		// Wallow in your misery (could randomly crawl here too)
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Floor pain, hold Grenade"		
+			// (Temp, need transition with grenade)
+			self setmotionanim pistol_pain_flooridle
+			break
+	
+		rifle:
+			//println "Floor pain, hold Rifle"
+			self setmotionanim rifle_pain_flooridle
+			break
+	
+		smg:
+			//println "Floor pain, hold SMG"
+			self setmotionanim thompson_pain_flooridle
+			break
+	
+		bazooka:
+			println "^~^~^ Floor pain, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_flooridle
+			break
+	
+		default:
+			println "^~^~^ Floor pain, unrecognized weapon - bug in continue_pain.scr"
+			self setmotionanim pistol_pain_flooridle
+			break
+		}
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+default:
+	waitexec anim/idle.scr
+	break
+}

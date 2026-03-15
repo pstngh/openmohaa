@@ -1,0 +1,56 @@
+//------
+// Idle
+//------
+// Just be idle, don't do anything you don't have to.  Running or walking will
+// stop, but crouching people will keep crouching, curious people (if we ever have
+// them) will stay curious.  This does not make people relax - we need a specific
+// script to make people play a relaxing animation.
+
+
+//======================================================================
+//======================================================================
+IdleMain:
+	//println "Entering idle.scr"
+	//println "Called Idle.scr with position " self.position " mood " self.mood
+
+	waitexec "anim/default_inithandler.scr"
+
+	self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+	switch (self.position)
+	{
+		crouch:
+		crouchwalk:
+		crouchrun:
+			while (1)
+				waitexec anim/crouch.scr
+
+		stand:
+		walk:
+		run:
+			while (1)
+				waitexec anim/stand.scr
+
+		prone:
+		pronewalk:
+			while (1)
+				waitexec anim/prone.scr
+
+		dead:
+			println "^~^~^ Dead guy trying to idle."
+			break
+		knees:
+		crawl:
+		floor:
+			// Oh my goodness I'm in agony!  Try to stand up, see if your legs will hold
+			// you.  (My first aid instructor always said that you should stay down so
+			// you didn't lose bloodflow to the brain and faint or worse.  These guys are
+			// more gung-ho than me I guess.)
+			waitexec anim/continue_pain.scr
+			goto IdleMain
+
+		default:
+			println ("^~^~^ Idle Default case for "+self.position+" position - fix idle.scr")
+			break
+	}
+end

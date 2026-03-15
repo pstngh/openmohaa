@@ -1,0 +1,8 @@
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+if (self.team == "American")
+	self thread anim/SayManager.scr::SayManager ("dfr_head_sound_" + self.voicetype) 3
+else
+	self thread anim/SayManager.scr::SayManager ("den_head_sound_" + self.voicetype) 3
+end

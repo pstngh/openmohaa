@@ -1,0 +1,423 @@
+//-------
+// Stand
+//-------
+// Makes the character stand up, stop walking or running, stop shooting, just stand
+// there.  If the character is already standing, then this script plays standing
+// animations.
+
+//println "Entering stand.scr"
+//println "Called Stand.scr with mood " self.mood\
+
+waitexec anim/default_inithandler.scr
+
+start:
+
+self.blendtime = 0.5
+
+switch (self.position)
+{
+	prone:
+	pronewalk:
+		// Get up to crouch first and then try this again
+		waitexec anim/crouch.scr::transition
+		//fall through
+	stand:
+	walk:
+	run:
+	crouch:
+	crouchwalk:
+	crouchrun:
+		self.position = stand
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			bazooka:
+				//println "Stand/Hold Rifle"
+				if (self.ground == water)
+				{
+					self setmotionanim stand_water_idle
+					self waittill flaggedanimdone
+				}
+				else if (self.ground == beach)
+				{
+					self setmotionanim stand_beach_idle
+					self waittill flaggedanimdone
+				}
+				else
+				{
+					waitthread IdleStand
+				}
+				break
+
+			grenade:
+				//println "Stand/Hold Grenade"
+				// This should never happen, so just manage as best you can.
+				self setmotionanim pistol_stand_nervous_a
+				self waittill flaggedanimdone
+				break
+
+			unarmed:
+				if (self.isScientist==1)
+				{
+					waitthread IdleScientist
+				}
+				else
+				{
+					waitthread IdleStand
+				}
+
+				break
+
+			default:
+				println ("^~^~^ Stand Idle/Default case for "+self.weapongroup+" weapon group - fix idle.scr")
+				self setmotionanim generic_stand_bored_a
+				self waittill flaggedanimdone
+				break
+		}
+		self.position = stand
+		break
+
+	dead:
+		// What do I do if he's dead?  Have to call setanim or it'll break!
+		println "^~^~^ Warning: stand.scr called on dead guy!"
+		break
+
+	// Pain positions
+	// This is actually the main pain handling script.  People in pain will go through
+	// this script in an attempt to stand back up, and should, in the process, do lots
+	// of cool, agonized-looking stuff.  There is also a section in crouch.scr to handle
+	// going from knees to the crouch pose.
+	knees:
+	floor:
+	crawl:
+		waitexec anim/continue_pain.scr
+		goto start
+
+	default:
+		// I meant to catch all cases, so print a warning
+		println "^~^~^ Stand.scr called while in unexpected position (" self.position ") fix stand.scr"
+		break
+
+}	// End switch (position)
+end
+
+//======================================================================
+//======================================================================
+
+// allowed terminate immediately
+transition:
+self.blendtime = 0.5
+
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+	crouch:
+	crouchwalk:
+	crouchrun:
+		self.position = stand
+		break // can crossblend directly from these
+
+	prone:
+	pronewalk:
+		// Get up to crouch first
+		waitexec anim/crouch.scr::transition
+		self.position = stand
+		break // can crossblend directly now
+
+	dead:
+		// What do I do if he's dead?  Have to call setanim or it'll break!
+		println "^~^~^ Warning: stand.scr called on dead guy!"
+		break
+
+	// Pain positions
+	knees:
+	floor:
+	crawl:
+		waitexec anim/continue_pain.scr
+		goto transition
+
+	default:
+		// I meant to catch all cases, so print a warning
+		println "^~^~^ Stand.scr called while in unexpected position (" self.position ") fix stand.scr"
+		break
+
+}	// End switch (position)
+end
+
+//======================================================================
+//======================================================================
+
+IdleStandTransition:
+switch (self.mood)
+{
+	case bored:
+	case curious:
+		if (self.weapongroup == bazooka)
+		{
+			self.blendtime = 0.5
+			self setmotionanim (bazooka_stand_alert_legs)
+			self setupperanim (self.weapongroup + "_stand_alert")
+		}
+		else
+		{
+			self.blendtime = 0.5
+			self setmotionanim (self.weapongroup + "_stand_curious")
+		}
+		break
+	case alert:
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_alert_legs")
+		self setupperanim (self.weapongroup + "_stand_alert")
+		wait 0.5
+		break
+	case nervous:
+		self.blendtime = 0.5
+		local.randnum = randomint 100
+		if (local.randnum < 33)
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_a")
+		}
+		else if (local.randnum < 66)
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_b")
+		}
+		else
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_c")
+		}
+		wait 0.5
+		break
+
+		waitthread IdleStandBoredTransition
+		break
+	default:
+		println "^~^~^ IdleStand default case for mood " self.mood
+		waitthread IdleStandBoredTransition
+		break
+}
+end
+
+//======================================================================
+//======================================================================
+
+IdleStand:
+switch (self.mood)
+{
+	case curious:
+		if (self.weapongroup == bazooka)
+		{
+			self.blendtime = 0.5
+			self setmotionanim (bazooka_stand_alert_legs)
+			self setupperanim (self.weapongroup + "_stand_alert")
+			self waittill upperanimdone
+		}
+		else
+		{
+			self.blendtime = 0.5
+			self setmotionanim (self.weapongroup + "_stand_curious")
+			self waittill flaggedanimdone
+		}
+		break
+	case alert:
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_alert_legs")
+		self setupperanim (self.weapongroup + "_stand_alert")
+		self waittill upperanimdone
+		break
+	case nervous:
+		self.blendtime = 0.5
+		local.randnum = randomint 100
+		if (local.randnum < 33)
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_a")
+		}
+		else if (local.randnum < 66)
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_b")
+		}
+		else
+		{
+			self setmotionanim (self.weapongroup + "_stand_nervous_c")
+		}
+		self waittill flaggedanimdone
+		break
+	case bored:
+		waitthread IdleStandBored
+		break
+	default:
+		println "^~^~^ IdleStand default case for mood " self.mood
+		waitthread IdleStandBored
+		break
+}
+end
+
+//======================================================================
+//======================================================================
+
+IdleStandBored:
+waitexec anim/smoking.scr::SmokeCigaretteInit
+
+local.randnum = randomint 100
+
+// 2 cycles before smokin out
+local.loop = 2
+while(local.loop>0)
+{
+	if (local.randnum < 33)
+	{
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_bored_a_intro")
+		self waittill flaggedanimdone
+
+		local.i = randomint(2) + 3
+		while (local.i > 0)
+		{
+			self.blendtime = 0.5
+			self setmotionanim (self.weapongroup + "_stand_bored_a")
+			self waittill flaggedanimdone
+			local.i = local.i - 1
+		}
+
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_bored_a_outtro")
+		self waittill flaggedanimdone
+	}
+	else if (local.randnum < 66)
+	{
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_bored_b_intro")
+		self waittill flaggedanimdone
+
+		local.i = randomint(2) + 3
+		while (local.i > 0)
+		{
+			self.blendtime = 0.5
+			self setmotionanim (self.weapongroup + "_stand_bored_b")
+			self waittill flaggedanimdone
+			local.i = local.i - 1
+		}
+
+		self.blendtime = 0.5
+		self setmotionanim (self.weapongroup + "_stand_bored_b_outtro")
+		self waittill flaggedanimdone
+	}
+	else
+	{
+		waitthread IdleStandBoredGeneric
+	}
+
+	local.loop--
+}
+
+waitexec anim/smoking.scr::SmokeCigarette
+
+end
+
+//======================================================================
+//======================================================================
+IdleStandBoredGeneric:
+local.i = randomint(2) + 2
+local.randnum = randomint 100
+
+if (local.randnum < 50)
+{
+	while (local.i > 0)
+	{
+		self.blendtime = 0.5
+		self setmotionanim (generic_stand_bored_a)
+		self waittill flaggedanimdone
+		local.i = local.i - 1
+	}
+}
+else
+{
+	while (local.i > 0)
+	{
+		self.blendtime = 0.5
+		self setmotionanim (generic_stand_bored_b)
+		self waittill flaggedanimdone
+		local.i = local.i - 1
+	}
+}
+end
+
+
+//======================================================================
+//======================================================================
+IdleScientist:
+
+local.rand1 = randomint 100
+local.rand2 = randomint 100
+
+if (self.atChalkBoard != 1) local.rand1=99			// 25% chance of chalkboard idle, contingent upon being at the chalkboard
+
+if (local.rand1 < 25)
+{
+	self setmotionanim scientist_chalkboard_start
+	self waittill flaggedanimdone
+
+	local.randnum = (randomint 3) + 2
+	while(local.randnum > -1)
+	{
+		self setmotionanim scientist_chalkboard
+		self waittill flaggedanimdone
+		local.randnum--
+	}
+
+	self setmotionanim scientist_chalkboard_end
+	self waittill flaggedanimdone
+}
+else if (local.rand2 < 33)
+{
+	self setmotionanim scientist_clipboard_start
+	self waittill flaggedanimdone
+
+	local.randnum = (randomint 3) + 2
+	while(local.randnum > -1)
+	{
+		self setmotionanim scientist_clipboard
+		self waittill flaggedanimdone
+		local.randnum--
+	}
+
+	self setmotionanim scientist_clipboard_end
+	self waittill flaggedanimdone
+
+}
+else if (local.rand2 < 66)
+{
+	self setmotionanim scientist_scratch
+	self waittill flaggedanimdone
+}
+else
+{
+	self setmotionanim scientist_thought_start
+	self waittill flaggedanimdone
+
+	local.randnum = (randomint 3) + 1
+	while(local.randnum > -1)
+	{
+		self setmotionanim scientist_thought
+		self waittill flaggedanimdone
+	}
+
+	// 50% scratch
+	local.randnum = randomint 100
+	if (local.randnum < 50)
+	{
+		self setmotionanim scientist_scratch
+		self waittill flaggedanimdone
+	}
+
+	self setmotionanim scientist_thought_end
+	self waittill flaggedanimdone
+}
+
+end

@@ -1,0 +1,62 @@
+//------------
+// Prone_walk
+//------------
+// Move while prone.  Have to go prone first if we're not already.
+
+//println "prone_walk.scr"
+
+start:
+
+switch (self.position)
+{
+	prone:
+	pronewalk:
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+				self setmotionanim (self.weapongroup + "_prone_walk_forward")
+				self waittill flaggedanimdone
+				break
+			
+			unarmed:
+				self setmotionanim unarmed_prone_walk
+				self waittill flaggedanimdone
+				break
+
+			default:
+				println "Prone walk default case for " self.weapongroup " - fix prone_walk.scr"
+				break
+		}
+		break
+	
+	run:
+	crouchrun:
+		// If we're running, dive
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			unarmed:
+				self setmotionanim (self.weapongroup + "_diveongrenade")
+				self waittill flaggedanimdone
+				break
+			
+			default:
+				println "Run to prone walk default case for " self.weapongroup " - fix prone_walk.scr"
+				break
+		}
+		goto start
+	default:
+		// Need to go prone before we can prone walk.
+		waitexec anim/prone.scr
+		goto start
+}

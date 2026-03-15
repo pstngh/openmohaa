@@ -1,0 +1,158 @@
+//--------
+// Cower
+//--------
+// Called when the character can't get away from a grenade, so he just cowers hopelessly.
+// Check his position first, so he doesn't jump up and then get down again.
+
+start:
+
+switch (self.position)
+{
+stand:
+walk:
+run:
+	// From standing, we want to play the intro of him ducking down, and then go into the loop.
+	self setmotionanim grenade_cower
+
+	self.blendtime = 0.15	// Use crossblend instead of a real transition animation
+
+	self waittill flaggedanimdone
+	self.position = crouch
+
+	self setmotionanim grenade_cower_loop
+	self waittill flaggedanimdone
+
+	break
+crouch:
+crouchwalk:
+crouchrun:
+	// Already crouching, so just cover my head
+	self setmotionanim grenade_cower_loop
+	self waittill flaggedanimdone
+	break
+
+prone:
+pronewalk:
+	// Go to crouch
+	waitexec anim/crouch.scr::transition
+	goto start
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Pain states - I left this the same as the crouch script.  It's probably not the right way to do things anymore.
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+knees:
+	// We can go from knees to crouch, if we're not in too much pain.  Give it a 
+	// try, if it hurts too much just lie down for a while.
+	local.randnum = randomint 100
+	if ( self.normal_health > local.randnum )
+	{
+		// Recover - move to crouch
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees pain recover, hold Grenade"
+			self setmotionanim pistol_pain_kneestoknees
+			break
+	
+		rifle:
+			//println "Knees pain recover, hold Rifle"
+			self setmotionanim rifle_pain_kneestoknees
+			break
+	
+		smg:
+			//println "Knees pain recover, hold SMG"
+			self setmotionanim thompson_pain_kneestocrouch
+			break
+	
+		bazooka:
+			println "^~^~^ Knees pain recover, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneestoknees
+			break
+	
+		default:
+			println "^~^~^ Knees pain recover, unrecognized weapon - bug in idle.scr"
+			self setmotionanim pistol_pain_kneestoknees
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = crouch
+	}
+	else if ( self.normal_health < local.randnum - 30 )
+	{
+		// I'm in so much pain!  I'm going to just drop to the floor
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees, hold Grenade"
+			self setmotionanim pistol_pain_kneestofloor
+			break
+
+		rifle:
+			//println "Knees, hold Rifle"
+			self setmotionanim rifle_pain_kneestofloor
+			break
+
+		smg:
+			//println "Knees, hold SMG"
+			self setmotionanim thompson_pain_kneestofloor
+			break
+
+		bazooka:
+			println "^~^~^ Knees, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneestofloor
+			break
+
+		default:
+			println "^~^~^ Knees, unrecognized weapon - bug in idle.scr"
+			self setmotionanim pistol_pain_kneestofloor
+			break
+		}
+		self waittill flaggedanimdone
+		self.position = floor
+		goto start
+	}
+	else 
+	{
+		switch (self.weapontype)
+		{
+		grenade:
+			//println "Knees, hold Grenade"
+			self setmotionanim pistol_pain_kneesidle
+			break
+
+		rifle:
+			//println "Knees, hold Rifle"
+			self setmotionanim rifle_pain_kneesidle
+			break
+
+		smg:
+			//println "Knees, hold SMG"
+			self setmotionanim thompson_pain_kneesidle
+			break
+
+		bazooka:
+			println "^~^~^ Knees, hold Bazooka.  Shouldn't happen."
+			self setmotionanim pistol_pain_kneesidle
+			break
+
+		default:
+			println "^~^~^ Knee pain idle, unrecognized weapon - bug in idle.scr"
+			self setmotionanim pistol_pain_kneesidle
+			break
+		}
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+floor:
+crawl:
+	waitexec anim/crouch.scr::transition
+	goto start
+
+default:
+	// I think I handled every case, so this is an error case
+	println "^~^~^ Unknown position in cower.scr, fix cower.scr"
+	waitexec anim/crouch.scr::transition
+	break
+}

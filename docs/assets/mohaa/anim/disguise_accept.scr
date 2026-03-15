@@ -1,0 +1,25 @@
+//------
+// disguise_accept.scr
+//------
+
+//centerprint "Oh, those papers are lovely!"
+
+self lookat self.enemy
+self.blendtime = 0.50
+//self setmotionanim (self.weapongroup + "_stand_alert_legs")
+thread playidleanim
+
+self setupperanim ("den_actor_appease_" + self.voicetype)
+self waittill upperanimdone
+
+self lookat self.enemy
+wait 10
+
+//centerprint "Warning: disguise_papers.scr has ended."
+
+end
+
+
+playidleanim:
+waitthread anim/disguise_papers.scr::playidleanim
+end

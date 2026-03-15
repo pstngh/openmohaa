@@ -1,0 +1,141 @@
+//-----
+// Sniper.scr
+//-----
+
+//=============================================================
+//=============================================================
+SniperMain:
+// Note: I rely on this being the only entry point to this script, for initialization purposes.
+//println "Entering sniper script"
+
+	self.dist_walkbackward = 90
+	self.dist_walkforward = 90
+	self.backawaypct = 0
+	self.shootpct = 100
+	self.crouchpct = 50
+	self.lastmovement = "none"
+		
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	
+	while (1)
+	{
+
+		waitexec anim/sniper.scr::SniperStandAttack
+		
+		local.randnum = randomint 100
+		if (local.randnum < self.crouchpct)
+		{
+			waitexec anim/sniper.scr::SniperCrouchAttack
+		}
+		
+		local.randnum = randomint 100
+		if (local.randnum < self.backawaypct)
+		{
+			waitexec anim/attack.scr::AttackCheckBack self.dist_walkbackward
+			if (self.collideresult > 0)
+			{
+				self.blendtime = 0.5
+				self setmotionanim (self.weapongroup + "_walk_alert_back")
+				self waittill flaggedanimdone
+
+				local.i = randomint(8) + 2
+
+				while (local.i>0)
+				{
+					waitexec anim/sniper.scr::SniperStandAttack
+					local.i = local.i - 1
+				}
+				
+				self.blendtime = 0.5
+				self setmotionanim (self.weapongroup + "_walk_alert_forward")
+				self waittill flaggedanimdone
+			}
+		}
+	}
+end
+
+//=============================================================
+//=============================================================
+SniperStandAttack:
+	waitexec anim/attack.scr::AttackStandUp
+	self setmotionanim (self.weapongroup + "_stand_alert_legs")
+	
+	local.i = randomint(5) + 2
+	while (local.i > 0)
+	{
+		if (self.lastmovement != "stand_attack")
+		{
+			self.blendtime = 0.30
+			self thread anim/SayManager.scr::SayManager face_aiming 3
+			//self setactionanim (self.weapongroup + "_aim") -60 60
+			waitexec anim/aim.scr::PlayAimActionAnim
+			wait self.blendtime
+			self.lastmovement = "stand_attack"
+		}
+
+		if ((self cansee self.enemy) > 0)
+		{
+			self.blendtime = 0.10
+			self thread anim/SayManager.scr::SayManager face_aiming 3
+			//self setactionanim (self.weapongroup + "_shoot") -60 60
+			waitexec anim/shoot.scr::PlayShootActionAnim
+			self waittill upperanimdone
+			waitexec anim/reload.scr::Reload 1 0 0
+		}
+		else
+		{
+			waitframe
+		}
+
+		local.i = local.i - 1
+	}
+
+end
+
+//=============================================================
+//=============================================================
+SniperCrouchAttack:
+	waitexec anim/attack.scr::AttackCheckCrouch
+	
+	if (self.collideresult > 0)
+	{
+		waitexec anim/attack.scr::AttackCrouchDown
+		self setmotionanim (self.weapongroup + "_crouch_alert")
+		
+		local.i = randomint(5) + 2
+
+		while (local.i > 0)
+		{
+			if (self.lastmovement != "crouch_attack")
+			{
+				self.blendtime = 0.30
+				self thread anim/SayManager.scr::SayManager face_aiming 3
+				//self setactionanim (self.weapongroup + "_aim") -60 60
+				waitexec anim/aim.scr::PlayAimActionAnim
+				wait self.blendtime
+				self.lastmovement = "crouch_attack"
+			}
+			if ((self cansee self.enemy) > 0)
+			{
+				self.blendtime = 0.10
+				self thread anim/SayManager.scr::SayManager face_aiming 3
+				//self setactionanim (self.weapongroup + "_shoot") -60 60
+				waitexec anim/shoot.scr::PlayShootActionAnim
+				self waittill upperanimdone
+				waitexec anim/reload.scr::Reload 1 0 0
+			}
+			else
+			{
+				waitframe
+			}
+			
+			local.i = local.i - 1
+		}
+	}
+
+end

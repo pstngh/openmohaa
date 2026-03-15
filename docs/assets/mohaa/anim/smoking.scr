@@ -1,0 +1,140 @@
+//------
+// Smoking
+//------
+// This is a sub script that can be called as a subroutine
+// whenever an animation behavior wants to smoke
+
+//println "smoking.scr"
+
+//An animation behavior that wants to smoke must call this during its initialization...
+//===================================================================================
+SmokeCigaretteInit:
+	if (self.smokinginitialized != "yes")
+	{
+		//println "smoking init"
+		self.cigarettelit = 0
+		self.smokesremaining = 0
+		self.cigarettesremaining = randomint 10
+		self.smokinginitialized = "yes"
+		self.nextsmoketime = level.time + ((randomint 100)/10) + 5
+
+		// Initialise say manager
+		self waitthread anim/SayManager.scr::Init
+	}
+end
+
+
+//===================================================================================
+SmokeCigarette:
+
+	if ( (self.bIAmASmoker != NIL) && (self.bIAmASmoker == 0) )
+	{
+		end
+	}
+
+	//Should I smoke?
+	local.randnum = randomint 100
+	
+	if (self.cigarettelit == 0)
+	{
+		if ( (level.time > self.nextsmoketime) && (local.randnum < 30) )
+		{
+			if (self.cigarettesremaining > 0)
+			{
+				//println "Lighting up cigarette"
+				
+				//stop, light up cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking01  
+				self thread anim/SayManager.scr::SayManager smoking_lightup_face 2
+				self waittill flaggedanimdone
+				
+				self.cigarettelit = 1
+				self.smokesremaining = randomint(3) + 4
+				self.cigarettesremaining = self.cigarettesremaining - 1
+				
+				//put down cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking02  
+				self thread anim/SayManager.scr::SayManager smoking_firstinhale_face 2
+				self waittill flaggedanimdone
+				
+				//println "Done lighting up cigarette"
+			}
+		}
+	}
+	else if (local.randnum <70)
+	{
+		if (self.smokesremaining > 0)
+		{
+			//println "Puffing up cigarette"
+			
+			//puff cigarette
+			self.blendtime = 0.5
+			self setupperanim (smoking03) 
+			//self setmotionanim (aim_leg_stance)
+			self thread anim/SayManager.scr::SayManager smoking_inhale_face 2
+			self waittill upperanimdone
+			
+			self.smokesremaining = self.smokesremaining - 1
+			
+			//println "Done puffing up cigarette"
+		}
+		else
+		{
+			//println "Throwing away cigarette"
+			
+			local.randnum = randomint 100
+
+			if (local.randnum > 50)
+			{
+				//put down and extinguish cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking04  
+				self thread anim/SayManager.scr::SayManager smoking_buttout_face 2
+				self waittill flaggedanimdone
+			}
+			else
+			{
+				//put down and throw cigarette 
+				self.blendtime = 0.5
+				self setupperanim (smoking05) 
+				//self setmotionanim (aim_leg_stance)
+				self waittill upperanimdone
+			}
+			
+			self.cigarettelit = 0
+			self.nextsmoketime = level.time + ((randomint 150)/10) + 15
+			
+			//println "Done throwing away cigarette"
+		}
+	}
+		
+end
+
+//===================================================================================
+//This should be called before changing states (idle,stand,attack,aim,shoot..etc etc)
+//SmokeThrowCigarette:
+//	if (self.cigarettelit > 0)
+//	{
+//		self.blendtime = 0.5
+//		self setupperanim (smoking05)
+//		self waittill upperanimdone
+//		self.cigarettelit = 0
+//	}
+//end
+
+
+//===================================================================================
+//This is basically called by the pain script to remove cigarettes
+SmokeRemoveCigarette:
+	//if (self.smokinginitialized == "yes")
+	//{
+		if (self.cigarettelit == 1)
+		{
+			self removeattachedmodel "Bip01 L Finger11"
+			self.cigarettelit = 0
+		}
+	//}
+end
+

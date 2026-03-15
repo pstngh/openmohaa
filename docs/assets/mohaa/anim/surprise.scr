@@ -1,0 +1,22 @@
+//-------
+// Surprise
+//-------
+
+//println "Entering surprise.scr"
+waitexec "anim/default_inithandler.scr"
+
+self.blendtime = 0.25
+
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+		self setmotionanim (self.weapongroup + "_stand_surprise")
+		self waittill flaggedanimdone
+		break
+
+	default:
+		println "Invalid position for stand surprise animation"
+		break
+}

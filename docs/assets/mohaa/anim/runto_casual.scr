@@ -1,0 +1,82 @@
+//-----
+// Runto_casual
+//-----
+// Basic run, without trying to duck or dive or shoot or anything like that.  It also makes sure you're standing up first.
+
+//println "runto_casual.scr"
+
+//=================================================
+//=================================================
+start:
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = run
+	
+	while (1)
+	{
+		self.blendtime = 0.30
+
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			unarmed:
+			bazooka:
+				if (self.ground == water)
+				{
+					self setmotionanim run_rifle_water
+					self waittill flaggedanimdone
+				}
+				else if (self.ground == beach)
+				{
+					self setmotionanim run_rifle_gundown_beach
+					self waittill flaggedanimdone
+				}
+ 				else if (self.normal_health < 60)	// TODO, should be 30, but it'd never fire.
+				{
+					if (self.movedir != (0 0 0))
+					{
+						//println "Run.scr using motion blend for injure run with movedir: " self.movedir
+						waitexec anim/motionblend.scr::PlayAnim (self.weapongroup + "_injurerun_")
+					}
+					else
+					{
+						//println "Run.scr with **NO** motion blend for INJURE RUN"
+						self setmotionanim (self.weapongroup + "_injurerun_forward")
+						self waittill flaggedanimdone
+					}
+				}
+				else
+				{
+					if (self.movedir != (0 0 0))
+					{
+						//println "Run.scr using motion blend with movedir: " self.movedir
+						waitexec anim/motionblend.scr::PlayAnim (self.weapongroup + "_run_")
+					}
+					else
+					{
+						//println "Run.scr with **NO** motion blend"
+						self setmotionanim (self.weapongroup + "_run_forward")
+						self waittill flaggedanimdone
+					}
+				}
+
+				break
+				
+			default:
+				println "Run default case for " self.weapongroup " weapongroup - fix Run.scr"
+				self setmotionanim rifle_run_forward
+				self waittill flaggedanimdone
+				break
+		}
+	}
+end

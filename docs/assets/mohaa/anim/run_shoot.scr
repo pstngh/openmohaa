@@ -1,0 +1,53 @@
+//-----
+// Run
+//-----
+// Run, simple.  It also makes sure you're standing up first.
+
+println "^~^~^ run_shoot.scr (unsupported)"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+start:
+
+switch (self.position)
+{
+stand:
+walk:
+run:
+	switch (self.weapontype)
+	{
+	grenade:
+		//println "Run and shoot Grenade"
+		self setmotionanim shoot_grenade_stand		// or grenade_throw_straight
+		self setanim jog_grenade 1
+		break
+
+	rifle:
+		//println "Run and shoot Rifle"
+		self setmotionanim shoot_rifle_stand
+		self setanim run_rifle 1
+		break
+
+	smg:
+		//println "Run and shoot SMG"
+		self setmotionanim smg_shoot		// Should be called something else, 
+							// it's not shooting
+		self setanim run_rifle 1
+		break
+
+	bazooka:
+		println "^~^~^ Run and shoot Bazooka - no shoot bazooka anim yet!"		
+							// need upper body holding bazooka
+		self setmotionanim run_rifle
+		break
+
+	default:
+		println "^~^~^ Run and shoot, default Case (error in run_shoot.scr)"
+		break
+	}
+	self waittill flaggedanimdone
+	self.position = run
+	break
+default:
+	waitexec anim/stand.scr::transition
+	goto start
+}

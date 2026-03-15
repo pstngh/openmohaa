@@ -1,0 +1,39 @@
+//-------
+// standidentify.scr
+//-------
+
+Start:
+	//println "Entering standshock.scr"
+	waitexec "anim/default_inithandler.scr"
+
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+	self.blendtime = 0.25
+	//need to take into account current position here... will do it later...
+	
+//	println "The enemy!  Attack!"
+	if (self.team == "german")
+	{
+		self thread anim/SayManager.scr::SayManager ("den_head_attack_" + self.voicetype) 5
+	}
+	else
+	{
+		self thread anim/SayManager.scr::SayManager ("dfr_head_attack_" + self.voicetype) 5
+	}
+
+	switch (self.weapongroup)
+	{
+		bazooka:
+			self setmotionanim (rifle_stand_alert_legs)
+			self setupperanim (bazooka_stand_alert)
+			self waittill upperanimdone
+			break
+
+		default:
+			self setmotionanim (self.weapongroup + "_stand_identify")
+			self waittill flaggedanimdone
+			break
+	}
+
+end

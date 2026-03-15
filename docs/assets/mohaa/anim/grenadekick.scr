@@ -1,0 +1,76 @@
+//============
+//grenadekick.scr
+//============
+
+//===============================
+//===============================
+GrenadeKickMain:
+	//println "Entering grenadekick.scr"
+
+	waitexec "anim/default_inithandler.scr"
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+	
+	//self setmotionanim grenade_kick
+	//self waittill flaggedanimdone
+
+	if (self.kickdir != (0 0 0))
+	{
+		local.dotvec = self.forwardvector * self.kickdir
+		local.sidevec = self.leftvector * self.kickdir
+		// (Boon) Divide by forward+side since it's the "correct" thing to do.  Might not make any noticeable improvement though.
+		local.forwardbackblend = abs(local.dotvec) / ( abs(local.dotvec) + abs(local.sidevec) )
+		local.sideblend = 1.0 - local.forwardbackblend
+
+		//sanity checks
+		if (local.sideblend < 0.00)
+		{
+			println "GrenadeKick: sideblend is less than 0, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.sideblend = 0.00
+			local.forwardbackblend = 1.00
+		}
+
+		if (local.sideblend > 1.0)
+		{
+			println "GrenadeKick: sideblend is more than 1, how did that happen!?"
+			local.sideblend = 1.0
+			local.forwardbackblend = 0.005
+		}
+
+		if (local.forwardbackblend <= 0.0)
+		{
+			println "GrenadeKick: forwardbackblend is less than 0, how did that happen!?"
+			local.forwardbackblend = 0.005
+		}
+
+		//println "Forward: " local.forwardbackblend " Side: " local.sideblend
+
+		self.blendtime = 0.20
+
+		self setanim grenade_kick 0 local.forwardbackblend flagged
+
+		if (local.sidevec >= 0.00)
+		{
+			//move left
+			self setanim grenade_kick_left 1 local.sideblend
+		}
+		else
+		{
+			//move right
+			self setanim grenade_kick_right 1 local.sideblend
+		}
+		
+		self waittill flaggedanimdone
+	}
+	else
+	{
+		//println "~^~^ Kicking grenade with kick dir of " self.kickdir
+		self setmotionanim grenade_kick
+		self waittill flaggedanimdone
+	}
+
+end

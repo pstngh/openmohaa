@@ -1,0 +1,4 @@
+start:
+	self setanim crate_walk
+	pause
+end

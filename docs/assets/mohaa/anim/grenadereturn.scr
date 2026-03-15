@@ -1,0 +1,17 @@
+//------
+// Grenade return
+//------
+
+
+
+//===================================================================================
+GrenadeReturn:
+	//println "grenadereturn.scr"
+	waitexec "anim/default_inithandler.scr"
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	//TODO: need to override pain and death handlers for dropping grenade
+	self.blendtime = 0.50
+	self setmotionanim grenade_return 
+	self waittill flaggedanimdone
+end

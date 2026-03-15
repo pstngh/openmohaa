@@ -1,0 +1,74 @@
+// =============
+// Shoot Handler
+// =============
+
+// Prototype script for implementation of new persistant-thread
+// animation scripting system. This is the test case that should
+// include reference to all new features needed for the new system.
+// The new system is designed to make the scripts read much more
+// like the flowcharts they are created from.
+
+// Each animation script should initialize all of the handlers for
+// the actor. They may already be set, but there's no guarantee
+// what state the last handler left them in, so just set them all.
+// For most, it will be sufficient to set them to defaults, using
+// a line like this one. Some may want to override some after that,
+// and others may want to set them all directly on entry.
+
+//exec ("anim/"+self.GuyType+"_inithandler.scr")
+waitexec "anim/default_inithandler.scr"
+
+// Do any handler-specific local initialization here
+
+// temp value to signal a reload. Value is reset after reload.
+local.BulletsLeft = 20
+
+// Most handlers will run until externally killed. These will need
+// a while(1) structure for this.
+
+while(1)
+{
+
+	// select a random range of shots to take before doing something
+	// interesting. In this case, let's make it 3 to 5.
+	local.IamGoingToShotThisManyTimes = randomint(3) + 3
+
+	for ( local.i = 0; local.i < local.IamGoingToShotThisManyTimes; local.i++ )
+	{
+			self setactionanim ( self.weapontype + "_shoot" ) -60 60 
+			local.BulletsLeft--
+			self setmotionanim (self.weapongroup + "_stand_alert_legs") //( "crouch_" + self.weapontype )
+			self waittill upperanimdone
+	}
+
+	if ( randomint(100) < 50 )
+	{		
+			local.OldPain = self.painhandler
+			self.painhandler = anim/RightFallDownPainhandler.scr
+			self setmotionanim "walk_injured_right"
+			self setsynctime 0
+			self waittill flaggedanimdone
+			self.painhandler = local.OldPain
+	}
+	else
+	{
+			local.OldPain = self.painhandler
+			self.painhandler = anim/LeftFallDownPainhandler.scr
+			self setmotionanim "walk_injured_left"
+			self setsynctime 0
+			self waittill flaggedanimdone
+			self.painhandler = local.OldPain
+	}
+
+	if ( local.BulletsLeft <= 0 )
+	{
+			local.OldPain = self.painhandler
+			self.painhandler = NULL
+			self setmotionanim kar98_reload
+			self waittill flaggedanimdone
+			local.BulletsLeft = 20
+			self.painhandler = local.OldPain
+	}
+}
+
+end

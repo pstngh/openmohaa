@@ -1,0 +1,11 @@
+//------
+// Salute
+//------
+// This right now always plays a single salute animation; it should pick a salute based on gun.
+// Other actions beside salute could also be added here for disguise guys to do when they see you.
+
+println "salute.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+self setmotionanim FULLBODY_salute
+self waittill flaggedanimdone

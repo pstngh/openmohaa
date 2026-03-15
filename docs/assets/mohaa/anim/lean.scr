@@ -1,0 +1,132 @@
+// sleepy (or sleepiness) is 0-100
+
+//println "lean script enter"
+
+start local.sleepy local.pose:
+{
+	self.blendtime = 0.50
+
+	self waitexec anim/lean.scr::setpose local.pose
+
+	goto relax
+}
+end
+
+relax:
+{
+	println "relaxing.."
+
+	// relax a few times
+//	self waitexec anim/lean.scr::setpose local.pose
+	local.rand = (randomint 3) + 1
+	while(local.rand>0)
+		{
+		self setupperanim (relax)
+		self waittill upperanimdone
+		local.rand--
+		}
+
+	// fallin asleep?
+	local.rand = randomint 99
+	if (local.rand < local.sleepy)
+		{
+		goto sleep
+		}
+
+	goto getup
+}
+end
+
+getup:
+{
+	println "getup..."
+
+	switch(local.pose)
+		{
+		case 0:
+			self setmotionanim (getup_chairtostand)
+			break
+		case 1:
+			self setmotionanim (getup_sitwalltostand)
+			break
+		case 2:
+			self setmotionanim (getup_standwalltostand)
+			break
+		}
+
+	self waittill flaggedanimdone
+}
+end
+
+
+sleep:
+{
+	println "sleep..."
+
+//	self waitexec anim/lean.scr::setpose local.pose
+	self setupperanim (relaxtosleep)
+	self waittill upperanimdone
+
+	// sleep a bit
+	local.rand = (randomint 3) + 1
+	while(local.rand>0)
+		{
+		self setupperanim (sleep)
+		self waittill upperanimdone
+		local.rand--
+		}
+
+	// half chance of getting up or relax
+	local.rand = randomint 100
+	if (local.rand<50)
+		{
+		goto getup
+		}
+	else
+		{
+		goto sleeptorelax
+		}
+}
+end
+
+
+sleeptorelax:
+{
+//	self waitexec anim/lean.scr::setpose local.pose
+	self setupperanim (sleeptorelax)
+	self waittill upperanimdone
+
+	local.rand = randomint 100
+	if (local.rand<50)
+		{
+		goto getup
+		}
+	else
+		{
+		goto relax
+		}
+}
+end
+
+
+
+setpose local.pose:
+{
+	println "setpose:"
+	println local.pose
+
+	switch(local.pose)
+		{
+		case 0:
+			self setanim (lean_chair_legs)
+			break
+		case 1:
+			self setanim (lean_sitwall_legs)
+			break
+		case 2:
+			self setanim (lean_standwall_legs)
+			local.sleepy = 0
+			break
+		}
+}
+

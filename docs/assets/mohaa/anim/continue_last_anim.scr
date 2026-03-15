@@ -1,0 +1,6 @@
+// an animation, once specified, plays until a different animation is specified
+// some scripted animations need to continue running after they technically terminate rather than looping,
+// so they will switch to this anim script instead of repeating the LD-specified anim script.  This will
+// continue the last frame of a non-looping animation, or will continually loop a looping animation.
+
+pause

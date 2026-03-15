@@ -1,0 +1,73 @@
+//------
+// disguise_papers.scr
+//------
+
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+//centerprint "Dude, you got any papers?"
+
+self lookat self.enemy
+
+self.blendtime = 0.3
+//self setmotionanim (self.weapongroup + "_stand_alert_legs")
+thread playidleanim
+local.legsanimthread = parm.previousthread
+
+self setupperanim ("den_actor_ask_" + self.voicetype)
+self waittill upperanimdone
+
+thread playwaitface
+local.waitfacethread = parm.previousthread
+wait 3
+local.waitfacethread end
+
+//centerprint "C'mon, help me out here."
+
+self lookat self.enemy
+
+self.blendtime = 0.3
+local.legsanimthread end	// Stop the idle legs pose so we can assume a more aggressive one
+self setmotionanim (self.weapongroup + "_stand_alert_legs")
+self setupperanim ("den_actor_suspicion_" + self.voicetype)
+self waittill upperanimdone
+
+//centerprint "I'm waiting for awhile..."
+thread playwaitface
+local.waitfacethread = parm.previousthread
+wait 3
+local.waitfacethread end
+
+self lookat self.enemy
+self.blendtime = 0.3
+self setmotionanim ("den_fullbody_interrogate_" + self.voicetype)
+self waittill flaggedanimdone
+
+thread playwaitface
+thread playaggressivewaitanim
+wait 4
+
+//centerprint "Warning: disguise_papers.scr has ended."
+
+end
+
+
+
+playidleanim:
+//println "Playing leg idle for disguise response"
+self setmotionanim "generic_stand_bored_a"
+self waittill flaggedanimdone
+goto playidleanim
+end
+
+playaggressivewaitanim:
+println "Im aiming at you now, since I'm really, really suspicious of you"
+self setmotionanim (self.weapongroup + "_stand_alert_legs")
+self setupperanim (self.weapongroup + "_aim")
+end
+
+playwaitface:
+self waitexec anim/SayManager.scr::SayManager head_idle_interrogate 4
+//self waittill saydone
+goto playwaitface
+end

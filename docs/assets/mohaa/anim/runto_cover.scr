@@ -1,0 +1,157 @@
+
+//=================================================
+//=================================================
+start:
+	//Println "Running runto_cover.scr with move dir" self.movedir
+	//waitexec anim/default_inithandler.scr
+	//waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	//***Hey Boon, I'll skip the dive for cover behavior for now 'till you fix it.
+	while (1)
+	{
+		waitexec anim/runto_inopen.scr
+	}
+
+	self weaponcommand mainhand attachtohand mainhand
+	
+	// This toggles debug printing on and off for this script.
+	group.debug = 0
+	thread DPrintln "Entering runto_cover.scr"
+
+	group.rundistance = 140
+	group.divedistance = 238.4
+
+	thread PlayRunAnimation
+	group.runAnimationThread = parm.previousthread
+
+	local.dived = waitthread MonitorForDive
+	
+	if (local.dived)
+	{
+		end	// If we dived, we're done.
+	}
+
+	pause	// This thread isn't actually meant to terminate if he's running.  If local.dived == 0, then he's running.
+end
+
+
+//=================================================
+// PlayRunAnimation calls a standard running script with a waitexec.  It's done from a seperate thread like this to 
+// keep all threads in the same threadgroup, so that they will all end together if the group is terminated.
+PlayRunAnimation:
+	waitexec anim/runto_inopen.scr
+end
+
+//=================================================
+// MonitorForDive watches the distance remaining and tries to find a good time to play an ending animation such as a 
+// dive.
+MonitorForDive:
+
+	// Abort if we're so close we'll never be able to dive
+	if ( (self.pathdist < group.divedistance) && (self.pathdist < group.rundistance) )
+	{
+		thread DPrintln "Distance of " self.pathdist " is too small, no diving for me."
+		end 0
+	}
+
+
+	// Now wait until we have a straight run for the target
+	thread DPrint "Waiting to get a straight run."
+	while(!self.hascompletelookahead)
+	{
+		thread DPrint "."
+		wait 0.25	// This number is fairly arbitrary, I just didn't want to check every single frame.
+	}
+	thread DPrintln
+
+	// Now decide what we want to do at the end
+	thread DPrintln "I have a straight run, deciding what to do next."
+	waitframe
+	if ( ( self.pathdist > (300 + randomint 300) ) || ( self.pathdist < group.divedistance && self.pathdist > group.rundistance ) )
+	{
+		thread DPrintln "Distance of " self.pathdist ".  Decided to run/crouch."
+		local.endAnim = ( self.weapongroup + "_standtocrouch_run" )
+		local.endDist = group.rundistance
+	}
+	else if ( self.pathdist > group.divedistance )
+	{
+		thread DPrintln "Distance of " self.pathdist ".  Decided to dive."
+		local.endAnim = ( self.weapongroup + "_standtocrouch_dive" )
+		local.endDist = group.divedistance
+	}
+	else
+	{
+		thread DPrintln "Distance of " self.pathdist " is too small, no diving for me."
+		end 0
+	}
+
+
+	// Now wait for my moment
+	local.speed = vector_length( self.velocity )
+	thread DPrint "Waiting for a good distance"
+	while ( self.pathdist > (local.endDist + 0.25*local.speed) )
+	{
+		thread DPrint "."
+		wait 0.25	// 0.25 seconds, to correspond with the 0.25*local.speed in the if check.
+		local.speed = vector_length( self.velocity )
+	}
+	thread DPrintln
+	thread DPrint "Almost got the right distance"
+	while ( self.pathdist > local.endDist )
+	{
+		thread DPrint "."
+		waitframe
+		// Assume that velocity won't change much in these few frames
+	}
+	thread DPrintln
+
+	thread DPrintln "Geronimo!"
+	group.runAnimationThread end
+
+	self setMotionAnim local.endAnim
+	self waittill flaggedanimdone
+	self.position = crouch
+
+end 1
+
+
+
+//=================================================
+// thread DPrintln - for debug prints
+DPrintln local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 1 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrint local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 0 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrintorPrintln local.newline local.text1 local.text2 local.text3 local.text4 local.text5:
+	if (group.debug == 1)
+	{
+		if (local.text1 != NIL)
+		{
+			print local.text1
+			if (local.text2 != NIL)
+			{
+				print local.text2
+				if (local.text3 != NIL)
+				{
+					print local.text3
+					if (local.text4 != NIL)
+					{
+						print local.text4
+						if (local.text5 != NIL)
+						{
+							print local.text5
+						}
+					}
+				}
+			}
+		}
+		if (local.newline == 1)
+		{
+			println
+		}
+	}
+end

@@ -1,0 +1,11 @@
+
+
+//=================================================
+//=================================================
+start:
+	//println "Running to alarm with move dir " self.movedir
+	//waitexec anim/default_inithandler.scr
+	//waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	self waitexec anim/runto_inopen.scr
+end

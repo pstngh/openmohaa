@@ -1,0 +1,55 @@
+// ==================
+// New Patrol Handler
+// ==================
+
+//exec ("anim/"+self.GuyType+"_inithandler.scr")
+waitexec "anim/default_inithandler.scr"
+
+// Do any handler-specific local initialization here
+local.cycles = 10
+
+// Many handlers will run until externally killed. These will need
+// a while(1) structure for this.
+
+while(1)
+{
+	local.walktime = randomint(3) + 3
+
+	for ( local.i = 0; local.i < local.walktime; local.i++ )
+	{
+			local.cycles--
+			self setmotionanim rifle_walk_patrol_forward
+			self waittill flaggedanimdone
+	}
+
+	if ( randomint(100) < 50 )
+	{		
+			local.OldPain = self.painhandler
+			self.painhandler = anim/RightFallDownPainhandler.scr
+			self setmotionanim "walk_injured_right"
+			self setsynctime 0
+			self waittill flaggedanimdone
+			self.painhandler = local.OldPain
+	}
+	else
+	{
+			local.OldPain = self.painhandler
+			self.painhandler = anim/LeftFallDownPainhandler.scr
+			self setmotionanim "walk_injured_left"
+			self setsynctime 0
+			self waittill flaggedanimdone
+			self.painhandler = local.OldPain
+	}
+
+	if ( local.cycles <= 0 )
+	{
+			local.OldPain = self.painhandler
+			self.painhandler = NULL
+			self setmotionanim kar98_reload
+			self waittill flaggedanimdone
+			local.cycles = 10
+			self.painhandler = local.OldPain
+	}
+}
+
+end

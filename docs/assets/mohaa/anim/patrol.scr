@@ -1,0 +1,85 @@
+//------
+// Patrol
+//------
+// This is just a copy of the walk script. It needs to be altered to provide proper
+// patrolling behaviour, like looking around and stuff.
+
+//println "patrol.scr"
+
+
+//===================================================================================
+PatrolMain:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeCigaretteInit
+
+	while (1)
+	{
+		waitexec anim/smoking.scr::SmokeCigarette
+		
+		/////waitthread anim/patrol.scr::PatrolWalkOneCycle
+
+		// Patrol 3-6 cycles so we don't smoke every second.
+		local.numcycles = (randomint 4) + 3
+		for (local.i=0 ; local.i < local.numcycles ; local.i += 1)
+		{
+			waitexec anim/patrol.scr::PatrolWalkOneCycle
+		}
+	}
+
+end
+
+
+//===================================================================================
+PatrolWalkOneCycle:
+	self.blendtime = 0.5
+	if (self.ground == water)
+	{
+		self setmotionanim walk_rifle_water
+		self waittill flaggedanimdone
+	}
+	else if (self.normal_health < 60)
+	{
+		//self setmotionanim walk_injured
+		//self waittill flaggedanimdone
+		if (self.movedir != (0 0 0))
+		{
+			//println "Patrol.scr using injured motion blend with movedir: " self.movedir
+			local.stepdonetime = level.time + 2	// Let's arbitrarily decide that a step is two seconds.
+			while (level.time < local.stepdonetime)
+			{
+				waitexec anim/motionblend.scr::PlayAnim "walk_injured_"
+			}
+		}
+		else
+		{
+			//println "Patrol.scr with **NO** motion blend"
+			self setmotionanim walk_injured_forward
+			self waittill flaggedanimdone
+		}
+	}
+	else
+	{
+		//println "Default walk - walk with gun down"
+		//self setmotionanim (self.weapongroup + "_walk_patrol_forward") 
+		
+		if (self.movedir != (0 0 0))
+		{
+			//println "Patrol.scr using motion blend with movedir: " self.movedir
+			// motionblend.scr only lasts 0.2 seconds!  We can't treat one execution of that as a full step!
+			//waitexec anim/motionblend.scr::PlayAnim (self.weapongroup + "_walk_patrol_")
+			local.stepdonetime = level.time + 2	// Let's arbitrarily decide that a step is two seconds.
+			while (level.time < local.stepdonetime)
+			{
+				waitexec anim/motionblend.scr::PlayAnim (self.weapongroup + "_walk_patrol_")
+			}
+		}
+		else
+		{
+			//println "Patrol.scr with **NO** motion blend"
+			self setmotionanim (self.weapongroup + "_walk_patrol_forward")
+			self waittill flaggedanimdone
+		}
+	}
+	self.position = walk
+end

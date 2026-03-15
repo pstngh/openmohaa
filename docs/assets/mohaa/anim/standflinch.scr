@@ -1,0 +1,49 @@
+//-------
+// standshock.scr
+//-------
+
+Start:
+	//println "Entering standshock.scr"
+	waitexec "anim/default_inithandler.scr"
+
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+//	println "WTF was that!?"
+	if (self.team == "german")
+	{
+		self thread anim/SayManager.scr::SayManager ("den_morphonly_panic_" + self.voicetype) 5
+	}
+	else
+	{
+		self thread anim/SayManager.scr::SayManager ("dfr_morphonly_panic_" + self.voicetype) 5
+	}
+
+	self.blendtime = 0.25
+
+	//need to take into account current position here... will do it later...
+	
+	switch (self.weapongroup)
+	{
+		rifle:
+		mp40:
+		mp44:
+		bar:
+		thompson:
+		pistol:
+		unarmed:
+		bazooka:
+//			self setmotionanim (self.weapongroup + "_stand_shock")
+			self setupperanim (self.weapongroup + "_stand_shock")
+			self waittill upperanimdone
+			break
+
+		default:
+			// EARL: anim scripts are not allowed to terminate immediately, so just wait a single frame
+			// during this time it will continue to play whatever animations were previously active,
+			// which will usually be a looping idle
+			waitframe
+			break
+	}
+
+end

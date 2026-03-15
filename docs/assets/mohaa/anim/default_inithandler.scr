@@ -1,0 +1,19 @@
+// default_inithandler.scr
+// sets an AI's handlers to their default states
+
+
+if (self.weapongroup == bazooka || self.nolongpain == 1)
+{
+	self.painhandler = anim/painhit.scr::PainHitMain
+}
+else
+{
+	self.painhandler = anim/pain.scr
+}
+
+self.deathhandler = anim/killed.scr
+//self.hipshootdistance = 250
+self.hipshootdistance = 0 
+self.reallyshortrange = 85
+
+//waitexec anim/smoking.scr::SmokeRemoveCigarette

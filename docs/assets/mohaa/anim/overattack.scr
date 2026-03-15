@@ -1,0 +1,141 @@
+//-----
+// Overattack.scr
+//-----
+// Script for attacking over an obstacle/cover
+
+//println "overattack.scr called"
+
+overattack:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	waitexec anim/reload.scr::ReloadInit
+
+	self.painhandler = anim/overattack.scr::overattackpain
+//	self.deathhandler = anim/overattack.scr::overattackdeath
+	self.blendtime = 0.50
+	local.curpos = self.origin
+
+
+	if (self.position != crouch)
+		{
+		self setmotionanim (self.weapongroup + "_crate_standtocrouch")
+		self waittill flaggedanimdone
+		self.position = crouch
+		}
+
+	// enter when crouching
+	while(1)
+		{
+		// alert here..
+		self setmotionanim (self.weapongroup + "_crate_alert")
+		local.randnum = randomint 1
+		wait local.randnum
+
+		// Taunt the enemy
+		local.randnum = randomint 100
+		if (local.randnum<50)
+		{
+//			println "taunting from behind a crate"
+			self exec anim/say_taunt.scr
+		}
+
+		local.randnum = (randomint 2) + 1
+		wait local.randnum
+
+
+		local.randnum = randomint 100
+		if (local.randnum>50)
+			{
+			switch (self.weapongroup)
+				{
+				case mp40:
+				case mp44:
+					if (self.roundsinclip > 0)
+						{
+						//unload the whole clip to the target
+						self setmotionanim (self.weapongroup + "_crate_blindfire_intro")
+						self waittill flaggedanimdone
+						while (self.roundsinclip > 0)
+							{
+							self.origin = local.curpos
+							self setmotionanim (self.weapongroup + "_crate_blindfire")
+							self waittill flaggedanimdone
+							self.roundsinclip = self.roundsinclip - 7
+							}
+						self.origin = local.curpos
+						self setmotionanim (self.weapongroup + "_crate_blindfire_outtro")
+						self waittill flaggedanimdone
+						self.origin = local.curpos
+						waitexec anim/reload.scr::Reload 1 0
+						}
+						else
+						{
+						self.origin = local.curpos
+						waitexec anim/reload.scr::Reload 1 0
+						}
+					break
+				default:
+					self setmotionanim (self.weapongroup + "_crate_blindfire")
+					self waittill flaggedanimdone
+					self.origin = local.curpos
+					waitexec anim/reload.scr::Reload 1 0
+					break
+				}
+			}
+		else
+			{
+			self setmotionanim (self.weapongroup + "_crate_crouchtostand")
+			self waittill flaggedanimdone
+
+			// can we see enemy
+			if (self.enemy)
+				{
+				local.enemyseen = self cansee self.enemy
+				}
+			else
+				{
+				local.enemyseen = 0
+				}
+
+			// standing fire at enemy
+			//if (local.enemyseen)
+				//{
+				local.rand = randomint 2 + 1
+				while(local.rand>0)
+					{
+					self setmotionanim (self.weapongroup + "_crate_shoot")
+					self waittill flaggedanimdone
+					local.rand--
+					self.origin = local.curpos
+					waitexec anim/Reload.scr::CheckForCornerReload
+					if (self.needreload == 1)
+						{
+							break
+						}
+					}
+				//}
+
+			self setmotionanim (self.weapongroup + "_crate_standtocrouch")
+			self waittill flaggedanimdone
+			waitexec anim/reload.scr::Reload 1 0
+			}
+		}
+end
+
+/////////////////////
+
+overattackpain:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	self setmotionanim (self.weapongroup + "_crate_pain")
+	self waittill flaggedanimdone
+end
+
+////////////////////
+
+overattackdeath:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	self setmotionanim (self.weapongroup + "_crate_death")
+	self waittill flaggedanimdone
+	self.position = "dead"
+end

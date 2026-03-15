@@ -1,0 +1,206 @@
+//--------
+// Crouch
+//--------
+// Called when the character has to crouch.  Check to see if it's doing anything else 
+// and play the appropriate animation to make it crouch.
+//println "Entering crouch.scr"
+
+waitexec anim/default_inithandler.scr
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+		// Play an animation to make him crouch down
+		// For now let's just go straight to the crouch animation - if it looks like 
+		// it needs a transition, we can make one later.
+		
+		self.blendtime = 0.5	// Use crossblend instead of a real transition animation
+		
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			bazooka:
+			grenade:
+				self setmotionanim (self.weapongroup + "_crouch_alert")
+				break
+
+			unarmed:
+				self setmotionanim unarmed_crouch_alert
+				break
+			
+			default:
+				println "^~^~^ Stand -> Crouch/Default Case for " self.weapongroup " - fix crouch.scr"
+				self setmotionanim rifle_crouch_alert
+				break
+		}
+		//self waittill flaggedanimdone
+		// Wait the crossblend time to get down properly.  Set the position halfway through since we can.
+		wait 0.25 
+		self.position = crouch
+		wait 0.25 
+		break
+
+	crouch:
+	crouchwalk:
+	crouchrun:
+		switch (self.weapongroup)
+		{
+			pistol:
+				self setmotionanim pistol_crouch_alert
+				break
+
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			bazooka:
+			rifle:
+				//println "Crouch Idle/With Rifle"
+				if (self.ground == beach)
+				{
+					self setmotionanim crouch_beach_idle
+				}
+				else
+				{
+					// Need a good animation for this...
+					self setmotionanim (self.weapongroup + "_crouch_alert")
+				}
+				break
+
+			grenade:
+				println "Crouch idle with Grenade!  Should never happen!  Aaargh!"
+				self setmotionanim rifle_crouch_alert
+				break
+
+			unarmed:
+				self setmotionanim unarmed_crouch_alert
+				break
+			
+			default:
+				println ("^~^~^ Crouch Idle/Default case for "+self.weapongroup+" weapon group - fix crouch.scr")
+				self setmotionanim rifle_crouch_alert
+				break
+		}
+		self waittill flaggedanimdone
+		self.position = crouch
+		break
+
+	prone:
+	pronewalk:
+		// Play an animation to make him get up to a crouch
+		self.blendtime = 0.5
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+				self setmotionanim (self.weapongroup + "_pronetocrouch")
+				break
+
+			unarmed:
+				self setmotionanim pistol_pronetocrouch
+				break
+
+			bazooka:
+				//no bazooka anim for this use rifle instead
+				self setmotionanim rifle_crouch_alert
+				break
+
+			default:
+				println "^~^~^ Prone -> Crouch/Default Case for " self.weapongroup "(shouldn't happen (crouch.scr))"
+				self setmotionanim (rifle_pronetocrouch)
+				break
+		}
+
+		self waittill flaggedanimdone		
+		self.position = crouch
+		break
+
+	floor:
+	crawl:
+	knees:
+	default:
+		// I think I handled every case, so this is an error case
+		println "^~^~^ Crouch default case for position " self.position " - fix crouch.scr"
+		self setmotionanim rifle_crouch_alert
+		self waittill flaggedanimdone
+		self.position = crouch
+		break
+}
+end
+
+//======================================================================
+//======================================================================
+
+// allowed terminate immediately
+transition:
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+	crouch:
+	crouchwalk:
+	crouchrun:
+		self.position = crouch
+		break // can crossblend directly from these
+
+	prone:
+	pronewalk:
+		// Play an animation to make him get up to a crouch
+		self.blendtime = 0.5
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+				self setmotionanim (self.weapongroup + "_pronetocrouch")
+				break
+
+			bazooka:
+				//no bazooka anim for this use rifle instead
+				self setmotionanim rifle_crouch_alert
+				break
+
+			unarmed:
+				//no unarmed anim for this use pistol instead
+				self setmotionanim pistol_crouch_alert
+				break
+
+			default:
+				println "^~^~^ Prone -> Crouch transition /Default Case for " self.weapongroup "(shouldn't happen (crouch.scr))"
+				self setmotionanim (rifle_pronetocrouch)
+				break
+		}
+
+		self waittill flaggedanimdone		
+		self.position = crouch
+		break
+
+	floor:
+	crawl:
+	knees:
+	default:
+		// I think I handled every case, so this is an error case
+		println "^~^~^ Crouch transition default case for position " self.position " - fix crouch.scr"
+		self setmotionanim rifle_crouch_alert
+		self waittill flaggedanimdone
+		self.position = crouch
+		break // can crossblend directly from these
+}
+
+end

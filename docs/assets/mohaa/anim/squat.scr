@@ -1,0 +1,69 @@
+//------
+// Squat
+//------
+// A special animation where the guy squats down like he's relaxing or talking to his 
+// buddies (who would also have to be squatting).
+
+
+//======================================================================
+start:
+	//println "Entering idle.scr"
+	//println "Called Idle.scr with position " self.position " mood " self.mood
+
+	waitexec "anim/default_inithandler.scr"
+
+	self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+	switch (self.position)
+	{
+		prone:
+		pronewalk:
+			self waitexec anim/crouch.scr
+			// Now go on to the crouch case
+		crouch:
+		crouchwalk:
+		crouchrun:
+		stand:
+		walk:
+		run:
+			self setmotionanim unarmed_squat_intro
+			self waittill flaggedanimdone
+			self.position = crouch
+			while (1)
+			{
+				self setmotionanim unarmed_squat
+				self waittill flaggedanimdone	
+				if (self.getup == 1)
+				{
+					self.getup = NIL
+					goto getup
+				}			
+			}
+			break
+
+		dead:
+			println "^~^~^ Dead guy trying to squat."
+			break
+		knees:
+		crawl:
+		floor:
+			// Oh my goodness I'm in agony!  Try to stand up, see if your legs will hold
+			// you.  (My first aid instructor always said that you should stay down so
+			// you didn't lose bloodflow to the brain and faint or worse.  These guys are
+			// more gung-ho than me I guess.)
+			waitexec anim/continue_pain.scr
+			goto start
+
+		default:
+			println ("^~^~^ Squat Default case for "+self.position+" position - fix squat.scr")
+			break
+	}
+end
+
+//======================================================================
+getup:
+	waitexec "anim/default_inithandler.scr"
+	self setmotionanim unarmed_squat_outtro
+	self waittill flaggedanimdone
+	self.position = stand
+end

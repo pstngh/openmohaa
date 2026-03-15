@@ -1,0 +1,40 @@
+//-------
+// standshock.scr
+//-------
+
+Start:
+	//println "Entering standshock.scr"
+	waitexec "anim/default_inithandler.scr"
+
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+//	println "Geez, you scared the crap out of me!"
+	if (self.team == "german")
+	{
+		self thread anim/SayManager.scr::SayManager ("den_morphonly_panic_" + self.voicetype) 5
+	}
+	else
+	{
+		self thread anim/SayManager.scr::SayManager ("dfr_morphonly_panic_" + self.voicetype) 5
+	}
+
+	self.blendtime = 0.25
+
+	//need to take into account current position here... will do it later...
+	
+	switch (self.weapongroup)
+	{
+		bazooka:
+			self setmotionanim (rifle_stand_alert_legs)
+			self setupperanim (bazooka_stand_alert)
+			self waittill upperanimdone
+			break
+
+		default:
+			self setmotionanim (self.weapongroup + "_stand_shock")
+			self waittill flaggedanimdone
+			break
+	}
+
+end

@@ -1,0 +1,4 @@
+self.painhandler = anim/pain_mg42.scr::PainOnMG42
+
+self setaimmotionanim MG42_crouch_reload MG42_stand_reload MG42_stand_reload
+self waittill flaggedanimdone

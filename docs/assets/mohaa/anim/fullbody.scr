@@ -1,0 +1,10 @@
+if (self isloopinganim self.animname)
+{
+	self setmotionanim self.animname
+	pause
+}
+else
+{
+	self setmotionanim self.animname
+	self waittill flaggedanimdone
+}

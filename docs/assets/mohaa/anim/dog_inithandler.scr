@@ -1,0 +1,6 @@
+// dog_inithandler.scr
+
+self.painhandler = anim/dog_pain.scr
+
+self.deathhandler = anim/dog_killed.scr
+

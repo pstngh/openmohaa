@@ -1,0 +1,11 @@
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+self.painhandler = anim/pain_mg42.scr::PainOnMG42
+
+idle_loop:
+self setaimmotionanim MG42_crouch_idle MG42_stand_idle MG42_high_idle
+self waittill flaggedanimdone
+goto idle_loop

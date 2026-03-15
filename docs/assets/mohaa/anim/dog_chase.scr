@@ -1,0 +1,21 @@
+//------
+// Dog Chase
+//------
+
+waitexec "anim/dog_inithandler.scr"
+
+//======================================================================
+ChaseMain:
+
+//chase enemy
+self setmotionanim dog_run
+self waittill flaggedanimdone
+
+goto ChaseMain
+end
+
+
+
+
+
+//======================================================================

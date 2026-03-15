@@ -1,0 +1,3 @@
+self.blendtime = 0.05
+self setmotionanim working_hammering
+self waittill flaggedanimdone

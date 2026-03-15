@@ -1,0 +1,24 @@
+//------
+// disguise_wait.scr
+//------
+
+//centerprint "I'm waiting to see if you're for real."
+
+self lookat self.enemy
+
+self.blendtime = 0.50
+//self setmotionanim (self.weapongroup + "_stand_alert_legs")
+thread playidleanim
+
+self lookat self.enemy
+wait 4
+
+//centerprint "Warning: disguise_wait.scr has ended."
+
+end
+
+
+playidleanim:
+waitthread anim/disguise_papers.scr::playidleanim
+end
+

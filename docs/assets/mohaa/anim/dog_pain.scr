@@ -1,0 +1,83 @@
+// dog_pain.scr
+
+// Location values:
+// -2 false positive: should return a miss
+// -1 General
+// 0  head
+// 1  helmet
+// 2  neck
+// 3  upper torso
+// 4  middle torso
+// 5  lower torso
+// 6  pelvis
+// 7  right upper arm
+// 8  left upper arm
+// 9  right upper leg
+// 10 left upper leg
+// 11 right lower arm
+// 12 left lower arm
+// 13 right lower leg
+// 14 left lower leg
+// 15 right hand
+// 16 left hand
+// 17 right foot
+// 18 left foot
+
+local.yaw = self GetLocalYawFromVector self.fact.direction
+self.blendtime = 0.3
+
+local.randnum = randomint 100
+switch(self.fact.location)
+{
+// headshot
+case 0: // head
+case 1: // helmet (head)
+case 2: // neck
+//	println "headshot"
+	self setmotionanim dog_pain_head
+	break
+
+// Stand Straight
+case 3: // upper torso
+case 4: // middle torso
+case 5: // lower torso
+case 6: // pelvis
+//	println "body"
+	self setmotionanim dog_pain_front
+	break
+
+// Stand Knees
+case 9: // right upper leg
+case 13: // right lower leg
+case 17: // right foot
+case 10: // left upper leg
+case 14: // left lower leg
+case 18: // left foot
+//	println "legs"
+	self setmotionanim dog_pain_back
+	break
+
+// Stand Left
+case 8: // left upper arm
+case 12: // left lower arm
+case 16: // left hand
+//	println "what's this?"
+	self setmotionanim dog_pain_back
+	break
+
+// Stand Right
+case 7: // right upper arm
+case 11: // right lower arm
+case 15: // right hand
+//	println "and what's this?"
+	self setmotionanim dog_pain_front
+	break
+
+default:
+//	println "dog pain in unknown location " self.fact.location "."
+	self setmotionanim dog_pain_head
+	break
+}
+
+self waittill flaggedanimdone
+end

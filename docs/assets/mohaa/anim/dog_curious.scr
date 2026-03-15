@@ -1,0 +1,27 @@
+//------
+// Dog Curious
+//------
+
+//======================================================================
+//======================================================================
+CuriousMain:
+
+	waitexec "anim/dog_inithandler.scr"
+
+	self setmotionanim dog_stand_curious
+	self waittill flaggedanimdone
+
+	self.blendtime = 0.25
+	self setmotionanim dog_bark
+	self waittill flaggedanimdone
+
+	self.blendtime = 0.25
+	self setmotionanim dog_bark
+	self waittill flaggedanimdone
+
+	self.blendtime = 0.25
+	self setmotionanim dog_bark
+	self waittill flaggedanimdone
+
+	goto CuriousMain
+end

@@ -1,0 +1,187 @@
+
+//println "prone.scr"
+
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+start:
+
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+				self.blendtime = 0.5
+				self setmotionanim (self.weapongroup + "_crouch_alert")
+				wait self.blendtime
+
+				self.position = crouch
+				self.weaponpos = up
+
+				self.blendtime = 0.1
+				self setmotionanim (self.weapongroup + "_crouchtoprone")
+				self waittill flaggedanimdone
+				self.position = prone
+
+				if (self.ground == beach)
+				{
+					self.blendtime = 0.5
+					self setmotionanim shingle_idle
+					self waittill flaggedanimdone
+				}
+				else
+				{
+					self.blendtime = 0.1
+					self setupperanim (self.weapongroup + "_prone_aim")
+					self setmotionanim (self.weapongroup + "_prone_legs")
+					wait self.blendtime
+				}
+				break
+
+			unarmed:
+			bazooka:
+				self setmotionanim rifle_crouch_alert
+				//self waittill flaggedanimdone
+				wait 0.5
+				self.position = crouch
+				break
+
+			default:
+				self.position = prone
+				println "^~^~^ Prone stand default case for " self.weapongroup " - fix prone.scr"
+				break
+		}
+		goto start
+
+	crouch:
+	crouchwalk:
+	crouchrun:
+		// Play an animation to make him get down to prone
+		// (Would be cool if the run case involved diving...)
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+				self.weaponpos = up
+
+				self.blendtime = 0.25
+				self setmotionanim (self.weapongroup + "_crouchtoprone")
+				self waittill flaggedanimdone
+				self.position = prone
+
+				if (self.ground == beach)
+				{
+					self.blendtime = 0.50
+					self setmotionanim shingle_idle
+					wait self.blendtime
+				}
+				else
+				{
+					self.blendtime = 0.20
+					self setupperanim (self.weapongroup + "_prone_aim")
+					self setmotionanim (self.weapongroup + "_prone_legs")
+					wait self.blendtime
+				}
+				break
+
+			unarmed:
+			bazooka:
+				self setmotionanim rifle_crouch_alert
+				self waittill flaggedanimdone
+				break
+
+			default:
+				println "^~^~^ Crouch -> Prone/Default Case (shouldn't happen)"
+				break
+		}
+
+		self.position = prone
+		goto start
+
+	prone:
+	pronewalk:
+		switch (self.weapongroup)
+		{
+			pistol:
+			rifle:
+			mp40:
+			mp44:
+			bar:
+			thompson:
+			grenade:
+				//println "Prone/Hold Rifle or SMG"
+				//println self.ground
+				if (self.ground == beach)
+				{
+					self setmotionanim (shingle_idle)
+					self waittill flaggedanimdone
+				}
+				else if (self.weaponpos == up)
+				{
+					self setupperanim (self.weapongroup + "_prone_aim")
+					self setmotionanim (self.weapongroup + "_prone_legs")
+					wait self.blendtime
+				}
+				else
+				{
+					// Need a good animation for this...
+					self setupperanim (self.weapongroup + "_prone_aim")
+					self setmotionanim (self.weapongroup + "_prone_legs")
+					wait self.blendtime
+				}
+				self.position = prone
+				break
+
+			bazooka:
+				self setmotionanim rifle_crouch_alert
+				self waittill flaggedanimdone
+				self.position = crouch
+				break
+
+			unarmed:
+				if (self.ground == beach)
+				{
+					self setmotionanim (shingle_idle)
+					self waittill flaggedanimdone
+				}
+				else
+				{
+					self setmotionanim (self.weapongroup + "_prone_legs")
+					self waittill flaggedanimdone
+				}
+				break
+
+			default:
+				println ("^~^~^ Prone Idle/Default case for "+self.weapongroup+" weapon group - fix prone.scr")
+				self setupperanim (self.weapongroup + "_prone_aim")
+				self setmotionanim (rifle_prone_legs)
+				wait self.blendtime
+				self.position = prone
+				break
+		}
+		break
+
+	knees:
+	floor:
+	crawl:
+		// We're incapacitated, so we can't go prone.  If we can get to crouch then we can go
+		// prone from there.  Crouch handles all the niceties of making the pain look cool.
+		waitexec anim/crouch.scr::transition
+		goto start
+
+	default:
+		// I think I handled every case, so this is an error case
+		println "^~^~^ Unknown position in prone.scr, fix prone.scr"
+		break
+}

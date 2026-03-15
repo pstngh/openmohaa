@@ -1,0 +1,27 @@
+//------
+// Grenade toss
+//------
+
+
+
+//===================================================================================
+GrenadeThrow:
+	//println "grenadetoss.scr"
+	waitexec "anim/default_inithandler.scr"
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	//TODO: need to override pain and death handlers for dropping grenade
+	self.blendtime = 0.3
+	self setmotionanim grenade_pullout 
+	self waittill flaggedanimdone
+
+	self exec anim/say_grenade_thrown.scr
+
+	self.blendtime = 0.1	// This animation should blend perfectly with the previous one
+	self setmotionanim grenade_toss
+	self waittill flaggedanimdone
+
+	self.blendtime = 0.1	// This animation should blend perfectly with the previous one
+	self setmotionanim grenade_weapon_rearm
+	self waittill flaggedanimdone
+end

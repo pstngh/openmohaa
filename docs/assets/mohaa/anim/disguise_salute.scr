@@ -1,0 +1,26 @@
+//------
+// disguise_salute.scr
+//------
+
+//centerprint "I'm just supposed to salute you."
+
+self lookat self.enemy
+self.blendtime = 0.25
+switch (self.weapongroup)
+{
+	unarmed:
+	pistol:
+		self setmotionanim ("den_unarmed_fullbody_salute_" + self.voicetype)
+		break
+	default:
+		self setmotionanim ("den_rifle_fullbody_salute_" + self.voicetype)
+		break
+}
+self waittill flaggedanimdone
+
+self lookat self.enemy
+wait 5
+
+//centerprint "Thank you and have a good day."
+
+end
