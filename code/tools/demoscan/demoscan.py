@@ -1183,8 +1183,16 @@ def main():
             if weapons:
                 f.write("  Weapon(s): %s\n" % ", ".join(weapons))
             if grenade_count is not None:
-                mode = "realism" if grenade_count <= 3 else "default"
-                f.write("  Grenades: %d (%s)\n" % (grenade_count, mode))
+                # Spawn counts are either 3 (realism) or 6 (default).
+                # The observed max may be lower if recording started after
+                # some grenades were thrown, so infer the spawn count.
+                if grenade_count <= 3:
+                    spawn_count = 3
+                    mode = "realism"
+                else:
+                    spawn_count = 6
+                    mode = "default"
+                f.write("  Grenades: %d (%s)\n" % (spawn_count, mode))
             if args.verbose and scanner:
                 # Dump CS_WEAPONS configstrings
                 weapon_cs = {}
