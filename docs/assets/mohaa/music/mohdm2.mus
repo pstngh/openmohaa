@@ -1,0 +1,26 @@
+path sound/amb_stereo
+
+normal Amb_M5_TownExt_2.mp3 // Plays over entire level
+
+!normal volume 1
+!normal loop
+
+//Music Recommendation
+//mus_11a_surprise.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_M5_TownExt_2.mp3 // Player Start
+//aux1 Amb_M5_TownExt_2.mp3 // Exterior - bombed out town exterior
+//aux2 Amb_M5_TownInt.mp3 // Interior - bombed out town interior
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop
+//!aux2 volume .7
+//!aux2 loop
+
+
+
+
+
+

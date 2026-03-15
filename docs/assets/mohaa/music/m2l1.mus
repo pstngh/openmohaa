@@ -1,0 +1,20 @@
+path sound/amb_stereo
+
+normal Amb_M2_SnowExt.mp3 // Default
+aux1 Amb_M2_SnowExt.mp3 // Exterior 1 - this is for all exteriors
+aux2 Amb_M2_SnowInt.mp3 // Interior 1 - this is for the first set of interiors
+aux4 Amb_M2_SubFacility.mp3 // Interior 1 - this is for interiors at the end of the level
+
+
+!normal volume 1.2
+!normal loop
+
+!aux1 volume 1.2
+!aux1 loop
+
+!aux2 volume .5
+!aux2 loop
+
+!aux4 volume .5
+!aux4 loop
+

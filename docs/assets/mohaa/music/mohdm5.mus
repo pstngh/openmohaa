@@ -1,0 +1,23 @@
+path sound/amb_stereo 
+
+normal Amb_M6_ParkAreaExt.mp3 // Plays over entire level
+
+!normal volume 1
+!normal loop
+
+//Music Recommendation
+//mus_04a_suspense.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_M6_ParkAreaExt.mp3 // Player Start
+//aux1 Amb_M6_ParkAreaExt.mp3 // Exterior - calm trees outside of bunker
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop   
+
+
+
+
+
+

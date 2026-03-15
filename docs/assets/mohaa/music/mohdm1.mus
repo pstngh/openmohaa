@@ -1,0 +1,20 @@
+path sound/amb_stereo
+
+normal Amb_M4_CountryExt_01.mp3 // Plays over entire level
+
+!normal volume 0.8
+!normal loop
+
+//Music Recommendation
+//mus_15a_mystery.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_M4_CountryExt_03.mp3 // Player Start
+//aux1 Amb_M4_CountryExt_03.mp3 // Exterior - town exterior
+//aux2 Amb_M4_CountryInt_04.mp3 // Interior - building interiors
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop
+//!aux2 volume .7
+//!aux2 loop

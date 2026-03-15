@@ -1,0 +1,19 @@
+path sound/amb_stereo
+
+normal Amb_M2_SubFacility.mp3 // Player Start
+aux1 Amb_M2_SubpenInt02.mp3 // Exterior 1
+
+aux2 Amb_M2_SubFacility.mp3 // Interior 1 Facility
+aux4 Amb_M2_SubpenInt02.mp3 // Interior 2 Sub Pen
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1.2
+!aux1 loop
+
+!aux2 volume 1
+!aux2 loop
+
+!aux4 volume 1
+!aux4 loop

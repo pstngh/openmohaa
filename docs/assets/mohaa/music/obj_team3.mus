@@ -1,0 +1,7 @@
+path sound/amb_stereo
+
+normal Amb_M1_Bunker_02.mp3 // Plays over entire level
+
+!normal volume 1
+!normal loop
+

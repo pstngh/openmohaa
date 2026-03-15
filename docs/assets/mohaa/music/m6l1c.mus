@@ -1,0 +1,15 @@
+path sound/amb_stereo
+
+normal Amb_M6_WoodsExt_01.mp3 // Default
+
+aux1 Amb_M6_WoodsExt_01.mp3 // Exterior 1 - this is for all exteriors
+aux2 Amb_M6_FacilityInt.mp3 // Interior 1 - this is for all interiors
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop

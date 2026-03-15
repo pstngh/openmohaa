@@ -1,0 +1,19 @@
+path sound/amb_stereo
+
+normal Amb_M6_ParkAreaExt.mp3 // Default
+
+aux1 Amb_M6_ParkAreaExt.mp3 // Exterior 1 - this is for the exterior up to train station
+aux2 Amb_M6_BunkerInt_01.mp3 // Interior 1 - all interiors at the train station
+aux3 Amb_M6_TrainTrackExt.mp3 // Exterior 2 - train station exterior
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop

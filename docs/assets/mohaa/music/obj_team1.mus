@@ -1,0 +1,26 @@
+path sound/amb_stereo
+
+normal Amb_M5_TownExt_2.mp3 // Plays over entire level
+
+!normal volume 1
+!normal loop
+
+//Music Recommendation
+//mus_SniperTown_01a.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_M5_TownExt_2.mp3 // Player Start
+//aux1 Amb_M5_TownExt_2.mp3 // Exterior
+//aux2 Amb_M4_CountryInt_01.mp3 // Interior - town interior
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop   
+//!aux2 volume .7
+//!aux2 loop
+
+
+
+
+
+

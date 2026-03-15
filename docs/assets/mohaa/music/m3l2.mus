@@ -1,0 +1,31 @@
+path sound/amb_stereo
+
+normal Amb_M3_TownExt.mp3 // Default
+
+aux1 Amb_M3_TownExt.mp3 // Exterior 1 - surrounding the first house
+aux2 Amb_M3_TownInt_1.mp3 // Interior 1 - inside the first house
+aux3 Amb_M3_Trees.mp3 // Exterior 2 - surrounding the road
+aux4 Amb_M3_TownInt_1.mp3 // Interior 2 - inside second house, barn, and sniper silo
+
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.9
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop
+
+!aux4 volume 0.9
+!aux4 loop
+
+
+
+
+
+
+

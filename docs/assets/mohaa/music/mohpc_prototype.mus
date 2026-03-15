@@ -1,0 +1,6 @@
+path sound/MOHPC_prototype_music
+normal The_Jet_Aircraft_Facility.mp3
+
+
+!normal loop
+!normal volume .5

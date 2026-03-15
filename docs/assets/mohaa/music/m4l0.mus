@@ -1,0 +1,20 @@
+path sound/amb_stereo
+
+normal Amb_M4_CountryExt_01.mp3 // Default
+
+aux1 Amb_M4_CountryExt_01.mp3 // Exterior 1 - this is for all exteriors
+aux2 Amb_M4_CountryExt_01.mp3 // Interior 1 - this is for all interiors
+
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.6
+!aux2 loop
+
+
+
+

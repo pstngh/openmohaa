@@ -1,0 +1,23 @@
+path sound/amb_stereo
+
+normal Amb_M3_BattleInt_01.mp3 // Player Start - Inside First Large Bunker
+aux1 Amb_M3_TownExt.mp3 // Exterior 1 - Trench Area
+aux2 Amb_M3_BattleInt_01.mp3 // Interior 1 - Inside First Large Bunker
+aux3 Amb_M3_TownExt.mp3 // Exterior 2 - Mine Field area
+aux4 Amb_M3_TownInt_1.mp3 // Interior 2 - Inside other, smaller bunkers
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume .75
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop
+
+!aux4 volume .85
+!aux4 loop
+

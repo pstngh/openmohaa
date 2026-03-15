@@ -1,0 +1,19 @@
+path sound/amb_stereo
+
+normal Amb_M4_TrainTrackExt.mp3 // Default - player start
+aux1 Amb_M4_TrainTrackExt.mp3 // Exterior 1 - all exteriors
+aux2 Amb_M4_BunkerInt_01.wav // Interior 1 - all interiors
+
+!normal volume 1.2
+!normal loop
+
+!aux1 volume 1.2
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+
+
+
+

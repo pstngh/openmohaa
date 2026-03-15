@@ -1,0 +1,27 @@
+path sound/amb_stereo
+normal Amb_M5_TownExt_1.mp3 // Opening Ambience
+
+aux1 Amb_M5_TownExt_1.mp3 // Exterior 1 - this is for the beginning exterior
+aux2 Amb_M5_TownExt_1.mp3 // Interior 1 - this is for interiors near the beginning of level
+aux3 Amb_M5_Bridge.mp3 // Exterior 2 - this is near the bridge
+aux4 Amb_M5_Bridge.mp3 // Interior 2 - this is for the interiors near the bridge
+
+!normal loop
+!normal volume 1.2
+
+!aux1 loop
+!aux1 volume 1.2
+
+!aux2 loop
+!aux2 volume 0.9
+
+!aux3 loop
+!aux3 volume 1.5
+
+!aux4 loop
+!aux4 volume 1.2
+
+
+
+
+

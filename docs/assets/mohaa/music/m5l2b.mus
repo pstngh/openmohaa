@@ -1,0 +1,15 @@
+path sound/amb_stereo
+
+normal Amb_M5_Field.mp3 // Default
+
+aux1 Amb_M5_Field.mp3 // Exterior 1 - from start of level to the town
+aux3 Amb_M5_TownExt_1.mp3 // Exterior 2 - town exterior ambience
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux3 volume 1
+!aux3 loop

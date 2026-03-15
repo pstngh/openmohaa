@@ -1,0 +1,23 @@
+path sound/amb_stereo
+
+normal Amb_M4_CountryExt_03.mp3 // Player Start
+aux1 Amb_M4_CountryExt_03.mp3 // Exterior 1 - all exteriors
+aux2 Amb_M4_CountryExt_03.mp3 // Interior 1 - all interiors
+aux3 Amb_M4_CountryExt_03.mp3 // Exterior 2 - target range
+
+!normal volume 1.0
+!normal loop
+
+!aux1 volume 1.0
+!aux1 loop
+
+!aux2 volume .7
+!aux2 loop
+
+!aux3 volume .7
+!aux3 loop
+
+
+
+
+

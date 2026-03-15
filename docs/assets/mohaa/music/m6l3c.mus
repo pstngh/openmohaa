@@ -1,0 +1,15 @@
+path sound/amb_stereo
+
+normal Amb_M6_BunkerInt3.mp3 // Player Start
+
+aux1 Amb_M6_TrainTrackExt.mp3 // Exterior 1 - this is for when the player reaches the outside
+aux2 Amb_M6_BunkerInt3.mp3 // Interior 1 - this is for inside the Fort (majority of level)
+
+!normal volume 1.5
+!normal loop
+
+!aux1 volume 1.5
+!aux1 loop
+
+!aux2 volume 1.5
+!aux2 loop

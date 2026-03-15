@@ -1,0 +1,29 @@
+path sound/amb_stereo
+
+normal Amb_M5_BridgeInt.mp3 // Plays over entire level
+
+!normal volume 1
+!normal loop
+
+//Music Recommendation
+//mus_09a_action.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_M5_BridgeInt.mp3 // Player Start
+//aux1 Amb_M5_BridgeInt_04.mp3 // Exterior - bridge exterior
+//aux2 Amb_M4_CountryInt_02.mp3 // Interior - town interior
+//aux4 Amb_Mohdm4_Basement.wav // Interior - running water in basement
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop   
+//!aux2 volume .7
+//!aux2 loop
+//!aux4 volume .7
+//!aux4 loop
+
+
+
+
+
+

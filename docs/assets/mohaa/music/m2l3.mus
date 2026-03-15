@@ -1,0 +1,18 @@
+path sound/amb_stereo
+
+normal Amb_M2_VentInt.mp3 // Default - inside the vents at start of level
+aux1 Amb_M2_SnowBattleExt.mp3 // Exterior 1 - outside at train station
+aux2 Amb_M2_VentInt.mp3 // Interior 1 - inside the vents at start of level
+aux4 Amb_M2_SubFacility.mp3 // Interior 2 - main facility interior
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1.5
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+!aux4 volume 0.7
+!aux4 loop

@@ -1,0 +1,38 @@
+path sound/amb_stereo
+
+normal Amb_M6_TrainTrackExt.mp3 // Player Start
+
+aux1 Amb_M6_TrainTrackExt.mp3 // Exterior 1
+aux2 Amb_M6_FacilityInt.mp3 // Interior 1
+aux3 Amb_M6_TrainTrackExt.mp3 // Exterior 2
+aux4 Amb_M6_FacilityInt.mp3 // Interior 2
+aux5 Amb_M6_TrainTrackExt.mp3 // Exterior 3
+aux6 Amb_M6_FacilityInt.mp3 // Interior 3
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 1
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop
+
+!aux4 volume 1
+!aux4 loop
+
+!aux5 volume 1
+!aux5 loop
+
+!aux6 volume 1
+!aux6 loop
+
+
+
+
+
+
+

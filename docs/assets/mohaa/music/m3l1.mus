@@ -1,0 +1,21 @@
+path sound/amb_stereo
+
+aux1 Amb_M3_Higgins_02.mp3
+aux2 Amb_M3_Higgins_03.mp3
+aux3 Amb_M3_BattleBeach_01.mp3
+aux4 Amb_M3_BattleBeach_02.mp3
+aux5 Amb_M3_BattleInt_01.mp3
+
+
+!aux1 loop
+!aux1 volume .75
+!aux2 loop
+!aux2 volume .75
+!aux3 loop
+!aux3 volume .85
+!aux4 loop
+!aux4 volume .85
+!aux4 fadetime 5
+!aux5 loop
+!aux5 volume .8
+!aux5 fadetime 5

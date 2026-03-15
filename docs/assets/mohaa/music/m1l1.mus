@@ -1,0 +1,21 @@
+path sound/amb_stereo
+
+normal Amb_M1_TownExt.mp3 // Player Start
+aux1 Amb_M1_TownExt.mp3 // Exterior 1 - all exteriors
+aux2 Amb_M1_Interior_01.mp3 // Interior 1 - all interiors
+
+!normal volume 1.0
+!normal loop
+
+!aux1 volume 1.0
+!aux1 loop
+
+!aux2 volume .7
+!aux2 loop
+
+
+
+
+
+
+

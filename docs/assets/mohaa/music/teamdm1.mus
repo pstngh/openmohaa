@@ -1,0 +1,24 @@
+path sound/amb_stereo
+
+normal Amb_M1_TownExt.mp3 // Player Start
+
+aux1 Amb_M1_TownExt.mp3 // Exterior - ocean town
+aux2 Amb_M1_Interior_01.mp3 // Interior - town interior
+aux4 Amb_M6_BuildingInnerInt.mp3 // Interior - residential interior
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop   
+
+!aux2 volume .7
+!aux2 loop
+
+!aux4 volume .7
+!aux4 loop
+
+
+
+
+

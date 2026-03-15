@@ -1,0 +1,22 @@
+path sound/amb_stereo
+
+normal Amb_M1_WarehouseExt.mp3 // Default
+aux1 Amb_M1_WarehouseExt.mp3 // Exterior 1 - this is for the main exterior up to the residence
+aux2 Amb_M1_WarehouseExt.mp3 // Interior 1 - this is for the main interior sections
+aux3 Amb_M1_WarehouseExt.mp3 // Exterior 2 - this is for the cliffs after the residence
+aux4 Amb_M1_WarehouseExt.mp3 // Interior 2 - this is for the residence
+
+!normal volume 1.5
+!normal loop
+
+!aux1 volume 1.5
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+!aux3 volume 1.0
+!aux3 loop
+
+!aux4 volume 0.7
+!aux4 loop

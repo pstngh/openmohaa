@@ -1,0 +1,20 @@
+path sound/amb_stereo
+
+normal Amb_M3_Trees.mp3 // Default - surrounding the main road road
+
+aux1 Amb_M3_Trees.mp3 // Exterior 1 - surrounding the main road road
+aux2 Amb_M3_TownInt_1.mp3 // Interior 1 - all interiors
+aux3 Amb_M3_TownExt.mp3 // Exterior 2 - bombed out town area
+
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop

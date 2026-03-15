@@ -1,0 +1,19 @@
+path sound/amb_stereo
+
+normal Amb_M5_TownExt_1.mp3 // Default
+
+aux1 Amb_M5_TownExt_1.mp3 // Exterior 1 - this is for exterior, up to city hall
+aux2 Amb_M5_TownInt.mp3 // Interior 1 - this is for all interiors
+aux3 Amb_M5_Trees.mp3 // Exterior 2 - this is for outside city hall once the player has the tank
+
+!normal volume 1
+!normal loop
+
+!aux1 volume 1
+!aux1 loop
+
+!aux2 volume 0.7
+!aux2 loop
+
+!aux3 volume 1
+!aux3 loop

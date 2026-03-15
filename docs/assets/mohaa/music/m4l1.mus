@@ -1,0 +1,31 @@
+path sound/amb_stereo
+
+normal Amb_M4_CountryExt_03.mp3 // Default
+aux1 Amb_M4_CountryExt_03.mp3 // Exterior 1 - this is for all exteriors
+aux2 Amb_M4_CountryExt_03.mp3 // Interior 1 - this is for the residential interiors
+aux4 Amb_M4_ChurchInt_02.mp3 // Interior 2 - this is for the church interior
+aux6 Amb_M4_Basement_01.mp3 // Interior 3 - this is for the safehouse interior
+
+
+!normal volume 0.8
+!normal loop
+!normal fadetime 2
+
+!aux1 volume 0.8
+!aux1 loop
+!aux1 fadetime 2
+
+!aux2 volume 0.6
+!aux2 loop
+!aux2 fadetime 2
+
+!aux4 volume 0.8
+!aux4 loop
+!aux4 fadetime 2
+
+!aux6 volume 1.2
+!aux6 loop
+!aux6 fadetime 2
+
+
+

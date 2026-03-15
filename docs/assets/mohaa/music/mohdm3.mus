@@ -1,0 +1,26 @@
+path sound/amb_stereo
+
+normal Amb_M6_BuildingInnerInt.mp3 // Plays over entire level
+
+!normal volume 0.8
+!normal loop
+
+//Music Recommendation
+//mus_01a_suspense.mp3
+
+//Just in case we can get multiple ambiences working...
+//normal Amb_Mohdm6_Ext.mp3 // Default - player start
+//aux1 Amb_Mohdm6_Ext.mp3 // Exterior 1
+//aux2 Amb_M6_BuildingInnerInt.mp3 // Interior 1
+//!normal volume 1
+//!normal loop
+//!aux1 volume 1
+//!aux1 loop
+//!aux2 volume 0.7
+//!aux2 loop
+
+
+
+
+
+
