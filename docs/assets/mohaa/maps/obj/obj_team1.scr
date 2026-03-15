@@ -1,0 +1,307 @@
+// THE HUNT
+// ARCHITECTURE: NED/STEVE
+// SCRIPTING: NED and lots of help from ZIED
+
+main:
+
+
+	setcvar "g_obj_alliedtext1" "- Find and destroy" 
+	setcvar "g_obj_alliedtext2" "the Flak 88 cannon"
+	setcvar "g_obj_alliedtext3" ""
+
+	setcvar "g_obj_axistext1" "- Defend the Flak 88"
+	setcvar "g_obj_axistext2" "cannon"
+	setcvar "g_obj_axistext3" " "
+
+	setcvar "g_scoreboardpic" "objdm1"
+
+
+	//////////////////////////
+	level waittill prespawn
+	//////////////////////////
+
+	//*** Precache Dm Stuff
+	exec global/DMprecache.scr
+
+	level.script = maps/obj/obj_team1.scr
+	exec global/ambient.scr obj_team1
+
+	//////////////////////////
+	level waittill spawn
+	//////////////////////////
+
+	level.defusing_team = "axis"
+	level.planting_team = "allies"
+	level.targets_to_destroy = 1
+
+	// set the parameters for this round based match
+	level.dmrespawning = 0 // 1 or 0
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = axis // set to axis, allies, kills, or draw
+
+	//////////////////////////
+	level waittill roundstart
+	//////////////////////////
+
+
+
+//***********************************************
+// bomb planting setup
+//***********************************************
+
+	$flak88_weapon1_trigger thread flak88_random_setup $flak88_weapon1_explosive $flak88_weapon1 $flak88_target1 $flak88_base1 4
+	$flak88_weapon1_explosive thread global/obj_dm.scr::bomb_thinker
+	
+	thread allies_win_thread
+	$flak88_weapon1_explosive thread axis_win_timer
+
+/////////////////////////////////////
+///// objectives 
+
+//	waitthread global/objectives.scr::reset_objectives 
+//	waitthread global/objectives.scr::blank_objectives
+
+//	waitthread global/objectives.scr::add_objectives 1 2 "Find and destroy the Flak88" //$flak88_weapon1_trigger.origin
+//	wait 2
+//	waitthread global/objectives.scr::current_objectives 1
+
+
+
+
+end
+
+//*** --------------------------------------------
+
+almost_there1:
+	//called by BSP
+	 local.player = parm.other
+	 if ( (local.player.dmteam != "allies") || (level.perimeter_breached == 1) )
+		end
+		
+	 iprintlnbold "The Allies have breached the perimeter!"
+	 level.perimeter_breached = 1 
+end
+
+
+//*** --------------------------------------------
+
+allies_win_thread:
+	while(level.targets_destroyed < level.targets_to_destroy)
+		waitframe
+	
+	teamwin allies
+end
+
+//*** --------------------------------------------
+//*** "Axis Victory"
+//*** --------------------------------------------
+
+axis_win_timer:
+
+	level waittill axiswin
+
+end
+
+
+//*** --------------------------------------------
+
+flak88_random_setup local.explosive local.weapon local.point_at local.base local.number_of_locations:
+
+	local.location = ((randomint (local.number_of_locations)) + 1)
+
+	local.trigger_offset = self.origin - local.base.origin 
+	local.weapon_offset = local.weapon.origin - local.base.origin 
+	local.explosive_offset = local.explosive.origin - local.base.origin 
+	local.point_at_offset = local.point_at.origin - local.base.origin 
+
+	local.location = $("flak88_location" + local.location)
+	local.base.origin = local.location.origin
+
+
+	self.origin 		= local.trigger_offset 		+ local.base.origin 
+	local.weapon.origin 	= local.weapon_offset 		+ local.base.origin 
+	local.explosive.origin 	= local.explosive_offset 	+ local.base.origin 
+	local.point_at.origin 	= local.point_at_offset 	+ local.base.origin 
+
+	local.weapon setaimtarget local.point_at
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//***********************************************
+// first thread... controls allies using the trigger
+//***********************************************
+
+flak88_set_explosive_thinker local.bomb local.weapon:
+
+	local.bomb model items/pulse_explosive.tik
+
+while (1)
+{
+println "waittill trigger " self
+self waittill trigger
+
+	local.player = parm.other
+	//"local.player.dmteam", can be 'spectator', 'freeforall', 'allies' or 'axis'
+        if (local.player.dmteam !="allies") 
+	{
+		goto flak88_set_explosive_thinker local.bomb local.weapon
+	println "failed dmteam check" local.player.dmteam
+		
+	}
+	local.counter = 0
+
+	//add check for allies vs nazi
+	while ( (Isalive local.player) && (local.player cansee local.bomb level.bombusefov level.bomb_use_distance) && (local.player.useheld == 1) )
+	{
+		local.counter++
+if ((local.counter % 5) == 0)
+{
+level.subtitleX = 100
+level.subtitleY = 50
+locprint level.subtitleX level.subtitleY("set "+ local.counter)
+}
+		wait .1
+		if (local.counter >= level.bomb_set_time)
+		{
+			thread wait_for_axis local.bomb local.weapon
+			thread waittill_explode local.bomb local.weapon
+			local.bomb.live = 1
+			end
+		}
+	}
+	println "usetrigger but failed check" 
+	if ! (local.bomb cansee local.player level.bombusefov  level.bomb_use_distance) 
+		println "failed cansee check"	
+	if ! (local.player.useheld == 1)
+		println "failed useheld check" local.player.useheld
+		
+}
+end
+
+
+//***********************************************
+// second thread... controls axis using the trigger
+//***********************************************
+wait_for_axis local.bomb local.weapon:
+while (1)
+{
+self waittill trigger
+
+	local.player = parm.other
+	//"local.player.dmteam", can be 'spectator', 'freeforall', 'allies' or 'axis'
+	//add check for nazi 
+       if (local.player.dmteam !="axis") 
+
+	{      println "failed dmteam check" local.player.dmteam
+		goto wait_for_axis local.bomb local.weapon
+			
+	}
+	local.counter = 0
+
+
+	while ( (Isalive local.player) && (local.player cansee local.bomb level.bombusefov  level.bomb_use_distance) && (local.player.useheld == 1) )
+	{
+		local.counter++
+if ((local.counter % 5) == 0)
+{
+level.subtitleX = 100
+level.subtitleY = 70
+locprint level.subtitleX level.subtitleY ("defuse "+local.counter)
+}
+		wait .1
+		if (local.counter >= level.bomb_defuse_time)
+		{
+			thread flak88_set_explosive_thinker local.bomb local.weapon //start first thread again
+			local.bomb.live = 0
+			end
+		}
+	}
+}
+end
+
+
+//***********************************************
+// third thread... times the bomb and makes it explode at the right time
+//***********************************************
+waittill_explode local.bomb local.weapon:
+
+	local.bomb model items/explosive.tik
+	local.bomb playsound plantbomb
+
+
+	self loopsound bombtick
+	
+	local.start_time = level.time
+	while (level.time < (local.start_time + level.bomb_tick_time))
+	{
+		wait .1
+		if (local.bomb.live != 1)
+		{
+			self stoploopsound
+			end
+		}
+ 	}
+ 	self stoploopsound
+	thread explode local.bomb local.weapon
+	self remove
+end
+
+
+//***********************************************
+// fourth thread... controls the explosion 
+//***********************************************
+explode local.bomb local.weapon:
+
+ 
+///// shake the players view
+thread jitter_large 0
+ local.temp = spawn script_model
+ local.temp.origin = self.origin
+ local.temp model "fx/fx_flak88_explosion.tik"
+ local.temp anim start
+ local.temp playsound explode_aagun
+ 
+ local.weapon model models/statweapons/flak88_d.tik
+ //origin   damage   radius    constant damage or not
+ radiusdamage local.bomb.origin  level.bomb_damage level.bomb_explosion_radius
+    local.bomb hide
+
+	teamwin allies
+end
+
+
+
+
+//******************************
+// jitter large effect
+// jitter_large [delay]
+//******************************
+jitter_large local.time:
+
+if (local.time)
+	wait local.time
+
+waitexec global/earthquake.scr .35 10 0 0
+
+waitexec global/earthquake.scr .23 6 0 0
+
+waitexec global/earthquake.scr 1 1 0 0
+
+waitexec global/earthquake.scr 1.25 .3 0 1
+
+end
+
+
+

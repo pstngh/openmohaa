@@ -1,0 +1,3 @@
+exec global/DMprecache.scr
+cache models/items/pulse_explosive.tik
+cache models/statweapons/flak88base.tik

@@ -1,0 +1,6 @@
+exec global/DMprecache.scr
+cache models/vehicles/p47fly.tik
+cache models/items/pulse_explosive.tik
+cache models/items/explosive.tik
+cache models/emitters/firesmoke.tik
+cache models/items/dm_50_healthbox.tik

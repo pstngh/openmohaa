@@ -1,0 +1,84 @@
+// THE BRIDGE
+// ARCHITECTURE: POWZER
+// SCRIPTING: POWZER
+
+main:
+
+
+setcvar "g_obj_alliedtext1" "Defend the bridge" 
+setcvar "g_obj_alliedtext2" ""
+setcvar "g_obj_alliedtext3" ""
+
+setcvar "g_obj_axistext1" "Place an explosive"
+setcvar "g_obj_axistext2" "under the bridge"
+setcvar "g_obj_axistext3" "to destroy it"
+
+setcvar "g_scoreboardpic" "objdm4"
+
+	level waittill prespawn
+
+	//*** Precache Dm Stuff
+	exec global/DMprecache.scr
+
+	level.script = maps/obj/obj_team4.scr
+	exec global/ambient.scr obj_team4
+	
+	thread global/exploder.scr::main
+	thread global/minefield.scr::minefield_setup
+	exec global/door_locked.scr::lock
+
+	level waittill spawn
+
+	level.defusing_team = "allies"
+	level.planting_team = "axis"
+	level.targets_to_destroy = 1 // only one of the two bombs in the level needs to be blown
+	level.bomb_damage = 300
+	level.bomb_explosion_radius = 1024
+
+	// set the parameters for this round/wave based match
+	level.dmrespawning = 0   // 1 **wave based** or 0 **round based**
+	level.dmroundlimit = 5   // round time limit in minutes
+	level.clockside = allies // set to axis, allies, kills, or draw
+
+	level waittill roundstart
+		
+		$bridge_bomb thread global/obj_dm.scr::bomb_thinker
+		$bridge_bomb2 thread global/obj_dm.scr::bomb_thinker
+		
+		$bridge_bomb thread axis_win_bomb
+ 		$bridge_bomb thread allied_win_timer
+ 		
+//		thread objectives_setup
+	
+end
+
+
+axis_win_bomb:
+
+	while(level.targets_destroyed < level.targets_to_destroy)
+		waitframe
+		
+	teamwin axis
+end
+
+//*** --------------------------------------------
+//*** "Allied Victory"
+//*** --------------------------------------------
+
+allied_win_timer:
+
+	level waittill allieswin
+
+end
+
+
+//THIS PORTION OF SCRIPT NOT READY TO IMPLEMENT
+//objectives_setup:
+//
+//	waitthread global/objectives.scr::blank_objectives
+//	waitthread global/objectives.scr::add_objectives 1 2 "Axis forces must destroy the bridge" $bridge.origin
+//	wait 2
+//	waitthread global/objectives.scr::current_objectives 1
+
+end
+

@@ -1,0 +1,104 @@
+// V2 FACILITY
+// ARCHITECTURE: POWZER
+// SCRIPTING: POWZER
+
+main:
+
+setcvar "g_obj_alliedtext1" "- Destroy the Control" 
+setcvar "g_obj_alliedtext2" "Room"
+setcvar "g_obj_alliedtext3" "- Destroy V2 Rocket"
+
+setcvar "g_obj_axistext1" "- Defend the Control"
+setcvar "g_obj_axistext2" "   Room and the V2"
+setcvar "g_obj_axistext3" ""
+
+setcvar "g_scoreboardpic" "objdm2"
+
+	level waittill prespawn
+
+	//*** Precache Dm Stuff
+	exec global/DMprecache.scr
+	
+	//***Flyby Planes
+	exec global/bomber.scr
+	//thread flyby
+		
+	//***Ambient sounds
+	level.script = maps/obj/obj_team2.scr
+	exec global/ambient.scr obj_team2
+	
+	exec global/door_locked.scr::lock
+	thread global/exploder.scr::main
+	//thread global/barrel.scr::explosive_barrel
+
+	level waittill spawn
+
+	level.defusing_team = "axis"
+	level.planting_team = "allies"
+	level.targets_to_destroy = 2
+	level.bomb_damage = 200
+	level.bomb_explosion_radius = 2048
+
+	// set the parameters for round based match
+	level.dmrespawning = 0 // 1 or 0
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = axis // set to axis, allies, kills, or draw
+
+	level waittill roundstart
+	
+		thread flyby	
+		
+		$v2_explode thread global/obj_dm.scr::bomb_thinker
+		$ctrlroom_explode thread global/obj_dm.scr::bomb_thinker
+		
+		thread allies_win_bomb
+		$v2_explode thread axis_win_timer
+		
+//		thread objectives_setup
+end
+
+
+allies_win_bomb:
+
+	while(level.targets_destroyed < level.targets_to_destroy)
+		waitframe
+
+	teamwin allies
+end
+
+//*** --------------------------------------------
+//*** "Axis Victory"
+//*** --------------------------------------------
+
+axis_win_timer:
+
+	level waittill axiswin
+
+end
+
+flyby:
+
+	//***random flyby of plane
+	wait 1.0
+	thread global/bomber.scr::bomb 4
+	thread global/bomber.scr::bomb 5
+	thread global/bomber.scr::bomb 6
+	thread global/bomber.scr::bomb 7
+	wait (randomint(180) + 60)
+	
+goto flyby
+
+//Display objectives
+//objectives_setup:
+//
+//	waitthread global/objectives.scr::blank_objectives
+//	waitthread global/objectives.scr::add_objectives 1 2 "Destroy the V2 rocket and the Launch Control Room" //$v2_bomb.origin
+//	wait 2
+//	waitthread global/objectives.scr::current_objectives 1
+
+//end
+
+
+
+
+
