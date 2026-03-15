@@ -1,0 +1,40 @@
+// ----------------------------------------------------------------------------------
+//	blink_icon.scr
+//	Jeff Leggett
+//	07/12/2002
+//
+//	usage:
+//	exec global/blink_icon.scr::BlinkIcon <iconname> <count> <pausetime>
+//
+// ----------------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------------
+main:
+// ----------------------------------------------------------------------------------
+
+	End
+
+// ----------------------------------------------------------------------------------
+BlinkIcon local.iconname local.count local.pause:
+// ----------------------------------------------------------------------------------
+
+	if ( local.iconname==NIL )
+		End
+
+	if ( local.count==NIL )
+		local.count	= 5
+
+	if ( local.pause==NIL )
+		local.pause	= 0.5
+
+	for (local.i=0;local.i<local.count;local.i++)
+	{
+		waitthread global/items.scr::add_item local.iconname nomessage
+		wait local.pause
+		waitthread global/items.scr::remove_item local.iconname nomessage
+		wait local.pause
+	}
+
+
+	End
+

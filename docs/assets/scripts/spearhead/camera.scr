@@ -1,0 +1,72 @@
+main local.type local.cam1 local.cam2:
+	if (local.type == "cut")
+		thread cut local.cam1
+end
+
+camerasetup:
+	setcvar sv_fps "100"	
+	$player threatbias ignoreme
+	$player nodamage
+	$player notsolid
+	$player physics_off
+	$player hide
+end
+
+
+cut local.camera:
+	for (local.i=1;local.i<$cam.size+1;local.i++)
+	if ($cam[local.i].set == local.camera)
+	{
+		local.camera = $cam[local.i]
+		local.i = $cam.size + 5
+	}
+	thread camerasetup
+
+	$player.origin = local.camera.origin
+	level.viewangles = local.camera.angles
+	thread levelview
+end
+
+pan local.start local.end local.timepass:
+	local.fadein = 0.5
+	if (level.viewthread)
+		level.viewthread delete
+
+	println ("panning from camera " + local.start + " to camera " + local.end + " over " + local.timepass + " milliseconds")
+	for (local.i=1;local.i<$cam.size+1;local.i++)
+	if ($cam[local.i].set == local.start)
+		local.start = $cam[local.i]
+	else
+	if ($cam[local.i].set == local.end)
+		local.end = $cam[local.i]
+
+	thread camerasetup
+
+	local.curtime = level.time + local.timepass
+	while (level.time < local.curtime)
+	{
+		local.frac = float( (local.curtime - level.time) / local.timepass )
+//		println ("leveltime is " + level.time + " and timepass is " + local.timepass + " and frac is " + local.frac)
+		$player.origin = (local.start.origin * local.frac) + (local.end.origin * (1 - local.frac)) 
+		$player.viewangles = (local.start.angles * local.frac) + (local.end.angles * (1 - local.frac)) 
+		waitframe
+	
+	}
+
+	$player.origin = local.end.origin
+	level.viewangles = local.end.angles
+	thread levelview
+end
+
+levelview:
+	if (level.viewthread)
+		level.viewthread delete
+
+	level.viewthread = local
+	while (1)
+	{
+		$player.viewangles = level.viewangles
+		waitframe
+	}
+
+end

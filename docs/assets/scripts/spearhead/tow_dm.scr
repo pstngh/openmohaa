@@ -1,0 +1,423 @@
+//
+//
+//    Logic for Tug of War Based games
+main:
+
+	// spawn an actor to make sure we cache in all of our animations for TOW maps
+	local.dummyactor = spawn "models/human/allied_pilot.tik" origin (0 0 0)
+	local.dummyactor hide
+	local.dummyactor notsolid
+	local.dummyactor ai_off
+
+end
+
+
+//-----------------------------------------------
+// initialization thread... 
+//-----------------------------------------------
+bomb_thinker local.planting_team local.relay:
+
+// Steve says planting time = 6 seconds
+// defusing time = 12 second
+// tick time = 36 seconds
+
+	level.bomb_defuse_time		= 60		//tenths of a second
+	level.bomb_set_time			= 50		//tenths of a second
+	level.bomb_tick_time		= 15		//seconds (was 60 seconds, then 30 seconds)
+	level.bomb_explosion_radius	= 1054		//quake units
+	level.bomb_use_distance		= 128		//quake units
+	level.bomb_damage			= 200
+	level.bombusefov			= 30	
+
+	level.planter				= NULL
+
+	level.StopBomb				= 0
+
+	level.subtitleX				= 100
+	level.subtitleY				= 50
+
+	self.exploded				= 0
+
+	self.planting_team = local.planting_team
+	if( self.planting_team == "allies" )
+	{
+		self.defusing_team = "axis"
+	}
+	else
+	{
+		self.defusing_team = "allies"
+	}
+
+	self.relay = local.relay
+
+	println "----------------------Z-----------------------"
+	println "self.planting_team = " self.planting_team
+	println "self.defusing_team = " self.defusing_team
+	println "self = " self
+	println "self.target (flak 88 or other) = " self.target
+	println "self.target.destroyed_model = " self.target.destroyed_model
+	println "self.target.target (collision entity) = " self.target.target
+	println "self.trigger_name = " self.trigger_name
+	println "self.exploder_set = " self.exploder_set
+	println "self.explosion_fx = " self.explosion_fx
+	println "self.explosion_sound = " self.explosion_sound
+	println "self.killarea = " self.killarea
+	println "self.relay = " self.relay
+	println "----------------------Z-----------------------"
+	
+	self.target.collisionent = self.target.target
+	self.target notsolid
+	thread bomb_waittill_set
+
+end
+
+//-----------------------------------------------
+//first thread... controls allies using the trigger
+//-----------------------------------------------
+bomb_waittill_set:
+
+	self model items/pulse_explosive.tik
+	local.tickIndex = 0
+
+	while ( $(self.trigger_name) )
+	{
+		println "waittill trigger " self.trigger_name 
+		self.trigger_name waittill trigger
+
+		local.player = parm.other
+		
+		//"local.player.dmteam", can be 'spectator', 'freeforall', 'allies' or 'axis'	
+		if (local.player.dmteam != self.planting_team) 
+		{
+			goto bomb_waittill_set
+			println "failed dmteam check" local.player.dmteam	
+		}
+		
+		local.counter = 0
+		while ( (Isalive local.player) && (local.player cansee self level.bombusefov level.bomb_use_distance) && (local.player.useheld == 1) && (level.StopBomb == 0) )
+		{
+			if (local.counter == 0)
+			{
+				local.player stopwatch (level.bomb_set_time * .1)
+			}
+				
+			local.counter++
+			if( (local.counter % 10) == 0 )
+			{
+				switch( local.tickIndex )
+				{
+				case 0:
+					self playsound bomb_prime1
+					break;
+				case 1:
+					self playsound bomb_prime2
+					break;
+				case 2:
+					self playsound bomb_prime3
+					break;
+				case 3:
+					self playsound bomb_prime4
+					break;
+				case 4:
+					self playsound bomb_prime5
+					break;
+				case 5:
+					self playsound bomb_prime6
+					break;
+				}
+
+				local.tickIndex++
+			}
+		
+			wait .1
+			if (local.counter >= level.bomb_set_time)
+			{
+				if( local.player.dmteam == "allies" )
+				{
+					iprintlnbold "The Allies have Planted a Bomb!"
+				}
+				else if( local.player.dmteam == "axis" )
+				{
+					iprintlnbold "The Axis have Planted a Bomb!"
+				}
+				else
+				{
+					iprintlnbold "A Bomb has been Planted!"
+				}
+
+				if (local.planting_team == "allies")
+				{
+					self playsound dfr_objective_o
+				}
+				else
+				{
+					self playsound den_objective_o
+				}
+
+				//remember who planted the bomb
+				level.planter = local.player
+
+				thread bomb_waittill_defuse
+				thread bomb_waittill_explode
+				self.live = 1
+				
+				end
+			}
+		}
+		
+		if (local.counter > 0)
+		{
+			local.player stopwatch 0
+		}
+		
+		println "usetrigger but failed check" 
+		
+		if ! (self cansee local.player level.bombusefov  level.bomb_use_distance) 
+		{
+			println "failed cansee check"	
+		}
+		
+		if ! (local.player.useheld == 1)
+		{
+			println "failed useheld check" local.player.useheld
+		}
+	}
+
+end
+
+
+//-----------------------------------------------
+// second thread... controls axis using the trigger
+//-----------------------------------------------
+bomb_waittill_defuse:
+
+	while ( $(self.trigger_name) )
+	{
+		self.trigger_name waittill trigger
+
+		local.player = parm.other
+		
+		//"local.player.dmteam", can be 'spectator', 'freeforall', 'allies' or 'axis'
+		if (local.player.dmteam != self.defusing_team)
+		{      
+			println "failed dmteam check" local.player.dmteam
+			goto bomb_waittill_defuse
+		}
+		
+		
+		local.counter = 0
+		while ( (Isalive local.player) && (local.player cansee self level.bombusefov  level.bomb_use_distance) && (local.player.useheld == 1) && (self.exploded != 1) )
+		{
+			if (local.counter == 0)
+			{
+				local.player stopwatch (level.bomb_defuse_time * .1)
+			}
+				
+			local.counter++
+
+			wait .1
+			if (local.counter >= level.bomb_defuse_time)
+			{
+				if( local.player.dmteam == "allies" )
+				{
+					iprintlnbold "The Allies have Defused a Bomb!"
+				}
+				else if( local.player.dmteam == "axis" )
+				{
+					iprintlnbold "The Axis have Defused a Bomb!"
+				}
+				else
+				{
+					iprintlnbold "A Bomb has been Defused!"
+				}
+				
+				
+				if (self.defusing_team == "allies")
+				{
+					self playsound dfr_diffused_d
+				}
+				else
+				{
+					self playsound den_diffused_d
+				}
+
+				level.planter = NULL
+				
+				//start first thread again				
+				thread bomb_waittill_set				
+				self.live = 0
+				end
+			}
+		}
+
+		if (local.counter > 0)
+		{
+			local.player stopwatch 0
+		}
+	}
+
+end
+
+
+//-----------------------------------------------
+// third thread... times the bomb and makes it explode at the right time
+//-----------------------------------------------
+bomb_waittill_explode:
+
+	self model items/explosive.tik
+	self playsound plantbomb
+
+	self loopsound bombtick1
+	
+	local.start_time = level.time
+	while (level.time < (local.start_time + level.bomb_tick_time) && (level.StopBomb == 0) )
+	{
+		wait .1
+		if (self.live != 1)
+		{
+			self stoploopsound
+			end
+		}
+		if (level.time == (local.start_time + level.bomb_tick_time - 10) )
+		{
+			self stoploopsound
+			self loopsound final_countdown
+		}
+ 	}
+
+	self stoploopsound
+
+	if( level.StopBomb == 0 )
+	{	 		
+		thread bomb_explode
+	}
+
+
+end
+
+
+//-----------------------------------------------
+// fourth thread... controls the explosion 
+//-----------------------------------------------
+bomb_explode:
+	
+	self.trigger_name remove
+
+	thread jitter_large 0
+	
+	if (self.exploder_set != NIL)
+	{
+		exec global/exploder.scr::explode self.exploder_set
+	}
+	
+	if (self.explosion_fx != NIL)
+	{
+		self thread spawn_fx self.explosion_fx
+	}
+	
+	if (self.explosion_sound != NIL)
+	{
+		self playsound self.explosion_sound
+	}
+
+	if (self.target != NIL)
+	{
+		self.target thread blow_up
+		
+		waitframe
+	}
+	
+	radiusdamage (self.origin + (0 0 128)) level.bomb_damage level.bomb_explosion_radius
+		
+	if (self.killarea != NIL)
+	{
+		self.killarea volumedamage 1000
+	}
+	
+	self hide
+
+	self.live = 0
+	
+	self.exploded = 1
+	level.targets_destroyed = level.targets_destroyed + 1
+
+	// we delay the decrementing of	level.bombs_planted so that the script has
+	// time to determin the winner before the timelimit gets checked and hit
+	wait 0.5	
+	
+//	trigger self.relay
+	println "Bomb explode.. Calling relay thread!"
+	waitthread self.relay level.planter
+
+end
+
+
+//-----------------------------------------------
+//Do some fx
+//-----------------------------------------------
+spawn_fx local.fx:
+
+	local.temp = spawn script_model model local.fx
+	local.temp.origin = self.origin
+	local.temp anim start
+	wait 5
+	local.temp remove
+
+end
+
+
+//-----------------------------------------------
+//Do some fx
+//-----------------------------------------------
+spawn_damaged local.model:
+
+	local.damaged = spawn script_model model local.model
+	local.damaged.origin = self.origin
+	local.damaged.angles = self.angles
+
+end local.damaged
+
+//-----------------------------------------------
+// jitter large effect
+// jitter_large [delay]
+//-----------------------------------------------
+jitter_large local.time:
+	
+	if (local.time)
+		wait local.time
+
+	waitexec global/earthquake.scr .35 10 0 0
+	waitexec global/earthquake.scr .23 6 0 0
+	waitexec global/earthquake.scr 1 1 0 0
+	waitexec global/earthquake.scr 1.25 .3 0 1
+
+end
+
+
+//-----------------------------------------------
+//Blow up a thing
+//-----------------------------------------------
+blow_up:
+
+	if (self.destroyed_model != NIL)
+	{
+		local.damaged = self thread spawn_damaged self.destroyed_model
+	}
+	
+	if( self.target != NIL )
+	{
+		self.target thread blow_up
+	}
+	self remove
+
+end
+
+
+//-----------------------------------------------
+//Stop the bomb!
+//-----------------------------------------------
+StopBomb:
+
+	level.StopBomb = 1
+
+end

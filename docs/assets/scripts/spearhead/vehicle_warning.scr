@@ -1,0 +1,193 @@
+//--------------------------------------------------------------------------------
+//	Vehicle_Warning.Scr
+//	Jeff Leggett
+//	07/12/2002
+//
+//		Use this script to have your vehicles warn AI characters that they are
+//	coming.  The AI character will then run to the closest "vehicle_safety_node".
+//
+//	How to use:
+//		1.	info_pathnodes that are "safe" (ie: AI will be out of the way of 
+//			the vehicle) should be given a targetname of vehicle_safety_node
+//		2.	create the following thread when the vehicle starts moving:
+//
+//				$tankname thread global/Vehicle_Warning.Scr::WarnFriendlies $ai_name <radius=800> <cos_angle=0.707>
+//
+//		where $tankname is the name of your vehicle, $ai_name is the name of the 
+//		ai(s) that you want to potentially warn, radius is the distance to warn at
+//		cos_angle is the cosine of the angle you want to have the vehicle warn at (0.707=cos(45)) 
+//		(defaults to 45 degrees)
+//
+//	Example usage:
+//
+//
+//		// start up the warning...
+//		$tank thread global/Vehicle_Warning.Scr::WarnFriendlies $german_scum 800 0.707
+//		$tank.german_scum_thread = parm.previousthread
+//		$tank drive $tank_path 200 30 200 256
+//		$tank waittill drive
+//		// now that the tank has stopped moving, cancel the warnings...(delete the thread.)
+//		$tank.german_scum_thread delete
+//		
+//--------------------------------------------------------------------------------
+
+
+//--------------------------------------------------------------------------------
+main:
+//
+//	Just in case...
+//
+//--------------------------------------------------------------------------------
+
+	End
+
+//------------------------------------------------------------------------------
+CanSeeTarget local.target local.radius local.angle local.reverse:
+//
+//
+//	example:
+//		local.bCanSee = self waitthread CanSeeTarget $mytarget 500 0.707
+//
+//			if ( local.bCanSee==1 )
+//				dprintln "I can see!"
+//
+//------------------------------------------------------------------------------
+
+	if ( local.target==NIL )
+		End 0
+
+	local.dist = vector_length (self.origin - local.target.origin)
+
+	if ( local.dist > local.radius )
+	{
+		End 0
+	}
+
+	if ( local.angle==NIL )
+	{
+		End 1
+	}
+
+	if ( local.reverse==NIL )
+		local.reverse = 0
+
+
+	local.vObjDir	= vector_subtract local.target.origin self.origin
+	local.vObjDir	= vector_normalize local.vObjDir
+	local.vForward  = angles_toforward ( self.angles )
+
+	local.dot		= vector_dot local.vForward local.vObjDir
+
+	// this is for seeing behind the object. (used for trucks with guys on the back of them.)
+	if ( local.reverse==1 )
+	{
+		if ( local.dot <= local.angle )
+		{
+			End 1
+		}
+	}
+	else
+	{
+		if ( local.dot >= local.angle )
+		{
+			End 1
+		}
+	}
+
+	End 0
+
+//--------------------------------------------------------------------------------
+WarnFriendlies local.name local.radius local.angle:
+//
+//
+//	start this thread to have the vehicle start warning...
+//
+//--------------------------------------------------------------------------------
+
+	if ( local.name==NIL )
+		End
+
+	if (local.name.size<1 )
+		end
+
+	if ( local.radius==NIL )
+		local.radius	= 800
+
+	if ( local.angle==NIL )
+		local.angle	= 0.707
+
+	if ( self.paused==NIL )
+		self.paused = 0
+
+	while ( isAlive self )
+	{
+		if ( self.paused==0 )
+		{
+			for (local.i=1;local.i<=local.name.size;local.i++)
+			{
+				if ( local.name[local.i].bVehicleWarned==0 || local.name[local.i].bVehicleWarned==NIL )
+				{
+					local.bShouldWarn = self waitthread CanSeeTarget local.name[local.i] local.radius local.angle
+					if ( local.bShouldWarn==1 )
+					{
+						local.name[local.i] thread RunToSafety
+					}
+				}
+
+			}
+			wait 0.25
+		}
+		else
+		{
+			wait 1
+		}
+	}
+
+	End
+
+
+//--------------------------------------------------------------------------------
+RunToSafety:
+//
+//
+//	Find closest safety node and run to it...
+//
+//--------------------------------------------------------------------------------
+
+	if ( $vehicle_safety_node==NIL || $vehicle_safety_node.size < 1 )
+	{
+		dprintln "No safety nodes have been created!"
+		end
+	}
+
+	if ( self.bVehicleWarned == 1 )
+		End
+
+	self.bVehicleWarned	= 1
+
+	local.closest = $vehicle_safety_node[1]
+	local.closestdist = vector_length (self.origin - $vehicle_safety_node[1].origin)
+
+	for (local.i=2;local.i<=$vehicle_safety_node.size;local.i++)
+	{
+		local.dist = vector_length (self.origin - $vehicle_safety_node[local.i].origin)
+
+		if ( local.dist < local.closestdist )
+		{
+			local.closest	= $vehicle_safety_node[local.i]
+			local.closestdist = local.dist
+		}
+	}
+
+	// make sure we're not already there...
+	if ( local.closestdist > 50 )
+	{
+		self exec global/disable_ai.scr
+		self runto local.closest
+		self waittill movedone
+		self exec global/enable_ai.scr
+	}
+
+	self.bVehicleWarned	= 0
+
+	End

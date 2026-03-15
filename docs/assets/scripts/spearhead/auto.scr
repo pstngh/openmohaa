@@ -1,0 +1,30 @@
+main local.script:
+
+	if ( level.auto_script_run == 1 )
+	{
+		end
+	}
+
+	if ( local.script != NIL )
+	{
+		if ( level.script == NIL )
+		{
+			level.script = ("maps/" + local.script + ".scr")
+		}
+	}
+
+	exec global/loadout.scr
+	exec global/ai.scr
+	exec global/exploder.scr
+	exec global/turret.scr
+
+level waittill prespawn
+
+	exec global/door_locked.scr
+	exec global/friendly.scr
+	exec global/ambient.scr local.script
+	exec global/bomber.scr
+
+	level.auto_script_run = 1
+
+level waittill spawn

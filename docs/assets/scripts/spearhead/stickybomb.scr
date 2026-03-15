@@ -1,0 +1,166 @@
+//-----------------------------------------------------------------------------
+//	StickyBomb.Scr
+//	Jeff Leggett
+//	07/19/2002
+//
+//	Support for multiple sticky bombs blowing up the same target.  
+//	This script ensures that once one of the sticky bombs is placed, the rest
+//	of them will be removed.
+//
+//		To use:
+//				1. Create your sticky bombs and target the object you want them
+//				to destroy.
+//				2. Name all the sticky bombs with the same $targetname.
+//				3. Add the following line of code to your script:
+//
+//				thread global/stickybomb.scr::StickyBombInit $mystickybomb
+//
+//				(where $mystickybomb is the name you choose.)
+//
+//		To hide the sticky bombs, call:
+//				thread global/stickybomb.scr::StickyBombHide $mystickybomb
+//
+//		To show the sticky bombs, call:
+//				thread global/stickybomb.scr::StickyBombShow $mystickybomb
+//
+//		To disable the sticky bombs call:
+//				thread global/stickybomb.scr::StickyBombDisable $mystickybomb
+//
+//		To enable the sticky bombs call:
+//				thread global/stickybomb.scr::StickyBombEnable $mystickybomb
+//
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
+main:
+//-----------------------------------------------------------------------------
+
+	End
+
+
+//-----------------------------------------------------------------------------
+StickyBombInit local.bomb local.usethread:
+//
+//
+//	pass the name of the sticky bomb(s) you want to be grouped together.
+//
+//-----------------------------------------------------------------------------
+
+	if ( local.bomb==NIL || local.bomb==NULL )
+	{
+		dprintln "stickybomb error: " local.bomb
+		End
+	}
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		if ( local.i==1 )
+			local.bomb[local.i].target thread RemoveOnDeath local.bomb
+		local.bomb[local.i] bind local.bomb[local.i].target
+		local.bomb[local.i] setusethread global/stickybomb.scr::StickyBombUse
+		local.bomb[local.i].myent = local.bomb
+		local.bomb[local.i].myusethread = local.usethread
+	}
+
+	End
+
+//-----------------------------------------------------------------------------
+StickyBombEnable local.bomb:
+//-----------------------------------------------------------------------------
+	if ( local.bomb==NIL || local.bomb==NULL )
+		End
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		local.bomb[local.i] triggered 0
+	}
+
+	end
+
+//-----------------------------------------------------------------------------
+StickyBombDisable local.bomb:
+//-----------------------------------------------------------------------------
+
+	if ( local.bomb==NIL || local.bomb==NULL )
+		End
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		local.bomb[local.i] triggered 1
+	}
+
+	end
+
+
+//-----------------------------------------------------------------------------
+StickyBombHide local.bomb:
+//-----------------------------------------------------------------------------
+
+	if ( local.bomb==NIL || local.bomb==NULL )
+		End
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		local.bomb[local.i] hide
+		local.bomb[local.i] nodamage
+	}
+
+	End
+
+//-----------------------------------------------------------------------------
+StickyBombShow local.bomb:
+//-----------------------------------------------------------------------------
+
+	if ( local.bomb==NIL || local.bomb==NULL )
+		End
+
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		local.bomb[local.i] show
+//		local.bomb[local.i] takedamage
+	}
+
+	End
+
+//-----------------------------------------------------------------------------
+StickyBombDelete local.bomb:
+//-----------------------------------------------------------------------------
+
+	if ( local.bomb==NIL || local.bomb==NULL )
+		End
+
+	for ( local.i=1;local.i<=local.bomb.size;local.i++ )
+	{
+		local.bomb[local.i] delete
+	}
+
+	End
+
+//-----------------------------------------------------------------------------
+StickyBombUse:
+//
+//	called when the stickybomb is used.... hide all other stickybombs...
+//-----------------------------------------------------------------------------
+
+	if ( self.myusethread != NIL )
+		thread self.myusethread
+
+	// hide all the other ones
+	self thread StickyBombHide self.myent
+	self show
+	self takedamage
+
+	End
+
+//-----------------------------------------------------------------------------
+RemoveOnDeath local.bomb:
+//-----------------------------------------------------------------------------
+	self waittill death
+	
+	thread StickyBombDelete local.bomb
+
+	$player stopwatch 0
+
+	end

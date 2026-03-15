@@ -1,0 +1,154 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/strafing_gunfire.scr
+//
+// author: Michael Goodwin
+//
+// description:
+//
+// - forthcoming
+//
+// setup:
+//
+// - place a series of linked info_splinepath entities
+// - assign the first info_splinepath entity a unique $targetname
+// - call the appropriate script as follows:
+//
+// - exec global/strafing_gunfire.scr::simple $pathname speed
+//
+//   - creates a script_simplestrafinggunfine entity that travels
+//     along the spline path $pathname and the specified speed
+//   - the script_simplestrafinggunfine entity fires shots in the
+//     direction of its "down" vector
+//
+// - exec global/strafing_gunfire.scr::target $pathname speed $target
+//
+//   - creates a script_aimedstrafinggunfine entity that travels
+//     along the spline path $pathname and the specified speed
+//   - the script_aimedstrafinggunfine entity fires shots in the
+//     direction of the $target object
+//
+// - exec global/strafing_gunfire.scr::targetpath $pathname speed $targetpathname targetspeed
+//
+//   - creates a script_aimedstrafinggunfine entity that travels
+//     along the spline path $pathname and the specified speed
+//   - creates a script_object entity that travels
+//     along the spline path $targetpathname and the specified targetspeed
+//   - the script_aimedstrafinggunfine entity fires shots in the
+//     direction of the script_object entity
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main:
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+simple local.path local.speed:
+
+	if ( local.speed == NIL )
+	{
+		local.speed = 500
+	}
+
+	if ( local.path != NIL )
+	{
+		local.emitter = spawn script_simplestrafinggunfire
+		local.emitter.origin = local.path.origin
+		local.emitter.angles = local.path.angles
+		local.emitter on
+		local.emitter flypath local.path local.speed 100000 250
+		local.emitter thread simple_run
+	}
+
+end local.emitter
+
+simple_run:
+
+	self waitmove
+	self remove
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+target local.path local.speed local.target:
+
+	if ( local.speed == NIL )
+	{
+		local.speed = 500
+	}
+
+	if ( (local.path != NIL) && (local.target != NIL) )
+	{
+		local.emitter = spawn script_aimedstrafinggunfire
+		local.emitter.origin = local.path.origin
+		local.emitter.angles = local.path.angles
+		local.emitter aimtarget local.target
+		local.emitter on
+		local.emitter flypath local.path local.speed 100000 250
+		local.emitter thread target_run
+	}
+
+end local.emitter
+
+target_run:
+
+	self waitmove
+	self remove
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+targetpath local.path local.speed local.targpath local.targspeed:
+
+	if ( local.speed == NIL )
+	{
+		local.speed = 500
+	}
+
+	if ( local.targspeed == NIL )
+	{
+		local.targspeed = 500
+	}
+
+	if ( (local.path != NIL) && (local.targpath != NIL) )
+	{
+		local.target = spawn script_object
+		local.target.origin = local.targpath.origin
+		local.target.angles = local.targpath.angles
+		local.target flypath local.targpath local.targspeed 100000 250
+		local.target move
+
+		local.emitter = spawn script_aimedstrafinggunfire
+		local.emitter.origin = local.path.origin
+		local.emitter.angles = local.path.angles
+		local.emitter aimtarget local.target
+		local.emitter on
+		local.emitter flypath local.path local.speed 100000 250
+		local.emitter thread targetpath_run local.target
+	}
+
+end local.emitter
+
+targetpath_run local.target:
+
+	self waitmove
+	self remove
+	local.target remove
+
+end

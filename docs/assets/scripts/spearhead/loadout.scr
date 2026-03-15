@@ -1,0 +1,210 @@
+main:
+
+	if ( level.loadout_script_run == 1 )
+	{
+		end
+	}
+
+level waittill spawn
+	exec global/autosave.scr -5
+
+	if (level.script == "maps/t1l1.scr")
+	{
+		$player heal 1
+	}
+
+	local.ammo_smg = 200
+	local.ammo_pistol = 200
+	local.ammo_rifle = 120
+	local.ammo_grenade = 4
+
+	if (game.loadout == NIL)
+	{
+		$player takeall
+
+		// Always give the player the empty grenade weapons
+		// so that he can use grenade ammo if he gets it.
+		// Note that in single player, "grenade" ammo is
+		// only steilhandgranate ammo, and "agrenade" ammo
+		// is american Frag Grenade ammo.
+		$player item weapons/M2frag_grenade_sp_start.tik
+		$player item weapons/steilhandgranate_start.tik
+
+		$player item weapons/nebelhandgranate_start.tik
+		$player item weapons/M18_smoke_grenade_start.tik
+
+		if (level.script == "maps/t1l1.scr")
+		{
+			// the above doesn't work well with t1l1... (Gives him german grenades..)
+			$player takeall 
+
+			setcvar g_playermodel american_Army
+			// **** MJG: player weapons for t1l1 are awarded in
+			//           gags/t1l1_barn_crash.scr::cutharness
+
+			//$player item weapons/colt45.tik
+			//$player item weapons/m1_garand.tik
+
+			//$player ammo pistol local.ammo_pistol
+			//$player ammo smg local.ammo_smg
+			//$player ammo rifle local.ammo_rifle
+			//$player ammo smokegrenade local.ammo_grenade
+			//$player ammo asmokegrenade local.ammo_grenade
+			//$player ammo agrenade local.ammo_grenade
+
+			//$player useweaponclass grenade
+			//println "Z: assigned weapons in loadout.scr"
+		}
+		else
+		if (level.script == "maps/t1l2.scr")
+		{
+			setcvar g_playermodel american_Army
+
+			// jsl--> moved this to the cappy script in gags
+			/*
+			
+			$player item weapons/Webley_Revolver.tik 
+			$player item weapons/enfield.tik 
+			$player item weapons/sten.tik 
+			$player item weapons/mills_grenade.tik   
+			$player item weapons/M18_smoke_grenade.tik  
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo smokegrenade local.ammo_grenade
+			$player ammo grenade local.ammo_grenade 
+
+			// $player useweaponclass smg
+			println "Z: assigned weapons in loadout.scr"
+			*/
+
+			
+		}
+		else
+		if (level.script == "maps/t1l3.scr")
+		{
+			setcvar g_playermodel american_Army
+
+			$player item weapons/Webley_Revolver.tik 
+			$player item weapons/enfield.tik 
+			$player item weapons/sten.tik 
+			$player item weapons/mills_grenade.tik  
+			$player item weapons/M18_smoke_grenade.tik  
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+//			$player ammo asmokegrenade local.ammo_grenade
+//			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass smg
+			println "Z: assigned weapons in loadout.scr"
+		}
+		else 
+		if (level.script == "maps/t2l1.scr")
+		{
+			setcvar g_playermodel _american_Army_cold
+
+			/*
+			$player item weapons/colt45.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/thompsonsmg.tik
+			$player item weapons/M2Frag_Grenade_sp.tik  
+			$player item weapons/M18_smoke_grenade.tik  
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo smokegrenade local.ammo_grenade
+			$player ammo grenade local.ammo_grenade
+
+			$player useweaponclass smg
+			println "Z: assigned weapons in loadout.scr"
+			*/
+		}
+
+		else
+		if (level.script == "maps/t2l3.scr")
+		{
+			setcvar g_playermodel _american_Army_cold
+
+			$player item weapons/p38.tik 
+			$player item weapons/KAR98.tik 
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik    
+			$player item weapons/nebelhandgranate.tik    
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo asmokegrenade local.ammo_grenade
+	
+			$player useweaponclass smg
+			println "Z: assigned weapons in loadout.scr"
+		}
+		else
+		if (level.script == "maps/t2l4.scr")
+		{
+			setcvar g_playermodel _american_Army_cold
+
+			// jsl--> We do this in the script now... (don't want the mini-saved version..)
+
+		/*
+
+			// jsl--> giving the start versions above did not work for this level...
+			$player takeall
+//			$player item weapons/steilhandgranate_start.tik
+//			$player item weapons/nebelhandgranate_start.tik
+
+			//Adjusted by Vex 9/25/02
+			$player item weapons/p38.tik 
+			// removed so player can more access sniper riffle more quickly.
+			// want him to pickup the sniper, can't have the riffle...
+//			$player item weapons/KAR98.tik 
+//			$player item weapons/KAR98sniper.tik  
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik    
+			$player item weapons/nebelhandgranate.tik    
+
+			// give him the panzerschrek...
+			$player item weapons/panzerschreck.tik
+			$player ammo heavy 2
+
+
+			$player ammo pistol 32
+			$player ammo smg 200
+			
+			$player ammo smokegrenade 2
+			$player ammo grenade 2
+
+			$player useweaponclass smg
+			println "Z: assigned weapons in loadout.scr"
+			*/
+		}
+		else
+		if (level.script == "maps/t3l1.scr")
+		{
+			setcvar g_playermodel _american_Army_end
+
+			$player item weapons/Nagant_revolver.tik 
+			$player item weapons/Mosin_Nagant_Rifle.tik 
+			$player item weapons/ppsh_smg.tik 
+			$player item weapons/svt_rifle.tik 
+			$player item weapons/Russian_F1_grenade.tik
+			$player item weapons/RDG-1_Smoke_grenade.tik 
+			
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo smokegrenade local.ammo_grenade
+			$player ammo agrenade local.ammo_grenade
+
+			println "Z: assigned weapons in loadout.scr"
+		}
+
+	}
+
+	level.loadout_script_run = 1
+end

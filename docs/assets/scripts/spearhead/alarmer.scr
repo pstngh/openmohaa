@@ -1,0 +1,539 @@
+//	Alarm system used in m4l3 and m6l2a. Created by Mackey McCandlish and calibrated with Steve Fukuda.
+//
+//	Before level waittill prespawn: "exec global/alarmer.scr"
+//	Anybody with targetname "enemy" will try to ring the alarm.
+//	Alarms are animate_equipment_alarmswitch with targetname "alarm" and they point away from the surface they're placed against.
+//	The alarm spawners are AI placed in the level with targetname "alarmspawner".
+//	The Alarm triggers are "trigger_use"s with setthread "alarm_player_reset". They encompass the actual alarm.
+//	You can set level.alarm_always_on to 1 and the alarm will come back on after 14-20 seconds.
+//
+//
+
+
+main:
+
+	level.alarm_always_on = 0
+	level.alarm_always_on_base = 14
+	level.alarm_always_on_random = 7
+	level.alarm_time = 0
+	level.alarm_time_base = 14
+	level.alarm_time_random = 5
+
+	for (local.i=1;local.i<$alarm.size+1;local.i++)
+		$alarm[local.i] notsolid
+
+level waittill prespawn
+		
+	while ($alarmspawner)
+	{
+			local.ent = waitthread global/spawner.scr::spawner_create $alarmspawner[1]
+			local.ent.targetname = "alarmspawned"
+	}
+
+
+level waittill spawn
+
+	
+	thread alarmgenner
+	$player.alarmoff = level.time + 1
+	thread alarmer
+	
+	/*
+		$endgate_left time 1
+		$endgate_right time 1
+
+		$endgate_right rotateyup 80
+		$endgate_right move
+		$endgate_left rotateydown 100
+		$endgate_left waitmove
+		$endgate_left connect_paths
+		$endgate_right connect_paths
+	*/
+end
+
+
+
+
+doalarm:
+	level.alarmers++
+	println "doing alarm"
+	local.range = 5000
+	local.alarm = -1
+	println ("Enemy " + (vector_length (self.origin - $player.origin)) + " distance away is doing alarm and is in thinkstate " + self.thinkstate)
+	for (local.i=1;local.i<$alarm.size+1;local.i++)
+	{
+		local.temprange = vector_length (self.origin - $alarm[local.i].origin)
+		if ((local.temprange < local.range) && (vector_length ($player.origin - $alarm[local.i].origin) > local.temprange))
+		{
+			local.range = local.temprange
+			local.alarm = local.i
+		}
+	}
+
+	if (local.alarm != -1)
+	{
+		local.break = 0
+		local.timer = level.time + 12
+	
+		thread de-alarmer
+
+		local.org = angles_toforward ($alarm[local.alarm].angles)
+//		local.org = ((local.org * 30) + ($alarm[local.alarm].origin)) + ( 0 0 -25 )
+		local.org = ((local.org * 35) + ($alarm[local.alarm].origin)) + ( 0 0 -30 )
+		local.ent = spawn script_origin
+		local.ent.origin = local.org
+		local.ent droptofloor
+		local.org = local.ent.origin
+		local.ent delete
+
+
+		wait (randomfloat(2.3))
+		self exec global/disable_ai.scr
+//		self type_attack "alarm"
+//		local.ent = spawn script_origin
+//		local.ent.origin = local.org
+//		self alarmnode local.ent
+//		self alarmthread "alarmreg"
+//		println "should be running for alarm"
+//		waitframe
+
+		self.movedoneradius = 15
+		while ((isalive self) && (local.break == 0) && (level.time < local.timer)) 
+		{
+			self runto local.org
+			self waittill movedone
+
+			if (level.alarm_on == 0)
+			{
+				if (vector_length (self.origin - $alarm[local.alarm].origin) < 90)
+				{
+					self.turndoneerror = 10
+					self turnto $alarm[local.alarm]
+					self waittill turndone
+					self anim alarm_switchon
+					self playsound alarm_switch
+
+					local.break = 1
+					
+					wait 0.2
+					for (local.i=1;local.i<$alarm.size+1;local.i++)
+       					$alarm[local.i] anim turnon
+
+					wait 0.5
+					level.alarm_on = 1
+				}
+			}
+			else
+			local.break = 1
+
+			wait 1
+		}
+	}
+	else
+		level.alarmers--
+
+	if (isalive self)
+		self exec global/enable_ai.scr
+
+end
+
+de-alarmer:
+	wait 12
+	level.alarmers--
+end
+
+alarmreg:
+end
+
+
+/*
+alarmreg:
+//			self runto local.org // $alarm[local.alarm]
+			self waittill movedone
+			if (parm.movefail == 1)
+			{
+				local.break = 1
+				level.alarmers--
+				self.targetname = "enemy_noalarm"
+				local.oldalarm = $alarm[local.alarm]
+				local.oldalarm.targetname = "alarm_noalarm"
+
+				wait 5
+				self runto $player
+				self.targetname = "enemy"
+				local.oldalarm.targetname = "alarm"
+				end
+			}
+			else
+
+			wait 1
+		}
+		
+	}
+
+	self exec global/enable_ai.scr
+
+
+end
+
+end
+
+*/
+
+alarm_player_reset:
+	if (level.time > $player.alarmoff)
+	{
+		$player.alarmoff = level.time + 1
+
+		if (level.alarm_on == 1)
+		{
+			level.alarm_on = 0
+			
+			for (local.i=1;local.i<$alarm.size+1;local.i++)
+       			$alarm[local.i] anim turnoff
+
+			self playsound alarm_switch
+			if (level.alarm_time - level.time < 5)
+				level.alarm_time = level.time + (level.alarm_time_base + randomint(alarm_time_random))
+
+			wait 0.5
+
+//			for (local.i=1;local.i<$alarm.size+1;local.i++)
+//       			$alarm[local.i] stoploopsound
+
+			level.alarm_sound stoploopsound
+
+			if (level.alarm_always_on == 1)
+				wait (level.alarm_always_on_base + randomint(level.alarm_always_on_random))
+
+			if (level.alarm_always_on == 1)
+			{
+				if (level.alarm_on == 0)
+				{
+					level.alarm_on = 1
+							
+					for (local.i=1;local.i<$alarm.size+1;local.i++)
+       					$alarm[local.i] anim turnon
+
+					self playsound alarm_switch
+
+					wait 0.5
+
+//					for (local.i=1;local.i<$alarm.size+1;local.i++)
+//						$alarm[local.i] loopsound alarmbell
+
+				}
+			}
+		}
+		else
+		{
+			level.alarm_on = 1
+			
+			for (local.i=1;local.i<$alarm.size+1;local.i++)
+       			$alarm[local.i] anim turnon
+
+			self playsound alarm_switch
+
+			wait 0.5
+
+//			for (local.i=1;local.i<$alarm.size+1;local.i++)
+//				$alarm[local.i] loopsound alarmbell
+
+		}
+	}
+
+//	local.alarmbell thread global/loopsound.scr::main alarmbell 	// Ring the alarm bell
+
+end
+
+turn_alarm_on:
+	if (level.alarm_on == 0)
+	{
+		level.alarm_on = 1
+				
+		for (local.i=1;local.i<$alarm.size+1;local.i++)
+       		$alarm[local.i] anim turnon
+
+		self playsound alarm_switch
+
+		wait 0.5
+
+//		for (local.i=1;local.i<$alarm.size+1;local.i++)
+//			$alarm[local.i] loopsound alarmbell
+	}
+end
+
+alarmsounder:
+	
+	level.alarm_sound = spawn script_model
+//	level.alarm_sound thread playersoundorg
+	level.alarm_sound model "fx/dummy.tik"
+	level.alarm_sound notsolid
+
+	while (1)
+	{
+		if (level.alarm_on == 1)
+		{
+			local.range = 1400
+	
+			for (local.i=1;local.i<$alarm.size+1;local.i++)
+			{
+				local.newrange = vector_length ( $player.origin - $alarm[local.i].origin)
+				if (local.newrange < local.range)
+				{
+//					$alarm[local.i] loopsound alarmbell
+					local.range = local.newrange
+				}
+//				waitframe
+			}
+
+/*
+			1400	50		1400
+			0.2		1.5		0.2
+			1.7		0.2		1.7
+
+1.5
+*/
+			local.vol = (1.5 / 1350) * (local.range)
+			local.vol = 1.5 - local.vol
+			if (local.vol < 0.2)
+				local.vol = 0.2
+			else
+			if (local.vol > 1.5)
+				local.vol = 1.5
+//				println ("range is " + local.range + " and vol is " + local.vol)
+
+			level.alarm_sound loopsound alarmbell local.vol "levelwide"
+
+		}
+		waitframe
+	}
+
+end
+
+alarmgenner:
+
+	if (level.alarm_nosound == NIL)
+		thread alarmsounder
+	
+	local.timer = level.time
+	while (isalive $player)
+	{
+		if (level.alarm_on == 1)
+		{
+			if (level.time > local.timer)
+			{
+				local.key = getboundkey1 "+use"
+				iprintlnbold_noloc (loc_convert_string "Approach alarms and press the USE key ( ") local.key (loc_convert_string " ) to toggle them off or on.")
+				local.timer = level.time + 12
+			}
+
+			while (level.totalspawnies < 2)
+			{
+				waitthread create_alarmguy
+				wait randomint (3)
+			}
+		}
+		else
+			local.timer = level.time + 45
+
+		wait 1
+	}
+
+end
+
+create_alarmguy:
+
+	local.range = 5000
+	local.entnum = -1
+	local.num = 0
+//	local.spawner = -1
+	for (local.i=1;local.i<$alarmspawned.size+1;local.i++)
+	{
+		if !($player canseenoents ($alarmspawned[local.i].origin + (0 0 50)))
+		{
+			local.num++
+			local.spawner[local.num] = $alarmspawned[local.i]
+			println ("prepped a spawner at " + local.spawner[local.num].origin + " with num " + local.num)
+		}
+		wait 0.1
+	}
+
+	if (local.spawner == NIL)
+		end
+
+	local.lastnum = -1
+
+	for (local.i=1;local.i<local.num+1;local.i++)
+	{
+		local.temprange = vector_length ($player.origin - local.spawner[local.i].origin)
+		println ("checking local spawner " + local.i + " and local num is " + local.num + " at range " + local.temprange)
+		if (local.temprange < local.range)
+		{
+			local.range = local.temprange
+			local.lastnum = local.entnum
+			local.entnum = local.i
+		}
+	}
+
+	if (local.lastnum != -1)
+		local.entnum = local.lastnum
+
+	if (local.entnum != -1)
+	{
+		local.ent = waitthread global/spawner.scr::spawner_activate local.spawner[local.entnum]
+		local.ent.targetname = "alarm_spawned_guy"
+
+		local.ent thread spawnerthink
+	}
+	else
+	{
+		println "-------------------"
+		println local.range
+		println local.lastnum
+		println local.entnum
+		println "-------------------"
+	}
+end
+
+runcheck:
+	if (level.runcheck)
+		level.runcheck delete
+
+	level.runcheck = local
+	while (isalive self)
+	{
+		if (getcvar(debug) == "1")
+		println ("A spawned guy is at " + self.origin + " with thinkstate " + self.thinkstate)
+		wait 1
+	}
+
+end
+
+spawnerthink:
+	if (game.skill == "hard")
+		if (randomint(100) > 60)
+			self item items/item_25_healthbox.tik 25
+
+	self ammo_grenade (randomint(4) + 1)
+	self mindist 128
+	self leash 8000
+	self maxdist 400
+	self fixedleash 0
+	self.movedoneradius = 450
+	wait randomfloat(3)
+	level.totalspawnies++
+	thread baddeath
+	self.nosurprise = 1
+	local.origin = self.origin
+
+	self thread level.script::alarmer
+	self forceactivate
+	wait 1
+	if (self.thinkstate == "idle")
+	{
+		println ("spawned guy is running to the player from " + self.origin)
+		self thread runcheck
+		self runto $player
+		self waittill movedone
+		self attackplayer
+//		println ("movefail is " + parm.movefail)
+
+		if ((parm.movefail == 1) && !(self canseenoents $player) && (vector_length (self.origin - local.origin) < 100))
+			self damage $world 15000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+	}
+
+	while (isalive self)
+	{
+		println ("spawned guy is running to the player from " + self.origin)
+		self runto $player
+		self waittill movedone
+		self attackplayer
+		wait 2
+	}
+end
+
+baddeath:
+	self waittill death
+	println "I die!"
+	level.totalspawnies--
+end
+
+debugprint:
+	while (1)
+	{
+		println ("alarmers = " + level.alarmers + " baddies " + level.totalspawnies)
+		wait 1
+	}
+
+end
+
+
+alarmer:
+	level.alarmers = 0
+	level.totalspawnies = 0
+	level.alarm_on = 0
+	if (getcvar(skill) == "0")
+		local.alarmcount = 0
+	else
+		local.alarmcount = 1
+
+	if (getcvar(debug) == "1")
+	thread debugprint
+	
+	while (1)
+	{
+		while ((level.alarmers > local.alarmcount) || (level.alarm_on == 1) || (level.time < level.alarm_time))
+			wait 1
+
+		wait randomfloat(2)
+		local.ent = -1
+		local.lastent = -1
+		local.range = 1500
+		for (local.i=1;local.i<$enemy.size+1;local.i++)
+		{
+			if ((isalive $enemy[local.i]) && ($enemy[local.i].thinkstate != "idle")) //  ($enemy[local.i] cansee $player)) 
+			{
+				local.newrange = vector_length ($enemy[local.i].origin - $player.origin)
+				if (local.newrange < local.range)
+				{
+					local.range = local.newrange
+					local.ent = local.i
+/*
+					if (local.lastent == -1)
+					{
+						local.ent = local.lastent
+						local.lastent = local.i
+					}
+					else
+					{
+						local.lastent = local.i
+						local.ent = local.i
+					}
+*/
+				}
+			}
+//			else
+//			println ("thinkstate is " + $enemy[local.i].thinkstate)
+		}
+		
+
+		if (local.ent != -1)
+		{
+			if (game.skill == "hard")
+				$enemy[local.ent] thread doalarm
+			else
+			if ($enemy[local.ent] canseenoents $player)
+				$enemy[local.ent] thread doalarm
+		}
+
+		/*
+		else
+		if (local.lastent != -1)
+		if (level.enemy[local.lastent] cansee $player)
+			level.enemy[local.lastent] thread bridgeblownow (randomint(3))
+		*/
+
+		wait 2
+	}
+end

@@ -1,0 +1,496 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/zonespawner.scr
+//
+// author: Michael Goodwin
+//
+// description:
+//
+// - forthcoming
+//
+// setup:
+//
+//   place AI soldiers in level with $targetname set to "zonespawner"
+//   assign a group/set number using the #set property
+//   at startup, the soldiers are converted into spawners
+//   when the soldier is spawned:
+//   - if the #playerseek property is non-zero, the soldier will seek the player
+//   - if the solider is linked to a pathnode, the soldier will run to the pathnode
+//     and continue running the linked pathnodes
+//
+//   place trigger_multiple entities in level with $targetname set to "zonespawneron"
+//   assign a group/set number using the #set property
+//   these triggers turn ON the corresponding spawner(s) and any soldier(s) spawned
+//
+//   place trigger_multiple entities in level with $targetname set to "zonespawneroff"
+//   assign a group/set number using the #set property
+//   these triggers turn OFF the corresponding spawner(s) and any soldier(s) spawned
+//
+//   place trigger_multiple entities in level with $targetname set to "zonespawnerkill"
+//   assign a group/set number using the #set property
+//   these triggers KILL the corresponding spawner(s) and any soldier(s) spawned
+//
+//   to enable this system, include the following line in the level script file (after prespawn):
+//	   exec global/zonespawner.scr
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main:
+
+	// convert zonespawners into script_object markers
+	if ( $zonespawner == NULL )
+		level.zonespawners = 0
+	else
+		level.zonespawners = $zonespawner.size
+
+	if ( level.zonespawners > 0 )
+	{
+		level.zonespawner = exec global/makearray.scr $zonespawner
+
+		for ( local.i = 1; local.i < level.zonespawners + 1; local.i++ )
+		{
+			if ( level.zonespawner[local.i].playerseek == NIL )
+				level.zonespawner[local.i].playerseek = 0
+
+			if ( level.zonespawner[local.i].model == NIL )
+				exec global/error.scr ("Error, zonespawner at " + level.zonespawner[local.i].origin + " has no model") 1
+
+			if ( level.zonespawner[local.i].set == NIL )
+				exec global/error.scr ("Error, zonespawner at " + level.zonespawner[local.i].origin + " has no #set") 1
+
+			// create a generator in place of this soldier
+			level.zonespawner[local.i] = waitthread zonespawner_create level.zonespawner[local.i]
+
+			// set up for generator operation
+			level.zonespawner[local.i].zonestate = 0
+			level.zonespawner[local.i].zonesoldier = NULL
+			level.zonespawner[local.i].limbosoldier = NULL
+			level.zonespawner[local.i] thread zonegenerator
+		}
+
+//		println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Spawned " + level.zonespawners + " zonespawners")
+	}
+
+	// convert zonespawneron triggers
+	if ( $zonespawneron == NULL )
+		level.zonespawnerons = 0
+	else
+		level.zonespawnerons = $zonespawneron.size
+
+	if ( level.zonespawnerons > 0 )
+	{
+		level.zonespawneron = exec global/makearray.scr $zonespawneron
+
+		for ( local.i = 1; local.i < level.zonespawnerons + 1; local.i++ )
+		{
+			if ( level.zonespawneron[local.i].set == NIL )
+				exec global/error.scr ("Error, zonespawneron trigger at " + level.zonespawneron[local.i].origin + " has no #set") 1
+
+			level.zonespawneron[local.i] setthread zonespawnertriggeron
+		}
+
+//		println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Found " + level.zonespawnerons + " zonespawner ON triggers")
+	}
+
+	// convert zonespawneroff triggers
+	if ( $zonespawneroff == NULL )
+		level.zonespawneroffs = 0
+	else
+		level.zonespawneroffs = $zonespawneroff.size
+
+	if ( level.zonespawneroffs > 0 )
+	{
+		level.zonespawneroff = exec global/makearray.scr $zonespawneroff
+
+		for ( local.i = 1; local.i < level.zonespawneroffs + 1; local.i++ )
+		{
+			if ( level.zonespawneroff[local.i].set == NIL )
+				exec global/error.scr ("Error, zonespawneroff trigger at " + level.zonespawneroff[local.i].origin + " has no #set") 1
+
+			level.zonespawneroff[local.i] setthread zonespawnertriggeroff
+		}
+
+//		println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Found " + level.zonespawneroffs + " zonespawner OFF triggers")
+	}
+
+	// convert zonespawnerkill triggers
+	if ( $zonespawnerkill == NULL )
+		level.zonespawnerkills = 0
+	else
+		level.zonespawnerkills = $zonespawnerkill.size
+
+	if ( level.zonespawnerkills > 0 )
+	{
+		level.zonespawnerkill = exec global/makearray.scr $zonespawnerkill
+
+		for ( local.i = 1; local.i < level.zonespawnerkills + 1; local.i++ )
+		{
+			if ( level.zonespawnerkill[local.i].set == NIL )
+				exec global/error.scr ("Error, zonespawnerkill trigger at " + level.zonespawnerkill[local.i].origin + " has no #set") 1
+
+			level.zonespawnerkill[local.i] setthread zonespawnertriggerkill
+		}
+
+//		println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Found " + level.zonespawnerkills + " zonespawner KILL triggers")
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the level
+//   this replaces the soldier with a script_object
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawner_create local.soldier:
+
+	if ( local.soldier )
+	{
+		local.spawner = spawn script_origin
+
+		local.spawner.origin					= local.soldier.origin
+		local.spawner.type_idle					= local.soldier.type_idle
+		local.spawner.type_attack				= local.soldier.type_attack
+		local.spawner.type_disguise				= local.soldier.type_disguise
+		local.spawner.type_grenade				= local.soldier.type_grenade
+		local.spawner.hearing					= local.soldier.hearing
+		local.spawner.sight						= local.soldier.sight
+		local.spawner.fov						= local.soldier.fov
+		local.spawner.leash						= local.soldier.leash
+		local.spawner.mindist					= local.soldier.mindist
+		local.spawner.maxdist					= local.soldier.maxdist
+		local.spawner.health					= local.soldier.health
+		local.spawner.sound_awareness			= local.soldier.sound_awareness
+		local.spawner.noticescale				= local.soldier.noticescale
+		local.spawner.fixedleash				= local.soldier.fixedleash
+		local.spawner.enemysharerange			= local.soldier.enemysharerange
+		local.spawner.voicetype					= local.soldier.voicetype
+		local.spawner.accuracy					= local.soldier.accuracy
+		local.spawner.ammo_grenade				= local.soldier.ammo_grenade
+		local.spawner.gren_awareness			= local.soldier.gren_awareness
+		local.spawner.nosurprise				= local.soldier.nosurprise
+		local.spawner.disguise_range			= local.soldier.disguise_range
+		local.spawner.disguise_period			= local.soldier.disguise_period
+		local.spawner.disguise_accept_thread	= local.soldier.disguise_accept_thread
+		local.spawner.disguise_level			= local.soldier.disguise_level
+		local.spawner.patrolpath				= local.soldier.patrolpath
+		local.spawner.waittrigger				= local.soldier.waittrigger
+		local.spawner.turret					= local.soldier.turret
+		local.spawner.alarmnode					= local.soldier.alarmnode
+		local.spawner.alarmthread				= local.soldier.alarmthread
+		local.spawner.set						= local.soldier.set
+		local.spawner.group						= local.soldier.group
+		local.spawner.healthchance				= local.soldier.healthchance
+		local.spawner.area						= local.soldier.area
+		local.spawner.enemyname					= local.soldier.enemyname
+		local.spawner.playerseek				= local.soldier.playerseek
+		local.spawner.fnum						= local.soldier.fnum
+		local.spawner.turndoneerror				= local.soldier.turndoneerror
+		local.spawner.threatbias				= local.soldier.threatbias
+		local.spawner.radnum					= local.soldier.radnum
+		local.spawner.balconyheight				= local.soldier.balconyheight
+		local.spawner.pause						= local.soldier.pause
+
+		local.spawner.spawn_target				= local.soldier.target
+		local.spawner.spawn_angle				= local.soldier.angle
+		local.spawner.spawn_weapon				= local.soldier.weapon
+		local.spawner.spawn_model				= local.soldier.model
+		local.spawner.spawn_targetname			= local.soldier.targetname
+
+		local.soldier remove
+	}
+	else
+	{
+		println "^~^~^ zonespawner_create ERROR:  person does not exist in the level, aborting conversion to spawner!!!"
+	}
+
+end local.spawner
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the level
+//   this returns a soldier from the script_object
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawner_activate local.spawner:
+
+	if ( local.spawner )
+	{
+		local.soldier = spawn local.spawner.spawn_model voicetype local.spawner.voicetype origin local.spawner.origin
+
+		local.soldier.type_idle					= local.spawner.type_idle
+		local.soldier.type_attack				= local.spawner.type_attack
+		local.soldier.type_disguise				= local.spawner.type_disguise
+		local.soldier.type_grenade				= local.spawner.type_grenade
+		local.soldier.hearing					= local.spawner.hearing
+		local.soldier.sight						= local.spawner.sight
+		local.soldier.fov						= local.spawner.fov
+		local.soldier.leash						= local.spawner.leash
+		local.soldier.mindist					= local.spawner.mindist
+		local.soldier.maxdist					= local.spawner.maxdist
+		local.soldier.health					= local.spawner.health
+		local.soldier.sound_awareness			= local.spawner.sound_awareness
+		local.soldier.noticescale				= local.spawner.noticescale
+		local.soldier.fixedleash				= local.spawner.fixedleash
+		local.soldier.enemysharerange			= local.spawner.enemysharerange
+		local.soldier.accuracy					= local.spawner.accuracy
+		local.soldier.ammo_grenade				= local.spawner.ammo_grenade
+		local.soldier.gren_awareness			= local.spawner.gren_awareness
+		local.soldier.nosurprise				= local.spawner.nosurprise
+		local.soldier.disguise_range			= local.spawner.disguise_range
+		local.soldier.disguise_period			= local.spawner.disguise_period
+		local.soldier.disguise_accept_thread	= local.spawner.disguise_accept_thread
+		local.soldier.disguise_level			= local.spawner.disguise_level
+		local.soldier.patrolpath				= local.spawner.patrolpath
+		local.soldier.waittrigger				= local.spawner.waittrigger
+		local.soldier.turret					= local.spawner.turret
+		local.soldier.alarmnode					= local.spawner.alarmnode
+		local.soldier.alarmthread				= local.spawner.alarmthread
+		local.soldier.set						= local.spawner.set
+		local.soldier.group						= local.spawner.group
+		local.soldier.healthchance				= local.spawner.healthchance
+		local.soldier.area						= local.spawner.area
+		local.soldier.enemyname					= local.spawner.enemyname
+		local.soldier.playerseek				= local.spawner.playerseek
+		local.soldier.fnum						= local.spawner.fnum
+		local.soldier.turndoneerror				= local.spawner.turndoneerror
+		local.soldier.threatbias				= local.spawner.threatbias
+		local.soldier.radnum					= local.spawner.radnum
+		local.soldier.balconyheight				= local.spawner.balconyheight
+		local.soldier.pause						= local.spawner.pause
+
+		local.soldier.target					= local.spawner.spawn_target
+		local.soldier.angle						= local.spawner.spawn_angle
+		local.soldier.weapon					= local.spawner.spawn_weapon
+	}
+	else
+	{
+		println "^~^~^ zonespawner_activate ERROR:  spawner does not exist in the level, aborting activation!!!"
+	}
+
+end local.soldier
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread turns off all generators
+//   of the specified set
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawners_off local.set:
+
+	if ( level.zonespawners > 0 )
+	{
+		for ( local.i = 1; local.i < level.zonespawners + 1; local.i++ )
+		{
+			if ( level.zonespawner[local.i].set == local.set )
+			{
+				level.zonespawner[local.i].zonestate = 0
+			}
+		}
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread turns on all generators
+//   of the specified set
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawners_on local.set:
+
+	if ( level.zonespawners > 0 )
+	{
+		for ( local.i = 1; local.i < level.zonespawners + 1; local.i++ )
+		{
+			if ( level.zonespawner[local.i].set == local.set )
+			{
+				level.zonespawner[local.i].zonestate = 1
+			}
+		}
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread kills all generators
+//   of the specified set
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawners_kill local.set:
+
+	if ( level.zonespawners > 0 )
+	{
+		for ( local.i = 1; local.i < level.zonespawners + 1; local.i++ )
+		{
+			if ( level.zonespawner[local.i].set == local.set )
+			{
+				level.zonespawner[local.i].zonestate = 2
+			}
+		}
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on a zonespawner
+//   when it is is "generation" mode
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonegenerator:
+
+	local.running = 1
+	local.laststate = self.zonestate
+
+	while ( local.running == 1 )
+	{
+		if ( local.laststate == self.zonestate )
+		{
+			// status quo
+			if ( self.zonestate == 1 )
+			{
+				// running
+				if ( (self.zonesoldier == NULL) || (!isAlive self.zonesoldier) )
+				{
+//					println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` spawning a soldier"
+					local.soldier = waitthread zonespawner_activate self
+					local.soldier waitthread zonespawned
+					local.soldier.health = 1		// TEMP
+
+					self.zonesoldier = local.soldier
+				}
+			}
+			else
+			{
+				// generator off
+			}
+		}
+		else
+		{
+			// switching states
+			if ( self.zonestate == 0 )
+			{
+				// switched off
+//				println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` gen switched off"
+				if ( (self.limbosoldier == NULL) && (self.zonesoldier != NULL) )
+				{
+//					println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` sending to limbo"
+					self.zonesoldier pauseanims 1
+					self.zonesoldier exec global/disable_ai.scr
+					self.zonesoldier notsolid
+					self.zonesoldier hide
+					self.limbosoldier = self.zonesoldier
+				}
+			}
+			else if ( self.zonestate == 1 )
+			{
+				// switched on
+//				println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` gen switched on"
+				if ( (self.limbosoldier != NULL) && (self.zonesoldier != NULL) )
+				{
+//					println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` returning from limbo"
+					self.zonesoldier pauseanims 0
+					self.zonesoldier exec global/enable_ai.scr
+					self.zonesoldier solid
+					wait 0.1
+					self.zonesoldier show
+					self.limbosoldier = NULL
+				}
+			}
+			else if ( self.zonestate == 2 )
+			{
+				// killed
+//				println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` gen killed"
+				if ( self.zonesoldier != NULL )
+				{
+					self.zonesoldier remove
+				}
+				local.running = 0
+			}
+		}
+
+		local.laststate = self.zonestate
+		wait 0.1
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the soldier that has
+//   just been spawned
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawned:
+
+	if ( self.playerseek != 0 )
+	{
+		self.nosuprise = 1
+		self runto $player
+	}
+	else if ( self.target != NIL )
+	{
+		self runto self.target
+		self waittill movedone
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the zonespawneron trigger
+//   when it is tripped
+// 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawnertriggeron:
+
+	thread zonespawners_on self.set
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the zonespawneroff trigger
+//   when it is tripped
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawnertriggeroff:
+
+	thread zonespawners_off self.set
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// this thread runs on the zonespawnerkill trigger
+//   when it is tripped
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zonespawnertriggerkill:
+
+	thread zonespawners_kill self.set
+
+end

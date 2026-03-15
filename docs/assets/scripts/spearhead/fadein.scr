@@ -1,0 +1,91 @@
+//------------------------------------------------------------------
+//	FadeIn.scr
+//	Jeff Leggett
+//	07/19/2002
+//
+//	Re-usable fade-in routine.
+//
+//	exec this script before your waittill spawn command.
+//
+//	Call fadein to put up the text menus and fade in the screen.
+//	
+//------------------------------------------------------------------
+
+
+//------------------------------------------------------------------
+main:
+//
+//	prepare for the fade in...
+//------------------------------------------------------------------
+	fadeout .001 0 0 0 1
+	drawhud 0
+
+	End
+
+//------------------------------------------------------------------
+DoFadeIn local.menu1 local.menu2 local.menu3 local.menu4 local.bDrawHud:
+//------------------------------------------------------------------
+
+	if (getcvar(debug) == "1")
+	{
+		fadein 0.1 0 0 0 1
+		drawhud 1
+		End
+	}
+
+	if ( local.bDrawHud==NIL )
+		local.bDrawHud = 1
+	
+// NOTE: if a menu is not showing up you may need to increase this wait
+	wait 1.5
+		
+	showmenu local.menu1
+	hidemouse
+	wait 1.5
+
+	if ( local.menu2!=NIL )
+	{
+		showmenu local.menu2
+		hidemouse
+
+		wait 2.25
+	}
+
+	if ( local.menu3!=NIL )
+	{
+		showmenu local.menu3
+		hidemouse
+
+		wait 3
+	}
+
+	if ( local.menu4!=NIL )
+	{
+		showmenu local.menu4
+		hidemouse
+
+		wait 3
+	}
+
+	fadein 3.5 0 0 0 1
+
+//	wait 0.5
+	hidemenu local.menu1
+
+	if ( local.menu2!=NIL )
+		hidemenu local.menu2
+
+	if ( local.menu3!=NIL )
+		hidemenu local.menu3
+
+	if ( local.menu4!=NIL )
+		hidemenu local.menu4
+
+	hidemouse
+
+	if ( local.bDrawHud==1 )
+	{
+		drawhud 1
+	}
+
+	End

@@ -1,0 +1,251 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/democharge.scr
+//
+// used to give visual feedback of inventory status
+//   in the HUD when a democharge/stickbomb is been used
+//
+// author: Michael Goodwin
+//
+// setup:
+//
+// TODO:
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main:
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// charge_switch
+// - local.from			- index of image to switch from (corresponds to charge count)
+// - local.to			- index of image to switch to
+// - local.predelay		- amount of time to hold first image before switching
+// - local.holddelay	- amount of time to hold second image before fading out
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+charge_switch local.from local.to local.predelay local.holddelay:
+
+charge_switch_loop:
+
+	if ( (level.demochargeswitchsemaphore == NIL) || (level.demochargeswitchsemaphore == 0) )
+	{
+		local.icon = waitthread get_charge_icon local.from
+		local.icon2 = waitthread get_charge_icon local.to
+
+		level.demochargeswitchsemaphore = 1
+		waitthread do_switch local.icon local.icon2 local.predelay local.holddelay
+		level.demochargeswitchsemaphore = 0
+	}
+	else
+	{
+		wait 0.1
+		goto charge_switch_loop
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+get_charge_icon local.which:
+
+	switch ( local.which )
+	{
+		case 0:
+			local.icon = "textures/hud/democharge0"
+			break
+
+		case 1:
+			local.icon = "textures/hud/democharge1"
+			break
+
+		case 2:
+			local.icon = "textures/hud/democharge2"
+			break
+
+		case 3:
+			local.icon = "textures/hud/democharge3"
+			break
+
+		case 4:
+			local.icon = "textures/hud/democharge4"
+			break
+
+		case 5:
+			local.icon = "textures/hud/democharge5"
+			break
+
+		case 6:
+			local.icon = "textures/hud/democharge6"
+			break
+
+		case 7:
+			local.icon = "textures/hud/democharge7"
+			break
+
+		case 8:
+			local.icon = "textures/hud/democharge8"
+			break
+
+		case 9:
+			local.icon = "textures/hud/democharge9"
+			break
+
+		default:
+			println "~~~~~~~~~~~~~~~~~~~~~~~ invalid charge icon"
+			break
+	}
+
+end local.icon
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// sticky_switch
+// - local.from			- index of image to switch from (corresponds to charge count)
+// - local.to			- index of image to switch to
+// - local.predelay		- amount of time to hold first image before switching
+// - local.holddelay	- amount of time to hold second image before fading out
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sticky_switch local.from local.to local.predelay local.holddelay:
+
+sticky_switch_loop:
+
+	if ( (level.demochargeswitchsemaphore == NIL) || (level.demochargeswitchsemaphore == 0) )
+	{
+		local.icon = waitthread get_sticky_icon local.from
+		local.icon2 = waitthread get_sticky_icon local.to
+
+		level.demochargeswitchsemaphore = 1
+		waitthread do_switch local.icon local.icon2 local.predelay local.holddelay
+		level.demochargeswitchsemaphore = 0
+	}
+	else
+	{
+		wait 0.1
+		goto sticky_switch_loop
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+get_sticky_icon local.which:
+
+	switch ( local.which )
+	{
+		case 0:
+			local.icon = "textures/hud/stickybomb0"
+			break
+
+		case 1:
+			local.icon = "textures/hud/stickybomb1"
+			break
+
+		case 2:
+			local.icon = "textures/hud/stickybomb2"
+			break
+
+		case 3:
+			local.icon = "textures/hud/stickybomb3"
+			break
+
+		case 4:
+			local.icon = "textures/hud/stickybomb4"
+			break
+
+		case 5:
+			local.icon = "textures/hud/stickybomb5"
+			break
+
+		case 6:
+			local.icon = "textures/hud/stickybomb6"
+			break
+
+		case 7:
+			local.icon = "textures/hud/stickybomb7"
+			break
+
+		case 8:
+			local.icon = "textures/hud/stickybomb8"
+			break
+
+		case 9:
+			local.icon = "textures/hud/stickybomb9"
+			break
+
+		default:
+			println "~~~~~~~~~~~~~~~~~~~~~~~ invalid stickbomb icon"
+			break
+	}
+
+end local.icon
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+do_switch local.fromicon local.toicon local.predelay local.holddelay:
+
+	if ( local.predelay == NIL )
+		local.predelay = 0.25
+	if ( local.holddelay == NIL )
+		local.holddelay = 2.75
+
+	local.hudindex = 77
+	local.finalalpha = 0.8
+	local.alphastep = 0.12
+
+	huddraw_alpha local.hudindex 0
+	huddraw_align local.hudindex right top
+
+	huddraw_shader local.hudindex local.fromicon
+
+	local.xpos = -78
+	if ( (level.item_total != NIL) && (level.item_total > 0) )
+		local.ypos = 72
+	else
+		local.ypos = 8
+	huddraw_rect local.hudindex local.xpos local.ypos 64 64
+
+	for ( local.i = 0.0; local.i <= local.finalalpha; local.i += local.alphastep )
+	{
+		huddraw_alpha local.hudindex local.i
+		waitframe
+	}
+
+	huddraw_alpha local.hudindex local.finalalpha
+	wait local.predelay
+
+	huddraw_shader local.hudindex local.toicon
+
+	wait local.holddelay
+
+	for ( local.i = local.finalalpha; local.i > 0.0; local.i -= local.alphastep )
+	{
+		huddraw_alpha local.hudindex local.i
+		waitframe
+	}
+
+	huddraw_alpha local.hudindex 0
+
+end
+
+
+

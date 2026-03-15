@@ -1,0 +1,75 @@
+//-----------------------------------------------------------------
+// dialog_to.scr
+//
+//
+//		modified version of say_to.scr which allows you to pass
+//	either the local.sound, local.anim, or both.
+//
+//-----------------------------------------------------------------
+
+
+//-----------------------------------------------------------------
+dialog local.sound local.anim local.listener local.distance local.movecloser:
+//
+//	
+//-----------------------------------------------------------------
+	if (self == NULL)
+	{
+		println "Z:        null speaker: " self " " local.alias
+		end
+	}
+	
+	if (local.listener == NULL)
+	{
+		local.movecloser = 0
+	}
+
+	if ( local.listener!=NULL && local.listener!=NIL )
+	{
+		if (local.distance == NIL || local.distance < 64)
+			local.distance = 160
+		if (local.movecloser != 1)
+		{
+			local.save = self.friendtype
+			self.friendtype = -1
+			
+			while (((vector_length(local.listener.origin - self.origin)) > local.distance) || !(local.listener cansee self))
+			{
+			
+			if ((vector_length(local.listener.origin - self.origin)) > local.distance)
+				println "Z:        speaker too far from listener: " local.listener
+			if !(local.listener cansee self)
+				println "Z:        speaker cant see listener: " local.listener
+			
+			self exec global/runto.scr local.listener.origin
+			wait .2
+			}
+		//	self exec global/stand.scr
+			
+			self.friendtype = local.save
+		}
+	}
+
+	self turnto local.listener
+	self lookat local.listener
+	wait .3
+
+	if ( local.sound!=NIL && local.sound!=NULL )
+		self say local.sound
+
+	if ( local.anim!=NIL && local.anim!=NULL )
+	{
+		self anim local.anim
+		self waittill animdone
+	}
+	else
+	{
+		if ( local.sound!=NIL && local.sound!=NULL )
+			self waittill saydone
+	}
+
+	self turnto NULL
+	self lookat NULL
+
+	End
+

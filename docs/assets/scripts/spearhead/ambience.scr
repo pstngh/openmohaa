@@ -1,0 +1,238 @@
+//
+// global ambience script
+// used for easy placement of ambient sounds
+
+ambience:
+if(level.script == "maps/room1.scr")
+{
+//thread sound ( 24 64 16 ) cricket
+}
+if(level.script == "maps/traf.scr")
+{
+//thread sound ( 2462 -6696 -95.88 ) cricket
+}
+if(level.script == "maps/t1l1.scr")
+{
+thread sound ( -3175 5139 -6999 ) cricket4 
+thread sound ( -3386 5631 -7127 ) stream1
+thread sound ( -4463 6023 -7127 ) stream1
+thread sound ( -1782 5733 -7128 ) stream1
+thread sound ( -3024 1165 -6851 ) wind_trees7 
+thread sound ( -1919 1000 -6859 ) wind_trees7 
+thread sound ( -2497 1069 316 ) wind_trees7
+thread sound ( -2222 -778 430 ) wind_trees7
+thread sound ( -2360 -782 -6771 ) wind_trees7
+thread sound ( -3020 -737 -6726 ) wind_trees7
+thread sound ( -1491 711 -6812 ) cricket5
+thread sound ( -2089 -361 -6739 ) cricket5
+thread sound ( -237 -2150 -6736 ) wind_trees7
+}
+if(level.script == "maps/t1l2.scr")
+{
+//thread sound ( 1689 -5055 123 ) cricket1
+thread sound ( 1731 -5170 138 ) cricket4
+thread sound ( -5525 1231 4 ) cricket5
+thread sound ( -4041 5081 -15 ) cricket4
+thread sound ( 2387 4949 17 ) cricket4
+thread sound ( 5265 -54 -247 ) river1
+thread sound ( 4425 83 -207 ) river1
+thread sound ( 4529 -2959 -153 ) river2
+thread sound ( 4272 4048 -247) river1
+thread sound ( -780 144 -35 ) stream
+thread sound ( 635 -88 -30 ) stream
+thread sound ( 2340 -32 -34 ) stream
+thread sound ( -5556 890 -56 ) stream
+thread sound ( -2935 261 -63 ) stream
+thread sound ( -4952 1800 -55 ) basement_water1
+thread sound ( 1675 -4292 54 ) wind_trees7
+thread sound ( -3381 -1648 -11 ) wind_trees5
+thread sound ( -3106 -2928 -19 ) Wind_trees6
+thread sound ( -3965 5062 -15 ) wind_trees6
+}
+if(level.script == "maps/t1l3.scr")
+{
+//thread sound ( -868 -4832 -95 ) river3
+thread sound ( -2856 -860 30 ) wind_trees5
+thread sound ( -1379 -714 18 ) cricket4
+thread sound ( -1124 685 1 ) cricket4 
+thread sound ( 1252 1835 1 ) cricket4
+thread sound ( 1325 943 1 ) cricket4
+thread sound ( 2808 1756 1 ) cricket3
+thread sound ( 2587 2991 1 ) cricket3
+thread sound ( 2037 3242 1 ) cricket3
+thread sound ( 3081 -2247 119 ) Cricket4
+thread sound ( -877 2375 1 ) wind_trees7
+thread sound ( -684 3288 1 ) wind_trees7
+thread sound ( -1494 3279 1 ) wind_trees6
+thread sound ( 1039 987 1 ) wind_trees6
+thread sound ( 2025 1417 -9 ) wind_trees6
+thread sound ( 3143 -3945 -90 ) river2
+thread sound ( 3168 -5345 -90 ) river2
+thread sound ( 3223 -7118 -90 ) river2
+thread sound ( 104 4485 21 ) fire_med
+}
+if(level.script == "maps/t2l1.scr")
+{
+thread sound ( 6478 4644 1920 ) fireplace
+thread sound ( 6155 5671 1904 ) radio_loop
+}
+if(level.script == "maps/t2l2.scr")
+{
+//thread sound ( 4123 4331 1907 ) wind_weak
+}
+if(level.script == "maps/t2l3.scr")
+{
+//thread sound ( -869 -2088 47 ) river
+//thread sound ( -118 1974 -31 ) wind_trees8
+thread sound ( 2144 -439 2.13 ) fire_small
+}
+if(level.script == "maps/t2l4.scr")
+{
+//thread sound ( -1255 -6718 23 ) wind_trees9
+//thread sound ( 1173 -6831 -3 ) wind_trees9
+//thread sound ( -3505 -3550 13 ) wind_trees8
+//thread sound ( -4093 -1627 50 ) wind_trees8
+//thread sound ( -1647 -3704 90 ) wind_trees8
+//thread sound ( -9 -3760 114 ) wind_trees8
+//thread sound ( 1320 -2976 63 ) wind_trees8
+//thread sound ( 2068 -4018 95 ) wind_trees8
+//thread sound ( -2029 -2718 43 ) wind_trees8
+}
+if(level.script == "maps/t3l1.scr") 
+{
+thread sound ( 2837 3350 -159 ) rain_plant1
+thread sound ( 3549 1418 -150 ) rain_plant1
+thread sound ( 4039 1146 -139 ) rain_plant1
+thread sound ( 4390 924 -105 ) rain_plant1
+thread sound ( 4934 2179 -159 ) rain_plant1
+thread sound ( 4598 2649 -159 ) rain_plant1
+thread sound ( 5948 -5223 24 ) rain_plant1
+thread sound ( 5353 -6071 24 ) rain_plant1
+thread sound ( 4769 -6374 24 ) rain_plant1
+thread sound ( -3315 -5077 384 ) rain_ext1
+thread sound ( -4088 -3876 192 ) rain_ext1
+}
+if(level.script == "maps/t3l2.scr")
+{
+//thread sound ( -4028 -3895 107.29 ) rain_puddle
+}
+//DM levels start
+if(level.script == "maps/dm/MP_Stadt_DM.scr")
+{
+thread sound ( -2792 406 8 ) Cricket4
+thread sound ( -902 98 1 ) wind_trees7
+thread sound ( -116 2171 180 ) wind_trees7
+//thread sound ( -1884 -1174 -345 ) basement_water2
+//thread sound ( -1870 -139 -345 ) basement_water2
+//thread sound ( -1873 309 -345 ) basement_water2
+//thread sound ( -1519 -40 -345 ) basement_water2
+//thread sound ( -1079 -190 -345 ) basement_water2
+//thread sound ( -1080 315 -345 ) basement_water2
+//thread sound ( -859 705 -345 ) basement_water2
+//thread sound ( -1090 910 -345 ) basement_water2
+//thread sound ( -1082 1406 -345 ) basement_water2
+//thread sound ( -1100 1829 -345 ) basement_water2
+//thread sound ( -1634 1870 -345 ) basement_water2
+}
+if(level.script == "maps/dm/mp_brest_dm.scr")
+{
+//thread sound ( 1664 3632 280 ) cricket4
+//thread sound ( 1126 3670 270 ) fire_med1
+//thread sound ( 1419 4805 261 ) fire_small1
+//thread sound ( 2729 6077 261 ) fire_large1
+//thread sound (352 2267 392 ) fire_med1
+}
+if(level.script == "maps/dm/mp_unterseite_dm.scr")
+{
+thread sound ( -211 200 225 ) cricket5
+thread sound ( 496 1038 127 ) cricket3
+thread sound ( -274 256 226 ) wind_trees4
+thread sound ( 950 1962 171 ) wind_trees5 
+thread sound ( 1140 295 -27 ) wind_trees5 
+thread sound ( -124 1829 -27 ) wind_trees6
+thread sound ( 576 2153 -27 ) wind_trees6
+thread sound ( 1146 1822 -27 ) wind_trees6
+thread sound ( 1326 635 -27 ) wind_trees6
+thread sound ( 656 875 77 ) wind_trees4
+thread sound ( -1154 1652 124 ) spark
+thread sound ( 869 1295 208 ) fire_med2
+}
+if(level.script == "maps/DM/MP_Gewitter_DM.scr")
+{
+thread sound ( 1119 768 8 ) cricket4
+thread sound ( 512 763 98 ) fire_small
+}
+if(level.script == "maps/dm/MP_Holland_DM.scr")
+{
+thread sound ( -2945 -2882 48 ) cricket6
+thread sound ( -3777 -1858 255 ) cricket6
+thread sound ( -2571 -2895 10 ) wind_trees4
+thread sound ( -2457 -3776 -4 ) wind_trees7
+thread sound ( -1420 -2976 12 ) wind_trees7
+thread sound ( -1901 -2451 -191) river4
+thread sound ( -1958 -929 -191 ) river4
+thread sound ( -1918 -1816 -192 ) basement_water1
+thread sound ( -1840 60 -192 ) river4
+thread sound ( 4269 -760 -143 ) river4
+thread sound ( 4132 -1694 -143 ) river4
+thread sound ( 3914 -2337 -143 ) river4
+thread sound ( 3323 -2666 -143 ) river4
+thread sound ( 2390 -2826 -143 ) river4
+thread sound ( 1073 -3080 -143 ) river4
+thread sound ( -761 -1451 16 ) wind_trees7
+thread sound ( -216 -860 16 ) wind_trees7
+thread sound ( -767 -295 16 ) wind_trees7
+thread sound ( -115 -2596 1 ) wind_trees4 
+}
+if(level.script == "maps/dm/MP_Malta_DM.scr")
+{
+thread sound ( 848 1632 -1407 ) cricket4
+}
+//DM levels end obj levels start
+if(level.script == "maps/obj/MP_Druckkammern_TOW.scr")
+{
+thread sound ( 8 -1753 -511 ) waves
+thread sound ( -2063 -2380 -475 ) waves
+thread sound ( 3246 320 -511 ) waves
+thread sound ( 866 1328 -475 ) waves
+thread sound ( 2316 2032 -515 ) waves
+thread sound ( -1289 -2516 -449 ) rain_ext2
+thread sound ( 1136 -4020 -511 ) rain_ext2
+thread sound ( 3695 363 -511 ) rain_ext2
+thread sound ( 3939 1507 -511 ) rain_ext2
+//thread sound ( 2645 -1163 -620 ) river3
+//thread sound ( 2555 -6021 -620 ) river3
+//thread sound ( 4386 -1010 -685 ) river3
+}
+if(level.script == "maps/obj/MP_Ardennes_TOW.scr")
+{
+thread sound ( 180 889 -12 ) wind_trees5
+thread sound ( -166 2659 29 ) wind_trees7
+thread sound ( -453 2478 -10 ) wind_trees7
+thread sound ( 311 3400 46 ) wind_trees7
+thread sound ( 1915 2356 -31 ) wind_trees7
+thread sound ( 1704 -2134 293 ) wind_trees7
+thread sound ( -3458 -2198 345 ) wind_trees7
+thread sound ( 388 -2927 82 ) wind_trees7
+thread sound ( -1158 -4213 91 ) wind_trees7
+thread sound ( -1914 -3661 329 ) wind_trees7
+thread sound ( 3464 -20 -19 ) wind_weak1
+thread sound ( 1038 229 592 ) wind_weak1
+thread sound ( -72 218 416 ) wind_weak1
+thread sound ( -1866 -405 34 ) wind_trees5
+}
+if(level.script == "maps/obj/MP_Flughafen_TOW.scr")
+{
+thread sound ( -1309 2625 -23 ) cricket4
+thread sound ( -548 2144 -686 ) sub_idle2
+//thread sound ( -935 2410 -697 ) power_generator
+thread sound ( 44 2439 -695 ) power_generator
+}
+end
+
+sound local.origin local.sound:
+	local.soundorigin = spawn script_model model "fx/dummy.tik"
+	local.soundorigin.origin = local.origin
+	local.soundorigin loopsound local.sound
+	local.soundorigin notsolid
+end

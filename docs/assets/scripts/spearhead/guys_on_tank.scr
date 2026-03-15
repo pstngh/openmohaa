@@ -1,0 +1,242 @@
+// -----------------------------------------------------------------------
+//	guys_on_tank.scr
+//
+//	Use this script to make your tank have passengers...
+//
+//	(NOTE: not used yet.)
+//
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+main:
+// -----------------------------------------------------------------------
+
+	end
+
+
+// -----------------------------------------------------------------------
+LoadPassengers local.passengers local.guy_type local.special local.passenger_name local.driver_name:
+//
+//		global/guys_on_tank.scr::LoadPassengers
+//
+// -----------------------------------------------------------------------
+
+	if ( local.passengers <= 0 )
+		end
+
+	if ( local.passengers > 5 )
+		local.passengers = 5
+
+	self.passenger_count = local.passengers
+
+	self thread TankDeathCheck
+
+	for (local.slot = 1; local.slot <= local.passengers; local.slot++)
+	{
+		if (local.guy_type == NIL)
+			local.guy_type = "models/human/german_panzer_obershutze"
+		if (randomint (3) == 1) 
+			local.gun = "MP40"
+		else
+			local.gun = "Mauser KAR 98K"
+		if ( (local.special == "panzer") && (local.slot == 1) )
+			local.gun = "panzerschrek"
+		local.guy = spawn local.guy_type "gun" local.gun
+		local.guy.origin = self.origin
+		local.guy rendereffects "-shadow"
+
+		self.passenger[local.slot]	= local.guy
+
+		if ( local.passenger_name!=NIL )
+			local.guy.targetname = local.passenger_name
+
+		if (level.dontdropweapons == 1)
+			local.guy dontdropweapons
+		self AttachPassengerSlot local.slot local.guy
+//		local.name = "passenger" + local.slot
+//		local.guy attach self local.name 0 ( 0 0 0 )
+		local.guy type_attack "cover"
+		local.guy leash 0
+		local.guy exec global/disable_ai.scr 
+		local.guy fixedleash 1
+		local.guy physics_off
+		local.guy.my_tank = self
+		local.guy.loaded = 1
+
+	
+		switch (local.slot)
+		{
+		case 1:
+		case 2:
+		case 5:
+			local.guy exec global/setdeathanim.scr "31G302_Death"
+			local.guy thread BeTankGuy 31G301_German03Idle 31G503_JumpOff
+			break
+		case 3:
+		case 4:
+		default:
+			local.guy exec global/setdeathanim.scr "31G202_Death"
+			local.guy thread BeTankGuy 31G201_German02Idle 31G501_JumpOff
+			break
+		}
+	}
+
+	end
+
+// -----------------------------------------------------------------------
+BeTankGuy local.idle_anim local.jump_anim:
+// -----------------------------------------------------------------------
+	self.jump_anim = local.jump_anim
+
+	self thread StopTankOnDeath
+	self thread StopTankOnPain
+
+	// loop our sitting/idle animation...
+	self thread global/LoopAnim.Scr::LoopAnim local.idle_anim
+
+	end
+
+//------------------------------------------------------------------------------
+StopTankOnDeath:
+//
+//	If driver gets shot, we should stop the Tank...
+//------------------------------------------------------------------------------
+	self waittill death
+
+	if ( isalive self.my_tank )
+	{
+		self.my_tank.playerlook = 0
+		self.my_tank thread TankStop 1
+	}
+
+	End
+
+//------------------------------------------------------------------------------
+StopTankOnPain:
+//
+//	If driver gets shot, we should stop the Tank...
+//------------------------------------------------------------------------------
+
+	self waittill pain
+
+	if ( self.loaded==0 )
+		end
+
+	if ( isalive self )
+	{
+		self damage $world 15000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+		self.loaded = 0
+	}
+
+	if ( isalive self.my_tank )
+	{
+		self.my_tank.playerlook = 0
+		self.my_tank thread TankStop 1
+	}
+	
+
+	End
+
+//------------------------------------------------------------------------------
+TankStop local.bStop:
+//------------------------------------------------------------------------------
+
+	if ( self.stopped==1 )
+	{
+		End
+	}
+
+	self.stopped = 1
+
+	if ( local.bStop )
+	{
+		self stop
+	}
+
+	// give time for tank to stop...
+	wait 1.5
+
+	self thread UnloadPassengers 1
+
+	End
+
+// -----------------------------------------------------------------------
+UnloadPassengers local.go_after_player:
+// -----------------------------------------------------------------------
+
+	for (local.slot = 0; local.slot <= 5; local.slot++)
+	{
+		self thread tank_passenger_unload local.slot local.go_after_player
+	}
+
+	end
+
+		
+// -----------------------------------------------------------------------
+tank_passenger_unload local.slot local.go_after_player:
+// -----------------------------------------------------------------------
+	local.ent = self QueryPassengerSlotEntity local.slot
+
+	if (local.ent == NULL)
+		end
+	
+	if (isAlive local.ent && local.ent.loaded==1)
+	{
+		local.ent thread global/LoopAnim.Scr::LoopAnimStop
+		local.ent.loaded = 0
+		local.ent exec global/disable_ai.scr
+		self DetachPassengerSlot local.slot local.ent.origin
+		local.tag = ("passenger" + local.slot)
+		local.ent.origin = self gettagposition local.tag
+		local.ent.angles = self gettagangles local.tag
+		local.ent notsolid
+		local.ent physics_on
+		local.ent anim_noclip local.ent.jump_anim
+		local.ent waittill animdone
+		local.ent solid
+		local.ent rendereffects "+shadow"
+		local.ent leash 10000
+		local.ent exec global/setdeathanim.scr NIL
+		local.ent exec global/enable_ai.scr
+
+		if ( local.go_after_player!=NIL && local.go_after_player==1 )
+		{
+			local.ent runto $player
+			local.ent attackplayer
+		}
+	}
+
+	end
+
+// -----------------------------------------------------------------------
+DeletePassengers:
+// used by 1-1
+// -----------------------------------------------------------------------
+
+	for (local.slot = 0; local.slot <= self.passenger_count; local.slot++)
+	{
+		if ( self.passenger[local.slot]!=NIL )
+			self.passenger[local.slot] delete
+
+	}
+
+	end
+
+// -----------------------------------------------------------------------
+TankDeathCheck:
+//
+//	if tank dies, kill anyone who hasn't unloaded..
+// -----------------------------------------------------------------------
+	self waittill death
+
+	for (local.slot = 0; local.slot <= self.passenger_count; local.slot++)
+	{
+		if ( self.passenger[local.slot]!=NIL )
+		{
+			if ( self.passenger[local.slot].loaded==1 )
+				self.passenger[local.slot] damage self 9000 self (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+		}
+
+	}
+
+	end

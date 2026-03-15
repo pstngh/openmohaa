@@ -1,0 +1,3 @@
+// tells AI to crouch
+//self.position = "crouch" // temporary to make it work
+self exec global/fullanim.scr anim/crouch.scr

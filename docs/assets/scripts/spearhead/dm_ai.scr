@@ -1,0 +1,56 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/dm_ai.scr
+//
+// author: Michael Goodwin
+//
+// description:
+//
+// - pseudo ai.scr for scripted DM cinematics
+//
+// setup:
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main:
+
+	if ( $enemyspawner )
+	{
+		for ( local.i = 1; local.i <= $enemyspawner.size; local.i++ )
+		{
+			$enemyspawner[local.i] hide
+			$enemyspawner[local.i] notsolid
+			$enemyspawner[local.i] ai_off
+		}
+	}
+
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// "spawn" all spawners with matching set #
+//   ai is disabled automatically
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+spawnset local.set local.name:
+
+	if ( $enemyspawner && (local.set != NIL) )
+	{	
+		for ( local.i = $enemyspawner.size; local.i >= 1; local.i-- )
+		{
+			if ( $enemyspawner[local.i].set == local.set )
+			{					
+				$enemyspawner[local.i] show
+				$enemyspawner[local.i] solid
+				$enemyspawner[local.i] ai_on
+				$enemyspawner[local.i] exec global/disable_ai.scr
+				if ( local.name != NIL )
+					$enemyspawner[local.i].targetname = local.name
+			}
+		}
+	}
+
+end

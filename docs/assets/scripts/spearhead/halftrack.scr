@@ -1,0 +1,503 @@
+
+
+
+//****************************************************
+//****************************************************
+halftrackinit local.halftrack local.health local.destroyedmodel:
+	local.halftrack waitthread initializer local.health local.destroyedmodel
+end
+
+//****************************************************
+//****************************************************
+initializer local.health local.destroyedmodel:
+	//println "*********BINDING MG42 TO HALFTRACK********"
+	//self.mg42 = self QueryTurretSlotEntity 0 //mg42 setup
+	self.mg42 = spawn models/statweapons/mg42_gun.tik "angles" self.angles
+	if (self.mg42 == NIL)
+	{
+		exec global/error.scr ("Error could not create MG42 for halftrack at " + self.origin) 1
+	}
+	self AttachTurretSlot 0 self.mg42
+	self.mg42 setusable 1
+	self.mg42 maxyawoffset 40
+	self.mg42 pitchcaps ( -25 25 0)
+	self.mg42 bulletdamage 5 //20
+	self.mg42 bulletspread 40 40 //1 1
+	self.mg42 firedelay .1
+	self.mg42 setaimtarget NULL
+	self rendereffects "-shadow"
+	//self immune bullet
+	//self immune fast_bullet
+	//self immune grenade
+	self immune bash
+	self solid
+	if (local.health != NIL)
+	{
+		self.health = local.health
+	}
+	else
+	{
+		self.health = 100
+	}
+	
+	self takedamage
+	self removeondeath 0
+	if (self.target)
+		self.collisionent = self.target
+
+	self thread halftrackmg42bind
+	self.mg42binderthread = parm.previousthread
+	self attachmodel "vehicles/sdkfz_shield.tik" "shield" 1.5 "halftrack1_gunnershield"
+	
+	self.center = spawn script_origin "targetname" "halftrack_center"
+	local.temp_origin = (self.forwardvector * 400) + self.origin
+	local.temp_origin[2] = local.temp_origin[2] + 160
+	self.center.origin = local.temp_origin
+	self.center.angles = self.angles
+	self.center bind self
+
+	self.passengers = 0
+
+	self.destroyedmodel = local.destroyedmodel
+	
+	if ($(self.gunner))
+	{
+		//println "*****ATTACHING GUNNER****"
+		self AttachPassengerSlot 1 self.gunner //gunner positioning
+		
+		self.gunner exec global/disable_ai.scr
+		
+		self.gunner.default_idle = self.gunner.type_idle
+		self.gunner.default_attack = self.gunner.type_attack
+		self.gunner.default_disguise = self.gunner.type_disguise
+		self.gunner.default_grenade = self.gunner.type_grenade
+
+		self.gunner type_idle machinegunner
+		self.gunner type_attack machinegunner
+		self.gunner type_disguise machinegunner
+		self.gunner type_grenade machinegunner
+		
+		self.gunner turret self.mg42
+		self.gunner leash 0
+		self.gunner fixedleash 1
+		self.gunner physics_off
+		self.gunner rendereffects "-shadow"
+		self.gunner dontdropweapons
+		
+		//self.gunner exec global/setdeathanim.scr "death_collapse"
+		//self.gunner health 1000
+		
+		self.gunner exec global/setdeathanim.scr "death_fall_back"
+		
+		self thread halftrackgunnerlogic
+		self.gunnerlogicthread = parm.previousthread
+		self.gunner takedamage
+		self.gunner.enablePain = 1
+	}
+
+end
+
+//****************************************************
+//****************************************************
+halftrack_killed local.halftrack:
+	local.halftrack waitthread halftrack_killer
+end
+
+halftrack_killer:
+//	self.collisionent disconnect_paths
+	self show
+	self playsound explode_tank
+	self stop
+	if (self.mg42binderthread != NIL && self.mg42binderthread != NULL)
+		self.mg42binderthread delete
+
+	if (self.gunnerlogicthread != NIL && self.gunnerlogicthread != NULL)
+		self.gunnerlogicthread delete
+	
+	if (self.center != NIL && self.center != NULL)
+		self.center remove
+
+	if (self.mg42)
+	{
+		self DetachTurretSlot 0
+		self.mg42 stopfiring
+		self.mg42 remove
+	}
+	if ($(self.gunner))
+	{
+		self DetachPassengerSlot 1 self.gunner.origin
+		self.gunner remove
+		//self.gunner bedead
+		//self.gunner hide
+		//self.gunner notsolid
+	}
+	
+	exec global/earthquake.scr .2 4 0 0
+	radiusdamage self.origin 200 200
+	self thread spawn_fx models/fx/fx_tank_explosion.tik
+
+	local.name = self
+	local.angles = self.angles
+	local.origin = self.origin
+	local.brushmodel = self.collisionent.brushmodel
+	self hide
+	self notsolid
+
+	//local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+	local.collision = spawn script_object model local.brushmodel
+	local.collision.origin = local.origin
+	local.collision.angles = local.angles
+	local.collision disconnect_paths
+	
+	local.damaged = spawn script_model model self.destroyedmodel
+	local.damaged.origin = local.origin
+	local.damaged.angles = local.angles
+	local.damaged notsolid
+	
+	wait .5
+	if (self)
+		self remove
+end
+
+
+//****************************************************
+//****************************************************
+halftrackmg42bind:
+	//this should be moved in code...
+	while (1)
+	{
+		local.a = self.angles
+		self.mg42 yawCenter local.a[1]
+		waitframe
+	}
+end
+
+//****************************************************
+//****************************************************
+halftrackgunnerlogic:
+	self.firemg = 0
+	local.firestate = 0
+	local.starttime = 0.0
+	local.endtime = 0.0
+	local.fireduration = 1.5
+	local.firedelay = 2.5
+
+	while ((isAlive $(self.gunner)) && (isAlive self))
+	{
+		local.besttarget = self.gunner findenemy
+		if (local.besttarget != NULL)
+		{
+			local.vec = local.besttarget.origin - self.gunner.origin
+			local.yawtarget = self GetLocalYawFromVector local.vec
+			local.yawdir = self GetLocalYawFromVector self.forwardvector
+			local.diff = abs(local.yawdir) - abs(local.yawtarget)
+			local.diff = abs(local.diff)
+			//println ("***DIFF: " + local.diff + " Yawtarget: " + local.yawtarget + " Yawdir: " + local.yawdir)
+			if (local.diff > 60 && self.passengers == 0)
+			{
+				if (self.gunner.type_idle != self.gunner.default_idle)
+				{
+					self.gunner type_idle self.gunner.default_idle
+					self.gunner type_attack "cover"
+					self.gunner type_disguise self.gunner.default_disguise
+					self.gunner type_grenade self.gunner.default_grenade
+					self.gunner turret NULL
+					self.gunner.enableEnemy = 1
+					self.gunner takedamage
+					self.gunner.enablePain = 1
+				}
+				self.mg42 setaimtarget self.center
+				self.firemg = 0
+			}
+			else
+			{
+				if (self.gunner.type_idle != "machinegunner")
+				{
+					self.gunner type_idle machinegunner
+					self.gunner type_attack machinegunner
+					self.gunner type_disguise machinegunner
+					self.gunner type_grenade machinegunner
+					self.gunner turret self.mg42
+					self.gunner.enableEnemy = 0
+					self.gunner takedamage
+					self.gunner.enablePain = 1
+				}
+				if (self.gunner cansee local.besttarget 80 1525)
+				{
+					self.mg42 setaimtarget local.besttarget
+					self.firemg = 1
+				}
+				else
+				{
+					self.mg42 setaimtarget self.center
+					self.firemg = 0
+				}
+			}
+		}
+		else
+		{
+			self.mg42 setaimtarget self.center
+			self.firemg = 0
+		}
+
+		if (self.firemg == 1)
+		{
+			switch (local.firestate)
+			{
+				//start fire
+				case 0:
+					self.mg42 startfiring
+					local.starttime = level.time
+					local.endtime = level.time + local.fireduration
+					local.firestate = 1
+					break
+				//fire duration
+				case 1:
+					if (level.time > local.endtime)
+					{
+						local.firestate = 2
+					}
+					break
+				case 2:
+					self.mg42 stopfiring
+					local.starttime = level.time
+					local.endtime = level.time + local.firedelay
+					local.firestate = 3
+					break
+				case 3:
+					if (level.time > local.endtime)
+					{
+						local.firestate = 0
+					}
+					break
+			}
+		}
+		else
+		{
+			self.mg42 stopfiring
+		}
+
+		wait 0.10
+	}
+	
+	self.mg42 stopfiring
+	self.mg42 setaimtarget self.center
+	self.firemg = 0
+
+end
+
+//****************************************************
+//****************************************************
+halftrack_loadpassengers local.halftrack local.numpassengers local.panzerflag local.type1 local.type2:
+	
+	local.startslot = 1
+	
+	if (local.halftrack.gunner)
+	{
+		//we have gunner... we can only have 2 passengers
+		if (local.numpassengers > 2)
+		{
+			local.numpassengers = 2
+		}
+		local.startslot = 2
+	}
+	else
+	{
+		if (local.numpassengers > 3)
+			local.numpassengers = 3
+	}
+
+	local.endslot = local.startslot + local.numpassengers
+
+	if (local.type1 == NIL && local.type2 == NIL)
+	{
+		local.guy_type = human/german_winter_type1
+	}
+	else
+	if (local.type1 != NIL && local.type2 == NIL)
+	{
+		local.guy_type = local.type1
+	}
+
+	local.halftrack.passengers = local.numpassengers
+
+	for (local.slot = local.startslot; local.slot < local.endslot; local.slot++)
+	{
+		if (local.type1 != NIL && local.type2 != NIL)
+		{
+			local.temp = randomint 2
+
+			if (local.temp == 0)
+				local.guy_type = local.type1
+			else
+				local.guy_type = local.type2
+		}
+		
+		if ( (local.panzerflag == "1") && (local.slot == 1) )
+			local.gun = "panzerschrek"
+		else if (randomint 3 == 1) 
+			local.gun = "MP40"
+		else
+			local.gun = "Mauser KAR 98K"
+		
+		//println ("****spawning passenger type: " + local.guy_type)
+		local.guy = spawn local.guy_type "gun" local.gun
+		if (local.guy != NIL && local.guy != NULL)
+		{
+			local.guy.origin = local.halftrack.origin
+			local.guy rendereffects "-shadow"
+			local.guy dontdropweapons
+			//if (level.dontdropweapons == 1)
+			//	local.guy dontdropweapons
+			local.halftrack AttachPassengerSlot local.slot local.guy
+			local.guy type_attack "cover"
+			local.guy leash 0
+			local.guy fixedleash 1
+			local.guy physics_off
+			//local.guy removeondeath 1
+			local.guy thread halftrackpassenger_deaththread local.halftrack
+
+			switch (local.slot)
+			{
+			case 1:
+				local.guy exec global/setdeathanim.scr "death_headpistol"
+				break
+			case 2:
+				local.guy exec global/setdeathanim.scr "death_crotch"
+				break
+			case 3:
+				local.guy exec global/setdeathanim.scr "death_left"
+				break
+			case 4:
+				local.guy exec global/setdeathanim.scr "death_run"
+				break
+			case 5:
+				local.guy exec global/setdeathanim.scr "death_shoot"
+				break
+			case 6:
+				local.guy exec global/setdeathanim.scr "death_right"
+				break
+			default:
+				local.guy exec global/setdeathanim.scr "death_collapse"
+				break
+			}
+		}
+		else
+		{
+			println ("***Halftrack " + local.halftrack + " could not create passenger")
+			local.halftrack.passengers = local.halftrack.passengers - 1
+		}
+	}
+end
+//****************************************************
+//****************************************************
+halftrackpassenger_deaththread local.halftrack:
+	self waittill death
+	if (local.halftrack == NULL)
+		end
+	if (local.halftrack.passengers > 0)
+		local.halftrack.passengers = local.halftrack.passengers - 1
+
+end
+
+//****************************************************
+//****************************************************
+halftrack_passengerunload local.halftrack local.unloadgunner:
+	local.startslot = 1
+	if (local.unloadgunner == NIL)
+		local.unloadgunner = 0
+	
+	if (local.halftrack.gunner && local.unloadgunner == 0)
+	{
+		local.numpassengers = 2
+		local.startslot = 2
+	}
+	else
+	{
+		local.numpassengers = 3
+	}
+
+	local.endslot = local.startslot + local.numpassengers
+
+	for (local.slot = local.startslot; local.slot < local.endslot; local.slot++)
+		local.halftrack thread halftrack_passenger_unloader local.slot
+
+end
+
+//****************************************************
+//****************************************************
+halftrack_passenger_unloader local.slot:
+	local.ent = self QueryPassengerSlotEntity local.slot
+	
+	if !(isAlive local.ent)
+		end
+	
+	if (local.ent == NULL)
+		end
+	
+	local.ent exec global/disable_ai.scr
+	self DetachPassengerSlot local.slot local.ent.origin
+	local.tag = ("passenger" + local.slot)
+	//println "z:      local.tag: " local.tag
+	if (local.slot == 1)
+	{
+		println "*********Unloading Gunner..."
+		if (self.gunnerlogicthread != NIL && self.gunnerlogicthread != NULL)
+		{
+			self.gunnerlogicthread delete
+			self.gunnerlogicthread = NULL
+		}
+		self.gunner type_idle self.gunner.default_idle
+		self.gunner type_attack self.gunner.default_attack
+		self.gunner type_disguise self.gunner.default_disguise
+		self.gunner type_grenade self.gunner.default_grenade
+	}
+
+	local.ent.origin = self gettagposition local.tag
+	local.ent.angles = self gettagangles local.tag
+	local.ent notsolid
+	local.ent physics_on
+	local.bailoutdelay = (randomfloat 0.5) + 0.1
+	wait local.bailoutdelay
+	local.ent anim_noclip 21G700_Jumpout
+	local.ent waittill animdone
+	local.ent solid
+	local.ent rendereffects "+shadow"
+	local.ent leash 10000
+	local.ent exec global/setdeathanim.scr NIL
+	local.ent.enableEnemy = 1
+	//local.ent exec global/enable_ai.scr
+	if (self == NULL)
+		end
+	if (self.passengers > 0)
+		self.passengers = self.passengers - 1
+end
+
+//****************************************************
+//****************************************************
+halftrack_drive local.halftrack local.pathname local.unloadpassengers local.speed local.acc local.nodedist local.lookahead:
+
+	//drive parameters: ideal speed, acceleration/deceleration, close to nodes, lookahead 200 80 40 128
+	local.halftrack drive $(local.pathname) local.speed local.acc local.nodedist local.lookahead
+	
+	//self modifydrive 80 50 256			//bump down the speed a bit	60 50 256 (original)
+	
+	local.halftrack waittill drive
+	
+	//iprintln "DRIVING DONE"
+	
+	if (local.unloadpassengers)
+		waitthread halftrack_passengerunload local.halftrack 0
+	
+	local.halftrack disconnect_paths
+end
+
+spawn_fx local.fx:
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+end

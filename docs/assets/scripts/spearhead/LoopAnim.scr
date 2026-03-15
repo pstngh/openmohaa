@@ -1,0 +1,52 @@
+//-------------------------------------------------------------------
+//	LoopAnim.Scr
+//	Jeff Legget
+//	7/22/2002
+//
+//	Script to simplify looping animations....
+//-------------------------------------------------------------------
+
+//-------------------------------------------------------------------
+LoopAnim local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopAnimStop
+
+	self.loop_anim_thread = local
+
+	while (1)
+	{
+		self anim local.anim
+		self waittill animdone
+	}
+
+	End
+
+//-------------------------------------------------------------------
+LoopAnimStop:
+//-------------------------------------------------------------------
+
+	if ( self.loop_anim_thread!=NULL && self.loop_anim_thread!=NIL)
+	{
+		self.loop_anim_thread delete
+		self.loop_anim_thread = NULL
+	}
+
+	End
+
+
+//-------------------------------------------------------------------
+LoopAnim2 local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopAnimStop
+
+	self.loop_anim_thread = local
+
+	while (1)
+	{
+		self anim_attached local.anim
+		self waittill animdone
+	}
+
+	End

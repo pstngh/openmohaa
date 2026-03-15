@@ -1,0 +1,141 @@
+//
+//
+//    LOGIC FOR King of The Hill/Capture and Hold ENTITIES
+//    by Z
+//
+
+//***********************************************
+// initialization thread... 
+//***********************************************
+
+flag_thinker:
+
+//	level.flag_cap_time = 50  //tenths of a second
+//	level.flag_use_distance = 128 //quake units
+//	level.flagusefov = 30
+
+	level.subtitleX = 300 // was 100
+	level.subtitleY = 460  // was 50
+
+	println "----------------------Z-----------------------"
+	println "self = " self
+	println "----------------------Z-----------------------"
+	
+	level.allies_time = 0
+	level.axis_time = 0
+	
+	self.axis_flag hide
+	self.axis_flag notsolid
+	self.allies_flag hide
+	self.allies_flag notsolid
+	self.neutral_flag show
+	self.neutral_flag solid
+
+	self.controlling_team = "neutral"
+	level.dmroundlimit = 12
+	level.win_time = 300
+
+	thread flag_waittill_capture
+	thread flag_add_points
+end
+
+//***********************************************
+// change who currently controls the flag
+//***********************************************
+
+
+flag_waittill_capture:
+
+	while ( $(self) )
+	{
+		println "waittill trigger " self
+		self waittill trigger
+
+		local.player = parm.other
+		//"local.player.dmteam", can be 'spectator', 'freeforall', 'allies' or 'axis'
+
+	        if (local.player.dmteam == self.controlling_team) 
+		{
+			println "failed same team as flag check" local.player.dmteam
+			goto flag_waittill_capture	
+		}	
+	
+
+		if (local.player.dmteam == "allies")
+		{
+			iprintlnbold "The Flag has been captured by the Allies!"
+			self playsound dfr_objective_o
+			self.controlling_team = local.player.dmteam
+			self.axis_flag hide
+			self.allies_flag show
+			self.neutral_flag hide
+		}
+		else
+		{
+			iprintlnbold "The Flag has been captured by the Axis!"
+			self playsound den_objective_o
+			self.controlling_team = local.player.dmteam
+			self.axis_flag show
+			self.allies_flag hide
+			self.neutral_flag hide
+		}
+		waitframe
+	}
+end
+
+
+
+//***********************************************
+// set who is currently winning, accumulate points
+//***********************************************
+
+
+flag_add_points:
+
+while ( $(self))
+{
+	if (self.controlling_team == "neutral")
+	{
+		level.clockside = draw // set to axis, allies, kills, or draw
+	}
+	else
+	if (self.controlling_team == "allies")
+	{
+		level.allies_time ++
+		if (level.allies_time > level.axis_time)
+			level.clockside = allies // set to axis, allies, kills, or draw
+
+	}
+	else
+	if (self.controlling_team == "axis")
+	{
+		level.axis_time ++
+		if (level.axis_time > level.allies_time)
+			level.clockside = axis // set to axis, allies, kills, or draw
+	}
+	
+	if (level.axis_time >= level.win_time)
+	{
+		teamwin axis
+	}
+	if (level.allies_time >= level.win_time)
+	{
+		teamwin allies
+	}
+
+	if (self.controlling_team == "axis")
+	{
+		locprint level.subtitleX level.subtitleY ("Axis Time: "+ level.axis_time + "\n" + "Allies Time: "+ level.allies_time + "\n" + "Win Time: "+ level.win_time)
+//		locprint level.subtitleX (level.subtitleY + 10) ()
+	}
+	else
+	{
+		locprint level.subtitleX level.subtitleY ("Allies Time: "+ level.allies_time + "\n" + "Axis Time: "+ level.axis_time + "\n" + "Win Time: "+ level.win_time)
+//		locprint level.subtitleX (level.subtitleY + 10) ("Axis Time: "+ level.axis_time)
+	}	
+	//locprint level.subtitleX (level.subtitleY + 20) ()
+		
+	
+	wait 1
+}
+end

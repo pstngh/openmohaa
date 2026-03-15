@@ -1,0 +1,411 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// Pocketlights : triggerable flashing light effects
+//
+// Adding to map:
+//
+//		In the level script, include the line "exec global/pocketlight.scr::PocketLightsInit" before the level starts.
+//
+// Set-up:
+//			The setup consist of 2 components:
+//			-trigger				The trigger for the pocketlight
+//			-pocketlight entity		The pocketlight to spawn
+//
+//			Trigger:
+//			- Place a trigger_multiple entity and assign the following keys:
+//				$targetname		-	must be "pocketlighttrigger" (without the quotes).
+//				#set			-	(optional) set to any number you like. Mainly used to reference a group of lights. 
+//									It is not necessary if you're connecting(linking) pocketlight entities or other
+//									trigger entities to it.
+//				#retrigger		-	(optional) if you want this trigger to retrigger
+//				#removelights	-	(optional) Set this to 1 if you want this trigger to remove pocketlights with the
+//									specified #set number above.
+//			- (optional) You can connect/link pocketlight entities or other triggers to the trigger
+//
+//			Pocketlight entity
+//			- Place a script_origin entity and assign the following keys:
+//				$targetname		-	must be "pocketlightspawner" (without the quotes).
+//									*NOTE*: this is not necessary if this entity is connected/linked to a trigger
+//				#set			-	(optional) set to any number you like. Mainly used to reference a group of lights. 
+//									*NOTE*: this is not necessary if this entity is connected/linked to a trigger
+//				#redcolor		-	red color component intensity.  Set to a value between 0.0 and 1.0
+//				#greencolor		-	green color component intensity.  Set to a value between 0.0 and 1.0
+//				#bluecolor		-	blue color component intensity.  Set to a value between 0.0 and 1.0
+//				#lightradius	-	the radius that this light will effect.  Set to any range you like.
+//				#fadeintime		-	the amount of time to fade in the color.  The value is in seconds (0.5 = half a second).
+//				#holdtime		-	(optional)the amount of time to hold the color after fading in.  The value is in seconds (0.5 = half a second).
+//				#fadeouttime	-	the amount of time to fade out the color.  The value is in seconds (0.5 = half a second).
+//				#loop			-	(optional) if you want to loop this effect.
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PocketLightsInit:
+	//level waittill prespawn
+	
+	local.newset = 3152930
+	
+	if ($pocketlighttrigger)
+	{
+		println ("***Number of pocketlighttrigger found: " + $pocketlighttrigger.size)
+		
+		local.i = 1
+		while ($pocketlighttrigger.size > 0)
+		{
+			local.triggerent = $pocketlighttrigger[local.i]
+			if (local.triggerent[local.i].set == NIL)
+			{
+				local.triggerent[local.i].set = local.newset
+				local.newset = local.newset + 1
+			}
+			
+			println ("***Setting pocketlighttrigger at " + local.triggerent[local.i].origin)
+			if (local.triggerent[local.i].target)
+			{
+				local.entstring = local.triggerent[local.i].target
+				local.ent = $(local.triggerent[local.i].target)
+				println ("***Has target " + local.triggerent[local.i].target + " with size " + local.ent.size)
+				waitthread PocketLightsTraverseTargets local.ent local.entstring local.triggerent[local.i].set
+			}
+			//println ("***ReallySetting pocketlighttrigger at " + local.triggerent[local.i].origin)
+			local.triggerent[local.i].target = ""
+			waitthread PocketLightsSetTrigger local.triggerent[local.i] local.triggerent[local.i].set
+		}
+
+	}
+	else
+	{
+		println "****No pocketlighttrigger found"
+	}
+
+	if ($pocketlightspawner)
+	{
+		println ("***Number of pocketlightspawner found: " + $pocketlightspawner.size)
+		
+		local.i = 1
+		
+		while ($pocketlightspawner.size > 0)
+		{
+			local.triggerent = $pocketlightspawner[local.i]
+			if (local.triggerent[local.i].set == NIL)
+			{
+				local.triggerent[local.i].set = local.newset
+				local.newset = local.newset + 1
+			}
+			
+			println ("***Setting pocketlightspawner at " + local.triggerent[local.i].origin)
+			if (local.triggerent[local.i].target)
+			{
+				local.entstring = local.triggerent[local.i].target
+				local.ent = $(local.triggerent[local.i].target)
+				println ("***Has target " + local.triggerent[local.i].target + " with size " + local.ent.size)
+				waitthread PocketLightsTraverseTargets local.ent local.entstring local.triggerent[local.i].set
+			}
+			//println ("***ReallySetting pocketlightspawner at " + local.triggerent[local.i].origin)
+			local.triggerent[local.i].target = ""
+			waitthread PocketLightsSetSpawner local.triggerent[local.i] local.triggerent[local.i].set
+		}
+		
+	}
+	else
+	{
+		println "****No pocketlightspawners found"
+	}
+
+	if ($triggerpocketlight == NULL)
+		level.triggerpocketlightcount = 0
+	else
+		level.triggerpocketlightcount = $triggerpocketlight.size
+
+	if (level.triggerpocketlightcount > 0)
+	{
+		println ("*Final number of triggerpocketlights: " + level.triggerpocketlightcount)
+		//level.triggerpocketlight = exec global/makearray.scr $triggerpocketlight
+
+		for (local.i=1;local.i<level.triggerpocketlightcount+1;local.i++)
+		{
+			if ($triggerpocketlight[local.i].set == NIL)
+			{
+				exec global/error.scr ("Error, pocketlighttrigger at " + $triggerpocketlight[local.i].origin + " has no #set") 1
+			}
+			else
+			{
+				if ($triggerpocketlight[local.i].retrigger == NIL)
+				{
+					$triggerpocketlight[local.i].retrigger = 0
+				}
+
+				if ($triggerpocketlight[local.i].removelights == NIL)
+				{
+					$triggerpocketlight[local.i].removelights = 0
+				}
+				
+				$triggerpocketlight[local.i] thread triggerpocketlightthread
+			}
+		}
+	}
+
+	if ($spawnerpocketlight == NULL)
+		level.spawnerpocketlightcount = 0
+	else
+		level.spawnerpocketlightcount = $spawnerpocketlight.size
+
+	if (level.spawnerpocketlightcount > 0)
+	{
+		println ("*Final Number of spawnerpocketlights : " + level.spawnerpocketlightcount)
+		
+		for (local.i=1;local.i<level.spawnerpocketlightcount+1;local.i++)
+		{
+			if ($spawnerpocketlight[local.i].set == NIL)
+			{
+				exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #set") 1
+			}
+			else
+			{
+				if ($spawnerpocketlight[local.i].fadeintime == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #fadeintime") 1
+				
+				if ($spawnerpocketlight[local.i].holdtime == NIL)
+					$spawnerpocketlight[local.i].holdtime = 0
+
+				if ($spawnerpocketlight[local.i].fadeouttime == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #fadeouttime") 1
+				
+				if ($spawnerpocketlight[local.i].lightradius == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #lightradius") 1
+				
+				if ($spawnerpocketlight[local.i].redcolor == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #redcolor") 1
+				
+				if ($spawnerpocketlight[local.i].greencolor == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #greencolor") 1
+				
+				if ($spawnerpocketlight[local.i].bluecolor == NIL)
+					exec global/error.scr ("Error, pocketlightspawner at " + $spawnerpocketlight[local.i].origin + " has no #bluecolor") 1
+				
+				if ($spawnerpocketlight[local.i].loop == NIL)
+					$spawnerpocketlight[local.i].loop = 0
+				
+				$spawnerpocketlight[local.i].spawned = 0
+				$spawnerpocketlight[local.i].spawnthread = 0
+			}
+		}
+	}
+end
+
+PocketLightsTraverseTargets local.ent local.entstring local.set:
+	while ($(local.entstring).size > 0)
+	{
+		local.j = 1
+		println ("*****Target " + local.entstring + " is class " + local.ent[local.j].classname)
+		println ("*****At origin " + local.ent[local.j].origin)
+		if (local.ent[local.j].target)
+		{
+			local.newentstring = local.ent[local.j].target
+			local.newent = $(local.ent[local.j].target)
+			println ("*****Has target " + local.newentstring + " with size " + local.newent.size)
+			waitthread PocketLightsTraverseTargets local.newent local.newentstring local.set
+		}
+		
+		println ("*********Setting Target " + local.entstring + " is class " + local.ent[local.j].classname)
+		println ("*********At origin " + local.ent[local.j].origin)
+		local.ent[local.j].target = ""
+		if (local.ent[local.j].classname == "Trigger" || local.ent[local.j].classname == "TriggerAll")
+		{
+			waitthread PocketLightsSetTrigger local[local.j].ent local.set
+		}
+		else if (local.ent[local.j].classname == "ScriptOrigin")
+		{
+			waitthread PocketLightsSetSpawner local.ent[local.j] local.set
+		}
+		else
+		{
+			exec global/error.scr ("Error,  pocketlight entity at " + local.ent[local.j].origin + " has invalid class type") 1
+		}
+	}
+end
+
+PocketLightsSetTrigger local.ent local.set:
+	local.ent[1].set = local.set
+	local.ent[1].targetname = "triggerpocketlight"
+end
+
+PocketLightsSetSpawner local.ent local.set:
+	local.ent[1].set = local.set
+	local.ent[1].targetname = "spawnerpocketlight"
+end
+
+triggerpocketlightthread:
+	self waittill trigger
+	println ("*Triggered pocketlight at " + self.origin + " with set " + self.set)
+	self.triggeredby = parm.other
+	
+	if (self.removelights == 1)
+		self thread pocketlightremove self.set
+	else
+		self thread pocketlightspawn self.set
+
+	if (self.retrigger == 1)
+	{
+		while (self istouching self.triggeredby)
+		{
+			waitframe
+		}
+		goto triggerpocketlightthread
+	}
+end
+
+//fadeintime
+//holdtime
+//fadeouttime
+//lightradius
+//redcolor
+//greencolor
+//bluecolor
+//loop
+
+pocketlightspawn local.set:
+	for (local.i=1;local.i<level.spawnerpocketlightcount+1;local.i++)
+	{
+		if ($spawnerpocketlight[local.i].set == local.set && ($spawnerpocketlight[local.i].spawned == 0))
+		{
+			local.e = $spawnerpocketlight[local.i]
+			local.color =(local.e[1].redcolor local.e[1].greencolor local.e[1].bluecolor)
+			println ("*Spawning pocket light at " + local.e[1].origin + " set " + local.set)
+			local.e[1].ent = waitthread CreatePocketLight local.e[1].origin local.e[1].fadeintime local.e[1].holdtime local.e[1].fadeouttime local.e[1].lightradius local.color local.e[1].loop local.e[1]
+			local.e[1].spawned = 1
+		}
+	}
+end
+
+pocketlightremove local.set:
+	for (local.i=1;local.i<level.spawnerpocketlightcount+1;local.i++)
+	{
+		if ($spawnerpocketlight[local.i].set == local.set && ($spawnerpocketlight[local.i].spawned == 1))
+		{
+			if ($spawnerpocketlight[local.i].spawnthread)
+			{
+				$spawnerpocketlight[local.i].spawnthread delete
+				$spawnerpocketlight[local.i].spawnthread = 0
+			}
+
+			if ($spawnerpocketlight[local.i].ent != NIL)
+			{
+				println ("*Removing pocket light at " + $spawnerpocketlight[local.i].origin + " set " + local.set)
+				$spawnerpocketlight[local.i].ent remove
+				$spawnerpocketlight[local.i].spawned = 0
+			}
+		}
+	}
+end
+
+CreatePocketLight local.location local.fadeinTime local.holdTime local.fadeoutTime local.lightRad local.lightColor local.loop local.spawner:
+	local.ent = spawn script_model
+	local.ent lightOn
+	local.ent light (0 0 0)
+	local.ent lightRadius local.lightRad
+	local.ent model "fx/dummy.tik"
+	local.ent.fadeinTime = local.fadeinTime
+	local.ent.holdTime = local.holdTime
+	local.ent.fadeoutTime = local.fadeoutTime
+	local.ent.lightRad = local.lightRad
+	local.ent.lightColor = local.lightColor
+	local.ent.origin = local.location
+	local.ent.loop = local.loop
+	local.ent.isDone = 0
+	
+	if (local.spawner[1] != NIL)
+		local.ent.spawner[1] = local.spawner
+	else
+		local.ent.spawner[1] = 0
+	
+	local.ent thread PocketLightThread
+	
+	if (local.spawner[1] != NIL)
+	{
+		local.spawner[1].spawnthread = parm.previousthread
+	}
+
+end local.ent
+
+PocketLightThread:
+	if ((self.fadeinTime != NIL) && (self.fadeinTime != 0.0))
+	{
+		self.starttime = level.time
+		self.endtime = level.time + self.fadeinTime
+		local.totaltime = self.endtime - self.starttime
+		if (local.totaltime < 0.0)
+		{
+			local.totaltime = 0.01
+		}
+		//println "Starting fade in..."
+		waitframe
+		while (level.time < self.endtime)
+		{
+			local.currtime = level.time - self.starttime
+			if (local.currtime < 0.0)
+			{
+				local.currtime = 0
+			}
+
+			local.scale = local.currtime / local.totaltime
+			local.color = self.lightColor
+			local.color[0] = self.lightColor[0] * local.scale
+			local.color[1] = self.lightColor[1] * local.scale
+			local.color[2] = self.lightColor[2] * local.scale
+			//self lightOn
+			self light (local.color[0] local.color[1] local.color[2])
+			waitframe
+		}
+		//println "Done fading in..."
+	}
+	
+	self light (self.lightColor[0] self.lightColor[1] self.lightColor[2])
+	if (self.holdTime != NIL && self.holdTime != 0.0)
+	{
+		//println "Holding..."
+		wait self.holdTime
+	}
+		
+	if ((self.fadeoutTime != NIL) && (self.fadeoutTime != 0.0))
+	{
+		self.starttime = level.time
+		self.endtime = level.time + self.fadeoutTime
+		local.totaltime = self.endtime - self.starttime
+		if (local.totaltime < 0.0)
+		{
+			local.totaltime = 0.01
+		}
+		//println "Starting fade out..."
+		waitframe
+		while (level.time < self.endtime)
+		{
+			local.currtime = level.time - self.starttime
+			if (local.currtime < 0.0)
+			{
+				local.currtime = 0
+			}
+
+			local.scale = local.currtime / local.totaltime
+			local.scale = local.scale - (local.scale * 2)
+			local.color = self.lightColor
+			local.color[0] = self.lightColor[0] + (self.lightColor[0] * local.scale)
+			local.color[1] = self.lightColor[1] + (self.lightColor[1] * local.scale)
+			local.color[2] = self.lightColor[2] + (self.lightColor[2] * local.scale)
+			self light (local.color[0] local.color[1] local.color[2])
+			waitframe
+		}
+		//println "Done fade out..."
+	}
+	
+	if (self.loop)
+	{
+		goto PocketLightThread
+	}
+	
+	self.isDone = 1
+	wait 0.20
+	self.spawner[1].spawned = 0
+	self remove
+end

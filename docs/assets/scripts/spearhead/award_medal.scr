@@ -1,0 +1,48 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/award_medal.scr
+//
+// author: Michael Goodwin
+//
+// description:
+//
+// - awards medal(s) at end of mission
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main local.mission:
+
+	if ( local.mission == 1 )
+	{
+		setcvar g_medal3 1
+	}
+	else if ( local.mission == 2 )
+	{
+		setcvar g_medal4 1
+	}
+	else if ( local.mission == 3 )
+	{
+		setcvar g_medal5 1
+
+		switch ( getcvar(skill) )
+		{
+			//Easy
+			case "0":
+				//bronze star
+				setcvar g_medal2 1
+				break
+			//Medium
+			case "1":
+				//silver star
+				setcvar g_medal1 1
+				break
+			//Hard
+			case "2":				
+				//distinguished service cross
+				setcvar g_medal0 1
+				break
+		}
+	}
+
+end

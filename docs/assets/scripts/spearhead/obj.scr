@@ -1,0 +1,26 @@
+main local.index local.status local.objective local.location:
+	if (local.index == NIL)
+		exec global/error.scr ("Error, tried to create an objective with no index.")
+	if (local.status == NIL)
+		exec global/error.scr ("Error, tried to create an objective with no status.")
+
+	if (local.status == complete)
+		local.status = 3
+	if (local.status == shown)
+		local.status = 2
+	if (local.status == hidden)
+		local.status = 1
+
+	if (((local.status != 1) && (local.status != 2) && (local.status != 3)) || (local.status == current))
+	{
+		local.objective = waitthread global/string_format.scr::str_format local.objective 41
+		addobjective local.index 2 local.objective local.location
+		setcurrentobjective local.index
+		local.status = 2
+	}
+	else
+	{
+		local.objective = waitthread global/string_format.scr::str_format local.objective 41
+		addobjective local.index local.status local.objective local.location
+	}
+end

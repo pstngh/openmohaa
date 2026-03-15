@@ -1,0 +1,123 @@
+//-----------------------------------------------------------------
+//	FriendlyTank.Scr
+//	Jeff Leggett
+//	
+//	Friendly tank AI...
+//
+//	Usage:
+//	To get it going:
+//		$mytank thread global/FriendlyTank.Scr::FriendlyTankStart $german_tanks empty_tiger
+//
+//	If you want to stop it:
+//		$mytank thread global/FriendlyTank.Scr::FriendlyTankStop:
+//
+//	To drive a path and stop when it gets there:
+//
+//		$mytank thread global/FriendlyTank.scr::DrivePath local.path local.speed local.lookahead local.remove
+//
+//
+//-----------------------------------------------------------------
+
+//-----------------------------------------------------------------
+main:
+//-----------------------------------------------------------------
+
+	End
+
+
+//-----------------------------------------------------------------
+FriendlyTankStart local.enemyname local.type:
+//
+//		See the tank_killed function in vehicles_thinkers.scr to 
+//	see the meaning of local.type...
+//-----------------------------------------------------------------
+
+	self.attackthread	= local
+
+	if (local.type!=NIL)
+		self.type			= local.type
+	else
+		self.type			= empty_tiger
+
+	self.gun = self QueryTurretSlotEntity 0
+	self removeondeath 0
+
+	self thread WaitForDeath
+	self thread global/vehicles_thinkers.scr::tank_pain self.gun 0
+
+	// setup our explosion...
+
+	while (isAlive self)
+	{
+		self waitthread FindTarget local.enemyname
+		self.gun waittill ontarget
+		wait 0.4
+
+		if ( isAlive self )
+			self.gun anim fire
+		
+		wait 2
+	}
+
+	End
+
+//-----------------------------------------------------------------
+FriendlyTankStop:
+//-----------------------------------------------------------------
+
+	if ( self.attackthread )
+	{
+		self.attackthread delete
+		self.attackthread = NULL
+	}
+
+	End
+
+//-----------------------------------------------------------------
+FindTarget local.enemyname:
+//
+//	Find a random target with the passed enemyname and target it...
+//-----------------------------------------------------------------
+
+	if ( local.enemyname==NIL )
+	{
+		println "Invalid enemyname in FriendlyTank.scr"
+		End
+	}
+
+	// get 1-based random #
+	local.random = randomint local.enemyname.size-1
+	local.random++
+
+	// get main turret.
+	self.gun = self QueryTurretSlotEntity 0
+	self.gun setAimTarget local.enemyname[local.random]
+
+	End
+
+//-----------------------------------------------------------------
+DrivePath local.path local.speed local.lookahead local.remove:
+//-----------------------------------------------------------------
+	self.driving = 1
+	self drive local.path local.speed 30 200 level.lookahead
+	self waittill drive
+	if (self)
+	{
+		self stop
+		self.driving = 0
+		if (local.remove == "remove")
+			self remove
+	}
+	
+	End
+
+//-----------------------------------------------------------------
+WaitForDeath:
+//
+//	Does all the great explosion stuff when we blow up...
+//-----------------------------------------------------------------
+
+	self waittill death
+	self waitthread global/vehicles_thinkers.scr::tank_killed
+
+	End
