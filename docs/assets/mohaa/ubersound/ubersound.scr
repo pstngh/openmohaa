@@ -1,0 +1,1502 @@
+//
+// UBER SOUND FILE
+// Current Format:
+// aliascache (?alias?) snd wavfile soundparms basevol volmod basepitch pitchmod minDist maxDist channel loaded|streamed maps "mapstr1 mapstring2 mapstring3 ..."
+//
+// MIN DIST AND MAX DIST
+// sound has linear falloff from minDist to maxDist.  Within minDist sound is at normal volume.  Units are 16 = 1 foot.
+//
+//Carl's explanation of channels:
+//Audio channel notes:
+//- All audio channels except for the "auto" channel only allow one sound to be played on them by any particular entity. So, for example, you could have three different Germans all playing sounds on their "weapon" channel, but you couldn't have a single German playing three sounds on his single "weapon" channel.
+//- Nothing is allowed to override sounds made by the player's character except other player sounds, regardless of channel number.
+//
+//Audio channel descriptions:
+//Sound channel priority from lowest to highest is:
+//0 - auto - This is considered the lowest audio channel priority. It always plays if possible (hardware audio channel available) and they don't override previously played sounds. If no channels are available, the sound will just not play. This is best used for things that do not have a particular entity or character related to them (like bullet hit sounds), or are not overly important sound (like shell casing landing sounds or footsteps).
+//1 - body - these are sounds made by a characters body. These include sounds like impact sounds (from falling & landing hard) and equipment movement jingles.
+//2 - item - These are sounds made by items on a character, or that represent some sort of item related sound. These would include sounds made by any misc items carried by a character like papers or binorulars, but could also be used as a second weapon sound channel if it is required for a weapon to play two different sounds at the same time. This is also the channel that should be used for weapon reload sound to prevent them from cutting off long firing sounds.
+//3 - weaponidle - is for constant sound made by weapons or possibly the character itself. An example from Quake3 would be the rail gun hum, but I can't think of any examples from MoH.
+//4 - voice - These are vocal sounds made by a character such as pain, death, and yelling during combat. This is effectively a lower priority dialog channel for general use throughout the majority of the game.
+//5 - local - This plays a sound that is considered to be "local" to the player. Meaning, it does not do 3D spatialization on the sound. It does adjust the volume of the sound according to distance though. This is best used for playing sounds that should sound omni-directional like rain or lightning.
+//6 - weapon - These are the sound that are made by the characters' weapons. These include the firing sounds, but not reloading sounds.
+//7 - dialog_secondary - This is a secondary backup dialog channel. Good for use with lower priority dialog such as idle chatter between characters, as it's considered to be lower priority than regular dialog. This should only include spoken dialog that will have subtitle text.
+//8 - dialog - This is the primary sould channel for playing character dialog. This should only include spoken dialog that will have subtitle text.
+//9 - menu - This is the sound channel for menu sounds to play on.
+//
+//
+//
+// soundparms parameters are: <BaseVolume> <RandVolume> <BasePitch> <randPitch> <minDist> <maxDist> <Channel> <Loaded/Streamed>
+// ---------------------------------------------------------
+//
+//list of all single player maps
+//m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train
+//
+//==========================================================
+// FOOTSTEPS - optimized
+//==========================================================
+
+settiki none
+
+aliascache snd_step_paper sound/null.wav soundparms 0.4 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_landing_paper sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_step_glass sound/null.wav soundparms 0.4 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_landing_glass sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_step_wood1 sound/characters/fs_wood_01.wav soundparms 0.4 0.3 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+aliascache snd_step_wood2 sound/characters/fs_wood_02.wav soundparms 0.4 0.3 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+aliascache snd_step_wood3 sound/characters/fs_wood_03.wav soundparms 0.4 0.3 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+aliascache snd_step_wood4 sound/characters/fs_wood_04.wav soundparms 0.4 0.3 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+aliascache snd_step_wood5 sound/characters/fs_wood_05.wav soundparms 0.4 0.3 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+aliascache snd_landing_wood1 sound/characters/fs_wood_land_01.wav soundparms 0.9 0.2 0.6 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1c m6l2a m6l2b m6l3a m6l3b m6l3e dm moh obj train"
+
+aliascache snd_step_metal1 sound/characters/fs_metal_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_metal2 sound/characters/fs_metal_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m3l2 m3l3 m4l0 m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_metal3 sound/characters/fs_metal_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m3l2 m3l3 m4l0 m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_metal4 sound/characters/fs_metal_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m3l2 m3l3 m4l0 m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_landing_metal1 sound/characters/fs_metal_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m3l2 m3l3 m4l0 m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+
+aliascache snd_step_grill1 sound/characters/fs_metal_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache snd_step_grill2 sound/characters/fs_metal_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache snd_step_grill3 sound/characters/fs_metal_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache snd_step_grill4 sound/characters/fs_metal_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache snd_landing_grill1 sound/characters/fs_metal_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l2b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1b m4l2 m4l3 m5l1a m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+
+aliascache snd_step_stone1 sound/characters/fs_stone_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_stone2 sound/characters/fs_stone_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_stone3 sound/characters/fs_stone_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_stone4 sound/characters/fs_stone_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_step_stone5 sound/characters/fs_stone_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache snd_landing_stone1 sound/characters/fs_stone_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+
+aliascache snd_step_dirt1 sound/characters/fs_dirt_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_dirt2 sound/characters/fs_dirt_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_dirt3 sound/characters/fs_dirt_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_dirt4 sound/characters/fs_dirt_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_landing_dirt1 sound/characters/fs_dirt_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+
+aliascache snd_step_grass1 sound/characters/fs_foliage_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_grass2 sound/characters/fs_foliage_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_grass3 sound/characters/fs_foliage_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_grass4 sound/characters/fs_foliage_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_landing_grass1 sound/characters/fs_foliage_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+
+aliascache snd_step_mud1 sound/characters/fs_mud_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+aliascache snd_step_mud2 sound/characters/fs_mud_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+aliascache snd_step_mud3 sound/characters/fs_mud_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+aliascache snd_step_mud4 sound/characters/fs_mud_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+aliascache snd_step_mud5 sound/characters/fs_mud_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+aliascache snd_landing_mud1 sound/characters/fs_mud_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b m5l1a m5l1b m5l3 dm moh obj train"
+
+aliascache snd_step_puddle1 sound/characters/fs_water_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+aliascache snd_step_puddle2 sound/characters/fs_water_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+aliascache snd_step_puddle3 sound/characters/fs_water_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+aliascache snd_step_puddle4 sound/characters/fs_water_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+aliascache snd_step_puddle5 sound/characters/fs_water_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+aliascache snd_landing_puddle1 sound/characters/fs_water_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m3l1a m3l1b dm moh obj train"
+
+aliascache snd_step_gravel1 sound/characters/fs_dirt_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_gravel2 sound/characters/fs_dirt_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_gravel3 sound/characters/fs_dirt_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_gravel4 sound/characters/fs_dirt_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_step_gravel5 sound/characters/fs_dirt_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+aliascache snd_landing_gravel1 sound/characters/fs_dirt_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b m5l3 dm moh obj train"
+
+aliascache snd_step_sand1 sound/characters/fs_sand_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1a dm moh obj train"
+aliascache snd_step_sand2 sound/characters/fs_sand_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1a dm moh obj train"
+aliascache snd_step_sand3 sound/characters/fs_sand_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1a dm moh obj train"
+aliascache snd_step_sand4 sound/characters/fs_sand_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1a dm moh obj train"
+aliascache snd_step_sand5 sound/characters/fs_sand_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1a dm moh obj train"
+aliascache snd_step_sand6 sound/null.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l1b"
+
+aliascache snd_landing_sand1 sound/characters/fs_sand_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l3a m1l3b m3l1 dm moh obj train"
+
+aliascache snd_step_foliage1 sound/characters/fs_foliage_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_foliage2 sound/characters/fs_foliage_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_foliage3 sound/characters/fs_foliage_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_step_foliage4 sound/characters/fs_foliage_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+aliascache snd_landing_foliage1 sound/characters/fs_foliage_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m3l2 m3l3 m4l0 m4l1 m4l2 m4l3 m5l1a m5l1b m5l2a m5l2b dm moh obj train"
+
+aliascache snd_step_snow1 sound/characters/fs_snow_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+aliascache snd_step_snow2 sound/characters/fs_snow_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+aliascache snd_step_snow3 sound/characters/fs_snow_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+aliascache snd_step_snow4 sound/characters/fs_snow_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+aliascache snd_step_snow5 sound/characters/fs_snow_05.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+aliascache snd_landing_snow1 sound/characters/fs_snow_land_01.wav soundparms 0.9 0.2 0.9 0.2 160 2500 auto loaded maps "m2l1 m2l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3e dm moh obj train"
+
+aliascache snd_step_carpet1 sound/characters/fs_carpet_01.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l2a m3l2 m3l3 m4l0 m4l1 m4l3 m5l1a m5l1b m5l3 m6l2a dm moh obj train"
+aliascache snd_step_carpet2 sound/characters/fs_carpet_02.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l2a m3l2 m3l3 m4l0 m4l1 m4l3 m5l1a m5l1b m5l3 m6l2a dm moh obj train"
+aliascache snd_step_carpet3 sound/characters/fs_carpet_03.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l2a m3l2 m3l3 m4l0 m4l1 m4l3 m5l1a m5l1b m5l3 m6l2a dm moh obj train"
+aliascache snd_step_carpet4 sound/characters/fs_carpet_04.wav soundparms 0.4 0.3 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l2a m3l2 m3l3 m4l0 m4l1 m4l3 m5l1a m5l1b m5l3 m6l2a dm moh obj train"
+aliascache snd_landing_carpet1 sound/characters/fs_carpet_land_01.wav soundparms 0.9 0.2 0.9 0.2 200 2500 auto loaded maps "m1l1 m1l2a m1l2b m2l2a m3l2 m3l3 m4l0 m4l1 m4l3 m5l1a m5l1b m5l3 m6l2a dm moh obj train"
+
+aliascache boot_click1 sound/characters/M4_BootsClicking.wav soundparms 1.3 0.2 0.9 0.2 200 2500 auto loaded maps "m2l2a m2l2b m2l2c m4l0 m4l3 m6l1c m6l2a m6l3b dm moh obj train"
+
+//==========================================================
+// BODY MOVEMENT
+//==========================================================
+
+//equipment (for walking)
+aliascache snd_step_equipment1 sound/characters/body_mvmtgear_01.wav soundparms 0.4 0.3 0.9 0.3 130 1600 body loaded maps "m dm moh obj train"
+aliascache snd_step_equipment2 sound/characters/body_mvmtgear_02.wav soundparms 0.4 0.3 0.9 0.3 130 1600 body loaded maps "m dm moh obj train"
+aliascache snd_step_equipment3 sound/characters/body_mvmtgear_03.wav soundparms 0.4 0.3 0.9 0.3 130 1600 body loaded maps "m dm moh obj train"
+aliascache snd_step_equipment4 sound/characters/body_mvmtgear_04.wav soundparms 0.4 0.3 0.9 0.3 130 1600 body loaded maps "m dm moh obj train"
+aliascache snd_step_equipment5 sound/null.wav soundparms 0.4 0.4 0.9 0.2 160 1600 body loaded maps "m dm moh obj train"
+aliascache snd_step_equipment6 sound/null.wav soundparms 0.4 0.4 0.9 0.2 160 1600 body loaded maps "m dm moh obj train"
+
+// wade (for when wading through deeper water)
+aliascache snd_step_wade1 sound/characters/body_mvmtwater_01.wav soundparms 0.75 0.3 0.9 0.2 160 1600 body loaded maps "m3l1a dm moh obj train"
+aliascache snd_step_wade2 sound/characters/body_mvmtwater_02.wav soundparms 0.75 0.3 0.9 0.2 160 1600 body loaded maps "m3l1a dm moh obj train"
+aliascache snd_step_wade3 sound/characters/body_mvmtwater_03.wav soundparms 0.75 0.3 0.9 0.2 160 1600 body loaded maps "m3l1a dm moh obj train"
+aliascache snd_step_wade4 sound/characters/body_mvmtwater_04.wav soundparms 0.75 0.3 0.9 0.2 160 1600 body loaded maps "m3l1a dm moh obj train"
+aliascache snd_landing_wade1 sound/characters/fs_water_land_01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 body loaded maps "m3l1a dm moh obj train"
+
+aliascache drink sound/characters/drink2.wav soundparms 1.4 0.0 0.95 0.0 160 1600 body loaded maps "m1l1 m1l2a "
+
+//==========================================================
+// BODY FALL
+//==========================================================
+
+aliascache impact_playersubmerge1 sound/characters/body_fallwater_01 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache impact_playersubmerge2 sound/characters/body_fallwater_02 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache impact_watersplash1 sound/characters/body_fallwater_02 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache impact_watersplash2 sound/characters/body_fallwater_02 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache impact_playerleavewater1 sound/characters/body_mvmtwater_01 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache impact_playerleavewater2 sound/characters/body_mvmtwater_01 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache impact_playerleavewater3 sound/characters/body_mvmtwater_01 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache impact_playerleavewater4 sound/characters/body_mvmtwater_01 soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_paper1 sound/characters/body_fallwood_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_paper2 sound/characters/body_fallwood_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_paper3 sound/characters/body_fallwood_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_paper4 sound/characters/body_fallwood_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_wood1 sound/characters/body_fallwood_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_wood2 sound/characters/body_fallwood_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_wood3 sound/characters/body_fallwood_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_wood4 sound/characters/body_fallwood_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_metal1 sound/characters/body_fallmetal_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_metal2 sound/characters/body_fallmetal_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_metal3 sound/characters/body_fallmetal_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_metal4 sound/characters/body_fallmetal_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_stone1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_stone2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_stone3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_stone4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_stone5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_stone6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_dirt1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_dirt2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_dirt3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_dirt4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_dirt5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_dirt6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_grill1 sound/characters/body_fallmetal_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grill2 sound/characters/body_fallmetal_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grill3 sound/characters/body_fallmetal_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grill4 sound/characters/body_fallmetal_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_grass1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grass2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grass3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grass4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grass5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_grass6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_mud1 sound/characters/body_fallmud_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+aliascache snd_bodyfall_mud2 sound/characters/body_fallmud_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+aliascache snd_bodyfall_mud3 sound/characters/body_fallmud_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+
+aliascache snd_bodyfall_puddle1 sound/characters/body_fallmud_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+aliascache snd_bodyfall_puddle2 sound/characters/body_fallmud_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+aliascache snd_bodyfall_puddle3 sound/characters/body_fallmud_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 m5 dm moh obj train"
+
+aliascache snd_bodyfall_glass1 sound/characters/body_fallwood_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_glass2 sound/characters/body_fallwood_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_glass3 sound/characters/body_fallwood_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_glass4 sound/characters/body_fallwood_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_gravel1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_gravel2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_gravel3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_gravel4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_gravel5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_gravel6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_sand1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+aliascache snd_bodyfall_sand2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+aliascache snd_bodyfall_sand3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+aliascache snd_bodyfall_sand4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+aliascache snd_bodyfall_sand5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+aliascache snd_bodyfall_sand6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m1 m3 dm moh obj train"
+
+aliascache snd_bodyfall_foliage1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_foliage2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_foliage3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_foliage4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_foliage5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_foliage6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_snow1 sound/characters/body_falldirt_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+aliascache snd_bodyfall_snow2 sound/characters/body_falldirt_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+aliascache snd_bodyfall_snow3 sound/characters/body_falldirt_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+aliascache snd_bodyfall_snow4 sound/characters/body_falldirt_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+aliascache snd_bodyfall_snow5 sound/characters/body_falldirt_05.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+aliascache snd_bodyfall_snow6 sound/characters/body_falldirt_06.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m2 m6 dm moh obj train"
+
+aliascache snd_bodyfall_carpet1 sound/characters/body_fallwood_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_carpet2 sound/characters/body_fallwood_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_carpet3 sound/characters/body_fallwood_03.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+aliascache snd_bodyfall_carpet4 sound/characters/body_fallwood_04.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m dm moh obj train"
+
+aliascache snd_bodyfall_wade1 sound/characters/body_fallwater_01.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 dm moh obj train"
+aliascache snd_bodyfall_wade2 sound/characters/body_fallwater_02.wav soundparms 1.0 0.2 0.9 0.2 320 2000 body loaded maps "m3 dm moh obj train"
+
+//================================================================================
+// DOG
+//================================================================================
+
+aliascache dog_bark1 sound/characters/dog_bark_1.wav soundparms 1.5 0.0 0.8 0.4 160 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_bark2 sound/characters/dog_bark_2.wav soundparms 1.5 0.0 0.8 0.4 160 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_bark3 sound/characters/dog_bark_3.wav soundparms 1.5 0.0 0.8 0.4 160 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_sniff sound/characters/dog_bark_4.wav soundparms 1.5 0.0 0.8 0.4 160 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_pain1 sound/characters/dog_growl_1.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pain2 sound/characters/dog_growl_2.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pain3 sound/characters/dog_growl_3.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pain4 sound/characters/dog_growl_4.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pain5 sound/characters/dog_growl_5.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_death1 sound/characters/dog_growl_1.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_death2 sound/characters/dog_growl_2.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_death3 sound/characters/dog_growl_3.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_death4 sound/characters/dog_growl_4.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_death5 sound/characters/dog_growl_5.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_bite1 sound/characters/dog_bite_1.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_bite2 sound/characters/dog_bite_2.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_bite3 sound/characters/dog_bite_3.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_bite4 sound/characters/dog_bite_4.wav soundparms 1.5 0.0 0.8 0.4 500 4000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_collar1 sound/characters/dog_collar_1.wav soundparms 0.8 0.2 0.8 0.3 160 2000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_collar2 sound/characters/dog_collar_3.wav soundparms 0.8 0.2 0.8 0.3 160 2000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_collar3 sound/characters/dog_collar_4.wav soundparms 0.8 0.2 0.8 0.3 160 2000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_fs1 sound/characters/dog_footstep_1.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs2 sound/characters/dog_footstep_2.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs3 sound/characters/dog_footstep_3.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs4 sound/characters/dog_footstep_4.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs5 sound/characters/dog_footstep_5.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs6 sound/characters/dog_footstep_6.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs7 sound/characters/dog_footstep_7.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_fs8 sound/characters/dog_footstep_8.wav soundparms 0.5 0.25 0.8 0.3 160 4000 auto loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_growl1 sound/characters/dog_growl_1.wav soundparms 1.0 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_growl2 sound/characters/dog_growl_2.wav soundparms 1.0 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_growl3 sound/characters/dog_growl_3.wav soundparms 1.0 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_growl4 sound/characters/dog_growl_4.wav soundparms 1.0 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_growl5 sound/characters/dog_growl_5.wav soundparms 1.0 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+aliascache dog_pant1 sound/characters/dog_pant_1.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant2 sound/characters/dog_pant_2.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant3 sound/characters/dog_pant_3.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant4 sound/characters/dog_pant_4.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant5 sound/characters/dog_pant_5.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant6 sound/characters/dog_bark_4.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+aliascache dog_pant7 sound/characters/dog_bark_5.wav soundparms 0.6 0.2 0.8 0.3 320 2000 voice loaded maps "m2l1 m4l0 m4l2 m4l3 m6l2b "
+
+
+//================================================================================
+// VEHICLES
+//================================================================================
+
+// King Tiger Tank
+aliascache king_snd_idle sound/vehicle/veh_tank_idle1.wav soundparms 0.5 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_run sound/vehicle/veh_tank_run1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_revup sound/vehicle/veh_tank_revup1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_revdown sound/vehicle/veh_tank_revdown1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_shift1 sound/vehicle/veh_tank_shift1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_shift2 sound/vehicle/veh_tank_shift2.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_shift3 sound/vehicle/veh_tank_shift3.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_on sound/vehicle/veh_tank_on1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_start sound/vehicle/veh_tank_on1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_off sound/vehicle/veh_tank_off1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_stop sound/vehicle/veh_tank_off1.wav soundparms 1.5 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_tread_snd_dirt sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_tread_snd_stone sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_tread_snd_grass sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_tread_snd_wood sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_tread_snd_mud sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_snd_doorclose sound/mechanics/DoorHatchClose_02.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m5 "
+aliascache king_vehicle_crash1 sound/mechanics/damage_vehicle_1.wav soundparms 0.5 0.5 0.7 0.5 160 1600 auto loaded maps "m5 "
+aliascache king_vehicle_crash2 sound/mechanics/damage_vehicle_2.wav soundparms 0.5 0.5 0.7 0.5 160 1600 auto loaded maps "m5 "
+aliascache king_vehicle_crash3 sound/mechanics/damage_vehicle_3.wav soundparms 0.5 0.5 0.7 0.5 160 1600 auto loaded maps "m5 "
+aliascache king_vehicle_crash4 sound/mechanics/damage_vehicle_4.wav soundparms 0.5 0.5 0.7 0.5 160 1600 auto loaded maps "m5 "
+aliascache damage_vehicle1 sound/null.wav soundparms 0.7 0.4 0.9 0.2 160 1600 auto loaded maps "m5 "
+
+// Tiger Tank - Sherman Tank
+alias tank_idle_training sound/vehicle/veh_tank_idle1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto streamed maps "m1l2b m3l3 m5 train"
+alias tank_snd_idle sound/vehicle/veh_tank_idle1.wav soundparms 0.5 0.0 1.0 0.0 800 4000 auto streamed maps "m1l2b m3l3 m5 train"
+alias tank_snd_run sound/vehicle/veh_tank_run1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto streamed maps "m1l2b m3l3 m5 "
+aliascache tank_snd_revup sound/vehicle/veh_tank_revup1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_revdown sound/vehicle/veh_tank_revdown1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_shift1 sound/vehicle/veh_tank_shift1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_shift2 sound/vehicle/veh_tank_shift2.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_shift3 sound/vehicle/veh_tank_shift3.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_on sound/vehicle/veh_tank_on1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_start sound/vehicle/veh_tank_on1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_off sound/vehicle/veh_tank_off1.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_snd_stop sound/vehicle/veh_tank_off1.wav soundparms 1.0 0.0 1.0 0.0 1000 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_tread_snd_dirt sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5 "
+aliascache tank_tread_snd_stone sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m3l3 m5 "
+aliascache tank_tread_snd_grass sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5 "
+aliascache tank_tread_snd_wood sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5 "
+aliascache tank_tread_snd_mud sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5 "
+aliascache tank_snd_doorclose sound/mechanics/DoorHatchClose_02.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m "
+aliascache tank_snd_dooropen sound/mechanics/DoorHatchClose_02.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m train"
+aliascache tank_vehicle_crash1 sound/null.wav soundparms 0.7 0.4 1.0 0.5 160 1600 auto loaded maps "m5 "
+aliascache explode_tank1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 1500 9000 weapon loaded maps "m1l2b m1l3a m1l3b m3l3 m4l2 m4l3 m5 m6l3c m6l1c training"
+aliascache explode_tank2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 0.9 0.2 0.8 0.2 1500 9000 weapon loaded maps "m1l2b m1l3a m1l3b m3l3 m4l2 m5 m6l3c obj"
+aliascache explode_tank3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 0.9 0.2 0.8 0.2 1500 9000 weapon loaded maps "m1l3a m1l3b m3l3 m4l2 m4l3 m5 m6l3c obj"
+aliascache explode_tank4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 0.9 0.2 0.8 0.2 1500 9000 weapon loaded maps "m1l3a m1l3b m3l3 m4l2 m5 m6l3c "
+aliascache damage_tank1 sound/null.wav soundparms 0.7 0.4 0.9 0.2 160 1600 auto loaded maps "m5 "
+
+// Halftrack
+aliascache sdkfz_snd_idle sound/vehicle/veh_track_idle.wav soundparms 0.5 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_run sound/vehicle/veh_track_move.wav soundparms 1.5 0.0 1.0 0.0 1000 6000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_idle sound/vehicle/veh_track_on.wav soundparms 1.5 0.0 1.0 0.0 1000 5000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_revup sound/vehicle/veh_track_revup.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_revdown sound/vehicle/veh_track_revdown.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_shift1 sound/vehicle/veh_track_shiftin.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_shift2 sound/vehicle/veh_track_shiftout.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_on sound/vehicle/veh_track_on.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_start sound/vehicle/veh_track_on.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_off sound/vehicle/veh_track_off.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_stop sound/vehicle/veh_track_off.wav soundparms 1.5 0.0 1.0 0.0 1000 6000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_tread_snd_dirt sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_tread_snd_stone sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_tread_snd_grass sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_tread_snd_wood sound/vehicle/veh_tread_metal.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_tread_snd_mud sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_doorclose sound/null.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_snd_dooropen sound/null.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m3l3 m5l2a "
+aliascache sdkfz_vehicle_crash1 sound/null.wav soundparms 0.7 0.4 1.0 0.5 100 1600 auto loaded maps "m3l3 m5l2"
+
+// Jeep
+aliascache jeep_snd_idle sound/vehicle/veh_jeep_idle.wav soundparms 0.5 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_run sound/vehicle/veh_jeep_move.wav soundparms 0.8 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_revup sound/vehicle/veh_jeep_start.wav soundparms 1.2 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_revdown sound/vehicle/veh_jeep_revdown.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_shift1 sound/vehicle/veh_jeep_shiftin.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_snd_shift2 sound/vehicle/veh_jeep_shiftout.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_snd_on sound/vehicle/veh_jeep_start.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a "
+aliascache jeep_snd_start sound/vehicle/veh_jeep_on.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a "
+aliascache jeep_snd_off sound/vehicle/veh_jeep_off.wav soundparms 1.5 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_stop sound/vehicle/veh_jeep_off.wav soundparms 1.5 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_snd_doorclose sound/mechanics/DoorJeepClose_02.wav soundparms 1.2 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3 "
+aliascache jeep_tread_snd_dirt sound/vehicle/veh_tread_grass.wav soundparms 0.28 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_tread_snd_stone sound/vehicle/veh_tread_grass.wav soundparms 0.28 0.0 1.0 0.0 800 4000 auto loaded maps "m1l2b m1l3a m1l3b "
+aliascache jeep_tread_snd_grass sound/vehicle/veh_tread_grass.wav soundparms 0.28 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_tread_snd_wood sound/vehicle/veh_tread_grass.wav soundparms 0.28 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_tread_snd_mud sound/vehicle/veh_tread_grass.wav soundparms 2.8 0.0 1.0 0.0 800 4000 auto loaded maps "m1l3a m1l3b "
+aliascache jeep_vehicle_crash sound/null.wav soundparms 0.7 0.4 1.0 0.5 100 1600 auto loaded maps "m "
+
+// Opel Truck
+aliascache opeltruck_snd_idle sound/vehicle/veh_truck_idle.wav soundparms 0.7 0.0 1.0 0.0 300 7000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_run sound/vehicle/veh_truck_move.wav soundparms 1.2 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_revup sound/vehicle/veh_truck_revup.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_revdown sound/vehicle/veh_truck_revdown.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_shift1 sound/vehicle/veh_truck_shiftin.wav soundparms 1.0 0.0 1.0 0.0 200 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_shift2 sound/vehicle/veh_truck_shiftout.wav soundparms 1.0 0.0 1.0 0.0 200 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_on sound/vehicle/veh_truck_on.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_start sound/vehicle/veh_truck_on.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_off sound/vehicle/veh_truck_off.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_stop sound/vehicle/veh_truck_off.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_tread_snd_dirt sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_tread_snd_stone sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_tread_snd_grass sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_tread_snd_wood sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_tread_snd_mud sound/vehicle/veh_tread_grass.wav soundparms 0.25 0.0 1.0 0.0 600 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_doorclose sound/mechanics/DoorJeepClose_02.wav soundparms 1.0 0.0 1.0 0.0 400 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_snd_dooropen sound/mechanics/DoorJeepOpen_01.wav soundparms 1.0 0.0 1.0 0.0 400 4000 auto loaded maps "m1l2 m1l3b m1l3c m4 "
+aliascache opeltruck_vehicle_crash1 sound/null.wav soundparms 0.7 0.4 1.0 0.5 100 1600 auto loaded maps "m1l3b m1l3c m4 "
+aliascache explode_truck1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.2 0.2 0.8 0.2 1500 8000 weapon loaded maps "m1l3a m1l3b m4l1"
+aliascache explode_truck2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.2 0.2 0.8 0.2 1500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_truck3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.2 0.2 0.8 0.2 1500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_truck4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.2 0.2 0.8 0.2 1500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_truck5 sound/weapons/explo/Explo_MetalMed5.wav soundparms 1.2 0.2 0.8 0.2 1500 8000 weapon loaded maps "m1l3a m1l3b "
+
+alias airplane3 sound/vehicle/M1_PlaneBy.wav soundparms 1.3 0.2 1.0 0.3 600 5000 weapon streamed maps "m5 train"
+alias airplane4 sound/vehicle/M1_PlaneBy.wav soundparms 1.3 0.2 1.0 0.3 600 5000 weapon streamed maps "m5 train"
+alias airplane5 sound/vehicle/M1_PlaneBy.wav soundparms 1.3 0.2 0.9 0.2 600 5000 weapon streamed maps "dm moh obj train"
+alias airplane6 sound/vehicle/M1_PlaneBy.wav soundparms 1.3 0.2 0.9 0.2 500 5000 weapon streamed maps "dm moh obj train"
+aliascache explode_plane1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.2 0.2 0.8 0.2 2500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_plane2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.2 0.2 0.8 0.2 2500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_plane3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.2 0.2 0.8 0.2 2500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_plane4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.2 0.2 0.8 0.2 2500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache explode_plane5 sound/weapons/explo/Explo_MetalMed5.wav soundparms 1.2 0.2 0.8 0.2 2500 8000 weapon loaded maps "m1l3a m1l3b "
+aliascache m5l1a_plane sound/vehicle/m5_plane_sequence.wav soundparms 1.0 0.0 1.0 0.0 1000 8000 weapon loaded maps "m5l1a "
+
+alias m2l3_train_approach sound/vehicle/veh_train_m2l3_approach.wav soundparms 1.3 0.0 1.0 0.0 5000 6000 auto streamed maps "m2l3"
+aliascache m6l2b_first_train sound/vehicle/veh_train_m6l2b_01.wav soundparms 1.5 0.0 1.0 0.0 5000 6000 auto loaded maps "m6l2b"
+alias armoredtrain_rolling sound/vehicle/veh_train_m6l3a_move.wav soundparms 1.5 0.0 1.0 0.0 4000 5000 auto streamed maps "m4l2 m6l3a m6l3e"
+alias armoredtrain_stopping sound/vehicle/veh_train_m6l3a_stop.wav soundparms 1.0 0.0 1.0 0.0 800 4000 auto streamed maps "m6l3a"
+
+//===============================================================
+// WEAPONS - optimized
+//===============================================================
+
+//================
+//PISTOLS
+//================
+
+//Colt 45 Player
+aliascache colt45_snd_fire sound/weapons/fire/Colt45Fire1.wav soundparms 1.4 0.1 0.8 0.1 400 8000 weapon loaded maps "m1l1 m1l2a m1l2b m1l3c m3l1a m3l1b m3l2 m3l3 m4l1 m5l1a m5l1b m5l2a m5l2b m5l3 m6l3a m6l3b m6l3c m6l3d dm moh obj train train"
+aliascache colt45_snd_pickup sound/weapons/foley/SilencerPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache colt45_snd_pickup_ammo sound/weapons/foley/AmmoPUPistol1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache colt45_snd_noammo sound/weapons/foley/DryFirePistol1.wav soundparms 1.5 0.0 1.0 0.0 160 1000 item loaded maps "m1l1 m1l2a m1l2b m1l3c m3l1a m3l1b m3l2 m3l3 m4l1 m5l1a m5l1b m5l2a m5l2b m5l3 m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache colt45_snd_reload sound/weapons/foley/Colt45Reload1b.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m1l1 m1l2a m1l2b m1l3c m3l1a m3l1b m3l2 m3l3 m4l1 m5l1a m5l1b m5l2a m5l2b m5l3 m6l3a m6l3b m6l3c m6l3d dm moh obj train"
+aliascache colt_reload_npc sound/weapons/foley/P38ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_pickup sound/weapons/foley/Pickup_01.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+
+//Walther P38 Player
+aliascache p38_snd_fire1 sound/weapons/fire/P38Fire2.wav soundparms 1.4 0.1 0.8 0.1 400 8000 weapon loaded maps "m dm moh obj "
+aliascache p38_snd_pickup sound/weapons/foley/SilencerPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache p38_snd_pickup_ammo sound/weapons/foley/AmmoPUPistol1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj"
+aliascache p38_snd_noammo sound/weapons/foley/DryFirePistol1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache p38_snd_reload sound/weapons/foley/P38Reload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache p38_reload_npc sound/weapons/foley/P38ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+
+//Silenced Pistol Player
+aliascache silencer_snd_fire1 sound/weapons/fire/SilencedFire2.wav soundparms 1.4 0.1 0.95 0.1 400 8000 weapon loaded maps "m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m4l2 m4l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3d m6l3e dm moh obj "
+aliascache silencer_snd_pickup sound/weapons/foley/SilencerPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache silencer_snd_pickup_ammo sound/weapons/foley/AmmoPUPistol1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache silencer_snd_noammo sound/weapons/foley/DryFirePistol1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m4l2 m4l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3d m6l3e dm moh obj "
+aliascache silencer_snd_reload sound/weapons/foley/SilencerReload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m1l2a m1l2b m1l3a m1l3b m1l3c m2l1 m2l2a m2l2b m2l2c m2l3 m4l2 m4l3 m6l1a m6l1b m6l1c m6l2a m6l2b m6l3a m6l3c m6l3d m6l3e dm moh obj "
+aliascache silencer_reload_npc sound/weapons/foley/P38ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m1l2a dm moh obj "
+
+aliascache pistol_whip1 sound/weapons/foley/PistolWhip1.wav soundparms 1.0 0.1 0.95 0.1 250 1000 auto loaded maps "m dm moh obj train"
+aliascache pistol_whip2 sound/weapons/foley/PistolWhip2.wav soundparms 1.0 0.1 0.95 0.1 250 1000 auto loaded maps "m dm moh obj train"
+aliascache pistol_hit1 sound/weapons/foley/PistolHit1.wav soundparms 1.5 0.1 0.95 0.1 250 1000 auto loaded maps "m dm moh obj train"
+aliascache pistol_hit2 sound/weapons/foley/PistolHit2.wav soundparms 1.5 0.1 0.95 0.1 250 1000 auto loaded maps "m dm moh obj train"
+aliascache pistol_hit3 sound/weapons/foley/PistolHit3.wav soundparms 1.5 0.1 0.95 0.1 250 1000 auto loaded maps "m dm moh obj train"
+
+aliascache snd_pistol_pullout sound/weapons/foley/PistolForward1.wav soundparms 1.0 0.2 0.95 0.0 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_pistol_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_pistol_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+
+aliascache pistol_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+aliascache pistol_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+
+aliascache snd_pistol_shell1 sound/weapons/foley/PistolShellSoft3.wav soundparms 0.7 0.5 1.0 0.3 100 500 auto loaded maps "m dm moh obj train"
+aliascache snd_pistol_shell3 sound/weapons/foley/PistolShellMed1.wav soundparms 0.7 0.5 1.0 0.3 100 500 auto loaded maps "m dm moh obj train"
+aliascache snd_pistol_shell4 sound/weapons/foley/PistolShellMed2.wav soundparms 0.7 0.5 1.0 0.3 100 500 auto loaded maps "m dm moh obj train"
+aliascache snd_pistol_shell6 sound/weapons/foley/PistolShellSoft1.wav soundparms 0.7 0.5 1.0 0.3 100 500 auto loaded maps "m dm moh obj train"
+aliascache snd_pistol_shell7 sound/weapons/foley/PistolShellSoft2.wav soundparms 0.7 0.5 1.0 0.3 100 500 auto loaded maps "m dm moh obj train"
+
+//================
+//RIFLES
+//================
+
+//M1 Garand Player
+aliascache m1_snd_fire1 sound/weapons/fire/M1GarandFire1a.wav soundparms 1.3 0.2 0.8 0.2 400 8000 weapon loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m5l1a m5l1b m6l3a dm moh obj "
+aliascache m1_snd_fire2 sound/weapons/fire/M1GarandFire2a.wav soundparms 1.3 0.2 0.8 0.2 400 8000 weapon loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m3l1a m3l2 m3l3 m4l0 m4l1 m5l1a m5l1b m6l3a dm moh obj "
+aliascache m1_snd_pickup sound/weapons/foley/SpringfieldPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache m1_snd_pickup_ammo sound/weapons/foley/AmmoPURifle1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache m1_snd_noammo sound/weapons/foley/DryFireRifle1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m3l2 m3l3 m4l0 m4l1 m5l1a m5l1b m6l3a dm moh obj "
+aliascache m1_snd_reload sound/weapons/foley/m1_reload.wav soundparms 0.9 0.2 0.95 0.1 160 1000 item loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m3l2 m3l3 m4l0 m4l1 m5l1a m5l1b m6l3a dm moh obj "
+aliascache snd_ping sound/weapons/foley/M1_Ping.WAV soundparms 1.5 0.3 0.95 0.1 160 1000 auto loaded maps "m1l1 m1l2a m1l2b m1l3a m1l3b m1l3c m3l2 m3l3 m4l0 m4l1 m5l1a m5l1b m6l3a dm moh obj "
+aliascache m1_reload_npc sound/weapons/foley/M1ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+
+//Kar 98 Player
+aliascache kar98_snd_fire1 sound/weapons/fire/Mauser98Fire1.wav soundparms 1.2 0.1 0.8 0.1 400 8000 weapon loaded maps "m dm moh obj "
+aliascache kar98_snd_pickup sound/weapons/foley/SpringfieldPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_snd_pickup_ammo sound/weapons/foley/AmmoPURifle1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_snd_noammo sound/weapons/foley/DryFireRifle1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_snd_reload sound/weapons/foley/KARReload1.wav soundparms 1.2 0.1 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_snd_bolt sound/weapons/foley/KARRechamber1.wav soundparms 1.3 0.1 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_reload_npc sound/weapons/foley/KARClipReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98_bolt_npc sound/weapons/foley/KARRechamberNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+
+//Kar98 Sniper Player
+aliascache kar98sniper_snd_fire1 sound/weapons/fire/Mauser98SniperFire1.wav soundparms 1.2 0.1 0.8 0.1 400 8000 weapon loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_pickup sound/weapons/foley/SpringfieldPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_pickup_ammo sound/weapons/foley/AmmoPURifle1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_noammo sound/weapons/foley/DryFireRifle1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_reload_start sound/weapons/foley/KARSniperReloadStart1.wav soundparms 1.3 0.2 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_reload_single2 sound/weapons/foley/KARSniperReloadFill2.wav soundparms 1.3 0.2 0.92 0.15 160 1000 auto loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_reload_single3 sound/weapons/foley/KARSniperReloadFill3.wav soundparms 1.3 0.2 0.92 0.15 160 1000 auto loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_reload_end sound/weapons/foley/KARSniperReloadEnd1.wav soundparms 0.9 0.2 0.95 0.1 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_snd_bolt sound/weapons/foley/KARRechamber1.wav soundparms 0.9 0.01 1.05 0.05 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_reload_npc sound/weapons/foley/KARClipReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache kar98sniper_bolt_npc sound/weapons/foley/KARRechamberNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+
+//Springfield Sniper Player
+aliascache springfield_snd_fire1 sound/weapons/fire/SpringfieldFire1.WAV soundparms 1.3 0.2 0.95 0.1 400 8000 weapon loaded maps "m2l1 m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a dm moh obj train"
+aliascache springfield_snd_fire2 sound/weapons/fire/SpringfieldFire2.WAV soundparms 1.3 0.2 0.95 0.1 400 8000 weapon loaded maps "m2l2a m2l2b m2l2c m6l3b m6l3c m6l3d m6l3e"
+aliascache springfield_snd_pickup sound/weapons/foley/SpringfieldPickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache springfield_snd_pickup_ammo sound/weapons/foley/AmmoPURifle1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache springfield_snd_noammo sound/weapons/foley/DryFireRifle1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_snd_bolt sound/weapons/foley/Spring_Bolt.wav soundparms 0.9 0.01 0.95 0.1 160 1000 item loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_snd_reload_start sound/weapons/foley/SpringfieldReloadStart1.wav soundparms 1.3 0.2 1.0 0.0 160 1000 item loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_snd_reload_single1 sound/weapons/foley/SpringfieldReloadFill1.wav soundparms 1.3 0.2 0.92 0.15 160 1000 auto loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_snd_reload_single2 sound/weapons/foley/SpringfieldReloadFill2.wav soundparms 1.3 0.2 0.92 0.15 160 1000 auto loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_snd_reload_end sound/weapons/foley/SpringfieldReloadEnd1.wav soundparms 0.9 0.2 0.95 0.1 160 1000 item loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_reload_npc sound/weapons/foley/KARClipReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m2l1 m2l2a m2l2b m2l2c m2l3 m3l1a m3l1b m3l2 m3l3 m5l1a m5l1b m5l2a m5l2b m5l3 m6l1a m6l1b m6l1c m6l2 m6l2b m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache springfield_bolt_npc sound/weapons/foley/KARRechamberNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "dm moh obj train"
+
+//Rifle Whip - NPC
+aliascache rifle_whip1 sound/weapons/foley/PistolWhip1.wav soundparms 1.0 0.1 0.95 0.1 250 1000 auto loaded maps "m "
+aliascache rifle_whip2 sound/weapons/foley/PistolWhip2.wav soundparms 1.0 0.1 0.95 0.1 250 1000 auto loaded maps "m "
+aliascache rifle_hit1 sound/weapons/foley/PistolHit1.wav soundparms 1.5 0.0 0.95 0.1 250 1000 auto loaded maps "m "
+aliascache rifle_hit2 sound/weapons/foley/PistolHit2.wav soundparms 1.5 0.0 0.95 0.1 250 1000 auto loaded maps "m "
+aliascache rifle_hit3 sound/weapons/foley/PistolHit3.wav soundparms 1.5 0.0 0.95 0.1 250 1000 auto loaded maps "m "
+
+aliascache snd_rifle_pullout1 sound/weapons/foley/MGForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_rifle_pullout2 sound/weapons/foley/SMGForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_rifle_pullout3 sound/weapons/foley/RifleForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_rifle_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_rifle_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+
+aliascache rifle_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj"
+aliascache rifle_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj"
+
+aliascache snd_rifle_shell1 sound/weapons/foley/RifleShellHard1.wav soundparms 0.5 0.5 1.0 0.4 100 500 auto loaded maps "m dm moh obj train"
+
+//================
+//SUB MACHINE GUN
+//================
+
+//Thompson Player
+aliascache thompson_snd_fire sound/weapons/fire/ThompsonFire1.wav soundparms 1.4 0.01 0.95 0.1 400 8000 weapon loaded maps "m dm moh obj train"
+aliascache thompson_snd_pickup sound/weapons/foley/MP44Pickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache thompson_snd_pickup_ammo sound/weapons/foley/AmmoPUMG1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache thompson_snd_noammo sound/weapons/foley/DryFireMachineGun1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache thompson_snd_reload sound/weapons/foley/ThompsonReload1a.wav soundparms 0.9 0.2 0.95 0.1 160 1000 item loaded maps "m dm moh obj train"
+aliascache thompson_reload_npc sound/weapons/foley/ThompsonReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj train"
+
+//MP40 Player
+aliascache mp40_snd_fire1 sound/weapons/fire/MP40Fire1.wav soundparms 1.3 0.05 0.95 0.1 400 8000 weapon loaded maps "m dm moh obj "
+aliascache mp40_snd_fire2 sound/weapons/fire/MP40Fire2.wav soundparms 1.3 0.01 0.95 0.1 400 8000 weapon loaded maps "m dm moh obj "
+aliascache mp40_snd_pickup sound/weapons/foley/MP44Pickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp40_snd_pickup_ammo sound/weapons/foley/AmmoPUMG1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp40_snd_noammo sound/weapons/foley/DryFireMachineGun1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp40_snd_reload sound/weapons/foley/MP40Reload1a.wav soundparms 1.5 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+aliascache MP40_reload_npc sound/weapons/foley/MP40ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m dm moh obj "
+
+aliascache smg_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+aliascache smg_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+
+//================
+//MACHINE GUN
+//================
+
+//MP44 Player
+aliascache mp44_snd_fire1 sound/weapons/fire/MP44Fire1.wav soundparms 1.3 0.05 0.95 0.1 400 8000 weapon loaded maps "m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3c m6l3 dm moh obj "
+aliascache mp44_snd_pickup sound/weapons/foley/MP44Pickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp44_snd_pickup_ammo sound/weapons/foley/AmmoPUMG1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp44_snd_noammo sound/weapons/foley/DryFireMachineGun1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m5l1b m6l1c m6l2a m6l2b m6l3a m6l3  dm moh obj "
+aliascache mp44_snd_reload sound/weapons/foley/MP44Reload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3  dm moh obj "
+aliascache MP44_reload_npc sound/weapons/foley/MP44ReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3  dm moh obj "
+aliascache mp44_snd_pullout1 sound/weapons/foley/MP44Forward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m5l1b m6l1c m6l2a m6l2b m6l3a m6l3b m6l3  dm moh obj "
+aliascache mp44_snd_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache mp44_snd_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj "
+
+//BAR Player
+aliascache bar_snd_fire sound/weapons/fire/BARFire2.wav soundparms 1.4 0.1 0.8 0.1 400 8000 weapon loaded maps "m2l3 m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_pickup sound/weapons/foley/MP44Pickup1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_pickup_ammo sound/weapons/foley/AmmoPUMG1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_noammo sound/weapons/foley/DryFireMachineGun1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_reload sound/weapons/foley/BARReload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 auto loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_reload_npc sound/weapons/foley/BARReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m2l3 m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_pullout1 sound/weapons/foley/HeavyWpnForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+aliascache bar_snd_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m3l1a m3l2 m3l3 m4l0 m5l1b dm moh obj "
+
+aliascache mg_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+aliascache mg_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj "
+
+//================
+//MOUNTED MACHINE GUN
+//================
+
+//MG 42
+aliascache mg42_gun_snd_fire1 sound/weapons/fire/MG42Fire5.wav soundparms 1.3 0.2 0.95 0.15 300 12000 weapon loaded maps "m1 m2 m3l1a m3l2 m3l3 m4 m5 m6l1 m6l2 m6l3b m6l3c m6l3d m6l3e dm moh obj train"
+aliascache mg42_gun_snd_fire2 sound/weapons/fire/MG42Fire5.wav soundparms 1.2 0.3 0.85 0.25 200 3000 weapon loaded maps "m3l1b m6l3a"
+aliascache mg42_gun_fake_snd_fire01 sound/weapons/fire/MG42Burst_01.wav soundparms 0.7 0.4 0.9 0.2 1000 9000 auto loaded maps "m3l1a"
+aliascache mg42_gun_fake_snd_fire02 sound/weapons/fire/MG42Burst_02.wav soundparms 0.7 0.4 0.9 0.2 1000 9000 auto loaded maps "m3l1a"
+aliascache mg42_gun_fake_snd_fire03 sound/weapons/fire/MG42Burst_03.wav soundparms 0.7 0.4 0.9 0.2 1000 9000 auto loaded maps "m3l1a"
+aliascache mg42_gun_fake_snd_fire04 sound/weapons/fire/MG42Burst_01.wav soundparms 0.7 0.4 0.9 0.2 1000 9000 auto loaded maps "m3l1a"
+aliascache mg42_gun_fake_snd_fire05 sound/null.wav soundparms 0.7 0.4 0.9 0.2 1500 8000 auto loaded maps "m3l1a"
+
+//30cal
+aliascache jeep_snd_fire sound/weapons/fire/50CalFire2.wav soundparms 1.05 0.2 0.95 0.1 800 4000 weapon loaded maps "m1l3a m1l3b"
+
+aliascache snd_mg_pullout1 sound/weapons/foley/HeavyWpnForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1600 item loaded maps "m dm moh obj "
+aliascache snd_mg_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj "
+aliascache snd_mg_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj "
+
+//================
+//HEAVY WEAPONS
+//================
+
+//Bazooka
+aliascache bazooka_snd_fire sound/weapons/fire/BazookaFire2.wav soundparms 1.5 0.0 0.92 0.15 500 9000 weapon loaded maps "m5 dm moh obj "
+aliascache bazooka_snd_pickup sound/weapons/foley/AmmoPUHeavy1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m5 dm moh obj "
+aliascache bazooka_snd_pickup_ammo sound/weapons/foley/AmmoPUHeavy1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m5 dm moh obj "
+aliascache bazooka_snd_noammo sound/weapons/foley/DryFireBazooka1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m5 dm moh obj "
+aliascache bazooka_snd_reload sound/weapons/foley/BazookaReload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m5 dm moh obj "
+aliascache bazooka_reload_npc sound/weapons/foley/BazookaReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m5 dm moh obj "
+aliascache snd_bazooka_pullout sound/weapons/foley/BazookaForward1.wav soundparms 1.0 0.2 0.9 0.1 160 1000 item loaded maps "m1l1 m3l3 m5 dm moh obj "
+aliascache snd_bazooka_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m1l1 m5 dm moh obj "
+aliascache snd_bazooka_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m1l1 m5 dm moh obj "
+
+//Panzerschreck
+aliascache panzerschreck_snd_fire sound/weapons/fire/PanzershrekFire2.wav soundparms 1.5 0.0 0.92 0.15 500 9000 weapon loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+aliascache panzerschreck_snd_pickup sound/weapons/foley/AmmoPUHeavy1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+aliascache panzerschreck_snd_pickup_ammo sound/weapons/foley/AmmoPUHeavy1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+aliascache panzerschreck_snd_noammo sound/weapons/foley/DryFireBazooka1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+aliascache panzerschreck_snd_reload sound/weapons/foley/PanzerReload1.wav soundparms 0.9 0.2 1.0 0.0 160 1000 item loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+aliascache panzerschreck_reload_npc sound/weapons/foley/BazookaReloadNPC1.wav soundparms 1.0 0.0 1.0 0.0 160 1000 item loaded maps "m1l1 m1l3 m3l3 m5l2 dm moh obj "
+
+aliascache bazooka_exp1 sound/weapons/explo/Explo_Bazooka1.wav soundparms 1.0 0.3 0.8 0.4 800 8000 weapon loaded maps "m1 m2 m3 m4 m5 m6 dm moh obj "
+aliascache bazooka_exp2 sound/weapons/explo/Explo_Bazooka2.wav soundparms 1.0 0.3 0.8 0.4 800 8000 weapon loaded maps "m1 m2 m3 m4 m5 m6 dm moh obj "
+aliascache bazooka_exp3 sound/weapons/explo/Explo_Bazooka3.wav soundparms 1.0 0.3 0.8 0.4 800 8000 weapon loaded maps "m1 m2 m3 m4 m5 m6 dm moh obj "
+
+//Shotgun
+aliascache shotgun_snd_fire1 sound/weapons/fire/ShotgunFire1.wav soundparms 1.5 0.0 0.8 0.1 400 8000 weapon loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_pickup sound/weapons/foley/Pickup_01.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_pickup_ammo sound/weapons/foley/Pickup_01.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_noammo sound/weapons/foley/DryFireRifle1.wav soundparms 1.2 0.2 0.8 0.2 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_reload_start sound/weapons/foley/ShotgunReloadStart1.wav soundparms 1.2 0.01 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_reload_single1 sound/weapons/foley/ShotgunFill1.wav soundparms 1.2 0.01 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_reload_single2 sound/weapons/foley/ShotgunFill2.wav soundparms 1.2 0.01 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_reload_single3 sound/weapons/foley/ShotgunFill3.wav soundparms 1.2 0.01 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_reload_end sound/weapons/foley/ShotgunReloadEnd1.wav soundparms 1.5 0.0 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache shotgun_snd_rechamber sound/weapons/foley/ShotgunRechamber1.wav soundparms 1.5 0.0 0.95 0.1 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+
+aliascache snd_shotgun_pullout sound/weapons/foley/ShotgunForward1.wav soundparms 1.5 0.0 1.0 0.0 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache snd_shotgun_putaway1 sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache snd_shotgun_putaway2 sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+
+aliascache snd_shotgun_shell1 sound/weapons/foley/ShotgunShellHard1.wav soundparms 1.0 0.2 1.0 0.2 160 500 auto loaded maps "m dm moh obj "
+
+aliascache heavy_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+aliascache heavy_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m4l3 m6l3a m6l3b m6l3c m6l3d m6l3e dm moh obj "
+
+//================
+//GRENADES
+//================
+
+//Grenade
+aliascache m2frag_snd_grenade_pull sound/weapons/foley/Grenade_Pull.wav soundparms 0.9 0.2 0.8 0.2 160 1000 weapon loaded maps "m dm moh obj train"
+aliascache m2frag_snd_grenade_throw sound/weapons/foley/Grenade_Throw.wav soundparms 0.9 0.2 0.8 0.2 160 1000 weapon loaded maps "m dm moh obj train"
+aliascache m2frag_snd_pickup sound/weapons/foley/AmmoPUGrenade1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache m2frag_snd_pickup_ammo sound/weapons/foley/AmmoPUGrenade1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache m2frag_snd_reload sound/weapons/foley/GrenadeForward1.wav soundparms 0.9 0.01 0.95 0.1 160 1000 item loaded maps "m dm moh obj train"
+aliascache m2frag_snd_noammo sound/null.wav soundparms 0.9 0.2 0.8 0.2 160 1600 weapon loaded maps "m dm moh obj train"
+
+//Steilhandgranate
+aliascache steilhandgranate_snd_grenade_pull sound/weapons/fire/Grenade_Pull.wav soundparms 0.9 0.2 0.8 0.2 160 1000 weapon loaded maps "m dm moh obj train"
+aliascache steilhandgranate_snd_grenade_throw sound/weapons/fire/Grenade_Throw.wav soundparms 0.9 0.2 0.8 0.2 160 1000 weapon loaded maps "m dm moh obj train"
+aliascache steilhandgranate_snd_pickup sound/weapons/foley/AmmoPUGrenade1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache steilhandgranate_snd_pickup_ammo sound/weapons/foley/AmmoPUGrenade1.wav soundparms 1.3 0.2 0.8 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache steilhandgranate_snd_reload sound/weapons/foley/GrenadeForward1.wav soundparms 0.9 0.01 0.95 0.1 160 1000 item loaded maps "m dm moh obj train"
+aliascache steilhandgranate_snd_noammo sound/null.wav soundparms 0.9 0.2 0.8 0.2 160 1600 weapon loaded maps "m dm moh obj train"
+aliascache grenade_pull_npc sound/weapons/foley/GrenadePinPullNPC1.wav soundparms 1.5 0.0 1.0 0.0 160 1000 weapon loaded maps "m dm moh obj train"
+aliascache grenade_throw_npc sound/weapons/foley/GrenadeThrowNPC1.wav soundparms 1.5 0.0 1.0 0.0 160 1000 weapon loaded maps "m dm moh obj train"
+
+// Grenade Bounces
+aliascache grenade_bounce_metal1 sound/weapons/foley/GrenadeBounceMetal1.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_metal2 sound/weapons/foley/GrenadeBounceMetal2.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_metal3 sound/weapons/foley/GrenadeBounceMetal3.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_hard1 sound/weapons/foley/GrenadeBounceHard1.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_hard2 sound/weapons/foley/GrenadeBounceHard2.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_hard3 sound/weapons/foley/GrenadeBounceHard3.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_soft1 sound/weapons/foley/GrenadeBounceSoft1.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_soft2 sound/weapons/foley/GrenadeBounceSoft2.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_soft3 sound/weapons/foley/GrenadeBounceSoft3.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj training"
+aliascache grenade_bounce_water1 sound/characters/fs_water_02.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj "
+aliascache grenade_bounce_water2 sound/characters/fs_water_04.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj "
+aliascache grenade_bounce_water3 sound/characters/fs_water_05.WAV soundparms 0.7 0.6 0.8 0.4 300 2000 weapon loaded maps "m dm moh obj "
+
+aliascache snd_grenade_putaway1  sound/characters/body_mvmt_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_grenade_putaway2  sound/characters/body_mvmtgear_04.wav soundparms 0.7 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache snd_grenade_pullout  sound/weapons/foley/GrenadeForward1.wav soundparms 0.9 0.2 0.9 0.2 160 1000 item loaded maps "m dm moh obj train"
+aliascache grenade_drop1 sound/weapons/foley/GunDrop1.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj train"
+aliascache grenade_drop4 sound/weapons/foley/GunDrop4.wav soundparms 1.5 0.0 0.9 0.2 160 2000 auto loaded maps "m dm moh obj train"
+
+aliascache grenade_explode1 sound/weapons/explo/Explo_Grenade1.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj train"
+aliascache grenade_explode2 sound/weapons/explo/Explo_Grenade2.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj train"
+aliascache grenade_explode3 sound/weapons/explo/Explo_Grenade3.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj train"
+aliascache grenade_explode4 sound/weapons/explo/Explo_Grenade4.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj train"
+aliascache grenade_exp_water1 sound/weapons/explo/Exp_Grenade_Water1.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj "
+aliascache grenade_exp_water2 sound/weapons/explo/Exp_Grenade_Water2.wav soundparms 1.0 0.2 0.7 0.4 800 8000 weapon loaded maps "m dm moh obj "
+
+//================
+//TANK WEAPONS
+//================
+
+//King Tiger Tank Cannon
+aliascache king_snd_fire1 sound/weapons/fire/TankFire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m5l2 "
+aliascache king_snd_fire2 sound/weapons/fire/TankCannonFire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m5l3 "
+aliascache king_snd_move sound/vehicle/veh_tank_turret1.wav soundparms 0.9 0.2 0.9 0.2 800 4000 auto loaded maps "m5 "
+aliascache king_snd_turret_up sound/null.wav soundparms 0.7 0.0 1.3 0.2 800 4000 auto loaded maps "m5 "
+aliascache king_snd_reload sound/null.wav soundparms 0.9 0.2 0.9 0.2 800 4000 auto loaded maps "m5 "
+
+//Tiger Tank Cannon
+aliascache tank_snd_fire1 sound/weapons/fire/TankCannonFire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l3 m5"
+aliascache tank_snd_fire2 sound/weapons/fire/Flak88Fire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l3 m5"
+aliascache tank_snd_fire3 sound/weapons/fire/Flak88Fire3.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l3 m5"
+aliascache tank_snd_fire4 sound/weapons/fire/Flak88Fire4.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l3 m5"
+
+aliascache tank_snd_move sound/vehicle/veh_tank_turret1.wav soundparms 0.9 0.2 0.9 0.2 800 4000 auto loaded maps "m3l3 m5"
+
+//Flak 88 gun
+aliascache flak_snd_move sound/vehicle/veh_tank_turret1.wav soundparms 0.9 0.2 0.9 0.2 800 4000 auto loaded maps "m1l3 m3l2 m5l2 m5l3"
+aliascache flak_snd_fire1 sound/weapons/fire/TankCannonFire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak_snd_fire2 sound/weapons/fire/Flak88Fire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak_snd_fire3 sound/weapons/fire/Flak88Fire3.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak_snd_fire4 sound/weapons/fire/Flak88Fire4.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak88_fire1 sound/weapons/fire/TankCannonFire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak88_fire2 sound/weapons/fire/Flak88Fire1.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak88_fire3 sound/weapons/fire/Flak88Fire3.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak88_fire4 sound/weapons/fire/Flak88Fire4.wav soundparms 1.5 0.0 1.0 0.0 2000 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache flak88_reload sound/null.wav soundparms 1.2 0.2 0.9 0.2 800 4000 weapon loaded maps "m3l2 m5l2 m5l3"
+aliascache explode_flak881 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.0 0.2 0.9 0.2 2000 9000 weapon loaded maps "m1 m3l2 m3l3 m5 m6 obj"
+aliascache explode_flak882 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.0 0.2 0.9 0.2 2000 9000 weapon loaded maps "m1 m3l2 m3l3 m5 m6 obj"
+aliascache explode_flak883 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.0 0.2 0.9 0.2 2000 9000 weapon loaded maps "m1 m3l2 m3l3 m5 m6 obj"
+aliascache explode_flak884 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.0 0.2 0.9 0.2 2000 9000 weapon loaded maps "m1 m3l2 m3l3 m5 m6 obj"
+aliascache explode_aagun1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1 m2 m3l2 m3l3 m5 m6 obj"
+aliascache explode_aagun2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1 m2 m3l2 m3l3 m5 m6 obj"
+aliascache explode_aagun3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1 m2 m3l2 m3l3 m5 m6 obj"
+aliascache explode_aagun4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1 m2 m3l2 m3l3 m5 m6 obj"
+
+//==========================================================
+// BULLET ZINGS
+//==========================================================
+
+aliascache snd_b_zing1 sound/weapons/zings/Wpn_WhizBy04.wav soundparms 0.4 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing2 sound/weapons/zings/wpn_whizby05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing3 sound/weapons/zings/wpn_whizby06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing4 sound/weapons/zings/wpn_whizby07.wav soundparms 0.6 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing5 sound/weapons/zings/wpn_whizby08.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing6 sound/weapons/zings/wpn_whizby09.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing7 sound/weapons/zings/wpn_whizby10.wav soundparms 0.7 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing8 sound/weapons/zings/wpn_whizby11.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing9 sound/weapons/zings/wpn_whizby13.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing10 sound/weapons/zings/wpn_whizby15.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing11 sound/weapons/zings/wpn_whizby16.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing12 sound/weapons/zings/wpn_whizby17.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing13 sound/weapons/zings/wpn_whizby20.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing14 sound/weapons/zings/wpn_whizby21.wav soundparms 0.5 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing15 sound/weapons/zings/wpn_whizby26.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing16 sound/weapons/zings/wpn_whizby28.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing17 sound/weapons/zings/wpn_whizby29.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing18 sound/weapons/zings/wpn_whizby30.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing19 sound/weapons/zings/wpn_whizby36.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing20 sound/weapons/zings/wpn_whizby39.wav soundparms 0.3 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing22 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing23 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing24 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing25 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing26 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+aliascache snd_b_zing27 sound/null.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj "
+
+//=========================================================
+// BULLET IMPACTS
+//=========================================================
+
+aliascache snd_bh_stone1 sound/weapons/impact/wpn_impstone07.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone2 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone3 sound/weapons/impact/wpn_impstone10.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone4 sound/weapons/impact/wpn_impstone11.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone5 sound/weapons/impact/wpn_impstone12.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone6 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone7 sound/weapons/impact/wpn_impstone19.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone8 sound/weapons/impact/wpn_impstone20.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone9 sound/weapons/impact/wpn_impstone22.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone10 sound/weapons/impact/wpn_impstone26.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone11 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_stone12 sound/weapons/impact/wpn_impstone29.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_wood1 sound/weapons/impact/wpn_impwood03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood2 sound/weapons/impact/wpn_impwood05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood3 sound/weapons/impact/wpn_impwood06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood4 sound/weapons/impact/wpn_impwood08.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood5 sound/weapons/impact/wpn_impwood10.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood6 sound/weapons/impact/wpn_impwood14.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_wood7 sound/weapons/impact/wpn_impwood16.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_metal1 sound/weapons/impact/wpn_impmetal05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal2 sound/weapons/impact/wpn_impmetal06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal3 sound/weapons/impact/wpn_impmetal13.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal5 sound/weapons/impact/wpn_impmetal16.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal6 sound/weapons/impact/wpn_impmetal19.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal7 sound/weapons/impact/wpn_impmetal23.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal8 sound/weapons/impact/wpn_impmetal46.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal9 sound/weapons/impact/wpn_impmetal47.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal10 sound/weapons/impact/wpn_impmetal54.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_metal11 sound/weapons/impact/wpn_impmetal67.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_dirt1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_dirt2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_dirt3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_dirt4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_dirt5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_grill1 sound/weapons/impact/wpn_impmetal05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill2 sound/weapons/impact/wpn_impmetal06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill3 sound/weapons/impact/wpn_impmetal13.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill5 sound/weapons/impact/wpn_impmetal16.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill6 sound/weapons/impact/wpn_impmetal19.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill7 sound/weapons/impact/wpn_impmetal23.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill8 sound/weapons/impact/wpn_impmetal46.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill9 sound/weapons/impact/wpn_impmetal47.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill10 sound/weapons/impact/wpn_impmetal54.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grill11 sound/weapons/impact/wpn_impmetal67.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_grass1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grass2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grass3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grass4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_grass5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_mud1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_mud2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_mud3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_mud4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_mud5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_puddle1 sound/weapons/impact/wpn_impwater01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle2 sound/weapons/impact/wpn_impwater02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle3 sound/weapons/impact/wpn_impwater03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle4 sound/weapons/impact/wpn_impwater04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle5 sound/weapons/impact/wpn_impwater05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle6 sound/weapons/impact/wpn_impwater06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle7 sound/weapons/impact/wpn_impwater07.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle8 sound/weapons/impact/wpn_impwater08.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_puddle9 sound/weapons/impact/wpn_impwater09.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_glass1 sound/weapons/impact/wpn_impglass01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_glass2 sound/weapons/impact/wpn_impglass02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_glass3 sound/weapons/impact/wpn_impglass03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_glass4 sound/weapons/impact/wpn_impglass04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_glass5 sound/weapons/impact/wpn_impglass05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_gravel1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel6 sound/weapons/impact/wpn_impstone29.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_gravel7 sound/weapons/impact/wpn_impstone30.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_sand1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_sand2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_sand3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_sand4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_sand5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_foliage1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_foliage2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_foliage3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_foliage4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_foliage5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_snow1 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_snow2 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_snow3 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_snow4 sound/weapons/impact/wpn_impdirt04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_snow5 sound/weapons/impact/wpn_impdirt05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_carpet1 sound/weapons/impact/wpn_impwood03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet2 sound/weapons/impact/wpn_impwood05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet3 sound/weapons/impact/wpn_impwood06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet4 sound/weapons/impact/wpn_impwood08.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet5 sound/weapons/impact/wpn_impwood10.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet6 sound/weapons/impact/wpn_impwood14.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_carpet7 sound/weapons/impact/wpn_impwood16.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_flesh1 sound/weapons/impact/wpn_impflesh07.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh2 sound/weapons/impact/wpn_impflesh08.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh3 sound/weapons/impact/wpn_impflesh09.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh4 sound/weapons/impact/wpn_impflesh11.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh5 sound/weapons/impact/wpn_impflesh12.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh6 sound/weapons/impact/wpn_impflesh14.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh7 sound/weapons/impact/wpn_impflesh15.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh8 sound/weapons/impact/wpn_impflesh16.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+aliascache snd_bh_flesh9 sound/weapons/impact/wpn_impflesh17.wav soundparms 1.3 0.2 0.9 0.2 350 3000 auto loaded maps "m dm moh obj train"
+
+aliascache snd_bh_paper sound/null.wav soundparms 1.3 0.2 0.9 0.2 400 1600 auto loaded maps "m dm moh obj train"
+
+//================================================================================
+//GLOBAL SOUNDS
+//================================================================================
+
+aliascache dm_hit_notify1  sound/null.wav soundparms 1.0 0.0 1.0 0.0 160 1600 local loaded maps "dm moh obj"
+aliascache dm_kill_notify1 sound/null.wav soundparms 1.5 0.0 1.0 0.0 160 1600 local loaded maps "dm moh obj"
+
+aliascache big_explosion1 sound/weapons/explo/Explo_Grenade1.wav soundparms 0.9 0.2 0.8 0.4 100 1000 auto loaded maps "m dm moh obj train"
+aliascache big_explosion2 sound/weapons/explo/Explo_Grenade2.wav soundparms 0.9 0.2 0.8 0.4 100 1000 auto loaded maps "m dm moh obj train"
+aliascache big_explosion3 sound/weapons/explo/Explo_Grenade3.wav soundparms 0.9 0.2 0.8 0.4 100 1000 auto loaded maps "m dm moh obj train"
+aliascache gas_explode1 sound/weapons/explo/Explo_GasTank1.wav soundparms 0.9 0.2 0.8 0.4 700 8000 auto loaded maps "m dm moh obj train"
+aliascache gas_explode2 sound/weapons/explo/Explo_GasTank2.wav soundparms 0.9 0.2 0.8 0.4 700 8000 auto loaded maps "m dm moh obj train"
+aliascache short_circuit1 sound/weapons/explo/Explo_Elec1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1l3c m4l2 m6 dm moh obj train"
+aliascache short_circuit2 sound/weapons/explo/Explo_Elec2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1l3c m4l2 m6 dm moh obj train"
+aliascache explode_electrical1 sound/weapons/explo/Explo_Elec1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1l3c m6 dm moh obj train"
+aliascache explode_electrical2 sound/weapons/explo/Explo_Elec2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1l3c m6 dm moh obj train"
+aliascache explode_searchlight1 sound/weapons/explo/Explo_Searchlight1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1 m4 m6 "
+aliascache explode_searchlight2 sound/weapons/explo/Explo_Searchlight2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m1 m4 m6 "
+aliascache explode_building_small1 sound/weapons/explo/Explo_StoneMed1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m3l2 m5 "
+aliascache explode_building_small2 sound/weapons/explo/Explo_StoneMed2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m3l2 m5 "
+aliascache explode_building_large1 sound/weapons/explo/Explo_StoneLarge1.wav soundparms 0.9 0.2 0.8 0.4 2000 8000 auto loaded maps "m1l2b m5 "
+aliascache explode_building_large2 sound/weapons/explo/Explo_StoneLarge2.wav soundparms 0.9 0.2 0.8 0.4 2000 8000 auto loaded maps "m5 "
+aliascache explode_building_large_large1 sound/weapons/explo/Explo_StoneLarge1.wav soundparms 0.9 0.2 0.8 0.4 2000 8000 auto loaded maps "m1l2b m5 "
+aliascache explode_building_large_large2 sound/weapons/explo/Explo_StoneLarge2.wav soundparms 0.9 0.2 0.8 0.4 2000 8000 auto loaded maps "m1l2b m5 "
+
+aliascache snd_crate_wood1 sound/mechanics/obj_breakwoodlrg_01.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_crate_wood2 sound/mechanics/obj_breakwoodlrg_02.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_crate_wood3 sound/mechanics/obj_breakwoodlrg_03.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_crate_woodsm1 sound/mechanics/obj_breakwoodsml_01.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_crate_woodsm2 sound/mechanics/obj_breakwoodsml_02.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_crate_woodsm3 sound/mechanics/obj_breakwoodsml_03.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_glass_shatter1 sound/mechanics/Obj_BreakGlass_01.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_glass_shatter2 sound/mechanics/Obj_BreakGlass_02.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+aliascache snd_glass_shatter3 sound/mechanics/Obj_BreakGlass_03.wav soundparms 1.5 0.0 0.9 0.2 200 1600 auto loaded maps "m dm moh obj train"
+
+aliascache stonecrash01 sound/weapons/explo/Explo_StoneMed1.wav soundparms 0.6 0.4 1.0 0.4 2000 8000 auto loaded maps "m"
+aliascache stonecrash02 sound/weapons/explo/Explo_StoneMed2.wav soundparms 0.6 0.4 1.0 0.4 2000 8000 auto loaded maps "m"
+aliascache stonecrash03 sound/weapons/explo/Explo_StoneMed1.wav soundparms 0.6 0.4 1.0 0.4 2000 8000 auto loaded maps "m"
+aliascache stonesmall01 sound/mechanics/Obj_BreakStoneSml_01.wav soundparms 0.6 0.4 1.0 0.4 1000 8000 auto loaded maps "m "
+aliascache stonesmall02 sound/mechanics/Obj_BreakStoneSml_02.wav soundparms 0.6 0.4 1.0 0.4 1000 8000 auto loaded maps "m "
+aliascache stonesmall03 sound/mechanics/Obj_BreakStoneSml_03.wav soundparms 0.6 0.4 1.0 0.4 1000 8000 auto loaded maps "m "
+aliascache stonesmall04 sound/mechanics/Obj_BreakStoneSml_04.wav soundparms 0.6 0.4 1.0 0.4 1000 8000 auto loaded maps "m "
+aliascache stonesmall05 sound/mechanics/Obj_BreakStoneSml_01.wav soundparms 0.6 0.4 1.0 0.4 1000 8000 auto loaded maps "m "
+
+//Generic Wooden Door
+aliascache door_wood_locked_clue sound/mechanics/DoorWoodLocked_01.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_locked1 sound/mechanics/DoorWoodLocked_02.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_open_move1 sound/mechanics/DoorWoodOpen_01.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_open_move2 sound/mechanics/DoorWoodOpen_02.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_open_move3 sound/mechanics/DoorWoodOpen_03.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_open_move4 sound/mechanics/DoorWoodOpen_04.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_open_stop sound/mechanics/DoorWoodOpen_stop2.wav soundparms 0.9 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_close_move1 sound/mechanics/DoorWoodClose_02.wav soundparms 0.9 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_close_move2 sound/mechanics/DoorWoodClose_03.wav soundparms 0.9 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_close_stop1 sound/mechanics/DoorWoodClose_stop1.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_close_stop2 sound/mechanics/DoorWoodClose_stop2.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache door_wood_close_stop3 sound/mechanics/DoorWoodClose_stop3.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+
+//Generic Metal Door
+aliascache door_metal_locked_clue sound/mechanics/DoorMetalLocked_01.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_locked1 sound/mechanics/DoorMetalLocked_02.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_open_move1 sound/mechanics/DoorMetalOpen_04.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_open_move2 sound/mechanics/DoorMetalOpen_05.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_open_stop1 sound/null.wav soundparms 0.8 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_close_move1 sound/mechanics/DoorMetalClose_move1.wav soundparms 0.8 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_close_stop1 sound/mechanics/DoorMetalClose_stop1.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_close_stop2 sound/mechanics/DoorMetalClose_stop2.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_close_stop3 sound/mechanics/DoorMetalClose_stop3.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+aliascache door_metal_close_stop4 sound/mechanics/DoorMetalClose_stop4.wav soundparms 1.1 0.2 0.8 0.2 160 1600 item loaded maps "m dm moh obj train"
+
+//Wrought Iron Gate
+aliascache gate_iron_locked sound/mechanics/gate_iron_locked.wav soundparms 1.3 0.2 0.9 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache gate_iron_locked_clue sound/mechanics/gate_iron_locked.wav soundparms 1.3 0.2 0.9 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache gate_iron_open1 sound/mechanics/GateMetalOpen_03.wav soundparms 1.3 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache gate_iron_open2 sound/mechanics/GateMetalOpen_04.wav soundparms 1.3 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache gate_iron_open3 sound/mechanics/GateMetalOpen_05.wav soundparms 1.3 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+aliascache gate_iron_close sound/mechanics/gate_iron_close.wav soundparms 1.3 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 dm moh obj train"
+
+//Large Wooden Gate
+aliascache gate_large_locked sound/mechanics/Wood_fence_locked.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1l2a "
+aliascache gate_large_locked_clue sound/mechanics/gate_large_locked.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1l2a "
+
+//Metal Gate
+aliascache gate_metal_locked sound/mechanics/Gate_Metal_Locked.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 "
+aliascache gate_metal_locked_clue sound/mechanics/Gate_Metal_Locked.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 "
+aliascache gate_metal_open sound/mechanics/M1_FenceMetalOpen2.wav soundparms 1.2 0.2 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 "
+
+//Large Metal Garage Door
+aliascache garagedoor_locked sound/mechanics/Gate_Metal_Locked.wav soundparms 1.3 0.0 0.8 0.2 160 1600 item loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6 "
+
+//Cabinet sounds for cabinets that have hidden baddies in them that pop out when you leave the room
+aliascache cabinetopen sound/mechanics/Obj_BreakWoodSml_01.wav soundparms 1.3 0.0 1.0 0.0 320 2200 auto loaded maps "m1 m2 m3l2 m3l3 m4 m5 m6"
+
+//Window Shutters
+aliascache shuttersqueak_01 sound/mechanics/Mec_ShutterSqueak_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shuttersqueak_02 sound/mechanics/Mec_ShutterSqueak_02.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m2l2a m5 "
+aliascache shuttersqueak_03 sound/mechanics/Mec_ShutterSqueak_03.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shuttersqueak_04 sound/mechanics/Mec_ShutterSqueak_04.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shuttersqueak_05 sound/null.wav soundparms 0.5 0.2 0.8 0.4 100 1000 item loaded maps "m1l1 m5  "
+aliascache shutterhit_01 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_02 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_03 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_06 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_07 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_08 sound/mechanics/Mec_ShutterHit_01.wav soundparms 0.5 0.2 0.8 0.4 250 2500 item loaded maps "m1l1 m5 "
+aliascache shutterhit_09 sound/null.wav soundparms 0.5 0.2 0.8 0.4 100 1000 item loaded maps "m1l1 m5 "
+aliascache shutterhit_10 sound/null.wav soundparms 0.5 0.2 0.8 0.4 100 1000 item loaded maps "m1l1 m5 "
+aliascache shutterhit_04 sound/null.wav soundparms 0.5 0.2 0.8 0.4 100 1000 item loaded maps "m1l1 m5 "
+aliascache shutterhit_05 sound/null.wav soundparms 0.5 0.2 0.8 0.4 100 1000 item loaded maps "m1l1 m5 "
+
+//Elevator
+aliascache elevator_gate sound/mechanics/Mec_ElevatorGate_03.wav soundparms 1.5 0.0 1.0 0.0 300 3000 auto loaded maps "m1l3c m4l2 m6l3a m6l3b m6l3c m6l3d m6l3e"
+aliascache elevator_start sound/null.wav soundparms 1.5 0.0 1.0 0.0 800 3000 auto loaded maps "m "
+aliascache elevator_run sound/mechanics/Mec_ElevatorRun_01.wav soundparms 1.5 0.0 1.0 0.0 800 3000 auto loaded maps "m1l3c m4l2 m6l3a m6l3b m6l3c m6l3d m6l3e"
+aliascache elevator_stop sound/null.wav soundparms 1.5 0.0 1.0 0.0 800 3000 auto loaded maps "m "
+
+aliascache alarm_switch sound/mechanics/Mec_Switch_05.wav soundparms 1.5 0.0 1.0 0.0 800 3000 auto loaded maps "m dm moh obj train"
+
+aliascache snd_binoculars sound/mechanics/Mec_RadioNoise_11.wav soundparms 0.5 0.2 0.9 0.1 160 1600 item loaded maps "m3l2 m3l3 m5l3"
+
+aliascache snd_papers sound/items/Snd_Papers_show.wav soundparms 0.9 0.2 1.0 0.0 160 1600 item loaded maps "m2 m4 m6 dm moh obj train"
+
+aliascache med_kit sound/items/Health_MedKit_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m dm moh obj train"
+aliascache med_canteen sound/items/Health_Canteen_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m dm moh obj train"
+
+//Pickup Items
+aliascache pickup_explosives1 sound/items/Item_BangaloreAssemble_01.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m1l2a m1l2b m3l3 m4l3 training"
+aliascache pickup_explosives2 sound/items/Item_BangaloreAssemble_02.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m1l2a m3l3 m4l3"
+aliascache pickup_explosives3 sound/items/Item_BangaloreAssemble_03.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m1l2a m3l3 m4l3"
+aliascache pickup_uniform sound/items/Item_UniformPU_03.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m2l2a m4l3 m6l1c "
+aliascache pickup_papers1 sound/items/Item_PaperPU_01.wav soundparms 1.5 0.0 1.0 0.0 100 2000 item loaded maps "m1 m2 m4l0 m4l3 m6l1c "
+aliascache pickup_papers2 sound/items/Item_PaperPU_02.wav soundparms 1.5 0.0 1.0 0.0 100 2000 item loaded maps "m1 m2 m4l0 m4l3 m6l1c"
+aliascache pickup_papers3 sound/items/Item_PaperPU_03.wav soundparms 1.5 0.0 1.0 0.0 100 2000 item loaded maps "m1 m2 m4l0 m4l3 m6l1c "
+aliascache pickup_clipboard1 sound/items/Item_PaperPU_03.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m1 m2 m4l3 "
+
+aliascache final_countdown sound/items/final_countdown.wav soundparms 1.3 0.0 1.0 0.0 10000 10000 local loaded maps "dm moh obj "
+
+//================================================================================
+//POSITIONAL AMBIENCES
+//================================================================================
+
+aliascache electrical_hum1 sound/null.wav soundparms 0.25 0.0 1.2 0.0 100 2000 auto loaded maps "m dm moh obj train"
+aliascache electrical_hum2 sound/null.wav soundparms 0.25 0.0 1.2 0.0 100 2000 auto loaded maps "m dm moh obj train"
+aliascache m2l1_electrical_hum2 sound/null.wav soundparms 0.25 0.0 1.2 0.0 100 2000 auto loaded maps "m dm moh obj train"
+aliascache m6l2b_electrical_hum sound/null.wav soundparms 0.25 0.0 1.2 0.0 100 2000 auto loaded maps "m dm moh obj train"
+aliascache liquid_leak sound/mechanics/Mec_WaterLoop_03.wav soundparms 1.0 0.0 1.0 0.0 160 2200 auto loaded maps "m dm moh obj train"
+aliascache fire_small sound/amb/Amb_FireLoop_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 auto loaded maps "m4l2 m4l3 m5 m6l3c dm moh obj train"
+aliascache fire_med sound/amb/fire.wav soundparms 1.2 0.0 1.0 0.0 160 1600 auto loaded maps "m dm moh obj train"
+aliascache fire_large sound/amb/Amb_FireLoop_02.wav soundparms 1.0 0.0 1.0 0.0 400 6000 auto loaded maps "m4l2 m4l3 m5l1a m6l3c dm moh obj train"
+alias thunder1 sound/amb/Amb_Thunder_01.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 auto streamed maps "m5l1"
+alias thunder2 sound/amb/Amb_Thunder_02.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 auto streamed maps "m5l1 "
+alias thunder3 sound/amb/Amb_Thunder_03.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 auto streamed maps "m5l1 "
+alias rain_ext sound/amb/Amb_RainExt_01.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+alias rain_int sound/amb/Amb_RainInt_01.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+alias rain_roof sound/amb/Amb_RainRoof_02.wav soundparms 1.0 0.0 1.0 0.0 160 320 local streamed maps "m5l1 "
+alias rain_window sound/amb/Amb_RainWindow_01.wav soundparms 1.0 0.0 1.0 0.0 160 320 local streamed maps "m5l1"
+alias rain_puddle sound/amb/Amb_RainPuddle_01.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+alias rain_plant sound/amb/Amb_RainPlant_01.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+alias wind_weak sound/amb/wind_weak.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+alias wind_strong sound/amb/wind_strong.wav soundparms 1.0 0.0 1.0 0.0 3000 6000 local streamed maps "m5l1"
+aliascache wave_crash1 sound/amb/Amb_Wave_01.wav soundparms 1.5 0.0 1.0 0.0 300 4000 auto loaded maps "m1l3c m3l1 "
+aliascache wave_crash2 sound/amb/Amb_Wave_02.wav soundparms 1.5 0.0 1.0 0.0 300 4000 auto loaded maps "m1l3c m3l1 "
+aliascache wave_crash3 sound/amb/Amb_Wave_03.wav soundparms 1.5 0.0 1.0 0.0 300 4000 auto loaded maps "m1l3c m3l1 "
+aliascache wave_crash4 sound/amb/Amb_Wave_04.wav soundparms 1.5 0.0 1.0 0.0 300 4000 auto loaded maps "m1l3c m3l1 "
+aliascache wave_laps_low sound/amb/Wave_Laps3.wav soundparms 0.8 0.0 1.0 0.0 200 4000 auto loaded maps "m2l2a m2l2b m2l2c "
+aliascache wave_laps_med sound/amb/Wave_Laps2.wav soundparms 0.8 0.0 1.0 0.0 400 4000 auto loaded maps "m2l2a m2l2b m2l2c "
+aliascache wave_laps_high sound/amb/Wave_Laps1.wav soundparms 0.7 0.0 1.0 0.0 600 4000 auto loaded maps "m2l2a m2l2b m2l2c "
+aliascache wind_trees1 sound/amb/Amb_WindTrees1.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees2 sound/amb/Amb_WindTrees2.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees3 sound/amb/Amb_WindTrees3.wav soundparms 0.5 0.0 1.0 0.0 500 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees4 sound/amb/Amb_WindTrees4.wav soundparms 0.25 0.0 1.0 0.0 600 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees5 sound/amb/Amb_WindTrees1.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees6 sound/amb/Amb_WindTrees2.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees7 sound/amb/Amb_WindTrees3.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees8 sound/amb/Amb_WindTrees4.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache wind_trees9 sound/amb/Amb_WindTrees1.wav soundparms 0.3 0.0 1.0 0.0 200 10000 auto loaded maps "dm moh obj train"
+aliascache river sound/amb/Amb_River.wav soundparms 0.3 0.0 1.0 0.0 1200 10000 auto loaded maps "m4l3 dm moh obj train"
+aliascache basement_water sound/amb/Amb_BasementWater.wav soundparms 0.35 0.0 1.0 0.0 1000 10000 auto loaded maps "dm moh obj train"
+aliascache cricket sound/amb/Amb_Cricket.wav soundparms 0.28 0.0 1.0 0.0 100 900 auto loaded maps "dm moh obj train"
+aliascache fireplace sound/amb/Amb_FirePlace.wav soundparms 1.3 0.0 1.0 0.0 150 1000 auto loaded maps "m4l3 m6l2a m5l1a dm moh obj train"
+alias radio_loop sound/mechanics/Mec_RadioMusic_01.wav soundparms 0.5 0.0 1.0 0.0 150 800 local streamed maps "m2l1 m6l2a dm moh obj train"
+aliascache missile_room sound/amb/Amb_MissileRoom.wav soundparms 0.3 0.0 1.0 0.0 1200 10000 auto loaded maps "dm moh obj train"
+aliascache waves1 sound/amb/Wave_Laps1.wav soundparms 0.5 0.0 1.0 0.0 1200 10000 auto loaded maps "dm moh obj train"
+aliascache waves2 sound/amb/Wave_Laps1.wav soundparms 0.5 0.0 1.0 0.0 1200 10000 auto loaded maps "dm moh obj train"
+
+//================================================================================
+//LEVEL SPECIFIC MECHANICS AND OBJECTIVES
+//================================================================================
+
+//m1l1
+alias truck1_run sound/vehicle/Truck_intro.wav soundparms 1.5 0.0 0.95 0.0 1000 4000 local streamed maps "m1l1"
+aliascache truck1_start sound/vehicle/veh_truck_on2.wav soundparms 1.5 0.0 1.0 0.0 1000 4000 auto loaded maps "m1l1"
+aliascache truck2_stop sound/vehicle/veh_truck_off.wav soundparms 1.0 0.0 1.0 0.0 100 4000 auto loaded maps "m1l1"
+aliascache truck2_start sound/vehicle/veh_truck_on2.wav soundparms 1.0 0.0 1.0 0.0 1000 4000 auto loaded maps "m1l1"
+aliascache truck2_explode sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.5 0.0 1.0 0.0 1000 8000 weapon loaded maps "m1l1"
+aliascache tailgate sound/mechanics/DoorTailgateOpen_01.wav soundparms 1.5 0.0 1.0 0.0 1000 8000 auto loaded maps "m1l1"
+aliascache shutteropen sound/mechanics/Obj_BreakWoodSml_01.wav soundparms 1.5 0.0 1.0 0.0 1000 8000 auto loaded maps "m1l1"
+alias truck1_window sound/mechanics/Mec_WindowKnock.wav soundparms 1.2 0.0 1.0 0.0 300 4000 auto streamed maps "m1l1"
+aliascache truck2_run sound/null.wav soundparms 1.2 0.0 1.0 0.0 300 4000 auto loaded maps "m1l1"
+aliascache truck1_papers sound/null.wav soundparms 1.2 0.0 1.0 0.0 300 4000 auto loaded maps "m1l1"
+
+//m1l2a
+aliascache door_vault_open sound/mechanics/door_vault_open.wav soundparms 1.0 0.2 1.0 0.0 160 1600 item loaded maps "m1l2a "
+aliascache swing1 sound/weapons/foley/PistolWhip1.wav soundparms 1.0 0.1 0.95 0.1 300 3000 weapon loaded maps "m dm moh obj train"
+aliascache swing2 sound/weapons/foley/PistolWhip2.wav soundparms 1.0 0.1 0.95 0.1 300 3000 weapon loaded maps "m dm moh obj train"
+aliascache punch1 sound/weapons/foley/PistolHit1.wav soundparms 1.5 0.0 0.95 0.1 300 3000 weapon loaded maps "m dm moh obj train"
+aliascache punch2 sound/weapons/foley/PistolHit2.wav soundparms 1.5 0.0 0.95 0.1 300 3000 weapon loaded maps "m dm moh obj train"
+aliascache punch3 sound/weapons/foley/PistolHit3.wav soundparms 1.5 0.0 0.95 0.1 300 3000 weapon loaded maps "m dm moh obj train"
+aliascache slow_gate sound/mechanics/slow_gate.wav soundparms 0.8 0.0 1.0 0.0 160 1600 item loaded maps "m1l2a "
+aliascache lock_pick1 sound/mechanics/lockpick1.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a "
+aliascache lock_pick2 sound/mechanics/lockpick2.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a "
+aliascache lock_pick3 sound/mechanics/lockpick3.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a "
+aliascache kick_chair1 sound/mechanics/kickchair1.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a m2l2a m4l2 m4l3 "
+aliascache kick_chair2 sound/mechanics/kickchair2.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a m2l2a "
+aliascache kick_chair3 sound/mechanics/kickchair3.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2a m2l2a"
+aliascache plantbomb1 sound/items/Item_BangaloreAssemble_01.wav soundparms 1.0 0.0 1.0 0.0 100 2000 item loaded maps "m dm moh obj train"
+aliascache bombtick1 sound/items/Item_Timer_01.wav soundparms 0.7 0.0 1.0 0.0 10000 10000 local loaded maps "m1l2a m2 m3 m4l3 m5 m6l1 m6l3d dm moh obj train"
+aliascache explode_gate sound/weapons/explo/Explo_WoodLarge1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 weapon loaded maps "m1l2a "
+
+//m1l2b
+alias m1l2b_radio1 sound/mechanics/shortwave2.wav soundparms 0.7 0.0 1.0 0.0 100 900 auto streamed maps "m dm moh obj"
+alias m1l2b_radio2 sound/mechanics/static1.wav soundparms 0.5 0.0 1.0 0.0 70 700 auto streamed maps "m dm moh obj train"
+aliascache m1l2b_disabletruck sound/mechanics/m1l2b_disabletruck01.wav soundparms 1.5 0.0 0.8 0.2 160 1600 item loaded maps "m1l2b dm moh obj train"
+aliascache radiobomb sound/items/RadioBomb.wav soundparms 1.0 0.0 1.0 0.0 100 2000 item loaded maps "m dm moh obj train"
+alias bombtick2 sound/mechanics/shortwave1.wav soundparms 0.9 0.0 1.0 0.0 70 2000 item streamed maps "m1l2b m6l2a m4l2 "
+aliascache telephone sound/mechanics/Mec_PhoneRing_01.wav soundparms 1.0 0.0 1.0 0.0 200 1200 auto loaded maps "m1l2b "
+
+//m1l3ab
+aliascache m1l3a_tower_falls sound/mechanics/M1_TowerFall.wav soundparms 1.5 0.0 1.0 0.0 800 5000 item loaded maps "m dm moh obj train"
+aliascache m1l3b_stuka_idle sound/vehicle/M1_StukaIdle.wav soundparms 1.5 0.0 1.0 0.0 2000 10000 item loaded maps "m dm moh obj train"
+alias m1l3b_first_stuka_takeoff sound/vehicle/M1_StukaTakeOff.wav soundparms 1.5 0.0 1.0 0.0 2000 10000 item streamed maps "m dm moh obj train"
+alias m1l3b_stuka_strafing_run sound/vehicle/M1_PlaneBy.wav soundparms 1.5 0.0 0.8 0.0 8000 10000 item streamed maps "m dm moh obj train"
+aliascache explode_plane_flying sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1l3b"
+aliascache explode_bike1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m1l3b "
+
+//m1l3c
+aliascache lighthouse_lever sound/mechanics/M1_LeverPull.wav soundparms 1.5 0.0 0.8 0.0 160 1600 item loaded maps "m1l3c dm moh obj train"
+aliascache lighthouse_run sound/mechanics/M1_LightTurn.wav soundparms 1.2 0.0 1.0 0.0 500 5000 item loaded maps "m1l3c dm moh obj train"
+aliascache toilet_flush sound/mechanics/Mec_WaterFlush_01.wav soundparms 1.0 0.0 1.2 0.0 160 1600 item loaded maps "m1l3c dm moh obj train"
+aliascache fence_crash sound/mechanics/damage_vehicle_2.wav soundparms 1.5 0.0 1.2 0.0 500 6000 item loaded maps "m1l3c m1l2b m4l2 "
+aliascache machine_loop sound/amb/Amb_MachineLoop_05.wav soundparms 1.0 0.0 1.0 0.0 100 1000 auto loaded maps "m1l3c m2l1"
+
+//m2l1
+aliascache m2l1_gate_open sound/mechanics/m2l1a_gate_open.wav soundparms 1.3 0.0 0.7 0.0 160 1600 item loaded maps "m2l1 dm moh obj train"
+alias m2l1_radio1 sound/mechanics/static1.wav soundparms 0.3 0.0 1.0 0.0 50 400 local streamed maps "m2 dm moh obj train"
+aliascache m2l1_radio2 sound/null.wav soundparms 1.0 0.0 1.0 0.0 200 4000 auto loaded maps "m2l1 "
+alias m2l1_radio4 sound/mechanics/Mec_RadioMusic_01.wav soundparms 0.8 0.0 1.0 0.0 150 800 local streamed maps "m2l1 "
+aliascache m2l1_radio3 sound/mechanics/Mec_RadioLoop_05.wav soundparms 0.7 0.0 1.0 0.0 100 500 auto loaded maps "m2 dm moh obj train"
+
+//m2l2a
+aliascache sledgehammer1 sound/mechanics/HammerHit_Metal03.wav soundparms 1.0 0.1 0.8 0.4 500 5000 item loaded maps "m2 dm moh obj train"
+aliascache sledgehammer2 sound/mechanics/HammerHit_Metal04.wav soundparms 1.0 0.1 0.8 0.4 500 5000 item loaded maps "m2 dm moh obj train"
+aliascache sledgehammer3 sound/mechanics/HammerHit_Metal04.wav soundparms 1.0 0.1 0.8 0.4 500 5000 item loaded maps "m2 dm moh obj train"
+aliascache sledgehammer4 sound/mechanics/HammerHit_Metal04.wav soundparms 0.5 0.1 0.8 0.4 500 5000 item loaded maps "m2 dm moh obj train"
+aliascache welding_torch sound/mechanics/WeldingTorch.wav soundparms 1.0 0.0 1.0 0.0 400 5000 item loaded maps "m2 dm moh obj train"
+aliascache crane_run sound/mechanics/Crane_run.wav soundparms 1.0 0.0 1.0 0.0 800 8000 local loaded maps "m2 dm moh obj train"
+aliascache m2l2_alarm1 sound/mechanics/Mec_Alarm_03.wav soundparms 0.5 0.0 1.0 0.0 1000 20000 item loaded maps "m2l2a "
+aliascache m2l2_alarm2 sound/mechanics/Mec_Alarm_03.wav soundparms 0.5 0.0 1.0 0.0 1000 20000 item loaded maps "m2l2b "
+aliascache m2l2_alarm3 sound/mechanics/Mec_Alarm_03.wav soundparms 0.15 0.0 1.0 0.0 1000 20000 item loaded maps "m2l2c "
+aliascache m2l2_alarm4 sound/mechanics/Mec_Alarm_03.wav soundparms 0.15 0.0 1.0 0.0 1000 20000 item loaded maps "m2l3 "
+alias m2l2_radio1 sound/mechanics/static1.wav soundparms 0.4 0.0 1.0 0.0 100 500 local streamed maps "m2 m6l2a"
+alias m2l2a_radio2 sound/mechanics/shortwave2.wav soundparms 0.5 0.0 1.0 0.0 100 500 local streamed maps "m2 m6l2a"
+aliascache fence_roll_open sound/mechanics/Fence_Open.wav soundparms 1.2 0.0 1.1 0.0 160 1600 item loaded maps "m2l2 "
+aliascache explode_prototype sound/weapons/explo/Explo_Elec1.wav soundparms 1.5 0.2 0.8 0.4 1000 8000 weapon loaded maps "m2l2a "
+
+//m2l2b
+aliascache m2l2b_radio1 sound/mechanics/Mec_RadioLoop_03.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m2 dm moh obj train"
+aliascache m2l2b_radio2 sound/mechanics/Mec_RadioLoop_03.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m2 dm moh obj train"
+aliascache m2l3_radio1 sound/mechanics/Mec_RadioLoop_04.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m2 dm moh obj train"
+aliascache m2l3_radio2 sound/mechanics/Mec_RadioLoop_03.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m2 dm moh obj train"
+aliascache m2l3_machine_loop sound/amb/Amb_MachineLoop_04.wav soundparms 0.4 0.0 1.0 0.0 100 2000 auto loaded maps "m2l3 dm moh obj train"
+aliascache explode_water1 sound/weapons/explo/exp_water_01.wav soundparms 1.5 0.0 0.8 0.4 8000 10000 weapon loaded maps "m2l2b "
+aliascache explode_water2 sound/weapons/explo/exp_water_02.wav soundparms 1.5 0.0 0.8 0.4 8000 10000 weapon loaded maps "m2l2b "
+aliascache explode_water3 sound/weapons/explo/exp_water_03.wav soundparms 1.5 0.0 0.8 0.4 8000 10000 weapon loaded maps "m2l2b "
+aliascache explode_metal1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+aliascache explode_metal2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+aliascache explode_metal3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+aliascache explode_metal4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+aliascache explode_metal5 sound/weapons/explo/Explo_MetalMed5.wav soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+aliascache explode_sub sound/weapons/explo/Exp_Higgins_01.WAV soundparms 1.2 0.2 0.8 0.2 1000 8000 weapon loaded maps "m2l2b "
+
+//m2l3
+aliascache vent_squeak1 sound/characters/fs_metalcreak_01.wav soundparms 0.6 0.4 0.7 0.6 160 1600 auto loaded maps "m2l3"
+aliascache vent_squeak2 sound/characters/fs_metalcreak_02.wav soundparms 0.6 0.4 0.7 0.6 160 1600 auto loaded maps "m2l3"
+aliascache vent_squeak3 sound/characters/fs_metalcreak_03.wav soundparms 0.6 0.4 0.7 0.6 160 1600 auto loaded maps "m2l3"
+aliascache vent_squeak4 sound/characters/fs_metalcreak_05.wav soundparms 0.6 0.4 0.7 0.6 160 1600 auto loaded maps "m2l3"
+aliascache vent_squeak5 sound/characters/fs_metalcreak_06.wav soundparms 0.6 0.4 0.7 0.6 160 1600 auto loaded maps "m2l3"
+aliascache vent_gate_locked sound/mechanics/gate_iron_locked.wav soundparms 1.2 0.0 1.1 0.0 160 1600 item loaded maps "m2l3 "
+aliascache vent_gate_open sound/null.wav soundparms 1.2 0.0 1.1 0.0 160 1600 item loaded maps "m2l3 "
+
+//m3l1a
+aliascache higgins_door_opening sound/mechanics/DoorHigginsOpen_04.wav soundparms 1.2 0.0 1.0 0.0 200 2000 item loaded maps "m3l1a "
+aliascache higgins_bullet_hits sound/amb/Amb_M3_FirstHits_01.wav soundparms 1.2 0.0 1.0 0.0 200 2000 item loaded maps "m3l1a "
+aliascache higgins_whistle sound/mechanics/Mec_Whistle_01.wav soundparms 1.0 0.0 1.0 0.0 200 2000 item loaded maps "m3l1a "
+aliascache higgins_explosion sound/weapons/explo/Exp_Higgins_01.WAV soundparms 1.5 0.0 1.0 0.0 500 5000 weapon loaded maps "m3l1a "
+aliascache exp_higgins sound/weapons/explo/Exp_Higgins_01.WAV soundparms 1.0 0.0 1.0 0.0 320 2200 weapon loaded maps "m3l1a "
+aliascache exp_shingle sound/weapons/explo/Exp_Shingle_01.WAV soundparms 1.5 0.0 1.0 0.0 1000 2200 weapon loaded maps "m3l1a "
+alias hedgehog_ambient1 sound/amb/Amb_M3_HedgeImpacts_01.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient2 sound/amb/Amb_M3_HedgeImpacts_02.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient3 sound/amb/Amb_M3_HedgeImpacts_03.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient4 sound/amb/Amb_M3_HedgeImpacts_04.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient5 sound/amb/Amb_M3_HedgeImpacts_05.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient6 sound/amb/Amb_M3_HedgeImpacts_06.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+alias hedgehog_ambient7 sound/amb/Amb_M3_HedgeImpacts_07.wav soundparms 0.8 0.5 0.8 0.4 160 800 auto streamed maps "m3l1a "
+aliascache hedgehog_supression1 sound/weapons/impact/wpn_impmetal05.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression2 sound/weapons/impact/wpn_impmetal06.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression3 sound/weapons/impact/wpn_impmetal13.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression4 sound/weapons/impact/wpn_impmetal16.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression5 sound/weapons/impact/wpn_impmetal19.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression6 sound/weapons/impact/wpn_impmetal23.wav soundparms 0.8 0.5 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression7 sound/weapons/zings/Wpn_WhizBy20.wav soundparms 0.8 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression8 sound/weapons/zings/Wpn_WhizBy21.wav soundparms 0.7 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression9 sound/weapons/zings/Wpn_WhizBy26.wav soundparms 0.6 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache hedgehog_supression10 sound/weapons/zings/Wpn_WhizBy28.wav soundparms 0.5 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression1 sound/weapons/impact/wpn_impwood03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression2 sound/weapons/impact/wpn_impwood05.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression3 sound/weapons/impact/wpn_impwood06.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression4 sound/weapons/impact/wpn_impwood08.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression5 sound/weapons/impact/wpn_impwood10.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression6 sound/weapons/impact/wpn_impwood14.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression7 sound/weapons/zings/Wpn_WhizBy04.wav soundparms 0.8 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression8 sound/weapons/zings/Wpn_WhizBy30.wav soundparms 0.7 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression9 sound/weapons/zings/Wpn_WhizBy36.wav soundparms 0.6 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache ramp_supression10 sound/weapons/zings/Wpn_WhizBy39.wav soundparms 0.5 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression1 sound/weapons/impact/wpn_impstone07.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression2 sound/weapons/impact/wpn_impdirt01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression3 sound/weapons/impact/wpn_impstone19.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression4 sound/weapons/impact/wpn_impdirt03.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression5 sound/weapons/impact/wpn_impdirt02.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression6 sound/weapons/impact/wpn_impstone11.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression7 sound/weapons/zings/Wpn_WhizBy13.wav soundparms 0.8 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression8 sound/weapons/zings/Wpn_WhizBy15.wav soundparms 0.7 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression9 sound/weapons/zings/Wpn_WhizBy16.wav soundparms 0.6 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache crater_supression10 sound/weapons/zings/Wpn_WhizBy17.wav soundparms 0.5 0.2 0.9 0.2 160 1600 auto loaded maps "m3l1a "
+aliascache arty_exp_sand1 sound/weapons/explo/exp_dirt_01.wav soundparms 0.8 0.3 0.7 0.4 1000 8000 weapon loaded maps "m3l1 m3l3 dm moh obj train"
+aliascache arty_exp_sand2 sound/weapons/explo/exp_dirt_02.wav soundparms 0.8 0.3 0.7 0.4 1000 8000 weapon loaded maps "m3l1 m3l3 dm moh obj train"
+aliascache arty_exp_sand3 sound/weapons/explo/exp_dirt_03.wav soundparms 0.8 0.3 0.7 0.4 1000 8000 weapon loaded maps "m3l1 m3l3 dm moh obj train"
+aliascache arty_exp_sand4 sound/weapons/explo/exp_dirt_04.wav soundparms 0.8 0.3 0.7 0.4 1000 8000 weapon loaded maps "m3l1 m3l3 dm moh obj train"
+aliascache explode_mine1 sound/weapons/explo/Explo_Grenade1.wav soundparms 1.0 0.2 0.8 0.4 1000 9000 weapon loaded maps "m dm moh obj train"
+aliascache explode_mine2 sound/weapons/explo/Explo_Grenade2.wav soundparms 1.0 0.2 0.8 0.4 1000 9000 weapon loaded maps "m dm moh obj train"
+aliascache explode_mine3 sound/weapons/explo/Explo_Grenade3.wav soundparms 1.0 0.2 0.8 0.4 1000 9000 weapon loaded maps "m dm moh obj train"
+aliascache explode_mine4 sound/weapons/explo/Explo_Grenade4.wav soundparms 1.0 0.2 0.8 0.4 1000 9000 weapon loaded maps "m dm moh obj train"
+
+aliascache mine_trigger sound/weapons/foley/MineTrigger1.wav soundparms 1.0 0.0 1.0 0.0 100 2000 item loaded maps "m3l1 m3l3 dm moh obj train"
+aliascache arty_exp_water1 sound/weapons/explo/exp_water_01.wav soundparms 1.0 0.2 0.8 0.4 1000 8000 weapon loaded maps "m3l1a "
+aliascache arty_exp_water2 sound/weapons/explo/exp_water_02.wav soundparms 1.0 0.2 0.8 0.4 1000 8000 weapon loaded maps "m3l1a "
+aliascache arty_exp_water3 sound/weapons/explo/exp_water_03.wav soundparms 1.0 0.2 0.8 0.4 1000 8000 weapon loaded maps "m3l1a "
+aliascache arty_exp_interior1 sound/weapons/explo/Exp_Interior_01.wav soundparms 0.9 0.2 0.8 0.4 3000 8000 weapon loaded maps "m3l1 obj"
+aliascache arty_exp_interior2 sound/weapons/explo/Exp_Interior_02.wav soundparms 0.9 0.2 0.8 0.4 3000 8000 weapon loaded maps "m3l1 obj"
+aliascache arty_exp_interior3 sound/weapons/explo/Exp_Interior_03.wav soundparms 0.9 0.2 0.8 0.4 3000 8000 weapon loaded maps "m3l1 obj"
+aliascache arty_leadin2 sound/weapons/explo/Exp_LeadIn_07.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadin3 sound/weapons/explo/Exp_LeadIn_08.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadin4 sound/weapons/explo/Exp_LeadIn_09.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadin5 sound/weapons/explo/Exp_LeadIn_11.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadin6 sound/weapons/explo/Exp_LeadIn_12.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadin7 sound/weapons/explo/Exp_LeadIn_13.wav soundparms 0.5 0.2 0.7 0.5 160 1600 auto loaded maps "m3l1a m3l1b "
+aliascache arty_leadinmp1 sound/weapons/explo/Exp_LeadIn_06.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp2 sound/weapons/explo/Exp_LeadIn_07.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp3 sound/weapons/explo/Exp_LeadIn_08.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp4 sound/weapons/explo/Exp_LeadIn_09.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp5 sound/weapons/explo/Exp_LeadIn_10.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp6 sound/weapons/explo/Exp_LeadIn_11.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp7 sound/weapons/explo/Exp_LeadIn_12.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache arty_leadinmp8 sound/weapons/explo/Exp_LeadIn_13.wav soundparms 0.8 0.2 0.7 0.5 160 3000 auto loaded maps "obj"
+aliascache Item_BangaloreAssemble_01 sound/items/Item_BangaloreAssemble_01.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m3l1a "
+aliascache Item_BangaloreAssemble_02 sound/items/Item_BangaloreAssemble_02.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m3l1a "
+aliascache Item_Bangaloredirt01 sound/null.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m3l1a "
+aliascache Item_Bangaloredirt02 sound/null.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m3l1a "
+aliascache pickup_bangalore sound/items/Item_BangalorePickup_01.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m3l1a "
+
+//m3l1b
+aliascache metal_bunker_hatch_open sound/mechanics/DoorHatchOpen_02.wav soundparms 1.5 0.0 1.0 0.0 480 1600 item loaded maps "m3l1b "
+aliascache metal_bunker_door_open1 sound/mechanics/DoorMetalOpen_04.wav soundparms 1.0 0.0 1.2 0.0 160 1600 item loaded maps "m3l1b "
+aliascache metal_bunker_door_open2 sound/mechanics/DoorMetalOpen_05.wav soundparms 1.0 0.0 1.2 0.0 160 1600 item loaded maps "m3l1b "
+aliascache table_kickover sound/mechanics/Mec_KickTable.wav soundparms 1.5 0.0 1.0 0.0 160 1600 item loaded maps "m3l1b "
+aliascache m3l1b_radio1 sound/mechanics/Mec_RadioLoop_03.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m3l1b "
+aliascache m3l1b_radio2 sound/mechanics/Mec_RadioLoop_04.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m3l1b "
+
+//m3l2
+aliascache m3l2_radio_pickup sound/items/Item_ToolBox_01.wav soundparms 1.5 0.0 1.0 0.0 100 2000 item loaded maps "m3l2 dm moh obj train"
+aliascache m3l2_electrical_hum sound/null.wav soundparms 0.25 0.0 1.2 0.0 100 2000 auto loaded maps "m dm moh obj train"
+alias m3l2_first_airstrike sound/vehicle/plane4.wav soundparms 1.5 0.0 1.0 0.0 10000 16000 weapon streamed maps "m3l2 dm moh obj train"
+alias m3l2_second_airstrike sound/vehicle/plane4.wav soundparms 1.5 0.0 1.0 0.0 10000 16000 weapon streamed maps "m3l2 dm moh obj train"
+aliascache m3l2_commotion sound/mechanics/M3L2_Moving.wav soundparms 1.3 0.2 1.0 0.0 360 1600 item loaded maps "m3l2"
+aliascache m3l2_blocked_door1 sound/mechanics/M3L2_DoorJam1.wav soundparms 1.3 0.2 1.0 0.0 360 1600 item loaded maps "m3l2"
+aliascache m3l2_blocked_door2 sound/mechanics/M3L2_DoorJam3.wav soundparms 1.3 0.2 1.0 0.0 360 1600 item loaded maps "m3l2"
+aliascache flakk88_hit1 sound/weapons/explo/Explo_Grenade1.wav soundparms 0.9 0.2 1.0 0.3 500 8000 weapon loaded maps "m3l2 m5l3 "
+aliascache flakk88_hit2 sound/weapons/explo/Explo_Grenade2.wav soundparms 0.9 0.2 1.0 0.3 500 8000 weapon loaded maps "m3l2 m5l3 "
+aliascache flakk88_hit3 sound/weapons/explo/Explo_Grenade3.wav soundparms 0.9 0.2 1.0 0.3 500 8000 weapon loaded maps "m3l2 m5l3 "
+aliascache flakk88_hit4 sound/weapons/explo/Explo_Grenade4.wav soundparms 0.9 0.2 1.0 0.3 500 8000 weapon loaded maps "m3l2 m5l3 "
+aliascache drop_bomb6 sound/weapons/explo/Exp_LeadIn_11.wav soundparms 0.9 0.2 0.7 0.5 160 9000 auto loaded maps "m3l2 m5l1b m5l3"
+aliascache drop_bomb7 sound/weapons/explo/Exp_LeadIn_12.wav soundparms 0.9 0.2 0.7 0.5 160 9000 auto loaded maps "m3l2 m5l1b m5l3 "
+aliascache drop_bomb8 sound/weapons/explo/Exp_LeadIn_13.wav soundparms 0.9 0.2 0.7 0.5 160 9000 auto loaded maps "m3l2 m5l1b m5l3 "
+aliascache explode_jeep1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 1000 8000 weapon loaded maps "m3l2 "
+
+//m3l3
+aliascache nebelwerfer_launch1 sound/weapons/fire/nebelwerfer1.wav soundparms 1.2 0.0 0.8 0.4 4000 10000 auto loaded maps "m3l3 "
+aliascache nebelwerfer_launch2 sound/weapons/fire/nebelwerfer2.wav soundparms 1.2 0.0 0.8 0.4 4000 10000 auto loaded maps "m3l3 "
+aliascache nebelwerfer_launch3 sound/weapons/fire/nebelwerfer3.wav soundparms 1.2 0.0 0.8 0.4 4000 10000 auto loaded maps "m3l3 "
+alias m3l3_airstrike_second_plane sound/vehicle/plane4.wav soundparms 1.5 0.0 1.0 0.0 10000 16000 weapon streamed maps "m3l3 "
+alias m3l3_airstrike_first_plane sound/vehicle/plane4.wav soundparms 1.5 0.0 1.0 0.0 10000 16000 weapon streamed maps "m3l3 "
+
+//m4l1
+aliascache m4l1_altar_slide sound/mechanics/m4l1_altar_slide.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m4l1 "
+
+//m4l2
+aliascache m4l2_radio sound/mechanics/Mec_RadioLoop_04.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m4l2 "
+aliascache armoredtrain_braking sound/vehicle/M4_TrainBreaking.wav soundparms 1.5 0.0 0.8 0.0 5000 8000 auto loaded maps "m4l2 "
+aliascache track_switch1 sound/mechanics/M4_TrackLever.wav soundparms 1.2 0.0 1.2 0.0 320 2200 auto loaded maps "m4l2 "
+aliascache track_switch2 sound/mechanics/M1_LeverPull.wav soundparms 1.2 0.0 1.0 0.0 320 2200 auto loaded maps "m4l2 "
+aliascache track_switching sound/mechanics/M4_TrainTrackSlide.wav soundparms 1.2 0.0 1.2 0.0 320 2200 auto loaded maps "m4l2 "
+alias m4l2_truck1 sound/vehicle/Truck_m4l2.wav soundparms 1.4 0.0 1.0 0.0 300 4000 auto streamed maps "m4l2 "
+alias m4l2_truck2 sound/vehicle/Truck_m4l22.wav soundparms 1.4 0.0 1.0 0.0 300 4000 auto streamed maps "m4l2 "
+aliascache truck_horn sound/vehicle/horn.wav soundparms 1.5 0.0 1.0 0.0 800 9500 auto loaded maps "m4l2 "
+aliascache m4l2_truckidle sound/vehicle/veh_truck_idle.wav soundparms 0.7 0.0 1.0 0.0 300 7000 auto loaded maps "m4l2 m4l3"
+
+//m4l3
+aliascache m4l3_radio sound/mechanics/Mec_RadioLoop_04.wav soundparms 1.0 0.0 1.0 0.0 100 500 auto loaded maps "m4l3 "
+aliascache m4l3_radiosend sound/mechanics/M4_SendTransmission.wav soundparms 1.5 0.0 1.0 0.0 300 2000 item loaded maps "m4l3 "
+aliascache m4l3_alarm sound/mechanics/Mec_Alarm_02.wav soundparms 1.2 0.0 1.0 0.0 300 12000 item loaded maps "m4 "
+alias m4l3_truck1 sound/vehicle/Truck_m4l3.wav soundparms 1.1 0.0 1.0 0.0 300 4000 auto streamed maps "m4l3 "
+alias m4l3_truck2 sound/vehicle/Truck_m4l32.wav soundparms 1.5 0.0 1.0 0.0 300 4000 auto streamed maps "m4l3 "
+aliascache m4l3_gateopen sound/mechanics/gate.wav soundparms 1.2 0.3 0.9 0.2 320 2200 auto loaded maps "m4l3 "
+aliascache m4l3_gateclose sound/mechanics/DoorBarnClose_01.wav soundparms 1.2 0.0 0.8 0.2 320 2200 auto loaded maps "m4l3 "
+
+//m5l1a
+aliascache wood_creak1 sound/characters/fs_woodcreak_01.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m5 "
+aliascache wood_creak2 sound/characters/fs_woodcreak_04.wav soundparms 0.9 0.2 0.9 0.2 160 1600 auto loaded maps "m5 "
+alias medicdance sound/music/medicdance.mp3 soundparms 1.5 0.0 1.0 0.0 160 1600 local streamed maps "m5l1b "
+
+//m5l2
+aliascache m5l2a_pole_fall sound/mechanics/M5_PoleFall.wav soundparms 1.5 0.0 1.0 0.1 800 1000 auto loaded maps "m5l2 "
+aliascache explode_tower1 sound/weapons/explo/Explo_WoodLarge1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 weapon loaded maps "m5l2 "
+aliascache explode_tower2 sound/weapons/explo/Explo_WoodLarge2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 weapon loaded maps "m5l2 "
+
+//m5l3
+aliascache fail_artillery sound/mechanics/Mec_RadioNoise_11.wav soundparms 0.9 0.2 0.9 0.1 160 1600 item loaded maps "m5 "
+aliascache explode_bridge1 sound/weapons/explo/Explo_StoneLarge1.wav soundparms 0.9 0.2 0.8 0.4 2000 10000 weapon loaded maps "m4l2 m5l3 obj"
+aliascache explode_bridge2 sound/weapons/explo/Explo_StoneLarge2.wav soundparms 0.9 0.2 0.8 0.4 2000 10000 weapon loaded maps "m4l2 m5l3 obj"
+aliascache arty_leadin08 sound/weapons/explo/Exp_LeadIn_07.wav soundparms 0.8 0.2 0.7 0.5 900 16000 local loaded maps "m5l3"
+aliascache arty_leadin09 sound/weapons/explo/Exp_LeadIn_08.wav soundparms 0.8 0.2 0.7 0.5 900 16000 local loaded maps "m5l3"
+aliascache arty_leadin10 sound/weapons/explo/Exp_LeadIn_09.wav soundparms 0.8 0.2 0.7 0.5 900 16000 local loaded maps "m5l3"
+aliascache arty_leadin11 sound/weapons/explo/Exp_LeadIn_10.wav soundparms 0.8 0.2 0.7 0.5 900 16000 local loaded maps "m5l3"
+
+//m6l1
+aliascache snow_drop1 sound/amb/Amb_BranchBreaking01.wav soundparms 1.0 0.0 1.0 0.0 500 3000 auto loaded maps "m6l1 "
+aliascache snow_drop2 sound/amb/Amb_BranchBreaking02.wav soundparms 1.0 0.0 1.0 0.0 500 3000 auto loaded maps "m6l1 "
+aliascache snow_drop3 sound/amb/Amb_Falling01.wav soundparms 1.0 0.0 1.0 0.0 500 3000 auto loaded maps "m6l1 "
+aliascache snow_drop4 sound/amb/Amb_Falling02.wav soundparms 1.0 0.0 1.0 0.0 500 3000 auto loaded maps "m6l1 "
+aliascache snow_drop5 sound/amb/Amb_Falling03.wav soundparms 1.0 0.0 1.0 0.0 500 3000 auto loaded maps "m6l1 "
+aliascache m6l1c_machine_loop1 sound/amb/Amb_MachineLoop_02.wav soundparms 0.5 0.0 1.0 0.0 100 300 auto loaded maps "m6l1c "
+aliascache m6l1c_stock_explode sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.2 0.0 0.8 0.2 1000 8000 weapon loaded maps "m6l1c "
+
+//m6l2
+aliascache alarmbell sound/mechanics/Mec_Alarm_07.wav soundparms 1.2 0.0 1.0 0.0 300 12000 item loaded maps "m6l2a m6l2b m4 "
+aliascache moh_piano1 sound/mechanics/MOH_Piano1.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_piano2 sound/mechanics/MOH_Piano2.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_piano3 sound/mechanics/MOH_Piano3.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_piano4 sound/mechanics/MOH_Piano4.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_cello1 sound/mechanics/MOH_Cello1.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_cello2 sound/mechanics/MOH_Cello2.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_cello3 sound/mechanics/MOH_Cello3.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache moh_cello4 sound/mechanics/MOH_Cello4.wav soundparms 1.3 0.2 1.0 0.0 160 1600 item loaded maps "m6l2a"
+aliascache m6l2a_tower1 sound/mechanics/M1_TowerFall.wav soundparms 1.5 0.0 0.8 0.0 800 5000 item loaded maps "m6l2a"
+aliascache m6l2a_tower2 sound/weapons/explo/Explo_StoneMed2.wav soundparms 1.5 0.0 1.0 0.0 800 5000 item loaded maps "m6l2a"
+aliascache m6l2b_generator_run sound/mechanics/Mec_GeneratorRun_01.wav soundparms 1.0 0.0 1.0 0.0 160 6000 item loaded maps "m6 "
+aliascache m6l2b_generator_off sound/mechanics/Mec_GeneratorOff_01.wav soundparms 1.5 0.0 1.0 0.0 160 6000 item loaded maps "m6 "
+aliascache m6l2b_radio_loop sound/mechanics/Mec_RadioLoop_05.wav soundparms 0.7 0.0 1.0 0.0 75 500 auto loaded maps "m6l2 "
+alias m6l2a_radio_loop sound/mechanics/Mec_RadioMusic_01.wav soundparms 0.7 0.0 1.0 0.0 75 500 local streamed maps "m6l2 "
+
+//m6l3
+alias alarm_siren sound/mechanics/Mec_Alarm_10.wav soundparms 1.2 0.0 1.0 0.0 300 12000 item streamed maps "m6l3a "
+aliascache door_railcar_open sound/mechanics/DoorRailcarOpen_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m6l3a"
+aliascache door_vault_roll_open sound/mechanics/m6l3a_SlidingDoors_Open.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e "
+aliascache door_vault_roll_close sound/mechanics/m6l3a_SlidingDoors_Close.wav soundparms 1.0 0.0 1.0 0.0 160 1600 item loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e"
+aliascache flywheel sound/mechanics/M6L3a_FlyWheel.wav soundparms 1.0 0.0 0.9 0.2 320 2200 item loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e"
+aliascache throw_switch sound/mechanics/M1_LeverPull.wav soundparms 1.5 0.0 1.0 0.0 320 2200 item loaded maps "m6l3a "
+aliascache plunger sound/items/Item_DetonatorPlunger_01.wav soundparms 1.5 0.0 1.0 0.0 320 2200 item loaded maps "m6l3a "
+aliascache explode_door sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.2 0.0 1.0 0.0 320 2200 item loaded maps "m6l3a "
+//aliascache m6l3c_machine_loop1 sound/amb/Amb_MachineLoop_02.wav soundparms 1.0 0.0 1.0 0.0 100 3000 auto loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e"
+//aliascache m6l3c_machine_loop2 sound/amb/Amb_MachineLoop_03.wav soundparms 1.0 0.0 1.0 0.0 100 3000 auto loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e"
+//aliascache m6l3c_machine_loop3 sound/amb/Amb_MachineLoop_04.wav soundparms 1.0 0.0 1.0 0.0 100 3000 auto loaded maps "m6l3a m6l3b m6l3c m6l3d m6l3e"
+aliascache m6l3c_alarm sound/mechanics/Mec_Alarm_05.wav soundparms 0.3 0.0 1.0 0.0 900 20000 item loaded maps "m6l1c m6l3a "
+aliascache firetouch1 sound/mechanics/Player_Fire1.wav soundparms 1.0 0.3 0.6 0.6 320 2200 item loaded maps "m6l3c m6l3d m6l3e"
+aliascache firetouch2 sound/mechanics/Player_Fire2.wav soundparms 1.0 0.3 0.6 0.6 320 2200 item loaded maps "m6l3c m6l3d m6l3e"
+aliascache firetouch3 sound/mechanics/Player_Fire3.wav soundparms 1.0 0.3 0.6 0.6 320 2200 item loaded maps "m6l3c m6l3d m6l3e"
+aliascache gasmask1 sound/characters/gasmask1.wav soundparms 1.0 0.0 1.0 0.0 320 2200 dialog loaded maps "m6l3d "
+aliascache gasmask2 sound/characters/gasmask2.wav soundparms 1.0 0.0 1.0 0.0 320 2200 dialog loaded maps "m6l3d "
+aliascache gasmask3 sound/characters/gasmask3.wav soundparms 1.0 0.0 1.0 0.0 320 2200 dialog loaded maps "m6l3d "
+aliascache steamloop sound/mechanics/Mec_SteamLoop_01.wav soundparms 1.0 0.3 1.0 0.0 320 2200 item loaded maps "m6l3c m6l3d m6l3e"
+aliascache explode_gastank1 sound/weapons/explo/Explo_GasTank1.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache explode_gastank2 sound/weapons/explo/Explo_GasTank2.wav soundparms 0.9 0.2 0.8 0.4 1000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache pickup_gasmask sound/items/Item_BangaloreAssemble_02.wav soundparms 1.2 0.0 1.0 0.0 100 2000 item loaded maps "m6l3b "
+aliascache m6l3c_elevator_clang sound/mechanics/gate_iron_close.wav soundparms 0.8 0.2 0.8 0.2 160 1600 item loaded maps "m6l3c "
+aliascache m6l3c_elevator_fall sound/mechanics/M1_TowerFall.wav soundparms 1.5 0.0 1.0 0.0 800 5000 item loaded maps "m6l3c "
+aliascache wall_explode1 sound/weapons/explo/Explo_Elec1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode2 sound/weapons/explo/Explo_Elec2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode3 sound/weapons/explo/Explo_GasTank1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode4 sound/weapons/explo/Explo_GasTank2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode5 sound/weapons/explo/Explo_Grenade1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode6 sound/weapons/explo/Explo_Grenade2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode7 sound/weapons/explo/Explo_Grenade3.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode8 sound/weapons/explo/Explo_Grenade4.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode9 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode10 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode11 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode12 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode13 sound/weapons/explo/Explo_StoneMed1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode14 sound/weapons/explo/Explo_StoneMed2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache wall_explode15 sound/weapons/explo/Exp_Dirt_03.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode1 sound/weapons/explo/Explo_Elec1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode2 sound/weapons/explo/Explo_Elec2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode3 sound/weapons/explo/Explo_GasTank1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode4 sound/weapons/explo/Explo_GasTank2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode5 sound/weapons/explo/Explo_Grenade1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode6 sound/weapons/explo/Explo_Grenade2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode7 sound/weapons/explo/Explo_Grenade3.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode8 sound/weapons/explo/Explo_Grenade4.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode9 sound/weapons/explo/Explo_MetalMed1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode10 sound/weapons/explo/Explo_MetalMed2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode11 sound/weapons/explo/Explo_MetalMed3.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode12 sound/weapons/explo/Explo_MetalMed4.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode13 sound/weapons/explo/Explo_StoneMed1.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache debris_explode14 sound/weapons/explo/Explo_StoneMed2.wav soundparms 1.0 0.5 0.7 0.6 700 8000 auto loaded maps "m6l3c m6l3e"
+aliascache m6l3_explode_interior1 sound/weapons/explo/Explo_StoneLarge1.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache m6l3_explode_interior2 sound/weapons/explo/Explo_StoneLarge2.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache m6l3_explode_interior3 sound/weapons/explo/Explo_StoneLarge1.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache m6l3_explode_interior4 sound/weapons/explo/Explo_StoneLarge2.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 auto loaded maps "m6l3c m6l3e"
+aliascache m6l3_explode_interior5 sound/weapons/explo/Explo_Hallway1.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 auto loaded maps "m6l3c m6l3e"
+alias explode_hallway1 sound/weapons/explo/Explo_Hallway1.wav soundparms 1.0 0.5 0.7 0.6 3000 8000 weapon streamed maps "m6l3c m6l3d m6l3e"
+
+//================================================================================
+// MENU
+//================================================================================
+
+aliascache menu_apply sound/items/Shell_DrumApply_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 auto loaded maps "m dm moh obj train"
+aliascache menu_back sound/items/Shell_DrumBack_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 auto loaded maps "m dm moh obj train"
+aliascache menu_select sound/items/Shell_DrumScroll_01.wav soundparms 1.0 0.0 1.0 0.0 160 1600 auto loaded maps "m dm moh obj train"
+aliascache objective_text1 sound/items/Shell_TypeKey_01.wav soundparms 1.5 0.0 1.0 0.0 160 1600 local loaded maps "m "
+aliascache objective_text2 sound/items/mptypekey.wav soundparms 1.5 0.0 1.0 0.0 160 1600 local loaded maps "dm moh obj "
+
+aliascache slide_advance sound/menu/Slide.wav soundparms 1.0 0.0 1.2 0.0 160 1600 local loaded maps "m dm moh obj train b"
+aliascache click sound/items/Item_WireCutter_01.wav soundparms 1.5 0.0 1.2 0.0 160 1600 local loaded maps "m dm moh obj train b"
+
+//================================================================================
+// MUSIC FOR MISSION BRIEFINGS AND CREDITS
+//================================================================================
+
+alias mb1_music sound/music/mus_NorthAfrica_01d.mp3 soundparms 0.75 0.0 1.0 0.0 160 1600 auto streamed maps "b"
+alias mb2_music sound/music/mus_17d_mystery.mp3 soundparms 0.75 0.0 1.0 0.0 160 1600 auto streamed maps "b"
+alias mb3_music sound/music/mus_MainTheme_01d.mp3 soundparms 0.52 0.0 1.0 0.0 160 1600 auto streamed maps " b"
+alias mb4_music sound/music/mus_02f_suspense.mp3 soundparms 0.75 0.0 1.0 0.0 160 1600 auto streamed maps "b"
+alias mb5_music sound/music/mus_SniperTown_01f.mp3 soundparms 0.52 0.0 1.0 0.0 160 1600 auto streamed maps "b"
+alias mb6_music sound/music/mus_Schmerzen_01g.mp3 soundparms 0.48 0.0 1.0 0.0 160 1600 auto streamed maps "b"
+alias credits1 sound/music/mus_berlin.mp3 soundparms 1.2 0.0 1.0 0.0 160 1600 local streamed maps "m6l3e credits"
+alias credits2 sound/music/mus_aircraftfacility.mp3 soundparms 1.5 0.0 1.0 0.0 160 1600 local streamed maps "m6l3e"
+
+//===========================================================
+// end of this globals script
+//===========================================================
+
+aliascache training_positive_feedback sound/items/Shell_TypeKey_01.wav soundparms 1.5 0.0 1.2 0.0 160 1600 local loaded maps "train"
+
+end
