@@ -1,0 +1,24 @@
+menu "hud_ammo_T34_DTM" 144 204 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+name "ammobar"
+rect 0 0 128 192
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_nebelwerfer
+}
+
+
+end.

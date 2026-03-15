@@ -1,0 +1,119 @@
+//menu "hud_ammo_Thompson" 256 151 NONE 1
+menu "hud_ammo_Thompson" 261 263 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+// back one, shifted down and to the right
+resource
+Label
+{
+name "clipbulletse"
+////rect 216 7 16 128
+//rect 216 7 24 128
+rect 213 8 32 240
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical_stagger_even
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+//statbar_shader textures/hud/clip_thompson
+statbar_tileshader textures/hud/clip_pistol
+}
+
+// this is the front one, and should be shifted up and to the left
+resource
+Label
+{
+name "clipbulletso"
+////rect 213 3 16 128
+//rect 213 3 24 128
+rect 209 0 32 240
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical_stagger_odd
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+//statbar_tileshader textures/hud/clip_thompson
+statbar_tileshader textures/hud/clip_pistol
+}
+
+//==================================================
+// Ammo Count Seperator
+
+resource
+Label
+{
+name "ammoseperator"
+title "|"
+//rect 160 117 8 18
+rect 160 229 8 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign centerx
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Total Ammo Count
+
+resource
+Label
+{
+name "ammocount"
+//rect 168 117 32 18
+rect 168 229 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 4 // ammo
+textalign left
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Ammo Clip Count
+
+resource
+Label
+{
+name "clipcount"
+//rect 128 117 32 18
+rect 128 229 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 6 // clip ammo
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Weapon Name Display
+
+resource
+Label
+{
+name "weaponname"
+//rect 0 95 200 22
+rect 0 207 200 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+end.

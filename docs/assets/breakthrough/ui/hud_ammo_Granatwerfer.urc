@@ -1,0 +1,108 @@
+menu "hud_ammo_Granatwerfer" 176 140 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+name "ammobar"
+rect 112 0 64 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_mortar
+}
+
+
+//==================================================
+// Weapon Name Display
+
+//resource
+//Label
+//{
+//name "weaponname"
+//rect 96 175 200 22
+//fgcolor 0.70 0.60 0.05 1.00
+//bgcolor 0.50 0.50 0.50 0.00
+//borderstyle "NONE"
+//itemstat 1 // equipped weapon
+//textalign right
+//font facfont-20
+//}
+
+
+//==================================================
+// Health Backdrop
+
+resource
+Label
+{
+name "Default"
+rect 96 60 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/healthback
+}
+
+//==================================================
+// Vehicle Health Meter
+
+resource
+Label
+{
+name "healthmeter"
+rect 96 60 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 23 // health
+maxplayerstat 24 // max health
+statbar vertical
+statbar_shader textures/hud/healthmeter
+statbar_shader_flash textures/hud/healthmeterflash
+}
+
+//==================================================
+// vehicle Health name
+
+resource
+Label
+{
+name "healthnumber"
+title "Granatwerfer"
+rect 0 86 88 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Vehicle Health Number
+
+resource
+Label
+{
+name "healthnumber"
+rect 40 108 48 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 23 // health
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+end.

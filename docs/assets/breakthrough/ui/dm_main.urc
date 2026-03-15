@@ -1,0 +1,199 @@
+menu "dm_main" 640 480 NONE 0
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+resource
+Label
+{
+name "Default"
+rect 192 112 256 256
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.25 0.00 0.00 0.00
+borderstyle "NONE"
+shader "escmenu"
+}
+
+
+resource
+Button
+{
+name "Main Menu"
+rect 200 120 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushmenu main"
+font "facfont-20"
+ordernumber 1
+}
+
+
+resource
+Button
+{
+name "Select Team"
+rect 200 150 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushmenu_teamselect"
+font "facfont-20"
+ordernumber 2
+}
+
+
+resource
+Button
+{
+name "Select Weapon"
+rect 200 179 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 50;pickweapon"
+font "facfont-20"
+ordernumber 3
+}
+
+
+resource
+Button
+{
+name "Multiplayer Options"
+rect 200 210 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;ui_getplayermodel;pushmenu mpoptions"
+font "facfont-20"
+ordernumber 4
+}
+
+
+resource
+Button
+{
+name "Spectator"
+rect 200 240 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;spectator"
+font "facfont-20"
+ordernumber 5
+}
+
+//The engine does some trickyness to enable and disable these vote states
+
+resource
+Button
+{
+name "callvotebutton"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushcallvote"
+ordernumber 6
+}
+
+
+resource
+Button
+{
+name "votebutton"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/vote_button"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0;wait 250;pushvote"
+font "facfont-20"
+ordernumber 6
+disable
+}
+
+
+resource
+Label
+{
+//title "You've Already Voted"
+name "alreadyvoted"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+shader "textures/mohmenu/already_voted"
+borderstyle "3D_BORDER"
+disable
+}
+
+
+resource
+Label
+{
+name "cantvote"
+rect 200 270 238 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 1.00
+shader "textures/mohmenu/cant_vote"
+borderstyle "3D_BORDER"
+disable
+}
+
+
+resource
+Button
+{
+name "disconnect"
+rect 200 302 238 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "3D_BORDER"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/apply.wav"
+stuffcommand "disconnect; wait 5; popmenu 0;pushmenu main;pushmenu multiplayer"
+font "facfont-20"
+ordernumber 7
+}
+
+
+resource
+Button
+{
+name "Cancel"
+rect 200 330 238 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "textures/mohmenu/m_buttonhighlight"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+font "facfont-20"
+ordernumber 8
+}
+
+end.

@@ -1,0 +1,911 @@
+menu "decals" 640 480 FROM_BOTTOM 0.2
+align bottom left
+bgcolor 0 0 0 0
+
+resource
+Button
+{
+title "save"
+name "terrain"
+rect 0 464 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_save"
+}
+resource
+CheckBox
+{
+title "edit mode"
+name "edit mode"
+rect 64 464 104 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_editmode"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+PulldownMenuContainer
+{
+title "apply conditions"
+name "Default"
+rect 168 464 24 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+menushader "MENU" "textures/menu/pulldownarrow"
+selmenushader "MENU" "textures/menu/pulldownarrow_sel"
+addpopup "MENU" "apply only to terrain" command "set dcl_dostring \"apply only to terrain\"; set dcl_doworld 0; set dcl_doterrain 1;set dcl_dobmodels 0"
+addpopup "MENU" "apply only to bmodels" command "set dcl_dostring \"apply only to bmodels\"; set dcl_doworld 0; set dcl_doterrain 0;set dcl_dobmodels 1"
+addpopup "MENU" "apply only to world" command "set dcl_dostring \"apply only to world\"; set dcl_doworld 1; set dcl_doterrain 0;set dcl_dobmodels 0"
+addpopup "MENU" "don't apply to terrain" command "set dcl_dostring \"don't apply to terrain\"; set dcl_doworld 1; set dcl_doterrain 0;set dcl_dobmodels 1"
+addpopup "MENU" "don't apply to bmodels" command "set dcl_dostring \"don't apply to bmodels\"; set dcl_doworld 1; set dcl_doterrain 1;set dcl_dobmodels 0"
+addpopup "MENU" "don't apply to world" command "set dcl_dostring \"don't apply to world\"; set dcl_doworld 0; set dcl_doterrain 1;set dcl_dobmodels 1"
+addpopup "MENU" "apply to all" command "set dcl_dostring \"apply to all\"; set dcl_doworld 1; set dcl_doterrain 1;set dcl_dobmodels 1"
+
+}
+resource
+Label
+{
+title "applystring"
+name "Default"
+rect 192 464 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "dcl_dostring"
+}
+resource
+CheckBox
+{
+title "path mode"
+name "world"
+rect 320 464 104 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_pathmode"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "tex scale:"
+name "Default"
+rect 424 464 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "pathlable"
+name "pathlable"
+rect 488 464 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_texturescale"
+}
+resource
+Label
+{
+title "min :"
+name "Default"
+rect 520 464 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "minsegslider"
+name "Default"
+rect 552 464 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "NONE"
+linkcvar "dcl_minsegment"
+setrange 8 32
+slidertype integer
+stepsize 8
+
+}
+resource
+Field
+{
+title "pathlable"
+name "pathlable"
+rect 608 464 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_minsegment"
+}
+resource
+Label
+{
+title "Blue:"
+name "Default"
+rect 0 448 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "bluerange"
+name "Default"
+rect 40 448 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 1.00 1.00
+borderstyle "RAISED"
+linkcvar "dcl_b"
+setrange 0 1
+slidertype float
+
+}
+resource
+Label
+{
+title "Green:"
+name "Default"
+rect 0 432 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "greenrange"
+name "Default"
+rect 40 432 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 1.00 0.50 1.00
+borderstyle "RAISED"
+linkcvar "dcl_g"
+setrange 0 1
+slidertype float
+
+}
+resource
+Label
+{
+title "Red:"
+name "Default"
+rect 0 416 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.25 0.25 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "redrange"
+name "Default"
+rect 40 416 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.25 0.25 1.00
+borderstyle "RAISED"
+linkcvar "dcl_r"
+setrange 0 1
+slidertype float
+
+}
+resource
+Field
+{
+title "blue label"
+name "Default"
+rect 168 448 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.65 0.65 1.00 1.00
+borderstyle "RAISED"
+linkcvar "dcl_b"
+}
+resource
+Field
+{
+title "green label"
+name "Default"
+rect 168 432 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.67 1.00 0.67 1.00
+borderstyle "RAISED"
+linkcvar "dcl_g"
+}
+resource
+Field
+{
+title "red label"
+name "Default"
+rect 168 416 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "dcl_r"
+}
+resource
+Label
+{
+title "Alpha:"
+name "Default"
+rect 0 400 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "alpharange"
+name "Default"
+rect 40 400 128 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 1.00
+borderstyle "RAISED"
+linkcvar "dcl_alpha"
+setrange 0 1
+slidertype float
+
+}
+resource
+Field
+{
+title "alpha label"
+name "Default"
+rect 168 400 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 1.00 1.00 1.00 1.00
+borderstyle "RAISED"
+linkcvar "dcl_alpha"
+}
+resource
+Label
+{
+title "shader:"
+name "Default"
+rect 0 384 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Field
+{
+title "shaderentry"
+name "shaderentry"
+rect 40 384 200 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_shader"
+}
+resource
+CheckBox
+{
+title "lighting"
+name "lighting"
+rect 240 448 88 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "RAISED"
+linkcvar "dcl_dolighting"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "max offset:"
+name "Default"
+rect 328 448 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "maxoffset"
+name "Default"
+rect 392 448 88 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "NONE"
+linkcvar "dcl_maxoffset"
+setrange 1 64
+slidertype integer
+stepsize 1
+
+}
+resource
+Field
+{
+title "pathlable"
+name "pathlable"
+rect 480 448 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_maxoffset"
+}
+resource
+Label
+{
+title "max :"
+name "Default"
+rect 512 448 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "maxsegslider"
+name "Default"
+rect 544 448 64 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "NONE"
+linkcvar "dcl_maxsegment"
+setrange 64 512
+slidertype integer
+stepsize 64
+
+}
+resource
+Field
+{
+title "pathlable"
+name "pathlable"
+rect 608 448 32 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_maxsegment"
+}
+resource
+Slider
+{
+title "movesize"
+name "Default"
+rect 240 432 80 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "NONE"
+linkcvar "dcl_shiftstep"
+setrange 1 16
+slidertype integer
+
+}
+resource
+Field
+{
+title "step"
+name "step"
+rect 320 432 40 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_shiftstep"
+}
+resource
+Label
+{
+title "height scale:"
+name "Default"
+rect 360 432 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "heightrange"
+name "Default"
+rect 432 432 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_heightscale"
+setrange 0 32
+slidertype float
+stepsize 0.1
+
+}
+resource
+Field
+{
+title "height scale entry"
+name "Default"
+rect 568 432 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_heightscale"
+}
+resource
+Button
+{
+title "left"
+name "left"
+rect 240 384 40 48
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_shiftleft"
+}
+resource
+Button
+{
+title "down"
+name "down"
+rect 280 408 40 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_shiftdown"
+}
+resource
+Button
+{
+title "up"
+name "up"
+rect 280 384 40 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_shiftup"
+}
+resource
+Button
+{
+title "right"
+name "right"
+rect 320 384 40 48
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_shiftright"
+}
+resource
+Label
+{
+title "width scale:"
+name "Default"
+rect 360 416 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "radius:"
+name "Default"
+rect 360 400 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Label
+{
+title "roll:"
+name "Default"
+rect 360 384 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+}
+resource
+Slider
+{
+title "widthrange"
+name "Default"
+rect 432 416 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_widthscale"
+setrange 0 32
+slidertype float
+stepsize 0.1
+
+}
+resource
+Slider
+{
+title "radiusrange"
+name "Default"
+rect 432 400 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_radius"
+setrange 0 128
+slidertype integer
+
+}
+resource
+Slider
+{
+title "rollangles"
+name "Default"
+rect 432 384 136 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_rotation"
+setrange 0 359
+slidertype integer
+
+}
+resource
+Field
+{
+title "width scale entry"
+name "Default"
+rect 568 416 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_widthscale"
+}
+resource
+Field
+{
+title "radius entry"
+name "Default"
+rect 568 400 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "RAISED"
+linkcvar "dcl_radius"
+}
+resource
+Field
+{
+title "roll label"
+name "Default"
+rect 568 384 72 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.75 0.75 0.75 1.00
+borderstyle "NONE"
+linkcvar "dcl_rotation"
+}
+resource
+Button
+{
+title "prev"
+name "prev"
+rect 192 360 72 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_selectprev"
+}
+resource
+Button
+{
+title "next"
+name "next"
+rect 264 360 72 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_selectnext"
+}
+resource
+Button
+{
+title "get info"
+name "get info"
+rect 336 360 80 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_getinfo"
+}
+resource
+Button
+{
+title "reapply"
+name "reapply"
+rect 416 360 80 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_reapply"
+}
+resource
+Button
+{
+title "make"
+name "make"
+rect 496 360 80 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_make"
+}
+resource
+Button
+{
+title "randroll"
+name "Default"
+rect 576 360 64 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.58 0.58 0.58 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_randomroll"
+}
+resource
+Button
+{
+title "delete"
+name "delete"
+rect 128 360 64 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "3D_BORDER"
+stuffcommand "dclc_delete"
+}
+resource
+CheckBox
+{
+title "show curr."
+name "show curr."
+rect 0 360 128 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.61 0.61 0.61 1.00
+borderstyle "RAISED"
+linkcvar "dcl_showcurrent"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+ListBox
+{
+title "decals list"
+name "Default"
+rect 0 0 128 360
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "RAISED"
+linkcvar "dcl_shader"
+direction from_left 0.2
+additem "ivy"
+additem "ivy_clump"
+additem "ivy_thin"
+additem "BradyRest"
+additem "cafeindia"
+additem "empire"
+additem "imperialair"
+additem "streetsign1"
+additem "streetsign2"
+additem "streetsign3"
+additem "sph_circle"
+additem "sph_square"
+additem "treeRootsradial"
+additem "blastmark"
+additem "testtread"
+additem "weathered_concrete"
+additem "waterstain"
+additem "bhole_metal"
+additem "bhole_stone"
+additem "bhole_glass"
+additem "treeshadows"
+additem "exposed_brick"
+additem "cracks"
+additem "weatheredstone"
+additem "desert1"
+additem "wthrwall1"
+additem "cracked2"
+additem "pitted"
+additem "afrika_trim"
+additem "afrikatrim2"
+additem "cornerstones"
+additem "frenchposter1"
+additem "tudor"
+additem "europe_trim"
+additem "floordrain"
+additem "fc_wthrdconcrete"
+additem "afrika_map1"			
+additem "afrika_map2"				
+additem	"frenchpostr_1a"					
+additem "jh_km_marker"				
+additem "jh_oran"				
+additem "tapstry_af1"
+additem "mag1"
+additem "pinup1"
+additem "shutter_set2"
+additem "ties_decal"
+additem "icecicles"
+additem "shutter_set2W"
+additem "shutter_W"
+additem "calendar"
+additem "pinup1duparispj"
+additem "poster4"
+additem "revue_poster2"
+additem "shepherd"
+additem "bunkervent_1"
+additem "daily_gorring"
+additem "germanpst1"
+additem "grmnsn_halt1"
+additem "jh_airfield"
+additem "jh_gasstorage"
+additem "jh_gasstorage2"
+additem "jh_h20disbursement"
+additem "jh_noentry1"
+additem "jh_nosmoking_ger"
+additem "jh_remagen2km"
+additem "minen"
+additem "minen_alt"
+additem "minen_alt2"
+additem "picture1"
+additem "picture2"
+additem "pictureset_3a"
+additem "pictureset_3b"
+additem "picture5"
+additem "victorioussml"
+additem "bulletset_1"
+additem "jh_maskwin1"
+additem "jh_cottonwood2"
+additem "jh_cottonwood3"
+additem "jh_foliage1"
+additem "jh_foliage2"
+additem "jh_foliage4"
+additem "jh_foliage5"
+additem "jh_foliage6"
+additem "pj_roots1"
+additem "vorsicht"
+additem "erster"
+additem "eagleglobe"
+additem "bar1"
+additem "antiquites"
+additem "townhallwindow"
+additem "church_cornertrimsml"
+additem "cracked3"
+additem "char"
+additem "treadmarks_conc"
+additem "treadmarks_ground"
+additem "bullet_plasterhit"
+additem "treadmarks_conc2"
+additem "treadmarks_ground2"
+additem "muddy1"
+additem "grass_tuft"
+additem "weeds_decal"
+additem "rubble2_decal"
+additem "danger_hot"
+additem "french_advert2"
+additem "french_advert3"
+additem "vivedegaulle"
+additem "carpet_fancy1"
+additem "carpet_fancy2"
+additem "carpet_fancy3"
+additem "sign_storeblu"
+additem "sign_store"
+additem "electrical"
+additem "barrage"
+additem "bunker_legend"
+additem "CO_danger"
+additem "emergency_exit"
+additem "enemy_listening"
+additem "entrance"
+additem "entrance_defense"
+additem "gas_attack"
+additem "gas_victim"
+additem "machinery"
+additem "motto1"
+additem "motto2"
+additem "motto3"
+additem "motto4"
+additem "motto5"
+additem "motto6"
+additem "no_smoking"
+additem "plug"
+additem "quarter_number"
+additem "rangefinder1"
+additem "rangefinder2"
+additem "relief_valve"
+additem "Standig"
+additem "vierville1"
+additem "vierville2"
+additem "vierwille3"
+additem "vierville4"
+additem "zutritt_verboten"
+additem "1st_floor"
+additem "2nd_floor"
+additem "3rd_floor"
+additem "4th_floor"
+additem "resistance_warning"
+additem "a"
+additem "b"
+additem "1"
+additem "2"
+additem "3"
+additem "Painting_master1"
+additem "Painting_master2"
+additem "Painting_master3"
+additem "Painting_master4"
+additem "Painting_master5"
+additem "tapestry_master7"
+additem "Painting_master8"
+additem "arrow"
+additem "ein"
+additem "swei"
+additem "drei"
+additem "mundepot1"
+additem "mundepot2"
+additem "sub_motto1"
+additem "torpedolagen1"
+additem "torpedolagen2"
+additem "tower_center"
+additem "versdepot1"
+additem "versdepot2"
+additem "we_build"
+additem "bei_brennendem"
+additem "bei_gasgefahr"
+additem "maschinenraum"
+additem "fernsprechverteiler"
+additem "watercloset"
+additem "starkstromverteiler"
+additem "french_advert1"
+additem "nettingshadow"
+additem "fenceshadow"
+additem "blackboard"
+additem "france_advert1"
+additem "mortar_sandhit"
+additem "deadfish"
+additem "deadfish_school"
+additem "regpalmshadow"
+additem "pole_shadow"
+additem "cagelightshadow"
+additem "cagelightshadow_vert"
+additem "cards1"
+additem "cards2"
+additem "cards3"
+additem "cards4"
+additem "sous_sign"
+additem "butcher_german"
+additem "Italian_poster1"
+additem "Italian_poster2"
+additem "Italian_poster3"
+additem "Italian_poster4"
+additem "Italian_docs"
+additem "WWII_poster1"
+additem "cagedlampshad"
+additem "FirePitDecal"
+additem "it_t_3-2streetScorch01_Decal"
+additem "red_flash"
+additem "flicker_light"
+additem "barnacle_crust"
+}
+
+}
+resource
+Button
+{
+name "Default"
+rect 128 0 512 360
+fgcolor 0.00 0.00 0.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+stuffcommand "ui_hidemouse"
+}
+end.

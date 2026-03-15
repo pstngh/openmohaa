@@ -1,0 +1,91 @@
+menu "hud_ammo_Modello 37" 168 268 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+name "ammobar"
+rect 120 0 32 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_flak
+}
+
+//==================================================
+// Health Backdrop
+
+resource
+Label
+{
+name "Default"
+rect 80 188 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/healthback
+}
+
+//==================================================
+// Vehicle Health Meter
+
+resource
+Label
+{
+name "healthmeter"
+rect 80 188 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 23 // health
+maxplayerstat 24 // max health
+statbar vertical
+statbar_shader textures/hud/healthmeter
+statbar_shader_flash textures/hud/healthmeterflash
+}
+
+//==================================================
+// vehicle Health name
+
+resource
+Label
+{
+name "healthnumber"
+title "Modello 37"
+rect 0 214 72 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Vehicle Health Number
+
+resource
+Label
+{
+name "healthnumber"
+rect 0 236 72 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 23 // health
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+
+end.

@@ -1,0 +1,23 @@
+menu "hud_ammo_" 256 143 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Weapon Name Display
+
+resource
+Label
+{
+name "weaponname"
+rect 0 95 200 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+end.

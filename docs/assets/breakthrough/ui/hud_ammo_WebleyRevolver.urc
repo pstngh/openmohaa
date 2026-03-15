@@ -1,0 +1,94 @@
+menu "hud_ammo_Webley Revolver" 256 151 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+name "ammobar"
+//rect 216 7 16 128
+rect 208 39 32 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical
+playerstat 6 // clip ammo
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_pistol
+//statbar_shader textures/hud/clip_thompson
+}
+
+//==================================================
+// Ammo Count Seperator
+
+resource
+Label
+{
+name "ammoseperator"
+title "|"
+rect 160 117 8 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign centerx
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Total Ammo Count
+
+resource
+Label
+{
+name "ammocount"
+rect 168 117 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 4 // ammo
+textalign left
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Ammo Clip Count
+
+resource
+Label
+{
+name "clipcount"
+rect 128 117 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 6 // clip ammo
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Weapon Name Display
+
+resource
+Label
+{
+name "weaponname"
+rect 0 95 200 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+end.

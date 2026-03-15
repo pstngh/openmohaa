@@ -1,0 +1,59 @@
+menu "hud_ammo_minensuchgerat" 256 384 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+resource
+Label
+{
+name "ammobar"
+//rect 216 7 16 128
+rect 128 0 64 320
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar vertical
+playerstat 4 // ammo
+maxplayerstat 5 // max ammo
+statbar_tileshader textures/hud/clip_landmineaxis
+}
+
+//==================================================
+// Total Ammo Count
+
+resource
+Label
+{
+name "ammocount"
+rect 188 350 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat 4 // ammo
+textalign left
+font facfont-20
+outlinedtext 1
+}
+
+//==================================================
+// Weapon Name Display
+
+resource
+Label
+{
+name "weaponname"
+rect 0 328 200 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+}
+
+
+end.

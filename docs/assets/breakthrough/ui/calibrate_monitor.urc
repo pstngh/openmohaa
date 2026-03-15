@@ -1,0 +1,159 @@
+menu "calibrate_monitor" 640 476 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+virtualres 1
+
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/monitorcalibration_a"
+}
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 1.00 1.00 1.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/monitorcalibration_b"
+}
+
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_a.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_e.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_b.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 384 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_f.tga"
+enabledcvar "ui_voodoo"
+
+}
+resource
+Label
+{
+name "Default"
+rect 256 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_d.tga"
+enabledcvar "ui_voodoo"
+}
+
+resource
+Label
+{
+name "Default"
+rect 0 256 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/voodoo/monitor_calibration_c.tga"
+enabledcvar "ui_voodoo"
+}
+
+resource
+Label
+{
+rect 420 448 64 16
+fgcolor 0.50 0.50 0.50 1.00
+bgcolor 0.50 0.50 0.50 0.00
+linkcvar "r_gamma"
+font facfont-20
+textalign left
+}
+
+resource
+Slider
+{
+title "Brightness Slider"
+name "Default"
+rect 220 448 192 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/menu/slider"
+linkcvar "r_gamma"
+slidertype float
+setrange 0.5 3
+stepsize 0.1
+}
+
+resource
+Button
+{
+name "apply"
+rect 540 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/apply"
+hovershader "textures/mohmenu/apply_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_checkrestart; popmenu 0"
+ordernumber 1
+}
+
+resource
+Button
+{
+name "back"
+rect 8 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 1"
+ordernumber 5
+
+}
+end.

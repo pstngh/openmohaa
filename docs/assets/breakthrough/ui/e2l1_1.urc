@@ -1,0 +1,25 @@
+menu "e2l1_1" 640 480 NONE 1
+align centerx centery
+bgcolor 0 0 0 0
+borderstyle NONE
+bgfill 0 0 0 0
+fadein 1
+
+
+
+
+
+
+resource
+Label
+{
+name "e2l1_1"
+rect 64 272 512 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/gametext/e2l1_ScreenText1"
+ordernumber 1
+
+}
+end.

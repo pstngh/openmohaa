@@ -1,0 +1,119 @@
+menu "hud_ammo_Gewehrgranate" 328 96 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Grenades
+
+
+//==================================================
+// Ammo Clip Bullets Bar
+
+
+//==================================================
+// Ammo Count Seperator
+
+
+//==================================================
+// Total Ammo Count
+
+
+//==================================================
+// Ammo Clip Count
+
+
+
+
+//==================================================
+// Weapon Name Display
+
+
+
+
+resource
+Label
+{
+name "ammobar_bullet"
+rect 208 0 64 80
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "6"
+statbar vertical
+maxplayerstat 7 // max clip ammo
+statbar_tileshader textures/hud/clip_rifle
+//statbar_shader textures/hud/clip_thompson
+
+}
+resource
+Label
+{
+title "|"
+name "ammoseperator"
+rect 160 62 8 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+textalign centerx
+font facfont-20
+outlinedtext 1
+
+}
+resource
+Label
+{
+name "ammocount"
+rect 168 62 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "30"
+textalign left
+font facfont-20
+outlinedtext 1
+
+}
+resource
+Label
+{
+name "clipcount"
+rect 128 62 32 18
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "6"
+textalign right
+font facfont-20
+outlinedtext 1
+
+}
+resource
+Label
+{
+name "weaponname"
+rect 0 40 200 22
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+itemstat 1 // equipped weapon
+textalign right
+font facfont-20
+outlinedtext 1
+
+}
+resource
+Label
+{
+name "ammobar_grenade"
+rect 280 32 32 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+playerstat "4"
+statbar vertical
+maxplayerstat 5 // max ammo
+statbar_tileshader textures/hud/clip_riflegrenade
+
+}
+end.
