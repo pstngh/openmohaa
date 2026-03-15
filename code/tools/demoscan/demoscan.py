@@ -669,8 +669,6 @@ class DemoScanner:
 
         pos = 0
         msg_count = 0
-        # Limit snapshot parsing to first N messages for performance
-        max_snapshot_msgs = 200
 
         while pos + 8 <= len(data):
             # Read sequence number
@@ -694,7 +692,7 @@ class DemoScanner:
                 if msg_count == 0:
                     self._parse_gamestate(msg_data)
                 else:
-                    self._parse_message(msg_data, parse_snapshots=(msg_count <= max_snapshot_msgs))
+                    self._parse_message(msg_data)
             except Exception:
                 pass  # Skip malformed messages
 
@@ -819,7 +817,7 @@ class DemoScanner:
         # If no backslash, the whole value might be the name (some mods)
         return cs_value.strip() if cs_value.strip() else None
 
-    def _parse_message(self, data, parse_snapshots=True):
+    def _parse_message(self, data):
         """Parse a non-gamestate message looking for serverCommand cs updates and snapshots."""
         reader = MsgReader(data)
 
@@ -836,7 +834,7 @@ class DemoScanner:
                 reader.read_long()  # sequence
                 cmd_str = self._read_string(reader)
                 self._handle_server_command(cmd_str)
-            elif cmd == SVC_SNAPSHOT and parse_snapshots and self.protocol < 15:
+            elif cmd == SVC_SNAPSHOT and self.protocol < 15:
                 try:
                     self._parse_snapshot_ver6(reader)
                 except Exception:
@@ -1016,31 +1014,55 @@ class DemoScanner:
 
     def _extract_grenade_count(self, arrays):
         """Find the grenade ammo slot and record its count."""
+        # Try direct lookup via ammo_name_index -> configstring
         for i in range(MAX_AMMO):
             name_idx = arrays["ammo_name_index"][i]
             if name_idx <= 0:
                 continue
             ammo_name = self.configstrings.get(name_idx, "")
-            if ammo_name.lower() == "grenade":
-                self.grenade_count = arrays["ammo_amount"][i]
-                return
+            if ammo_name.lower() in ("grenade", "agrenade"):
+                count = arrays["ammo_amount"][i]
+                if count > 0:
+                    if self.grenade_count is None:
+                        self.grenade_count = count
+                    else:
+                        # Take the higher of grenade/agrenade (both should match)
+                        self.grenade_count = max(self.grenade_count, count)
 
-    def _get_weapon_display_name(self, tiki_path):
-        """Convert a TIKI weapon path to a short display name.
+        # Fallback: scan CS_WEAPONS configstrings for grenade ammo names
+        # and match against ammo_name_index values
+        if self.grenade_count is None:
+            grenade_cs_indices = set()
+            for cs_idx in range(CS_WEAPONS, CS_WEAPONS + MAX_WEAPONS):
+                cs_val = self.configstrings.get(cs_idx, "")
+                if cs_val.lower() in ("grenade", "agrenade"):
+                    grenade_cs_indices.add(cs_idx)
+            if grenade_cs_indices:
+                for i in range(MAX_AMMO):
+                    if arrays["ammo_name_index"][i] in grenade_cs_indices:
+                        count = arrays["ammo_amount"][i]
+                        if count > 0:
+                            self.grenade_count = count
+                            return
 
-        Examples:
-            'models/weapons/m1_garand.tik' -> 'M1 Garand'
-            'models/weapons/Colt45.tik' -> 'Colt45'
-        """
-        if not tiki_path:
-            return tiki_path
-        # Strip path prefix and .tik extension
-        name = tiki_path
-        if "/" in name:
-            name = name.rsplit("/", 1)[1]
-        if name.lower().endswith(".tik"):
-            name = name[:-4]
-        return name
+    @staticmethod
+    def _is_grenade_weapon(name):
+        """Check if a weapon name refers to a grenade (not a primary weapon)."""
+        lower = name.lower()
+        # Match common grenade weapon names from MoHAA
+        grenade_names = (
+            "frag grenade", "stielhandgranate", "grenade",
+            "nebelhandgranate", "smoke grenade",
+            "m18 smoke grenade", "m2 frag grenade",
+            "mills bomb", "no 36m mk1",
+        )
+        for gn in grenade_names:
+            if gn in lower:
+                return True
+        # Also catch generic patterns
+        if "grenade" in lower or "granate" in lower:
+            return True
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -1074,6 +1096,11 @@ def main():
         dest="players",
         help="Filter: only show demos where this player appears (case-insensitive, can specify multiple times)",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show extra debug info (CS_WEAPONS configstrings, raw ammo data)",
+    )
     args = parser.parse_args()
 
     if not os.path.isdir(args.folder):
@@ -1104,7 +1131,7 @@ def main():
 
         if scanner.error:
             errors += 1
-            results.append((rel_path, None, scanner.error, [], None))
+            results.append((rel_path, None, scanner.error, [], None, scanner))
             continue
 
         player_names = sorted(set(scanner.players.values()))
@@ -1115,11 +1142,11 @@ def main():
             if not any(fn in lower_names for fn in filter_names):
                 continue
 
-        # Collect weapon/grenade info
-        weapons = [scanner._get_weapon_display_name(w) for w in scanner.weapons_seen]
+        # Collect weapon/grenade info, filtering out grenade items
+        weapons = [w for w in scanner.weapons_seen if not DemoScanner._is_grenade_weapon(w)]
         grenade_count = scanner.grenade_count
 
-        results.append((rel_path, player_names, None, weapons, grenade_count))
+        results.append((rel_path, player_names, None, weapons, grenade_count, scanner))
 
     # Write output
     with open(args.output, "w", encoding="utf-8") as f:
@@ -1128,7 +1155,7 @@ def main():
             f.write("#\n")
 
         matches = 0
-        for rel_path, players, error, weapons, grenade_count in results:
+        for rel_path, players, error, weapons, grenade_count, scanner in results:
             if error:
                 f.write("%s\n  ERROR: %s\n\n" % (rel_path, error))
                 continue
@@ -1146,6 +1173,32 @@ def main():
             if grenade_count is not None:
                 mode = "realism" if grenade_count <= 3 else "default"
                 f.write("  Grenades: %d (%s)\n" % (grenade_count, mode))
+            if args.verbose and scanner:
+                # Dump CS_WEAPONS configstrings
+                weapon_cs = {}
+                for cs_idx in range(CS_WEAPONS, CS_WEAPONS + MAX_WEAPONS):
+                    val = scanner.configstrings.get(cs_idx, "")
+                    if val:
+                        weapon_cs[cs_idx] = val
+                if weapon_cs:
+                    f.write("  [verbose] CS_WEAPONS configstrings:\n")
+                    for cs_idx in sorted(weapon_cs):
+                        f.write("    [%d] %s\n" % (cs_idx, weapon_cs[cs_idx]))
+                # Dump last known ammo arrays
+                if scanner._prev_ps_arrays:
+                    pa = scanner._prev_ps_arrays
+                    f.write("  [verbose] ammo_name_index: %s\n" % pa["ammo_name_index"])
+                    f.write("  [verbose] ammo_amount: %s\n" % pa["ammo_amount"])
+                    f.write("  [verbose] activeItems: %s\n" % pa["activeItems"])
+                    # Resolve ammo names
+                    for i in range(MAX_AMMO):
+                        ni = pa["ammo_name_index"][i]
+                        if ni > 0:
+                            name = scanner.configstrings.get(ni, "(unknown cs %d)" % ni)
+                            f.write("    ammo[%d]: name_idx=%d -> '%s', amount=%d\n"
+                                    % (i, ni, name, pa["ammo_amount"][i]))
+                else:
+                    f.write("  [verbose] No snapshot arrays parsed\n")
             f.write("\n")
 
         f.write("# ---\n")
