@@ -1,0 +1,386 @@
+//	Shutters by Mackey McCandlish.
+//
+//	Before level waittill spawn "exec global/shutter.scr".
+//	
+//	Used in m1l1, m5l1a, m5l1b, m5l3.
+//
+//	Create script_object shutters. Shutters on the left side of a window get targetname "lshutter" and shutters on the right
+//	side get targetname "rshutter".
+//
+//	You can alter the frequency of shutters slamming in the wind by changing level.windtime.
+//
+//	You can cause certain shutters to slam (like the planes flying by in m5l1a or the player's tank shooting in m5l3) by doing
+//	"thread global/shutter.scr::shuttrig #" where # is the #group value you've given the shutters in question.
+
+main:
+// main local.l local.r:
+level.shuttime = level.time
+level.shuttertime = 0.3
+level.windtime = 5 // 1.5 // 5
+
+
+	if ($lshutter == NULL)
+		level.lshutters = 0
+		else
+		level.lshutters = $lshutter.size
+
+	if (level.lshutters > 0)
+	{
+		level.lshutter = exec global/makearray.scr $lshutter
+
+		for (local.i=1;local.i<level.lshutters+1;local.i++)
+		{
+			level.lshutter[local.i] thread shutterthink
+			level.lshutter[local.i] thread shutter local.i "l"
+		}
+	}
+
+
+	if ($rshutter == NULL)
+		level.rshutters = 0
+		else
+		level.rshutters = $rshutter.size
+
+	if (level.rshutters > 0)
+	{
+		level.rshutter = exec global/makearray.scr $rshutter
+
+		for (local.i=1;local.i<level.rshutters+1;local.i++)
+		{
+			level.rshutter[local.i] thread shutterthink
+			level.rshutter[local.i] thread shutter local.i "l"
+		}
+	}
+
+	if ((level.lshutters > 0) || (level.rshutters > 0))
+		thread shuttermagic
+end
+
+shuttrig local.group:
+	level.shuttime = level.time + 5
+	for (local.i=1;local.i<level.lshutters+1;local.i++)
+	{
+		if (level.lshutter[local.i].group != NIL)
+			if (level.lshutter[local.i].group == local.group)
+				level.lshutter[local.i].specevent = 1
+	}
+	for (local.i=1;local.i<level.rshutters+1;local.i++)
+	{
+		if (level.rshutter[local.i].group != NIL)
+			if (level.rshutter[local.i].group == local.group)
+				level.rshutter[local.i].specevent = 1
+	}
+
+end
+
+
+shuttermagic:
+
+	level waittill spawn
+	shuttermagicplay:
+	if (level.time < level.shuttime)
+	{
+		wait 1 
+		goto shuttermagicplay
+	}
+
+	local.num = (level.windtime + randomfloat(level.windtime))
+//	println local.num
+	if (local.num < 2)
+		local.num = 2
+	wait local.num
+//	wait (level.windtime + randomint(level.windtime)) // level.windtime defaults to 5
+	local.num = randomint(100)
+
+	if (local.num < 40)
+	{
+
+		for (local.i=1;local.i<level.rshutters+1;local.i++)
+		{
+			if (level.rshutter[local.i].specevent == 0)
+				level.rshutter[local.i].specevent = 11
+		}
+	
+		for (local.i=1;local.i<level.lshutters+1;local.i++)
+		{
+			if (level.lshutter[local.i].specevent == 0)
+				level.lshutter[local.i].specevent = 10
+		}
+
+	}
+	else
+	if (local.num < 60)
+	{
+		for (local.i=1;local.i<level.rshutters+1;local.i++)
+		{
+			if (level.rshutter[local.i].specevent == 0)
+				level.rshutter[local.i].specevent = 10
+		}
+	
+		for (local.i=1;local.i<level.lshutters+1;local.i++)
+		{
+			if (level.lshutter[local.i].specevent == 0)
+				level.lshutter[local.i].specevent = 11
+		}	
+
+	}
+	else
+	if (local.num < 80)
+	{
+		for (local.i=1;local.i<level.rshutters+1;local.i++)
+		{
+			if (level.rshutter[local.i].specevent == 0)
+				level.rshutter[local.i].specevent = 11
+		}
+	
+		for (local.i=1;local.i<level.lshutters+1;local.i++)
+		{
+			if (level.lshutter[local.i].specevent == 0)
+				level.lshutter[local.i].specevent = 11
+		}
+		
+	}
+	else
+	{
+		for (local.i=1;local.i<level.rshutters+1;local.i++)
+		{
+			if (level.rshutter[local.i].specevent == 0)
+				level.rshutter[local.i].specevent = 10
+		}
+	
+		for (local.i=1;local.i<level.lshutters+1;local.i++)
+		{
+			if (level.lshutter[local.i].specevent == 0)
+				level.lshutter[local.i].specevent = 10
+		}
+
+	}
+
+
+// level.shuttertime = level.time + 3
+// wait 3
+goto shuttermagicplay
+
+end
+
+shuttate local.dir local.num:
+	if (local.dir == "l")
+		self rotateYup local.num
+	else
+	if (local.dir == "r")
+		self rotateYdown local.num
+end
+
+
+shuttersound local.num1 local.num2:
+	// self playsound (NULL) 1 1 256
+	self playsound shutterhit_0 5
+end
+
+shuttersqueak local.num1 local.num2:
+//	if (randomint(100) > 65)
+	self playsound shuttersqueak_0 5
+end
+
+shutter local.num local.dir:
+	level waittill spawn
+	
+	self.specevent = 0
+	local.curwidth = 0
+	local.mover = 0
+
+	self time 0.3
+	self thread shuttate local.dir -90
+	self waitmove
+
+	while (1==1)
+	{
+		if (self.specevent == 0)
+		{
+			local.random = (randomint(10) - 5)
+
+			if (local.curwidth < 2)
+				local.random = (randomint(20) - 5)
+
+			if (local.curwidth > 178)
+				local.random = (randomint(20) - 15)
+
+			if (local.mover > 6)
+				local.mover = 6
+			else
+			if (local.mover < -6)
+				local.mover = -6
+
+
+			local.mover = (local.mover + local.random)
+
+			if ((local.curwidth + local.mover ) < 0)
+			{
+				local.mover = (local.curwidth * -1)
+				local.curwidth = 0
+			}
+			else
+			if ((local.curwidth + local.mover) > 180)
+			{
+				local.mover = (180 - local.curwidth)
+				local.curwidth = 180
+			}
+			else
+				local.curwidth = (local.curwidth + local.mover)
+
+		// self time (0.2 + (randomfloat(0.3)))
+			self time level.shuttertime // default 0.3
+			self thread shuttate local.dir local.mover
+			self waitmove
+
+		}
+		else
+		{
+
+			if (self.specevent == 10)
+			{
+				self.specevent = 0
+
+				if (local.dir == "r")
+				{
+					local.timedif = (180 - local.curwidth) / 200.0
+					self time local.timedif
+					self thread shuttersqueak 3 local.timedif
+					self thread shuttate local.dir (local.curwidth * -1)
+					self waitmove
+					self thread shuttersound 3 local.timedif
+					local.curwidth = 0
+				}
+				else
+				{
+					local.timedif = (180 - local.curwidth) / 200.0
+					self time local.timedif
+					self thread shuttersqueak 3 local.timedif
+					self thread shuttate local.dir (180 - local.curwidth)
+					self waitmove
+					self thread shuttersound 1 local.timedif
+					local.curwidth = 180
+				}
+			}
+			else
+			if (self.specevent == 11)
+			{
+				self.specevent = 0
+
+				if (local.dir == "l")
+				{
+					local.timedif = (180 - local.curwidth) / 200.0
+					self time local.timedif
+					self thread shuttersqueak 3 local.timedif
+					self thread shuttate local.dir (local.curwidth * -1)
+					self waitmove
+					self thread shuttersound 3 local.timedif
+					local.curwidth = 0
+				}
+				else
+				{
+					local.timedif = (180 - local.curwidth) / 200.0
+					self time local.timedif
+					self thread shuttersqueak 3 local.timedif
+					self thread shuttate local.dir (180 - local.curwidth)
+					self waitmove
+					self thread shuttersound 1 local.timedif
+					local.curwidth = 180
+				}
+			}
+			else
+			if (local.curwidth > 0)
+			{
+				self time 0.5
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir (local.curwidth * -1)
+				self waitmove
+				self thread shuttersound 3 0.5
+				local.curwidth = 0
+			}
+
+
+			if (self.specevent == 1)
+			{
+				self.specevent = 2
+				local.timedif = 0.15
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir 180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+
+				local.timedif = 0.20
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir -180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+
+				local.timedif = 0.25
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir 180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+
+				local.timedif = 0.30
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir -180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+			}
+			else
+			if (self.specevent == 2)
+			{
+				self.specevent = 3
+				local.timedif = 0.35
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir 180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+
+				local.timedif = 0.65
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir -180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+			}
+			else	
+			if (self.specevent == 3)
+			{
+				self.specevent = 0
+				local.timedif = 0.85
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir 180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+			
+				local.timedif = 2.10
+				self time local.timedif
+				self thread shuttersqueak 3 local.timedif
+				self thread shuttate local.dir -180
+				self waitmove
+				self thread shuttersound 2 local.timedif
+			}
+		}
+
+	}
+end
+
+
+shutterthink:
+
+	self waittill damage
+		if (self.specevent == 0)
+		if (randomint(100) > 50)
+			self.specevent = 11
+			else
+			self.specevent = 10
+
+	thread shutterthink
+end

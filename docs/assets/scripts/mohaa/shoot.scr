@@ -1,0 +1,2 @@
+// tells AI to shoot
+self exec global/fullanim.scr anim/shoot.scr

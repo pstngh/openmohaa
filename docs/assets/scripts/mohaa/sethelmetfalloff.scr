@@ -1,0 +1,5 @@
+// Sets it so that this character will lose his helmet when he dies
+
+start local.losehelmet:
+
+self.losehelmet = local.losehelmet 

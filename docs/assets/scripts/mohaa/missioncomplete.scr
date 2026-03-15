@@ -1,0 +1,20 @@
+main local.nextlevel local.bsp:
+	if ($player.health <= 0)
+		pause
+
+	$player stopwatch 0	
+	if (local.nextlevel != NIL)
+	{
+		if (local.bsp != NIL)
+		{
+			game.loadout = false
+			bsptransition local.nextlevel
+		}
+		else
+		{
+			game.loadout = NIL
+			leveltransition local.nextlevel
+		}
+	}
+
+end

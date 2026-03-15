@@ -1,0 +1,249 @@
+//**************************************************************************
+//*** will setup all specified crates in the editor spawn items
+//*** syntax --------------------------------
+//*** item_crate
+//**************************************************************************
+item_crate:
+
+if ($item_crate == NULL)
+{
+	println "^~^~^ No item crates in the level!!"
+	goto item_crate_end
+}
+
+for (local.i = 1; local.i <= $item_crate.size ; local.i ++)
+{
+       	$item_crate[local.i] thread item_crate_spawn local.i
+}
+
+item_crate_end:
+end
+
+
+//**************************************************************************
+//*** thread to spawn the desired item per crate
+//*** syntax --------------------------------
+//*** <crate> item_crate_spawn <array index>
+//**************************************************************************
+item_crate_spawn local.index:
+
+//*** find out what should be spawned
+switch (local.self.item)
+{
+	case "ammo_pistol":
+		local.item = "items/item_pistol_ammobox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "ammo_rifle":
+		local.item = "items/item_rifle_ammobox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "ammo_smg":
+		local.item = "items/item_smg_ammobox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "ammo_mg":
+		local.item = "items/item_mg_ammobox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "ammo_heavy":
+		local.item = "items/item_heavy_ammobox"
+		local.set_angle = "90 0 0"
+		break
+		
+	case "ammo_grenade":
+		local.item = "items/item_grenade_ammobox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "health_100":
+		local.item = "items/item_100_healthbox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "health_50":
+		local.item = "items/item_50_healthbox"
+		local.set_angle = "0 0 0"
+		break
+		
+	case "health_25":
+		local.item = "items/item_25_healthbox"
+		local.set_angle = "0 0 0"
+		break
+
+	default:
+		local.item = NIL
+		local.set_angle = NIL
+		break
+}
+
+//*** check if an item is desired
+if (local.item != NIL )
+{
+        //*** set temp variables
+        local.spawn_origin = local.self.origin
+        local.spawn_targetname = (local.self.targetname + "_item_" + local.index)
+        
+        //*** wait till the crate is destroyed
+        local.self waittill death
+
+	//*** spawn the item
+        spawn local.item targetname local.spawn_targetname angles local.set_angle
+        local.spawn_targetname = $(local.self.targetname + "_item_" + local.index)
+        
+        //*** reset the items origin
+        local.spawn_targetname.angles = local.set_angle
+        local.spawn_targetname.origin = local.spawn_origin
+} 
+
+end
+
+
+//**************************************************************************
+//*** will setup all specified crates in the editor for explosive crates
+//*** syntax --------------------------------
+//*** explosive_crate
+//**************************************************************************
+explosive_crate:
+
+if ($explosive_crate == NULL)
+{
+	println "^~^~^ No explosive crates in the level!!"
+	goto explosive_crate_done
+}
+
+for (local.i = 1; local.i <= $explosive_crate.size ; local.i ++)
+{
+       	$explosive_crate[local.i] thread explosive_crate_spawn local.i
+}
+
+explosive_crate_done:
+end
+
+
+//**************************************************************************
+//*** thread for the explosive crate
+//*** syntax --------------------------------
+//*** <crate> explosive_crate_spawn <array index>
+//**************************************************************************
+explosive_crate_spawn local.index:
+
+//*** set temp variables
+local.spawn_origin = local.self.origin
+local.spawn_targetname = (local.self.targetname + "_explosive_" + local.index)
+
+if (local.self.dmg != NIL)
+{
+	local.dmg = local.self.dmg
+}
+else
+{
+	local.dmg = 250
+}
+
+if (local.self.radius != NIL)
+{
+	local.radius = local.self.radius
+}
+else
+{
+	local.radius = 256
+}
+
+//*** wait till the crate is destroyed
+local.self waittill death
+
+//*** spawn the item
+spawn "animate/fx_explosion_mine" targetname local.spawn_targetname angle "-1"
+local.spawn_targetname = $(local.self.targetname + "_explosive_" + local.index)
+
+//*** reset the items origin
+local.spawn_targetname.origin = local.spawn_origin
+
+local.spawn_targetname anim start
+
+//*** damage the player  <origin> <damage> <radius> [consitent]
+radiusdamage local.spawn_targetname.origin local.dmg local.radius
+
+//*** get the distance to the player
+local.distance = vector_length (local.self.origin - $player.origin)
+local.check_distance = (local.radius * 1.5)
+local.outter_distance = (local.radius * 2.5)
+
+//*** shake his view
+if (local.distance <= local.check_distance)  //*** inner distance check
+{
+	if (local.dmg <= 150)
+        {
+        	thread jitter_small
+        }
+	else
+	{
+		thread jitter_normal
+	}
+}
+else if (local.distance <= local.outter_distance)  //*** outter distance check
+{
+	if (local.dmg <= 150)
+        {
+        	thread jitter_tiny
+        }
+	else
+	{
+		thread jitter_small
+	}
+}
+
+wait (randomint 3 + 4)
+
+//*** delete the effect out of the world now that it's done
+local.spawn_targetname remove
+
+end
+
+
+//******************************
+// jitter effect
+// jitter_normal
+//******************************
+jitter_normal:
+
+waitexec global/earthquake.scr .4 3 0 0
+
+waitexec global/earthquake.scr .5 1 0 0
+
+//waitexec global/earthquake.scr .5 1 0 0
+
+end
+
+
+//*********************************
+// jitter effect
+// jitter_small
+//*********************************
+jitter_small:
+
+waitexec global/earthquake.scr .3 1.5 0 0
+
+waitexec global/earthquake.scr .35 .75 0 0
+
+//waitexec global/earthquake.scr .5 1 0 0
+
+end
+
+
+//*********************************
+// jitter effect
+// jitter_tiny
+//*********************************
+jitter_tiny:
+
+waitexec global/earthquake.scr 1 .3 0 0
+
+//waitexec global/earthquake.scr .5 1 0 0
+
+end

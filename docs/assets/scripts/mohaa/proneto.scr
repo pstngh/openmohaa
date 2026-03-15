@@ -1,0 +1,6 @@
+// This file shouldn't exist, it's been replaced by pronewalkto, to create a more 
+// standard naming convention and to allow us the option of adding pronerunto in 
+// the future.
+
+start local.node:
+self exec global/pronewalkto.scr local.node

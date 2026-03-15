@@ -1,0 +1,27 @@
+main local.set: // Mackey was here
+	if (game.medic != NIL)	
+		end
+
+	if (local.set)
+	{
+		if (local.set == -5)
+			end
+		else
+			println ("Autosaved with set " + local.set)
+	}
+	else
+	println ("Autosaved with NO name")
+
+	local.ent = spawn trigger_save
+
+	waitframe
+
+	if (local.set)
+	{
+		local.string = thread global/savenames.scr::getsave local.set
+		local.ent savename local.string
+	}
+	local.ent triggereffect $player
+	local.ent delete
+
+end

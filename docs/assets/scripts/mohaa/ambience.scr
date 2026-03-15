@@ -1,0 +1,200 @@
+//
+// global ambience script
+// used for easy placement of ambient sounds
+
+ambience:
+if(level.script == "maps/dm/mohdm1.scr")
+{
+thread sound ( -56 -840 16 ) cricket
+thread sound ( 582 2551 420 ) cricket
+}
+if(level.script == "maps/dm/mohdm2.scr")
+{
+thread sound ( -3452 -2640 64 ) wind_trees3
+}
+if(level.script == "maps/dm/mohdm3.scr")
+{
+thread sound ( 2839 -618 -87 ) wind_trees4
+}
+if(level.script == "maps/dm/mohdm4.scr")
+{
+thread sound ( 103 1 328 ) river
+thread sound ( 11 2681 16 ) basement_water
+}
+if(level.script == "maps/dm/mohdm5.scr")
+{
+
+}
+if(level.script == "maps/dm/mohdm6.scr")
+{
+
+}
+if(level.script == "maps/dm/mohdm7.scr")
+{
+thread sound ( -1498 -582 -153 ) cricket
+thread sound ( -3150 -360 -91 ) fireplace
+thread sound ( -3214 1218 264 ) radio_loop
+}
+if(level.script == "maps/obj/obj_team1.scr") 
+{
+
+}
+if(level.script == "maps/obj/obj_team2.scr")
+{
+
+}
+if(level.script == "maps/obj/obj_team4.scr")
+{
+thread sound ( 103 1 328 ) river
+thread sound ( 11 2681 16 ) basement_water
+}
+if(level.script == "maps/obj/obj_team3.scr")
+{
+thread sound ( 1148 -5012 -505 ) waves1
+thread sound ( 504 -5128 -447 ) waves2
+}
+if(level.script == "maps/obj/obj_team5.scr")
+{
+thread sound ( 1148 -5012 -505 ) waves1
+thread sound ( 504 -5128 -447 ) waves2
+}
+if(level.script == "maps/m1l1.scr")
+{
+
+}
+if(level.script == "maps/m1l2a.scr")
+{
+	
+}
+if(level.script == "maps/m1l2b.scr")
+{
+thread sound ( 1814 -3686 -191 ) telephone
+}
+if(level.script == "maps/m1l3a.scr")
+{
+
+}
+if(level.script == "maps/m1l3b.scr")
+{
+
+}
+if(level.script == "maps/m1l3c.scr")
+{
+thread sound ( -5609.50 -6004.87 752.13 ) machine_loop
+}
+if(level.script == "maps/m2l1.scr")
+{
+thread sound ( 791.99 3193.58 448.13 ) m2l1_radio4
+}
+if(level.script == "maps/m2l2a.scr")
+{
+thread sound ( -4531.13 -2482.07 -239.88 ) m2l2a_radio2
+}
+if(level.script == "maps/m2l2b.scr")
+{
+thread sound ( 5415.74 -6761.01 0.13 ) m2l2a_radio2
+}
+if(level.script == "maps/m2l2c.scr")
+{
+
+}
+if(level.script == "maps/m2l3.scr")
+{
+thread sound ( -470.03 5542.64 -255.88 ) m2l2a_radio2
+}
+if(level.script == "maps/m3l1a.scr")
+{
+
+}
+if(level.script == "maps/m3l1b.scr")
+{
+
+}
+if(level.script == "maps/m3l2.scr")
+{
+
+}
+if(level.script == "maps/m3l3.scr")
+{
+
+}
+if(level.script == "maps/m4l1.scr")
+{
+
+}
+if(level.script == "maps/m4l2.scr")
+{
+thread sound ( -5362.82 1922.23 48.13 ) m1l2b_radio1
+}
+if(level.script == "maps/m4l3.scr")
+{
+thread sound ( -2777 -304 16 ) fireplace
+thread sound ( -1911 -1264 0.13 ) fireplace
+thread sound ( -2885 219 24 ) fireplace
+thread sound ( -1756 -798 249 ) m1l2b_radio1
+thread sound ( -2850 -295 216 ) m1l2b_radio2
+thread sound ( -3913 4512 21 ) river
+}
+if(level.script == "maps/m5l1a.scr")
+{
+thread sound ( 1065 -849 11 ) fire_large
+}
+if(level.script == "maps/m5l1b.scr")
+{
+
+}
+if(level.script == "maps/m5l2a.scr")
+{
+
+}
+if(level.script == "maps/m5l2b.scr")
+{
+
+}
+if(level.script == "maps/m5l3.scr")
+{
+
+}
+if(level.script == "maps/m6l1a.scr")
+{
+
+}
+if(level.script == "maps/m6l1b.scr")
+{
+
+}
+if(level.script == "maps/m6l1c.scr")
+{
+thread sound ( 4022 4566 -631 ) m1l2b_radio1
+}
+if(level.script == "maps/m6l2a.scr")
+{
+thread sound ( -2975.33 -1995.13 10.13 ) fireplace
+thread sound ( -3780 134 0.12 ) m6l2b_radio_loop
+thread sound ( -3643 -685 0.12 ) m6l2a_radio_loop
+}
+if(level.script == "maps/m6l2b.scr")
+{
+
+}
+if(level.script == "maps/m6l3a.scr")
+{
+thread sound ( -3551 -1144 -575 ) m1l2b_radio1
+thread sound ( -3472 -1327 -575 ) m1l2b_radio2
+}
+if(level.script == "maps/m6l3b.scr")
+{
+
+}
+if(level.script == "maps/m6l3c.scr")
+{
+
+}
+end
+
+sound local.origin local.sound:
+	local.soundorigin = spawn script_model model "fx/dummy.tik"
+	local.soundorigin.origin = local.origin
+	local.soundorigin loopsound local.sound
+	local.soundorigin notsolid
+end

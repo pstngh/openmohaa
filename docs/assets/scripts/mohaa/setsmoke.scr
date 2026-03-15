@@ -1,0 +1,11 @@
+//===================================================================================
+// Used to set some people to be smokers or not in their tiki files.
+start local.bIAmASmoker:
+	local.bIAmASmoker = int local.bIAmASmoker
+	if ( (local.bIAmASmoker != 0) && (local.bIAmASmoker != 1) )
+	{
+		println "SetSmoke.scr: parameter '" local.bIAmASmoker "' must be 0 or 1"
+		end
+	}
+	self.bIAmASmoker = local.bIAmASmoker
+end

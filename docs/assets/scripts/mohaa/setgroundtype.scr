@@ -1,0 +1,27 @@
+// Sets the type of ground the character moves like he's in/on.  Right now, it takes 
+// effect the next time the character changes animation.
+
+start local.groundtype:
+
+switch (local.groundtype)
+{
+case snow:
+	self.ground = beach   //temp by z until snow anims are made	
+	break
+case water:
+	self.ground = water	
+	break
+case beach:		// Specifically for the d-day beach
+	self.ground = beach	
+	break
+case normal:
+	self.ground = normal	
+	break
+default:
+	println "Illegal weapon pos supplied to setgroundtype.scr"
+	println "Legal values are:"
+	println "  water"
+	println "  beach"
+	println "  normal"
+	break
+}

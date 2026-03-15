@@ -1,0 +1,4 @@
+// obsolete - don't use
+
+start local.anim:
+self exec global/anim.scr local.anim

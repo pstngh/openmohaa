@@ -1,0 +1,39 @@
+// List all the items that the player will get with a give all command
+// Usage:
+// weapon <weapon_tiki_filename> [Classname]
+//   - Use the classname parameter if you want a different class (i.e. Sword)
+// ammo <ammo_name> <amount>
+//
+
+weapon weapons/p38.tik
+weapon weapons/colt45.tik
+weapon weapons/silencedpistol.tik
+weapon weapons/M1_Garand.tik
+weapon weapons/springfield.tik
+weapon weapons/KAR98.tik
+weapon weapons/KAR98sniper.tik
+weapon weapons/thompsonsmg.tik
+weapon weapons/MP40.tik
+weapon weapons/BAR.tik
+weapon weapons/MP44.tik
+//weapon weapons/M2Frag_Grenade.tik
+weapon weapons/M2Frag_Grenade_sp.tik
+weapon weapons/steilhandgranate.tik
+weapon weapons/bazooka.tik
+weapon weapons/panzerschreck.tik
+weapon weapons/shotgun.tik
+
+// these are the max ammo limits
+ammo pistol		200
+ammo rifle		200
+ammo smg		300
+ammo mg			500
+ammo grenade	5
+ammo agrenade	5 // single player american grenades
+ammo heavy		5
+ammo shotgun	50
+
+//item item_healthvial.tik 100
+item items/papers.tik 1
+//item items/camera.tik 1
+item items/binoculars.tik 1

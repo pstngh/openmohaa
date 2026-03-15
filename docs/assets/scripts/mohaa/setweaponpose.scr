@@ -1,0 +1,20 @@
+// Sets the way the AI holds its weapon.  Right now, it takes effect the next time
+// the AI changes animation.
+
+start local.weaponpos:
+
+switch (local.weaponpos)
+{
+case down:
+	self.weaponpos = down
+	break
+case up:
+	self.weaponpos = up
+	break
+default:
+	println "Illegal weapon pos supplied to setweaponpos.scr"
+	println "Legal values are:"
+	println "  down"
+	println "  up"
+	break
+}

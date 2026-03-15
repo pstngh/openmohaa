@@ -1,0 +1,13 @@
+//////////
+main local.alias:
+	self loopsound local.alias
+end
+
+/*
+while (1)
+{
+self playsound local.alias wait
+self waittill sounddone
+}
+end
+*/

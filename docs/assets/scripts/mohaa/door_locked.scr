@@ -1,0 +1,105 @@
+//**********************************************************************
+//*** locked sounds for doors
+//*** place a trigger_use in front of the door you want to be locked
+//*** make the targetname of the trigger 'door_locked'
+//*** add a keyvalue to the trigger of $type [wood | metal | metal_garage]
+//*** if you put nothing, then wood is default
+//**********************************************************************
+lock:
+
+for (local.i = 1 ; local.i <= $door_locked.size ; local.i ++)
+{
+	if ($door_locked[local.i].type == "large")
+	{
+		$door_locked[local.i] thread door_locked_large
+	}
+	else if ($door_locked[local.i].type == "metal")
+	{
+		$door_locked[local.i] thread door_locked_metal
+	}
+	else if ($door_locked[local.i].type == "metal_garage")
+	{
+		$door_locked[local.i] thread door_locked_metal_garage
+	}
+	else
+	{
+		$door_locked[local.i] thread door_locked_wood
+	}	
+}
+
+end
+
+
+//****************************************
+//*** play a locked sound for metal doors
+//****************************************
+door_locked_large:
+
+door_locked_large_loop:
+local.self waittill trigger
+local.self playsound gate_large_locked
+
+//thread global/message_print.scr::message "This door is locked!!" 1
+
+wait 1
+
+goto door_locked_large_loop
+
+end
+
+
+//****************************************
+//*** play a locked sound for metal doors
+//****************************************
+door_locked_metal:
+
+door_locked_metal_loop:
+local.self waittill trigger
+
+local.self playsound door_metal_locked
+
+//thread global/message_print.scr::message "This door is locked!!" 1
+
+wait 1
+
+goto door_locked_metal_loop
+
+end
+
+
+//*******************************************
+//*** play a locked sound for metal garage doors
+//*******************************************
+door_locked_metal_garage:
+
+door_locked_metal_garage_loop:
+local.self waittill trigger
+
+local.self playsound garagedoor_locked
+
+//thread global/message_print.scr::message "This door is locked!!" 1
+
+wait 1
+
+goto door_locked_metal_garage_loop
+
+end
+
+
+//****************************************
+//*** play a locked sound for wood doors
+//****************************************
+door_locked_wood:
+
+door_locked_wood_loop:
+local.self waittill trigger
+
+local.self playsound door_wood_locked
+
+//thread global/message_print.scr::message "This door is locked!!" 1
+
+wait 1
+
+goto door_locked_wood_loop
+
+end

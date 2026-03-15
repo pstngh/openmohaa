@@ -1,0 +1,5 @@
+// Turns on specified AI
+
+self show
+self ai_on
+self solid

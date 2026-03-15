@@ -1,0 +1,20 @@
+//*********************************************************************************************************************************************
+//*** add / modify an objective in the list
+//*** this will replace an objective if you use a number that already exists
+//*** if any field entered contains a 0, it's left at what it was
+//*** syntax --------------------------------
+//*** add_objectives <objective number> <status|1-don't draw, 2-in progress, 3-completed> [objective text] [associated location in map|vector]
+//*********************************************************************************************************************************************
+add_objectives local.index local.status local.objective local.location:
+	local.objective = waitthread global/string_format.scr::str_format local.objective 50 // was 41
+	addobjective local.index local.status local.objective local.location
+end
+
+//*************************************************
+//*** set the current objective
+//*** syntax ---------------------------------
+//*** current_objectives <number of objective>
+//*************************************************
+current_objectives local.index:
+	setcurrentobjective local.index
+end

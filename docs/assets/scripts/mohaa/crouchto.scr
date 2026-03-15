@@ -1,0 +1,5 @@
+// This file shouldn't exist, it's been replaced by crouchwalkto, since we need to 
+// differentiate between walk and run.
+
+start local.node:
+self exec global/crouchwalkto.scr local.node

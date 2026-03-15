@@ -1,0 +1,70 @@
+hammer local.spot local.lookspot:	
+	self forceactivate
+	self type_attack "alarm"
+	self alarmthread hammerinterupt
+	if(self.gun == "" || self.gun == NULL || self.gun == NIL || self.gun == "none")
+		self weapon "walter p38"
+
+	self holster
+	waitframe
+	if(self.isinplace != 1)
+	{
+		self.isinplace = 1
+          self exec global/walkto.scr local.spot
+          self waittill movedone
+          self.origin = local.spot.origin
+          self exec global/turnto.scr local.lookspot
+	}
+	self waitthread hammeranimwait working_hammering_pullout
+	self waitthread hammeranimwait working_hammering_getdown
+	self.isup = 0
+	self anim working_hammering
+	local.randomnum = (randomint(5) + 10)
+	for (local.i = 1; local.i <= local.randomnum; local.i++)
+	{
+		
+		self waitthread hammeranimwait working_hammering
+		waitframe
+		self waitthread hammeranimwait working_hammering
+
+	}
+	self waitthread hammeranimwait working_hammering_getup
+	self.isup = 1
+	self waitthread hammeranimwait working_hammering_putaway
+end
+
+hammerinterupt:
+	self exec global/disable_ai.scr
+	if(self.isup == 0)
+	{
+		self.isup = 1
+		self waitthread hammeranimwait working_hammering_getup
+		self waittill animdone
+		self anim working_hammering_putaway
+		waitframe
+		waitframe
+		waitframe
+	}
+	else
+	{
+		self.isup = 0
+		self anim working_hammering_putaway
+		waitframe
+		waitframe
+		waitframe
+	}
+	waitframe
+	self unholster
+	self exec global/enable_ai.scr
+	self attackplayer
+end
+
+
+hammeranimwait local.anim:
+	if(isalive self)
+	{
+		self anim local.anim
+		self waittill animdone
+	}
+end
+	

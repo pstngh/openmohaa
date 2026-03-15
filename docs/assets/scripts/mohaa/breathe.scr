@@ -1,0 +1,115 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+// Breathe.scr
+//
+// Makes a guy breathe steam and occasionally mumble, whistle, or make other small noises.  
+// Whether or not he breathes steam is controlled through the first parameter, and also 
+// through the character's variable self.breathsteam.  Whether or not he mumbles is 
+// controlled by the second parameter and also through self.mumble.
+// The character's breathing can be externally controlled by calls to the function 
+// setbreatheout local.aftertime, which takes the amount of time until the next breathe
+// out.  Thus a call of setbreatheout 0 would cause him to breathe out immediately.
+//
+///////////////////////////////////////////////////////////////////////////////////////////
+
+start local.breathsteam local.mumble:
+
+	self waittill spawn	// Makes sure that the level is initialised correctly for guys that are
+						// built into the level.
+	if !(isalive self)
+	{
+		end
+	}
+
+	self.mumble = int local.mumble
+	self.breathsteam = int local.breathsteam
+	self.breathetimebase = 8
+	self.breathetimerand = 4
+	self.breathstillmumble = (randomint 3) + 2
+
+	thread breatheout ( (randomint self.breathetimerand) + self.breathetimebase )
+	self.breathethread = parm.previousthread
+
+end
+
+/////////////////////////////////////////////////
+//
+// setbreathsteam - turns steam breathing on or off
+//
+/////////////////////////////////////////////////
+setbreathsteam local.breathsteam:
+	self.breathsteam = int local.breathsteam
+end
+
+/////////////////////////////////////////////////
+//
+// setmumble - turns mumbling on or off
+//
+/////////////////////////////////////////////////
+setmumble local.mumble:
+	self.mumble = int local.mumble
+end
+
+/////////////////////////////////////////////////
+//
+// breatheout - waits aftertime seconds and then
+// breathes out.  If it's time to mumble, also
+// calls the mumble function.
+//
+/////////////////////////////////////////////////
+breatheout local.aftertime:
+
+	wait local.aftertime
+
+	if !(isalive self)
+	{
+		end
+	}
+	if (self.breathsteam == 1)
+	{
+		// Attach the emmitter and tell it to remove when the guy dies
+		self	attachmodel models/emitters/breath_steam_emitter.tik "Bip01 Head" 1 1
+	}
+
+	if ( (self.mumble == 1) && (self.mood == "bored") && (self.silent != 1) )
+	{
+		self.breathstillmumble -= 1
+		if ( self.breathstillmumble <= 0 )
+		{
+			waitthread mumble
+			if !(isalive self)
+			{
+				end
+			}
+			self.breathstillmumble = (randomint 3) + 3
+		}
+	}
+
+	thread breatheout ( (randomint self.breathetimerand) + self.breathetimebase )
+	self.breathethread = parm.previousthread
+end
+
+/////////////////////////////////////////////////
+//
+// nextbreathtime - resets the amount of time 
+// until the next breathe out.
+//
+/////////////////////////////////////////////////
+nextbreathtime local.aftertime:
+	self.breathethread end
+	thread breatheout local.aftertime
+	self.breathethread = parm.previousthread
+end
+
+/////////////////////////////////////////////////
+//
+// mumble - mumbles, whistles, hums, coughs etc
+//
+/////////////////////////////////////////////////
+mumble:
+	if (self.team == "german")	// Only Germans have mumble lines
+	{
+	////self say ("snd_den_grunt_generic_" + self.voicetype)
+		self playsound ("snd_den_grunt_generic_" + self.voicetype)
+	}
+	wait 2
+end

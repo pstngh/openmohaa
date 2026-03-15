@@ -1,0 +1,2 @@
+start local.duration local.magnitude local.no_rampup local.no_rampdown:
+earthquake local.duration local.magnitude local.no_rampup local.no_rampdown

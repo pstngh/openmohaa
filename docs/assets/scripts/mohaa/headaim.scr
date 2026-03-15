@@ -1,0 +1,14 @@
+
+main local.target local.range local.offset: // specify a target entity (must have a head), a range of variance, and an offset (ie can't aim any closer than this offset)
+	local.a = $(local.target) gettagposition "bip01 head"
+
+	for (local.i=0;local.i<3;local.i++)
+	{
+		if (randomint(100) > 50)
+		local.a[local.i] = local.a[local.i] + randomint(local.range) + local.offset
+		else
+		local.a[local.i] = local.a[local.i] - randomint(local.range) - local.offset
+	}
+	self exec global/aimat.scr local.a
+end
+

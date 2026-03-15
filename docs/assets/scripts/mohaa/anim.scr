@@ -1,0 +1,6 @@
+// parameters:
+// local.anim - animation to play
+
+start local.anim:
+self.animname = local.anim
+self animscript "anim/anim.scr"

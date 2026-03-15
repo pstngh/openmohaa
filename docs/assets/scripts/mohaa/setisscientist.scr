@@ -1,0 +1,3 @@
+start:
+	self.isScientist = 1
+end

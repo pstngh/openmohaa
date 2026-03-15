@@ -1,0 +1,6 @@
+// tells AI to aim and then shoot
+
+start local.target:
+self exec global/aimat.scr local.target
+self waittill animdone
+self exec global/shoot.scr

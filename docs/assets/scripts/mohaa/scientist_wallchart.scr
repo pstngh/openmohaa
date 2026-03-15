@@ -1,0 +1,246 @@
+start local.sci1 local.sci2 local.board:
+
+println "Entered scientist_wallchart.scr"
+
+
+
+if (local.board != NIL)
+{
+	println "Moving scientists to board"
+	group.forwardvector = local.board.forwardvector
+
+	// Figure out which scientist is on the left
+	if ( (vector_dot local.sci1 local.board.leftvector) > (vector_dot local.sci2 local.board.leftvector) )
+	{
+		group.scientist1 = local.sci1
+		group.scientist2 = local.sci2
+	}
+	else
+	{
+		group.scientist1 = local.sci2
+		group.scientist2 = local.sci1
+	}
+               //group.scientist1 exec global/disable_ai.scr
+               //group.scientist2 exec global/disable_ai.scr
+			//	println group.forwardvector
+	group.originleft = local.board.origin + (group.forwardvector*24) - (local.board.leftvector*22.6)
+	group.originright = local.board.origin + (group.forwardvector*27.4) + (local.board.leftvector*22.6)
+
+	group.donemarker = 0
+	thread sci1walkto group.originright
+	thread sci2walkto group.originleft 
+}
+else
+{
+	println "Leaving scientists in place"
+	group.originright = local.sci1.origin
+	group.originleft = local.sci2.origin
+	group.forwardvector = local.sci1.forwardvector * -1
+	group.scientist1 = local.sci1
+	group.scientist2 = local.sci2
+	thread depressed
+}
+
+end
+
+//-----------inposition-----------
+// Moves either or both scientists into the position they need to be in.  Returns 1 if they are ok.
+inposition:
+
+if ( ( vector_length(group.scientist1.origin - group.originright) > 8 ) || ( vector_length(group.scientist2.origin - group.originleft) > 8 ) )
+{
+	println "Moving scientists to board"
+	group.donemarker = 0
+	thread sci1walkto group.originright
+	thread sci2walkto group.originleft
+	end 0
+}
+else 
+{
+	group.scientist1.origin = group.originright
+	group.scientist2.origin = group.originleft
+	end 1
+}
+end	// Not necessary, but easier to read
+
+//-----------sci1walkto------------
+sci1walkto local.pos:
+
+               //thread walklook ( local.pos - group.forwardvector ) group.scientist2
+               //local.lookthread = parm.previousthread
+
+group.scientist1 exec global/walkto.scr local.pos
+group.scientist1 waittill movedone
+			//group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist1.origin = local.pos
+			//local.lookthread end
+if (group.donemarker > 0)
+{
+	thread depressed
+}
+else
+{
+			//	group.scientist1 lookat group.scientist2	// Look at partner
+	group.scientist1 anim "scientist_wallchart_depressed_sci1"
+	group.donemarker = 1
+}
+end
+
+//-----------sci2walkto------------
+sci2walkto local.pos:
+
+               //thread walklook ( local.pos - group.forwardvector ) group.scientist1
+               //local.lookthread = parm.previousthread
+
+group.scientist2 exec global/walkto.scr local.pos
+group.scientist2 waittill movedone
+			//group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist2.origin = local.pos
+			//local.lookthread end
+if (group.donemarker > 0)
+{
+	thread depressed
+}
+else
+{
+               //	group.scientist2 lookat group.scientist2	// Look straight ahead
+	group.scientist2 anim "scientist_wallchart_depressed_sci2"
+	group.donemarker = 1
+}
+end
+
+//------------walklook--------------
+walklook local.destination local.other:
+               //while (1)
+               //{
+               //	group.scientist2 lookat local.destination
+               //	wait 0.5
+               //	group.scientist2 lookat group.other
+               //	wait 0.5
+               //	group.scientist2 lookat $player
+               //	wait 0.5
+               //}
+               
+               //-----------depressed------------
+depressed:
+
+               //println "Entered scientist_wallchart.scr::depressed"
+               
+               // Check position
+               //if ( !(thread inposition) ) end
+               
+               // Look straight ahead and turn to the board
+               //group.scientist1 lookat group.scientist1
+               //group.scientist2 lookat group.scientist2
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+
+
+group.scientist1 anim "scientist_wallchart_depressed_sci1"
+group.scientist2 anim "scientist_wallchart_depressed_sci2"
+
+               //local.randnum = (randomint 200) + 300
+               //wait ( local.randnum / 100 )
+
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist1 anim "scientist_wallchart_depressedtoidle_sci1"
+group.scientist2 anim "scientist_wallchart_depressedtoidle_sci2"
+group.scientist1 waittill animdone
+
+local.randnum = randomint (100)
+
+if		(local.randnum < 30)	thread idle1
+else if	(local.randnum < 60)	thread idle2
+else if	(local.randnum < 90)	thread idle3
+else						thread idletodepressed
+
+end
+
+//-----------idle1------------
+idle1:
+
+			//println "Entered scientist_wallchart.scr::idle1"
+
+               // Check position
+               //if ( !(thread inposition) ) end
+
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+
+group.scientist1 anim "scientist_wallchart_idle1_sci1"
+group.scientist2 anim "scientist_wallchart_idle1_sci2"	
+group.scientist1 waittill animdone
+
+local.randnum = randomint (100)
+if		(local.randnum < 10)	thread idle1
+else if	(local.randnum < 50)	thread idle2
+else if	(local.randnum < 90)	thread idle3
+else						thread idletodepressed
+
+end
+
+//-----------idle2------------
+idle2:
+
+               //println "Entered scientist_wallchart.scr::idle2"
+               
+               // Check position
+               //if ( !(thread inposition) ) end
+
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist1 anim "scientist_wallchart_idle2_sci1"
+group.scientist2 anim "scientist_wallchart_idle2_sci2"	
+group.scientist1 waittill animdone
+
+local.randnum = randomint (100)
+if		(local.randnum < 40)	thread idle1
+else if	(local.randnum < 50)	thread idle2
+else if	(local.randnum < 90)	thread idle3
+else						thread idletodepressed
+
+end
+
+//-----------idle3------------
+idle3:
+
+               //println "Entered scientist_wallchart.scr::idle3"
+               
+               // Check position
+               //if ( !(thread inposition) ) end
+
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist1 anim "scientist_wallchart_idle3_sci1"
+group.scientist2 anim "scientist_wallchart_idle3_sci2"	
+group.scientist1 waittill animdone
+
+local.randnum = randomint (100)
+if		(local.randnum < 35)	thread idle1
+else if	(local.randnum < 70)	thread idle2
+else if	(local.randnum < 80)	thread idle3
+else						thread idletodepressed
+
+end
+
+
+//-----------idletodepressed------------
+idletodepressed:
+
+               //println "Entered scientist_wallchart.scr::idletodepressed"
+               
+               // Check position
+               //if ( !(thread inposition) ) end
+               
+               //group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+               //group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+group.scientist1 anim "scientist_wallchart_idletodepressed_sci1"
+group.scientist2 anim "scientist_wallchart_idletodepressed_sci2"		
+group.scientist1 waittill animdone
+thread depressed
+end
+
+

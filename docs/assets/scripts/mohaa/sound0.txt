@@ -1,0 +1,66 @@
+//----------------------------------------------------------------------------- 
+// 
+//  global/sound0.txt 
+// 
+// Copyright (C) 2000 by 2015, Inc. 
+// All rights reserved. 
+// 
+// This source may not be distributed and/or modified without 
+// expressly written permission by 2015, Inc. 
+// 
+//----------------------------------------------------------------------------- 
+// Last Updated: May 10, 2001
+// --------------------------
+//
+// - May 10, 2001 -------------------------------------------------------------
+//	ZeLeX - Created
+//
+//----------------------------------------------------------------------------- 
+//
+// Sound definitions file:
+//
+//
+// Possible Keys:
+// --------------
+// sound <filename> (The start of every definition)
+// mindist <defaultmindist> (specifies the default minimum distance at which this sound is played
+// maxdist <defaultmaxdist> (does not work)
+// volume <defaultvolume> (specifies the default volume)
+// pitch <defaultpitch> (specifies the default pitch)
+// loopstart <startofloop> (specifies the time in ms which is the start of the loop)
+// loopend <endofloop> (specifies the time in ms which is the end of the loop)
+// maxnumber <int> 
+// maxfactor <int>
+// localsound (specifies this sound as a local sound
+// defaultmindist <int> (specifies the default minimum distance for all sounds)
+// defaultmaxdist <int> (does nothing)
+// defaultvolume <float> (specifies the default volume for all sounds) 
+//
+// Sample Formatting:
+// ------------------
+// sound "blah"
+// 	localsound
+// 	volume 1
+//	mindist 1000
+//
+//
+//	!USE TABS!
+//
+
+sound "sound/environment/raininside.wav"
+	localsound
+
+sound "sound/environment/rainoutside.wav"
+	localsound
+
+sound "sound/music/streamed_action_11.wav"
+	localsound
+
+sound "sound/music/streamed_m5.wav"
+	localsound
+
+sound "sound/music/action_11.wav"
+	localsound
+
+sound "sound/music/m5.wav"
+	localsound

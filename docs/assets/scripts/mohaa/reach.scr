@@ -1,0 +1,8 @@
+reach local.node:
+	while (vector_length (self.origin - local.node.origin) > 80)
+	{
+		self runto local.node
+		self waittill movedone
+		waitframe
+	}
+end

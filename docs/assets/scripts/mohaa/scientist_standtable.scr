@@ -1,0 +1,192 @@
+start group.sci local.table:
+
+	//println "Entered scientist_standtable.scr"
+
+
+	if (local.table!= NIL)
+	{
+		println "Moving scientist to table"
+		group.forwardvector = local.table.forwardvector
+	
+		println group.forwardvector
+		group.origin = local.table.origin + (group.forwardvector*16)
+	
+		thread sciwalkto group.origin
+	}
+	else
+	{
+		println "Leaving scientist in place"
+		group.origin = group.sci.origin
+		group.forwardvector = group.sci.forwardvector * -1
+		thread depressed
+	}
+
+end
+
+//-----------inposition-----------
+// Moves scientist into the position he needs to be in.  Returns 1 if he is already ok.
+inposition:
+
+	if ( vector_length(group.sci.origin - group.origin) > 8 )
+	{
+		println "Moving scientist to table"
+		group.donemarker = 0
+		thread sciwalkto group.origin
+		end 0
+	}
+	else 
+	{
+		group.sci.origin = group.origin
+		end 1
+	}
+end	// Not necessary, but easier to read
+
+
+//-----------sciwalkto------------
+sciwalkto local.pos:
+//	thread walklook ( local.pos + (0 0 48) )
+//	local.lookthread = parm.previousthread
+
+	group.sci exec global/walkto.scr local.pos
+	if (level.scienceinterupt != 0)
+	end	
+	group.sci waittill movedone
+//	group.sci turnto (group.sci.origin - group.forwardvector )
+	group.sci.origin = local.pos
+//	local.lookthread end
+	
+	thread depressed
+
+end
+
+
+//------------walklook--------------
+walklook local.target:
+	while (1)
+	{
+	// Make him look at the player until that works.  TODO: Make him look at his target
+		group.sci lookat $player
+		wait 0.5
+	}
+
+//-----------depressed------------
+depressed:
+	if(level.scienceinterupt == 0)
+	{
+//		println "Entered scientist_standtable.scr::depressed"
+// 		Check position
+//		if ( !(thread inposition) ) end
+// Look straight ahead and turn to the board
+//		group.sci lookat group.sci
+//		group.sci turnto (group.sci.origin - group.forwardvector )
+		group.sci anim "scientist_standtable_straight"
+		if (level.scienceinterupt != 0)
+		end	
+		local.randnum = (randomint 200) + 300
+		wait ( local.randnum / 100 )
+
+// 	(Turn him back to the table in case something distracted him.)
+//		group.sci turnto (group.sci.origin - group.forwardvector )
+//		group.sci anim "scientist_standtable_straighttolean"
+//		group.sci waittill animdone
+		
+		local.randnum = randomint (100)	
+		if		(local.randnum < 30)	thread idle1
+		else if	(local.randnum < 60)	thread idle2
+		else if	(local.randnum < 90)	thread idle3
+		else						thread idletodepressed
+	}	
+end
+
+//-----------idle1------------
+idle1:
+	if(level.scienceinterupt == 0)
+	{
+		//println "Entered scientist_standtable.scr::idle1"
+	
+		// Check position
+//			if ( !(thread inposition) ) end
+		
+		group.sci turnto (group.sci.origin - group.forwardvector )
+		group.sci anim "scientist_standtable_lean01"
+		if (level.scienceinterupt != 0)
+		end
+		group.sci waittill animdone
+		
+		local.randnum = randomint (100)
+		if		(local.randnum < 10)	thread idle1
+		else if	(local.randnum < 50)	thread idle2
+		else if	(local.randnum < 90)	thread idle3
+		else						thread idletodepressed
+	}
+end
+
+//-----------idle2------------
+idle2:
+	if(level.scienceinterupt == 0)
+	{	
+		//println "Entered scientist_standtable.scr::idle2"
+	
+		// Check position
+//		 if ( !(thread inposition) ) end
+		
+		group.sci turnto (group.sci.origin - group.forwardvector )
+
+		group.sci anim "scientist_standtable_lean02"
+		if (level.scienceinterupt != 0)
+		end	
+		group.sci waittill animdone
+		
+		local.randnum = randomint (100)
+		if		(local.randnum < 40)	thread idle1
+		else if	(local.randnum < 50)	thread idle2
+		else if	(local.randnum < 90)	thread idle3
+		else						thread idletodepressed
+	}
+end
+
+//-----------idle3------------
+idle3:
+	if(level.scienceinterupt == 0)
+	{
+		//println "Entered scientist_standtable.scr::idle3"
+		
+		// Check position
+//		 if ( !(thread inposition) ) end
+		
+		group.sci turnto (group.sci.origin - group.forwardvector )
+
+		group.sci anim "scientist_standtable_lean03"
+		if (level.scienceinterupt != 0)
+		end	
+		group.sci waittill animdone
+
+		local.randnum = randomint (100)
+		if		(local.randnum < 35)	thread idle1
+		else if	(local.randnum < 70)	thread idle2
+		else if	(local.randnum < 80)	thread idle3
+		else						thread idletodepressed
+	}
+end
+
+
+//-----------idletodepressed------------
+idletodepressed:
+	if(level.scienceinterupt == 0)
+	{
+		//println "Entered scientist_standtable.scr::idletodepressed"
+
+		// Check position
+//		 ( !(thread inposition) ) end
+
+		group.sci turnto (group.sci.origin - group.forwardvector )
+		if (level.scienceinterupt != 0) end
+		group.sci anim "scientist_standtable_leantostraight"
+		if (level.scienceinterupt != 0)
+		end
+		group.sci waittill animdone
+		thread depressed
+	}
+end
+
+

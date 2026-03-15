@@ -1,0 +1,146 @@
+//============================================================================
+typedef weapons
+{
+//---------------------------------------------------------
+item "Colt 45"
+//selitem_shader textures/hud/weap_pistol // icon graphic
+hudmodel models/weapons/colt45.tik
+hudmove bob // bob or spin
+hudangledeltas "0 30 0" // angles to bob or spin
+hudangles "0 40 -25"
+hudoffset "-64 0 16"
+modelwindow 0.1 0.1 0.8 0.8
+}
+
+//============================================================================
+typedef ammo
+{
+item "pistol"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/ammo/pistolshell.tik
+hudmove bob // bob or spin
+hudangledeltas "0 10 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+item "rifle"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/ammo/garand_clip_full.tik
+hudmove bob // bob or spin
+hudangledeltas "0 10 0" // angles to bob or spin
+hudangles "-60 -40 40"
+hudoffset "1.5 1.25 1.8"
+modelwindow 0.1 0.1 0.8 0.8
+
+item "smg"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/ammo/thompson_clip.tik
+hudmove bob // bob or spin
+hudangledeltas "0 10 0" // angles to bob or spin
+hudangles "-40 -30 130"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+item "mg"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/ammo/rifleshell.tik
+hudmove bob // bob or spin
+hudangledeltas "0 10 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+item "grenade"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/projectiles/M2FGrenade.tik
+hudmove bob // bob or spin
+hudangledeltas "0 10 0" // angles to bob or spin
+hudangles "-40 -100 40"
+hudoffset "1 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+}
+
+//============================================================================
+typedef items
+{
+//---------------------------------------------------------
+item "Binoculars"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/binoculars.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "130 -40 -30"
+hudoffset "6 -0.8 3.5"
+modelwindow 0.1 0.1 0.8 0.8
+
+//---------------------------------------------------------
+item "Bratwurst"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/bratwurst.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+//---------------------------------------------------------
+item "Flare Gun"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/flaregun.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+//---------------------------------------------------------
+item "Gas Mask"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/gasmask.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "0 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+
+//---------------------------------------------------------
+item "Papers"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/papers.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "-30 80 -70"
+hudoffset "5 -0.8 0.9"
+modelwindow 0.1 0.1 0.8 0.8
+
+//---------------------------------------------------------
+item "Spy Camera"
+//selitem_shader textures/hud/item_camera // icon graphic
+hudmodel models/items/camera.tik
+hudmove bob // bob or spin
+hudangledeltas "0 20 0" // angles to bob or spin
+hudangles "-40 -30 40"
+hudoffset "2 0.1 0"
+modelwindow 0.1 0.1 0.8 0.8
+}
+
+//============================================================================
+typedef hud
+{
+//---------------------------------------------------------
+item "Compass"
+//selitem_shader textures/hud/item_camera // icon graphic
+//hudmodel models/items/compassbase.tik
+//invmodel models/items/compassneedle.tik
+hudmodel models/items/compassneedle.tik
+//hudmodel models/LightingTestSphere.tik
+//hudmove bob // bob or spin
+//hudangledeltas "0 5 0" // angles to bob or spin
+//hudangles "35 0 0"
+//hudangles "40 0 0"
+hudangles "0 0 0"
+hudcompassangles
+hudoffset "5 0 0"
+modelwindow 0.1 0.1 0.8 0.8
+}

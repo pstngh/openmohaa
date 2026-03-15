@@ -1,0 +1,41 @@
+for (local.index = 1; local.index <= $alarmlight.size; local.index++)
+{
+	spawn script_model model "fx/corona_red.tik" targetname alarmcoronasuck
+	$alarmcoronasuck[local.index].origin = $alarmcorona[local.index].origin
+	$alarmcoronasuck[local.index].scale = $alarmlight[local.index].scale
+	local.alarmlightbright[local.index] = spawn script_model model "lights/lightbulb_caged_red-lit.tik"
+	local.alarmlightbright[local.index].origin = $alarmlight[local.index].origin
+	local.alarmlightbright[local.index].angles = $alarmlight[local.index].angles
+	local.alarmlightbright[local.index].scale = $alarmlight[local.index].scale
+	local.alarmdlight[local.index] = spawn script_model model "fx/dummy.tik"
+	local.alarmdlight[local.index].origin = $alarmcorona[local.index].origin
+	local.alarmdlight[local.index] lightOn
+	$alarmcorona[local.index] hide
+}
+	level.alarmlights = 1
+level waittill spawn
+
+while (1)
+{
+	while ( level.alarmlights == 1 )
+	{
+		for (local.index = 1; local.index <= $alarmlight.size; local.index++)
+		{
+			local.alarmdlight[local.index] light .3 0 0 64
+			$alarmcoronasuck[local.index] show
+			$alarmlight[local.index] hide
+			local.alarmlightbright[local.index] show
+		}
+		wait 0.1
+	
+		for (local.index = 1; local.index <= $alarmlight.size; local.index++)
+		{
+			local.alarmdlight[local.index] light 0 0 0 64
+			$alarmcoronasuck[local.index] hide
+			$alarmlight[local.index] show
+			local.alarmlightbright[local.index] hide
+		}
+		wait 1
+	}
+	wait 0.1
+}

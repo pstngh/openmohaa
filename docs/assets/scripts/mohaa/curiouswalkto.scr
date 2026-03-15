@@ -1,0 +1,10 @@
+start local.node:
+
+if(self.health <= 0)
+{
+	end
+}
+
+
+self.position = "walk" // temporary to make it work
+exec global/moveto.scr anim/curiouswalk.scr local.node

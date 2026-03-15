@@ -1,0 +1,227 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//  MoH: Allied Assault Script File  
+//  Global function: For making custom patrol routes with pause points and threads
+//  Script Written By: Benson 'elmagoo' Russell
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+//**************************************************************************
+//*** Will make a guy walk a patrol route with custom commands
+//*** syntax --------------------------------
+//*** <ai to walk node> patrol <targetname of a node on the path>
+//**************************************************************************
+patrol local.node:
+
+//*** check if the ai passed exists
+if (local.self == NULL || !(isalive local.self))
+{
+	println "^~^~^ PATROL PATH ERROR: designated ai does not exist in the level, aborting patrol!!"
+	goto patrol_done
+}
+
+//*** check if the local.node exists
+if (local.node == NULL)
+{
+	println "^~^~^ PATROL PATH ERROR: the passed path does not exist, aborting patrol!!"
+	goto patrol_done	
+}
+
+//*** check if the level.script variable has been set
+if (level.script == NIL)
+{
+	println "^~^~^ PATROL PATH ERROR: the level.script variable has not been set, aborting patrol!!"
+	goto patrol_done	
+}
+
+//*** process the patrol route into an array
+local.index = 1
+local.first_node = local.node
+
+patrol_process_loop:
+if (!(isalive local.self) || local.self == NULL)
+{
+	goto patrol_done
+}
+
+local.route[local.index] = local.node
+
+if (local.node.target != NIL && $(local.node.target) != NULL)
+{
+	local.next_node = $(local.node.target)
+	local.node.target = NIL
+	local.node = local.next_node
+	if (local.node != local.first_node)
+        {
+        	local.index ++
+        	goto patrol_process_loop        	
+        }
+}
+
+local.index = 1
+//local.self.movedoneradius = 32
+
+//local.self exec global/setweaponpose.scr "down"
+
+patrol_loop:
+//*** begin the patrolling loop
+while (isalive local.self && local.self.thinkstate == "idle")
+{
+	//println "PATROL: top of loop"
+	
+	//*** walk to the next path
+	/*
+	println "PATROL: walking to node: " local.route[local.index]
+	local.self exec global/walkto.scr local.route[local.index]
+	local.self waittill movedone
+	*/
+	
+	local.self.patrolpath = local.route[local.index]
+	local.self.type_idle = "patrol"
+	
+	while (vector_within local.self.origin local.route[local.index] 32 == 0 && local.self.thinkstate == "idle")
+        {
+		//println "PATROL: walking to node: " local.route[local.index]
+        	wait .75
+        }
+		
+	//*** if there is something to lookat
+	if (local.route[local.index].look_point != NIL && $(local.route[local.index].look_point ) != NULL && local.self.islooking != 1)
+        {
+		//println "PATROL: looking at: " local.route[local.index].look_point
+		local.self.islooking = 1
+        	local.self thread patrol_look local.route[local.index]
+        }
+
+	//*** if there is something to turnto, but no pause interval, default the invertal to 4 seconds and turn
+	if (local.route[local.index].turn_point != NIL)
+	{
+		if (local.route[local.index].pause_interval == NIL || local.route[local.index].pause_interval == 0)
+                {
+			println "PATROL: defaulting pause_interval for turnto"
+                	local.route[local.index].pause_interval = 4
+                }
+		
+		//println "PATROL: turning to: " local.route[local.index].turn_point
+		local.self.type_idle = "idle"
+
+		local.turn = $(local.route[local.index].turn_point)
+
+patrol_turn_loop:
+                //*** start turning to stuff
+                local.self exec global/turnto.scr $(local.turn)
+	}
+	else
+	{
+		local.turn = NULL
+	}
+
+	//*** if the pause_interval is set, wait for it's value
+	if (local.route[local.index].pause_interval != NIL)
+        {
+		//println "PATROL: pausing at: " local.route[local.index] " : for this long: " local.route[local.index].pause_interval
+		local.self.type_idle = "idle"
+		local.self exec global/stand.scr
+        	wait local.route[local.index].pause_interval
+		
+                if (local.turn != NULL && local.turn.target != NIL && $(local.turn.target) != NULL)
+                {
+                	local.turn = $(local.turn.target)
+                	//println "PATROL LOOK: next look target: " local.look
+                	goto patrol_turn_loop
+                }
+        }
+	
+	//*** if a thread is set, run it and wait for it's completion
+	if (local.route[local.index].run_thread != NIL)
+        {
+		//println "PATROL: running thread at node: " local.route[local.index] " : thread: " local.route[local.index].run_thread
+		local.self.type_idle = "idle"
+		//local.self exec global/stand.scr
+        	local.self waitthread level.script::local.route[local.index].run_thread
+        }
+	
+	//*** cancel the turnto and go to the next node
+	if (local.route[local.index].turn_point != NIL)
+        {
+		//println "PATROL: canceling turnto for node: " local.route[local.index]
+        	local.self exec global/turnto.scr NULL
+        }
+	
+	//*** set the next node to go to
+	//println "PATROL: current node: " local.route[local.index]
+	local.index ++
+	
+	if (local.index > local.route.size)
+        {
+        	local.index = 1
+        }
+	//println "PATROL:  new node: " local.route[local.index]
+}
+
+//*** wait until he's dead or back to idle
+while (isalive local.self && local.self.thinkstate != "idle")
+{
+	//println "PATROL: currently busy in state: " local.self.thinkstate
+	wait 4
+}
+
+//*** if he died, quit the thread
+if !(isalive local.self)
+{
+	//println "PATROL: patrol guy is dead, abort loop"
+	goto patrol_done
+}
+
+//*** he's still alive and went back to idle, so make him go back to his path
+//println "PATROL: returning patrol guy to loop at node: " local.route[local.index]
+local.self exec global/walkto.scr local.route[local.index]
+local.self waittill movedone
+
+goto patrol_loop
+
+patrol_done:
+end
+
+
+//**************************************************************************
+//*** Look around thread for patrol path
+//*** syntax --------------------------------
+//*** <ai to walk node> patrol <current patrol point this was set at>
+//**************************************************************************
+patrol_look local.node:
+
+//println "PATROL LOOK: setting look interval" 
+if (local.node.look_interval == NIL || local.node.look_interval == 0)
+{
+	local.look_interval = 2
+}
+else
+{
+	local.look_interval = local.node.look_interval
+}
+
+//println "PATROL LOOK: look interval: " local.look_interval
+
+local.look = $(local.node.look_point)
+
+//println "PATROL LOOK: look point: " local.look
+
+patrol_look_loop:
+//*** start looking at stuff
+local.self lookat local.look
+wait local.look_interval
+
+if (local.look.target != NIL && $(local.look.target) != NULL)
+{
+	local.look = $(local.look.target)
+	//println "PATROL LOOK: next look target: " local.look
+	goto patrol_look_loop
+}
+
+//println "PATROL LOOK: resetting look"
+local.self lookat NULL
+local.self.islooking = 0
+
+end
+

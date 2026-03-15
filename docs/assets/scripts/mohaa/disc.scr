@@ -1,0 +1,6 @@
+main local.ent:
+	local.ent notsolid
+	level waittill spawn
+	local.ent solid
+	local.ent disconnect_paths
+end

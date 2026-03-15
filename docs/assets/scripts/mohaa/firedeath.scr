@@ -1,0 +1,88 @@
+//*********************************************************************************************************************************************
+//*** senns fire death (for m6l3c)
+//*** The player enters some fire, and within a short random amount of time
+//*** if he's still in the fire he will die a miserable death.
+//*** This main thread is called by this script and should not be called by the
+//*** level script itsself.  The level script should call firedeath_setup
+//*** syntax ------------------------------------
+//*** firedeath <this is the index number for the array of firedeath triggers>
+//*********************************************************************************************************************************************
+firedeath local.index:
+
+firedeath_loop:
+$firedeath[local.index] waittill trigger
+
+local.poorbastard = parm.other
+local.poorbastard playsound gas_explode2
+
+wait (randomfloat .5 + .5)
+
+if (local.poorbastard istouching $firedeath[local.index] == 1)
+{
+	local.spawn_fire = (local.poorbastard.targetname + "_fire")
+	spawn animate/explosion_conflagration targetname local.spawn_fire
+	local.spawn_fire = $(local.poorbastard.targetname + "_fire")
+	local.spawn_fire.origin = local.poorbastard.origin
+	
+	local.spawn_fire anim start
+	//$player exec global/bullethit.scr (0 -1 0) 1000 50 1
+	radiusdamage local.spawn_fire.origin 4000 256
+	
+	wait 3
+	local.spawn_fire remove
+}
+
+goto firedeath_loop
+
+end
+
+
+//**************************************
+//*** single version firedeath thread
+firedeath_single:
+$firedeath waittill trigger
+
+wait (randomfloat .5 + .5)
+
+if ($player istouching $firedeath == 1)
+{
+	spawn animate/explosion_conflagration targetname player_fire_of_doom
+	$player_fire_of_doom.origin = $player.origin
+	
+	$player_fire_of_doom anim start
+	$player exec global/bullethit.scr (0 -1 0) 1000 50 1
+}
+else
+{
+	goto firedeath_single
+}
+
+end
+
+
+//*************************************************
+//*** setup the firedeaths
+//*** the level scripts should call this thread
+//*************************************************
+firedeath_setup:
+if ($firedeath == NULL)
+{
+	println "^~^~^ There are no firedeaths in the map!"
+	goto firedeath_setup_end
+}
+
+/*
+if ($firedeath.size == 1)
+{
+	thread firedeath_single
+	goto firedeath_setup_end
+}
+*/
+
+for (local.i = 1 ; local.i <= $firedeath.size ; local.i ++)
+{
+	thread firedeath local.i
+}
+
+firedeath_setup_end:
+end

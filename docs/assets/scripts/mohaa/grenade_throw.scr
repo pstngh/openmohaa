@@ -1,0 +1,48 @@
+main local.dest local.vertical:
+	if !(level.grenadecount)
+		level.grenadecount = 0
+
+	self exec global/aimat.scr local.dest.origin
+	wait 0.2
+	self anim "grenade_throw"
+	wait 1.15
+	local.grenadename = "targ" + level.grenadecount
+	local.expname = "exp" + level.grenadecount
+	level.grenadecount++
+	local.grenade = spawn script_model "targetname" (local.grenadename) "model" "projectiles/m2fgrenade.tik"
+
+	local.org = self.origin
+	local.org[2] = 	local.org[2] + 90
+
+	local.grenade.origin = local.org
+	local.vect = (local.dest.origin - self.origin)
+	local.vect = vector_normalize (local.vect)
+
+	local.dist = vector_length (self.origin - local.dest.origin)
+	
+	local.vect[0] = 	local.vect[0] * (local.dist / 1.5)
+	local.vect[1] = 	local.vect[1] * (local.dist / 1.5)
+	local.vect[2] = 	local.vect[2] * local.dist
+
+
+	local.vect[2] = local.vect[2] + local.vertical
+
+	local.grenade physics_on
+	local.grenade notsolid
+
+	local.grenade rotateX (local.vect[0] * 100)
+
+	local.grenade physics_velocity local.vect
+
+	wait 1.5
+
+	local.o = local.grenade.origin
+	local.grenade delete
+
+	local.exp = spawn models/emitters/gren_exp "targetname" (local.expname)
+	
+	local.exp.origin = local.o
+	local.exp anim start
+	wait 3
+	local.exp delete
+end

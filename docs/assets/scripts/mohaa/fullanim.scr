@@ -1,0 +1,5 @@
+// parameters:
+// local.anim - animation to play full body
+
+start local.anim:
+self animscript local.anim

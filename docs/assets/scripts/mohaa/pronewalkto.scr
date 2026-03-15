@@ -1,0 +1,6 @@
+// parameters:
+// local.node - node to prone/crawl to
+
+start local.node:
+//self.position = "pronewalk" // temporary to make it work
+self exec global/moveto.scr anim/prone_walk.scr local.node

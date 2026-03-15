@@ -1,0 +1,9 @@
+main local.error local.errortype:
+	if (local.errortype == NIL)
+		local.errortype = 1
+
+	if (getcvar(showerror) == "1")
+	println local.error
+	else
+	error (local.error + "    Use 'showerror 1' at the console to bypass this error message.") local.errortype
+end

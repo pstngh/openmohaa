@@ -1,0 +1,352 @@
+main local.set:
+
+	if (local.set == NIL)
+	{	
+		println "Adding autosave names"
+
+		if (level.script != NIL)
+		{
+			for (local.i=1;local.i<$autosave.size+1;local.i++)
+			{
+				if ($autosave[local.i].set != NIL)
+				{
+					local.string = thread getsave $autosave[local.i].set
+					$autosave[local.i] savename local.string
+				}
+				else
+				{
+					if ($autosave[local.i].savename != NIL)
+					{
+						$autosave[local.i].savename = (level.script + " save NIL")
+						exec global/error.scr ("Error, Autosave at " + $autosave[local.i].origin + " has a savename and no #set. Delete the savename and put it in savenames.scr and give the autosave a #set.")
+					}
+					else
+						exec global/error.scr ("Error, Autosave at " + $autosave[local.i].origin + " has no #set")
+				}
+			}
+		}
+		else
+		println "Error, no script should be loaded before loadout.scr."
+	}
+	else
+	{
+		local.string = thread getsave local.set
+		end local.string
+	}
+
+
+end
+
+getsave local.set:
+
+	if (local.set == -5)
+	{
+		local.string = "Starting"
+		end local.string
+	}
+
+	if (level.script != NIL)
+	{
+		if (level.script == "maps/training.scr")
+		{
+			if (local.set == 1)
+				local.string = "Planting explosives"
+			else
+			if (local.set == 2)
+				local.string = "Firing Range"
+		}
+		else
+		if (level.script == "maps/m1l1.scr")
+		{
+			if (local.set == 1)
+				local.string = "Ride gone bad"
+			else
+			if (local.set == 2)
+				local.string = "Ambush!"
+		}
+		else
+		if (level.script == "maps/m1l2a.scr")
+		{
+			if (local.set == 1)
+				local.string = "Rescue successful"
+			else
+			if (local.set == 2)
+				local.string = "SAS on the warpath"
+			else
+			if (local.set == 3)
+				local.string = "Fortress infiltration"
+			else
+			if (local.set == 4)
+				local.string = "Goods grabbed, gone"
+			else
+			if (local.set == 5)
+				local.string = "Destroying Flak 88s"
+		}
+		else
+		if (level.script == "maps/m1l2b.scr")
+		{
+			if (local.set == 1)
+				local.string = "Tank garage"
+			else
+			if (local.set == 2)
+				local.string = "Ammo storage"
+			else
+			if (local.set == 3)
+				local.string = "Exfiltrating"
+		}
+		else
+		if (level.script == "maps/m2l1.scr")
+		{
+			if (local.set == 1)
+				local.string = "Inside the guardhouse"
+			else
+			if (local.set == 2)
+				local.string = "Research Building Entrance"
+			else
+			if (local.set == 3)
+				local.string = "Upstairs in the Research Building"
+			else
+			if (local.set == 4)
+				local.string = "Leaving the Research Building"
+
+		}
+		else
+		if (level.script == "maps/m2l2a.scr")
+		{
+			if (local.set == 1)
+				local.string = "Entering the Pen"
+
+		}
+		else
+		if (level.script == "maps/m2l3.scr")
+		{
+			if (local.set == 1)
+				local.string = "Exiting the vent"
+			else
+			if (local.set == 2)
+				local.string = "Dash for the train"
+			else
+			if (local.set == 3)
+				local.string = "Escape through the garage"
+		}
+		else
+		if (level.script == "maps/m3l1a.scr")
+		{
+			if (local.set == 1)
+				local.string = "About to disembark"
+			else
+			if (local.set == 2)
+				local.string = "Healed by a medic"
+			else
+			if (local.set == 3)
+				local.string = "Healed at the shingle"
+			else
+			if (local.set == 4)
+				local.string = "Base of the bunker"
+		}
+		else
+		if (level.script == "maps/m3l1b.scr")
+		{
+			if (local.set == 1)
+				local.string = "Top of the bunker"
+		}
+		else
+		if (level.script == "maps/m3l2.scr")
+		{
+			if (local.set == 1)
+				local.string = "Defending the rear"
+			else
+			if (local.set == 2)
+				local.string = "Defending the front"
+			else 
+			if (local.set == 3)
+				local.string = "Leaving the house"
+			else 
+			if (local.set == 4) 
+				local.string = "Flak alley"
+			else 
+			if (local.set == 5) 
+				local.string = "In the barn"
+			else 
+			if (local.set == 6) 
+				local.string = "At the radio"
+			else 
+			if (local.set == 7) 
+				local.string = "Near the first Flak 88"
+			else 
+			if (local.set == 8) 
+				local.string = "Anti-aircraft gun"
+		}
+		else
+		if (level.script == "maps/m3l3.scr")
+		{
+			if (local.set == 1)
+				local.string = "Paratroopers"
+			else
+			if (local.set == 2)
+				local.string = "Tiger tank"
+			else
+			if (local.set == 3)
+				local.string = "The church"
+			else
+			if (local.set == 4)
+				local.string = "Nebelwerfer field"
+			else
+			if (local.set == 5)
+				local.string = "Nebelwerfer 1"
+			else
+			if (local.set == 6)
+				local.string = "Nebelwerfer 2"			
+			else
+			if (local.set == 7)
+				local.string = "Nebelwerfer 3"
+			else
+			if (local.set == 8)
+				local.string = "Nebelwerfer 4"
+			else
+			if (local.set == 9)
+				local.string = "Bocage clearing"
+		}
+		else
+		if (level.script == "maps/m4l1.scr")
+		{
+			if (local.set == 1)
+				local.string = "Downed plane"
+			else
+			if (local.set == 2)
+				local.string = "Road bend"
+			else
+			if (local.set == 3)
+				local.string = "Uphill battle"
+		}
+		else
+		if (level.script == "maps/m4l2.scr")
+		{
+			if (local.set == 1)
+				local.string = "Railroad"
+			else
+			if (local.set == 2)
+				local.string = "Tunnel"
+			else
+			if (local.set == 3)
+				local.string = "Underground"
+		}
+		else
+		if (level.script == "maps/m4l3.scr")
+		{
+			if (local.set == 1)
+				local.string = "Into the lion's den"
+			else
+			if (local.set == 2)
+				local.string = "Infiltrated the perimeter"
+			else
+			if (local.set == 3)
+				local.string = "Exfiltrating"
+			else
+			if (local.set == 4)
+				local.string = "Radio Free Manor house"
+			else
+			if (local.set == 5)
+				local.string = "Troops manifested"
+			else
+			if (local.set == 6)
+				local.string = "Battles unplanned"
+			else
+			if (local.set == 7)
+				local.string = "Plans stolen"
+		}		
+		else
+		if (level.script == "maps/m5l1a.scr")
+		{
+			if (local.set == 1)
+				local.string = "Rain in the eyes"
+			else
+			if (local.set == 2)
+				local.string = "Downpour"
+			else
+			if (local.set == 3)
+				local.string = "Scope soaked"
+			else
+			if (local.set == 4)
+				local.string = "Muddy depths"
+		}		
+		else
+		if (level.script == "maps/m5l1b.scr")
+		{
+			if (local.set == 1)
+				local.string = "Panzer 'Oust"
+			else
+			if (local.set == 2)
+				local.string = "Sniping from below"
+			else
+			if (local.set == 3)
+				local.string = "Bombed from above"
+			else
+			if (local.set == 4)
+				local.string = "Moving in on the King Tiger"
+		}		
+		else
+		if (level.script == "maps/m5l3.scr")
+		{
+			if (local.set == 1)
+				local.string = "Sniping from on high"
+		}		
+		else
+		if (level.script == "maps/m6l1a.scr")
+		{
+			if (local.set == 1)
+				local.string = "First flak 20"
+		}
+		else
+		if (level.script == "maps/m6l1c.scr")
+		{
+			if (local.set == 1)
+				local.string = "Exfiltrating"
+			else
+			if (local.set == 2)
+				local.string = "Bunks"
+			else
+			if (local.set == 3)
+				local.string = "On the run"
+		}
+		else
+		if (level.script == "maps/m6l2a.scr")
+		{
+			if (local.set == 1)
+				local.string = "Bombs planted"
+		}
+		else
+		if (level.script == "maps/m6l2b.scr")
+		{
+			if (local.set == 1)
+				local.string = "The railroad tracks"
+			else
+			if (local.set == 2)
+				local.string = "The Power Shed"
+		}
+		else
+		if (level.script == "maps/m6l3a.scr")
+		{
+			if (local.set == 1)
+				local.string = "Train platform"
+			else
+			if (local.set == 2)
+				local.string = "Cargo hold"
+			else
+			if (local.set == 3)
+				local.string = "Jailbreak"
+			else
+			if (local.set == 4)
+				local.string = "Fuel flow unit"
+			else
+			if (local.set == 5)
+				local.string = "Fuel valve"
+		}
+	}
+	else
+	println "Error, no script should be loaded before loadout.scr."
+
+	if (local.string == NIL)
+		local.string = (level.script + " save " + local.set)
+
+end local.string

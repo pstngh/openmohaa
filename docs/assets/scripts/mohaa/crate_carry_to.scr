@@ -1,0 +1,12 @@
+// parameters:
+// local.node - node to carry crate to
+
+start local.node:
+
+self exec global/moveto.scr "global/crate_carry_to.scr::carry" local.node
+
+end
+
+carry:
+	self anim crate_walk
+end

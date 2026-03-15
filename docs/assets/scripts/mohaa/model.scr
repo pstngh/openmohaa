@@ -1,0 +1,17 @@
+main local.org local.model local.scale:
+
+	if (local.model == NIL)
+		local.model = models/emitters/explosion_mine
+	
+	local.ent = spawn local.model
+
+	if (local.scale != NIL)
+		local.ent scale local.scale
+	
+	local.ent.origin = local.org
+	local.ent anim start
+	local.ent notsolid
+	wait 3
+	local.ent anim stop
+	local.ent delete
+end

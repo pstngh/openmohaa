@@ -1,0 +1,267 @@
+main local.script:
+
+	if (local.script == NIL)
+	{
+		println "Warning, usage is exec global/loadout.scr maps/m#l#.scr"
+		local.script = "maps/m5l3.scr"
+	}
+
+	// Always cache the grenade weapons, as they'll always be given them
+	cache weapons/M2frag_grenade_sp_start.tik
+	cache weapons/steilhandgranate_start.tik
+
+	if (local.script == "maps/m1l1.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m1l2a.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/silencedpistol.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m1l2b.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m1l3a.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m1l3b.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m1l3c.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m2l1.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/springfield.tik
+		cache weapons/mp40.tik
+		cache weapons/stieilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m2l2a.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/springfield.tik
+		cache weapons/mp40.tik
+		cache weapons/steilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m2l2b.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/springfield.tik
+		cache weapons/mp40.tik
+		cache weapons/steilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m2l2c.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/springfield.tik
+		cache weapons/mp40.tik
+		cache weapons/steilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m2l3.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/springfield.tik
+		cache weapons/mp40.tik
+		cache weapons/steilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m3l1a.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+	}
+	else
+	if (local.script == "maps/m3l1b.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+	}
+	else
+	if (local.script == "maps/m3l2.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/BAR.tik
+	}
+	else
+	if (local.script == "maps/m3l3.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/Springfield.tik
+		cache weapons/ThompsonSMG.tik
+		cache weapons/BAR.tik
+		cache weapons/panzerschreck.tik
+	}
+	else
+	if (local.script == "maps/m4l0.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/m1_garand.tik
+		cache weapons/ThompsonSMG.tik
+		cache weapons/BAR.tik
+	}
+	else
+	if (local.script == "maps/m4l1.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/m1_garand.tik
+		cache weapons/mp40.tik
+	}
+	else
+	if (local.script == "maps/m4l2.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/KAR98.tik
+		cache weapons/KAR98sniper.tik
+		cache weapons/mp40.tik
+		cache weapons/steilhandgranate.tik
+	}
+	else
+	if (local.script == "maps/m4l3.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/KAR98.tik
+		cache weapons/KAR98sniper.tik
+		cache weapons/mp40.tik
+		cache weapons/shotgun.tik
+	}
+	else
+	if (local.script == "maps/m5l1a.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonsmg.tik
+	}
+	else
+	if (local.script == "maps/m5l1b.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonsmg.tik
+	}
+	else
+	if (local.script == "maps/m5l2a.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonsmg.tik
+	}
+	else
+	if (local.script == "maps/m5l2b.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonsmg.tik
+	}
+	else
+	if (local.script == "maps/m5l3.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/springfield.tik
+		cache weapons/thompsonsmg.tik
+	}
+	else
+	if (local.script == "maps/m6l1a.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+	}
+	else
+	if (local.script == "maps/m6l1b.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+	}
+	else
+	if (local.script == "maps/m6l1c.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+		cache weapons/mp44.tik
+	}
+	else
+	if (local.script == "maps/m6l2a.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+		cache weapons/mp44.tik
+	}
+	else
+	if (local.script == "maps/m6l2b.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+		cache weapons/mp44.tik
+	}
+	else
+	if (local.script == "maps/m6l3a.scr")
+	{
+		cache weapons/silencedpistol.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+		cache weapons/mp44.tik
+		cache weapons/shotgun.tik
+	}
+	else
+	if (local.script == "maps/m6l3b.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/thompsonSMG.tik
+		cache weapons/springfield.tik
+		cache weapons/mp44.tik
+		cache weapons/shotgun.tik
+	}
+	else
+	if (local.script == "maps/m6l3c.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/ThompsonSMG.tik
+		cache weapons/Springfield.tik
+		cache weapons/mp44.tik
+		cache weapons/shotgun.tik
+	}
+	else
+	if (local.script == "maps/m6l3d.scr")
+	{
+		cache weapons/colt45.tik
+		cache weapons/ThompsonSMG.tik
+		cache weapons/Springfield.tik
+		cache weapons/mp44.tik
+		cache weapons/shotgun.tik
+	}

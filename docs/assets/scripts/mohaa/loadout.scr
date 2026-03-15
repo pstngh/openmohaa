@@ -1,0 +1,571 @@
+main local.script:
+	/*
+		Comments:
+		m4l1 needs to give the player binoculars separately from giving him weapons.
+	*/
+
+	if (local.script == NIL)
+	{
+		println "Warning, usage is exec global/loadout.scr maps/m#l#.scr"
+		level.script = "maps/m5l3.scr"
+	}
+	else
+	level.script = local.script
+
+level waittill spawn
+	exec global/autosave.scr -5
+
+	if (level.script == "maps/m1l1.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m1l3a.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m1l3b.scr")
+	{
+	//	$player heal 1
+	// moved to the level script to go with a sound
+	}
+	else
+	if (level.script == "maps/m1l3c.scr")
+	{
+		$player useweaponclass rifle
+	}
+	else
+	if (level.script == "maps/m2l1.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m3l1a.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m3l2.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m4l0.scr")
+	{
+		$player heal 1
+		$player useweaponclass rifle
+	}
+	else
+	if (level.script == "maps/m4l1.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m5l1a.scr")
+	{
+		$player heal 1
+	}
+	else
+	if (level.script == "maps/m5l3.scr")
+	{
+		$player heal 1
+		$player useweaponclass rifle
+	}
+	if (level.script == "maps/m6l1a.scr")
+	{
+		$player heal 1
+	}
+	local.ammo_smg = 200
+	local.ammo_pistol = 200
+	local.ammo_rifle = 120
+	local.ammo_grenade = 4
+
+	if (game.loadout == NIL)
+	{
+		$player takeall
+
+		// Always give the player the empty grenade weapons
+		// so taht he can use grenade ammo if he gets it.
+		// Note that in single player, "grenade" ammo is
+		// only steilhandgranate ammo, and "agrenade" ammo
+		// is american Frag Grenade ammo.
+		$player item weapons/M2frag_grenade_sp_start.tik
+		$player item weapons/steilhandgranate_start.tik
+
+		if (level.script == "maps/m1l1.scr")
+		{
+		}
+		else
+		if (level.script == "maps/m1l2a.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/mp40.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m1l2b.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/mp40.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m1l3a.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/mp40.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+		}
+		else
+		if (level.script == "maps/m1l3b.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/mp40.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+		}
+		else
+		if (level.script == "maps/m1l3c.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/m1_garand.tik
+			$player item weapons/mp40.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+			
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m2l1.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m2l2a.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+			
+			$player useweaponclass pistol
+		}
+		else
+		if (level.script == "maps/m2l2b.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass pistol
+		}
+		else
+		if (level.script == "maps/m2l2c.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m2l3.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/mp40.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m3l1a.scr")
+		{
+			$player heal 1
+		}
+		else
+		if (level.script == "maps/m3l1b.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/thompsonsmg.tik
+			$player item weapons/springfield.tik
+
+			$player ammo pistol local.ammo_pistol
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo agrenade local.ammo_grenade
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m3l2.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/BAR.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 240
+			$player ammo mg 400
+			$player ammo agrenade 4
+
+			$player useweaponclass mg
+		}
+		else
+		if (level.script == "maps/m3l3.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/Springfield.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/BAR.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m4l0.scr")
+		{
+			$player item weapons/m1_garand.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/BAR.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m4l1.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/m1_garand.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo agrenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m4l2.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/steilhandgranate.tik
+
+			$player ammo pistol 80
+
+			$player useweaponclass pistol
+		}
+		else
+		if (level.script == "maps/m4l3.scr")
+		{
+			$player ammo agrenade 4
+		}
+		else
+		if (level.script == "maps/m5l1a.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/springfield.tik
+			$player item weapons/thompsonsmg.tik
+
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo pistol local.ammo_pistol
+			$player ammo agrenade 4
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m5l1b.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/springfield.tik
+			$player item weapons/thompsonsmg.tik
+			$player item weapons/bazooka.tik
+
+			$player ammo heavy 2
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo pistol local.ammo_pistol
+			$player ammo grenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m5l2a.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/springfield.tik
+			$player item weapons/thompsonsmg.tik
+			$player item weapons/bazooka.tik
+
+			$player ammo heavy 2
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo pistol local.ammo_pistol
+			$player ammo grenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m5l2b.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/springfield.tik
+			$player item weapons/thompsonsmg.tik
+			$player item weapons/bazooka.tik
+
+			$player ammo heavy 2
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo pistol local.ammo_pistol
+			$player ammo grenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m5l3.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/springfield.tik
+			$player item weapons/thompsonsmg.tik
+
+			$player ammo smg local.ammo_smg
+			$player ammo rifle local.ammo_rifle
+			$player ammo pistol local.ammo_pistol
+			$player ammo grenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l1a.scr")
+		{
+println here
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/silencedpistol.tik
+
+			$player ammo pistol 32
+			$player ammo rifle 20
+			$player ammo smg 200
+			$player ammo agrenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l1b.scr")
+		{
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/silencedpistol.tik
+
+			$player ammo pistol 32
+			$player ammo rifle 20
+			$player ammo smg 200
+			$player ammo agrenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l1c.scr")
+		{
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/silencedpistol.tik
+
+			$player ammo pistol 32
+			$player ammo rifle 20
+			$player ammo smg 200
+			$player ammo agrenade 4
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l2a.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+
+			$player ammo pistol 32
+			$player ammo rifle 40
+			$player ammo smg 128
+			$player ammo mg 240
+			$player ammo agrenade 2
+
+			$player useweaponclass pistol
+		}
+		else
+		if (level.script == "maps/m6l2b.scr")
+		{
+			$player item weapons/silencedpistol.tik   
+			$player item weapons/springfield.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/mp44.tik
+
+			$player ammo pistol 32
+			$player ammo rifle 40
+			$player ammo smg 128
+			$player ammo mg 240
+			$player ammo agrenade 2
+		
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l3a.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+			$player item weapons/shotgun.tik
+
+			$player ammo pistol 40
+			$player ammo rifle 200
+			$player ammo smg 240
+			$player ammo mg 240
+			$player ammo agrenade 4
+			$player ammo shotgun 80
+
+			$player useweaponclass rifle
+		}
+		else
+		if (level.script == "maps/m6l3b.scr")
+		{
+			$player item weapons/colt45.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+			$player item weapons/shotgun.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m6l3c.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+			$player ammo shotgun 80
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m6l3d.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+			$player ammo shotgun 80
+
+			$player useweaponclass smg
+		}
+		else
+		if (level.script == "maps/m6l3e.scr")
+		{
+			$player item weapons/silencedpistol.tik
+			$player item weapons/ThompsonSMG.tik
+			$player item weapons/springfield.tik
+			$player item weapons/mp44.tik
+
+			$player ammo pistol 80
+			$player ammo rifle 200
+			$player ammo smg 200
+			$player ammo mg 400
+			$player ammo agrenade 4
+			$player ammo shotgun 80
+
+			$player useweaponclass smg
+		}
+	}
+
+end

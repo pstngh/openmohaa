@@ -1,0 +1,6 @@
+// Sets a special death animation for a character.  The killed.scr in anim checks this before 
+// playing a regular death.
+
+start local.specialdeathanim:
+
+self.deathanim = local.specialdeathanim

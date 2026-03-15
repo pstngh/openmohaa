@@ -1,0 +1,157 @@
+// Required parameters:
+//	local.direction - Direction vector
+//	local.damage - Number of hit points' damage to inflict
+//	local.knockback - Amount of force
+//	local.location - Location/bodypart, either one of the bodypart names or the corresponding integer
+
+start local.direction local.damage local.knockback local.location:
+switch (local.location)
+{
+case "Unknown":
+case -1:
+	local.locationint = -1
+	break
+case "Pelvis":
+case 0:
+	local.locationint = 0
+	break
+case "Spine":
+case 1:
+	local.locationint = 1
+	break
+case "Spine1":
+case 2:
+	local.locationint = 2
+	break
+case "Spine2":
+case 3:
+	local.locationint = 3
+	break
+case "Neck":
+case 4:
+	local.locationint = 4
+	break
+case "Head":
+case 5:
+	local.locationint = 5
+	break
+case "RUpperArm":
+case 6:
+	local.locationint = 6
+	break
+case "RForearm":
+case 7:
+	local.locationint = 7
+	break
+case "RHand":
+case 8:
+	local.locationint = 8
+	break
+case "LUpperArm":
+case 9:
+	local.locationint = 9
+	break
+case "LForearm":
+case 10:
+	local.locationint = 10
+	break
+case "LHand":
+case 11:
+	local.locationint = 11
+	break
+case "RThigh":
+case 12:
+	local.locationint = 12
+	break
+case "RCalf":
+case 13:
+	local.locationint = 13
+	break
+case "RFoot":
+case 14:
+	local.locationint = 14
+	break
+case "LThigh":
+case 15:
+	local.locationint = 15
+	break
+case "LCalf":
+case 16:
+	local.locationint = 16
+	break
+case "LFoot":
+case 17:
+	local.locationint = 17
+	break
+default:
+	local.locationint = -1
+	println "Bad location parameter supplied to bullethit.scr"
+	break
+}
+
+// Create a damage event with the parameters I want
+self damage NULL local.damage NULL (0 0 0) local.direction (0 0 0) local.knockback 16 17 local.locationint
+
+/////////////////////////////////////
+// info
+/////////////////////////////////////
+
+// Means of death values:
+// 0	MOD_NONE,
+// 1	MOD_SUICIDE,
+// 2	MOD_CRUSH,
+// 3	MOD_CRUSH_EVERY_FRAME,
+// 4	MOD_TELEFRAG,
+// 5	MOD_LAVA,
+// 6	MOD_SLIME,
+// 7	MOD_FALLING,
+// 8	MOD_LAST_SELF_INFLICTED,
+// 9	MOD_EXPLOSION,
+// 10	MOD_EXPLODEWALL,
+// 11	MOD_ELECTRIC,
+// 12	MOD_ELECTRICWATER,
+// 13	MOD_THROWNOBJECT,
+// 14	MOD_BEAM,
+// 15	MOD_ROCKET,
+// 16	MOD_IMPACT,
+// 17	MOD_BULLET,
+// 18	MOD_FAST_BULLET,
+// 19	MOD_VEHICLE,
+// 20	MOD_FIRE,
+// 21	MOD_FLASHBANG,
+// 22	MOD_ON_FIRE,
+// 23	MOD_GIB,
+// 24	MOD_IMPALE,
+// 25	MOD_BASH,
+// 26	MOD_TOTAL_NUMBER
+
+// Location values
+// -1 Unknown
+// 0 Pelvis
+// 1 Spine
+// 2 Spine1
+// 3 Spine2
+// 4 Neck
+// 5 Head
+// 6 RUpperArm
+// 7 RForearm
+// 8 RHand
+// 9 LUpperArm
+// 10 LForearm
+// 11 LHand
+// 12 RThigh
+// 13 RCalf
+// 14 RFoot
+// 15 LThigh
+// 16 LCalf
+// 17 LFoot
+
+// Damage flags (just add together the values for the flags you want).
+// (These are haxedecimal values, hence 0x0001 = 1, 0x0002 = 2, 0x0010 = 16, 0x040 = 16*4 = 64
+// #define DAMAGE_RADIUS			0x00000001	// damage was indirect   
+// #define DAMAGE_NO_ARMOR			0x00000002	// armour does not protect from this damage   
+// #define DAMAGE_ENERGY			0x00000004	// damage is from an energy based weapon   
+// #define DAMAGE_NO_KNOCKBACK		0x00000008	// do not affect velocity, just view angles   
+// #define DAMAGE_BULLET			0x00000010	// damage is from a bullet (used for ricochets)   
+// #define DAMAGE_NO_PROTECTION		0x00000020	// armor, shields, invulnerability, and godmode have no effect   
+// #define DAMAGE_NO_SKILL			0x00000040	// damage is not affected by skill level   

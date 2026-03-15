@@ -1,0 +1,12 @@
+// Permutates the array local.array.
+// local.array must start indexing at 0.
+
+start local.array:
+local.count = local.array.size
+for (local.i = local.count - 1; local.i > 0; local.i--)
+{
+	local.rand = randomint local.count
+	local.temp = local.array[local.i]
+	local.array[local.i] = local.array[local.rand]
+	local.array[local.rand] = local.temp
+}

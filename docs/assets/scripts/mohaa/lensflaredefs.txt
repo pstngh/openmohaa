@@ -1,0 +1,83 @@
+// Lens flare definition file
+// dot_min - higher number = closer to facing sun more before getting flare
+// fullscale - how bright the screen can get
+// fullscreen - shader used for the full screen blend
+// flare <size> <where> <shader> [alphascale]
+//   size = %age of screen for flare radius
+//   where = where on flare line..  Usually 0-1
+//   shader = shader for this flare
+//   alphascale = optional..  scales the alpha by this for this flare.  defaults to 1
+// fullfade - how fast (in milliseconds) to fade if interrupted
+
+//-----------------------------------------------------------------------------
+// Default, day-time sun flare
+
+begin sun
+	//dot_min .8
+	//dot_min .95
+	//dot_min .78
+	dot_min .55
+	flare	1.4	0 	textures/sprites/sunflare_main
+	//flare	1 	.15 textures/sprites/sunflare_main
+	//flare	.15	.35	textures/sprites/sunflare_middle
+	//flare	.3	.75	textures/sprites/sunflare_middle
+	//flare	.2	.85	textures/sprites/sunflare_furthest
+	//flare	.1	1	textures/sprites/sunflare_furthest
+	//fullscale .3
+	fullscale .6
+	fullscreen textures/jack/whitefade
+	fullfade 600
+end
+
+//-----------------------------------------------------------------------------
+// Reddish sunset flare
+
+begin sunset1
+	//dot_min .8
+	//dot_min .95
+	dot_min .78
+	flare	1.2	0 	textures/sprites/sunflare_main
+	fullscale .1
+	fullscreen textures/jack/whitefade
+	fullfade 200
+end
+
+//================================================================================================
+// These are for dynamic lights with flares
+
+begin entity
+	dot_min .8
+	//fullscale .6
+	flare	.20 0 	textures/sprites/sunflare_main	
+	//flare	.05	.25	textures/sprites/sunflare_middle	.3	
+	//flare	.1	.75	textures/sprites/sunflare_middle	.3
+	//flare	.05	.85	textures/sprites/sunflare_furthest	.3
+	//flare	.1	1	textures/sprites/sunflare_furthest	.3
+	//fullscreen textures/jack/whitefade
+	//fullfade 500
+end
+
+begin dlight
+	dot_min .8
+	//fullscale .6
+	flare	.20	0 	textures/sprites/sunflare_main	
+	//flare	.05	.25	textures/sprites/sunflare_middle	.4	
+	//flare	.1	.75	textures/sprites/sunflare_middle	.4
+	//flare	.05	.85	textures/sprites/sunflare_furthest	.4
+	//flare	.1	1	textures/sprites/sunflare_furthest	.4
+	//fullscreen textures/jack/whitefade
+	//fullfade 500
+end
+
+
+//flare	1 	.15 	textures/sprites/sunflare_main
+//flare	.15	.35	textures/sprites/sunflare_middle
+//flare	.3	.75	textures/sprites/sunflare_middle
+//flare	.2	.85	textures/sprites/sunflare_furthest
+//flare	.1	1	textures/sprites/sunflare_furthest
+
+//flare .1  .15 textures/jack/
+//flare .15 .35 textures/jack/ball1
+//flare .3  .75 textures/jack/ball1
+//flare .2  1   textures/jack/ball1
+//flare .1  .85 textures/jack/ball1

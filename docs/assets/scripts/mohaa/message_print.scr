@@ -1,0 +1,105 @@
+//************************************************************************************
+//*** displays text in the center of the screen
+//*** mainly used for hint text (default), but can be for anything
+//*** syntax --------------------------------
+//*** message <string> [no hint text | non-NIL - will display, NIL - won't display] [time to leave message up, default 5 | 0 - means default]
+//************************************************************************************
+message local.string local.hint local.time:
+
+//*** check to make sure a valid string was passed
+if (local.string == NIL)
+{
+	println "^~^~^ A non-valid string was passed for a hint-message!!"
+	goto message_false_end
+}
+
+//*** check to see if they want default time
+if (local.time == 0 || local.time == NIL)
+{
+	local.time = 5
+}
+
+//*** check to see if a message is already up, if so, wait till you get the goahead
+while (level.message_onscreen == 1)
+{
+	level.message_waiting = 1
+	wait .2
+}
+
+//*** set the waiting variables for when another message is waiting
+level.message_onscreen = 1
+level.message_waiting = 0
+
+//*** turn off the indexes incase theres a message up there
+huddraw_alpha 26 0
+huddraw_alpha 27 0
+
+//*** assign huddraw elements
+huddraw_string 26 "HINT:"
+huddraw_align 26 center center
+huddraw_rect 26 -150 20 0 0
+
+//*** format the string
+local.formatted_string = waitthread global/string_format.scr::str_format local.string 47
+
+huddraw_string 27 local.formatted_string
+huddraw_align 27 center center
+huddraw_rect 27 -100 20 0 0
+
+//*** check to see if they want HINT to appear
+//*** fade the text onto the screen
+if (local.hint != NIL)
+{
+	for (local.j = 0 ; local.j <= 1 ; local.j += .2)
+	{
+		huddraw_alpha 26 local.j
+		huddraw_alpha 27 local.j
+		waitframe
+	}
+}
+else
+{
+	for (local.k = 0 ; local.k <= 1 ; local.k += .2)
+	{
+		huddraw_alpha 26 0
+		huddraw_alpha 27 local.k
+		waitframe
+	}
+}
+
+//*** wait cycle, takes into account if another message is put up, to reset the time
+for (local.i = 1 ; local.i <= local.time ; local.i ++)
+{
+	wait 1
+
+	//*** check to see if another message is waiting to get on the screen
+	if (level.message_waiting == 1)
+	{
+		goto message_abort
+	}
+}
+
+//*** fade the text off the screen
+if (local.hint != NIL)
+{
+	for (local.m = 1 ; local.m >= 0 ; local.m -= .2)
+	{
+		huddraw_alpha 26 local.m
+		huddraw_alpha 27 local.m
+		waitframe
+	}
+}
+else
+{
+	for (local.n = 1 ; local.n >= 0 ; local.n -= .2)
+	{
+		huddraw_alpha 26 0
+		huddraw_alpha 27 local.n
+		waitframe
+	}
+}
+
+message_abort:
+level.message_onscreen = 0
+
+end

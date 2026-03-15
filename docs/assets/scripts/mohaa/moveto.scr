@@ -1,0 +1,6 @@
+// parameters:
+// local.anim - animation file to play
+// local.node - node to move to
+
+start local.anim local.node:
+self moveto local.anim local.node

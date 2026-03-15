@@ -1,0 +1,49 @@
+// tells AI to aim and then keep shooting
+// can give the AI two targets. it will shoot at one until its dead then shoot at the next one.
+//defaults to 8 shots 
+
+start local.target local.target2 local.reload:
+local.time_between_shots = .6
+if (local.reload == NIL)
+{
+local.reload = 8
+}
+//println "local reload" 
+//println local.reload
+local.i = 0
+
+while (local.target.health != 0 && local.target != NULL)
+{
+self exec global/headaim.scr local.target 50 0
+wait .1
+self exec global/shoot.scr
+wait local.time_between_shots
+//println "shot number: " local.i
+local.i ++
+if (local.i == local.reload)
+	{
+	//println "reloading"
+	wait 3
+	local.i = 0
+	}
+}
+
+if(local.target2 == NIL)
+{
+end
+}
+
+while (local.target2.health != 0 && local.target2 != NULL)
+{
+self exec global/headaim.scr local.target 50 0
+wait .1
+self exec global/shoot.scr
+wait local.time_between_shots
+local.i ++
+if (local.i == local.reload)
+	{
+	wait 3
+	local.i = 0
+	}
+}
+end

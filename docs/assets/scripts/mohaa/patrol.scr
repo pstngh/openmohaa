@@ -1,0 +1,33 @@
+start local.path:
+self exec global/setweaponpose.scr "down"
+self exec global/stand.scr
+
+patrol_loop:
+self exec global/walkto.scr local.path
+self waittill movedone
+//println "movedone"
+self exec global/stand.scr
+
+
+patrol_look:
+	local.vect = angles_toleft (self.angles)
+	local.dist = 100
+
+	local.vect[0] = 	local.vect[0] * (local.dist)
+	local.vect[1] = 	local.vect[1] * (local.dist)
+	local.vect[2] = 	local.vect[2] * local.dist 
+
+spawn script_origin targetname temp_so
+//spawn projectiles/m2fgrenade targetname temp_so
+wait .1
+local.vect[2] += 70
+$temp_so.origin = local.vect + self.origin 
+//self lookat $player
+self lookat $temp_so
+wait 4
+self lookat self
+$temp_so remove
+wait 2
+
+goto patrol_loop
+end
