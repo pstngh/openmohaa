@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-demoscan.py - Scan MoHAA .dm3 demo files for player names.
+demoscan.py - Scan MoHAA .dm3 demo files for player names and loadout info.
 
 Reads all .dm3 files in a folder (recursively) and outputs a text file
 listing every demo and the players who appear in it, including mid-game joins.
+For AA demos (protocol 6/8), also extracts the recording player's primary
+weapon(s) and grenade count at spawn (6 = default, 3 = realism mode).
 
 Usage:
     python demoscan.py <folder> [-o output.txt] [-p PlayerName]
@@ -317,7 +319,17 @@ NET_BYTE_TO_STR_CHAR = bytes([
 CS_SERVERINFO = 0
 CS_SYSTEMINFO = 1
 CS_PLAYERS = 1684
+CS_WEAPONS = 1748  # CS_PLAYERS + MAX_CLIENTS
 MAX_CLIENTS = 64
+MAX_WEAPONS = 64
+MAX_STATS = 32
+MAX_ACTIVE_ITEMS = 8
+MAX_AMMO = 16
+MAX_AMMOCOUNT = 16
+GENTITYNUM_BITS = 10
+FLOAT_INT_BITS = 13
+FLOAT_INT_BIAS = 1 << 12  # 4096
+ITEM_WEAPON = 1  # activeItems slot for current weapon
 
 # svc_ops_e
 SVC_BAD = 0
@@ -332,6 +344,76 @@ SVC_CENTERPRINT = 8
 SVC_LOCPRINT = 9
 SVC_CGAMEMESSAGE = 10
 SVC_EOF = 11
+
+# ---------------------------------------------------------------------------
+# PlayerState field table for protocol 6 (AA)
+# Each entry: (name, bits, field_type)
+# bits: 0 = float encoding, >0 = unsigned N bits, <0 = signed N bits
+# field_type: how the field is encoded on the wire
+# ---------------------------------------------------------------------------
+
+FTYPE_REGULAR = 0
+FTYPE_ANGLE = 1
+FTYPE_COORD = 2
+FTYPE_VELOCITY = 3
+
+# Matches playerStateFields_ver_6[] in msg.cpp exactly (57 fields)
+PS_FIELDS_VER_6 = [
+    ("commandTime", 32, FTYPE_REGULAR),
+    ("origin[0]", 0, FTYPE_COORD),
+    ("origin[1]", 0, FTYPE_COORD),
+    ("viewangles[1]", 0, FTYPE_REGULAR),
+    ("velocity[1]", 0, FTYPE_VELOCITY),
+    ("velocity[0]", 0, FTYPE_VELOCITY),
+    ("viewangles[0]", 0, FTYPE_REGULAR),
+    ("pm_time", -16, FTYPE_REGULAR),
+    ("origin[2]", 0, FTYPE_COORD),
+    ("velocity[2]", 0, FTYPE_VELOCITY),
+    ("iViewModelAnimChanged", 2, FTYPE_REGULAR),
+    ("damage_angles[0]", -13, FTYPE_ANGLE),
+    ("damage_angles[1]", -13, FTYPE_ANGLE),
+    ("damage_angles[2]", -13, FTYPE_ANGLE),
+    ("speed", 16, FTYPE_REGULAR),
+    ("delta_angles[1]", 16, FTYPE_REGULAR),
+    ("viewheight", -8, FTYPE_REGULAR),
+    ("groundEntityNum", GENTITYNUM_BITS, FTYPE_REGULAR),
+    ("delta_angles[0]", 16, FTYPE_REGULAR),
+    ("iNetViewModelAnim", 4, FTYPE_REGULAR),
+    ("fov", 0, FTYPE_REGULAR),
+    ("current_music_mood", 8, FTYPE_REGULAR),
+    ("gravity", 16, FTYPE_REGULAR),
+    ("fallback_music_mood", 8, FTYPE_REGULAR),
+    ("music_volume", 0, FTYPE_REGULAR),
+    ("net_pm_flags", 16, FTYPE_REGULAR),
+    ("clientNum", 8, FTYPE_REGULAR),
+    ("fLeanAngle", 0, FTYPE_REGULAR),
+    ("blend[3]", 0, FTYPE_REGULAR),
+    ("blend[0]", 0, FTYPE_REGULAR),
+    ("pm_type", 8, FTYPE_REGULAR),
+    ("feetfalling", 8, FTYPE_REGULAR),
+    ("camera_angles[0]", 16, FTYPE_ANGLE),
+    ("camera_angles[1]", 16, FTYPE_ANGLE),
+    ("camera_angles[2]", 16, FTYPE_ANGLE),
+    ("camera_origin[0]", 0, FTYPE_COORD),
+    ("camera_origin[1]", 0, FTYPE_COORD),
+    ("camera_origin[2]", 0, FTYPE_COORD),
+    ("camera_posofs[0]", 0, FTYPE_COORD),
+    ("camera_posofs[2]", 0, FTYPE_COORD),
+    ("camera_time", 0, FTYPE_REGULAR),
+    ("bobCycle", 8, FTYPE_REGULAR),
+    ("delta_angles[2]", 16, FTYPE_REGULAR),
+    ("viewangles[2]", 0, FTYPE_REGULAR),
+    ("music_volume_fade_time", 0, FTYPE_REGULAR),
+    ("reverb_type", 6, FTYPE_REGULAR),
+    ("reverb_level", 0, FTYPE_REGULAR),
+    ("blend[1]", 0, FTYPE_REGULAR),
+    ("blend[2]", 0, FTYPE_REGULAR),
+    ("camera_offset[0]", 0, FTYPE_REGULAR),
+    ("camera_offset[1]", 0, FTYPE_REGULAR),
+    ("camera_offset[2]", 0, FTYPE_REGULAR),
+    ("camera_posofs[1]", 0, FTYPE_COORD),
+    ("camera_flags", 16, FTYPE_REGULAR),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -421,6 +503,77 @@ class MsgReader:
             v -= 0x100000000
         return v
 
+    def read_float(self):
+        """Read a 32-bit IEEE float."""
+        v = self.read_bits(32)
+        return struct.unpack("<f", struct.pack("<I", v & 0xFFFFFFFF))[0]
+
+    def read_signed_bits(self, bits):
+        """Read N bits with sign extension (for negative bit-width fields)."""
+        nbits = abs(bits)
+        value = self.read_bits(nbits)
+        # Sign-extend: if MSB is set, extend to negative
+        if value & (1 << (nbits - 1)):
+            value |= -1 ^ ((1 << nbits) - 1)
+        return value
+
+    def read_data(self, byte_count):
+        """Read raw bytes, advancing the bitstream by byte_count*8 bits."""
+        result = bytearray()
+        for _ in range(byte_count):
+            result.append(self.read_byte())
+        return bytes(result)
+
+    # -----------------------------------------------------------------------
+    # Protocol 6 field type decoders
+    # -----------------------------------------------------------------------
+
+    def skip_ps_field_ver6(self, bits, ftype):
+        """Read (and discard) a single playerState field value.
+
+        This correctly advances the bitstream past the field encoding
+        used by MSG_ReadDeltaPlayerstate for protocol 6.
+        """
+        if ftype == FTYPE_REGULAR:
+            self._read_regular_simple_ver6(bits)
+        elif ftype == FTYPE_ANGLE:
+            self._read_packed_angle_ver6(bits)
+        elif ftype == FTYPE_COORD:
+            self._read_packed_coord_ver6()
+        elif ftype == FTYPE_VELOCITY:
+            self._read_packed_velocity()
+
+    def _read_regular_simple_ver6(self, bits):
+        """MSG_ReadRegularSimple_ver_6: used for playerState fields."""
+        if bits == 0:
+            # Float encoding
+            if self.read_bits(1) == 0:
+                # Integral float: 13-bit biased integer
+                self.read_bits(FLOAT_INT_BITS)
+            else:
+                # Full 32-bit float
+                self.read_bits(32)
+        else:
+            # Integer: read abs(bits) bits
+            self.read_bits(abs(bits))
+
+    def _read_packed_angle_ver6(self, bits):
+        """MSG_ReadPackedAngle_ver_6."""
+        if bits < 0:
+            # Sign bit + magnitude
+            self.read_bits(1)  # sign
+            self.read_bits(~bits)  # magnitude (bitwise NOT of negative = positive)
+        else:
+            self.read_bits(bits)
+
+    def _read_packed_coord_ver6(self):
+        """MSG_ReadPackedCoord_ver_6: always 19 bits."""
+        self.read_bits(19)
+
+    def _read_packed_velocity(self):
+        """MSG_ReadPackedVelocity: always 17 bits."""
+        self.read_bits(17)
+
     def read_string(self):
         """Read a null-terminated string (no descrambling)."""
         chars = []
@@ -490,7 +643,7 @@ def normalize_cs_ver15(num):
 # ---------------------------------------------------------------------------
 
 class DemoScanner:
-    """Scans a single .dm3 file and extracts player names."""
+    """Scans a single .dm3 file and extracts player names and loadout info."""
 
     def __init__(self, filepath):
         self.filepath = filepath
@@ -498,6 +651,13 @@ class DemoScanner:
         self.protocol = 0
         self.scrambled = False
         self.error = None
+        self.configstrings = {}  # cs_idx -> value
+        # Snapshot-derived data (AA protocol 6/8 only)
+        self.weapons_seen = []  # list of weapon configstring names seen
+        self.grenade_count = None  # grenade count from first spawn snapshot
+        self.recording_client = None  # clientNum of the recording player
+        # Internal state for delta decoding across snapshots
+        self._prev_ps_arrays = None  # previous playerState arrays for delta
 
     def scan(self):
         try:
@@ -509,6 +669,8 @@ class DemoScanner:
 
         pos = 0
         msg_count = 0
+        # Limit snapshot parsing to first N messages for performance
+        max_snapshot_msgs = 200
 
         while pos + 8 <= len(data):
             # Read sequence number
@@ -532,7 +694,7 @@ class DemoScanner:
                 if msg_count == 0:
                     self._parse_gamestate(msg_data)
                 else:
-                    self._parse_message(msg_data)
+                    self._parse_message(msg_data, parse_snapshots=(msg_count <= max_snapshot_msgs))
             except Exception:
                 pass  # Skip malformed messages
 
@@ -596,6 +758,9 @@ class DemoScanner:
             self._reparse_gamestate_scrambled(data)
             return
 
+        # Store configstrings for weapon/ammo lookups
+        self.configstrings = configstrings
+
         # Extract player names from configstrings
         self._extract_players(configstrings)
 
@@ -630,6 +795,7 @@ class DemoScanner:
             self.error = "Could not parse gamestate"
             return
 
+        self.configstrings = configstrings
         self._extract_players(configstrings)
 
     def _extract_players(self, configstrings):
@@ -653,8 +819,8 @@ class DemoScanner:
         # If no backslash, the whole value might be the name (some mods)
         return cs_value.strip() if cs_value.strip() else None
 
-    def _parse_message(self, data):
-        """Parse a non-gamestate message looking for serverCommand cs updates."""
+    def _parse_message(self, data, parse_snapshots=True):
+        """Parse a non-gamestate message looking for serverCommand cs updates and snapshots."""
         reader = MsgReader(data)
 
         # reliable sequence ack
@@ -670,15 +836,27 @@ class DemoScanner:
                 reader.read_long()  # sequence
                 cmd_str = self._read_string(reader)
                 self._handle_server_command(cmd_str)
+            elif cmd == SVC_SNAPSHOT and parse_snapshots and self.protocol < 15:
+                try:
+                    self._parse_snapshot_ver6(reader)
+                except Exception:
+                    pass
+                # After snapshot, remaining data may be cgame messages
+                # which we can't parse, so stop
+                break
+            elif cmd == SVC_CENTERPRINT:
+                # Read and discard the string
+                self._read_string(reader)
+                continue
+            elif cmd == SVC_LOCPRINT:
+                # Read localized print: short + string
+                reader.read_short()
+                self._read_string(reader)
+                continue
             elif cmd == SVC_GAMESTATE:
-                # New gamestate mid-demo (map change)
-                # Re-parse from here
-                # We can't easily do this since we've consumed bits
-                # Just break and accept what we have
                 break
             else:
-                # Can't parse snapshots, cgame messages, etc.
-                # Stop processing this message
+                # Can't parse cgame messages, etc.
                 break
 
     def _handle_server_command(self, cmd_str):
@@ -704,6 +882,9 @@ class DemoScanner:
         else:
             cs_idx = normalize_cs_ver15(raw_idx)
 
+        # Update stored configstrings
+        self.configstrings[cs_idx] = value
+
         if CS_PLAYERS <= cs_idx < CS_PLAYERS + MAX_CLIENTS:
             slot = cs_idx - CS_PLAYERS
             name = self._extract_name(value)
@@ -712,6 +893,154 @@ class DemoScanner:
             elif slot in self.players and not value.strip():
                 # Player disconnected (empty configstring)
                 pass  # Keep them in the list - they were in the game
+
+
+    # -------------------------------------------------------------------
+    # Snapshot parsing (protocol 6 / AA only)
+    # -------------------------------------------------------------------
+
+    def _parse_snapshot_ver6(self, reader):
+        """Parse a protocol 6 svc_snapshot, extracting playerState arrays."""
+        server_time = reader.read_long()
+        server_time_residual = reader.read_byte()
+        delta_num = reader.read_byte()
+        snap_flags = reader.read_byte()
+
+        # Read areamask
+        areamask_len = reader.read_byte()
+        reader.read_data(areamask_len)
+
+        # Parse playerState
+        ps_arrays = self._parse_playerstate_ver6(reader, delta_num == 0)
+
+        if ps_arrays is not None:
+            self._process_ps_arrays(ps_arrays)
+            self._prev_ps_arrays = ps_arrays
+
+        # Don't parse entities or sounds - we have what we need
+
+    def _parse_playerstate_ver6(self, reader, is_full):
+        """Parse playerState delta for protocol 6.
+
+        Returns dict with arrays (activeItems, ammo_name_index, ammo_amount,
+        max_ammo_amount) or None on failure.
+        """
+        fields = PS_FIELDS_VER_6
+        num_fields = len(fields)
+
+        # Read last-changed field index
+        lc = reader.read_byte()
+        if lc > num_fields:
+            return None
+
+        # Skip through field-by-field delta section
+        for i in range(lc):
+            name, bits, ftype = fields[i]
+            if reader.read_bits(1):
+                # Field changed - decode to advance bitstream
+                reader.skip_ps_field_ver6(bits, ftype)
+
+        # Now read the arrays section
+        if not reader.read_bits(1):
+            # No arrays changed
+            if self._prev_ps_arrays is not None:
+                return dict(self._prev_ps_arrays)
+            return {
+                "activeItems": [0] * MAX_ACTIVE_ITEMS,
+                "ammo_name_index": [0] * MAX_AMMO,
+                "ammo_amount": [0] * MAX_AMMOCOUNT,
+                "max_ammo_amount": [0] * MAX_AMMOCOUNT,
+            }
+
+        # Start from previous state or zeros
+        if self._prev_ps_arrays is not None and not is_full:
+            arrays = {k: list(v) for k, v in self._prev_ps_arrays.items()}
+        else:
+            arrays = {
+                "activeItems": [0] * MAX_ACTIVE_ITEMS,
+                "ammo_name_index": [0] * MAX_AMMO,
+                "ammo_amount": [0] * MAX_AMMOCOUNT,
+                "max_ammo_amount": [0] * MAX_AMMOCOUNT,
+            }
+
+        # Parse stats (we skip these but must advance the bitstream)
+        if reader.read_bits(1):
+            stat_bits = reader.read_bits(32)
+            for i in range(MAX_STATS):
+                if stat_bits & (1 << i):
+                    reader.read_short()
+
+        # Parse activeItems
+        if reader.read_bits(1):
+            item_bits = reader.read_byte()
+            for i in range(MAX_ACTIVE_ITEMS):
+                if item_bits & (1 << i):
+                    arrays["activeItems"][i] = reader.read_short()
+
+        # Parse ammo_amount
+        if reader.read_bits(1):
+            ammo_bits = reader.read_short()
+            for i in range(MAX_AMMOCOUNT):
+                if ammo_bits & (1 << i):
+                    arrays["ammo_amount"][i] = reader.read_short()
+
+        # Parse ammo_name_index
+        if reader.read_bits(1):
+            ammo_bits = reader.read_short()
+            for i in range(MAX_AMMO):
+                if ammo_bits & (1 << i):
+                    arrays["ammo_name_index"][i] = reader.read_short()
+
+        # Parse max_ammo_amount
+        if reader.read_bits(1):
+            ammo_bits = reader.read_short()
+            for i in range(MAX_AMMOCOUNT):
+                if ammo_bits & (1 << i):
+                    arrays["max_ammo_amount"][i] = reader.read_short()
+
+        return arrays
+
+    def _process_ps_arrays(self, arrays):
+        """Extract weapon and ammo info from playerState arrays."""
+        # Extract current weapon
+        weapon_idx = arrays["activeItems"][ITEM_WEAPON]
+        if weapon_idx > 0 and weapon_idx < MAX_WEAPONS:
+            cs_idx = CS_WEAPONS + weapon_idx
+            weapon_name = self.configstrings.get(cs_idx, "")
+            if weapon_name and weapon_name not in self.weapons_seen:
+                self.weapons_seen.append(weapon_name)
+
+        # Extract grenade count (only on first valid observation)
+        if self.grenade_count is None and weapon_idx > 0:
+            self._extract_grenade_count(arrays)
+
+    def _extract_grenade_count(self, arrays):
+        """Find the grenade ammo slot and record its count."""
+        for i in range(MAX_AMMO):
+            name_idx = arrays["ammo_name_index"][i]
+            if name_idx <= 0:
+                continue
+            ammo_name = self.configstrings.get(name_idx, "")
+            if ammo_name.lower() == "grenade":
+                self.grenade_count = arrays["ammo_amount"][i]
+                return
+
+    def _get_weapon_display_name(self, tiki_path):
+        """Convert a TIKI weapon path to a short display name.
+
+        Examples:
+            'models/weapons/m1_garand.tik' -> 'M1 Garand'
+            'models/weapons/Colt45.tik' -> 'Colt45'
+        """
+        if not tiki_path:
+            return tiki_path
+        # Strip path prefix and .tik extension
+        name = tiki_path
+        if "/" in name:
+            name = name.rsplit("/", 1)[1]
+        if name.lower().endswith(".tik"):
+            name = name[:-4]
+        return name
 
 
 # ---------------------------------------------------------------------------
@@ -775,7 +1104,7 @@ def main():
 
         if scanner.error:
             errors += 1
-            results.append((rel_path, None, scanner.error))
+            results.append((rel_path, None, scanner.error, [], None))
             continue
 
         player_names = sorted(set(scanner.players.values()))
@@ -786,7 +1115,11 @@ def main():
             if not any(fn in lower_names for fn in filter_names):
                 continue
 
-        results.append((rel_path, player_names, None))
+        # Collect weapon/grenade info
+        weapons = [scanner._get_weapon_display_name(w) for w in scanner.weapons_seen]
+        grenade_count = scanner.grenade_count
+
+        results.append((rel_path, player_names, None, weapons, grenade_count))
 
     # Write output
     with open(args.output, "w", encoding="utf-8") as f:
@@ -795,7 +1128,7 @@ def main():
             f.write("#\n")
 
         matches = 0
-        for rel_path, players, error in results:
+        for rel_path, players, error, weapons, grenade_count in results:
             if error:
                 f.write("%s\n  ERROR: %s\n\n" % (rel_path, error))
                 continue
@@ -808,6 +1141,11 @@ def main():
                     f.write("  %s\n" % name)
             else:
                 f.write("  (no players found)\n")
+            if weapons:
+                f.write("  Weapon(s): %s\n" % ", ".join(weapons))
+            if grenade_count is not None:
+                mode = "realism" if grenade_count <= 3 else "default"
+                f.write("  Grenades: %d (%s)\n" % (grenade_count, mode))
             f.write("\n")
 
         f.write("# ---\n")
