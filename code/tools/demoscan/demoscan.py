@@ -1004,46 +1004,43 @@ class DemoScanner:
         weapon_idx = arrays["activeItems"][ITEM_WEAPON]
         if weapon_idx > 0 and weapon_idx < MAX_WEAPONS:
             cs_idx = CS_WEAPONS + weapon_idx
-            weapon_name = self.configstrings.get(cs_idx, "")
+            weapon_name = self._strip_quotes(self.configstrings.get(cs_idx, ""))
             if weapon_name and weapon_name not in self.weapons_seen:
                 self.weapons_seen.append(weapon_name)
 
-        # Extract grenade count (only on first valid observation)
-        if self.grenade_count is None and weapon_idx > 0:
+        # Extract grenade count - track max across all snapshots
+        if weapon_idx > 0:
             self._extract_grenade_count(arrays)
 
     def _extract_grenade_count(self, arrays):
-        """Find the grenade ammo slot and record its count."""
-        # Try direct lookup via ammo_name_index -> configstring
+        """Find the grenade ammo slot and track the maximum count seen.
+
+        The ammo_name_index values are relative offsets within CS_WEAPONS
+        (from SV_FindIndex), so we look up configstrings[CS_WEAPONS + value].
+        We track the maximum grenade count seen across all snapshots, since
+        the count at spawn is the highest it will be (before any are thrown).
+        """
         for i in range(MAX_AMMO):
             name_idx = arrays["ammo_name_index"][i]
             if name_idx <= 0:
                 continue
-            ammo_name = self.configstrings.get(name_idx, "")
+            # ammo_name_index stores relative offset within CS_WEAPONS
+            cs_idx = CS_WEAPONS + name_idx
+            ammo_name = self._strip_quotes(self.configstrings.get(cs_idx, ""))
             if ammo_name.lower() in ("grenade", "agrenade"):
                 count = arrays["ammo_amount"][i]
                 if count > 0:
                     if self.grenade_count is None:
                         self.grenade_count = count
                     else:
-                        # Take the higher of grenade/agrenade (both should match)
                         self.grenade_count = max(self.grenade_count, count)
 
-        # Fallback: scan CS_WEAPONS configstrings for grenade ammo names
-        # and match against ammo_name_index values
-        if self.grenade_count is None:
-            grenade_cs_indices = set()
-            for cs_idx in range(CS_WEAPONS, CS_WEAPONS + MAX_WEAPONS):
-                cs_val = self.configstrings.get(cs_idx, "")
-                if cs_val.lower() in ("grenade", "agrenade"):
-                    grenade_cs_indices.add(cs_idx)
-            if grenade_cs_indices:
-                for i in range(MAX_AMMO):
-                    if arrays["ammo_name_index"][i] in grenade_cs_indices:
-                        count = arrays["ammo_amount"][i]
-                        if count > 0:
-                            self.grenade_count = count
-                            return
+    @staticmethod
+    def _strip_quotes(s):
+        """Strip surrounding double quotes from a string."""
+        if s and len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+            return s[1:-1]
+        return s
 
     @staticmethod
     def _is_grenade_weapon(name):
@@ -1143,7 +1140,19 @@ def main():
                 continue
 
         # Collect weapon/grenade info, filtering out grenade items
-        weapons = [w for w in scanner.weapons_seen if not DemoScanner._is_grenade_weapon(w)]
+        weapons = [
+            DemoScanner._strip_quotes(w)
+            for w in scanner.weapons_seen
+            if not DemoScanner._is_grenade_weapon(w)
+        ]
+        # Deduplicate while preserving order
+        seen = set()
+        unique_weapons = []
+        for w in weapons:
+            if w not in seen:
+                seen.add(w)
+                unique_weapons.append(w)
+        weapons = unique_weapons
         grenade_count = scanner.grenade_count
 
         results.append((rel_path, player_names, None, weapons, grenade_count, scanner))
@@ -1190,13 +1199,15 @@ def main():
                     f.write("  [verbose] ammo_name_index: %s\n" % pa["ammo_name_index"])
                     f.write("  [verbose] ammo_amount: %s\n" % pa["ammo_amount"])
                     f.write("  [verbose] activeItems: %s\n" % pa["activeItems"])
-                    # Resolve ammo names
+                    # Resolve ammo names (ammo_name_index stores relative
+                    # offsets within CS_WEAPONS)
                     for i in range(MAX_AMMO):
                         ni = pa["ammo_name_index"][i]
                         if ni > 0:
-                            name = scanner.configstrings.get(ni, "(unknown cs %d)" % ni)
-                            f.write("    ammo[%d]: name_idx=%d -> '%s', amount=%d\n"
-                                    % (i, ni, name, pa["ammo_amount"][i]))
+                            cs_idx = CS_WEAPONS + ni
+                            name = scanner.configstrings.get(cs_idx, "(unknown cs %d)" % cs_idx)
+                            f.write("    ammo[%d]: idx=%d -> cs[%d]='%s', amount=%d\n"
+                                    % (i, ni, cs_idx, name, pa["ammo_amount"][i]))
                 else:
                     f.write("  [verbose] No snapshot arrays parsed\n")
             f.write("\n")
