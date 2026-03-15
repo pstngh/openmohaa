@@ -1,0 +1,35 @@
+// List all the items that the player will get with a "loaded" command
+// Usage:
+// weapon <weapon_tiki_filename> [Classname]
+//   - Use the classname parameter if you want a different class (i.e. Sword)
+// ammo <ammo_name> <amount>
+//
+
+//Spearhead
+
+weapon weapons/enfield.tik
+weapon weapons/G43.tik
+weapon weapons/M18_smoke_grenade.tik
+weapon weapons/mg42carryable.tik
+weapon weapons/mills_grenade.tik
+weapon weapons/Mosin_Nagant_Rifle.tik
+weapon weapons/Nagant_revolver.tik
+weapon weapons/nebelhandgranate.tik
+weapon weapons/ppsh_smg.tik
+weapon weapons/RDG-1_Smoke_grenade.tik
+weapon weapons/Russian_F1_grenade.tik
+weapon weapons/sten.tik
+weapon weapons/svt_rifle.tik
+weapon weapons/Webley_Revolver.tik
+
+
+// these are the max ammo limits
+ammo pistol			200
+ammo rifle			200
+ammo smg			300
+ammo mg				500
+ammo grenade			5
+ammo agrenade			5 // single player american grenades
+ammo heavy			5
+ammo shotgun			50
+ammo smokegrenade		5

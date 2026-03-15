@@ -1,0 +1,165 @@
+// Safe Move-To routines
+
+
+SafeRunTo local.dest local.trigger_when_done local.movedonerad local.retry_delay local.crouch_at_dest:
+
+	if (local.trigger_when_done == NIL)
+		local.trigger_when_done = NULL
+	if (local.movedonerad == NIL)
+		local.movedonerad = 100.0
+	if (local.retry_delay == NIL)
+		local.retry_delay = 1.0
+	if (local.crouch_at_dest == NIL)
+		local.crouch_at_dest = 0
+	if (self.safemoveto_in_progress == NIL)
+		self.safemoveto_in_progress = 0
+
+	if (self.safemoveto_in_progress == 1)
+	{
+		// one already in progress, so let it finish up
+
+		self.safemoveto_done = 1
+		while (self.safemoveto_in_progress == 1)
+			waitframe
+	}
+
+	self.safemoveto_in_progress = 1
+	self.safemoveto_done = 0
+
+	self.destination = local.dest
+	self.movedoneradius_backup = self.movedoneradius
+	self.movedoneradius = local.movedonerad
+	self.safemoveto_trigger = local.trigger_when_done
+
+	self.safemoveto_gotmovedoneevent = 0
+	self thread SafeRunTo_WaitMoveThread
+
+	self runto self.destination
+	self thread SafeRunTo_MaintenanceThread local.crouch_at_dest local.retry_delay
+
+end
+
+SafeRunTo_MaintenanceThread local.crouch_at_dest local.retry_delay:
+
+	while (self && isalive self)
+	{
+		while ((self.safemoveto_gotmovedoneevent == 0) && (self.safemoveto_done == 0) && (self && isalive self))
+			waitframe
+
+		if ((self && isalive self) || (self.safemoveto_done == 1) || (vector_within self.origin self.destination.origin self.movedoneradius))
+			break
+
+		wait local.retry_delay
+		self.safemoveto_gotmovedoneevent = 0
+		self runto self.destination
+	}
+
+	if (isalive self)
+	{
+		if (self.safemoveto_done == 0)
+		{
+			if (local.crouch_at_dest == 1)
+			{
+				self exec global/crouch.scr
+				self waittill animdone
+			}
+
+			self.safemoveto_done = 1
+			if (self.safemoveto_trigger != NULL)
+				trigger self.safemoveto_trigger
+		}
+
+		self.safemoveto_trigger = NULL
+		self.movedoneradius = self.movedoneradius_backup
+		self.safemoveto_in_progress = 0
+	}
+
+end
+
+SafeRunTo_WaitMoveThread:
+
+	while (self.safemoveto_in_progress == 1)
+	{
+		self waittill movedone
+		self.safemoveto_gotmovedoneevent = 1
+	}
+
+end
+
+
+SafeRunTo_Wait local.dest local.movedonerad local.retry_delay local.crouch_at_dest:
+
+	local.trigger = spawn trigger_relay
+
+	waitthread SafeRunTo local.dest local.trigger local.movedonerad local.retry_delay local.crouch_at_dest
+	local.trigger waittill trigger
+
+	local.trigger delete
+
+end
+
+
+// put walkto, crouchto, crawlto variations here if desired
+
+
+
+WaitMoveDone:
+
+	while (self.safemoveto_done == 0)
+		waitframe
+
+/*		--- this seems unreliable
+	if (self.safemoveto_done == 0)
+	{
+		if (self.safemoveto_trigger == NULL)
+		{
+			local.trigger = spawn trigger_relay
+			self.safemoveto_trigger = local.trigger
+		}
+		else
+		{
+			local.trigger = NULL
+		}
+
+		if (self.safemoveto_done == 0)
+			self.safemoveto_trigger waittill trigger
+
+		if (local.trigger != NULL)
+			local.trigger delete
+	}
+*/
+
+end
+
+//-----------------------------------------------------------
+reach local.point:
+//-----------------------------------------------------------
+
+	if (self.reach_thread)
+		self.reach_thread delete
+
+	self.reach_thread = local
+
+reach_loop:
+
+	self runto local.point
+	self waittill movedone
+
+	if (parm.movedone==1)
+		end
+
+	wait 0.1
+	goto reach_loop
+
+end
+
+//-----------------------------------------------------------
+reach_cancel:
+//-----------------------------------------------------------
+	if (self.reach_thread)
+	{
+		self.reach_thread delete
+		self.reach_thread = NULL
+	}
+
+end

@@ -1,0 +1,216 @@
+// -------------------------------------------------------------------------------------
+// End round cinematics for Liberation mode
+// -------------------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------------
+DoAlliesWin:
+// -------------------------------------------------------------------------------------
+
+	drawhud 0
+	// FIX BEFORE RELEASE: delete the following comment before release
+	// added by JP to so vote can be held to end the oppression of the cinematic
+	// See why we need to delete that? :-), what are you doing reading this anyway
+	level.cinematic = getcvar(g_cinematics_off)
+	
+	if(level.cinematic == "1")
+	{
+		freezeplayer
+		teamwin allies
+		end
+	}
+	
+	//Standard hide player stuff
+	$player nodamage
+	$player hide
+	$player notsolid
+	$player safeholster 1
+	freezeplayer
+
+	//spawn the allies
+	waitthread global/dm_ai.scr::spawnset 30 fsquad
+
+	//spawn the axis
+	waitthread global/dm_ai.scr::spawnset 40 axis	
+
+	//Tell the officers to do their ending sequence	
+	for( local.i = 1; local.i <= $axis.size; local.i++ )
+	{
+		$axis[local.i] thread DoVictims
+	}
+
+	//Tell the firing squad to do their ending sequence	
+	for( local.i = 1; local.i <= $fsquad.size; local.i++ )
+	{
+		$fsquad[local.i] thread DoFiringSquad $axis[local.i]
+	}
+
+	waitthread DoAlliesCameraWin
+	
+	//movies over allies win
+	teamwin allies
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+DoAxisWin:
+// -------------------------------------------------------------------------------------
+
+	drawhud 0
+	
+	// ADDED by JP to allow cinematics to be stopped
+	level.cinematic = getcvar(g_cinematics_off)
+
+	if(level.cinematic == "1") // if 1 then it means you want it off
+	{
+                freezeplayer
+		teamwin axis
+		end
+	}
+	
+	
+	//Standard hide player stuff
+	$player nodamage
+	$player hide
+	$player notsolid
+	$player safeholster 1
+	freezeplayer
+
+	//spawn the axis
+	waitthread global/dm_ai.scr::spawnset 10 fsquad
+
+	//spawn the allies
+	waitthread global/dm_ai.scr::spawnset 20 allies
+
+	//Tell the officers to do their ending sequence	
+	for( local.i = 1; local.i <= $allies.size; local.i++ )
+	{
+		$allies[local.i] thread DoVictims
+	}
+
+	//Tell the firing squad to do their ending sequence	
+	for( local.i = 1; local.i <= $fsquad.size; local.i++ )
+	{
+		$fsquad[local.i] thread DoFiringSquad $allies[local.i]
+	}
+
+	waitthread DoAxisCameraWin
+	
+	//movies over axis win
+	teamwin axis
+
+	end
+
+
+
+// -------------------------------------------------------------------------------------
+DoVictims:
+// -------------------------------------------------------------------------------------
+
+	self exec global/disable_ai.scr
+	self nodamage
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+DoFiringSquad local.target:
+// -------------------------------------------------------------------------------------
+		
+	self exec global/disable_ai.scr
+	self nodamage		
+	self aimat local.target
+
+//	wait 10
+
+//	self thread FireShots local.target
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+DoAlliesCameraWin:
+// -------------------------------------------------------------------------------------
+	
+	fadeout .001 0 0 0 1
+	fadein 4 0 0 0 1
+
+	$axiscamera speed .5
+	$axiscamera fov 65
+	$axiscamera follow $allies_win_camera
+	$axiscamera cut
+	cuecamera $axiscamera
+
+	$axiscamera playsound Lib_cine01
+
+	wait 4
+
+	fadeout 2 0 0 0 1		
+
+	wait 3	
+
+	fadein 3 0 0 0 1
+	
+	$axiscamera speed .4
+	$axiscamera fov 70
+	$axiscamera follow $allies_win_camera_2
+	$axiscamera cut
+	cuecamera $axiscamera
+
+	wait 5
+
+	fadeout 2 0 0 0 1
+
+	wait 1.5f
+
+	end
+
+// -------------------------------------------------------------------------------------
+DoAxisCameraWin:
+// -------------------------------------------------------------------------------------
+	
+	fadeout .001 0 0 0 1
+	fadein 4 0 0 0 1
+
+	$axiscamera speed .5
+	$axiscamera fov 65
+	$axiscamera follow $axis_win_camera_1
+	$axiscamera cut
+	cuecamera $axiscamera
+
+	$axiscamera playsound Lib_cine02
+
+	wait 4
+
+	fadeout 2 0 0 0 1		
+
+	wait 3	
+
+	fadein 3 0 0 0 1		
+
+	$axiscamera speed .5
+	$axiscamera fov 70
+	$axiscamera follow $axis_win_camera_2 
+	$axiscamera cut
+	cuecamera $axiscamera
+
+	wait 4
+
+	fadeout 2 0 0 0 1
+
+	wait 1.5
+
+	end
+
+// -------------------------------------------------------------------------------------
+FireShots local.target:
+// -------------------------------------------------------------------------------------
+	
+	for( local.i = 0; local.i < 5; local.i++ )
+	{
+		local.rand = randomfloat 0.75
+		local.rand += 0.2
+
+		wait local.rand
+		self fire
+	}

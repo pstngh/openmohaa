@@ -1,0 +1,203 @@
+//scientist_wallchart.scr
+
+// -------------------------------------------------------------------------------------
+start local.sci1 local.sci2 local.board:
+// -------------------------------------------------------------------------------------
+
+	println "Entered scientist_wallchart.scr"
+
+	local.sci1 thread InitScientist
+	local.sci2 thread InitScientist
+
+	if (local.board != NIL)
+	{
+		println "Moving scientists to board"
+		group.forwardvector = local.board.forwardvector
+
+		// Figure out which scientist is on the left
+		if ( (vector_dot local.sci1 local.board.leftvector) > (vector_dot local.sci2 local.board.leftvector) )
+		{
+			group.scientist1 = local.sci1
+			group.scientist2 = local.sci2
+		}
+		else
+		{
+			group.scientist1 = local.sci2
+			group.scientist2 = local.sci1
+		}
+		
+		group.originleft = local.board.origin + (group.forwardvector*24) - (local.board.leftvector*22.6)
+		group.originright = local.board.origin + (group.forwardvector*27.4) + (local.board.leftvector*22.6)
+
+		group.donemarker = 0
+		waitthread sci1walkto group.originright
+		waitthread sci2walkto group.originleft
+		
+		thread depressed
+	}
+	else
+	{
+		println "Leaving scientists in place"
+		group.originright = local.sci1.origin
+		group.originleft = local.sci2.origin
+		group.forwardvector = local.sci1.forwardvector * -1
+		group.scientist1 = local.sci1
+		group.scientist2 = local.sci2
+		thread depressed
+	}
+
+	end
+
+// -------------------------------------------------------------------------------------
+sci1walkto local.pos:
+// -------------------------------------------------------------------------------------
+
+	group.scientist1 exec global/walkto.scr local.pos
+	group.scientist1 waittill movedone	
+	group.scientist1.origin = local.pos	
+	
+	end
+
+// -------------------------------------------------------------------------------------
+sci2walkto local.pos:
+// -------------------------------------------------------------------------------------
+
+	group.scientist2 exec global/walkto.scr local.pos
+	group.scientist2 waittill movedone
+	group.scientist2.origin = local.pos		
+	
+	end
+
+
+// -------------------------------------------------------------------------------------
+depressed:
+// -------------------------------------------------------------------------------------
+	
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+
+
+	group.scientist1 anim "scientist_wallchart_depressed_sci1"
+	group.scientist2 anim "scientist_wallchart_depressed_sci2"
+
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+	group.scientist1 anim "scientist_wallchart_depressedtoidle_sci1"
+	group.scientist2 anim "scientist_wallchart_depressedtoidle_sci2"
+	group.scientist1 waittill animdone
+
+	local.randnum = randomint (100)
+
+	if		(local.randnum < 30)	thread idle1
+	else if	(local.randnum < 60)	thread idle2
+	else if	(local.randnum < 90)	thread idle3
+	else							thread idletodepressed
+
+	end
+
+// -------------------------------------------------------------------------------------
+idle1:
+// -------------------------------------------------------------------------------------
+
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+
+	group.scientist1 anim "scientist_wallchart_idle1_sci1"
+	group.scientist2 anim "scientist_wallchart_idle1_sci2"	
+	group.scientist1 waittill animdone
+
+	local.randnum = randomint (100)
+	if		(local.randnum < 10)	thread idle1
+	else if	(local.randnum < 50)	thread idle2
+	else if	(local.randnum < 90)	thread idle3
+	else							thread idletodepressed
+
+	end
+
+// -------------------------------------------------------------------------------------
+idle2:
+// -------------------------------------------------------------------------------------
+		
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+	group.scientist1 anim "scientist_wallchart_idle2_sci1"
+	group.scientist2 anim "scientist_wallchart_idle2_sci2"	
+	group.scientist1 waittill animdone
+
+	local.randnum = randomint (100)
+	if		(local.randnum < 40)	thread idle1
+	else if	(local.randnum < 50)	thread idle2
+	else if	(local.randnum < 90)	thread idle3
+	else							thread idletodepressed
+
+	end
+
+// -------------------------------------------------------------------------------------
+idle3:
+// -------------------------------------------------------------------------------------
+
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+	group.scientist1 anim "scientist_wallchart_idle3_sci1"
+	group.scientist2 anim "scientist_wallchart_idle3_sci2"	
+	group.scientist1 waittill animdone
+
+	local.randnum = randomint (100)
+	if		(local.randnum < 35)	thread idle1
+	else if	(local.randnum < 70)	thread idle2
+	else if	(local.randnum < 80)	thread idle3
+	else							thread idletodepressed
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+idletodepressed:
+// -------------------------------------------------------------------------------------
+	
+	group.scientist1 turnto (group.scientist1.origin - group.forwardvector )
+	group.scientist2 turnto (group.scientist2.origin - group.forwardvector )
+	group.scientist1 anim "scientist_wallchart_idletodepressed_sci1"
+	group.scientist2 anim "scientist_wallchart_idletodepressed_sci2"		
+	group.scientist1 waittill animdone
+	thread depressed
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+InitScientist:
+// -------------------------------------------------------------------------------------
+
+	self holster
+	self type_attack "alarm"
+	self alarmthread "InterruptClass"
+
+	if(self.gun == "" || self.gun == NULL || self.gun == NIL || self.gun == "none")
+	{
+		self weapon "walter p38"
+	}
+
+	self holster
+
+	end
+
+// -------------------------------------------------------------------------------------
+InterruptClass:
+// -------------------------------------------------------------------------------------
+
+	self exec global/disable_ai.scr	
+
+	if( isalive self )
+	{
+		self unholster
+	}
+	
+	wait .1	
+	if( isalive self )
+	{
+     	self exec global/enable_ai.scr
+     	self attackplayer
+	}	
+
+	end

@@ -1,0 +1,281 @@
+// ------------------------------------------------
+// FindTrigger will return the specific trigger whose find_name 
+//  matches the one passed in as local.find_name
+
+// ------------------------------------------------
+FindTrigger local.find_name:
+
+	if($enemyspawnertrigger != NIL && $enemyspawnertrigger != NULL)
+	{
+		for (local.i=1;local.i<$enemyspawnertrigger.size+1;local.i++)
+		{
+			if ($enemyspawnertrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $enemyspawnertrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}	
+	}
+
+	if($explodertrigger != NIL && $explodertrigger != NULL)
+	{
+		for (local.i=1;local.i<$explodertrigger.size+1;local.i++)
+		{
+			if ($explodertrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $explodertrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+
+	if($paradetrigger != NIL && $paradetrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradetrigger.size+1;local.i++)
+		{
+			if ($paradetrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $paradetrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($paradeaborttrigger != NIL && $paradeaborttrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradeaborttrigger.size+1;local.i++)
+		{
+			if ($paradeaborttrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $paradeaborttrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($paradedeletetrigger != NIL && $paradedeletetrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradedeletetrigger.size+1;local.i++)
+		{
+			if ($paradedeletetrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $paradedeletetrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($autotrucktrigger != NIL && $autotrucktrigger != NULL)
+	{
+		for (local.i=1;local.i<=$autotrucktrigger.size;local.i++)
+		{
+			if ($autotrucktrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $autotrucktrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($autotanktrigger != NIL && $autotanktrigger != NULL)
+	{
+		for (local.i=1;local.i<= $autotanktrigger.size;local.i++)
+		{
+			if ($autotanktrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $autotanktrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($autoplanetrigger != NIL && $autoplanetrigger != NULL)
+	{
+		for(local.i=1; local.i<= $autoplanetrigger.size; local.i++)
+		{
+			if ($autoplanetrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $autoplanetrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($autoexplosiontrigger != NIL && $autoexplosiontrigger != NULL)
+	{
+		for(local.i=1; local.i<= $autoexplosiontrigger.size; local.i++)
+		{
+			if ($autoexplosiontrigger[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $autoexplosiontrigger[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+	
+	if($landmine != NIL && $landmine != NULL)
+	{
+		for(local.i=1; local.i <= $landmine.size; local.i++)
+		{
+			if($landmine[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $landmine[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+
+	if($door_locked != NIL && $door_locked != NULL)
+	{
+		for(local.i=1; local.i <= $door_locked.size; local.i++)
+		{
+			if($door_locked[local.i].find_name == local.find_name)
+			{
+				local.returntrigger = $door_locked[local.i]
+				goto FindTriggerEnd
+			}
+		}
+	}
+
+FindTriggerEnd:
+end local.returntrigger
+
+
+
+
+
+FindTriggerByTarget local.target:
+	if($enemyspawnertrigger != NIL && $enemyspawnertrigger != NULL)
+	{
+		for (local.i=1;local.i<$enemyspawnertrigger.size+1;local.i++)
+		{
+			if ($enemyspawnertrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $enemyspawnertrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}	
+	}
+
+	if($explodertrigger != NIL && $explodertrigger != NULL)
+	{
+		for (local.i=1;local.i<$explodertrigger.size+1;local.i++)
+		{
+			if ($explodertrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $explodertrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+
+	if($paradetrigger != NIL && $paradetrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradetrigger.size+1;local.i++)
+		{
+			if ($paradetrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $paradetrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($paradeaborttrigger != NIL && $paradeaborttrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradeaborttrigger.size+1;local.i++)
+		{
+			if ($paradeaborttrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $paradeaborttrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($paradedeletetrigger != NIL && $paradedeletetrigger != NULL)
+	{
+		for (local.i=1;local.i<$paradedeletetrigger.size+1;local.i++)
+		{
+			if ($paradedeletetrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $paradedeletetrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($autotrucktrigger != NIL && $autotrucktrigger != NULL)
+	{
+		for (local.i=1;local.i<=$autotrucktrigger.size;local.i++)
+		{
+			if ($autotrucktrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $autotrucktrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($autotanktrigger != NIL && $autotanktrigger != NULL)
+	{
+		for (local.i=1;local.i<= $autotanktrigger.size;local.i++)
+		{
+			if ($autotanktrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $autotanktrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($autoplanetrigger != NIL && $autoplanetrigger != NULL)
+	{
+		for(local.i=1; local.i<= $autoplanetrigger.size; local.i++)
+		{
+			if ($autoplanetrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $autoplanetrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($autoexplosiontrigger != NIL && $autoexplosiontrigger != NULL)
+	{
+		for(local.i=1; local.i<= $autoexplosiontrigger.size; local.i++)
+		{
+			if ($autoexplosiontrigger[local.i].target == $(local.target))
+			{
+				local.returntrigger = $autoexplosiontrigger[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+	
+	if($landmine != NIL && $landmine != NULL)
+	{
+		for(local.i=1; local.i <= $landmine.size; local.i++)
+		{
+			if($landmine[local.i].target == $(local.target))
+			{
+				local.returntrigger = $landmine[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+
+	if($door_locked != NIL && $door_locked != NULL)
+	{
+		for(local.i=1; local.i <= $door_locked.size; local.i++)
+		{
+			if($door_locked[local.i].target == $(local.target))
+			{
+				local.returntrigger = $door_locked[local.i]
+				goto FindTriggerByTargetEnd
+			}
+		}
+	}
+
+FindTriggerByTargetEnd:
+end local.returntrigger

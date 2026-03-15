@@ -1,0 +1,86 @@
+//
+// MultiDeathWait
+//
+
+MultiDeathWait local.ent_name_1 local.ent_name_2 local.ent_name_3 local.ent_name_4 local.ent_name_5 local.ent_name_6 local.ent_name_7 local.ent_name_8:
+
+	local.trig = spawn trigger_relay
+
+	thread MultiDeathTrigger local.trig local.ent_name_1 local.ent_name_2 local.ent_name_3 local.ent_name_4 local.ent_name_5 local.ent_name_6 local.ent_name_7 local.ent_name_8
+
+	local.trig waittill trigger
+	local.trig delete
+
+end
+
+
+MultiDeathTrigger local.trig local.ent_name_1 local.ent_name_2 local.ent_name_3 local.ent_name_4 local.ent_name_5 local.ent_name_6 local.ent_name_7 local.ent_name_8:
+
+	local.counter = spawn info_notnull
+	local.counter.count = 0
+
+	if ((local.ent_name_1 != NIL) && $(local.ent_name_1))
+	{
+		$(local.ent_name_1) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_2 != NIL) && $(local.ent_name_2))
+	{
+		$(local.ent_name_2) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_3 != NIL) && $(local.ent_name_3))
+	{
+		$(local.ent_name_3) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_4 != NIL) && $(local.ent_name_4))
+	{
+		$(local.ent_name_4) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_5 != NIL) && $(local.ent_name_5))
+	{
+		$(local.ent_name_5) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_6 != NIL) && $(local.ent_name_6))
+	{
+		$(local.ent_name_6) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_7 != NIL) && $(local.ent_name_7))
+	{
+		$(local.ent_name_7) thread priv_SingleWait local.counter local.trig
+	}
+	if ((local.ent_name_8 != NIL) && $(local.ent_name_8))
+	{
+		$(local.ent_name_8) thread priv_SingleWait local.counter local.trig
+	}
+
+	wait 0.5
+
+	if (local.counter.count > 0)
+		local.trig waittill trigger
+	else
+		trigger local.trig
+
+	local.counter delete
+
+end
+
+
+
+// privates
+
+priv_SingleWait local.counter local.trig:
+
+	if (self && (isalive self))
+	{
+		local.counter.count++
+		self waittill death
+		local.counter.count--
+	}
+
+	if (local.counter.count <= 0)
+	{
+		trigger local.trig
+	}
+
+end
+
+

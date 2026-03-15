@@ -1,0 +1,110 @@
+
+
+DriverGetInJeep local.jeep local.driver:
+
+	local.driver gun holster	
+
+	local.dest = local.jeep gettagposition "driver_enter"
+	if (vector_length(local.driver.origin - local.dest) > 70)
+	{
+		local.driver.movedoneradius = 70
+		local.driver runto local.dest
+		local.driver waittill movedone
+	}
+	if (vector_length(local.driver.origin - local.dest) > 20)
+	{
+		local.driver.movedoneradius = 20
+		local.driver walkto local.dest
+		local.driver waittill movedone
+	}
+	local.driver nodamage
+	local.driver notsolid
+
+	// NOTE: anim_noclip will translate the origin but will not hold onto rotations made in the animation.
+	// Thus, anims using anim_noclip need to start and end with the same set of angles.
+	local.driver waitexec global/disable_ai.scr
+	local.driver turnto NULL
+	local.driver lookat NULL
+	local.driver.origin = local.dest
+	local.driver.angles = local.jeep.angles
+	local.driver anim_noclip A_31_driverGetin_jeep
+	local.driver waittill animdone
+
+	local.driver.angles = (0 0 0)
+	local.driver attach local.jeep driver 1
+	local.driver thread global/LoopAnim.scr::LoopAnim A_22_driver_idle
+	local.driver physics_off
+
+End
+
+PassengerGetInJeep local.jeep local.passenger:
+
+	local.passenger holster
+
+	local.dest = local.jeep gettagposition "passenger_enter0 1"
+	if (!local.dest) local.dest = local.jeep gettagposition "passenger_enter"
+	if (vector_length(local.passenger.origin - local.dest) > 70)
+	{
+		local.passenger.movedoneradius = 70
+		local.passenger runto local.dest
+		local.passenger waittill movedone
+	}
+	if (vector_length(local.passenger.origin - local.dest) > 20)
+	{
+		local.passenger.movedoneradius = 20
+		local.passenger walkto local.dest
+		local.passenger waittill movedone
+	}
+	local.passenger notsolid
+	local.passenger nodamage
+
+	// NOTE: anim_noclip will translate the origin but will not hold onto rotations made in the animation.
+	// Thus, anims using anim_noclip need to start and end with the same set of angles.
+	local.passenger waitexec global/disable_ai.scr
+	local.passenger turnto NULL
+	local.passenger lookat NULL
+	local.passenger.origin = local.dest
+	local.passenger.angles = local.jeep.angles
+	local.passenger anim_noclip A_31_GetIn_jeep
+	local.passenger waittill animdone
+
+	local.passenger.angles = (0 0 0)
+	local.passenger attach local.jeep passenger0 1
+	local.passenger thread global/LoopAnim.scr::LoopAnim A_31_GetIn_jeepidle
+	local.passenger physics_off
+
+End
+
+DriverGetOutJeep local.jeep local.driver:
+	local.driver thread global/LoopAnim.scr::LoopAnimStop
+	local.driver physics_on
+	local.driver notsolid
+
+	local.driver detach
+	local.driver.angles = local.jeep.angles
+
+	local.driver anim_noclip A_31_Med_leavejeep
+	local.driver waittill animdone
+
+//	local.driver exec global/enable_ai.scr
+	local.driver solid
+	local.driver = NULL
+End
+
+PassengerGetOutJeep local.jeep local.passenger:
+	local.passenger thread global/LoopAnim.scr::LoopAnimStop
+	local.passenger physics_on
+	local.passenger notsolid
+
+	local.passenger detach
+	local.passenger.angles = local.jeep.angles
+
+	local.passenger anim_noclip A_31_GetOut_jeep
+	local.passenger waittill animdone
+
+//	local.passenger exec global/enable_ai.scr
+	local.passenger solid
+	local.passenger = NULL
+End
+
+

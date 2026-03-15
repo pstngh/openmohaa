@@ -1,0 +1,342 @@
+// -----------------------------------------------
+//
+// Balcony Jump Gag
+//
+// by ccaron  4/25/2003
+//
+// a balcony guy is inactive until hit by a bullet
+// or player becomes visible
+//
+// if the guy is killed on the balcony, a 
+// balcony fall anim is executed.  If the 
+// guy is alarmed, then one of 2 possible
+// jump-over-the-railing anims is executed.
+//
+// call as: $guy thread global/balconyguy.scr::balconyGuy
+//
+// -----------------------------------------------
+//
+// The following code needs to be added to the level_****.tik file:
+//
+/*
+	$path models/human/animation/scripted/e3l3
+	AA_K5_jump				AA_K5_jump.skc
+	AX_K5_death				AX_K5_death.skc
+
+	$path models/human/animation/scripted/t1l3
+	13C500_Capthopsbalc			13C500_Capthopsbalc.skc
+	{
+		client		
+		{
+			7 sound movement
+			23 sound movement
+			32 sound movement
+			40 sound snd_landing_grass1
+		}
+	}
+*/
+
+
+// -----------------------------------------------------
+// Usage: exec global/balconyGuy.scr
+// -----------------------------------------------------
+main:
+
+	waitthread InitAllBalconyGuys
+	waitthread InitAllFallers
+
+end
+
+// -----------------------------------------------------
+// Find all the balcony fallers and 
+// -----------------------------------------------------
+InitAllBalconyGuys:
+
+	if ($balcony_guy)
+	{
+		for (local.i = 1; local.i <= $balcony_guy.size; local.i++)
+		{
+			println "balcony guy " local.i " found at " self.origin
+			$balcony_guy[local.i] thread StartBalconyGuy
+		}
+	}
+	else
+	{
+		println "No balcony_guy 's found"
+	}
+
+end
+
+// -----------------------------------------------------
+// -----------------------------------------------------
+InitAllFallers:
+
+	if ($balcony_fall)
+	{
+		for (local.i = 1; local.i <= $balcony_fall.size; local.i++)
+		{
+			$balcony_fall[local.i] thread StartBalconyFaller
+		}
+	}
+	else
+	{
+		println "No $balcony_fall er's found"
+	}
+
+end
+
+// -----------------------------------------------------
+// -----------------------------------------------------
+StartBalconyFaller:
+
+	if (!self.target)
+	{
+		println "ERROR: balcony_fall guy must target a trigger, quitting thread"
+		end
+	}
+
+	// detatch the 'target' field just to be safe
+	self ai_off
+	self hide
+	local.trigger = self.target
+	self.target = NULL
+	
+	// Wait for the trigger to be tripped
+	local.trigger waittill trigger
+
+	self show
+	self thread balconyFall
+
+end
+
+// -----------------------------------------------------
+// -----------------------------------------------------
+StartBalconyGuy:
+
+	if (!self.target)
+	{
+		println "ERROR: balcony_guy must target a trigger, quitting thread"
+		end
+	}
+
+	local.trigger = self.target
+	self.target = NULL
+	self ai_off
+	self hide
+
+	local.trigger waittill trigger
+
+	self show
+	self thread balconyFall
+
+end
+
+// -----------------------------------------------------
+// if animtype not provided, then will choose randomly
+// between 0 and 1
+// if provided must be 0 (for anim1) or 1 (for anim2)
+// -----------------------------------------------------
+balconyGuy local.animtype:
+  
+	if(!(isalive self) || self.health <= 0)
+		End 
+
+	if (local.animtype == NULL)
+		self.jumpType = randomint(2)
+	else if (local.animtype == 0 || local.animtype == 1)
+		self.jumpType = local.animtype
+	else
+	{
+		println "ERROR: arg to balconyGuy must be 0 or 1, quitting thread"
+		end
+	}
+
+	self ai_on
+	self physics_on
+
+	// need the set health very high to catch
+	// when guy is dead.
+	self.health += 10000
+	self.nolongpain = 1
+	self.ainocrouch = 1
+	self.ainoprone = 1
+	self.ainododge = 1
+	self.ainohopforward = 1
+	self.ainohopbackward = 1
+	self.ainointerval = 1
+	self.fixedleash = 1
+	self.mindist = 0
+	self.leash = 0
+	self.type_grenade = balcony_grenade
+  
+	// this here to keep guy from moving around
+	self type_attack "turret"
+
+	// get the direction to fall
+	self.fallDir = angles_toforward(self.angles)
+	self.fallDir = vector_scale self.fallDir 100
+
+	// get the direction to jump
+	local.angle = self.angles
+
+	if (self.jumpType == 0)
+		local.angle[2] -= 90
+  
+	self.jumpDir = angles_toforward(local.angle)  
+	self.jumpDir = vector_scale self.jumpDir 100
+
+	// wait to get hurt  
+	self waittill pain
+  
+	self waitexec global/disable_ai.scr
+
+	// if alive, jump off balcony and attack
+	if (self.health > 10000)
+	{
+		//println "balcony guy jumping off"
+		  
+		self thread TurnTo (self.jumpDir + self.origin)
+
+		if (self.jumpType == 0)
+			self anim_noclip AA_K5_jump
+		else
+			self anim_noclip 13C500_Capthopsbalc
+
+		self waittill animdone
+		//self physics_off
+		self droptofloor
+			  
+		if (self.health > 10000)
+			self.health -= 10000
+		else // this means that the guy was killed during the anim
+		{
+			//println "health under 10000"
+			self.health = 1
+			self exec global/bullethit.scr (0 -1 90) 1000 50 1
+			// should run a pain anim here
+			//self setmotionanim death_chest
+			//self waittill flaggedanimdone
+			//self.position = "dead"
+			//self waitthread global/death.scr
+			//self waitexec global/setdeathanim.scr "death_collapse"
+			//self bedead
+			//end
+		}
+
+		self.type_attack = "cover"
+		//self physics_on
+		self exec global/enable_ai.scr
+	}
+	else // perform a fall off the balcony anim
+	{
+		//println "balcony guy dead"
+		self nodamage
+		self notsolid
+		self exec global/disable_ai.scr
+
+		self thread TurnTo (self.fallDir + self.origin)
+
+		self anim_noclip death_balcony_intro
+		self waittill animdone
+		wait 0.4
+		while (vector_length( self.velocity ) > 100) 
+		{
+			self anim death_balcony_loop
+			wait .1
+		}
+		self anim death_balcony_outtro
+		self waittill animdone
+
+		self bedead
+
+	}
+
+end
+
+// --------------------------------------------------
+// Same as above except only the fall gag, no jump
+// --------------------------------------------------
+balconyFall:
+ 
+	if(!(isalive self) || self.health <= 0)
+		End 
+
+	self ai_on
+	self physics_on
+
+	// need the set health very high to catch
+	// when guy is dead.
+	self.health += 10000
+	self.nolongpain = 1
+	self.ainocrouch = 1
+	self.ainoprone = 1
+	self.ainododge = 1
+	self.ainohopforward = 1
+	self.ainohopbackward = 1
+	self.ainointerval = 1
+	self.fixedleash = 1
+	self.mindist = 0
+	self.leash = 0
+	self.type_grenade = balcony_grenade
+  
+	// this here to keep guy from moving around
+	self type_attack "turret"
+
+	// get the direction to fall
+	self.fallDir = angles_toforward(self.angles)
+	self.fallDir = vector_scale self.fallDir 100
+
+	// get the direction to jump
+	local.angle = self.angles
+
+	// wait to get hurt  
+	while (self.health > 10000)
+		waitframe
+  
+	self nodamage
+	self notsolid
+	self exec global/disable_ai.scr
+
+	self thread TurnTo (self.fallDir + self.origin)
+
+	self anim_noclip death_balcony_intro
+	self waittill animdone
+	wait 0.4
+	while (vector_length( self.velocity ) > 100) 
+	{
+		self anim death_balcony_loop
+		wait .1
+	}
+	self anim death_balcony_outtro
+	self waittill animdone
+
+	self bedead
+
+end
+
+// ------------------------------------------------
+// This needed because 'turnto' requires an entity
+// to turn too.  Sometimes nice to just turn to an
+// origin.  Spawns a script origin on the fly.  Turns
+// to the origin, and removes the spawned entity.
+// ------------------------------------------------
+TurnTo local.origin:
+
+	if (self == NULL)
+	{
+		println "ERROR: Must call TurnTo as: $guy TurnTo local.origin."
+	}	
+	else if (local.origin)
+	{
+
+		local.ent = spawn script_origin
+		local.ent.origin = local.origin
+		self turnto local.ent
+		self waittill turndone
+		local.ent remove
+	}
+	else
+	{
+		println "ERROR: " self ".TurnTo requires an origin parameter."
+	}
+end

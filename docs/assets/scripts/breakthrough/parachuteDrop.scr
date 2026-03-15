@@ -1,0 +1,281 @@
+//
+// parachuteDrop.scr
+//
+
+// public interface:
+
+dropGuy local.pos local.lzpos local.targetname local.zAngle local.model local.dontScaleChute:
+	level.useJimsChute = 0
+
+	if (local.model == NULL || local.model == NIL) {
+		//local.model = spawn models/human/Sc_Al_US_Inf.tik
+		local.model = spawn models/human/Sc_Al_US_InfWPack.tik
+		//local.model = spawn "models/human/allied_airborne_soldier"
+	}
+	else
+		local.model = spawn local.model
+
+	if (local.targetname != NIL && local.targetname != NULL) 
+		local.model.targetname = local.targetname
+	local.model.origin = local.pos
+	local.model.landed = 0		// close enough to land
+	local.model.onGround = 0	// actually have feet on the ground
+
+	if (local.zAngle == NIL)
+		local.model.angles = ( 0 (randomint 359) 0 )
+	else
+		local.model.angles = ( 0 local.zAngle 0 )
+
+	if (level.useJimsChute)
+		local.chute = spawn script_model model models/equipment/parachute.tik
+	else		
+		local.chute = spawn script_model model models/static/parachute_actors.tik
+	local.chute notsolid
+	local.chute attach local.model origin 1 ( 0 0 50 )
+	local.model.chute = local.chute
+	local.model thread fallGuy local.lzpos local.dontScaleChute
+end local.model
+	
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+
+// private routines:
+
+fallGuy local.lzpos local.dontScaleChute:
+	self.enableEnemy = 0
+	local.yaw = self.angles[1]
+	local.swayDir = (angles_toforward ( 0 local.yaw 0 ))
+
+	self physics_off
+	self holster
+	self.enableEnemy = 0
+	self thread global/loopanim.scr::LoopAnim ParaIdle
+
+	local.lastTime = level.time
+	local.zVel = (randomint 50) + 160
+	if (level.chuteFallingScale)
+		local.zVel = local.zVel * level.chuteFallingScale
+
+//	local.pv = ( 0 0 -local.zVel )	
+	local.pvNorm = vector_subtract local.lzpos self.origin
+	local.pvNorm = vector_normalize local.pvNorm
+	local.pv = vector_scale local.pvNorm local.zVel
+	
+	local.d = -400		// dist from origin to pivot pt 
+
+	local.angAcc = 5
+	local.angVel = 0  
+	local.angle = -10	// approx half of angle extrema (double integral of acc over time integral of acc to reach 10)
+
+	local.newPos = self.origin + ( 0 0 -local.d )
+
+	if (local.dontScaleChute == 1)
+		local.chuteScaleDuration = 0
+	else
+		local.chuteScaleDuration = 2.0
+	local.chuteScaleStart = level.time
+
+	self.oldPainhandler = self.painhandler
+	self.oldDeathhandler = self.deathhandler
+	self.painhandler = global/parachuteDrop.scr::paraPain
+	self.deathhandler = global/parachuteDrop.scr::paraDeath
+
+	self thread landingTest
+
+	while (!self.landed) 
+	{
+		if (self == NULL)
+			break
+
+		local.adjPv = local.pv
+
+		local.chuteScaleT = level.time - local.chuteScaleStart
+		if (local.chuteScaleT < local.chuteScaleDuration) {
+			local.chuteScaleT = local.chuteScaleT/local.chuteScaleDuration
+			local.chuteScaleT = local.chuteScaleT*local.chuteScaleT			
+			self.chute scale local.chuteScaleT
+			
+			// adjust falling velocity for chute not being open
+			//local.adjPv[2] = local.adjPv[2] - ((1.0 - local.chuteScaleT)*500)
+			local.pvScale = local.zVel - ((1.0 - local.chuteScaleT)*500)
+			local.adjPv = vector_scale local.pvNorm local.pvScale
+		}
+				
+		local.dTime = level.time - local.lastTime
+		local.lastTime = level.time
+		
+		local.newPos = local.newPos + (vector_scale local.adjPv local.dTime)
+		self.origin = local.newPos
+
+		if ((local.angVel > 10 && local.angAcc > 0) || (local.angVel < -10 && local.angAcc < 0))
+			local.angAcc = -1.0*local.angAcc
+		local.angVel += local.dTime*local.angAcc
+		local.angle += local.angVel*local.dTime
+
+		local.swayY = local.d*(sin local.angle)			
+		local.dX = local.swayY*local.swayDir[0]
+		local.dY = local.swayY*local.swayDir[1]
+		local.dZ = local.d*(cos local.angle)			
+		
+		local.rotNewPos = local.newPos + ( local.dX local.dY local.dZ )
+		
+		self.origin = local.rotNewPos
+
+		//println "acc = " local.angAcc ", vel = " local.angVel ", pos = " local.angle
+		self.angles = ( 0 local.yaw -local.angle )
+
+		waitframe
+	}
+end
+
+getGroundDist:
+	local.from = self.origin
+	local.to = self.origin + ( 0 0 -200 )
+	local.v = trace local.from local.to
+	if (local.v == local.to) 
+		end 999999
+	local.d = (vector_length (local.from - local.v))
+end local.d
+
+// test to see if, for some reason, the parachutist has stopped before hitting
+// the ground. Don't laugh, it seems to happen.
+hasStopped:
+	wait 1.5
+	if (self == NULL)
+		end
+
+	local.chute = self.chute
+
+	local.z = local.chute.origin[2]
+	wait 0.5
+	while (local.chute != NULL && self != NULL && self.landed != 1)
+	{
+		if (local.chute.origin[2] >= local.z)
+		{
+			self.landed = 1
+			end
+		}
+		local.z = local.chute.origin[2]
+		wait 0.5
+	}
+end
+
+// Test to see if the parachutist has hit the ground
+hasHitGround:
+	if (self == NULL)
+		end
+	while (self && self.landed != 1)
+	{
+		local.groundDist = self thread getGroundDist
+		if (local.groundDist < 50) {
+			self.landed = 1
+			end
+		}
+		wait 0.1
+	}
+end
+
+landingTest:
+	// wait until we're close to the ground
+	local.chute = self.chute
+
+	self thread hasStopped
+	self thread hasHitGround
+	while (self.landed != 1) {
+		if (self == NULL)
+			break
+
+		waitframe
+	}
+
+	if (local.chute != NULL)
+	{
+		local.chute detach
+		if (self != NULL)
+		{
+			local.chute.angles = self.angles
+			local.chuteDPos = local.chute.origin - self.origin
+		}
+	}
+
+	if (self != NULL && self.iAmDead != 1 && self.health > 0)
+	{
+		self.painhandler = self.oldPainhandler
+		self.deathhandler = self.oldDeathhandler
+	}
+
+	if (self != NULL)
+	{
+		// re-engage physics, brace for impact
+		self physics_on
+		self.angles = self.angles + ( 0 0 -self.angles[2] )
+		self ai_on
+	}
+
+	if (self != NULL)
+	{
+		if (self.iAmDead != 1 && self.health > 0)
+		{
+			// goto crouch anim, pull out gun
+			self thread global/loopanim.scr::LoopAnimStop
+			self unholster
+			self exec global/crouch.scr
+		}
+		else
+		{
+			self hide
+			self remove
+		}
+	}
+
+	if (local.chute != NULL)
+		local.chute thread chuteLand
+	if (self != NULL)
+		self.onGround = 1
+	wait 2
+	if (self != NULL)
+		self exec global/stand.scr
+end
+
+chuteLand:
+	if (level.useJimsChute) {
+		self anim collapse
+		self waittill animdone
+		end
+	}
+	self hide
+	self remove
+end
+
+groundChute local.origin local.angles:
+	end
+	local.groundChute = spawn script_model model models/static/1_1-parachute-barn.tik
+	local.forward = (angles_toforward local.angles)
+	local.backward = (vector_scale local.forward -175)
+	local.backward += ( 0 0 -70 )
+	local.groundChute.origin = local.origin + local.backward
+	local.groundChute.angles = (0 self.angles[1] 0)
+	local.groundChute.angles = local.groundChute.angles + ( 35 0 0 )
+	wait 60
+	local.groundChute remove
+end
+
+//----------------------------------------------------------------------------
+
+paraPain:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	if (self.iAmDead == 1)
+		self setmotionanim AA_AL_DeadParaHanging
+	else
+		self setmotionanim AA_para_pain
+	self waittill flaggedanimdone
+end
+
+paraDeath:
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self waitthread global/loopanim.scr::LoopAnimStop 
+	self setmotionanim AA_AL_DeadParaHanging
+	self waittill flaggedanimdone
+	self.position="dead"
+end

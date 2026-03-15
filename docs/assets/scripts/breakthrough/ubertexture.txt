@@ -1,0 +1,45 @@
+textures/models/weapons/nebelwerfer.tga, -1
+textures/models/weapons/granatwerfer_34.tga, -1
+textures/models/weapons/granatwerfer_34_s.tga, -1
+textures/models/weapons/4_2_AAFender01.tga, -1
+textures/models/weapons/4_2_AAFender01_s.tga, -1
+textures/models/weapons/4_2_metalPanelA.tga, -1
+textures/models/weapons/4_2_metalPanelA_s.tga, -1
+textures/models/weapons/4_2_AApipe_1.tga, -1
+textures/models/weapons/4_2_AApipe_2.tga, -1
+textures/models/weapons/4_2_AApanel02.tga, -1
+textures/models/weapons/4_2_AApanel02_s.tga, -1
+textures/models/weapons/4_2_AApanel03.tga, -1
+textures/models/weapons/4_2_AApanel03_s.tga, -1
+textures/models/weapons/4_2_sight1.tga, -1
+textures/models/weapons/4_2_wheelGray01A.tga, -1
+textures/models/weapons/AAparts.tga, -1
+textures/models/weapons/AAparts_s.tga, -1
+textures/models/weapons/4_2_AAseat.tga, -1
+textures/models/weapons/PzB_41.tga, -1
+
+textures/models/vehicles/PanzerIV_w/backwheel_eu.tga, -1
+textures/models/vehicles/PanzerIV_w/frontwheel_eu.tga, -1
+textures/models/vehicles/PanzerIV_w/smallwheel_eu.tga, -1
+textures/models/vehicles/PanzerIV_w/tread_eu_wntr.tga, -1
+textures/models/vehicles/PanzerIV_w/turret_eu_wntr.tga, -1
+textures/models/vehicles/PanzerIV_w/undercarriage_eu_wntr.tga, -1
+textures/models/vehicles/PanzerIV_w/verysmallwheel_eu.tga, -1
+
+textures/models/human/usa_paratrooper/air_pt_coat.tga, -1
+textures/models/human/uk_paratrooper/uk_air_pt_coat.tga, -1
+textures/models/gear/us_gear/Parachute_pack.tga, -1
+textures/models/gear/uk_gear/Parachute_pack_uk.tga, -1
+textures/models/equipment/uk_pt_capt_helmet.tga, -1
+textures/models/equipment/uk_pt_helmet1.tga, -1
+textures/models/equipment/uk_pt_helmet2.tga, -1
+textures/models/equipment/uk_pt_helmet3.tga, -1
+textures/models/equipment/us_pt_helmet1.tga, -1
+textures/models/equipment/us_pt_helmet2.tga, -1
+textures/models/equipment/us_pt_helmet3.tga, -1
+
+textures/models/static/fuel_tank/fuel_tank.tga, -1
+textures/models/static/fuel_tank/fuel_tank_d.tga, -1
+
+textures/models/items/cart.tga, -1
+textures/models/items/wagon.tga, -1

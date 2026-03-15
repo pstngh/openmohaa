@@ -1,0 +1,68 @@
+/* throbtext will display a throbbing message to the player.  The message displayed will be local.str.
+ * throtext_off will turn off that message.
+ */
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// throb text
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+throbtext local.str local.time:
+
+	if ( local.time == NIL )
+		local.time = 5
+
+	local.hudindex = 66		// in honor of Galvan
+
+	huddraw_alpha local.hudindex 0
+	huddraw_virtualsize local.hudindex 1
+	huddraw_string local.hudindex local.str
+	huddraw_align local.hudindex left top
+	huddraw_font local.hudindex facfont-20
+	huddraw_color local.hudindex 1.0 0.0 0.0
+	huddraw_rect local.hudindex 5 180 0 0
+
+	level.flashingtime = local.time
+	local.stop = level.time + level.flashingtime
+
+	if (level.flashhud != 1)
+	{
+		level.flashhud = 1
+		while ( (level.time <= local.stop) && (level.flashhud == 1) )
+		{
+			for ( local.i = 0.0; local.i <= 1.0; local.i += 0.2 )
+			{
+				huddraw_alpha local.hudindex local.i
+				waitframe
+			}
+
+			wait 0.5
+
+			for ( local.i = 1.0; local.i >= 0.0; local.i -= 0.2 )
+			{
+				huddraw_alpha local.hudindex local.i
+				waitframe
+			}
+
+			if ( level.flashingtime== 0 )
+				local.stop = level.time
+		}
+
+		huddraw_alpha local.hudindex 0
+		level.flashhud = 0
+	}
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// turn off throbbing
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+throbtext_off:
+
+	level.flashhud = 0
+	
+end
+

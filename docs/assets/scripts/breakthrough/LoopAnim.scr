@@ -1,0 +1,113 @@
+//-------------------------------------------------------------------
+//	LoopAnim.Scr
+//	Jeff Legget
+//	7/22/2002
+//
+//	Script to simplify looping animations....
+//-------------------------------------------------------------------
+
+//-------------------------------------------------------------------
+LoopAnim local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopAnimStop
+
+	self.loop_anim_thread = local
+
+	while (1)
+	{
+		self anim local.anim
+		self waittill animdone
+	}
+
+	End
+
+//-------------------------------------------------------------------
+LoopAnimStop:
+//-------------------------------------------------------------------
+
+	if ( self.loop_anim_thread!=NULL && self.loop_anim_thread!=NIL)
+	{
+		self.loop_anim_thread delete
+		self.loop_anim_thread = NULL
+	}
+
+	End
+
+
+//-------------------------------------------------------------------
+LoopAnim2 local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopAnimStop
+
+	self.loop_anim_thread = local
+
+	while (1)
+	{
+		self anim_attached local.anim
+		self waittill animdone
+	}
+
+	End
+
+
+//-------------------------------------------------------------------
+LoopUpperAnim local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopUpperAnimStop
+
+	self.loop_upperanim_thread = local
+
+	while (1)
+	{
+		self upperanim local.anim
+		self waittill upperanimdone
+	}
+
+	End
+
+//-------------------------------------------------------------------
+LoopUpperAnimStop:
+//-------------------------------------------------------------------
+
+	if ( self.loop_upperanim_thread!=NULL && self.loop_upperanim_thread!=NIL)
+	{
+		self.loop_upperanim_thread delete
+		self.loop_upperanim_thread = NULL
+	}
+
+	End
+
+
+//-------------------------------------------------------------------
+LoopAnimNoClip local.anim:
+//-------------------------------------------------------------------
+
+	self waitthread LoopAnimStop
+	self waitthread LoopAnimNoClipStop
+
+	self.loop_animnoclip_thread = local
+
+	while (1)
+	{
+		self anim_noclip local.anim
+		self waittill animdone
+	}
+
+	End
+
+//-------------------------------------------------------------------
+LoopAnimNoClipStop:
+//-------------------------------------------------------------------
+
+	if (self.loop_animnoclip_thread)
+	{
+		self.loop_animnoclip_thread delete
+		self.loop_animnoclip_thread = NULL
+	}
+
+	End
+
+

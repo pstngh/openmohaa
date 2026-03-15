@@ -1,0 +1,253 @@
+//
+// Utility script to add damaged model to destroyed stationary tiki model
+//
+// there are two types
+// type 2: Stationary
+// type 1: Player mounted
+
+/*
+
+When you place a player useable weapon lets say for example an AA gun like the one in T1L1 you may want to swap it out when it gets destroyed to do this there is a new script in the global folder to use it all you need to do is simply follow these simple steps.
+
+Steps in Radiant:
+
+1. Make a turret weapon in Radiant
+2. Give the weapon a $targetname
+3. Give it a health
+4. if you want it to block when it gets destroyed… have it target the collision geometry
+
+Steps in your script:
+
+1.	In your main script you need to add right after level waittill spawn
+The $targetname of the weapon followed by the following thread
+
+Ei. Lets say we have called a player mountable turret $targetname gun1
+
+The script would read
+
+$gun1 thread global/stationaryweapons.scr::MountedStationaryWeapon statweapons/P_aagun_d.tik
+
+so just replace the stuff in the [ change this ] 
+
+[ $targetname ] thread global/stationaryweapons.scr::MountedStationaryWeapon [ NAME OF THE DESTROYED TIKI ]
+*/
+
+// 
+// Player Mounted
+//
+//
+// use with "turretweapon_player_aagun-winter" type weapons
+//
+// to use this call this thread
+// 
+// [self] thread global/stationaryweapons.scr::MountedStationaryWeapon statweapons/P_aagun_d.tik 
+//
+// local.destroyedmodel = model to display when you blow it up
+//
+// [self] thread global/stationaryweapons.scr::MountedStationaryWeaponWithCollision statweapons/P_aagun_d.tik [ $collision ]
+//
+
+
+MountedStationaryWeaponWithCollision local.destroyedmodel local.collision:
+
+	//
+	// give everything a chance to settle before grabbing origin and angles
+	//
+	wait 0.25
+
+	local.origin = self.origin
+
+	self waittill death
+
+	exec global/earthquake.scr .2 4 0 0
+
+	radiusdamage self.origin 200 200
+				 
+	self thread spawn_fx models/fx/fx_truck_explosion.tik
+
+	local.damaged = spawn script_model model local.destroyedmodel 
+
+	// make the new thing immobile
+	local.damaged mass 100000
+
+	local.damaged.origin = local.origin
+
+	local.gun = self QueryTurretSlotEntity 0
+
+	//
+	// get correct orientation if available
+	//
+	if ( local.gun )
+	{
+		local.damaged.angles = local.gun.angles
+	}
+	else
+	{
+		local.damaged.angles = self.angles
+	}
+	local.damaged notsolid
+
+	if (local.collision)
+	{
+		local.col = spawn script_object model local.collision.brushmodel
+		local.col.origin = local.damaged.origin
+		local.col.angles = local.damaged.angles
+		local.col safesolid
+	}
+end
+
+
+MountedStationaryWeapon local.destroyedmodel:
+
+	local.origin = self.origin
+	local.angles = self.angles
+	local.brushmodel = 0
+	
+	self waittill death
+
+//dprintln "MountedStationaryWeapon triggered"
+
+	local.damaged = spawn script_model model local.destroyedmodel 
+
+	local.damaged.origin = local.origin
+	local.damaged.angles = local.angles
+	local.damaged notsolid
+
+//dprintln "MountedStationaryWeapon damaged"
+
+end
+
+
+SpawnCollision local.collision:
+	local.col = spawn script_object model local.collision.brushmodel
+	local.col.origin = self.origin
+	local.col.angles = self.angles
+	local.col safesolid
+end
+
+
+/*
+The script also supports script_model_realdamage entities this would be used when you don't want the player to use these weapons
+
+
+Steps in Radiant:
+
+1.	create a script_model_realdamage entity
+2.	give this entity a $targetname
+3.	give it a health
+4.	make a collision mask and have the entity target it
+
+Steps in your script:
+
+1.	right after your level wait till spawn
+2.	call the thread that will swap the weapon with a destroyed model and give it its collision model
+
+ei. $enemy_gun1 thread global/stationaryweapons.scr::StationaryWeapon statweapons/nebelwerfer_w_d.tik 128 200 300
+
+this thread will do the following it will upon death of $enemy_gun1 which is a nebelwerfer swap it out with a destroyed version of this weapon and generate upon death a radius damage 128 units above the origin of this entity with a damage of 200 and a radius of 300
+
+[ $targetname ]  thread global/stationaryweapons.scr::StationaryWeapon [ name of destroyed tiki ] [ heightoffset ] [ damage ] [ radius ]
+
+
+*/
+// 
+// Stationary 
+// 
+// use with "script_model_realdamage" entities
+// 
+// [self] thread global/stationaryweapons.scr::StationaryWeapon statweapons/nebelwerfer_w_d.tik 128 200 300
+//
+// local.destroyedmodel = model to display when you blow it up
+// local.heightdamageoffset = how high from the origin to do a radius damage 
+// local.damage = how much damage to inflict upon death
+// local.radius = radius to inflict damage
+
+StationaryWeapon local.destroyedmodel local.heightdamageoffset local.damage local.radius:
+
+// dprintln "StationaryWeapon called"
+
+	while (isalive self)
+		waitframe
+
+// dprintln "StationaryWeapon triggered"
+
+	if !(local.damage)
+		local.damage = 200
+
+	if !(local.radius)
+		local.radius = 200
+	
+	self.destroyedmodel = local.destroyedmodel
+
+	self show
+	self playsound explode_tank
+	self stop
+
+	if (self.mg42)
+	{
+		self DetachTurretSlot 0
+		self.mg42 stopfiring
+		self.mg42 remove
+	}
+	if ($(self.gunner))
+	{
+		self DetachPassengerSlot 1 self.gunner.origin
+		self.gunner remove
+	}
+	
+	exec global/earthquake.scr .2 4 0 0
+
+	if (local.heightdamageoffset)
+	{
+		radiusdamage (self.origin + (0 0 local.heightdamageoffset)) local.damage local.radius
+	}
+	else
+		radiusdamage (self.origin + (0 0 128)) local.damage local.radius
+				 
+	// self thread spawn_fx models/fx/fx_tank_explosion.tik
+
+	local.name = self
+	local.angles = self.angles
+	local.origin = self.origin
+	local.brushmodel = self.collisionent.brushmodel
+	
+	self hide
+	self notsolid
+
+	if (self.target)
+	{
+		self.collisionent = self.target
+		local.brushmodel = self.collisionent.brushmodel
+	}
+
+	if (local.brushmodel)
+	{
+		local.collision = spawn script_object model local.brushmodel
+		local.collision.origin = local.origin
+		local.collision.angles = local.angles
+		local.collision safesolid
+	}
+	
+	local.damaged = spawn script_model model self.destroyedmodel
+
+	local.damaged.origin = local.origin
+	local.damaged.angles = local.angles
+	local.damaged notsolid
+
+// dprintln "StationaryWeapon destroyed"
+	
+	wait .5
+	if (self)
+		self remove
+
+end
+
+spawn_fx local.fx:
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+end

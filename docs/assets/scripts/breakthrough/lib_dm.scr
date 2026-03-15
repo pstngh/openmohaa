@@ -1,0 +1,888 @@
+// Logic for the LIBERATION mode.// 
+//-----------------------------------------------------------------------------
+
+
+
+//-----------------------------------------------------------------------------
+// Convience functions. If you have a trigger on your map that you
+// intend to have open up the jail, you can just have it "setthread"
+// "axisjaildooruse" and this will automaticly trigger whatever has the
+// "targetname" of "axisjaildoor". The code is also smart enough to
+// make sure that the enemy, if standing in the jail, can not actually
+// open the door.
+// 
+// A simple example of this would be the following:
+// 1) Create a door that is TARGETTED and has the "targetname" of 
+//    "axisjaildoor".
+// 2) Create a trigger->use that has a "setthread" of "axisjaildooruse".
+// 
+// Of course, for the allies jail you'll want to use the strings 
+// "alliesjaildoor" and "alliesjaildooruse".
+//-----------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------------
+axisjaildooruse local.player:
+// -------------------------------------------------------------------------------------
+
+	//Set door properties
+	$axisjaildoor time 1.0
+	$axisjaildoor dmg  10000
+	$axisjaildoor sound_open_start lib_jail_open_move
+	$axisjaildoor sound_open_end lib_jail_open_stop
+	$axisjaildoor sound_close_start lib_jail_move
+	$axisjaildoor sound_close_end lib_jail_stop
+
+	if( $axisjaildoor2 != NIL && $axisjaildoor2 != NULL )
+	{
+		$axisjaildoor2 time 1.0
+		$axisjaildoor2 dmg  10000
+		$axisjaildoor2 sound_open_start lib_jail_open_move
+		$axisjaildoor2 sound_open_end lib_jail_open_stop
+		$axisjaildoor2 sound_close_start lib_jail_move
+		$axisjaildoor2 sound_close_end lib_jail_stop
+	}
+	
+	if( $axisjaildoor[1].isOpen == 1 )
+		end
+	
+	if (level.gametype != 6) 
+	{
+		if( $axisjail_origin1 != NIL && $axisjail_origin1 != NULL )
+		{	
+			$axisjaildoor open $axisjail_origin1
+		}
+		else
+		{
+			trigger $axisjaildoor
+		}
+
+		if( $axisjaildoor2 != NIL && $axisjaildoor2 != NULL )
+		{
+			if( $axisjail_origin2 != NIL && $axisjail_origin2 != NULL )
+			{
+				$axisjaildoor2 open $axisjail_origin2
+			}
+			else
+			{
+				trigger $axisjaildoor2
+			}
+		}		
+
+		end
+	}	
+
+	//Open the doors
+	if( $axisjail_origin1 != NIL && $axisjail_origin1 != NULL )
+	{	
+		$axisjaildoor open $axisjail_origin1
+	}
+	else
+	{
+		trigger $axisjaildoor
+	}
+
+
+	if( $axisjaildoor2 != NIL && $axisjaildoor2 != NULL )
+	{
+		if( $axisjail_origin2 != NIL && $axisjail_origin2 != NULL )
+		{
+			$axisjaildoor2 open $axisjail_origin2
+		}
+		else
+		{
+			trigger $axisjaildoor2
+		}
+	}	
+	
+	//Now check who is responsible
+	if (local.player.dmteam == "allies") 
+	{
+		iprintln ( loc_convert_string "Allies open own jail..." )
+	} 
+	else 
+	{
+		local.axisS = local.player waitthread axisIsTouching
+		if (local.axisS == 0) 
+		{			
+			iprintln ( loc_convert_string ( local.player.netname + " Freed the Axis!" ) )
+			$axisjailalarm thread DoJailBreakAlarm
+			level.axisLiberator = local.player
+	
+			thread PlayTeamFreedSound "axis"
+
+		}
+	}	
+
+	//wait 10 and close the doors
+	wait 10
+	
+	$axisjaildoor close
+	if( $axisjaildoor2 != NIL && $axisjaildoor2 != NULL )
+	{
+		$axisjaildoor2 close
+	}					
+
+	end
+
+// -------------------------------------------------------------------------------------
+alliesjaildooruse local.player:
+// -------------------------------------------------------------------------------------
+
+	//door properties
+	$alliesjaildoor time 1.0
+	$alliesjaildoor dmg  10000
+	$alliesjaildoor sound_open_start lib_jail_open_move
+	$alliesjaildoor sound_open_end lib_jail_open_stop
+	$alliesjaildoor sound_close_start lib_jail_move
+	$alliesjaildoor sound_close_end lib_jail_stop
+
+	if( $alliesjaildoor2 != NIL && $alliesjaildoor2 != NULL )
+	{
+		$alliesjaildoor2 time 1.0
+		$alliesjaildoor2 dmg  10000
+		$alliesjaildoor2 sound_open_start lib_jail_open_move
+		$alliesjaildoor2 sound_open_end lib_jail_open_stop
+		$alliesjaildoor2 sound_close_start lib_jail_move
+		$alliesjaildoor2 sound_close_end lib_jail_stop
+	}
+
+	if( $alliesjaildoor[1].isOpen == 1 )
+		end
+	
+	if (level.gametype != 6) 
+	{
+		if( $alliesjail_origin1 != NIL && $alliesjail_origin1 != NULL )
+		{
+			$alliesjaildoor open $alliesjail_origin1
+		}
+		else
+		{				
+			trigger $alliesjaildoor
+		}
+
+		if( $alliesjaildoor2 != NIL && $alliesjaildoor2 != NULL )
+		{
+			if( alliesjail_origin2 != NIL && $alliesjail_origin2 != NULL )
+			{
+				$alliesjaildoor2 open $alliesjail_origin2
+			}
+			else
+			{			
+				trigger $alliesjaildoor2
+			}
+		}
+
+		end
+	}
+
+	
+	//Open the doors
+	if( $alliesjail_origin1 != NIL && $alliesjail_origin1 != NULL )
+	{
+		$alliesjaildoor open $alliesjail_origin1
+	}
+	else
+	{			
+		trigger $alliesjaildoor
+	}
+
+	if( $alliesjaildoor2 != NIL && $alliesjaildoor2 != NULL )
+	{
+		if( alliesjail_origin2 != NIL && $alliesjail_origin2 != NULL )
+		{
+			$alliesjaildoor2 open $alliesjail_origin2
+		}
+		else
+		{		
+			trigger $alliesjaildoor2
+		}
+
+	}
+	
+	//Now check who is responsible
+	if (local.player.dmteam == "axis") 
+	{
+		iprintln ( loc_convert_string "Axis open own jail..." )		
+		
+	} 
+	else 
+	{
+		local.alliesS = local.player waitthread alliesIsTouching
+		if (local.alliesS == 0) 
+		{
+			iprintln ( loc_convert_string ( local.player.netname + " Freed the Allies!" ) )
+			$alliesjailalarm thread DoJailBreakAlarm
+			level.alliesLiberator = local.player
+
+			thread PlayTeamFreedSound "allies"
+		}
+	}
+	
+
+	//wait 10 and close the doors
+	wait 10
+	
+	$alliesjaildoor close
+	if( $alliesjaildoor2 != NIL && $alliesjaildoor2 != NULL )
+	{
+		$alliesjaildoor2 close
+	}					
+
+	end
+
+//-----------------------------------------------------------------------------
+// the standard istouching command fails to resolve complex concave spaces.
+// In order to get around this jails need to be made of multiple rectangles
+// and then we use this routine on that list.
+//-----------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------------
+axisIsTouching:
+// -------------------------------------------------------------------------------------	
+
+	self.axisRetval = 0
+	
+	for (self.i = 1; self.i <= $axisjailbox.size; self.i++) 
+	{
+		if (self isinside $axisjailbox[self.i]) 
+		{
+			self.axisRetval = 1
+		}
+	}
+
+	end self.axisRetval
+
+// -------------------------------------------------------------------------------------
+alliesIsTouching:
+// -------------------------------------------------------------------------------------
+	
+	self.alliesRetval = 0
+	for (self.i = 1; self.i <= $alliesjailbox.size; self.i++) 
+	{
+		if (self isinside $alliesjailbox[self.i]) 
+		{
+			self.alliesRetval = 1
+		}
+	}
+
+	end self.alliesRetval
+
+// -------------------------------------------------------------------------------------
+DoJailBreakAlarm:
+// -------------------------------------------------------------------------------------
+	thread doSound self.origin lib_alarm_loop
+	
+	end
+
+// -------------------------------------------------------------------------------------
+doSound local.origin local.sound:
+// -------------------------------------------------------------------------------------
+	local.soundorigin = spawn script_model model "fx/dummy.tik"
+	local.soundorigin.origin = local.origin
+	local.soundorigin loopsound local.sound
+	local.soundorigin notsolid
+
+	wait 10
+
+	local.soundorigin stoploopsound	
+	local.soundorigin playsound lib_alarm_end
+
+	end
+
+
+//
+// Make sure that no other player is currently camping the spot we'll
+// be materializing the player in. And if it is clear, then land the player
+//
+// -------------------------------------------------------------------------------------
+landPlayer local.dropLoc local.angle:
+// -------------------------------------------------------------------------------------
+	
+	while (self != NIL & self != NULL) 
+	{
+		local.canMove = 1
+		for (local.i = 1; local.i<=$player.size; local.i++) 
+		{
+			if (Isalive $player[local.i] && $player[local.i].isSpectator == 0 && $player[local.i] != self) 
+			{
+				local.v = $player[local.i].origin - local.dropLoc
+				local.d = vector_length ( local.v )
+				if (local.d < 40) 
+				{
+					local.canMove = 0
+					local.n = angles_toforward ( 0 local.angle 0 )
+					$player[local.i] pusher self self local.n 80
+				}
+			}
+		}
+
+		if (local.canMove == 1)
+		{
+			self jailescapestop
+			wait 0.1
+			self tele local.dropLoc
+			self face (0 local.angle 0)
+			self show
+			self solid
+			break
+		}
+				
+		wait 0.1
+	}
+
+	end
+
+
+//
+// Glue the player's eyes to the eyes of the animation we're playing that
+// has taken his place.
+//
+
+// -------------------------------------------------------------------------------------
+nailPlayer local.thing local.eyeheight:
+// -------------------------------------------------------------------------------------
+	
+	while (self != NIL && self != NULL && self.isEscaping != 0) 
+	{
+		if (local.thing != NIL && local.thing != NULL)
+		{
+			local.o = local.thing gettagposition "eyes bone"
+			local.a = local.thing gettagangles "eyes bone"
+		}
+		
+		local.atf = angles_toforward local.a
+		local.vta = vector_toangles local.atf
+		local.vta[1] -= 90
+		self.origin = ( local.o[0] local.o[1] ( local.o[2] - local.eyeheight ) )
+		self face (0 local.vta[1] 0)
+		wait 0.1
+	}
+
+	end
+
+//-----------------------------------------------------------------------------
+
+// Without this thread, naughty players could (if they were the last
+// of their team killed) sit around and refuse to press the
+// let-me-respawn button... thus forcing everyone to wait for the round
+// to expire by time.
+// 
+// local.state:
+//		0 - game hasn't started
+//      1 - game started
+//      2 - game over
+//-----------------------------------------------------------------------------
+
+
+
+// -------------------------------------------------------------------------------------
+playerwatch:
+// -------------------------------------------------------------------------------------
+
+	local.state = 0	
+
+	while (1) 
+	{
+		local.freeaxis			= 0
+		local.freeallies		= 0
+		local.deadaxis			= 0
+		local.deadallies		= 0
+		local.jailedaxis		= 0
+		local.jailedallies		= 0		
+
+		//Make sure we always have icons...
+		thread InitLiberationIcons
+		
+		for (local.i = 1; local.i<=$player.size; local.i++) 
+		{
+			if ($player[local.i].dmteam == "axis") 
+			{
+				if (Isalive $player[local.i] && $player[local.i].isSpectator == 0) 
+				{
+					local.axs = $player[local.i] waitthread axisIsTouching
+					if( $axisjaildoor.size >= 1 )
+					{
+						if( $axisjaildoor[1].isOpen != 0 )
+						{
+							local.axs = 0;
+						}						
+					}
+					else if ($axisjaildoor.isOpen != 0) 
+					{
+						local.axs = 0;
+					}
+					
+					if (local.axs == 0) 
+					{
+						local.freeaxis++
+						if ($player[local.i].injail == 1) 
+						{
+							iprintln ( loc_convert_string ( $player[local.i].netname + " freed" ) )
+							$player[local.i].injail = 0
+							$player[local.i] armwithweapons							
+							$player[local.i] thread RemoveImmunities							
+						}
+					} 
+					else 
+					{
+						if ($player[local.i].injail == 0) 
+						{
+							iprintln ( loc_convert_string ( $player[local.i].netname + " put in jail" ) )
+							$player[local.i].injail = 1
+						}
+												
+						$player[local.i] thread SetImmunities
+						$player[local.i] takeall
+						local.jailedaxis++
+					}
+				} 
+				else 
+				{
+					local.deadaxis++
+				}
+			} 
+			else if ($player[local.i].dmteam == "allies") 
+			{
+				if (Isalive $player[local.i] && $player[local.i].isSpectator == 0) 
+				{
+					local.als = $player[local.i] waitthread alliesIsTouching
+					if ($alliesjaildoor.size >= 1 )
+					{
+						if( $alliesjaildoor[1].isOpen != 0 )
+						{
+							local.als = 0;
+						}
+					}
+					else if ($alliesjaildoor.isOpen != 0) 
+					{
+						local.als = 0;
+					}
+					
+					if (local.als == 0) 
+					{
+						local.freeallies++
+						if ($player[local.i].injail == 1) 
+						{
+							iprintln ( loc_convert_string ( $player[local.i].netname + " freed" ) )
+							$player[local.i].injail = 0
+							$player[local.i] armwithweapons							
+							$player[local.i] thread RemoveImmunities
+						}
+					} 
+					else 
+					{
+						if ($player[local.i].injail == 0) 
+						{
+							iprintln ( loc_convert_string ( $player[local.i].netname + " put in jail" ) )
+							$player[local.i].injail = 1
+						}						
+						
+						$player[local.i] thread SetImmunities
+						$player[local.i] takeall
+						local.jailedallies++
+
+					}
+				} 
+				else 
+				{
+					local.deadallies++
+				}
+			}
+		}		
+		
+		if (local.state == 0) 
+		{
+			if (((local.freeaxis + local.deadaxis + local.jailedaxis) > 0) && ((local.freeallies + local.deadallies + local.jailedallies) > 0)) 
+			{
+				local.state = 1
+			}
+		} 
+		else if (local.state == 1) 
+		{
+
+			/**
+			 * Check to see if, for some reason, both sides are
+			 * up a creek without a paddle.
+			 */
+			if (local.freeaxis == 0 && local.freeallies == 0) 
+			{
+				local.winside = local.deadaxis + local.jailedaxis - local.deadallies - local.jailedallies
+				if (local.winside > 0) 
+				{
+					thread global/lib_cinematics.scr::DoAlliesWin					
+				} 
+				else if (local.winside < 0) 
+				{
+					thread global/lib_cinematics.scr::DoAxisWin					
+				} 
+				else 
+				{
+					if (local.deadaxis + local.jailedaxis == 0) 
+					{
+						/**
+						 * no one on server,
+						 * wait
+						 */
+					} 
+					else 
+					{
+						/**
+						 * Alright, they all
+						 * died at the same
+						 * time and there's
+						 * even teams -- silly
+						 * bozos
+						 */
+						teamwin none
+					}
+				}
+				
+				local.state = 2
+
+			} 
+			else if (local.freeaxis == 0) 
+			{
+				if ((local.deadaxis + local.jailedaxis) > 0) 
+				{						
+					thread global/lib_cinematics.scr::DoAlliesWin					
+				} 
+				else 
+				{
+					teamwin none
+				}
+				
+				local.state = 2
+			} 
+			else if (local.freeallies == 0) 
+			{
+				if ((local.deadallies + local.jailedallies) > 0) 
+				{	
+					thread global/lib_cinematics.scr::DoAxisWin
+				} 
+				else 
+				{
+					teamwin none
+				}
+				
+				local.state = 2
+			}
+		} 
+		else 
+		{
+			/* Let the round end */
+		}
+		
+		//Allies Text
+		local.alliestext = (local.jailedallies + local.deadallies) + "(" + (local.freeallies + local.deadallies + local.jailedallies) + ")"
+		local.x = 600
+
+		huddraw_string 102 local.alliestext
+		huddraw_rect 102 local.x 30 0 0
+
+		//Allies Icon
+		local.x -= 15
+		huddraw_shader 104 "textures/hud/allies"
+		huddraw_rect 104 local.x 30 12 12
+
+		//Axis Text
+		local.x -= 40
+		local.axistext = (local.jailedaxis + local.deadaxis) + "(" + (local.freeaxis + local.deadaxis + local.jailedaxis) + ")"								
+
+		huddraw_string 101 local.axistext
+		huddraw_rect 101 local.x 30 0 0
+
+		//Axis Icon
+		local.x -= 15
+		huddraw_rect 103 local.x 30 12 12
+		huddraw_shader 103 "textures/hud/axis"
+
+		//Jail Icon
+		local.x -= 15
+		huddraw_shader 105 "textures/hud/lock_icon"		
+		huddraw_rect 105 local.x 30 12 12 
+		
+
+		wait 0.3
+	}
+
+	end	
+
+// -------------------------------------------------------------------------------------
+PlayTeamFreedSound local.teamFreed:
+// -------------------------------------------------------------------------------------
+
+	local.soundLoc			= NULL
+	local.bPlayAxisSound	= 0
+	local.bPlayAlliesSound	= 0
+	
+	if( local.teamFreed == "axis" )
+	{
+		local.soundLoc = $axisjail_origin1
+		local.bPlayAxisSound = 1
+	}
+
+	if( local.teamFreed == "allies" )
+	{
+		local.soundLoc = $alliesjail_origin1		
+		local.bPlayAlliesSound = 1
+	}
+
+	if( local.soundLoc != NULL )
+	{			
+		if( local.bPlayAxisSound == 1 )
+		{			
+			if( level.axisLiberator != NULL )
+			{			
+				local.escapePrefix = level.axisLiberator.nationalityprefix
+			}
+			
+			if( local.escapePrefix == NULL )
+			{			
+				local.escapePrefix = "den"
+			}
+			
+			local.soundLoc playsound( local.escapePrefix + "_lib_escape" )
+		}
+
+		else if( local.bPlayAlliesSound == 1 )
+		{				
+			if( level.alliesLiberator != NULL )
+			{			
+				local.escapePrefix = level.alliesLiberator.nationalityprefix
+			}
+
+			if( local.escapePrefix == NULL )
+			{			
+				local.escapePrefix = "dfr"
+			}
+			
+			local.soundLoc playsound( local.escapePrefix + "_lib_escape" )
+		}
+	}
+
+	end
+
+// -------------------------------------------------------------------------------------
+liberation_init:
+// -------------------------------------------------------------------------------------
+	
+	level.gametype = int( getcvar( g_gametype ) )
+	switch (level.gametype) 
+	{
+	case 0:
+	case 1: /* FFA */
+		thread FFAbasedthread
+		break;
+
+	case 2: /* TEAM (non round) */
+		thread Teambasedthread
+		break
+
+	case 6: /* LIBERATION */
+		thread roundbasedthread
+		break
+
+	default: /* TEAM ROUND */
+		thread TeamRoundbasedthread
+		break
+	}
+
+	end
+
+
+// -------------------------------------------------------------------------------------
+roundbasedthread:
+// -------------------------------------------------------------------------------------
+	
+	// Can specify different scoreboard messages for round based
+	// games here.
+	
+	///////////////////////
+	level waittill prespawn
+	///////////////////////
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+	$alliesnonjail enablespawn
+	$axisnonjail enablespawn
+
+	////////////////////
+	level waittill spawn
+	////////////////////
+
+	huddraw_color 101 1 1 1
+	huddraw_color 102 1 1 1
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+	$alliesnonjail enablespawn
+	$axisnonjail enablespawn
+
+	// set the parameters for this round based match
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = kills // set to axis, allies, kills, or draw
+	
+	/////////////////////////
+	level waittill roundstart
+	/////////////////////////
+
+	thread InitLiberationIcons
+
+	//disable invulnerable respawn. This could be used to keep jails open
+	setcvar "g_invulnoverride" "1"
+
+	wait 15
+
+	thread playerwatch
+	
+	$alliesjail enablespawn
+	$axisjail enablespawn
+	$alliesnonjail disablespawn
+	$axisnonjail disablespawn
+
+	end
+
+// 
+// If someone plays a LIBERATION map in TEAM-ROUND mode, use the
+// following start-up code.
+// 
+
+// -------------------------------------------------------------------------------------
+InitLiberationIcons:
+// -------------------------------------------------------------------------------------
+
+	huddraw_alpha 105 1.0
+	huddraw_align 105 left top	
+	huddraw_rect 105 513 30 16 16
+	huddraw_virtualsize 105 1
+
+	huddraw_alpha 104 1.0
+	huddraw_align 104 left top	
+	huddraw_rect 104 586 30 20 20
+	huddraw_virtualsize 104 1
+	
+	huddraw_font 102 "verdana-12"						
+	huddraw_align 102 left top
+	huddraw_virtualsize 102 1
+	huddraw_alpha 102 1.0
+	huddraw_color 102 1 1 1
+
+	huddraw_alpha 103 1.0
+	huddraw_align 103 left top		
+	huddraw_rect 103 536 30 20 20
+	huddraw_virtualsize 103 1
+
+	huddraw_font 101 "verdana-12"
+	huddraw_align 101 left top
+	huddraw_virtualsize 101 1
+	huddraw_alpha 101 1.0
+	huddraw_color 101 1 1 1
+
+	end
+
+// -------------------------------------------------------------------------------------
+TeamRoundbasedthread:
+// -------------------------------------------------------------------------------------
+	
+	// Can specify different scoreboard messages for round based
+	// games here.
+
+	///////////////////////
+	level waitTill prespawn
+	///////////////////////
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	level waittill spawn
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	// set the parameters for this round based match
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = kills // set to axis, allies, kills, or draw
+
+	/////////////////////////
+	level waittill roundstart
+	/////////////////////////
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	end
+
+// 
+// If someone plays a LIBERATION map in TEAM (non-round) mode, use the
+// following start-up code.
+// 
+
+// -------------------------------------------------------------------------------------
+Teambasedthread:
+// -------------------------------------------------------------------------------------
+
+	// Can specify different scoreboard messages for round based
+	// games here.
+
+	level waitTill prespawn
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	level waittill spawn
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	// set the parameters for this round based match
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = kills // set to axis, allies, kills, or draw
+
+	level waittill roundstart
+
+	$alliesjail disablespawn
+	$axisjail disablespawn
+
+	end
+
+
+//
+// If someone plays a LIBERATION map in FREE FOR ALL mode, use the
+// following start-up code.
+// 
+
+// -------------------------------------------------------------------------------------
+FFAbasedthread:
+// -------------------------------------------------------------------------------------
+
+	// Can specify different scoreboard messages for round based
+	// games here.
+	level waitTill prespawn
+
+	level waittill spawn
+
+	// set the parameters for this round based match
+	level.dmroundlimit = 5 // round time limit in minutes
+	level.clockside = kills // set to axis, allies, kills, or draw
+	
+	end
+
+// -------------------------------------------------------------------------------------
+SetImmunities:
+// -------------------------------------------------------------------------------------
+
+	self immune suicide falling explosion explodewall thrownobject grenade rocket impact
+	self immune bullet fast_bullet vehicle fire flashbang on_fire gib impale bash
+	self immune shotgun aagun landmine
+
+	end
+
+// -------------------------------------------------------------------------------------
+RemoveImmunities:
+// -------------------------------------------------------------------------------------
+
+	self removeimmune suicide falling explosion explodewall thrownobject grenade rocket impact
+	self removeimmune bullet fast_bullet vehicle fire flashbang on_fire gib impale bash
+	self removeimmune shotgun aagun landmine
+
+	end

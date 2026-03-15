@@ -1,0 +1,46 @@
+//
+// EntityRemoveOnTrigger
+//
+
+EntityRemoveOnTrigger local.trig local.ent_name_1 local.ent_name_2 local.ent_name_3 local.ent_name_4 local.ent_name_5 local.ent_name_6 local.ent_name_7 local.ent_name_8:
+
+	if (local.trig)
+	{
+		local.trig waittill trigger
+
+		if (local.ent_name_1)
+			waitthread priv_TargetNameGroupRemove local.ent_name_1
+		if (local.ent_name_2)
+			waitthread priv_TargetNameGroupRemove local.ent_name_2
+		if (local.ent_name_3)
+			waitthread priv_TargetNameGroupRemove local.ent_name_3
+		if (local.ent_name_4)
+			waitthread priv_TargetNameGroupRemove local.ent_name_4
+		if (local.ent_name_5)
+			waitthread priv_TargetNameGroupRemove local.ent_name_5
+		if (local.ent_name_6)
+			waitthread priv_TargetNameGroupRemove local.ent_name_6
+		if (local.ent_name_7)
+			waitthread priv_TargetNameGroupRemove local.ent_name_7
+		if (local.ent_name_8)
+			waitthread priv_TargetNameGroupRemove local.ent_name_8
+	}
+
+end
+
+priv_TargetNameGroupRemove local.name:
+
+	if (local.name && $(local.name))
+	{
+		local.num = $(local.name).size
+		local.array = waitexec global/makearray.scr $(local.name)
+
+		for (local.i=1; local.i<=local.num; local.i++)
+		{
+			local.array[local.i] remove
+		}
+	}
+
+end
+
+

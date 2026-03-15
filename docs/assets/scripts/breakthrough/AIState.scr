@@ -1,0 +1,13 @@
+TurnOff:
+	self ai_off
+	self notsolid
+	self nodamage
+	self physics_off
+end
+
+TurnOn:
+	self ai_on
+	self solid
+	self takedamage
+	self physics_on
+end

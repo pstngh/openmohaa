@@ -1,0 +1,540 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//  MoH: Allied Assault BreakThrough Credits Script File  
+//  Global function: Ending credits data
+//  MOHAA Breakthrough Script Written By: Jon Galvan
+//  Original MOHAA Script Written By: B. Russell, J. Heath, B. Allen, V. Zampella
+//
+////////////////////////////////////////////////////////////////////////////////////////
+credits_start:
+
+//***************************************************************************************************
+//***************************************************************************************************
+//*** documentation on credit script commands
+//***************************************************************************************************
+//***************************************************************************************************
+//	The way the credits work is you pass commands to the script with what you want to display
+//	These are the commands for text:
+//		section	      - this is for passing text for a section header, such as 'CAST'
+//		sub_section   - this is for smaller, sub-section style text, such as 'Filmed in XRAY VISION'
+//		entry	      - this is for passing text for an entry with a header, such as 'Art Director', and a body, such as 'Tadd Whomever'
+//		entry_single  - this is for a single line of entry header style text with no body
+//		image	      - this is for displaying an image on-que at certain points in the credits
+//		image_scroll  - this is to place an image to scroll up with the text
+//		pause	      - this puts a pause in the scrolling text for spacing
+//		done	      - ends the credits and disconnects back to the menu
+//
+//	These are the commands for pictures:
+//		show	  - used to display a graphic on the screen
+//		hide	  - used to take an already displayed graphic off the screen
+//
+//
+//	Syntax for text commands:
+//	All text commands are called with this statement and parameters:
+//
+//	waitthread global/credits.scr::credits_add <command> <header text> <body text>
+//
+//
+//	Here's how you add text to scroll up the screen.  First, pick the command to use.
+//	You have to specify the command in quotes.
+//
+//	"section"  - This is for displaying main headings, such as 'CAST'  You only need to enter
+//		     the <header text> parameter for this command, <body text> is not used.
+//
+//	"sub_section"   - This is the same as section, but used for sub-section style headings such
+//			  as 'Filmed in XRAY VISION'
+//
+//	"entry"    - This is for displaying people and their titles, such as 'Art Director'
+//		     'Tadd Whomever'.  The <header text> is the label, which would be the
+//		     'Art Director' portion.  The <body text> is the accompanying text, which
+//		     would be the 'Tadd Whomever' portion.
+//
+//	"entry_single   - This is like entry text, only it's for a single line of <header text> with
+//			  no <body text>.  So if you wanted to create just a list of persons after
+//			  a section header, you would use this command
+//
+//	"image"	   - This is for passing an image command into the sequence of credits for more
+//		     precise queing of when to display an image.  Following the "image" command
+//		     you enter the following just like you would with a normal image command:
+//
+//		     <image_command> <element number> <image> [time] [ul_x] [ul_y] [br_x] [br_y]
+//
+//		     For a description of all the image parameters, look under the picture commands
+//		     syntax descriptions below.
+//
+//	"image_scroll"  - This is for having a picture scoll in with the text in the credits.  You
+//			- pass these parameters with it:
+//
+//			  <image> [ul_x] [br_x] [br_y]
+//
+//			  <image> first is the reference to the picture.  <ul_x> is the x coordinate
+//			  where you want it to scroll up the screen.  <br_x> <br_y> specifiy the
+//			  bottom right corner of the image (works as the normal image command).
+//			  NOTE: DO NOT use images that are taller than 80 units.  If an image is
+//			  taller than 80 units, then you will see it disappear since it won't be
+//			  completely obscured by the top border.
+//
+//	"pause"    - This is for placing blank spacing between entries.  So say you entered all
+//		     of the 'CAST' entries, and you want some space before you start the next
+//		     section of text.  Pause is used to place that space.
+//
+//	"done"     - This is when the credits are done and you want to return back to the main
+//		     menu.  This will fade out the borders, wait a second, then go back to
+//		     the main menu.  Make sure to fade out everything else and wait a bit for
+//		     whatever remaining text to scroll off the screen, else it will bail out
+//		     in the middle of it scrolling.
+//
+//
+//	Syntax for Picture commands:
+//	All picture commands are called with this statement and parameters:
+//
+//	waitthread global/credits.scr::credits_image <command> <element number> <image> [time] [ul_x] [ul_y] [br_x] [br_y]
+//
+//
+//	Here's how you display a picture up on the screen.  All pictures will display behind the
+//	borders of the screen, so you want to make sure all your pictures are made to be in that area.
+//	The important thing to remember when adding pictures is the <element number> that you use.
+//	You have 100 element numbers you can use, 1 - 100 (the script will error out if you go
+//	outside of this range, or don't enter one at all).  The number determines which pictures get
+//	drawn on top of other pictures.  The higher the number, the more 'on-top' that picture is.
+//	So element 100 is the topmost picture and will draw on top of all other elements, and 1 is the
+//	bottommost element and will draw under all other elements.  Also, you can use the same element
+//	number for multiple pictures, but if you assign a new picture to a used element, that element
+//	will switch to that picture, whether it's shown or not.  So keep track of your <element number>
+//	that you use.  One thing to note is to wait the appropriate amount of time before sending the
+//	next picture.  Else you'll see the transition occur before the pictures fully fade.
+//
+//	Here is the explaination of all the parameters and which ones are optional:
+//
+//	<command> 	- Commands given have to be in quotes as with text commands.  There are only
+//			  two draw commands.  You have to enter this parameter.
+//
+//			  "show" - This will fade the desired picture in on the specified <element number>
+//			  "hide" - This will fade the desired <element number> out
+//
+//	<element number>   This is the element number to display a picture on, numbers 1 - 100.
+//			   You have to enter this parameter.  NO quotes used for this parameter.
+//
+//	<image>		-  This is the graphic to display, entered in quotes.  It can either be a shader name, or a 
+//			   direct reference to the picture.  If it's a direct reference to a picture,
+//			   then you have to enter the path starting with "textures/" (with the rest of the path).
+//			   So for example, this is a reference to a direct picture:
+//
+//			   "textures/mohmenu/credits/bottomborder"
+//
+//			   It is recommended to place all images for the credits screen in the
+//			   "textures/mohmenu/credits/" folder where the borders already are.
+//			   You have to enter this paramter.
+//
+//	[time]		-  This is an optional parameter that's not entered within quotes.  If a time
+//			   is entered, then the displayed picture will automatically fade out in the
+//			   specified time.  So if you enter a time of 5, then after 5 seconds the
+//			   picture will fade without having to give a fade command.  Without the time
+//			   parameter, an image will stay on the screen until it is told to fade.
+//
+// [ul_x] [ul_y] [br_x] [br_y]  -  These last four parameters are used to specify a direct placement
+//				   and size of a picture.  The first two parameters specify the
+//				   upper-left coordinate for the image (hence the ul).  The last two
+//				   parameters specify the bottom-right corner for the image (hence the br).
+//				   All coordinates are based on a 640 x 480 setting, no matter what the
+//				   user's resolution.  To use these parameters, ALL 4 have to be used.
+//				   If you enter only one, and not the rest, bad things can happen and
+//				   borkiness behavior will occur.
+//
+//				   NOTE:  If you want to use these parameters but do NOT wish to use
+//				          the [time] parameter, just enter a value of NIL where the [time]
+//					  parameter is.
+//
+//
+//
+//	I left in my test entries just as an example for you to look at.  MAKE SURE TO REMOVE ALL
+//	THE SAMPLE ENTRIES WHEN YOU ENTER THE FINAL CREDITS!!!!  One techinque you might want to use
+//	is to display the pictures using a seperate thread, so you can control and keep track of the
+//	timing easier, rather than intermixing all the pictures with the text since reading over that
+//	might get confusing.  Come see me if you'd like some help with this.
+//
+//***************************************************************************************************
+//***************************************************************************************************
+
+//*** launch the thread to show the pictures
+thread credits_start_pictures
+
+//*** start the credits
+
+// waitthread global/credits.scr::credits_add "image" "show" 1 "textures/mohmenu/credits/CreditBack_MonteBattaglia" NIL 0 80 640 320
+
+waitthread global/credits.scr::credits_add "image" "show" 11 level.center "textures/mohmenu/credits/credit_11" NIL 0 80 640 320
+
+//waitthread global/credits.scr::credits_add "section" "Medal of Honor Allied Assault"
+
+//waitthread global/credits.scr::credits_add "image" "show" 1 "textures/mohmenu/credits/creditbacksky" NIL 0 80 640 320
+// Below this line looks good still working on the stuff about this.
+
+
+waitthread global/credits.scr::credits_add "image_scroll" "textures/mohmenu/credits/mohaab_logo" 230 180 180
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "   Developed for Electronic Arts By"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image_scroll" "textures/mohmenu/credits/TKO_logo" 245 150 30
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause" 
+waitthread global/credits.scr::credits_add "section" "                Development Team"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Jim Hudson" "Sr. Producer"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Eric Zimmerman" "Associate Producer"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Jacob Hawley" "Executive Producer" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Michael Songy" "Technical Director"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "John Sicat" "Art Director"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Casey Robinson" "Lead Programmer"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Jeremy Palmen" "Lead Artist"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Jamaal Bradley" "Lead Animator"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Merrick Rustia" "Lighting Director"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 12 11 "textures/mohmenu/credits/credit_1" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "Programming"
+waitthread global/credits.scr::credits_add "entry" "Jason Abbott"
+waitthread global/credits.scr::credits_add "entry" "Bill Bilodeau"
+waitthread global/credits.scr::credits_add "entry" "Ian Peters-Campbell"
+waitthread global/credits.scr::credits_add "entry" "Joel Petersen"
+waitthread global/credits.scr::credits_add "entry" "Andy Schatz"
+waitthread global/credits.scr::credits_add "entry" "David Scott"
+waitthread global/credits.scr::credits_add "entry" "Darryl Starr"
+waitthread global/credits.scr::credits_add "entry" "Andy Wright"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Level Design & Environmental Art"
+waitthread global/credits.scr::credits_add "entry" "Chad Campbell"
+waitthread global/credits.scr::credits_add "entry" "John Fitzgibbons"
+waitthread global/credits.scr::credits_add "entry" "John Hughes"
+waitthread global/credits.scr::credits_add "entry" "Julie Hughes"
+waitthread global/credits.scr::credits_add "entry" "Chris Matz"
+waitthread global/credits.scr::credits_add "entry" "Scott Swearingen"
+waitthread global/credits.scr::credits_add "entry" "Jeff Zaring"
+waitthread global/credits.scr::credits_add "image" "show" 13 12 "textures/mohmenu/credits/credit_10" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "3D/2D Artists"
+waitthread global/credits.scr::credits_add "entry" "Eddie Alcazar"
+waitthread global/credits.scr::credits_add "entry" "John Duggan"
+waitthread global/credits.scr::credits_add "entry" "Jonathan Gregory"
+waitthread global/credits.scr::credits_add "entry" "Ethan Oates"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Concept Artists"
+waitthread global/credits.scr::credits_add "entry" "Victor Gascon"
+waitthread global/credits.scr::credits_add "entry" "Vaughn Ross"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Visual Effects Artist"
+waitthread global/credits.scr::credits_add "entry" "Tehao Niu" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Animators"
+waitthread global/credits.scr::credits_add "entry" "DJ Cassel"
+waitthread global/credits.scr::credits_add "entry" "Greg Lemon"
+waitthread global/credits.scr::credits_add "entry" "Erick Ward"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 14 13 "textures/mohmenu/credits/credit_7" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "Technical Animator"
+waitthread global/credits.scr::credits_add "entry" "John Stewart" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Technical Artist"
+waitthread global/credits.scr::credits_add "entry" "James Gaczkowski" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Programming Intern"
+waitthread global/credits.scr::credits_add "entry" "Chris Caron"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Creative Director"
+waitthread global/credits.scr::credits_add "entry" "Jody Hicks" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Additional Design"
+waitthread global/credits.scr::credits_add "entry" "Jason Abbott"
+waitthread global/credits.scr::credits_add "entry" "David Bax"
+waitthread global/credits.scr::credits_add "entry" "Ian Miller"
+waitthread global/credits.scr::credits_add "entry" "Andy Schatz"
+waitthread global/credits.scr::credits_add "entry" "David Scott"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Additional Art"
+waitthread global/credits.scr::credits_add "entry" "Juniper Orth" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 15 14 "textures/mohmenu/credits/credit_6" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "Lead Tester"
+waitthread global/credits.scr::credits_add "entry" "Isaiah Merrill" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Testers"
+waitthread global/credits.scr::credits_add "entry" "Christopher Akhavan"
+waitthread global/credits.scr::credits_add "entry" "Morgan Baylis"
+waitthread global/credits.scr::credits_add "entry" "Billy Bryan"
+waitthread global/credits.scr::credits_add "entry" "Drew Chiaro"
+waitthread global/credits.scr::credits_add "entry" "Eric Fuller"
+waitthread global/credits.scr::credits_add "entry" "Jamal Hunt"
+waitthread global/credits.scr::credits_add "entry" "Torin Kampa"
+waitthread global/credits.scr::credits_add "entry" "Gabe Littman"
+waitthread global/credits.scr::credits_add "entry" "Brian McFee"
+waitthread global/credits.scr::credits_add "entry" "Ben McIntosh"
+waitthread global/credits.scr::credits_add "entry" "Som Naderi"
+waitthread global/credits.scr::credits_add "entry" "Brian Riggsbee"
+waitthread global/credits.scr::credits_add "entry" "Tyler Robertson"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 16 15 "textures/mohmenu/credits/credit_2" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "IT Support"
+waitthread global/credits.scr::credits_add "entry" "Ross Baker"
+waitthread global/credits.scr::credits_add "entry" "Peter Wrangell"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Marketing Communications"
+waitthread global/credits.scr::credits_add "entry" "Asia Bird" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Operations"
+waitthread global/credits.scr::credits_add "entry" "Fred Hawkins" 
+waitthread global/credits.scr::credits_add "entry" "Linda Phillips" 
+waitthread global/credits.scr::credits_add "entry" "Diana Jo Peters"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 17 16 "textures/mohmenu/credits/credit_8" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "Electronic Arts"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Electronic Arts Los Angeles (EALA)"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Art" "Eben Cook,        Rob Stahl"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Audio" "Leilani Ramirez, Eric Shemkovitz" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Creative Director" "Brady Bell" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Design Lead" "Edward J. Moore III" 
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 18 17 "textures/mohmenu/credits/credit_1" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "entry" "TKO Onsite Design Supervisor" "Victor Mercieca"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Design" 
+waitthread global/credits.scr::credits_add "entry" "Tom Hess"
+waitthread global/credits.scr::credits_add "entry" "David N. Howe"
+waitthread global/credits.scr::credits_add "entry" "Kevin Mack"
+waitthread global/credits.scr::credits_add "entry" "Dave C. Nash"
+waitthread global/credits.scr::credits_add "entry" "Benson Russell"
+waitthread global/credits.scr::credits_add "entry" "Matt Sophos"
+waitthread global/credits.scr::credits_add "entry" "Ken Spencer"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Senior Producer" "Matt Powers"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Development Director" "Keith Francart"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Technical Director" "Mark Dochtermann"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 19 18 "textures/mohmenu/credits/credit_5" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "Engineering"
+waitthread global/credits.scr::credits_add "entry" "Michael J. Goodwin"
+waitthread global/credits.scr::credits_add "entry" "Jeff Leggett"
+waitthread global/credits.scr::credits_add "entry" "John Machin"
+waitthread global/credits.scr::credits_add "entry" "Chris Shelton"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Production & Localization" "Jon Galvan"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Assistant Producer" "Anthony Miller"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Production Interns" "Chris Barry        Hank Cho"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Test Lead" "Steve Lin"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Test Team" 
+waitthread global/credits.scr::credits_add "entry" "James Aguilar"
+waitthread global/credits.scr::credits_add "entry" "Douglas Burke"
+waitthread global/credits.scr::credits_add "entry" "Edgar Chan"
+waitthread global/credits.scr::credits_add "entry" "Brian Cronk"
+waitthread global/credits.scr::credits_add "entry" "John Cross"
+waitthread global/credits.scr::credits_add "entry" "Karl Drown"
+waitthread global/credits.scr::credits_add "entry" "Thomas Flint"
+waitthread global/credits.scr::credits_add "entry" "Joshua Green"
+waitthread global/credits.scr::credits_add "entry" "H.K. Kim"
+waitthread global/credits.scr::credits_add "entry" "Sean Lee"
+waitthread global/credits.scr::credits_add "entry" "Seth Nemec"
+waitthread global/credits.scr::credits_add "entry" "Eduardo Sempe"
+waitthread global/credits.scr::credits_add "entry" "Guy Silliman"
+waitthread global/credits.scr::credits_add "entry" "Evan Z. Wingate"
+waitthread global/credits.scr::credits_add "image" "show" 20 19 "textures/mohmenu/credits/credit_9" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EALA Executive Staff"
+waitthread global/credits.scr::credits_add "entry" "Executive Producer" "Rick Giolito"
+waitthread global/credits.scr::credits_add "entry" "General Manager" "John Batter"
+waitthread global/credits.scr::credits_add "entry" "COO" "Ted Schouten" 
+waitthread global/credits.scr::credits_add "entry" "CTO" "Steve Anderson"
+waitthread global/credits.scr::credits_add "pause" 
+waitthread global/credits.scr::credits_add "section" "IS&T"
+waitthread global/credits.scr::credits_add "entry" "Joe Aguilar"
+waitthread global/credits.scr::credits_add "entry" "Steve Arnold"
+waitthread global/credits.scr::credits_add "entry" "Wayne Hall"
+waitthread global/credits.scr::credits_add "entry" "Mick Love"
+waitthread global/credits.scr::credits_add "entry" "Andy McNeill"
+waitthread global/credits.scr::credits_add "entry" "Charles Polanski"
+waitthread global/credits.scr::credits_add "entry" "Ray Robinson"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "QA Manager" "Evan Birkby"
+waitthread global/credits.scr::credits_add "image" "show" 21 20 "textures/mohmenu/credits/credit_4" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA Marketing"
+waitthread global/credits.scr::credits_add "entry_single" "Jillian Goldberg"
+waitthread global/credits.scr::credits_add "entry_single" "Lincoln Hershberger"
+waitthread global/credits.scr::credits_add "entry_single" "Dave Rosen"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA UK Marketing"
+waitthread global/credits.scr::credits_add "entry_single" "Jonathan Bunney"
+waitthread global/credits.scr::credits_add "entry_single" "Audrey Meehan"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA Public Relations"
+waitthread global/credits.scr::credits_add "entry_single" "Tim McDowd"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EALA Localization"
+waitthread global/credits.scr::credits_add "entry_single" "Thilo W. Huebner"
+waitthread global/credits.scr::credits_add "entry_single" "Laffy Taylor"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA Worldwide Studios"
+waitthread global/credits.scr::credits_add "entry_single" "Don Mattrick"
+waitthread global/credits.scr::credits_add "entry_single" "Bruce McMillan"
+waitthread global/credits.scr::credits_add "entry_single" "Paul Lee"
+waitthread global/credits.scr::credits_add "entry_single" "Scott Cronce"
+waitthread global/credits.scr::credits_add "image" "show" 22 21 "textures/mohmenu/credits/credit_3" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA LIT"
+waitthread global/credits.scr::credits_add "entry_single" "Dion Anderson"
+waitthread global/credits.scr::credits_add "entry_single" "Gabriel Darone"
+waitthread global/credits.scr::credits_add "entry_single" "Nicholas Falls"
+waitthread global/credits.scr::credits_add "entry_single" "Pierre Fuger"
+waitthread global/credits.scr::credits_add "entry_single" "Bert Gatchalian"
+waitthread global/credits.scr::credits_add "entry_single" "David Hayes"
+waitthread global/credits.scr::credits_add "entry_single" "Jan D. Semrau"
+waitthread global/credits.scr::credits_add "entry_single" "Brad Trosin"
+waitthread global/credits.scr::credits_add "entry_single" "Andre Yulo"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "EA CQC"
+waitthread global/credits.scr::credits_add "entry_single" "Travis Alger"
+waitthread global/credits.scr::credits_add "entry_single" "Anthony Barbagallo"
+waitthread global/credits.scr::credits_add "entry_single" "Jason Collins"
+waitthread global/credits.scr::credits_add "entry_single" "Benjamin Crick"
+waitthread global/credits.scr::credits_add "entry_single" "Eron Garcia"
+waitthread global/credits.scr::credits_add "entry_single" "Darryl Jenkins"
+waitthread global/credits.scr::credits_add "entry_single" "Dave Knudson"
+waitthread global/credits.scr::credits_add "entry_single" "Joseph Lee"
+waitthread global/credits.scr::credits_add "entry_single" "Russell Medeiros"
+waitthread global/credits.scr::credits_add "entry_single" "Adam Rivera"
+waitthread global/credits.scr::credits_add "entry_single" "Simon Steel"
+waitthread global/credits.scr::credits_add "entry_single" "Rob Stiasny"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 23 22 "textures/mohmenu/credits/credit_2" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "section" "EA CAT Lab"
+waitthread global/credits.scr::credits_add "entry_single" "Angelo Bayan"
+waitthread global/credits.scr::credits_add "entry_single" "Dave Caron"
+waitthread global/credits.scr::credits_add "entry_single" "Mark Gonzales"
+waitthread global/credits.scr::credits_add "entry_single" "John Hanley"
+waitthread global/credits.scr::credits_add "entry_single" "Dave Koerner"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "NARA Researcher" "Joan M. Mathys"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry" "Military Advisor" "Captain Dale Dye, USMC (ret.)"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image" "show" 24 23 "textures/mohmenu/credits/credit_11" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "entry" "Created By" "Steven Spielberg"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Created in Partnership with the" 
+waitthread global/credits.scr::credits_add "section" "Congressional Medal of Honor Society" 
+waitthread global/credits.scr::credits_add "entry" "www.cmohs.org"
+waitthread global/credits.scr::credits_add "entry" "President" "Nicky D. Bacon"
+waitthread global/credits.scr::credits_add "entry" "Director" "Victoria Leslie"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "section" "Special Thanks"
+waitthread global/credits.scr::credits_add "entry_single" "Bing Gordon"
+waitthread global/credits.scr::credits_add "entry_single" "Maynard Manson"
+waitthread global/credits.scr::credits_add "entry_single" "Papken Der Torossian"
+waitthread global/credits.scr::credits_add "entry_single" "Fred Garvin"
+waitthread global/credits.scr::credits_add "entry_single" "Vic Romano"
+waitthread global/credits.scr::credits_add "entry_single" "Kenny Blankenship"
+waitthread global/credits.scr::credits_add "entry_single" "MOH Rising Sun Console Teams"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "sub_section" "We would like to especially thank our families, friends and significant others for putting up with the long hours over the course of the development of MOH Breakthrough."
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry_single" "This product contains software technology licensed from Id Software, Inc. ('Id Technology'). Id Technology (c) 2001-2003 Id Software, Inc. All Rights Reserved."
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry_single" "Medal of Honor Allied Assault Breakthrough"
+waitthread global/credits.scr::credits_add "entry_single" "uses Miles Sound System."
+waitthread global/credits.scr::credits_add "entry_single" "Copyright (C) 1991-2003 by RAD Game Tools, Inc."
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "image_scroll" "textures/mohmenu/credits/miles" 150 64 64
+// insert Miles logo here
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry_single" "MPEG Layer-3 playback supplied with the Miles Sound System from RAD Game Tools, Inc."
+waitthread global/credits.scr::credits_add "entry_single" "MPEG Layer-3 audio compression technology licensed by Fraunhofer IIS and THOMSON multimedia."
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "entry_single" "This product contains software technology licensed by GameSpy Industries, Inc."
+waitthread global/credits.scr::credits_add "entry_single" "(c) 1999-2003 GameSpy Industries, Inc. All rights reserved."
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+//waitthread global/credits.scr::credits_add "image" "show" level.finalslide "textures/mohmenu/credits/middleboarder_credits" NIL 0 80 640 320
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+waitthread global/credits.scr::credits_add "pause"
+level.finalslide = 24
+waitthread global/credits.scr::credits_add "done"
+
+end
+
+
+// Originals --- Keep as spare until BETA then nuke this section
+
+// waitthread global/credits.scr::credits_add "image" "show" 2 "textures/mohmenu/credits/soldiers_walking" 35 0 80 640 320
+// waitthread global/credits.scr::credits_add "image" "show" 3 "textures/mohmenu/credits/soldier_shooting" 35 0 80 640 320
+// waitthread global/credits.scr::credits_add "image" "show" 4 "textures/mohmenu/credits/left_soldier_shooting" 26 0 80 640 320
+// waitthread global/credits.scr::credits_add "image" "show" 5 "textures/mohmenu/credits/soldiers_in_boat" 35 0 80 640 320
+
+// End of Originals section
+
+//*********************************************************
+//*** start the pictures
+//*********************************************************
+credits_start_pictures:
+
+/*
+//*** show a picture normally with now time value
+waitthread global/credits.scr::credits_image "show" 1 "textures/mohmenu/credits/creditbacksky" NIL 0 83 640 400
+
+wait 5
+
+//*** show a picture for 5 seconds
+waitthread global/credits.scr::credits_image "show" 2 "textures/mohmenu/credits/creditbackmoh" 15 0 83 640 400
+
+wait 30
+
+//*** show a pictures with coordinates
+waitthread global/credits.scr::credits_image "show" 3 "textures/mohmenu/credits/creditbacktrrops" 60 0 83 640 400
+
+wait 70
+waitthread global/credits.scr::credits_image "show" 4 "textures/mohmenu/credits/creditbacktrrops2" 60 0 83 640 400
+
+wait 70
+waitthread global/credits.scr::credits_image "show" 5 "textures/mohmenu/credits/p47-1" 60 0 83 640 400
+
+wait 100
+waitthread global/credits.scr::credits_image "hide" 1
+*/
+
+end

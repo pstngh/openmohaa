@@ -1,0 +1,38 @@
+//
+// machinegunner.scr
+//
+
+main:
+	level waittill prespawn
+	if ($machinegunnertrigger == NULL || $machinegunnertrigger == NIL)
+		end
+	$machinegunnertrigger thread doMachineGunnerTrigger
+end
+
+doMachineGunnerTrigger:
+	local.gunner1 = self.gunner
+	local.gunner2 = self.gunner2
+
+	if (local.gunner1 != NULL && local.gunner1 != NIL) 
+		$(local.gunner1) waitthread doMachineGunnerInit
+	if (local.gunner2 != NULL && local.gunner2 != NIL) 
+		$(local.gunner2) waitthread doMachineGunnerInit
+
+	self waittill trigger
+	
+	if (local.gunner1 != NULL && local.gunner1 != NIL) 
+		$(local.gunner1) waitthread doMachineGunnerWakeup
+	if (local.gunner2 != NULL && local.gunner2 != NIL) 
+		$(local.gunner2) waitthread doMachineGunnerWakeup
+end
+
+doMachineGunnerInit:
+	self ai_off
+	self hide
+end
+
+doMachineGunnerWakeup:
+	self ai_on
+	self show
+end
+		

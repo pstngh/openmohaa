@@ -1,0 +1,127 @@
+// Lovely, lovely explosions
+// ------------------------------------
+
+// To make the explosion initialize and go, create a trigger named autoexplosiontrigger and target a script origin (or anything, actually)
+
+/*
+// Each target may have these things associated with it:
+//---------------------------------------------------------
+1. #damage			: the damage caused by the explosion
+		    (default: 100)
+
+2. #radius			: the radius of the damage
+		    (default: 100)
+
+3. #lifetime		: how long before the explosion FX is removed
+		    (default: 10)
+
+4. $FX				: the FX tik file
+		    (default: "models/fx/fx_truck_explosion.tik")
+
+5. $anim			: the name of the animation to play on the FX
+		    (default: "start")
+
+6. #earthquakesize  : the size of the earthquake to play (0-5 is typical)
+		    (default: 0)
+
+7. #earthquaketime	: the length of the earthquake
+		    (default: 0)
+
+*/
+
+main:
+			
+	if($autoexplosiontrigger == NULL || $autoexplosiontrigger == NIL)
+		End
+		
+	
+	for(local.i = 1; local.i <= $autoexplosiontrigger.size; local.i++)
+	{
+		if ($autoexplosiontrigger[local.i].target == NIL ||
+			$autoexplosiontrigger[local.i].target == NULL)
+		{
+			println "autoexplosiontrigger has no target"
+			End
+		}
+
+		for (local.j=1; local.j<=$($autoexplosiontrigger[local.i].target).size; local.j++)
+		{
+			$($autoexplosiontrigger[local.i].target)[local.j] waitthread init_autoexplosion
+		}
+
+		$autoexplosiontrigger[local.i] setthread StartTargets
+	}
+End
+
+StartTargets:
+
+	for(local.i = 1; local.i <= $(self.target).size; local.i++)
+	{
+		$(self.target)[local.i] waitthread StartExplosion
+	}
+
+	self remove
+End
+
+init_autoexplosion:
+
+	// Defaults
+	local.damage				= 100
+	local.radius				= 100
+	local.lifetime				= 10
+	local.FX					= "models/fx/fx_truck_explosion.tik"
+	local.anim					= "start"
+	local.earthquakesize		= 0
+	local.earthquaketime		= 0
+	
+	if (self.damage == NIL)
+		self.damage = local.damage
+
+	if (self.radius == NIL)
+		self.radius = local.radius
+
+	if (self.lifetime == NIL)
+		self.lifetime = local.lifetime
+	
+	if (self.FX == NIL)
+		self.FX = local.FX
+	
+	if (self.anim == NIL)
+		self.anim = local.anim
+	
+	if (self.earthquakesize == NIL)
+		self.earthquakesize = local.earthquakesize
+	
+	if (self.earthquaketime == NIL)
+		self.earthquaketime = local.earthquaketime
+	
+end
+
+
+StartExplosion:
+
+	local.explosion = spawn script_model model models/fx/fx_truck_explosion.tik
+	local.explosion.origin = self.origin
+	local.explosion.angles = self.angles
+	local.explosion anim self.anim
+	local.explosion notsolid
+
+	if (self.earthquakesize > 0)
+	{
+		exec global/earthquake.scr self.earthquakesize self.earthquaketime 0 0	
+	}
+
+	if (self.damage > 0)
+	{
+		radiusdamage self.origin self.damage self.radius
+	}
+
+	remove self
+
+	wait self.lifetime
+
+	remove local.explosion
+	
+End
+
+

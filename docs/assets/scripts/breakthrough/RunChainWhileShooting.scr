@@ -1,0 +1,21 @@
+//
+// RunChainWhileShooting
+//
+
+RunChainWhileShooting local.first_node:
+
+	local.dest = local.first_node
+	while (self && (isalive self))
+	{
+		self.type_attack = "runandshoot"
+		self runto local.dest
+		self waittill movedone
+
+		if (!(local.dest.target) || !$(local.dest.target))
+			break
+
+		local.dest = $(local.dest.target)
+	}
+
+end
+

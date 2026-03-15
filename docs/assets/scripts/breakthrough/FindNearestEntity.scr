@@ -1,0 +1,36 @@
+//
+// FindNearestEntity
+//
+
+FindNearestEntity local.from_point local.name_1 local.name_2 local.name_3 local.name_4 local.name_5:
+
+	local.nearest = NULL
+
+	if (local.name_1)
+		local.nearest = waitthread FNE_SingName local.nearest local.from_point local.name_1
+	if (local.name_2)
+		local.nearest = waitthread FNE_SingName local.nearest local.from_point local.name_2
+	if (local.name_3)
+		local.nearest = waitthread FNE_SingName local.nearest local.from_point local.name_3
+	if (local.name_4)
+		local.nearest = waitthread FNE_SingName local.nearest local.from_point local.name_4
+	if (local.name_5)
+		local.nearest = waitthread FNE_SingName local.nearest local.from_point local.name_5
+
+end local.nearest
+
+
+FNE_SingName local.nearest local.from_point local.name:
+
+	if (!$(local.name))
+		end local.nearest
+
+	for (local.i=1; local.i<=$(local.name).size; local.i++)
+	{
+		if (!local.nearest || (vector_closer $(local.name)[local.i].origin local.nearest.origin local.from_point))
+			local.nearest = $(local.name)[local.i]
+	}
+
+end local.nearest
+
+

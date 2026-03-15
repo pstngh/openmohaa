@@ -1,0 +1,290 @@
+// The Greatness of the AutoBird
+// ------------------------------------
+
+// To make the birds initialize and go, create a trigger named autobirdtrigger and target a spline path (the nest)
+
+// Each nest represents the path along which the birds will fly out of view:
+
+/*
+// Optional stuff that goes on the trigger:
+//----------------------------------------------------------
+1. #reloadtime      : how long to wait before the birds are reloaded, -1 means never.
+		    (default: -1)
+
+2. #numbirds	    : the number of birds to spawn
+		    (default: 5)
+
+3. $nestsound	    : the sound to play when the birds launch
+		    (default: "birds_Rustlebush")
+
+4. $birdstartsound	    : the sound to play when the birds launch
+		    (default: "birds_startled")
+
+5. $birdloopsound	    : the sound to play when the birds launch
+		    (default: "birds_paniced_loop")
+
+6. $model	    : the sound to play when the birds launch
+		    (default: "animate/AF_P_Sparrow.tik")
+
+7. #locktopath		: how closely the birds should try to follow the path, 0 is not at all, 1 is locked, anything in between is OK.
+
+8. $finaltarget		: the names of the entities where the birds land.
+
+9. #modelscale		: How large to scale the bird models (defaults to 1.0)
+
+*/
+
+main:
+			
+	if($autobirdtrigger == NULL || $autobirdtrigger == NIL)
+		End
+	
+	for(local.i = 1; local.i <= $autobirdtrigger.size; local.i++)
+	{
+		if ($autobirdtrigger[local.i].target == NIL ||
+			$autobirdtrigger[local.i].target == NULL)
+		{
+			println "autobirdtrigger has no target"
+			End
+		}
+
+		$autobirdtrigger[local.i] waitthread init_autobird
+		$autobirdtrigger[local.i] setthread StartBirds
+	}
+
+	level.birdsdead = 0
+End
+
+
+/*
+*************************************************************
+PUBLIC FUNCTIONS
+***************************************************************
+*/
+
+init_autobird:
+
+	// Defaults
+	local.reloadtime			= -1
+	local.numbirds				= 5
+	local.nestsound				= "birds_Rustlebush"
+	local.startsound			= "birds_startled"
+	local.loopsound				= "birds_paniced_loop"
+	local.model				= "animate/AF_P_Sparrow.tik"
+	local.locktopath			= 0.1
+	local.modelscale			= 1.0
+
+	self.timetillreload = 0
+		
+	if (self.reloadtime == NIL)
+		self.reloadtime = local.reloadtime
+
+	if (self.numbirds == NIL)
+		self.numbirds = local.numbirds
+
+	if (self.nestsound == NIL)
+		self.nestsound = local.nestsound
+	
+	if (self.startsound == NIL)
+		self.startsound = local.startsound
+	
+	if (self.loopsound == NIL)
+		self.loopsound = local.loopsound
+	
+	if (self.model == NIL)
+		self.model = local.model
+
+	if (self.locktopath == NIL)
+		self.locktopath = local.locktopath
+
+	if (self.modelscale == NIL)
+		self.modelscale = local.modelscale
+end
+
+
+StartBirds local.triggerer:
+
+	self nottriggerable
+
+	if (self.birdsflying == 1)
+		End
+
+	self.birdsflying = 1
+
+	self.flytarget = spawn script_origin origin $(self.target)[1].origin
+	self.flytarget flypath $(self.target)[1] 500 1000 100
+
+	// Spawn the birds
+	for (local.i=1;local.i<=self.numbirds;local.i++)
+	{
+		self.bird[local.i] = spawn script_model_realdamage model self.model health 1 scale self.modelscale
+		local.targetindex = randomint($(self.target).size)+1
+		self.bird[local.i].origin = $(self.target)[local.targetindex].origin
+		self.bird[local.i] anim idle
+		self.bird[local.i] notsolid
+		self.bird[local.i] hide
+
+		if (local.i > 1)
+			local.prevbird = self.bird[local.i-1]
+		else
+			local.prevbird = NULL
+
+		self.bird[local.i] thread FlyBird self local.triggerer local.prevbird
+	}
+
+	self.flytarget waitmove
+	
+	// Tell the birds to fly to the final target
+	for (local.i=1;local.i<=self.numbirds;local.i++)
+	{
+		if (self.bird[local.i])
+		{
+			if (self.finaltarget)
+			{
+				local.finalindex = randomint($(self.finaltarget).size)+1
+				self.bird[local.i].finaltarget = $(self.finaltarget)[local.finalindex].origin
+			}
+			else
+			{
+				// Otherwise, just fly to the end point of the path
+				self.bird[local.i].finaltarget = self.flytarget.origin
+			}
+		}
+	}
+
+	// Wait for the birds to remove themselves
+	for (local.i=1;local.i<=self.numbirds;local.i++)
+	{
+		while (self.bird[local.i]) waitframe
+	}
+
+	self.flytarget remove
+
+	if (self.reloadtime >= 0)
+	{
+		wait self.reloadtime
+		self.birdsflying = 0
+		self triggerable
+	}
+
+End
+
+
+Sounds local.trigger:
+
+		if (randomint(5) == 0)
+			self playsound local.trigger.nestsound
+		wait randomfloat(2)
+		if (randomint(5) == 0)
+			self playsound local.trigger.startsound
+		self waittill sounddone
+		while (self)
+		{
+			if (randomint(5) == 0)
+			{
+				self playsound local.trigger.loopsound
+				self waittill sounddone
+			}
+			else
+			{
+				wait randomfloat(5)
+			}
+		}
+
+End
+
+FlyBird local.trigger local.triggerer local.followbird:
+
+	// When this gets set, we will fly here and delete ourselves
+	self.finaltarget = NULL
+
+	// Stagger the launches
+	wait (randomfloat(1.5))
+
+	// If an entity triggered us, fly away from them
+	if (local.triggerer)
+	{
+		local.dirToBird = self.origin - local.triggerer.origin
+		local.dirToBird = vector_normalize(local.dirToBird)
+	}
+	else
+	{
+		local.dirToBird = (0 0 0)
+	}
+	local.x = (randomfloat(500)+500) * local.dirToBird[0]
+	local.y = (randomfloat(500)+500) * local.dirToBird[1]
+
+	// Here is our initial velocity
+	self.velocity = ( local.x local.y (randomfloat( 500 )) )
+	self show
+	self claypidgeon
+
+	self thread Sounds local.trigger
+
+	local.lasttime = level.time
+	while (1)
+	{
+		local.deltat = level.time - local.lasttime
+		local.lasttime = level.time
+
+		if (self.health < 1)
+		{
+			level.birdsdead++
+			iprintln ("Birds killed: " + level.birdsdead)
+			self physics_on
+//			self notsolid
+			self pauseanims 1
+
+			local.puff = spawn script_model model "models/emitters/tehao_Feathers.tik" origin self.origin
+			local.puff anim start
+
+			wait 5
+
+			local.puff remove
+			self remove
+			End
+		}
+
+		// Check if we are on our final flight to home
+		if (self.finaltarget)
+		{
+//			self notsolid
+			local.dist = (self.finaltarget - self.origin)
+			self.velocity = self.velocity * 0.9
+			local.changevel = local.dist*10
+			if (vector_length(self.finaltarget - self.origin) < 30 || local.trigger.locktopath == 0)
+			{
+				self remove
+				End
+			}
+		}
+		// Otherwise, do flocking behavior
+		else
+		{
+			local.changevel = (local.trigger.flytarget.origin - self.origin)*3*local.trigger.locktopath
+			if (local.followbird)
+			{
+				local.changeveltowardsbird = (local.followbird.origin - self.origin)*3*(1-local.trigger.locktopath)
+				local.changevel = local.changevel + local.changeveltowardsbird
+			}
+
+		}
+		local.maxaccel = 2000
+		if (vector_length(local.changevel) > local.maxaccel)
+		{
+			local.changevel = vector_normalize(local.changevel) * local.maxaccel
+		}
+
+		self.velocity = self.velocity + local.changevel*local.deltat
+		local.maxvel = 600
+		if (vector_length(self.velocity) > local.maxvel)
+		{
+			self.velocity = vector_normalize(self.velocity) * local.maxvel
+		}
+
+		self.angles = vector_toangles(self.velocity)
+		waitframe
+	}
+
+end
+

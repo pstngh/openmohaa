@@ -1,0 +1,130 @@
+//**********************************************************************
+//*** locked sounds for doors
+//*** place a trigger_use in front of the door you want to be locked
+//*** make the targetname of the trigger 'door_locked'
+//*** add a keyvalue to the trigger of $type [wood | wood1 | metal | metal_garage]
+//*** if you put nothing, then wood is default
+//**********************************************************************
+lock:
+
+	for ( local.i = 1; local.i <= $door_locked.size; local.i++ )
+	{
+		if ( $door_locked[local.i].type == "large" )
+		{
+			$door_locked[local.i] thread door_locked_large
+		}
+		else if ( $door_locked[local.i].type == "metal" )
+		{
+			$door_locked[local.i] thread door_locked_metal
+		}
+		else if ( $door_locked[local.i].type == "metal_garage" )
+		{
+			$door_locked[local.i] thread door_locked_metal_garage
+		}
+		else if ( $door_locked[local.i].type == "wood1" )
+		{
+			$door_locked[local.i] thread door_locked_wood1
+		}	
+		else if ( $door_locked[local.i].type == "barn" )
+		{
+			$door_locked[local.i] thread door_locked_barn
+		}	
+		else if ( $door_locked[local.i].type == "picket" )
+		{
+			$door_locked[local.i] thread door_locked_picket
+		}	
+		else // default door is wood
+		{
+			$door_locked[local.i] thread door_locked_wood
+		}	
+	}
+
+end
+
+
+//****************************************
+//*** play a locked sound for metal doors
+//****************************************
+door_locked_large:
+
+	local.self waittill trigger
+	local.self playsound gate_large_locked
+	wait 0.25
+	goto door_locked_large
+
+end
+
+
+//****************************************
+//*** play a locked sound for metal doors
+//****************************************
+door_locked_metal:
+
+	local.self waittill trigger
+	local.self playsound door_metal_locked
+	wait 0.25
+	goto door_locked_metal
+
+end
+
+
+//*******************************************
+//*** play a locked sound for metal garage doors
+//*******************************************
+door_locked_metal_garage:
+
+	local.self waittill trigger
+	local.self playsound garagedoor_locked
+	wait 0.25
+	goto door_locked_metal_garage
+
+end
+
+
+//****************************************
+//*** play a locked sound for wood doors
+//****************************************
+door_locked_wood:
+
+	local.self waittill trigger
+	local.self playsound door_wood_locked
+	wait 0.25
+	goto door_locked_wood
+
+end
+
+//****************************************
+//*** play a locked sound for wood doors (alternate version)
+//****************************************
+door_locked_wood1:
+
+	local.self waittill trigger
+	local.self playsound door_wood_locked1
+	wait 0.25
+	goto door_locked_wood1
+
+end
+
+//****************************************
+//*** play a locked sound for barn doors
+//****************************************
+door_locked_barn:
+
+	local.self waittill trigger
+	local.self playsound barn_door_locked
+	wait 0.25
+	goto door_locked_barn
+
+end
+
+//****************************************
+//*** play a locked sound for picket fences
+//****************************************
+door_locked_picket:
+
+	local.self waittill trigger
+	local.self playsound picket_fence_locked
+	wait 0.25
+	goto door_locked_picket
+
+end

@@ -1,0 +1,216 @@
+// MOHEP2 JABBOTT
+//-----------------------------------------------------------------------
+// SOME NOTES ABOUT LANDMINES:
+//
+// 1) In deathmatch games, landmines are created by the engine itself when
+//    a player with landmine ammo lays a mine on a shader for which landmines
+//    can be placed. When created, the following attributes are set:
+//
+//	model:	This is set to be whatever projectile model that is listed
+//		in the weapon TIKI. Note that this projectile must be a
+//		trigger rather than a traditional projectile.
+//	setthread: global/landmine.scr::steppedOn
+//	$defuseThread: global/landmine.scr::defuse
+//	targetname: landmine
+// 
+// 2) In deathmatch landmines cannot be places on WOOD, METAL, ROCK, GRILL,
+//    GLASS, or CARPET shaders.
+//
+// 3) In order to defuse something with the secondary mindetector function,
+//    the following conditions must be met:
+//
+//    a) The object to be defused must be a trigger
+//    b) It must have a "defuseThread" variable
+//    c) The object must be in the forward cone of the player
+//    d) The object must be withing the weapons "maxrange" and "bulletrange"
+//
+// 4) Actual defusing of an object is done in the thread that was named by
+//    the "defuseThread" variable.
+//-----------------------------------------------------------------------
+
+//-----------------------------------------------------------------------
+// Routines for making explosions and FX appear
+//-----------------------------------------------------------------------
+
+pocketFlashFx local.fx local.origin:
+	
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = local.origin  
+	local.temp anim start
+	local.temp notsolid
+	waitframe
+	local.temp remove
+end
+
+pocketExplosionFx local.fx local.origin:
+	
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = local.origin  
+	local.temp anim start
+	local.temp notsolid
+	wait 7
+	local.temp remove
+end
+
+//--------------------------------------------------------------------
+// Called when a minelayer tries to defuse a landmine
+//--------------------------------------------------------------------
+defuse local.defuser:
+	self delete
+	local.defuser iprint ( "landmine defused!" )
+	local.defuser ammo landmine 1
+end
+
+//--------------------------------------------------------------------
+// Called when someone has stepped on a "live" landmine (called
+// by steppedOn). If they hold still for 15 seconds, they get to live
+// (because they defused it themselves), otherwise they die.
+//--------------------------------------------------------------------
+triggerMine local.stepper:
+	self playsound landmine_trigger
+	self show
+
+	local.noboom = true
+	local.defuseTime = level.time + 15
+
+	if ( self.health > 0 )
+		local.stepper iprint ("You've stepped on a landmine!" )
+
+	while (local.noboom == true) {
+		if (self == NIL || self == NULL) {
+			end			
+		} else if (local.stepper == NIL || local.stepper == NULL) {
+			local.noboom = false
+		} else if (vector_length(self.origin - local.stepper.origin) > 40) {
+			local.noboom = false
+		} else if (level.time > local.defuseTime) {
+			if (local.stepper != NIL && local.stepper != NULL)
+				local.stepper iprint( "landmine defused!" )
+			self playsound landmine_defuse
+			self delete
+		}
+		wait 0.1
+	}
+
+	self playsound landmine_explode
+	//thread pocketExplosionFx models/fx/exp_flak_near.tik self.origin
+	//thread pocketFlashFx models/fx/fx_pocketflash.tik self.origin 
+	thread pocketFlashFx models/emitters/explosion_mine.tik self.origin 
+
+	landminedamage self 100 150
+end
+
+
+//--------------------------------------------------------------------
+// When someone places a landmine, this is the code that gets run.
+//
+// For one thing, we make sure that for any player in the game, that
+// player can only own a set number of mines at one time (otherwise
+// the player could keep dieing and loading up the map with umpteen
+// zillion mines).
+//--------------------------------------------------------------------
+allocateMine local.stepper:
+	if (local.stepper.mines == NIL) {
+		local.stepper.mines[1][1] = self;
+		local.stepper.mines[1][2] = level.time;
+		local.stepper iprint( "landmine placed" )
+	} else {
+		/* first we check to see if there's free slot */
+		local.placeSlot = 0
+		/* if there's not a free slot, we place in the oldest slot */
+		local.oldestSlot = 0
+		local.oldestAge = level.time
+		for (local.findSlot = 1; local.placeSlot == 0 && local.findSlot < 9; local.findSlot++) {
+			if (local.stepper.mines[local.findSlot] == NIL || local.stepper.mines[local.findSlot] == NULL) {
+				local.placeSlot = local.findSlot
+			} else if (local.stepper.mines[local.findSlot][1] == NIL || local.stepper.mines[local.findSlot][1] == NULL) {
+				local.placeSlot = local.findSlot
+			} else if (local.stepper.mines[local.findSlot][2] < local.oldestAge) {
+				local.oldestSlot = local.findSlot
+				local.oldestAge = local.stepper.mines[local.findSlot][2]
+			}
+		}
+
+		if (local.placeSlot == 0) {
+			local.stepper.mines[local.oldestSlot][1] playsound landmine_defuse
+			local.stepper.mines[local.oldestSlot][1] delete
+			local.stepper iprint ( "landmine placed (removed old landmine)" )
+			local.placeSlot = local.oldestSlot
+			self playsound landmine_replace
+		} else {
+			self playsound landmine_place
+			local.stepper iprint( "landmine placed" )
+		}
+		local.stepper.mines[local.placeSlot][1] = self
+		local.stepper.mines[local.placeSlot][2] = level.time
+	}
+
+	self.landmineowner = local.stepper.entnum
+
+	self thread landmineThinker local.stepper
+
+	wait 3
+	if (self != NIL && self != NULL)
+		self hide
+end
+
+//--------------------------------------------------------------------
+// Landmine thinking code - mostly used to track when our placer bails on us
+//--------------------------------------------------------------------
+landmineThinker local.placer:
+	local.health = self.health
+	while (self != NULL) {
+		if ( self isabandoned local.placer ) {
+			self delete
+			end
+		}
+
+		if (self.health < local.health) {
+			self playsound landmine_explode
+			thread pocketFlashFx models/emitters/explosion_mine.tik self.origin 
+			//thread pocketFlashFx models/fx/fx_pocketflash.tik self.origin 
+			landminedamage self 100 150
+			self delete
+		}
+
+		wait 1
+	}
+end
+
+//--------------------------------------------------------------------
+// This code is called when the landmine is initially stepped on.
+//--------------------------------------------------------------------
+steppedOn local.stepper:
+
+	// Believe it or not, you can be stepped on by a NULL object
+	if (local.stepper == NULL)
+		end
+
+	self nottriggerable
+	if (self.lock != NIL && self.lock == level.time) {
+		end
+	}
+
+	self.lock = level.time
+	if (self.landmineowner == NIL) {
+		//
+		// This person must be the one to placed the landmine
+		// since we have no init data yet. Call the init landmine
+		// routine.
+		//
+		self waitthread allocateMine local.stepper
+	} else if ( self isimmune local.stepper ) {
+		// do nothing
+	} else {
+		self waitthread triggerMine local.stepper
+		if (self != NIL && self != NULL)
+			self delete
+	}
+
+	wait .1
+	if (self != NIL && self != NULL) {
+		self triggerable
+ 	} 
+end

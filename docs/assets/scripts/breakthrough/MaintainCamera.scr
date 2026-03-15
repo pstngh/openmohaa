@@ -1,0 +1,19 @@
+StartMaintainCamera local.vehicle:
+	level.maintaincamera = 1
+	level.oldJeepAngles = local.vehicle.angles
+	while (level.maintaincamera == 1)
+	{
+		local.deltaAngles = local.vehicle.angles - level.oldJeepAngles
+		$player.viewangles = $player.viewangles + local.deltaAngles
+		level.oldJeepAngles = local.vehicle.angles
+
+		waitframe
+	}
+end
+
+StopMaintainCamera:
+
+	level.maintaincamera = 0
+
+End
+

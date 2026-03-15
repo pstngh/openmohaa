@@ -1,0 +1,905 @@
+// The Greatness of the AutoPlane
+// ------------------------------------
+
+
+// Entity list
+// $autotriggers // Any number
+// $autoplanestrafetrigger: needs to target the autoplane you want to start shooting
+// $autoplanestopstrafetrigger: needs to target the autoplane you want to stop shooting
+// planes        // limit to 3 or 4 planes just to be save, never crashed on me, but who knows
+
+// To make the plane initialize and go, create a trigger named autotrucktrigger and target your truck
+
+// Each plane must have these things associated with it:
+//---------------------------------------------------------
+// $autoplane.target          -- path used by the plane
+// $autoplane.collision       -- script model of collision hull
+
+/*
+// Optional stuff:
+//----------------------------------------------------------
+1. $collision    : the script_model of the collision entity
+		    (default: none)
+
+2. #health          : amount of health for each plane, if you want it to be killed from the start set to -1
+		    (default: 4000)
+
+3. #speed	        : speed at which to drive
+		    (default: 500)
+
+4. #accel	        : acceleration
+		    (default: 500)
+
+5. #lookahead	    : how far ahead on the path the plane should aim
+		    (usually can be left to default)
+		    (default: 500)
+
+6. #removewhendone  : should we remove the plane and guys when it is done with it's path?
+		    (default: 1)
+
+7. #visiblebeforedrive : should the truck be visible before we tell it to drive?
+		    (default: 0)
+
+8. #takedamage	       : should the plane be immune to damage? If takes damage it can also be killed, 
+						 which means it will need a livepath and a crashpath. It catches fire if shot
+						 before the crash path, then if its health is >= 0 it will head down crash path.
+		    (default: 0)
+	8a. $crashpath     : the path it will follow if it gets killed
+	8b. $livepath      : the path it will follow if it does not get killed
+		    
+9. #followpath    : decides whether the plane does a followpath motion or a flypath
+					 If you decide to do a followpath then there is no speed, accel, or lookahead control.
+					 flypath does have those things as well as turning between the nodes.
+			(default: 0 meaning it does a flypath)
+10.	#removepath    : decides whether the spline nodes disappear after the plane has accomplished its route.
+			(default: 0 which means it does not delete the path)
+			
+12. #shooting      : decides whether the stuka will be shooting, this only works for the stuka
+			(default: 0 which mean it does not shoot)
+
+13. #cycles        : the number of times the planes will cycle, after it has followed its path it will restart this many
+					 times and then its path again
+		    (default: 1 which means it flies its path once)
+14. $deathanim     : animation you want it to play if its dead at end of path, untested as I dont know of a death animation to play,
+					 added for Chris
+			(default: NIL as in it does not work and does not affect normal use
+14. $bombtrigger  : The name of the triggers that should cause bombs to drop.  These triggers should target a spline path for the bomb to follow
+			(default: NIL)
+*/
+
+main:
+			
+	if($autoplanetrigger == NULL || $autoplanetrigger == NIL)
+	 End
+	
+	for(local.i = 1; local.i <= $autoplanestrafetrigger.size; local.i++)
+	{
+		$($autoplanestrafetrigger[local.i].target).strafetrigger = $autoplanestrafetrigger[local.i]
+		//self.targetl1 self.targetr1
+
+	}
+	
+		for(local.i = 1; local.i <= $autoplanestopstrafetrigger.size; local.i++)
+	{
+		$($autoplanestopstrafetrigger[local.i].target).strafeofftrigger = 	$autoplanestopstrafetrigger[local.i]
+		//self.targetl1 self.targetr1
+
+	}
+
+	
+	
+	for(local.i = 1; local.i <= $autoplanetrigger.size; local.i++)
+	{
+		if ($autoplanetrigger[local.i].target == NIL ||
+			$autoplanetrigger[local.i].target == NULL)
+		{
+			println "autoplanetrigger has no target"
+			End
+		}
+
+		for (local.j=1; local.j<=$($autoplanetrigger[local.i].target).size; local.j++)
+		{
+			$($autoplanetrigger[local.i].target)[local.j] waitthread init_autoplane
+		}
+
+		$autoplanetrigger[local.i] setthread StartTargets
+	}
+End
+
+StartTargets:
+		thread  go_through_planes self.target
+		self remove
+/*
+		for (local.j=1; local.j<=$(self.target).size; local.j++)
+		{
+			$(self.target)[local.j] waitthread StartTruck
+		}
+*/
+End
+
+
+
+go_through_planes local.planes:
+	for(local.i = 1; local.i <= $(local.planes).size; local.i++)
+	{
+		// iprintln ("SO I THINK YOU SHOULD GO 6 times " + local.i)
+		$(local.planes)[local.i] waitthread StartPlane
+	}
+End
+
+/*
+*************************************************************
+PUBLIC FUNCTIONS
+***************************************************************
+*/
+
+init_autoplane:
+
+	// Defaults
+	local.health				= 2000
+	local.speed					= 500
+	local.accel					= 500
+	local.lookahead				= 500
+	local.removewhendone		= 1
+	local.visiblebeforedrive	= 0
+	local.takedamage			= 0
+	local.followpath            = 0
+	local.removepath            = 0
+	local.shooting              = 0
+	local.cycles                = 1
+	
+	if(self.shooting == NIL || self.shooting == 0)
+	{
+		self.shooting = local.shooting
+	}
+	else
+	{
+		self.aimatlocal1 = spawn script_origin
+		self.aimatlocal2 = spawn script_origin
+		self.aimatlocal1.origin =  self.origin
+		self.aimatlocal2.origin = self.origin
+	}
+		
+	
+	/*
+		self.targetl1 = $target1
+		self.targetr1 = $target2
+		
+		local.strafe = spawn info_splinepath
+		
+		local.strafe.origin = self.strafetrigger.origin
+		
+		local.findtriggercollision = self.target
+		while ($(local.findtriggercollision) != NIL && !($(local.findtriggercollision) istouching self.strafetrigger) && $(local.findtriggercollision) != NULL)
+		{
+			local.next = $(local.findtriggercollision).target
+			//local.findtriggercollision droptofloor  
+			local.findtriggercollision = local.next
+		}
+		
+		self.targetl1 = local.strafe
+		$(self.targetl1).target = local.findtriggercollision
+		local.mytarget = self.targetl1
+		//local.mypath = self.findtriggercollision
+		local.deleteme = self.findtriggercollision
+		
+		while ($(local.deleteme) != NIL && $(local.deleteme) != NULL)
+		{
+			local.next = $(local.deleteme).target
+			$(local.mytarget).target = spawn info_splinepath
+			$(local.mytarget).origin = $(local.deleteme).origin	
+			local.deleteme = local.next
+			local.mytarget = $(local.mytarget).target
+		}
+		
+		local.deleteme = self.targetl1
+		while ($(local.deleteme) != NIL && $(local.deleteme) != NULL)
+		{
+			local.next = $(local.deleteme).target
+			local.deleteme droptofloor  
+			local.deleteme = local.next
+		}
+		self.targetr1 = self.targetl1
+		
+		local.deleteme = self.targetr1
+		while ($(local.deleteme) != NIL && $(local.deleteme) != NULL)
+		{
+			local.next = $(local.deleteme).target
+			local.deleteme droptofloor 
+			local.deleteme = local.next
+		}
+		
+	}
+	*/
+		
+	
+	if (self.collision == NIL)
+		println "autoplane has no collision"
+	else
+		self setcollisionentity self.collision
+	
+	if (self.speed == NIL)
+		self.speed = local.speed
+
+	if (self.accel == NIL)
+		self.accel = local.accel
+
+	if (self.lookahead == NIL)
+		self.lookahead = local.lookahead
+
+	if (self.passengergun == NIL)
+		self.passengergun = local.passengergun
+
+	if (self.passengerhealth == NIL)
+		self.passengerhealth = local.passengerhealth
+
+	if (self.health == NIL || self.health == NULL || self.health == 0)
+		self.health = local.health
+
+	
+	if(self.removepath == NIL)
+		self.removepath = local.removepath
+	
+	if (self.removewhendone == NIL)
+		self.removewhendone = local.removewhendone
+
+	if (self.visiblebeforedrive == NIL)
+		self.visiblebeforedrive = local.visiblebeforedrive
+
+	if (self.takedamage == NIL)
+		self.takedamage = local.takedamage
+
+	if (self.followpath == NIL)
+		self.followpath = local.followpath
+		
+	if(self.cycles == NIL)
+		self.cycles = local.cycles
+
+	self.start_pos = self.origin
+	self.start_angles = self.angles
+	self.starthealth = self.health
+	self.gun1 = NULL
+	self.gun2 = NULL
+
+	self rendereffects "-shadow"
+
+	if (self.takedamage == 1)
+	{
+		self takedamage	
+		if(self.livepath == NIL)
+		{
+			println "plane does not have a $livepath even though it will take damage"
+			End
+		}
+		if(self.crashpath == NIL)
+		{
+			println "plane does not have a $crashpath even though it will take damage"
+			End
+		}
+		
+		if($(self.crashpath) == NIL || $(self.crashpath) == NULL)
+		{
+			println ( "plane has a crashpath but it is not an entity on the map, it thinks it is " + self.crashpath)
+			End
+		}
+		
+		if($(self.livepath) == NIL || $(self.livepath) == NULL)
+		{
+			println ("plane has a livepath but it is not an entity on the map" + self.livepath)
+			End
+		}
+		
+	}
+	else
+	{
+		self nodamage
+	}
+
+	
+
+	self solid
+	// self removeondeath 0
+
+	if (self.visiblebeforedrive == 0)
+		self hide
+	//todo -- make the guys on the trucks smart enough to stop the convoy when they spot you
+	
+end
+
+
+StartPlane:
+	if (self.bombtrigger != NIL)
+	{
+		for (local.j=1;local.j<=$(self.bombtrigger).size;local.j++)
+			$(self.bombtrigger)[local.j] thread TriggerPlaneDropBomb self
+	}
+
+	for(local.i = 1; local.i <= self.cycles; local.i++)
+	{
+		self show
+
+		self playsound plane
+
+		//iprintln "StartPlane"
+
+		if (self.takedamage == 1 || self.health <= 0)
+		{
+			self takedamage
+			// iprintln "TAKEDAMAGE"
+			self thread isPlaneDead
+		}
+		else
+		{
+			self nodamage
+		}
+
+		self waitthread FlyPlane
+		self hide
+		self anim idle
+		if(self.starthealth < 0)
+			self.starthealth = 1
+		self.health = self.starthealth
+		self.origin = self.start_pos
+		self.angles = self.start_angles
+		
+		if(self.plane_d != NIL)
+			delete self.plane_d	
+			
+	}
+	if(self.shooting == 1)
+		self thread stukastrafeend
+	
+	if(self.removepath == 1)
+	 	self waitthread deletenodes
+
+	if (self.removewhendone == 1)
+	{
+		if (self.gun1) self.gun1 remove
+		if (self.gun2) self.gun2 remove
+		self remove
+		End
+	}
+	else if( self.deathanim != NIL  && self.health <= 0)
+	{
+		println ("YEAH SO DO THiS ANIMATION NOW: " + self.deathanim)
+		self anim self.deathanim
+	}
+	
+End
+
+
+
+FlyPlane:
+	if(self.shooting == 1)
+	{
+		//self anim fire
+		/*
+		level.stukagunr = spawn script_aimedstrafinggunfire
+		level.stukagunr.origin = $stuka gettagposition "tag_barrel1"
+		level.stukagunr.angles = $stuka.angles
+		level.stukagunr bind $stuka
+
+		level.stukagunl = spawn script_aimedstrafinggunfire
+		level.stukagunl.origin = $stuka gettagposition "tag_barrel2"
+		level.stukagunl.angles = $stuka.angles
+		level.stukagunl bind $stuka
+		*/
+		
+		self.gun1 = spawn script_aimedstrafinggunfire
+		self.gun1 attach self tag_barrel1
+		//self.gun1 tracerFrequency 1
+
+		self.gun2 = spawn script_aimedstrafinggunfire
+		self.gun2 attach self tag_barrel2
+		
+		self thread stukastrafetrigger 2.0 self.targetl1 self.targetr1
+		
+		if(self.strafeofftrigger)
+			self thread stukafireend
+			
+		//self waitthread stukastraferun self.straferun 2.25
+		//self.gun2 tracerFrequency 1
+
+	}
+	
+	if(self.followpath == 1)
+	{
+		//iprintln "Followpath"
+		self followpath self.target
+		self waitmove
+	}
+	else
+	{
+		//iprintln "flypath"
+		self flypath self.target self.speed self.accel self.lookahead
+		self waitmove
+	}
+	
+	if(self.livepath != NIL)
+	{
+		// iprintln "ARE YOU GOING IN HERE?"
+		self waitthread lifeordeath
+	}
+	self waitthread StopPlane
+	if(self.shooting == 1)
+	{	
+		self.shooting = 0
+		wait 0.5
+		self.shooting = 1
+	}
+
+
+end
+
+lifeordeath:
+	// iprintln ("health: " + self.health) 
+	if(self.health > 0)
+		{
+			if(self.followpath == 1)
+			{
+				//iprintln "Followpath"
+				self followpath self.livepath
+				self waitmove
+			}
+			else
+			{
+				//iprintln "flypath"
+				self flypath self.livepath self.speed self.accel self.lookahead
+				self waitmove
+			}
+			
+		}
+	else
+	{
+		if ( self )
+			self anim idle
+		self.gun1 off
+		self.gun2 off
+	
+		switch(self.model)
+		{
+			case models/vehicles/stuka_strafe.tik:
+			{
+				local.number = randomint(3)
+				// iprintln local.number
+				switch(local.number)
+				{
+				case 0:		
+					local.model =  "models/vehicles/stuka_strafe.tik"
+					break
+				case 1:
+					local.model = "models/vehicles/stuka_wing_d.tik"
+					break
+				case 2:
+					 local.model = "models/vehicles/stuka_wing_d2.tik" 
+					break
+				default:
+					local.model = "models/vehicles/It_V_Stuka_d.tik"
+					break
+				}
+			break
+			}
+			case models/vehicles/It_V_stukafly.tik:
+				local.model = "models/vehicles/It_V_Stuka_d.tik"
+				break
+			default:
+				local.model = self.model
+				println ("Not a model that has a destroyed type. This plane is called " + self.targetname)  
+				break
+		}
+		if(self == NIL || self == NULL)
+			End
+
+		local.angles = self.angles
+		local.origin = self.origin
+		self.plane_d = thread spawn_damaged local.model self.angles self.origin
+		self.plane_d anim smoke
+		self anim idle
+		self hide
+		self.plane_d show
+		// iprintln self.crashpath
+	
+		local.faster = self.speed + 100
+		local.moreaccel = self.accel + 100
+		self.plane_d anim temp_smoke
+		self.plane_d anim temp_sizzle
+		//self.plane_d flypath $(self.crashpath) local.faster local.moreaccel self.lookahead
+	
+		self.plane_d flypath $(self.crashpath) local.faster local.moreaccel self.lookahead
+		self.plane_d waitmove
+		println "Plane is dead"
+
+		self.plane_d.removewhendone = self.removewhendone
+		self.plane_d waitthread StopPlane
+	}
+	
+End
+
+
+StopPlane:
+	
+	self stop
+	self.stoppedplane = 1
+
+
+End
+
+
+deletenodes:
+	/*
+	// self should be target
+	// $(self.target) waitthread deletenodes
+	// a call in this manner is required for this to work
+	println ("delete nodes: " + self)
+	if(self.target == NIL)
+		End
+	$(self.target) waitthread deletenodes
+	self remove
+	*/
+	
+	local.deleteme = self.target
+	while ($(local.deleteme) != NIL && $(local.deleteme) != NULL)
+	{
+		local.next = $(local.deleteme).target
+		local.deleteme remove
+		local.deleteme = local.next
+	}
+	if(self.livepath != NIL)
+	{
+	
+	local.deleteme = self.livepath
+		while ($(local.deleteme) != NIL && $(local.deleteme) != NULL)
+		{
+			local.next = $(local.deleteme).target
+			local.deleteme remove
+			local.deleteme = local.next
+		}
+	local.deleteme = self.crashpath
+		while ($(local.deleteme) != NIL && $(local.deleteme)!= NULL)
+		{
+			local.next = $(local.deleteme).target
+			local.deleteme remove 
+
+			local.deleteme = local.next
+		}
+	}
+	
+End
+
+//---------------------------------------------------------------------
+isPlaneDead:
+//---------------------------------------------------------------------
+	self takedamage
+    local.curhealth = self.health
+	while ( self.health > 0)
+		{
+			waitframe
+		}
+	if(self == NIL || self == NULL)
+		End
+	if(self.model == models/vehicles/stuka_strafe.tik)
+	{
+		self anim smoke
+	}
+	
+end
+
+//local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+//local.damaged = thread spawn_damaged_new local.model local.angles local.origin
+//----------------------------------
+spawn_damaged local.model:
+	local.damaged = spawn script_model model local.model
+	local.damaged.origin = self.origin
+	local.damaged.angles = self.angles
+	local.damaged notsolid
+end local.damaged
+
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+TriggerPlaneDropBomb local.plane:
+
+//	if(self.theexplodertrigger)
+//		self.myexplodertrigger = waitthread global/FindTrigger.scr::FindTrigger self.theexplodertrigger
+	
+	while ( local.plane && !(local.plane istouching self) )
+	{
+		waitframe
+	}
+
+	if (!local.plane) End
+
+	// create bomb
+	local.ent = spawn script_model "spawnflags" "2"
+	local.ent.origin = local.plane gettagposition "tag_bomb"
+	local.ent.angles = local.plane.angles
+
+	local.ent model "ammo/stuka_bomb.tik"
+	local.ent notsolid
+	local.ent scale 1
+	local.ent targetname (local.plane.targetname + "bomb")
+	// have stuka play its bomb animation
+	local.plane anim bomb
+
+	local.ent playsound drop_bomb
+
+	// set the bomb on its way
+	local.ent flypath self.target 1500 20000 500
+	local.ent waitmove
+	
+	if(self.myexplodertrigger != NIL && self.myexplodertrigger != NULL)
+	{
+        local.name = self.myexplodertrigger.targetname
+		trigger self.myexplodertrigger
+		println ("BLAMO: trigger " + local.name + " went off")
+		
+//		$(local.plane.myexplodertrigger) remove
+	}
+	trigger self 
+	// we are done, so remove the bomb
+	if(local.ent)
+	{
+		local.ent remove
+
+		// do the explosion FX and damage
+		local.explosion = spawn "models/emitters/mortar_dirt.tik"
+		
+		local.explosion.origin = local.ent.origin
+		local.explosion anim idle
+		local.explosion notsolid
+		wait 3
+		local.explosion anim stop
+		local.explosion delete
+	}
+end
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+TriggerPlaneStrafe local.plane:
+
+	while ( local.plane && !(local.plane istouching self) )
+	{
+		waitframe
+	}
+
+	
+
+	if (!local.plane) End
+
+	// create bomb
+	local.ent = spawn script_model "spawnflags" "2"
+	local.ent.origin = local.plane gettagposition "tag_bomb"
+	local.ent.angles = local.plane.angles
+
+	local.ent model "ammo/stuka_bomb.tik" 
+	local.ent notsolid
+	local.ent scale 1
+	local.ent targetname (local.plane.targetname + "bomb")
+
+	// have stuka play its bomb animation
+	local.plane anim bomb
+
+	local.ent playsound drop_bomb
+
+	// set the bomb on its way
+	local.ent flypath self.target 1500 20000 500
+	local.ent waitmove
+	
+	if(self.myexplodertrigger != NIL && self.myexplodertrigger != NULL)
+	{
+		trigger $(self.myexplodertrigger)
+		println ("BLAMO: trigger " + local.plane.myexplodertrigger + " went off")
+		
+//		$(local.plane.myexplodertrigger) remove
+	}
+	
+	// we are done, so remove the bomb
+	local.ent remove
+
+	// do the explosion FX and damage
+	exec global/model.scr local.ent.origin "models/fx/bombblast_snow.tik"
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// stuka strafing run
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+stukastraferun local.spath local.bullet_wait:
+
+	thread DoStukaBullets local.bullet_wait
+
+	self hide
+	waitframe
+	self.origin = local.spath.origin
+	self.angles = local.spath.angles
+	self anim idle
+	self show
+	self takedamage
+
+//	self loopsound stuka_loop
+	$stuka_marker playsound stuka_by2
+
+
+	self followpath local.spath
+	self waitmove
+
+	if ( self )
+	{
+		self stoploopsound
+		self nodamage
+//		self hide
+	}
+
+
+end
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// stuka strafing run, stuka hits trigger
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+stukastrafetrigger local.burst local.targl local.targr:
+	
+	if(self.aimatlocal1 == NIL || self.aimatlocal1 == NULL)
+	{
+		self.aimatlocal1 = spawn script_origin
+		self.aimatlocal2 = spawn script_origin
+		self.aimatlocal1.origin =  self.origin
+		self.aimatlocal2.origin =  self.origin
+	}
+	
+	if(self.strafetrigger)
+	{
+		while ( self && !(self istouching self.strafetrigger) )
+		{
+			waitframe
+		}
+	}
+
+	
+	if ( self )
+	{
+		
+		self anim fire
+		self.gun1 on
+		self.gun2 on
+
+		self.aimatlocal1 nodamage
+		self.aimatlocal2 nodamage
+		self.gun1 aimtarget self.aimatlocal1
+	    self.gun2 aimtarget self.aimatlocal2
+
+		self.gun1 bulletspread 0 0
+		self.gun2 bulletspread 0 0
+	   
+		while(self.shooting == 1 && self)
+		{
+		
+//			self.gun1 on
+//			self.gun2 on
+		
+		
+			local.leftgun = self gettagposition "tag_barrel1"
+			local.leftgunangle = self.angles
+			local.looking = angles_toforward local.leftgunangle
+			local.looking = vector_normalize local.looking
+			
+			local.leftray = vector_scale local.looking 2000
+			local.endpos = vector_add local.leftgun local.leftray
+			local.otherleftray = trace local.leftgun local.endpos 0 ( -1 -1 -1) (1 1 1)
+			if(local.leftray != local.otherleftray)
+			{
+				self.aimatlocal1.origin =  local.otherleftray
+			}
+//			else
+//			{
+//				self.gun1 off
+//			}
+		
+			
+			local.rightgun = self gettagposition "tag_barrel2"
+			local.rightgunangle = self.angles
+			local.looking = angles_toforward local.rightgunangle
+			local.looking = vector_normalize local.looking
+						
+			local.rightray = vector_scale local.looking 2000
+			local.endpos = vector_add local.rightgun local.rightray
+			local.otherrightray = trace local.rightgun local.endpos 0 ( -1 -1 -1) (1 1 1)
+			if(local.rightray != local.otherrightray)
+			{
+				self.aimatlocal2.origin =  local.otherrightray
+			}
+//			else
+//				self.gun2 off
+		
+			
+			
+			wait 0.1
+		}
+//		if ( self )
+//			self anim idle
+//		self.gun1 off
+//		self.gun2 off
+          waitthread stukastrafeend
+
+
+	}
+	
+end
+
+
+
+//------------------------------------------------------
+// USEd to stop the shooting 
+stukastrafeend:
+//	self.aimtarget1 remove
+//	self.aimtarget2 remove
+	if(self.gun1)
+	{
+		self.gun1 off
+		self.gun1 aimtarget NULL
+		self.gun1 detach
+		self.gun1 remove		
+		self.gun1 = NULL
+		self.aimatlocal1 remove
+		self.aimatlocal1 = NULL
+	}
+	if(self.gun2)
+	{	
+		self.gun2 off
+		self.gun2 aimtarget NULL
+		self.gun2 detach
+		self.gun2 remove
+		self.gun2 = NULL
+		self.aimatlocal2 remove
+		self.aimatlocal2 = NULL
+	}
+	self anim idle
+	//self.targetl1 self.targetr1
+	if(self.strafetrigger)
+		self.strafetrigger remove
+	if(self.strafeofftrigger)
+		self.strafeofftrigger remove
+	self.strafetrigger = NULL
+	self.strafeofftrigger = NULL
+//	self.shooting = 0
+
+	/*
+	local.deleteme = self.targetl1
+	while ($(local.deleteme) != NIL && $(local.deleteme)!= NULL)
+	{
+		local.next = $(local.deleteme).target
+		local.deleteme remove 
+		local.deleteme = local.next
+	}
+		
+	local.deleteme = self.targetr1
+	while ($(local.deleteme) != NIL && $(local.deleteme)!= NULL)
+	{
+		local.next = $(local.deleteme).target
+		local.deleteme remove 
+		local.deleteme = local.next
+	}
+	*/
+End
+
+stukafireend:
+
+	if(self.strafeofftrigger != NIL && self.strafeofftrigger != NULL)
+		while ( self && !(self istouching self.strafeofftrigger) )
+		{
+			waitframe
+		}
+
+	self.shooting = 0
+//	self waitthread stukastrafeend
+
+End

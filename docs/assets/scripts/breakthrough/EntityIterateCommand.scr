@@ -1,0 +1,121 @@
+//
+// EntityIterateCommand
+//
+
+EntityIterateCommand local.name local.command local.parm1 local.parm2 local.parm3 local.parm4 local.parm5 local.parm6 local.parm7 local.parm8:
+
+	if (!local.name || !$(local.name))
+		end
+
+	if (!level.EntityIterateCommand_did_init)
+		waitthread priv_Init
+
+	local.thread_name = level.EntityIterateCommand_ThreadForCommand[local.command]
+	if (!local.thread_name)
+		end
+
+	for (local.i=1; local.i<=$(local.name).size; local.i++)
+	{
+		$(local.name)[local.i] waitthread local.thread_name local.parm1 local.parm2 local.parm3 local.parm4 local.parm5 local.parm6 local.parm7 local.parm8
+	}
+
+end
+
+
+
+
+//////////////////////////////////////////////////////////
+// set up list of handy usefuls
+
+priv_Init:
+
+	if (level.EntityIterateCommand_init_in_progress)
+	{
+		while (level.EntityIterateCommand_init_in_progress)
+			waitframe
+		end
+	}
+
+	level.EntityIterateCommand_init_in_progress = 1
+
+	// regular commands
+
+	level.EntityIterateCommand_ThreadForCommand["threatbias"] = "priv_thread_ThreatBias"
+	level.EntityIterateCommand_ThreadForCommand["enable_ai"] = "priv_thread_EnableAI"
+	level.EntityIterateCommand_ThreadForCommand["disable_ai"] = "priv_thread_DisableAI"
+	level.EntityIterateCommand_ThreadForCommand["ai_on"] = "priv_thread_AIOn"
+	level.EntityIterateCommand_ThreadForCommand["ai_off"] = "priv_thread_AIOff"
+	level.EntityIterateCommand_ThreadForCommand["gun"] = "priv_thread_Gun"
+	level.EntityIterateCommand_ThreadForCommand["nodamage"] = "priv_thread_NoDamage"
+	level.EntityIterateCommand_ThreadForCommand["takedamage"] = "priv_thread_TakeDamage"
+	level.EntityIterateCommand_ThreadForCommand["show"] = "priv_thread_Show"
+	level.EntityIterateCommand_ThreadForCommand["hide"] = "priv_thread_Hide"
+
+	// extra handies
+
+	level.EntityIterateCommand_ThreadForCommand["TurnOn"] = "priv_thread_TurnOn"		// Andy S's handy-dandy
+	level.EntityIterateCommand_ThreadForCommand["TurnOff"] = "priv_thread_TurnOff"		// Andy S's handy-dandy
+
+//	level.EntityIterateCommand_ThreadForCommand[""] = "priv_thread_"
+
+	level.EntityIterateCommand_did_init = 1
+	level.EntityIterateCommand_init_in_progress = 0
+
+end
+
+
+
+priv_thread_ThreatBias local.parm:
+	self threatbias local.parm
+end
+
+
+priv_thread_EnableAI:
+	self.enableEnemy = 1
+end
+
+priv_thread_DisableAI:
+	self.enableEnemy = 0
+end
+
+
+priv_thread_AIOn:
+	self ai_on
+end
+
+priv_thread_AIOff:
+	self ai_off
+end
+
+
+priv_thread_Gun local.parm:
+	self gun local.parm
+end
+
+
+priv_thread_NoDamage:
+	self nodamage
+end
+
+priv_thread_TakeDamage:
+	self takedamage
+end
+
+
+priv_thread_TurnOn:
+	self waitthread global/AIState.scr::TurnOn
+end
+
+priv_thread_TurnOff:
+	self waitthread global/AIState.scr::TurnOff
+end
+
+
+priv_thread_Show:
+	self show
+end
+
+priv_thread_Hide:
+	self hide
+end
+

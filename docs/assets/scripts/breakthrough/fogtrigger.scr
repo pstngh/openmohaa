@@ -1,0 +1,109 @@
+//
+// fogtrigger.scr
+//
+
+main:
+	level waittill prespawn
+	if ($fogTrigger == NULL || $fogTrigger == NIL)
+		end
+	$fogTrigger thread doFogTrigger
+	thread changeFog
+end
+
+changeFog:
+	level.currentFogTrigger = NULL
+	local.currentFogEntnum = 0
+	
+	local.cur_farDist = level.farDist
+	local.cur_fogBias = level.fogBias
+	local.cur_fogColor = level.fogColor
+
+	while (1) {
+		while (level.currentFogTrigger == NULL || level.currentFogTrigger.entnum == local.currentFogEntnum) 
+			wait 0.5
+
+		// start ramping to current fog target
+		local.currentFogEntnum = level.currentFogTrigger.entnum
+		if (level.currentFogTrigger.p_farDist == NULL || level.currentFogTrigger.p_farDist == NIL)
+			local.p_farDist = local.cur_farDist
+		else
+			local.p_farDist = level.currentFogTrigger.p_farDist
+		if (level.currentFogTrigger.p_fogBias == NULL || level.currentFogTrigger.p_fogBias == NIL)
+			local.p_fogBias = local.cur_fogBias
+		else
+			local.p_fogBias = level.currentFogTrigger.p_fogBias
+
+		if (level.currentFogTrigger.p_fogRed == NULL || level.currentFogTrigger.p_fogRed == NIL)
+			local.p_fogRed = local.cur_fogColor[0]
+		else
+			local.p_fogRed = level.currentFogTrigger.p_fogRed
+
+		if (level.currentFogTrigger.p_fogGreen == NULL || level.currentFogTrigger.p_fogGreen == NIL)
+			local.p_fogGreen = local.cur_fogColor[1]
+		else
+			local.p_fogGreen = level.currentFogTrigger.p_fogGreen
+
+		if (level.currentFogTrigger.p_fogBlue == NULL || level.currentFogTrigger.p_fogBlue == NIL)
+			local.p_fogBlue = local.cur_fogColor[2]
+		else
+			local.p_fogBlue = level.currentFogTrigger.p_fogBlue
+
+		if (level.currentFogTrigger.p_rampTime == NULL || level.currentFogTrigger.p_rampTime == NIL || level.currentFogTrigger.p_rampTime <= 0)
+			local.p_rampTime = 5
+		else
+			local.p_rampTime = level.currentFogTrigger.p_rampTime
+
+		local.startTime = level.time
+		local.endTime = local.startTime + local.p_rampTime
+		local.done = 0
+		while (!local.done)
+		{
+			if (local.currentFogEntnum != level.currentFogTrigger.entnum)
+				break
+
+			local.t = (level.time-local.startTime)/local.p_rampTime
+			if (local.t >= 1.0) {
+				local.t = 1.0
+				local.done = 1
+			}
+			local.t0 = 1.0 - local.t
+			
+			local.farDist = local.t*local.p_farDist
+			local.farDist += local.t0*local.cur_farDist
+
+			local.fogBias = local.t*local.p_fogBias
+			local.fogBias += local.t0*local.cur_fogBias
+
+			local.fogRed = local.t*local.p_fogRed+local.t0*local.cur_fogColor[0]
+			local.fogGreen = local.t*local.p_fogGreen+local.t0*local.cur_fogColor[1]
+			local.fogBlue = local.t*local.p_fogBlue+local.t0*local.cur_fogColor[2]
+			local.fogColor = ( local.fogRed local.fogGreen local.fogBlue )
+
+			waitthread setFog local.farDist local.fogBias local.fogColor
+			//waitthread setFog local.farDist local.fogBias local.cur_fogColor
+
+			waitframe
+		}
+
+		local.cur_farDist = local.farDist
+		local.cur_fogBias = local.fogBias
+		local.cur_fogColor = local.fogColor
+	}
+end
+
+setFog local.distance local.bias local.color:
+	//$world farclipoverride local.distance
+	$world farplane local.distance
+	$world farplane_bias local.bias
+
+	if (local.color != NIL) 
+		$world farplane_color local.color
+end
+
+doFogTrigger:
+	while (1) {
+		self waittill trigger
+		level.currentFogTrigger = self
+	}
+end
+
