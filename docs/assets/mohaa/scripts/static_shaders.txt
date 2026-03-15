@@ -1,0 +1,15 @@
+// these are shaders that are referenced directly by the game engine
+gfx/2d/backtile
+gfx/2d/arrow_left
+gfx/2d/arrow_right
+gfx/fonts/facfont-20
+gfx/fonts/marlett
+gfx/fonts/verdana-12
+gfx/fonts/verdana-14
+gfx/fonts/courier-16
+gfx/fonts/courier-18
+gfx/fonts/courier-20
+gfx/fonts/handle-16
+gfx/fonts/handle-18
+gfx/fonts/handle-22
+gfx/fonts/handle-23
