@@ -1,0 +1,84 @@
+// Exported by kmckis @ 7/3/2002 6:19:54 PM
+TIKI
+setup
+{
+	scale 0.52
+	path models/items/StickyBomb
+	skelmodel StickyBomb.skd
+	surface stickybomb shader Inventory_StickyBomb_stickybomb
+}
+
+init
+{
+	server
+	{
+		classname animate
+		setsize "-16 -30 0" "16 30 32"
+	}
+	client
+	{
+           tagemitter tag_fuse sparks
+		(
+			spawnrate 20.00
+			model models/fx/bh_metal_fastpiece.tik
+			color 1.00 1.00 1.00
+			collision
+			bouncefactor 0.40
+			life 1.50
+			scalerate 0.50
+			velocity 150.00
+			randvel range -50 50 range -30 40 range -5 -70
+			accel 0.00 0.00 -300.00
+			friction -1.00
+			avelocity range -70 60 range 50 -20 range 20 -20
+			fade
+			sphere
+			alignstretch 0.10	
+			startoff
+		)
+           tagemitter tag_fuse smallsmoke
+		(
+			spawnrate 23.00
+			model vsssource.spr
+			alpha 0.30
+			color 1.00 1.00 1.00
+			scale 0.10
+			life 3.00
+			scalerate 0.60
+			velocity 20.00
+			randvel range -1 3 range -15 23 range 0.09 10
+			accel 0.00 0.00 10.00
+			friction 2.00
+			fade
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle     stickybomb.skc
+	{
+		client
+			{
+			entry emitteroff sparks
+			entry emitteroff smallsmoke
+			}
+	}
+	idle_fuse_lit stickybomb.skc
+	{
+		client
+			{
+			entry emitteron sparks		
+			entry emitteroff smallsmoke
+			}
+	}
+	idle_fuse_wet stickybomb.skc
+	{
+		client
+			{
+			entry emitteroff sparks
+			entry emitteron smallsmoke
+			}
+	}
+}

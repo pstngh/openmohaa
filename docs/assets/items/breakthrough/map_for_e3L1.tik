@@ -1,0 +1,17 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/items/map_for_e3L1
+	skelmodel map_for_e3L1.skd
+	surface mapsurf shader It_P_Anziomapnopulse
+}
+
+animations
+{
+	idle		map_for_e3L1.skc
+}
+
+/*QUAKED addon_items_Anziomaps (0.0 0.0 0.0) (-2 -25 -25) (2 25 25) mapforE3L1
+*/	

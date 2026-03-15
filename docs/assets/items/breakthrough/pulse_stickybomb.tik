@@ -1,0 +1,25 @@
+// Exported by kmckis @ 7/3/2002 6:19:54 PM
+TIKI
+setup
+{
+	scale 0.52
+	path models/items/StickyBomb
+	skelmodel StickyBomb.skd
+	surface stickybomb shader Inventory_StickyBomb_stickybomb_pulsing
+}
+
+init
+{
+	server
+	{
+		classname animate
+	}
+}
+
+animations
+{
+	idle     stickybomb.skc
+}
+
+/*QUAKED addon_item_stickybomb-pulsating (0.5 0.5 1.0) (0 0 0) (0 0 0)
+*/

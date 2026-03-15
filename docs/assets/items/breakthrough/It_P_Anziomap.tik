@@ -1,0 +1,37 @@
+TIKI
+
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/items/Anziomap
+	skelmodel baseframe.skd
+	surface inner shader It_P_Anziomapnopulse
+	surface middle shader It_P_Anziomapnopulse
+	surface outter shader It_P_Anziomapnopulse
+	
+}
+
+animations
+{
+	A_22_MapAnimation	A_22_MapAnimation.skc
+	idle		baseframe.skc
+	test		test.skc
+{
+		server
+		{
+			100 surface inner			+nodraw
+			145 surface middle			+nodraw
+		}
+	}
+	reset		baseframe.skc
+	{
+		server
+		{
+			entry surface inner			-nodraw
+			entry surface middle			-nodraw
+		}
+	}
+}
+
+/*QUAKED addon_items_Anziomaps (0.0 0.0 0.0) (-2 -25 -25) (2 25 25) Anziomap
+*/	

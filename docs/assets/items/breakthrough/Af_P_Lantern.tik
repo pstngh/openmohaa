@@ -1,0 +1,17 @@
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/items/Lantern
+	skelmodel Af_P_Lantern.skd
+	surface Af_P_Lantern shader Af_P_Lantern
+	surface Af_P_Lantern_Glass shader Af_P_Lantern_Glass
+}
+
+animations
+{
+	idle    Af_P_Lantern.skc
+}
+
+/*QUAKED addon_static_Lantern (0.5 0.0 0.5) (0 0 0) (0 0 0)
+*/

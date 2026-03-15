@@ -1,0 +1,25 @@
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/items/binoculars
+	skelmodel binocularsNew.skd
+	surface lambert2 shader binoculars
+}
+
+init
+{
+	server
+	{
+		classname object
+	}
+
+}
+
+animations
+{
+	idle	binocularsNew.skc
+}
+
+/*QUAKED item_binocularsNew (0.5 0.5 1.0) (-8 -8 0) (8 8 8)
+*/
