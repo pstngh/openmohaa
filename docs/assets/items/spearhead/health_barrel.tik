@@ -1,0 +1,18 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/items/health_barrel
+	skelmodel health_barrel.skd
+	surface barrel_top shader black_top_health
+	surface barrel_side shader black_side_health
+}
+
+animations
+{
+	idle health_barrel.skc
+}
+
+
+/*QUAKED addon_items_barrel-health4tanks (0.0 0.0 1.0) (-20 -20 0) (20 20 30)
+*/

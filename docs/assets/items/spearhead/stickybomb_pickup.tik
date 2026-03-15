@@ -1,0 +1,27 @@
+// Exported by cwoyew @ 9/20/2002 7:30:57 PM
+TIKI
+setup
+{
+	scale 1.0
+	path models/items/stickybomb_pickup
+	skelmodel stickybomb_pickup.skd
+	surface sticky_backpack shader sticky_backpack
+	surface stickybomb shader Inventory_StickyBomb_stickybomb_pulsing
+}
+
+init
+{
+	server
+	{
+		classname object
+	}
+}
+
+animations
+{
+	idle stickybomb_pickup.skc
+}
+
+
+/*QUAKED addon_items_stickybomb-pickup (0.0 0.0 1.0) (-56.7441 -46.1113 -5.9843e-006) (50.9773 44.9184 30.6334)
+*/
