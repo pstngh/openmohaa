@@ -1,0 +1,4 @@
+// tells AI to stand
+if (self.no_idle)
+	error ("Cannot call global/stand.scr on entnum " + self.entnum + " if no_idle is set") 1
+self animscript anim/stand_transition.scr

@@ -1,0 +1,177 @@
+//EDITOR
+//place info_waypoints with $targetname spawner and #set X
+// place info_waypoint/info_pathnode paths/indivudal nodes with $targetname spawned_path and #set X
+
+//SCRIPT
+// call "thread global/spawn_enemy.scr::Spawner_INIT" at the start of your script
+// to spawn call "thread global/spawn_enemy.scr::runner_spawner X" where X is the number of the set
+
+
+//////////////////////////////////
+runto_player_spawner local.set local.type local.variable local.type_idle:
+if (local.variable != NIL)
+{
+	level.living_guys[local.variable] ++
+	level.total_guys[local.variable] ++
+}
+level.tempnum++
+local.name = "spawned_guy" + level.tempnum
+
+for (local.i=1;local.i<level.spawners+1;local.i++)
+{
+	if( level.spawner[local.i].set == local.set)
+	{
+		local.spawner = level.spawner[local.i].origin
+	}
+}
+for (local.i=1;local.i<level.spawned_paths+1;local.i++)
+{
+	if(level.spawned_path[local.i].set == local.set)
+	{
+		local.spawned_path = level.spawned_path[local.i].origin
+	}
+}
+
+if (local.type == "NIL")
+	local.type = 4
+switch (local.type)
+{
+case 1:
+	local.enemy_type = "models/human/german_afrika_private"
+	break
+case 2:
+	local.enemy_type = "models/human/german_winter_type1"
+	break
+case 3:
+	local.enemy_type = "models/human/german_wehrmact_officer"
+	break
+case 4:
+	local.enemy_type = "models/human/german_wehrmact_soldier"
+	break
+default:
+	local.enemy_type = "models/human/german_wehrmact_soldier"
+	break
+}
+
+
+
+if (randomint (4) == 1) 
+	local.grenades = 4
+else
+	local.grenades = 0
+
+if (randomint (3) == 1) 
+	local.gun = "MP40"
+else
+	local.gun = "Mauser KAR 98K"
+
+if (local.type_idle == "idle")
+	local.not_run = 1
+if (local.type_idle != "runner")
+	local.type_idle = "idle"
+
+local.maxdist = (160 + randomint (600))
+spawn local.enemy_type "targetname" local.name "type_idle" local.type_idle "patrolpath" local.spawned_path "type_attack" "turret" "leash" "10000" "maxdist" local.maxdist "mindist" "128" "ammo_grenade" local.grenades "gun" local.gun
+local.name.origin = local.spawner
+
+if ((local.type_idle != "runner") &&  (local.not_run != 1))
+{
+	local.name thread runto_player 160
+}
+
+if (local.variable != NIL) $(local.name) thread wait_till_dead local.variable
+end
+
+//////////////////////////////////
+idle_spawner local.set local.type local.variable:
+local.type_idle = "idle"
+thread runto_player_spawner local.set local.type local.variable local.type_idle
+end
+
+
+//////////////////////////////////
+runner_spawner local.set local.type local.variable:
+local.type_idle = "runner"
+thread runto_player_spawner local.set local.type local.variable local.type_idle
+end
+
+////////////////////////
+runto_player local.distance:
+while (IsAlive self &&  ((vector_length($player.origin - self.origin)) > local.distance))
+{
+self exec global/runto.scr $player.origin
+wait .2
+}
+end
+
+///////////////////
+wait_till_dead  local.variable:
+self waittill death
+level.living_guys[local.variable] -= 1
+end
+
+
+/////////////////////////////////////
+Spawner_INIT:
+
+	if ($spawner == NULL)
+		level.spawners = 0
+		else
+		level.spawners = $spawner.size
+
+	if (level.spawners > 0)
+	{
+		level.spawner = thread global/makearray.scr::main $spawner
+
+		for (local.i=1;local.i<level.spawners+1;local.i++)
+		{
+
+			if (level.spawner[local.i].set == NIL)
+				println "Error, spawner has no #set"
+				else
+				println ("Spawned spawner " + level.spawner[local.i].set)
+		}
+	}
+
+	if ($spawned_path == NULL)
+		level.spawned_paths = 0
+		else
+		level.spawned_paths = $spawned_path.size
+
+	if (level.spawned_paths > 0)
+	{
+		level.spawned_path = thread global/makearray.scr::main $spawned_path
+
+		for (local.i=1;local.i<level.spawned_paths+1;local.i++)
+		{
+
+			if (level.spawned_path[local.i].set == NIL)
+				println "Error, spawned_path has no #set"
+				else
+				println ("Spawned spawned_path " + level.spawned_path[local.i].set)
+		}
+	}
+end
+
+
+tracker_INIT local.variable:
+	level.total_guys[local.variable] = 0
+	level.living_guys[local.variable] = 0
+end
+
+
+make_array local.object:
+	if (local.object.size > 1)
+	{
+		end local.object
+	}
+	else if (local.object.size == 1)
+	{
+		local.array[1] = local.object
+		end local.array
+	}
+	else
+	{
+		println "Error in make_array for '" local.object.targetname "'"
+	}
+end

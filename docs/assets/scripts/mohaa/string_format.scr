@@ -1,0 +1,84 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//  MoH: Allied Assault Script File  
+//  Global function: Used to format passed strings to a set character length
+//  Script Written By: Benson 'elmagoo' Russell
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+//***********************************************************************
+//*** format text on the screen to fit within a certain character length
+//*** syntax --------------------------------
+//*** str_format <string> <max characters per line>
+//***********************************************************************
+str_format local.string local.max_length:
+
+//*** set the number of lines variable
+level.str_format_num_lines = 1  //*** used to keep track of how many lines the text had to get converted to
+//println "STRING FORMAT: number of lines start: " level.str_format_num_lines
+
+//*** check to make sure they didn't pass a string that is already under the
+//*** desired max.  If it is, dump out
+if (local.string.size <= local.max_length)
+{
+	local.result = local.string
+	goto str_format_done
+}
+
+local.length = local.max_length - 1  //*** max_length minus 1, used for cylcing through the indexes
+local.temp_string = local.string
+local.result = ""
+
+//*** come back to here when a space was found and check the next portion of the passed string
+str_format_space:
+
+//*** for accessing a string as an array, the index start at 0 and not 1
+//*** check to see if the string is under the max desired length
+if (local.temp_string.size >= local.max_length)
+{
+str_format_recheck:
+	//println ("local.space_counter: " + local.space_counter)
+	for (local.i = local.length ; local.i >= 0 ; local.i --)
+	{
+		if (local.temp_string[local.i] == " ")
+		{
+			local.found = local.i
+str_format_nospace:
+			//*** capture the string up to the space
+			//println ("a space was found at: " + local.i)
+			for (local.j = 0 ; local.j < local.found ; local.j ++)
+			{
+				local.result = local.result + local.temp_string[local.j]
+				//println ("local.result: " + local.result)
+			}
+			
+			local.result = (local.result + "\n")
+
+			//*** reset temp_string2
+			local.temp_string2 = ""
+
+			//*** create a new temp string with everything after what has been captured
+			//*** temp_string2 is used to capture the remainder of temp_string
+			for (local.k = (local.found + 1) ; local.k <= (local.temp_string.size - 1) ; local.k ++)
+			{
+				local.temp_string2 = local.temp_string2 + local.temp_string[local.k]
+			}
+			
+			local.temp_string = local.temp_string2
+			level.str_format_num_lines ++  //*** incremenet the line counter
+			//println "STRING FORMAT: number of lines updating: " level.str_format_num_lines
+			goto str_format_space
+		}
+	}
+	
+	//*** if no space was found, set it to the max length, and break the string there regardless
+	local.found = local.length
+	goto str_format_nospace
+}
+
+local.result = local.result + local.temp_string
+
+str_format_done:
+//println "STRING FORMAT: number of lines finished: " level.str_format_num_lines
+
+end local.result

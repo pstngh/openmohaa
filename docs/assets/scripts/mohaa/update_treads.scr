@@ -1,0 +1,7 @@
+start:
+
+local.vlength = vector_length self.velocity
+local.vlength = local.vlength * -0.01
+self setshaderdata local.vlength 0
+
+end

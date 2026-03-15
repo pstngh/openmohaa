@@ -1,0 +1,5 @@
+// parameters:
+// local.node - node to crouchwalk to
+
+start local.node:
+self exec global/moveto.scr anim/run.scr local.node

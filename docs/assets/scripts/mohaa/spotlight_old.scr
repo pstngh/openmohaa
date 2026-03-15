@@ -1,0 +1,658 @@
+spotlight local.num local.min local.max:
+	if (level.spottracker == NIL)
+	{
+		level.spottracker = 1
+		thread spottracker
+	}
+
+	for (local.i=local.min;local.i<local.max + 1;local.i++)
+	{
+		if ($("spotsearch" + local.i) == NIL)
+			println ("ERROR, No SpotSearch entities with number " + local.i)
+		else
+		{
+			if ($("spotsearch" + local.i).size > 1)
+			println ("ERROR, More than 1 SpotSearch with number " + local.i)
+		}
+	}
+	if (level.debug == NIL)
+		level.debug = 0
+		$("spot" + local.num) thread spotwatch local.min local.max
+
+	if ($spotcover == NULL)
+		level.spotcovers = 0
+		else
+		level.spotcovers = $spotcover.size
+
+	if (level.spotcovers > 0)
+		level.spotcover = exec global/makearray.scr $spotcover
+
+	if (level.spottarget == NIL)
+	level.spottarget = $player
+
+/*
+	if ($spotcover.size > 0)
+	{
+		level.spotcover = $spotcover.size
+		exec global/makearray.scr $spotcover
+	}
+*/
+end
+
+make_array local.object:
+
+	if (local.object.size > 1)
+	{
+		end local.object
+	}
+	else if (local.object.size == 1)
+	{
+		local.array[1] = local.object
+		end local.array
+	}
+	else
+	{
+		println "Error in make_array for '" local.object.targetname "'"
+	}
+end
+
+spotpath:
+//	self.origin = $(self.spotter.targetname + "path").value[1].origin
+	self.origin = $(self.spotter.targetname + "path").origin
+	self flypath $(self.spotter.targetname + "path") 250 750 256
+	self waitmove
+	level.spottime[self.targetname] = level.time
+
+goto spotpath
+
+spotdamage:
+	self waittill trigger
+	self.spotter.destroyed = 1
+	if (self.spotter.checkdeath != 1)
+	{
+		self.spotter.checkdeath = 1
+		level.spotsearch++
+	}
+end
+
+spotowner:
+	self waittill death
+	if (self.spotter.checkdeath != 1)
+	{
+		self.spotter.checkdeath = 1
+		level.spotsearch++
+	}
+end
+
+
+spotwatch local.minsearch local.maxsearch:
+	level waittill spawn
+
+/*
+//	if (getcvar(debug) == "1")
+//	{		
+		self.debugmodel = spawn script_model "model" "projectiles/m2fgrenade.tik"
+//		self.debugmodel = spawn script_model "model" "human/heads/us_old_heads.tik"
+		self.debugmodel scale 15
+		self.debugmodel notsolid
+//	}
+*/
+
+	self.health = 1
+	self scale 1
+	level.spotplayer = 0
+	level.spotsearch = 0
+	self.searchtime = level.time
+	self.lightdist = 0
+	self.aimtarget = "org"
+	self.minsearch = local.minsearch
+	self.maxsearch = local.maxsearch
+	self.spotsearch = level.spotsearch
+	spawn script_model "targetname" (self.targetname + "light")
+	$(self.targetname + "light") model "fx/dummy.tik"
+	self.spotlight= $(self.targetname + "light")
+
+	$(self.targetname + "light") light (1.0 1.0 1.0)
+	$(self.targetname + "light") lightRadius 300
+	$(self.targetname + "light") lightOn
+	$(self.targetname + "light") notsolid
+
+	self model "miscobj/searchlightbase.tik"
+	self.angles = (0 0 0)
+
+	spawn script_model "targetname" (self.targetname + "bulb")
+	$(self.targetname + "bulb") model "miscobj/searchlight.tik"
+	$(self.targetname + "bulb") scale 1
+	$(self.targetname + "bulb").origin = self.origin + (0 0 32)
+	
+	$(self.targetname + "bulb") bind self
+	$(self.targetname + "bulb") notsolid
+
+
+	spawn script_model "targetname" (self.targetname + "flare")
+	$(self.targetname + "flare") model "fx/searchlight.tik"
+	$(self.targetname + "flare").origin = self.origin + (64 0 64)
+	
+	$(self.targetname + "flare") bind self
+	$(self.targetname + "flare") notsolid
+
+
+	spawn script_model "targetname" (self.targetname + "blah")
+
+
+
+	spawn script_origin "targetname" (self.targetname + "org") 
+	$(self.targetname + "org").origin = $self.origin
+
+	self notsolid
+	self.checkdeath = 0
+	$(self.targetname + "org") anim start
+	$(self.targetname + "org").spotter = self
+	$(self.targetname + "org") light (1.0 1.0 1.0)
+	$(self.targetname + "org") lightRadius 300
+	$(self.targetname + "org") lightOn
+	$(self.targetname + "org") notsolid
+	$(self.targetname + "org") thread spotpath
+	local.thread1 = parm.previousthread
+	
+	$(self.targetname + "damage").spotter = self
+	$(self.targetname + "damage") thread spotdamage
+
+	if ($(self.targetname + "owner") != NULL)
+	{
+		$(self.targetname + "owner").spotter = self
+		$(self.targetname + "owner") thread spotowner
+	}
+
+
+	waitthread swaptarg		
+	$(self.targetname + "search") thread search
+	local.thread2 = parm.previousthread
+	self.mode = 0
+
+	local.skip = level.time
+
+	if (self.seekorigin == NIL)
+		self.seekorigin = self.origin
+
+	local.curframe = 0
+
+	while (self.checkdeath == 0)
+	{
+		/*
+
+		waitframe
+
+		if (level.time > local.skip)
+		{
+			local.skip = level.time + 0.3
+			
+			self waitthread aimspot
+	
+			if (level.spotsearch != self.spotsearch)
+			{
+				self.searchtime = level.time + 2 + randomint (3)
+				self.spotsearch = level.spotsearch
+				self.aimtarget = "search"
+				$(self.targetname + "search").origin = $(self.targetname + "org").origin
+		
+			}
+
+//			local.trans = (local.skip - level.time) / 0.3
+//			self.spotlight.origin = (self.spotlight.origin * local.trans) + (self.seekorigin * (1 - local.trans))
+
+		}
+
+		if (local.curframe > 19)
+			local.curframe = 0
+
+
+		local.curframe++
+
+//		local.trans = (local.skip - level.time) / 0.3
+		local.trans = local.curframe / 20.0
+
+//		println (level.time - local.skip) 
+
+		self.spotlight.origin = (self.spotlight.origin * local.trans) + (self.seekorigin * (1 - local.trans))
+		if (self.targetname == "spot1")
+			println (self.spotlight.origin + " " + local.curframe + " / 20 = " + local.trans)
+
+		*/
+
+
+		self waitthread aimspot
+
+		if (level.spotsearch != self.spotsearch)
+		{
+			self.searchtime = level.time + 2 + randomint (3)
+			self.spotsearch = level.spotsearch
+			self.aimtarget = "search"
+			$(self.targetname + "search").origin = $(self.targetname + "org").origin
+	
+		}
+
+
+		wait 0.15
+
+		/*
+		if (game.detail == 1)
+			waitframe
+		else
+			wait 0.1
+		*/
+
+	}
+
+		
+		
+		$(self.targetname + "bulb") model "miscobj/searchlightoff.tik"
+	
+		if (self.destroyed != NIL)
+		{
+			self playsound explode_searchlight
+			self thread flame	
+		}
+
+		$(self.targetname + "org") lightOff
+		$(self.targetname + "light") delete
+		$(self.targetname + "search") delete
+		$(self.targetname + "flare") delete
+
+		if (local.thread1)
+		local.thread1 delete
+		if (local.thread2)
+		local.thread2 delete
+
+//		self.health = -1
+
+
+end
+
+aimspot: 
+/*
+	if (getcvar(debug) == "1")
+		level.debug = 1
+	else
+		level.debug = 0
+*/
+//	self.seekorigin = trace $(self.targetname + "bulb").origin $(self.targetname + self.aimtarget).origin 0
+	self.spotlight.origin = trace $(self.targetname + "bulb").origin $(self.targetname + self.aimtarget).origin 0
+
+
+//	if (getcvar(debug) == "1")
+//		self.debugmodel.origin = self.spotlight.origin
+
+
+	self.lightdist = 100 + ((vector_length(self.origin - self.spotlight.origin)) * 0.15)
+	$(self.targetname + "light") lightRadius self.lightdist
+	
+	local.org = $(self.targetname + self.aimtarget).origin
+	local.vect1 = (local.org - self.origin)
+	local.vect1 = vector_toangles (local.vect1)
+	local.angles = self.angles
+	local.angles[1] = local.vect1[1]
+	self.angles = local.angles
+	local.angles = self.angles
+	local.angles[0] = local.vect1[0] + 180
+	local.angles[1] = 0
+	$(self.targetname + "bulb").angles = local.angles
+
+	local.vect = self.origin - $(self.targetname + self.aimtarget).origin
+	local.vect = vector_normalize (local.vect)
+	local.dist = 16 // was 32
+	
+	local.vect[0] = local.vect[0] * local.dist
+	local.vect[1] = local.vect[1] * local.dist
+	local.vect[2] = local.vect[2] * local.dist
+	$(self.targetname + "flare").origin = $(self.targetname + "bulb").origin - local.vect
+	$(self.targetname + "flare") scale 5
+
+	local.vect = $player.origin - self.origin
+	local.vect = vector_normalize (local.vect)
+
+	local.angles = angles_toforward ($player.angles)
+	local.vect[0] = local.vect[0] * local.angles[0]
+	local.vect[1] = local.vect[1] * local.angles[1]
+	local.vect[2] = local.vect[2] * local.angles[2]
+
+	/*
+//	if (self.targetname == "spot1")
+//	{
+		local.scale = local.vect[0] * -100
+//		println local.vect[0]
+		local.scale = local.scale - 40
+		(self.targetname + "flare") scale local.scale
+//	}
+	*/
+
+	local.org1 = $player.origin + (0 0 64)
+	local.ang1 = $player.angles
+ 
+	local.org2 = $(self.targetname + "bulb").origin
+	local.ang2 = local.vect1
+
+	//println ("ang1 " + local.ang1 + " and ang2 " + local.ang2 + " and combined " + (local.ang1 + local.ang2))
+
+	// local.returnvalue = the value that you should use for an alpha
+
+	// local.v1 = angles_toforward local.ang1
+	local.v1 = vector_normalize (local.org1 - local.org2)
+	local.v2 = angles_toforward local.ang2
+
+	local.f1 = local.v1[0] * local.v2[0] + local.v1[1] * local.v2[1] + local.v1[2] * local.v2[2]
+	if(local.f1 > 0)
+	{
+		local.returnvalue = local.f1 * local.f1
+	}
+	else
+	{
+		local.returnvalue = 0
+	}
+		// corona
+		$(self.targetname + "flare") scale (local.returnvalue * 25)
+ 
+
+		local.spottarget = level.spottarget
+		local.spottargetorigin = level.spottarget.origin
+
+			if (vector_length(self.spotlight.origin - local.spottargetorigin) < self.lightdist)
+			{
+/*
+				if (getcvar(debug) == "1")
+					level.debug = 1
+				else
+					level.debug = 0
+*/
+				local.vect = trace self.spotlight.origin local.spottargetorigin 1
+				if ((local.vect[0] == local.spottargetorigin[0]) && (local.vect[1] == local.spottargetorigin[1]) && (local.vect[2] == local.spottargetorigin[2]))
+				{
+
+				//			if (level.spotplayer != 1)
+					{
+					local.break = 0
+					for (local.i=1;local.i<level.spotcovers+1;local.i++)
+					{
+						if (local.spottarget istouching level.spotcover[local.i])
+						local.break = 1
+					}
+					if (local.break == 0)
+					{
+
+						if (level.spotplayer != 1)
+						{
+							local.trans = 0
+							level.spotsearch++
+						}
+				
+						level.spotplayer = 1		
+						level.spotplayertime = level.time + 6
+	//					level.spotplayer = 1
+						self.spotplayer = 1
+						self.aimtarget = "search"
+						self.searchtime =  level.time + 2 + randomint (3)
+					}
+				}
+			}
+			}
+			
+
+	if (level.spotplayer == 1)
+		$(self.targetname + "search").origin = self.spotlight.origin
+end
+
+spottracker:
+	level waittill spawn
+	wait 2
+	level.spotplayertime = level.time - 5
+	while (1)
+	{
+//			println ("time left " + (level.spotplayertime - level.time))
+
+		if (level.spotplayertime > level.time)
+			level.spotplayer = 1
+		else
+			level.spotplayer = 0
+
+		wait 0.25
+
+//	level.spotplayertime
+	}
+end
+
+flame:
+	exec global/model.scr self.origin models/fx/fx_spotlighthit
+	/*
+	spawn emitters/fire "targetname" (self.targetname + "fire")
+	$(self.targetname + "fire") light (1.0 0.8 0.0)
+	$(self.targetname + "fire") lightOn
+
+	spawn emitters/firesmoke "targetname" (self.targetname + "firesmoke")
+	$(self.targetname + "firesmoke").origin = self.origin + (0 0 135)
+	$(self.targetname + "firesmoke").angles = (270 0 0)
+	$(self.targetname + "fire").origin = self.origin
+	*/
+
+end
+
+swaptarg:
+	spawn script_origin "targetname" (self.targetname + "search")
+
+	$(self.targetname + "search").origin = $(self.targetname + "org").origin
+	$(self.targetname + "search").spotter = self
+	$(self.targetname + "search") light (1.0 1.0 1.0)
+	$(self.targetname + "search") lightRadius 300
+	$(self.targetname + "search") lightOn
+	$(self.targetname + "search") notsolid
+	$(self.targetname + "search").searchnum = -1
+	$(self.targetname + "org") lightOff
+end
+
+search:
+
+	local.trans = 0
+	local.trans2 = 0
+
+	while (self.spotter.checkdeath == 0)
+	{
+		if (self.spotter.aimtarget != "search")
+		{
+			local.trans = 0
+			self.origin =  $(self.spotter.targetname + "org").origin
+			local.start =  $(self.spotter.targetname + "org").origin
+		}
+
+		if (level.spotplayer == 1)
+		{
+			local.org = self.origin
+			local.dest = level.spottarget.origin
+			local.trans = 0.1
+				for (local.i=0;local.i<3;local.i++)
+				local.org[local.i] = (local.org[local.i] * (1 - local.trans)) + (local.dest[local.i] * local.trans)
+					self.origin = local.org
+		}
+		else
+		if (level.time > self.spotter.searchtime)
+		{
+			local.org = self.origin
+			local.dest = $(self.spotter.targetname + "org").origin
+
+			for (local.i=0;local.i<3;local.i++)
+				local.org[local.i] = (local.org[local.i] * (1 - local.trans2)) + (local.dest[local.i] * local.trans2)
+
+			self.origin = local.org
+			local.trans2 = local.trans2 + 0.01
+	
+//			if (level.spotplayer == 1)
+//				level.spotplayer = 0
+
+			if (self.spotter.spotplayer == 1)
+			{
+				self.spotter.spotplayer = 0
+				self.spotter.searchtime = level.time + 5 + randomint(5)
+
+				self.searchnum = -1 //randomint(self.spotter.maxsearch - self.spotter.minsearch) + self.spotter.minsearch
+				local.trans = 1
+	
+				wait (0.4 + randomfloat(1))
+			}
+			else
+			if (local.trans2 > 1.0)
+			{
+				self.spotter.aimtarget = "org"
+				self.spotter.searchtime = level.time + 99999
+			}
+
+		}
+		else
+		{
+			local.trans2 = 0
+
+			if ((local.trans == 1) || (self.searchnum == -1))
+			{
+				local.oldnum = self.searchnum
+				while (self.searchnum == local.oldnum)
+				{
+					self.searchnum = randomint(self.spotter.maxsearch - self.spotter.minsearch) + self.spotter.minsearch
+					local.start = self.origin
+					local.trans = 0
+					local.transrate = 0.01
+					local.transratemax = 0.12
+					local.transratemax = 0.12
+					local.transratemin = 0.03
+	
+					wait (0.4 + randomfloat(1))
+				}
+			}
+
+			local.org = local.start
+			local.dest = $("spotsearch" + self.searchnum).origin
+
+			for (local.i=0;local.i<3;local.i++)
+				local.org[local.i] = (local.org[local.i] * (1 - local.trans)) + (local.dest[local.i] * local.trans)
+
+			self.origin = local.org
+			local.trans = local.trans + local.transrate
+
+			if (local.trans > 1)
+				local.trans = 1
+			if (local.trans < 0.7)
+			{
+				if (local.transrate < local.transratemax)
+				local.transrate = local.transrate + 0.005
+			}
+			else
+			{
+				if (local.transrate > local.transratemin)
+				local.transrate = local.transrate - 0.01
+			}
+		}
+		waitframe
+	}
+
+end
+
+
+// light left   light right
+corona local.obj local.tag: 
+
+	// local.obj is the object with the light on it
+	// local.tag is the tag where the light appears
+
+	local.flare = spawn script_model
+	local.flare model "fx/searchlight.tik"
+	local.flare notsolid
+	
+	local.obj.corona = 1
+
+//	local.flare.origin = local.obj gettagposition local.tag
+//	local.flare bind local.obj
+	local.flare attach local.obj local.tag 0 ( 0 0 0 )
+
+
+	while ((isalive local.obj) && (local.obj.corona == 1))
+	{
+
+		local.vect = $player.origin - local.flare.origin
+		local.vect = vector_normalize (local.vect)
+
+		local.angles = angles_toforward ($player.angles)
+		local.vect[0] = local.vect[0] * local.angles[0]
+		local.vect[1] = local.vect[1] * local.angles[1]
+		local.vect[2] = local.vect[2] * local.angles[2]
+
+		local.org1 = $player.origin + (0 0 64)
+		local.ang1 = $player.angles
+ 
+		local.org2 = local.flare.origin
+		local.ang2 = local.obj.angles
+
+		local.v1 = vector_normalize (local.org1 - local.org2)
+		local.v2 = angles_toforward local.ang2
+
+		local.f1 = local.v1[0] * local.v2[0] + local.v1[1] * local.v2[1] + local.v1[2] * local.v2[2]
+		if(local.f1 > 0)
+			local.returnvalue = local.f1 * local.f1
+		else
+			local.returnvalue = 0
+
+		local.flare scale (local.returnvalue * 5)
+		waitframe
+
+	}
+	
+	local.flare delete
+
+end
+
+
+// light left   light right
+deadcorona local.obj local.tag: 
+
+	// local.obj is the object with the light on it
+	// local.tag is the tag where the light appears
+
+	local.flare = spawn script_model
+	local.flare model "fx/searchlight.tik"
+	local.flare notsolid
+	
+	local.obj.corona = 1
+
+//	local.flare.origin = local.obj gettagposition local.tag
+//	local.flare bind local.obj
+	local.flare attach local.obj local.tag 0 ( 0 0 0 )
+
+	while (local.obj.corona == 1)
+	{
+
+		local.vect = $player.origin - local.flare.origin
+		local.vect = vector_normalize (local.vect)
+
+		local.angles = angles_toforward ($player.angles)
+		local.vect[0] = local.vect[0] * local.angles[0]
+		local.vect[1] = local.vect[1] * local.angles[1]
+		local.vect[2] = local.vect[2] * local.angles[2]
+
+		local.org1 = $player.origin + (0 0 64)
+		local.ang1 = $player.angles
+ 
+		local.org2 = local.flare.origin
+		local.ang2 = local.obj.angles
+
+		local.v1 = vector_normalize (local.org1 - local.org2)
+		local.v2 = angles_toforward local.ang2
+
+		local.f1 = local.v1[0] * local.v2[0] + local.v1[1] * local.v2[1] + local.v1[2] * local.v2[2]
+		if(local.f1 > 0)
+			local.returnvalue = local.f1 * local.f1
+		else
+			local.returnvalue = 0
+
+		local.flare scale (local.returnvalue * 5)
+		waitframe
+
+	}
+	
+	local.flare delete
+
+end

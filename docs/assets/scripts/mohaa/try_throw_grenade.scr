@@ -1,0 +1,14 @@
+// global/try_throw_grenade.scr
+//
+// parameters:
+// local.destination - position where we want the grenade to go
+
+start local.destination:
+
+local.grenadescript = self calcgrenadetoss local.destination
+if (local.grenadescript != "")
+{
+	self turnto local.destination
+    self animscript local.grenadescript
+    self waittill animdone
+}

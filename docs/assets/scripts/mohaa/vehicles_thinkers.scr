@@ -1,0 +1,948 @@
+//*******************************
+players_tank local.trigger:
+//	self vehiclespeed 300
+	self rendereffects "-shadow"
+	local.parent = spawn script_origin
+	local.parent.origin = self.origin
+	level.playertanktarget = spawn script_origin
+	level.playertanktarget.origin = (self.origin + (0 0 80))
+	level.playertanktarget bind local.parent
+	local.parent glue self
+
+		
+	self removeondeath 0
+	if (self.target)
+	{
+		self.collisionent = self.target
+	//	self.collisionent hide
+	}	
+	local.gun = self QueryTurretSlotEntity 0
+	local.gun2 = self QueryTurretSlotEntity 1
+	if (local.gun)
+		local.gun nodamage
+	if (local.gun2)
+		local.gun2 nodamage
+
+	thread player_tank_health
+end
+
+player_tank_health:
+	level waittill prespawn
+	
+	
+	if (getcvar(debug) != "1")
+	{
+		$player notsolid
+		$player nodamage
+		self attachdriverslot 0 $player
+		$player perferredweapon "88mm Tank Gun"
+	}
+
+	level waittill spawn
+	
+	local.skill = getcvar (skill)
+	println "z:       local.skill = getcvar (skill) = " local.skill   
+	
+	if (local.skill == "2")
+	{
+		println "z:         skill = 2 health = 1000"
+		self.health = 1000
+	}
+	if (local.skill == "1")
+	{
+		println "z:         skill = 1 health = 3000"
+		self.health = 3000
+	}
+	if ( (local.skill != "1") && (local.skill != "2") )
+	{
+		println "z:         skill != 2 and skill != 1 health = 5000"
+		self.health = 5000
+	}
+
+
+//		if ( (int (getcvar developer)) )
+//			thread playertank_health_hud
+		thread playertank_pain
+
+
+
+	self waittill death
+
+		self LockMovement
+		self playsound explode_tank
+		level.missionfailed = 1
+		iprintlnbold "The King Tiger Tank has been lost, you have failed."
+		//wait 3
+		missionfailed
+	end
+
+playertank_pain:
+		local.original_health = self.health
+		local.previoushealth = self.health
+		local.paintime = level.time
+	
+		while(isAlive self)
+		{
+			wait .1
+			if (self.health < local.previoushealth)
+			{
+				self playsound damage_tank
+				exec global/earthquake.scr .2 4 0 0	
+		
+				if ( (self.health < (local.previoushealth - 150)) && (level.time > (local.paintime + 5) ) )
+				{
+					local.paintime = level.time
+					local.health_fraction = (self.health / local.original_health)
+					println "z:     local.health_fraction: " local.health_fraction
+					
+					if (local.health_fraction >= 0.7)
+					{
+						$player playsound tank_hurt1
+					}
+					else if (local.health_fraction >= 0.4)
+					{
+						$player playsound tank_hurt2
+					}
+					else
+					{
+						$player playsound tank_hurt3
+					}
+				}
+				
+				local.previoushealth = self.health
+			}
+		}
+	end
+
+
+playertank_health_hud:
+		level.subtitleX = 100
+		level.subtitleY = 70
+		while ( 1)
+		{
+			locprint level.subtitleX level.subtitleY ("Health: " + self.health)
+			wait 1
+		}
+	end
+
+
+//*****************************************
+PLAYER_JEEP_CONTROLLER local.trigger:
+	self vehicleanim remove_surfaces
+	self rendereffects "-shadow"
+	self thread speed_controls
+	self.driver rendereffects "-shadow"
+	self AttachDriverSlot 0 $oss_man
+	$oss_man exec global/disable_ai.scr
+	$oss_man anim jeep_idle_drive
+	$oss_man nodamage
+	$oss_man notsolid
+	$oss_man gun "none"
+	$oss_man immune bullet
+	$oss_man immune fast_bullet
+	$oss_man immune explosion
+	$oss_man immune rocket
+	$oss_man.gren_awareness = 0
+	$oss_man forceactivate
+	self nodamage
+	if (self.target)
+	{
+		self.collisionent = self.target
+	//	self.collisionent hide
+	}
+
+	//local.trigger waittill trigger
+	
+	if (getcvar(debug) != "1")
+	{
+		local.vturretent = self queryturretslotentity 0
+		local.vturretent unlock
+		self attachturretslot 0 $player    // Attach the player to the jeep
+		$player perferredweapon ".30cal Machine Gun"
+		local.vturretent lock
+	}
+	
+//level waittill spawn
+
+
+//	if ( (int (getcvar developer)) )
+//		thread speed_tracker
+end
+
+
+speed_tracker:
+		level.subtitleX = 100
+		level.subtitleY = 70
+		while ( 1)
+		{
+			local.speed = vector_length(self.velocity)
+			local.message = ("speed: " + local.speed)
+			locprint level.subtitleX level.subtitleY local.message
+			wait .5
+		}
+	end
+
+speed_controls:
+		for ( local.i = 1; local.i <= $slowdown.size; local.i++)
+		{
+			thread slowdown local.i
+		}
+		for ( local.i = 1; local.i <= $speedup.size; local.i++)
+		{
+			thread speedup local.i
+		}
+	end
+
+speedup local.i:
+		while (1)
+		{
+			if ($speedup[local.i].speed != NIL)
+				local.speed = $speedup[local.i].speed
+			else 
+				local.speed = level.fastspeed
+	
+			println "z:      wait for trigger speedup: " local.i  " value " local.speed
+			$speedup[local.i] waittill trigger
+	
+			println "z:      modify drive speedup: " local.i  " value " local.speed
+			self.driver anim jeep_drive_gearchange_up
+			self modifydrive local.speed 10 level.lookahead
+			self.driver waittill animdone
+			self.driver anim jeep_idle_drive
+		}
+	end
+
+slowdown local.i:
+		while (1)
+		{
+			if ($slowdown[local.i].speed != NIL)
+				local.speed = $slowdown[local.i].speed
+			else 
+				local.speed = level.slowspeed
+
+			println "z:      wait for trigger slowdown: " local.i  " value " local.speed
+			$slowdown[local.i] waittill trigger
+	
+			println "z:      modify drive slowdown: " local.i  " value " local.speed
+			self.driver anim jeep_drive_gearchange_down
+			self modifydrive local.speed 40 level.lookahead
+			self.driver waittill animdone
+			self.driver anim jeep_idle_drive
+		}
+	end
+
+
+
+
+
+//****************************************
+enemy_truck_think local.hp local.passengers local.path local.trigger local.type local.guy_type local.special:
+	self rendereffects "-shadow"
+	if (local.hp == NIL)
+		self.health = 4000
+	else 
+		self.health = local.hp
+	println "truck health: " self.health
+	thread truck_INIT
+		
+	if ( (local.passengers != NIL) && (local.passengers != 0) )
+		waitthread truck_load local.passengers local.guy_type local.panzer
+	if (local.path)
+	{
+		println "truck_drive thread initialized"
+		thread truck_drive local.path local.trigger
+	}
+	
+self waittill death
+
+	self stop
+	self.collisionent disconnect_paths
+	thread truck_killed local.type
+end
+
+truck_drive local.path local.trigger:
+if (local.trigger)
+{
+	println "truck waitting for trigger before driving"
+	local.trigger waittill trigger
+}
+
+	local.speed = 200
+	local.accel = 50
+	local.lookahead = 256
+
+	println "truck starting to drive"
+	self drive local.path local.speed local.accel 200 local.lookahead
+	self waitTill drive
+	self.drive_done = 1
+	self.collisionent disconnect_paths
+	println "truck done with waittill drive"
+	self stop
+	
+	wait 3
+	println "truck starting to unload"
+	thread truck_unload
+end
+
+truck_load local.passengers local.guy_type local.special:
+	for (local.slot = 1; local.slot <= local.passengers; local.slot++)
+	{
+		if (local.guy_type == NIL)
+			local.guy_type = "models/human/german_afrika_private"		
+		if (randomint (3) == 1) 
+			local.gun = "MP40"
+		else
+			local.gun = "Mauser KAR 98K"
+		if ( (local.special == "panzer") && (local.slot == 1) )
+			local.gun = "panzerschrek"
+		local.guy = spawn local.guy_type "gun" local.gun
+		local.guy.origin = self.origin
+		local.guy rendereffects "-shadow"
+		if (level.dontdropweapons == 1)
+			local.guy dontdropweapons
+		self AttachPassengerSlot local.slot local.guy
+		local.guy type_attack "cover"
+		local.guy leash 0
+		//local.guy exec global/disable_ai.scr //temp
+		local.guy fixedleash 1
+		local.guy physics_off
+		
+		switch (local.slot)
+		{
+		case 1:
+			local.guy exec global/setdeathanim.scr "death_headpistol"
+			break
+		case 2:
+			local.guy exec global/setdeathanim.scr "death_crotch"
+			break
+		case 3:
+			local.guy exec global/setdeathanim.scr "death_left"
+			break
+		case 4:
+			local.guy exec global/setdeathanim.scr "death_run"
+			break
+		case 5:
+			local.guy exec global/setdeathanim.scr "death_shoot"
+			break
+		case 6:
+			local.guy exec global/setdeathanim.scr "death_right"
+			break
+		default:
+			local.guy exec global/setdeathanim.scr "death_collapse"
+			break
+		}
+		
+		
+		
+	}
+	//driving anim name = opel_driver	
+	local.driver = spawn local.guy_type "gun" "none"
+	local.driver.origin = self.origin
+	local.driver rendereffects "-shadow"
+	self AttachDriverSlot 0 local.driver
+	local.driver exec global/disable_ai.scr
+	local.driver anim opel_driver
+	self.driver = local.driver
+	local.driver exec global/setdeathanim.scr "opel_driver_death"
+end
+
+truck_unload:
+	for (local.slot = 0; local.slot <= 6; local.slot++)
+	{
+		thread truck_passenger_unload local.slot
+	}
+	local.driver = self.driver
+//	self DetachDriverSlot 0 local.driver.origin
+//	local.driver.origin = self gettagposition "driver"
+//	local.driver.angles = self gettagangles "driver"
+//	local.driver physics_on
+	local.driver exec global/bullethit.scr (0 0 250) 500 0 1
+	self.done_unloading = 1
+end
+
+truck_passenger_unload local.slot:
+	local.ent = self QueryPassengerSlotEntity local.slot
+	if !(isAlive local.ent)
+		end
+	if (local.ent == NULL)
+		end
+	local.ent exec global/disable_ai.scr
+	self DetachPassengerSlot local.slot local.ent.origin
+	local.tag = ("passenger" + local.slot)
+	println "z:      local.tag: " local.tag
+	local.ent.origin = self gettagposition local.tag
+	local.ent.angles = self gettagangles local.tag
+	local.ent notsolid
+	local.ent physics_on
+	local.ent anim_noclip ("opel_passenger" + local.slot)
+	local.ent waittill animdone
+	local.ent solid
+	local.ent rendereffects "+shadow"
+	local.ent leash 10000
+	local.ent exec global/enable_ai.scr
+	local.ent exec global/setdeathanim.scr NIL
+	if (level.script == "maps/m1l3b.scr")
+	{
+		local.ent accuracy 30
+	}
+end
+
+truck_INIT:
+	self takedamage
+	self solid
+	self removeondeath 0
+	
+	if (self.nolights == 1)
+		self vehicleanim idlenolights
+	else
+		self vehicleanim idlelights
+	if (self.target)
+	{
+		self.collisionent = self.target
+		//self.collisionent hide
+	}
+end
+
+truck_killed local.type:
+	self show
+	
+	self playsound explode_truck
+	exec global/earthquake.scr .2 4 0 0	
+	local.explosion1 = spawn script_model model models/fx/fx_truck_explosion.tik
+	local.explosion1.origin = self gettagposition "engine1"
+	local.explosion1.angles = self gettagangles "engine1"
+	local.explosion1 anim start
+	local.explosion1 notsolid
+
+	wait .4
+	
+	self playsound explode_truck
+	exec global/earthquake.scr .2 4 0 0	
+	local.explosion2 = spawn script_model model models/fx/fx_truck_explosion.tik
+	local.explosion2.origin = self gettagposition "engine2"
+	local.explosion2.angles = self gettagangles "engine2"
+	local.explosion2 anim start
+	local.explosion2 notsolid
+
+	if($player istouching self.collisionent)
+	{
+		$player normal_damage 100
+	}
+	
+	//radiusdamage self.origin level.bomb_damage level.bomb_explosion_radius
+	radiusdamage self.origin 200 200
+
+//	if (local.type == "green")
+//		self.damaged = thread spawn_damaged models/vehicles/opeltruckgreen_d.tik
+//	else
+//		self.damaged = thread spawn_damaged models/vehicles/opeltruck_d.tik
+//	self hide
+//	self notsolid
+	self.collisionent disconnect_paths
+
+
+	local.name = self
+	local.angles = self.angles
+	local.origin = self.origin
+//	local.brushmodel = self.collisionent.brushmodel
+//	self remove
+	self hide
+	self notsolid
+//	local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+	if (local.type == "green")
+		self.damaged = thread spawn_damaged_new models/vehicles/opeltruckgreen_d.tik local.angles local.origin
+	else
+		self.damaged = thread spawn_damaged_new models/vehicles/opeltruck_d.tik local.angles local.origin	
+//	local.collision disconnect_paths
+
+
+	if (level.script == "maps/m1l3b.scr")
+	{
+		println "z:   in m1l3b. making truck not solid"
+		self.collisionent remove
+		self.damaged notsolid
+		self notsolid
+		while (self.done_unloading != 1)
+			wait 1
+		self.origin = (1952 376 80)
+	}
+	
+	wait 10
+	local.explosion1 remove
+	local.explosion2 remove
+end
+
+//*****************************************
+enemy_bike_think:
+	self rendereffects "-shadow"
+	self solid
+	self.health = 100
+	self takedamage
+	self removeondeath 0 
+	if (self.target)
+	{
+		self.collisionent = self.target
+		//self.collisionent hide
+	}
+
+self waittill death	
+
+	self show
+	self playsound explode_bike
+	
+	self thread spawn_fx models/fx/fx_truck_explosion.tik
+	//radiusdamage self.origin level.bomb_damage level.bomb_explosion_radius
+	radiusdamage self.origin 200 200
+	local.damaged = thread spawn_damaged models/vehicles/bmwbike_d.tik
+	self remove
+end
+
+
+
+
+
+//**************************************
+enemy_half-trak_think:
+	self.mg42 = self QueryTurretSlotEntity 0 //mg42 setup
+	local.gun = self.mg42
+	if ($(self.gunner))
+	{
+		self AttachPassengerSlot 1 self.gunner //gunner positioning
+		self.gunner nodamage
+	}
+	self rendereffects "-shadow"
+	self immune bullet
+	self immune fast_bullet
+	self immune grenade
+	self solid
+	self.health = 100
+	self takedamage
+	self removeondeath 0
+	if (self.target)
+	{
+		self.collisionent = self.target
+		//self.collisionent hide
+	}
+	
+self waittill death
+	
+//	self.collisionent disconnect_paths
+	self show
+	self playsound explode_tank
+	self stop
+	if (local.gun)
+	{
+		self DetachTurretSlot 0
+		local.gun stopfiring
+		local.gun remove
+	}
+	if ($(self.gunner))
+	{
+		self DetachPassengerSlot 1 self.gunner.origin
+		self.gunner bedead
+		self.gunner hide
+		self.gunner notsolid
+	}
+	exec global/earthquake.scr .2 4 0 0
+	//radiusdamage self.origin level.bomb_damage level.bomb_explosion_radius
+	radiusdamage self.origin 200 200
+	self thread spawn_fx models/fx/fx_tank_explosion.tik
+//	local.damaged = thread spawn_damaged models/vehicles/sdkfz_green_d.tik
+//	self remove
+
+	local.name = self
+	local.angles = self.angles
+	local.origin = self.origin
+	local.brushmodel = self.collisionent.brushmodel
+	self hide
+	self notsolid
+	local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+	local.damaged = thread spawn_damaged_new models/vehicles/sdkfz_green_d.tik local.angles local.origin
+	local.collision disconnect_paths
+	
+	wait .5
+	if (self)
+		self remove
+end
+
+
+//**************************************
+enemy_flak_think:
+	self rendereffects "-shadow"
+	self solid
+	self.health = 100
+	self takedamage
+	self removeondeath 0 
+	if (self.target)
+	{
+		self.collisionent = self.target
+		//self.collisionent hide
+	}
+
+level waittill spawn
+
+while ( (level.playertanktarget == 0) || (level.playertanktarget == NIL) )
+	wait 1
+
+	if (level.sightdistance == NIL)
+		level.sightdistance = 16000
+	self setaimtarget level.playertanktarget
+	thread enemy_flak_attack
+	local.attack_thread = parm.previousthread
+
+self waittill death	
+	//self stopFiring
+	self setaimtarget NULL
+	self show
+	self playsound explode_flak88 
+	local.attack_thread delete	
+	//radiusdamage self.origin level.bomb_damage level.bomb_explosion_radius
+	radiusdamage self.origin 200 200	
+	self thread spawn_fx models/fx/fx_tank_explosion.tik	
+	local.damaged = thread spawn_damaged models/statweapons/flak88_d.tik
+	self remove
+end
+
+
+
+enemy_flak_attack:
+	while (isAlive self)
+	{
+		if !(vector_within level.playertanktarget.origin self.origin level.sightdistance)
+		{		
+		//	println "z:             " self " is not firing because of range"
+			wait 1
+		}
+		else if (!(sighttrace level.playertanktarget.origin (self.origin + (0 0 64)) 1))
+		{
+		//	println "z:             " self " is not firing because of sight trace"
+			wait 1
+		}
+		else
+		{
+			println "z:         " self " on target, waitting 3 secs to fire"
+			wait 3
+			self anim fire
+			wait 3
+		}
+	}
+end
+
+
+
+//****************************************
+enemy_tank_think local.notattacking local.type:
+
+level waittill spawn
+
+	self.type = local.type
+	self rendereffects "-shadow"
+	self.start_health = (((randomint 3) + 1) * 400)
+	self.health = self.start_health
+	self removeondeath 0
+	println "z:          self.target " self.target 
+	if (self.target)
+	{
+		self.collisionent = self.target
+	//	self.collisionent hide
+	}
+	self.gun = self QueryTurretSlotEntity 0
+	self.gun2 = self QueryTurretSlotEntity 1
+	if (self.gun)
+		self.gun nodamage
+	if (self.gun2)
+		self.gun2 nodamage
+	if (level.sightdistance == NIL)
+		level.sightdistance = 16000
+	if (local.notattacking != 1)
+	{
+		while ( (level.playertanktarget == 0) || (level.playertanktarget == NIL) )
+			wait 1
+		self.gun setAimTarget level.playertanktarget
+		thread enemy_tank_attack_loop self.gun
+		self.attack_thread = parm.previousthread
+		thread tank_pain self.gun
+		self.pain_thread = parm.previousthread
+	}
+
+	thread tank_stop_if_close
+
+self waittill death
+	println "z:         " self " is dead. self.start_health: " self.start_health
+	thread tank_killed
+end
+
+tank_stop_if_close:
+	while ( (isAlive self) && !(vector_within self.origin $player.origin 450) )
+	{
+		wait 1
+	//	println "z:         tank stop if close: " self " is not close"	
+	}
+	if !(isAlive self)
+		end
+	if (self.driving == 1)
+		self stop
+		println "z:         tank stop if close: " self " is close. stopping."
+end
+
+tank_killed:
+	self playsound explode_tank
+	self stop
+	self.driving = 0
+
+	if (self.attack_thread)
+		self.attack_thread delete
+	if (self.pain_thread)
+		self.pain_thread delete
+	println "z:          self.type: " self.type
+	switch (self.type)
+	{
+	case empty_turretless_tiger:
+		local.model = models/vehicles/tigertank_wot_d.tik
+		break
+	case panzer_desert:
+		local.model = models/vehicles/panzer_iv_d.tik
+		break
+	case panzer:
+		local.model = models/vehicles/panzer_iv_eud.tik
+		local.get_out = 1
+		local.anims[0] = panzer_exit_1
+		local.anims[1] = panzer_exit_2
+		local.anims[2] = panzer_exit_3
+		break
+	case empty_panzer_desert:
+		local.model = models/vehicles/panzer_iv_d.tik
+		break
+	case empty_tiger:
+		local.model = models/vehicles/tigertank_d.tik
+		break
+	default:
+		local.model = models/vehicles/tigertank_d.tik
+		local.get_out = 1
+		local.anims[0] = tank_exit_1
+		local.anims[1] = tank_exit_2
+		local.anims[2] = tank_exit_3
+		local.anims[3] = tank_exit_4
+		break
+	}
+	self thread spawn_fx models/emitters/explosion_tank.tik
+	exec global/earthquake.scr .2 4 0 0
+	//radiusdamage self.origin level.bomb_damage level.bomb_explosion_radius
+	radiusdamage (self.origin + (0 0 200)) 800 400
+	wait .4   //wait for explosion fx to cover up the model swap
+	self.gun = self QueryTurretSlotEntity 0
+	self.gun2 = self QueryTurretSlotEntity 1
+	if (self.gun)
+	{
+		self DetachTurretSlot 0
+		self.gun remove
+	}
+	if (self.gun2)
+	{
+		self DetachTurretSlot 1
+		self.gun2 remove
+	}
+	local.name = self
+	local.angles = self.angles
+	local.origin = self.origin
+	local.brushmodel = self.collisionent.brushmodel
+	self remove
+	local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+	local.damaged = thread spawn_damaged_new local.model local.angles local.origin
+	local.collision disconnect_paths
+	if (local.get_out == 1)
+		local.damaged thread tank_guys_get_out local.anims local.name
+end
+
+tank_guys_get_out local.anims local.name:
+	wait 3
+	if (self.state != "open")
+	self anim open
+	wait 1
+	//self waittill animdone
+	if (self.state != "open")
+	{
+		self anim open_idle
+		self.state = "open"
+	}
+	
+	//insert roberts random sorter here
+	exec global/randomorder.scr local.anims
+	
+	for (local.i = 0; local.i < 4; local.i ++)
+	{
+		if ((randomint 100) <= 70)
+		{
+			if (local.anims[local.i]) 
+			{
+				waitthread tank_guy_spawn local.anims[local.i] local.name
+			}
+		}
+	}
+end
+
+tank_guy_spawn local.type local.name:
+	println "z:       spawning guy to get out " local.type
+
+		local.temp = randomint 3
+		if (local.temp == 0)
+			local.model_type = human/german_panzer_grenadier
+		if (local.temp == 1)
+			local.model_type = human/german_panzer_obershutze
+		if (local.temp == 2)
+			local.model_type = human/german_panzer_tankcommander
+
+		local.ent = spawn local.model_type
+		local.ent.origin = self gettagposition "tag_start"
+		local.ent.angles = self gettagangles "tag_start"
+		
+		local.ent noticescale 1
+		local.ent sight 4500
+		local.ent mindist 2024
+		local.ent maxdist 2448
+		local.ent leash 10000
+		
+		if (level.dontdropweapons == 1)
+			local.ent dontdropweapons
+		
+		local.ent exec global/disable_ai.scr
+		local.ent notsolid
+		
+	println "z:         starting anim: " local.name " " local.type
+		local.ent anim_noclip local.type
+		local.ent waittill animdone
+	println "z:         ending   anim: " local.name " " local.type
+		
+		
+		if ( (local.type == "tank_exit_2") || (local.type == "panzer_exit_2") )
+			local.ent.position = "crawl"
+		if ( (local.type == "tank_exit_3") || (local.type == "panzer_exit_3") )
+			local.ent.health = 45 
+		if (local.type == "tank_exit_4")
+		{
+			local.ent bedead
+			end
+		}
+		
+		wait .4
+	println "z:         making solid: " local.name " " local.type
+		
+		local.ent solid
+		
+		
+//		wait 3
+	println "z:         enabling AI: " local.name " " local.type
+		
+		local.ent exec global/enable_ai.scr
+		local.ent attackplayer
+end
+
+
+tank_pain local.gun:
+	local.previoushealth = self.health
+	local.timer = 0
+	while(isAlive self)
+	{
+		wait .1
+		if ( (isAlive self) && (self.health < local.previoushealth) )
+		{
+			println "z:         " self " is damaged. self.start_health: " self.start_health
+			println "z:         current health: " self.health
+			println "z:         " self " is stunned"
+			self playsound damage_tank
+			self.stunned = 1
+			local.gun setAimTarget NULL
+			
+			if (self.driving == 1)
+				self modifydrive 5 100 256
+			if (self.driving_reverse == 1)
+				self modifydrive -5 100 256
+			
+		//	self.smoke = spawn script_model model "models/emitters/linger_smoke.tik"
+			self.smoke = spawn "models/emitters/linger_smoke.tik"
+			self.smoke notsolid
+			self.smoke anim start
+			self.smoke.origin = (self.origin + (0 0 80))
+			self.smoke glue self
+			local.previoushealth = self.health
+			local.timer = 0
+		}
+		
+		
+		if (local.timer == 80)
+		{
+			local.gun setAimTarget level.playertanktarget
+			if (self.driving == 1)
+				self modifydrive level.enemytankspeed 30 256
+			if (self.driving_reverse == 1)
+				self modifydrive level.enemytankspeed_reverse 30 256
+			self.stunned = 0
+			println "z:         " self " is no longer stunned"
+		}
+		local.timer++
+	}
+end
+
+enemy_tank_attack_loop local.gun:    //self is the tank
+	while (IsAlive self)
+	{
+		if (self.stunned == 1)
+		{
+			println "z:             " self " is not firing because stunned"
+			wait 1
+		}
+		else if !(vector_within level.playertanktarget.origin self.origin level.sightdistance)
+		{		
+		//	println "z:             " self " is not firing because range"
+			wait 1
+		}
+		else if (!(sighttrace level.playertanktarget.origin local.gun.origin 1))
+		{
+		//	println "z:             " self " is not firing because sight trace"
+			wait 1
+		}
+		else
+		{
+			println "z:         " self " on target, waitting 3 secs to fire"
+			wait 3
+			if (self.stunned != 1)
+				local.gun anim fire
+			wait 2
+		}
+	}	
+end
+
+
+
+
+//local.collision = thread damaged_collision local.angles local.origin local.brushmodel
+//local.damaged = thread spawn_damaged_new local.model local.angles local.origin
+//----------------------------------
+spawn_damaged local.model:
+	local.damaged = spawn script_model model local.model
+	local.damaged.origin = self.origin
+	local.damaged.angles = self.angles
+	local.damaged notsolid
+end local.damaged
+
+spawn_damaged_new local.model local.angles local.origin:
+	local.damaged = spawn script_model model local.model
+	local.damaged.origin = local.origin
+	local.damaged.angles = local.angles
+end local.damaged
+
+spawn_fx local.fx:
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+end
+
+damaged_collision local.angles local.origin local.brushmodel:
+	local.collision = spawn script_object model local.brushmodel
+	local.collision.origin = local.origin
+	local.collision.angles = local.angles
+end local.collision

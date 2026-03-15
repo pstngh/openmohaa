@@ -1,0 +1,138 @@
+start group.helper group.climber local.wall:
+	level.climbdone = 0 // This'll get set to 1 when climbing is done
+
+	group.helperinplace = 0
+	group.climberinplace = 0
+
+	if (local.wall != NIL)
+	{
+		println "Moving men to wall"
+
+		group.wallorigin = local.wall.origin
+		group.forwardvector = local.wall.forwardvector * -1
+		println group.forwardvector
+		local.originhelper1 = local.wall.origin - (group.forwardvector*64)
+		local.originclimber = local.wall.origin - (group.forwardvector*80)
+
+		thread helpergetinplace		local.originhelper1
+		thread climbergetinplace	local.originclimber
+	}
+	else
+	{
+		println "No wall supplied: assuming helper is already in place"
+		local.originhelper1 = group.helper.origin
+		group.forwardvector = group.helper.forwardvector
+		local.originclimber = local.originhelper1 - (group.forwardvector*16)
+
+		thread helpergetinplace		group.helper.origin
+		thread climbergetinplace	local.originclimber
+	}
+end
+
+
+//-----------helpergetinplace------------
+helpergetinplace local.pos:
+
+	println "Helper is walking to wall"
+
+	group.helper exec global/walkto.scr local.pos
+	group.helper waittill movedone
+	group.helper turnto ( group.helper.origin + (group.forwardvector * 1000) )
+	group.helper.origin = local.pos
+
+	group.helper anim "wallclimb_guy1_intro"
+	group.helper waittill animdone
+
+	println "Helper is at wall"
+
+	group.helperinplace = 1
+	if (group.climberinplace > 0)
+	{
+		group.climberwaitthread end
+		thread climb
+	}
+	else
+	{
+		// Lookat doesn't work here because he's facing backwards!
+		//group.helper lookat group.climber	// Look at partner
+		group.helper anim "wallclimb_guy1_waitloop"
+		group.donemarker = 1
+	}
+end
+
+
+//-----------climbergetinplace------------
+climbergetinplace local.pos:
+
+	println "Clmber is walking to wall"
+
+	group.climber exec global/walkto.scr local.pos
+	group.climber waittill movedone
+	group.climber.origin = local.pos
+	group.climber turnto ( group.climber.origin + (group.forwardvector * 1000) )
+
+	println "Clmber is at wall"
+
+	group.climberinplace = 1
+	if (group.helperinplace > 0)
+	{
+		thread climb
+	}
+	else
+	{
+		group.climber lookat group.helper	// Look at partner
+		group.climber thread waitanim
+		group.climberwaitthread = parm.previousthread
+	}
+end
+
+
+//-----------waitanim------------
+waitanim:
+	self anim "generic_stand_bored_a"
+	self waittill animdone
+	goto waitanim
+end
+
+
+//-----------climb------------
+climb:
+
+	group.climber lookat NULL
+	group.helper lookat NULL
+	group.climber thread climber_climb
+	group.helper thread helper_climb
+end
+
+
+//-----------climber_climb------------
+climber_climb:
+
+
+	println "Climber is climbing"
+
+	self anim "wallclimb_guy2_main"
+	self waittill animdone
+	println "Climber done, do your thing Mr Level Designer"
+	// Note to LDs: I don't know what to do here.  You'll have to put code in to signal 
+	// your code that the climber is done, or something.  I'll make him stand happily for 
+	// a few seconds.
+
+	level.climbdone = 1
+	self anim "generic_stand_bored_a"
+	self waittill animdone
+
+end
+
+
+//-----------helper_climb------------
+helper_climb:
+
+	println "Helper is helping"
+
+	self anim "wallclimb_guy1_main"
+	self waittill animdone
+	println "Helper done, do your thing Mr Level Designer"
+	self anim "generic_stand_bored_a"
+	self waittill animdone
+end

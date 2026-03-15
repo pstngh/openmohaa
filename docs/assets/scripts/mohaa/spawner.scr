@@ -1,0 +1,172 @@
+//**********************************************************************************
+//*** converts a specified guy into a script_origin
+//*** syntax --------------------------------
+//*** spawner_create <guy>:
+//**********************************************************************************
+spawner_create local.dude:
+
+//*** check to make sure the person exists
+if (!local.dude)
+{
+	println "^~^~^ SPAWNER CREATE ERROR:  person does not exist in the level, aborting conversion to spawner!!!"
+	end
+}
+
+//*** convert AI local.dude into a spawner local.spawner
+local.spawner = spawn script_origin
+
+//*** grab all of the AI's properties
+local.spawner.origin = local.dude.origin
+local.spawner.type_idle = local.dude.type_idle
+local.spawner.type_attack = local.dude.type_attack
+local.spawner.type_disguise = local.dude.type_disguise
+local.spawner.type_grenade = local.dude.type_grenade
+local.spawner.hearing = local.dude.hearing
+local.spawner.sight = local.dude.sight
+local.spawner.fov = local.dude.fov
+local.spawner.leash = local.dude.leash
+local.spawner.mindist = local.dude.mindist
+local.spawner.maxdist = local.dude.maxdist
+local.spawner.health = local.dude.health
+local.spawner.sound_awareness = local.dude.sound_awareness
+local.spawner.noticescale = local.dude.noticescale
+local.spawner.fixedleash = local.dude.fixedleash
+local.spawner.enemysharerange = local.dude.enemysharerange
+local.spawner.voicetype = local.dude.voicetype
+local.spawner.accuracy = local.dude.accuracy
+local.spawner.ammo_grenade = local.dude.ammo_grenade
+local.spawner.gren_awareness = local.dude.gren_awareness
+local.spawner.nosurprise = local.dude.nosurprise
+local.spawner.disguise_range = local.dude.disguise_range
+local.spawner.disguise_period = local.dude.disguise_period
+local.spawner.disguise_accept_thread = local.dude.disguise_accept_thread
+local.spawner.disguise_level = local.dude.disguise_level
+local.spawner.patrolpath = local.dude.patrolpath
+local.spawner.waittrigger = local.dude.waittrigger
+local.spawner.turret = local.dude.turret
+local.spawner.alarmnode = local.dude.alarmnode
+local.spawner.alarmthread = local.dude.alarmthread
+local.spawner.spawn_target = local.dude.target
+local.spawner.spawn_angle = local.dude.angle
+local.spawner.spawn_weapon = local.dude.weapon
+local.spawner.set = local.dude.set
+local.spawner.group = local.dude.group
+local.spawner.healthchance = local.dude.healthchance
+local.spawner.area = local.dude.area
+local.spawner.enemyname = local.dude.enemyname
+local.spawner.playerseek = local.dude.playerseek
+local.spawner.fnum = local.dude.fnum
+local.spawner.turndoneerror = local.dude.turndoneerror
+local.spawner.threatbias = local.dude.threatbias
+local.spawner.radnum = local.dude.radnum
+local.spawner.balconyheight = local.dude.balconyheight
+
+local.spawner.spawn_model = local.dude.model
+local.spawner.spawn_targetname = local.dude.targetname
+
+//*** remove the AI
+local.dude remove
+
+end local.spawner
+
+
+//**********************************************************************************
+//*** activates a converted spawner
+//*** syntax --------------------------------
+//*** spawner_activate <spawner>:
+//**********************************************************************************
+spawner_activate local.spawner:
+
+if (!local.spawner)
+{
+	println "^~^~^ SPAWNER ACTIVATE ERROR:  spawner does not exist in the level, aborting activation!!!"
+	end
+}
+
+local.dude = spawn local.spawner.spawn_model voicetype local.spawner.voicetype origin local.spawner.origin
+
+//*** set the values into the AI from the spawner
+local.dude.type_idle = local.spawner.type_idle
+local.dude.type_attack = local.spawner.type_attack
+local.dude.type_disguise = local.spawner.type_disguise
+local.dude.type_grenade = local.spawner.type_grenade
+local.dude.hearing = local.spawner.hearing
+local.dude.sight = local.spawner.sight
+local.dude.fov = local.spawner.fov
+local.dude.leash = local.spawner.leash
+local.dude.mindist = local.spawner.mindist
+local.dude.maxdist = local.spawner.maxdist
+local.dude.health = local.spawner.health
+local.dude.sound_awareness = local.spawner.sound_awareness
+local.dude.noticescale = local.spawner.noticescale
+local.dude.fixedleash = local.spawner.fixedleash
+local.dude.enemysharerange = local.spawner.enemysharerange
+local.dude.accuracy = local.spawner.accuracy
+local.dude.ammo_grenade = local.spawner.ammo_grenade
+local.dude.gren_awareness = local.spawner.gren_awareness
+local.dude.nosurprise = local.spawner.nosurprise
+local.dude.disguise_range = local.spawner.disguise_range
+local.dude.disguise_period = local.spawner.disguise_period
+local.dude.disguise_accept_thread = local.spawner.disguise_accept_thread
+local.dude.disguise_level = local.spawner.disguise_level
+local.dude.patrolpath = local.spawner.patrolpath
+local.dude.waittrigger = local.spawner.waittrigger
+local.dude.turret = local.spawner.turret
+local.dude.alarmnode = local.spawner.alarmnode
+local.dude.alarmthread = local.spawner.alarmthread
+local.dude.target = local.spawner.spawn_target
+local.dude.angle = local.spawner.spawn_angle
+local.dude.weapon = local.spawner.spawn_weapon
+local.dude.set = local.spawner.set
+local.dude.group = local.spawner.group
+local.dude.healthchance = local.spawner.healthchance
+local.dude.area = local.spawner.area
+local.dude.enemyname = local.spawner.enemyname
+local.dude.playerseek = local.spawner.playerseek
+local.dude.fnum = local.spawner.fnum
+local.dude.turndoneerror = local.spawner.turndoneerror
+local.dude.threatbias = local.spawner.threatbias
+local.dude.radnum = local.spawner.radnum
+local.dude.balconyheight = local.spawner.balconyheight
+
+end local.dude
+
+//**********************************************************************************
+//**********************************************************************************
+
+
+//**********************************************************************************
+//*** converts a specified guy into a script_origin
+//*** syntax --------------------------------
+//*** spawner_create_targetname <guy>:
+//**********************************************************************************
+spawner_create_targetname local.dude:
+
+//*** check to make sure the person exists
+if (!local.dude)
+{
+	println "^~^~^ SPAWNER CREATE ERROR:  person does not exist in the level, aborting conversion to spawner!!!"
+	end
+}
+
+local.spawner = thread spawner_create local.dude
+local.spawner.targetname = local.spawner.spawn_targetname + "_spawner"
+end local.spawner
+
+
+//**********************************************************************************
+//*** activates a converted spawner
+//*** syntax --------------------------------
+//*** spawner_activate_targetname <spawner>:
+//**********************************************************************************
+spawner_activate_targetname local.spawner:
+
+if (!local.spawner)
+{
+	println "^~^~^ SPAWNER ACTIVATE ERROR:  spawner does not exist in the level, aborting activation!!!"
+	end
+}
+
+local.dude = thread spawner_activate local.spawner
+local.dude.targetname = local.spawner.spawn_targetname
+end local.dude

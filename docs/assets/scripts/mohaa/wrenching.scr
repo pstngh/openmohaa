@@ -1,0 +1,59 @@
+wrench local.spot local.lookspot:
+	if(self.thinkstate != "idle")
+	{
+		wait 1
+		end
+	}
+	self.idle_thread = local
+	self forceactivate
+	self type_attack "alarm"
+	self alarmthread "wrenchinginterupt"
+	if(self.gun == "" || self.gun == NULL || self.gun == NIL || self.gun == "none")
+		self weapon "walter p38"
+	self holster
+	waitframe
+	if(self.isinplace != 1)
+	{
+		self.isinplace = 1
+	    	self exec global/walkto.scr local.spot
+ 	  	self waittill movedone
+//     	self.origin = local.spot.origin
+     	self exec global/turnto.scr local.lookspot
+		self waittill turndone
+	}
+	self waitthread weldinganimwait working_wrench_pullout
+	self waitthread weldinganimwait working_wrenching_getdown
+	local.randomnum = (randomint(5) + 10)
+	self forceactivate
+	for (local.i = 1; local.i <= local.randomnum; local.i++)
+	{
+		self waitthread weldinganimwait working_wrenching
+	}
+	self waitthread weldinganimwait working_wrenching_getup
+    	self waitthread weldinganimwait working_wrenching_putaway
+
+end
+wrenchinginterupt:
+	if (self.idle_thread)
+		self.idle_thread delete
+	self exec global/disable_ai.scr
+	self turnto $player
+ 	self anim working_wrenching_putaway
+	wait .3
+	if(isalive self)
+		self unholster
+	wait .1	
+	if(isalive self)
+	{
+     	self exec global/enable_ai.scr
+     	self attackplayer
+	}	
+end
+
+weldinganimwait local.anim:
+	if(isalive self)
+	{
+		self anim local.anim
+		self waittill animdone
+	}
+end

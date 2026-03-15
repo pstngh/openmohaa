@@ -1,0 +1,97 @@
+start local.name:
+// Check if local.name is an alias.
+// Make sure these names are all lower case.
+switch (local.name)
+{
+//********************************************
+//*** ALLIED WEAPONS
+//********************************************
+case "high standard":
+	//*** added on 7-18-2001
+	//*** FIX ME - need to make a highstandard.tik
+	local.name = models/weapons/silencedpistol.tik
+	break
+
+case "colt 45":
+	local.name = models/weapons/colt45.tik
+	break
+
+case "m1 garand":
+	local.name = models/weapons/m1_garand.tik
+	break
+
+case "springfield '03 sniper":
+	local.name = models/weapons/springfield.tik
+	break
+
+case "thompson":
+	local.name = models/weapons/thompsonsmg.tik
+	break
+
+case "bar":
+	local.name = models/weapons/bar.tik
+	break
+
+case "bazooka":
+	//*** added on 7-18-2001
+	local.name = models/weapons/bazooka.tik
+	break
+
+case "shotgun":
+	//*** added on 7-18-2001
+	local.name = models/weapons/shotgun.tik
+	break
+
+
+//********************************************
+//*** GERMAN WEAPONS
+//********************************************
+case "walter p38":
+	local.name = models/weapons/p38.tik
+	break
+
+case "mauser kar 98k":
+	local.name = models/weapons/kar98.tik
+	break
+
+case "mauser kar 98d sniper":
+	//*** added on 7-18-2001
+	local.name = models/weapons/kar98sniper.tik
+	break
+
+case "mp40":
+	local.name = models/weapons/mp40.tik
+	break
+
+case "stg44":
+	//*** added on 7-18-2001
+	local.name = models/weapons/mp44.tik
+	break
+
+case "panzerschrek":
+	//*** added on 7-18-2001
+	//*** yes the .tik file is named incorrectly, but I didn't change it because
+	//*** code is probably relying on it somewhere with the current spelling
+	local.name = models/weapons/panzerschreck.tik
+	break
+
+case "mg42":
+	//*** added on 7-18-2001
+	local.name = models/weapons/mp40.tik
+	break
+
+case "none":
+case "":
+	local.name = ""
+	break
+
+default:
+	//*** modified on 7-18-2001
+	//*** the remmed out next line is the original line
+	//self weapon_internal models/weapons/kar98.tik
+	//*************************************************
+	local.name = ""
+	println "^~^~^ weapon '" local.name "' is not handled in weapon.scr... setting to none!!"
+	break
+}
+self weapon_internal local.name

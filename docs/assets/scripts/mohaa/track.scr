@@ -1,0 +1,5 @@
+// parameters:
+// local.target - target aiming at (can be anything which has an origin)
+
+start local.target:
+self aimat local.target
