@@ -1,0 +1,44 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/SC_AL_US_INF	          // Set path to set skelmodel from
+	skelmodel sc_al_us_inf.skd		// Set body model
+
+	surface Sc_Al_US_Inf_Pants shader Sc_AL_US_Inf_Pants
+	surface Sc_Al_US_Inf_Tunic shader Sc_AL_US_Inf_Tunic
+
+	path models/human/heads
+	skelmodel AL_US_MaskHead.skd
+	surface AL_US_MaskHead   shader AL_US_MaskHead
+	surface AL_US_Mask       shader AL_US_Mask
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// GEAR
+	// =======================================================
+	path models/equipment/USGear
+	skelmodel SC_AL_US_INF_GEAR.skd
+	surface Sc_Al_US_Inf_gear shader SC_AL_US_INF_GEAR
+
+	// HELMET
+	// =======================================================
+	path models/equipment/USGear/helmets
+	skelmodel us_helmet.skd
+	surface us_helmet shader SC_AL_US_Inf_Helm
+
+}
+
+init
+{
+	server
+	{
+		voicetype allied // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

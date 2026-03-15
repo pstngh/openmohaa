@@ -1,0 +1,46 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/SC_AX_ITAL_PARA	          // Set path to set skelmodel from
+	skelmodel SC_AX_ITAL_PARA.skd		// Set body model
+
+        surface tunic   shader SC_AX_ITAL_PARA_tunic
+        surface pants   shader SC_AX_ITAL_PARA_pant
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader us_j
+        //$include models/human/heads/it_young_heads.tik
+	
+        // HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// HELMET
+	// =======================================================
+	path models/equipment/ItalianGear
+	skelmodel SC_AX_ITAL_PARA_HELMET.skd
+	surface helmet shader SC_AX_ITAL_PARA_HELMET
+}
+
+$define pulloutdir sound/weapons/pullout
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype italian // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,70 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Bazooka Anims
+	//========================
+	bazooka_idle1	 	viewmodel/bazooka/pose_bazooka.skc		crossblend 0.2		weight 1.0
+	bazooka_disabled 	viewmodel/bazooka/lowered_bazooka.skc		crossblend 0.2
+	bazooka_fire		viewmodel/bazooka/fire_bazooka.skc		crossblend 0.05
+	bazooka_reload		viewmodel/bazooka/reload_bazooka.skc		crossblend 0.05
+	bazooka_pullout		viewmodel/bazooka/pullout_bazooka.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_pullout
+		}
+	}
+	bazooka_putaway		viewmodel/bazooka/putaway_bazooka.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_putaway
+		}
+	}
+
+	//========================
+	// Panzerschreck Anims
+	//========================
+	panzerschreck_idle1	viewmodel/bazooka/pose_panzershrek.skc		crossblend 0.2		weight 1.0
+	panzerschreck_disabled 	viewmodel/bazooka/lowered_bazooka.skc		crossblend 0.2
+	panzerschreck_fire	viewmodel/bazooka/fire_panzershrek.skc		crossblend 0.05
+	panzerschreck_reload	viewmodel/bazooka/panzer_reload.skc		crossblend 0.05
+	panzerschreck_pullout	viewmodel/bazooka/pullout_panzershrek.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_pullout
+		}
+	}
+	panzerschreck_putaway	viewmodel/bazooka/putaway_panzershrek.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_putaway
+		}
+	}
+	//========================
+	// PIAT Anims
+	//========================
+        piat_idle       	viewmodel/piat/a_w_piat_idle_fps.skc		
+	piat_disabled 		viewmodel/piat/a_w_piat_idle_fps.skc		
+	piat_fire		viewmodel/piat/a_w_piat_fire_fps.skc		
+//	piat_fire_secondary	viewmodel/piat/a_w_piat_fire_fps.skc		
+	piat_reload		viewmodel/piat/a_w_piat_load_fps.skc	
+	piat_pullout		viewmodel/piat/a_w_piat_pullout_fps.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_pullout
+		}
+	}
+	piat_putaway		viewmodel/piat/a_w_piat_putaway_fps.skc
+	{
+		client
+		{
+			enter sound snd_bazooka_putaway
+		}
+	}
+}

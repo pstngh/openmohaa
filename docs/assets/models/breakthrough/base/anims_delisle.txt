@@ -1,0 +1,202 @@
+animations
+{
+	$path models/human/animation
+
+	//===========================
+	// Reload Delisle (yet another bolt action rifle, but this one's really cool)
+	//===========================
+
+	delisle_reload		viewmodel/delisle/a_w_delisle_reload.skc		//crossblend 0.05
+	{
+		server
+		{
+           //frames are 22, 53, ammo at 112
+			first 	reloadweapon
+			first	weaponcommand mainhand attachtohand mainhand								 
+			70	weaponcommand mainhand attachtohand offhand
+			last	weaponcommand mainhand clip_fill
+			last 	weaponcommand mainhand attachtohand mainhand	
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	delisle_stand_walk_fwd			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_curious_walk_forward.skc		
+	delisle_stand_walk_back			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_curious_walk_backwards.skc		
+	delisle_stand_walk_left			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_curious_walk_left.skc			
+	delisle_stand_walk_right		viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_curious_walk_right.skc			
+
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	delisle_stand_run_fwd			viewmodel/delisle/a_w_delisle_idle.skc //weapon_rifle/walks_runs/rifle_jog.skc			autosteps_run
+	delisle_stand_run_back			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_jog_back.skc			autosteps_run
+	delisle_stand_run_left			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_run_left.skc			autosteps_run
+	delisle_stand_run_right			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_run_right.skc			autosteps_run
+
+	//========================
+	// Standing
+	//========================
+
+	delisle_stand_idle	 		viewmodel/delisle/a_w_delisle_idle.skc			//crossblend 0.2		
+
+	//========================
+	// Crouching
+	//========================
+	delisle_crouch_idle			viewmodel/delisle/a_w_delisle_idle.skc //weapon_rifle/crouch/rifle_crouch.skc			crossblend 0.2
+	delisle_crouch_walk_fwd			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouch_walk_forwards.skc		crossblend 0.1 
+	delisle_crouch_walk_back		viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouch_walk_back.skc		crossblend 0.1 
+	delisle_crouch_walk_left		viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouch_walk_left.skc		crossblend 0.1 
+	delisle_crouch_walk_right		viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouch_walk_right.skc		crossblend 0.1 
+
+	delisle_crouch_run_fwd			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	delisle_crouch_run_back			viewmodel/delisle/a_w_delisle_idle.skc //multiplayer/mp_rifle_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	delisle_crouch_run_left			viewmodel/delisle/a_w_delisle_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_left.skc	crossblend 0.1 autosteps_run
+	delisle_crouch_run_right		viewmodel/delisle/a_w_delisle_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_right.skc	crossblend 0.1 autosteps_run
+	
+	//========================
+	// Delisle Firing
+	//========================
+	delisle_butt				viewmodel/delisle/a_w_delisle_butt.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+	delisle_stand_fire			viewmodel/delisle/a_w_delisle_fire.skc		//crossblend 0.05	
+	{
+		server
+		{	
+			entry weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			entry fire
+			
+			}
+	}
+
+	delisle_stand_run_fire			viewmodel/delisle/a_w_delisle_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			entry fire
+
+		}
+	}
+
+	delisle_stand_walk_fire			viewmodel/delisle/a_w_delisle_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			entry fire
+			
+		}
+	}
+	delisle_crouch_fire			viewmodel/delisle/a_w_delisle_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			entry fire
+			
+		}
+	}
+	delisle_crouch_run_fire			viewmodel/delisle/a_w_delisle_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			entry fire
+			
+		}
+	}
+
+
+	//===========================
+	// Delisle Rechambering
+	//===========================
+
+	delisle_stand_rechamber			viewmodel/delisle/a_w_delisle_rechamber.skc		//crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			entry weaponcommand mainhand attachtohand offhand
+			last weaponcommand mainhand attachtohand mainhand		// attach the weapon back to the right hand
+			last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+	delisle_crouch_rechamber		viewmodel/delisle/a_w_delisle_rechamber.skc		//crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			entry weaponcommand mainhand attachtohand offhand
+			35 weaponcommand mainhand attachtohand mainhand		// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+
+	//========================
+	// Raise Animations
+	//========================
+	delisle_stand_raise			viewmodel/delisle/a_w_delisle_pullout.skc
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	delisle_crouch_raise			viewmodel/delisle/a_w_delisle_pullout.skc
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	delisle_stand_lower			viewmodel/delisle/a_w_delisle_putaway.skc
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	delisle_crouch_lower			viewmodel/delisle/a_w_delisle_putaway.skc
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+}

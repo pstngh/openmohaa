@@ -1,0 +1,232 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload 
+	//========================
+	mp40_reload		viewmodel/MP40/reload_mp40_stand.skc	crossblend 0.3
+	{
+		server
+		{
+			first reloadweapon													// tell the weapon that we're reloading
+			10	attachmodel models/ammo/mp40_clip.tik tag_weapon_left			// put the ammo clip in the left hand
+			48	removeattachedmodel tag_weapon_left 0 models/ammo/mp40_clip.tik	// remove the clip model from the left hand
+			64	weaponcommand mainhand clip_fill								// put the clip ammo into the gun
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	mp40_stand_walk_fwd		multiplayer/mp_rifle_curious_walk_forward.skc		//autosteps_walk		
+	mp40_stand_walk_back		multiplayer/mp_rifle_curious_walk_backwards.skc		//autosteps_walk
+	mp40_stand_walk_left		multiplayer/mp_rifle_curious_walk_left.skc		//autosteps_walk
+	mp40_stand_walk_right		multiplayer/mp_rifle_curious_walk_right.skc		//autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	mp40_stand_run_fwd		weapon_rifle/walks_runs/rifle_jog.skc		autosteps_run
+	mp40_stand_run_back		multiplayer/mp_rifle_jog_back.skc			autosteps_run
+	mp40_stand_run_left		multiplayer/mp_rifle_run_left.skc		autosteps_run
+	mp40_stand_run_right		multiplayer/mp_rifle_run_right.skc		autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	
+	mp40_stand_idle	 		multiplayer/mp_rifle_stand_curious.skc			crossblend 0.2	
+	
+	//========================
+	// Crouching
+	//========================
+	mp40_crouch_idle		weapon_rifle/crouch/rifle_crouch.skc		crossblend 0.2
+	mp40_crouch_walk_fwd		viewmodel/mp40/walk_mp40_crouch.skc		crossblend 0.2 //autosteps_walk
+	mp40_crouch_walk_back		multiplayer/mp_rifle_crouch_walk_back.skc	crossblend 0.2 //autosteps_walk
+	mp40_crouch_walk_left		multiplayer/mp_rifle_crouch_walk_left.skc	crossblend 0.2 //autosteps_walk
+	mp40_crouch_walk_right  	multiplayer/mp_rifle_crouch_walk_right.skc	crossblend 0.2 //autosteps_walk
+
+	mp40_crouch_run_fwd		multiplayer/mp_rifle_crouchrun.skc		crossblend 0.1 autosteps_run
+	mp40_crouch_run_back	viewmodel/mp40/run_mp40_crouch.skc		crossblend 0.1 autosteps_run
+	mp40_crouch_run_left	weapon_rifle/walks_runs/rifle_crouchrun_left.skc		crossblend 0.1 autosteps_run
+	mp40_crouch_run_right	weapon_rifle/walks_runs/rifle_crouchrun_right.skc		crossblend 0.1 autosteps_run
+
+	//========================
+	// smg Firing
+	//========================
+
+	mp40_butt		weapon_thompson/misc/thompson_butt_stand.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+
+	mp40_stand_fire		viewmodel/mp40/mp40_stand_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp40_stand_run_fire	viewmodel/mp40/firerun_mp40_stand.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp40_stand_walk_fire	viewmodel/mp40/mp40_stand_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp40_crouch_fire		viewmodel/mp40/mp40_stand_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp40_crouch_run_fire	viewmodel/mp40/firerun_mp40_stand.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Raise Animations for thompson
+	//========================
+	mp40_stand_raise		viewmodel/mp40/raise_mp40_stand.skc
+	{
+		server
+		{
+//			first activatenewweapon tommyhand // Tommyhand is currently not used
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	mp40_crouch_raise		viewmodel/mp40/raise_mp40_stand.skc
+	{
+		server
+		{
+//			first activatenewweapon tommyhand // Tommyhand is currently not used
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+
+	$path models/human/protoanimations
+
+	mp40_stand_lower			lower_rifle_standplayer.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	mp40_crouch_lower			lower_rifle_standplayer.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+	mp40_jump_takeoff			jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mp40_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mp40_fall				jump_stretch_loop.skc			crossblend 0.2
+	mp40_land				jump_land.skc					crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	mp40_land_hard			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	mp40_stand_hit_head			weapon_mp40/minor_pain/mp40_stand_hit_head.skc				autosteps_walk		
+	mp40_stand_hit_uppertorso01		weapon_mp40/minor_pain/mp40_stand_hit_head.skc			random	autosteps_walk
+	mp40_stand_hit_uppertorso02		weapon_mp40/minor_pain/mp40_stand_hit_torso.skc 		random	autosteps_walk
+	mp40_stand_hit_lowertorso		weapon_mp40/minor_pain/mp40_stand_hit_lowertorso.skc			autosteps_walk
+	mp40_stand_hit_back			weapon_mp40/minor_pain/mp40_stand_hit_lowerback.skc			autosteps_walk
+	mp40_stand_hit_rarm			weapon_mp40/minor_pain/mp40_stand_hit_rarm.skc				autosteps_walk
+	mp40_stand_hit_larm			weapon_mp40/minor_pain/mp40_stand_hit_head.skc				autosteps_walk
+	mp40_stand_hit_leg			weapon_mp40/minor_pain/mp40_stand_hit_leg.skc				autosteps_walk
+		
+	//Crouch//
+	mp40_crouch_hit_head			weapon_mp40/minor_pain/mp40_crouch_hit_head.skc				autosteps_walk
+	mp40_crouch_hit_uppertorso01		weapon_mp40/minor_pain/mp40_crouch_hit_torso.skc		random	autosteps_walk
+	mp40_crouch_hit_uppertorso02		weapon_mp40/minor_pain/mp40_crouch_hit_front.skc		random	autosteps_walk
+	mp40_crouch_hit_lowertorso		weapon_mp40/minor_pain/mp40_crouch_hit_torso.skc			autosteps_walk
+	mp40_crouch_hit_back			weapon_mp40/minor_pain/mp40_crouch_hit_torso.skc			autosteps_walk
+	mp40_crouch_hit_rarm			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+	mp40_crouch_hit_larm			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+	mp40_crouch_hit_leg			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+}

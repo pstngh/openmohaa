@@ -1,0 +1,38 @@
+TIKI
+setup
+{
+	scale 0.52
+
+	path models/human/german_wehrmact_officer
+	skelmodel german_officer.skd
+
+	surface tunic shader soviet_infantry_tunic
+	surface pants shader soviet_infantry_pants
+	surface tunic_c shader soviet_infantry_tunic_c
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader dominik
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// GEAR
+	// =======================================================
+
+	// HELMET
+	// =======================================================
+}
+
+init
+{
+	server
+	{
+		voicetype russian
+	}
+}
+
+$include models/player/base/include.txt

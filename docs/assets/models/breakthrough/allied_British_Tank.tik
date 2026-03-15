@@ -1,0 +1,37 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/SC_AL_Brit_INF	
+	skelmodel sc_al_brit_inf.skd	
+
+	surface Sc_Al_brit_Inf__Pants shader Sc_AL_brit_Inf_Pants
+	surface Sc_Al_brit_Inf__Tunic shader Sc_AL_brit_Inf_Tunic
+
+	path models/human/heads
+	skelmodel head2.skd
+	surface head shader old_dog
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// HELMET
+	// =======================================================
+	path models/equipment/britgear
+	skelmodel SC_AL_BRIT_TankHat.skd
+	surface BritTankHat shader SC_AL_BRIT_TankHat
+
+}
+
+init
+{
+	server
+	{
+		voicetype british // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

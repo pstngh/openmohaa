@@ -1,0 +1,15 @@
+TIKI
+setup
+{
+	path models/player/US_Army
+	skelmodel USarmyplyr.skd
+	
+	surface viewsleeves shader viewsleeves_us_army_101st
+	surface triggerhand shader handviewAfricanAm 
+	surface lefthand shader handviewAfricanAm
+	surface garandhand shader handviewAfricanAm
+}
+
+$define pulloutdir sound/weapons/pullout
+
+$include models/player/base/include_fps.txt

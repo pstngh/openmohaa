@@ -1,0 +1,21 @@
+TIKI
+setup
+{
+	path models/player/US_Army	// Set path to set skelmodel from
+	skelmodel USarmyplyr.skd		// Set base model
+
+	 
+	
+	surface viewsleeves shader viewsleeves_dak
+
+	// right hand
+	surface triggerhand shader handview 
+	
+	// different left hands
+	surface lefthand shader handview
+	surface garandhand shader handview
+}
+
+$define pulloutdir sound/weapons/pullout
+
+$include models/player/base/include_fps.txt

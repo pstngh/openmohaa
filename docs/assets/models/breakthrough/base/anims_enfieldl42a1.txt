@@ -1,0 +1,252 @@
+animations
+{
+	$path models/human/animation
+
+	//===========================
+	// Reload Enfield L42A1
+	//===========================
+
+	enfieldl42a1_reload		viewmodel/enfieldsniper/A_W_enfieldsniper_reload.skc			// crossblend 0.05
+	{
+		server
+		{
+
+			first reloadweapon									// tell the weapon that we're reloading
+			//first weaponcommand mainhand attachtohand mainhand
+			30	attachmodel models/weapons/Uk_W_L42A1_clip.tik tag_weapon_left			// attach the clip to the right hand
+			62	removeattachedmodel tag_weapon_left 0 models/weapons/Uk_W_L42A1_clip.tik	// remove the 2nd clip model from the right hand
+			90	weaponcommand mainhand attachtohand offhand					// attach the weapon to the left hand
+			114	weaponcommand mainhand clip_fill						// put the clip ammo into the gun
+			last	weaponcommand mainhand attachtohand mainhand					// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	enfieldl42a1_stand_walk_fwd		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_curious_walk_forward.skc		
+	enfieldl42a1_stand_walk_back		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_curious_walk_backwards.skc		
+	enfieldl42a1_stand_walk_left		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_curious_walk_left.skc			
+	enfieldl42a1_stand_walk_right		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_curious_walk_right.skc			
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	enfieldl42a1_stand_run_fwd		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // weapon_rifle/walks_runs/rifle_jog.skc			autosteps_run
+	enfieldl42a1_stand_run_back		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_jog_back.skc			autosteps_run
+	enfieldl42a1_stand_run_left		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_run_left.skc			autosteps_run
+	enfieldl42a1_stand_run_right		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc // multiplayer/mp_rifle_run_right.skc			autosteps_run
+
+	//========================
+	// Standing
+	//========================
+
+	enfieldl42a1_stand_idle	 		multiplayer/mp_rifle_stand_curious.skc			// crossblend 0.2
+
+	//========================
+	// Rechamber
+	//========================
+
+	enfieldl42a1_stand_rechamber		viewmodel/enfieldsniper/A_W_enfieldsniper_rechamber.skc		crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			entry weaponcommand mainhand attachtohand offhand		// attach the weapon to the left
+			34 weaponcommand mainhand attachtohand mainhand		// attach the weapon back to the right hand
+			//last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+	enfieldl42a1_crouch_rechamber		viewmodel/enfieldsniper/A_W_enfieldsniper_rechamber.skc	crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			entry weaponcommand mainhand attachtohand offhand		// attach the weapon to the left
+			34 weaponcommand mainhand attachtohand mainhand		// attach teh weapon back to the right hand
+			//last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}		
+	
+	//========================
+	// Crouching
+	//========================
+	enfieldl42a1_crouch_idle		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //weapon_rifle/crouch/rifle_crouch.skc			//crossblend 0.2
+	enfieldl42a1_crouch_walk_fwd		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouch_walk_forwards.skc		//crossblend 0.1 
+	enfieldl42a1_crouch_walk_back		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouch_walk_back.skc		//crossblend 0.1 
+	enfieldl42a1_crouch_walk_left		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouch_walk_left.skc		//crossblend 0.1 
+	enfieldl42a1_crouch_walk_right		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouch_walk_right.skc		//crossblend 0.1 
+
+	enfieldl42a1_crouch_run_fwd		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouchrun.skc			//crossblend 0.1 autosteps_run
+	enfieldl42a1_crouch_run_back		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //multiplayer/mp_rifle_crouch_run_backwards.skc		//crossblend 0.1 autosteps_run
+	enfieldl42a1_crouch_run_left		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_left.skc	//crossblend 0.1 autosteps_run
+	enfieldl42a1_crouch_run_right		viewmodel/enfieldsniper/A_W_enfieldsniper_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_right.skc	//crossblend 0.1 autosteps_run
+		
+	//========================
+	// Rifle Firing
+	//========================//
+	enfieldl42a1_stand_fire			viewmodel/enfieldsniper/A_W_enfieldsniper_fire.skc	// crossblend 0.05	
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	
+	enfieldl42a1_stand_run_fire		viewmodel/enfieldsniper/A_W_enfieldsniper_fire.skc	// crossblend 0.05	
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/animation
+
+	enfieldl42a1_stand_walk_fire		viewmodel/enfieldsniper/A_W_enfieldsniper_fire.skc	// crossblend 0.05
+	{
+		server
+		{
+			entry fire
+
+		}
+	}
+	enfieldl42a1_crouch_fire		viewmodel/enfieldsniper/A_W_enfieldsniper_fire.skc	// crossblend 0.05
+	{
+		server
+		{
+			entry fire
+
+		}
+	}
+	enfieldl42a1_crouch_run_fire		viewmodel/enfieldsniper/A_W_enfieldsniper_fire.skc	// crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	//========================
+	// Raise Animations
+	//========================
+	enfieldl42a1_stand_raise		viewmodel/enfieldsniper/A_W_enfieldsniper_pullout.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	enfieldl42a1_crouch_raise		viewmodel/enfieldsniper/A_W_enfieldsniper_pullout.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	enfieldl42a1_stand_lower		viewmodel/enfieldsniper/A_W_enfieldsniper_putaway.skc
+	{
+		server
+		{
+			18 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	enfieldl42a1_crouch_lower		viewmodel/enfieldsniper/A_W_enfieldsniper_putaway.skc
+	{
+		server
+		{
+			10 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+	rifle_jump_takeoff		viewmodel/rifle/jump_rifle_start.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	rifle_jump_run_takeoff		viewmodel/rifle/jump_rifle_start.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	rifle_fall			viewmodel/rifle/jump_rifle_loop.skc		crossblend 0.2
+	rifle_land			viewmodel/rifle/jump_rifle_end.skc		crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	rifle_land_hard			viewmodel/rifle/jump_rifle_end.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	//----------------
+	// PAIN ANIMATIONS
+	//----------------
+	$path models/human/animation
+
+	//Stand//
+	rifle_stand_hit_head01		weapon_rifle/minor_pain/rifle_stand_hit_head.skc		random	autosteps_walk
+	rifle_stand_hit_head02		weapon_rifle/minor_pain/rifle_stand_hit_head01.skc		random	autosteps_walk
+	rifle_stand_hit_uppertorso	weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_lowertorso	weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_back		weapon_rifle/minor_pain/rifle_stand_hit_lower_back.skc			autosteps_walk
+	rifle_stand_hit_rarm		weapon_rifle/minor_pain/rifle_stand_hit_Rshoulder.skc			autosteps_walk
+	//rifle_stand_hit_rarm02	weapon_rifle/major_pain/riflep_stand_rarm.skc			random	autosteps_walk
+	rifle_stand_hit_larm		weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_leg		weapon_rifle/minor_pain/rifle_stand_hit_leg.skc				autosteps_walk
+
+	//Crouch//
+	rifle_crouch_hit_head		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	rifle_crouch_hit_uppertorso01	weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso02	weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso03	weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso04	weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	rifle_crouch_hit_lowertorso01	weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	rifle_crouch_hit_lowertorso02	weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	rifle_crouch_hit_lowertorso03	weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	rifle_crouch_hit_back		weapon_rifle/minor_pain/rifle_crouch_hit_back.skc			autosteps_walk
+	rifle_crouch_hit_rarm01		weapon_rifle/minor_pain/rifle_crouch_hit_Rshoulder.skc		random	autosteps_walk
+	rifle_crouch_hit_rarm02		weapon_rifle/minor_pain/rifle_crouch_hit_rarm.skc		random	autosteps_walk
+	rifle_crouch_hit_larm		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	rifle_crouch_hit_leg		weapon_rifle/minor_pain/rifle_crouch_hit_front.skc			autosteps_walk
+}

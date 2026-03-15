@@ -1,0 +1,165 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload 
+	//========================
+	breda_reload		viewmodel/breda/A_W_Breda_reload.skc	//crossblend 0.3
+	{
+		server
+		{
+			first reloadweapon															
+			entry	weaponcommand mainhand attachtohand offhand
+			132	weaponcommand mainhand clip_fill
+			last	weaponcommand mainhand attachtohand mainhand			
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	breda_stand_walk_fwd		multiplayer/mp_bar_walk_forward.skc		deltadriven crossblend 0.2  
+	breda_stand_walk_back		multiplayer/mp_bar_walk_backwards.skc		deltadriven crossblend 0.2  
+	breda_stand_walk_left		multiplayer/mp_bar_walk_left.skc		deltadriven crossblend 0.2  
+	breda_stand_walk_right		multiplayer/mp_bar_walk_right.skc		deltadriven crossblend 0.2 
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+
+	breda_stand_run_fwd		multiplayer/mp_bar_run_forward.skc		deltadriven crossblend 0.2 autosteps_run
+	breda_stand_run_back		multiplayer/mp_bar_run_backwards.skc		deltadriven crossblend 0.2 autosteps_run
+	breda_stand_run_left		multiplayer/mp_bar_run_left.skc			deltadriven crossblend 0.2 autosteps_run
+	breda_stand_run_right		multiplayer/mp_bar_run_right.skc		deltadriven crossblend 0.2 autosteps_run
+	
+	//========================
+	// Standing
+	//========================
+
+	breda_stand_idle	 	viewmodel/breda/A_W_Breda_idle.skc // multiplayer/mp_bar_stand_alert.skc	        crossblend 0.2	
+
+	//========================
+	// Crouching
+	//========================
+	breda_crouch_idle		multiplayer/mp_bar_crouch_idle.skc				crossblend 0.2
+	breda_crouch_walk_fwd		multiplayer/mp_rifle_crouch_walk_forwards.skc			crossblend 0.2 
+	breda_crouch_walk_back		multiplayer/mp_bar_crouch_walk_backwards.skc	        	crossblend 0.2 
+	breda_crouch_walk_left		multiplayer/mp_rifle_crouch_walk_left.skc			crossblend 0.2 
+	breda_crouch_walk_right		multiplayer/mp_rifle_crouch_walk_right.skc			crossblend 0.2 
+
+	breda_crouch_run_fwd		multiplayer/mp_bar_crouch_run_forward.skc			crossblend 0.1 autosteps_run
+	breda_crouch_run_back		multiplayer/mp_bar_crouch_run_backwards.skc			crossblend 0.1 autosteps_run
+	breda_crouch_run_left		multiplayer/mp_bar_crouch_run_left.skc				crossblend 0.1 autosteps_run
+	breda_crouch_run_right		multiplayer/mp_bar_crouch_run_right.skc				crossblend 0.1 autosteps_run
+
+	//========================
+	// mg Firing
+	//========================
+
+	breda_butt			weapon_bar/misc/bar_butt_stand.skc		
+	{
+		server
+		{			
+			last fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+
+	breda_stand_fire		viewmodel/breda/A_W_Breda_fire.skc // viewmodel/mg/tps_barfire_idle.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/protoanimations
+
+	breda_stand_run_fire		fire_rifle_trot.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/animation
+
+	breda_stand_walk_fire		viewmodel/breda/A_W_Breda_fire.skc // viewmodel/mg/tps_barfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	breda_crouch_fire		viewmodel/breda/A_W_Breda_fire.skc // viewmodel/mg/tps_barfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	breda_crouch_run_fire		viewmodel/breda/A_W_Breda_fire.skc // viewmodel/mg/crouch_runfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Raise Animations for thompson
+	//========================
+	breda_stand_raise		viewmodel/breda/A_W_Breda_pullout.skc // viewmodel/mg/takeout_bar.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound bar_snd_pullout
+		}
+	}
+	breda_crouch_raise		viewmodel/breda/A_W_Breda_pullout.skc // viewmodel/mg/takeout_bar.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound bar_snd_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	breda_stand_lower		viewmodel/mg/putaway_bar.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound bar_snd_putaway
+		}
+	}
+	breda_crouch_lower		viewmodel/mg/putaway_bar.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound bar_snd_putaway
+		}
+	}
+}

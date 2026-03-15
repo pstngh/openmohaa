@@ -1,0 +1,44 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/SC_Al_US_pilot	// Set path to set skelmodel from
+	skelmodel SC_Al_US_pilot.skd		// Set body model
+
+	surface Sc_Al_US_Pilot_Pants     shader Sc_AL_US_Pilot_Pants
+	surface Sc_Al_US_Pilot_Tunic     shader Sc_AL_US_Tank_Tunic
+
+	path models/human/heads
+	skelmodel head3.skd
+	surface head shader atank
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// GEAR
+	// =======================================================
+	path models/equipment/USGear
+	skelmodel SC_AL_US_INF_GEAR.skd
+	surface Sc_Al_US_Inf_gear shader SC_AL_US_INF_GEAR
+
+
+	// HELMET
+	// =======================================================
+	path models/equipment/USGear
+	skelmodel AL_US_TankHat.skd
+	surface lambert8 shader AL_US_TankHat
+
+}
+
+init
+{
+	server
+	{
+		voicetype allied // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

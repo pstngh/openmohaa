@@ -1,0 +1,237 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload bazooka
+	//========================
+	bazooka_reload		viewmodel/bazooka/tps_reload_bazooka.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon															// tell the weapon that we're reloading
+			17	weaponcommand mainhand attachtohand offhand								// attach the weapon to the left hand
+			37	attachmodel models/ammo/bazooka_shell.tik tag_weapon_right				// put the ammo clip in the right hand
+			92	weaponcommand mainhand clip_fill										// put the clip ammo into the gun
+			93	removeattachedmodel tag_weapon_right 0 models/ammo/bazooka_shell.tik	// remove the clip model from the right hand
+			107	weaponcommand mainhand attachtohand mainhand							// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Reload Panzerschreck
+	//========================
+	panzerschreck_reload		viewmodel/bazooka/panzer_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon														// tell the weapon that we're reloading
+			17	weaponcommand mainhand attachtohand offhand							// attach the weapon to the left hand
+			45	attachmodel models/ammo/panzer_shell.tik tag_weapon_right			// put the ammo clip in the right hand
+			67	weaponcommand mainhand clip_fill									// put the clip ammo into the gun
+			68	removeattachedmodel tag_weapon_right 0 models/ammo/panzer_shell.tik	// remove the clip model from the right hand
+			99	weaponcommand mainhand attachtohand mainhand						// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	bazooka_stand_walk_fwd		multiplayer/mp_bazooka_walk_forward.skc		
+	bazooka_stand_walk_back		multiplayer/mp_bazooka_walk_backwards.skc	
+	bazooka_stand_walk_left		multiplayer/mp_bazooka_walk_left.skc		
+	bazooka_stand_walk_right	multiplayer/mp_bazooka_walk_right.skc	
+
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	bazooka_stand_run_fwd		multiplayer/mp_bazooka_run_forward.skc			autosteps_run
+	bazooka_stand_run_back		multiplayer/mp_bazooka_run_back.skc			autosteps_run
+	bazooka_stand_run_left		multiplayer/mp_bazooka_run_left.skc			autosteps_run
+	bazooka_stand_run_right		multiplayer/mp_bazooka_run_right.skc			autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	
+	bazooka_stand_idle	 	multiplayer/mp_bazooka_stand_idle.skc		
+	
+	//========================
+	// Crouching
+	//========================
+	bazooka_crouch_idle		multiplayer/mp_bazooka_crouch_bored.skc						crossblend 0.2
+	bazooka_crouch_walk_fwd		multiplayer/mp_bazooka_crouch_walk_forward.skc				//autosteps_run
+	bazooka_crouch_walk_back	multiplayer/mp_bazooka_crouch_walk_back.skc				//autosteps_run
+	bazooka_crouch_walk_left	multiplayer/mp_bazooka_crouch_walk_left.skc				//autosteps_run
+	bazooka_crouch_walk_right	multiplayer/mp_bazooka_crouch_walk_right.skc				//autosteps_run
+
+	bazooka_crouch_run_fwd		multiplayer/mp_bazooka_crouch_run.skc					autosteps_run
+	bazooka_crouch_run_back		multiplayer/mp_bazooka_crouch_run_back.skc				autosteps_run
+	bazooka_crouch_run_left		multiplayer/mp_bazooka_crouch_run_left.skc				autosteps_run
+	bazooka_crouch_run_right	multiplayer/mp_bazooka_crouch_run_right.skc				autosteps_run
+		
+	//========================
+	// Rifle Firing
+	//========================
+	bazooka_stand_fire		viewmodel/bazooka/fire_bazooka.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	bazooka_stand_run_fire		viewmodel/bazooka/fire_bazookarun.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/protoanimations
+
+	bazooka_stand_walk_fire	walk_player_rifle.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/animation
+
+	bazooka_crouch_fire		viewmodel/bazooka/fire_bazooka.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	bazooka_crouch_run_fire		viewmodel/bazooka/firecrouch_bazooka.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Raise Animations
+	//========================
+	bazooka_stand_raise		viewmodel/bazooka/pullout_bazooka.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_bazooka_pullout
+		}
+	}
+	bazooka_crouch_raise		viewmodel/bazooka/pullout_bazooka.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_bazooka_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	bazooka_stand_lower		viewmodel/bazooka/putaway_bazooka.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_bazooka_putaway
+		}
+	}
+	bazooka_crouch_lower	viewmodel/bazooka/putaway_bazooka.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_bazooka_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+	$path models/human/protoanimations
+
+	bazooka_jump_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	bazooka_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	bazooka_fall					jump_stretch_loop.skc	crossblend 0.2
+	bazooka_land					jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	bazooka_land_hard				jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+
+	
+	//----------------
+	// PAIN ANIMATIONS
+	//----------------
+	$path models/human/animation
+
+	//Stand// TEMPORARY!  Uses rifle animations
+	bazooka_stand_hit_head			weapon_rifle/minor_pain/rifle_stand_hit_head.skc	autosteps_walk
+	bazooka_stand_hit_uppertorso		weapon_rifle/minor_pain/rifle_stand_hit_torso.skc	autosteps_walk
+	bazooka_stand_hit_lowertorso		weapon_rifle/minor_pain/rifle_stand_hit_lower_back.skc	autosteps_walk
+	bazooka_stand_hit_back			weapon_rifle/minor_pain/rifle_stand_hit_lower_back.skc	autosteps_walk
+	bazooka_stand_hit_rarm			weapon_rifle/minor_pain/rifle_stand_hit_Rshoulder.skc	autosteps_walk
+	bazooka_stand_hit_larm			weapon_rifle/minor_pain/rifle_stand_hit_torso.skc	autosteps_walk
+	bazooka_stand_hit_leg			weapon_rifle/minor_pain/rifle_stand_hit_leg.skc		autosteps_walk
+
+	//Crouch //
+	bazooka_crouch_hit_head			weapon_bazooka/minor_pain/bazooka_crouch_hit_head.skc	autosteps_walk
+	bazooka_crouch_hit_uppertorso		weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+	bazooka_crouch_hit_lowertorso		weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+	bazooka_crouch_hit_back			weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+	bazooka_crouch_hit_rarm			weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+	bazooka_crouch_hit_larm			weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+	bazooka_crouch_hit_leg			weapon_bazooka/minor_pain/bazooka_crouch_pain.skc	autosteps_walk
+}

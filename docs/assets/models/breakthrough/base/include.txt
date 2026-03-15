@@ -1,0 +1,46 @@
+// Main include file for 3rd person player models
+setup
+{
+	scale 0.52	// Set default scale to 16/30.5 since world 
+				// is in 16 units per foot and model is in cm's
+
+	radius 20				// defines size of shadow
+
+	ischaracter
+}
+
+init
+{
+	server
+	{
+		setsize "-16 -16 0" "16 16 92"
+
+		american // recognised by AI as an American
+	}
+	client
+	{
+		// Cache sounds here
+	}
+}
+
+//
+// include the animation files for the player
+//
+
+// MOHAA server
+//case servertype 0
+//{
+// we don't support MOHAA servers
+//}
+
+// MOHAAS server
+includes spearheadserver
+{
+	$include models/player/base/include_SH.txt
+}
+
+// MOHAAB server
+includes breakthroughserver
+{
+	$include models/player/base/include_BT.txt
+}

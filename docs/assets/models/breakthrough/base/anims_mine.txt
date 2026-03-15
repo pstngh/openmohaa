@@ -1,0 +1,255 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload Grenade
+	//========================
+	mine_reload		viewmodel/Mine/A_W_Mine_pullout.skc
+	{
+		server
+		{
+			1	reloadweapon				// tell the weapon that we're reloading
+			2	weaponcommand mainhand clip_fill	// put the clip ammo into the gun
+		}
+		client
+		{
+			2       sound snd_grenade_pullout
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	mine_stand_walk_fwd			weapon_pistol/curious/pistol_walk_curious_forward.skc	//autosteps_walk
+	mine_stand_walk_back			weapon_pistol/curious/pistol_walk_curious_backward.skc	//autosteps_walk
+	mine_stand_walk_left			walks_runs/alertw_left.skc				//autosteps_walk
+	mine_stand_walk_right			walks_runs/alertw_right.skc				//autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	mine_stand_run_fwd			weapon_pistol/walks_runs/jog_pistol.skc		deltadriven crossblend 0.2 autosteps_run
+	mine_stand_run_back			weapon_pistol/walks_runs/jog_back_pistol.skc	deltadriven crossblend 0.2 autosteps_run
+	mine_stand_run_left			weapon_pistol/walks_runs/pistol_run_left.skc	deltadriven crossblend 0.2 autosteps_run
+	mine_stand_run_right			weapon_pistol/walks_runs/pistol_run_right.skc	deltadriven crossblend 0.2 autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	mine_stand_idle1			weapon_pistol/curious/pistol_stand_curious(basic_loop).skc	weight 1
+	mine_stand_idle2			weapon_pistol/curious/pistol_stand_curious(twitch).skc		weight 1 dontrepeate
+
+	//========================
+	// Crouching
+	//========================
+	mine_crouch_idle			weapon_pistol/idles/idle_crouch_pistol.skc		crossblend 0.2	
+	mine_crouch_walk_fwd			weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	mine_crouch_walk_back			weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	mine_crouch_walk_left			weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	mine_crouch_walk_right			weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	
+	mine_crouch_run_fwd			weapon_pistol/walks_runs/pistol_crouch_run.skc		crossblend 0.2 autosteps_run
+	mine_crouch_run_back			weapon_pistol/walks_runs/pistol_crouch_run.skc		crossblend 0.2 autosteps_run
+	mine_crouch_run_left			weapon_pistol/walks_runs/pistol_crouch_run_left.skc	crossblend 0.2 autosteps_run
+	mine_crouch_run_right			weapon_pistol/walks_runs/pistol_crouch_run_right.skc	crossblend 0.2 autosteps_run
+
+	//========================
+	// Grenade Firing (place)
+	//========================
+	mine_stand_charge			viewmodel/Mine/A_W_Mine_idle.skc // multiplayer/mp_grenade_charge.skc	crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary // 15 releasefire
+		}
+	}
+	mine_crouch_charge			viewmodel/Mine/A_W_Mine_idle.skc // multiplayer/mp_grenade_charge.skc	crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary // 15 releasefire
+		}
+	}
+
+	mine_stand_fire				viewmodel/Mine/A_W_Mine_lay.skc // multiplayer/mp_grenade_throw.skc	crossblend 0.05
+	{
+		server
+		{
+			first	weaponcommand mainhand movementspeed 0.01
+			15 releasefire
+			end	weaponcommand mainhand movementspeed 1.0
+		}
+	}
+	mine_crouch_fire			viewmodel/Mine/A_W_Mine_lay.skc // multiplayer/mp_grenade_throw.skc	crossblend 0.05
+	{
+		server
+		{
+			first	weaponcommand mainhand movementspeed 0.01
+			15 releasefire
+			end	weaponcommand mainhand movementspeed 1.0
+		}
+	}
+
+	//========================
+	// Non Charging Grenade Firing 
+	//========================
+	nebelhandgranate_stand_charge		multiplayer/mp_grenade_charge.skc			crossblend 0.15
+	{
+		server
+		{
+			first charge
+		}
+	}
+
+	//========================
+	// Grenade Secondary Firing (eventually the pick-up)
+	//========================
+	mine_stand_charge_secondary		viewmodel/Mine/A_W_Mine_idle.skc // multiplayer/mp_grenade_littlecharge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary
+		}
+	}
+	mine_crouch_charge_secondary		viewmodel/Mine/A_W_Mine_idle.skc // multiplayer/mp_grenade_littlecharge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary
+		}
+	}
+
+	mine_stand_fire_secondary		viewmodel/Mine/A_W_Mine_lay.skc // multiplayer/mp_grenade_littlethrow.skc		crossblend 0.05
+	{
+		server
+		{
+			first	weaponcommand mainhand movementspeed 0.01
+			15 releasefire mainhand secondary
+			end	weaponcommand mainhand movementspeed 1.0
+		}
+	}
+	mine_crouch_fire_secondary		viewmodel/Mine/A_W_Mine_lay.skc // multiplayer/mp_grenade_littlethrow.skc		crossblend 0.05
+	{
+		server
+		{
+			first	weaponcommand mainhand movementspeed 0.01
+			15 releasefire mainhand secondary
+			end	weaponcommand mainhand movementspeed 1.0
+		}
+	}
+
+	//========================
+	// Non Charging Grenade Secondary Firing 
+	//========================
+	
+	nebelhandgranate_stand_charge_secondary	multiplayer/mp_grenade_littlecharge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary
+		}
+	}
+
+
+	//========================
+	// Raise
+	//========================
+	mine_stand_raise			viewmodel/Mine/A_W_Mine_pullout.skc // viewmodel/steilhandgranate/grenade_pullout.skc		
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	mine_crouch_raise			viewmodel/Mine/A_W_Mine_pullout.skc // viewmodel/steilhandgranate/grenade_pullout.skc		
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	mine_stand_lower			viewmodel/steilhandgranate/grenade_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+	mine_crouch_lower			viewmodel/steilhandgranate/grenade_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// Jumping & Falling
+	//========================
+
+	$path models/human/protoanimations
+
+	steilhandgranate_jump_takeoff		jump_takeoff.skc		crossblend 0.05
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	steilhandgranate_jump_run_takeoff	jump_takeoff.skc		crossblend 0.05
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	steilhandgranate_fall				jump_stretch_loop.skc	crossblend 0.1
+	steilhandgranate_land				jump_land.skc			crossblend 0.05
+	{
+		client
+		{
+			first landing
+		}
+	}
+	steilhandgranate_land_hard			jump_land.skc			crossblend 0.05
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	// The regular grenade pain animations are used.
+}

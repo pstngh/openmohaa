@@ -1,0 +1,33 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/allied_british_tank_corporal
+	skelmodel brit_tank_corp.skd
+
+	surface handsnew shader handsnew_btc
+	//surface handsnew shader seaman_gloves
+	surface brit_tank_tunic shader brit_tank_tunic
+	surface brit_tank_pants shader brit_tank_pants
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader brit_tank_corp
+
+	// HELMET
+	// =======================================================
+	path models/human/gear/brit_tank_beret
+	skelmodel brit_tank_beret.skd
+	surface beret shader brit_tank_beret
+	surface goggles shader brit_tank_goggles
+}
+
+init
+{
+	server
+	{
+		voicetype british // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

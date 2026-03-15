@@ -1,0 +1,250 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload 
+	//========================
+	moschetto_reload		viewmodel/moschetto/A_W_MOD38ASMG_reload.skc	//crossblend 0.15
+	{
+		server
+		{
+                 // Frames were 33 and 51 at 30 fps
+			first reloadweapon								
+			16	attachmodel models/weapons/it_w_moschetto_clip.tik tag_weapon_left    
+			36	weaponcommand mainhand clip_fill					
+			36	removeattachedmodel tag_weapon_left 0 models/weapons/it_w_moschetto_clip.tik	
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	//moschetto_stand_walk_fwd		multiplayer/mp_rifle_curious_walk_forward.skc		//autosteps_walk		
+	//moschetto_stand_walk_back		multiplayer/mp_rifle_curious_walk_backwards.skc		//autosteps_walk
+	//moschetto_stand_walk_left		multiplayer/mp_rifle_curious_walk_left.skc		//autosteps_walk
+	//moschetto_stand_walk_right		multiplayer/mp_rifle_curious_walk_right.skc		//autosteps_walk
+
+	moschetto_stand_walk_fwd		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		//autosteps_walk		
+	moschetto_stand_walk_back		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		//autosteps_walk
+	moschetto_stand_walk_left		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		//autosteps_walk
+	moschetto_stand_walk_right		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		//autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	//moschetto_stand_run_fwd		weapon_rifle/walks_runs/rifle_jog.skc		autosteps_run
+	//moschetto_stand_run_back		multiplayer/mp_rifle_jog_back.skc		autosteps_run
+	//moschetto_stand_run_left		multiplayer/mp_rifle_run_left.skc		autosteps_run
+	//moschetto_stand_run_right		multiplayer/mp_rifle_run_right.skc		autosteps_run
+
+	moschetto_stand_run_fwd		        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		autosteps_run
+	moschetto_stand_run_back		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		autosteps_run
+	moschetto_stand_run_left		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		autosteps_run
+	moschetto_stand_run_right		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	
+	moschetto_stand_idle	 		multiplayer/mp_rifle_stand_curious.skc			crossblend 0.2	
+	
+	//========================
+	// Crouching
+	//========================
+	//moschetto_crouch_idle		        weapon_rifle/crouch/rifle_crouch.skc			crossblend 0.2
+	//moschetto_crouch_walk_fwd		viewmodel/mp40/walk_mp40_crouch.skc			crossblend 0.2 //autosteps_walk
+	//moschetto_crouch_walk_back		multiplayer/mp_rifle_crouch_walk_back.skc		crossblend 0.2 //autosteps_walk
+	//moschetto_crouch_walk_left		multiplayer/mp_rifle_crouch_walk_left.skc		crossblend 0.2 //autosteps_walk
+	//moschetto_crouch_walk_right  	        multiplayer/mp_rifle_crouch_walk_right.skc		crossblend 0.2 //autosteps_walk
+
+	//moschetto_crouch_run_fwd		multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	//moschetto_crouch_run_back	        viewmodel/mp40/run_mp40_crouch.skc			crossblend 0.1 autosteps_run
+	//moschetto_crouch_run_left	        weapon_rifle/walks_runs/rifle_crouchrun_left.skc	crossblend 0.1 autosteps_run
+	//moschetto_crouch_run_right	        weapon_rifle/walks_runs/rifle_crouchrun_right.skc	crossblend 0.1 autosteps_run
+
+	moschetto_crouch_idle		        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.2
+	moschetto_crouch_walk_fwd		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.2 //autosteps_walk
+	moschetto_crouch_walk_back		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.2 //autosteps_walk
+	moschetto_crouch_walk_left		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.2 //autosteps_walk
+	moschetto_crouch_walk_right  	        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.2 //autosteps_walk
+
+	moschetto_crouch_run_fwd		viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.1 autosteps_run
+	moschetto_crouch_run_back	        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.1 autosteps_run
+	moschetto_crouch_run_left	        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.1 autosteps_run
+	moschetto_crouch_run_right	        viewmodel/moschetto/A_W_MOD38ASMG_idle.skc		crossblend 0.1 autosteps_run
+
+	//========================
+	// smg Firing
+	//========================
+
+	moschetto_butt		viewmodel/moschetto/A_W_MOD38ASMG_butt.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+
+	moschetto_stand_fire		viewmodel/moschetto/A_W_MOD38ASMG_fire.skc	//crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	//moschetto_stand_run_fire	viewmodel/mp40/firerun_mp40_stand.skc		crossblend 0.05
+	moschetto_stand_run_fire	viewmodel/moschetto/A_W_MOD38ASMG_fire.skc	//crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	moschetto_stand_walk_fire	viewmodel/moschetto/A_W_MOD38ASMG_fire.skc	//crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	moschetto_crouch_fire		viewmodel/moschetto/A_W_MOD38ASMG_fire.skc	//crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	//moschetto_crouch_run_fire	viewmodel/mp40/firerun_mp40_stand.skc		crossblend 0.05
+	moschetto_crouch_run_fire	viewmodel/moschetto/A_W_MOD38ASMG_fire.skc	//crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//===============================
+	// Raise Animations for moschetto
+	//===============================
+	moschetto_stand_raise		viewmodel/moschetto/A_W_MOD38ASMG_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	moschetto_crouch_raise		viewmodel/moschetto/A_W_MOD38ASMG_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	moschetto_stand_lower			viewmodel/moschetto/A_W_MOD38ASMG_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	moschetto_crouch_lower			viewmodel/moschetto/A_W_MOD38ASMG_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+	$path models/human/protoanimations
+	moschetto_jump_takeoff			jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	moschetto_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	moschetto_fall				jump_stretch_loop.skc			crossblend 0.2
+	moschetto_land				jump_land.skc				crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	moschetto_land_hard			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	moschetto_stand_hit_head			weapon_mp40/minor_pain/mp40_stand_hit_head.skc				autosteps_walk		
+	moschetto_stand_hit_uppertorso01		weapon_mp40/minor_pain/mp40_stand_hit_head.skc			random	autosteps_walk
+	moschetto_stand_hit_uppertorso02		weapon_mp40/minor_pain/mp40_stand_hit_torso.skc 		random	autosteps_walk
+	moschetto_stand_hit_lowertorso		        weapon_mp40/minor_pain/mp40_stand_hit_lowertorso.skc			autosteps_walk
+	moschetto_stand_hit_back			weapon_mp40/minor_pain/mp40_stand_hit_lowerback.skc			autosteps_walk
+	moschetto_stand_hit_rarm			weapon_mp40/minor_pain/mp40_stand_hit_rarm.skc				autosteps_walk
+	moschetto_stand_hit_larm			weapon_mp40/minor_pain/mp40_stand_hit_head.skc				autosteps_walk
+	moschetto_stand_hit_leg			        weapon_mp40/minor_pain/mp40_stand_hit_leg.skc				autosteps_walk
+		
+	//Crouch//
+	moschetto_crouch_hit_head			weapon_mp40/minor_pain/mp40_crouch_hit_head.skc				autosteps_walk
+	moschetto_crouch_hit_uppertorso01		weapon_mp40/minor_pain/mp40_crouch_hit_torso.skc		random	autosteps_walk
+	moschetto_crouch_hit_uppertorso02		weapon_mp40/minor_pain/mp40_crouch_hit_front.skc		random	autosteps_walk
+	moschetto_crouch_hit_lowertorso		        weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+	moschetto_crouch_hit_back			weapon_mp40/minor_pain/mp40_crouch_hit_torso.skc			autosteps_walk
+	moschetto_crouch_hit_rarm			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+	moschetto_crouch_hit_larm			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+	moschetto_crouch_hit_leg			weapon_mp40/minor_pain/mp40_crouch_hit_front.skc			autosteps_walk
+}

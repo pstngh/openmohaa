@@ -1,0 +1,40 @@
+// Main include file for 3rd person player models in MOHAAB
+//
+// include the animation files for the player
+//
+$include models/player/base/anims_pistol.txt
+$include models/player/base/anims_rifle.txt
+$include models/player/base/anims_smg.txt
+$include models/player/base/anims_mg.txt
+$include models/player/base/anims_grenade.txt
+$include models/player/base/anims_steilhandgranate.txt
+$include models/player/base/anims_bazooka.txt
+$include models/player/base/anims_shotgun.txt
+$include models/player/base/anims_mp40.txt
+$include models/player/base/anims_mp44.txt
+$include models/player/base/anims_misc.txt
+// Team Assault
+$include models/player/base/anims_sten.txt
+$include models/player/base/anims_mg42.txt
+// Team Tatics
+$include models/player/base/anims_moschetto.txt
+$include models/player/base/anims_piat.txt
+$include models/player/base/anims_enfieldl42a1.txt
+$include models/player/base/anims_vickers.txt
+$include models/player/base/anims_beretta.txt
+$include models/player/base/anims_carcano.txt
+$include models/player/base/anims_bomba.txt
+$include models/player/base/anims_bombabreda.txt
+$include models/player/base/anims_breda.txt
+$include models/player/base/anims_mine.txt
+$include models/player/base/anims_minedetector.txt
+$include models/player/base/anims_minedetector_axis.txt
+$include models/player/base/anims_delisle.txt
+
+
+$include models/player/base/anims_shared.txt
+
+$include models/human/animation/scripted/multiplayer/liberation.tik
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,240 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Beretta
+	//========================
+
+	beretta_reload			viewmodel/beretta/A_W_MOD34Pistol_reload.skc	crossblend 0.0 //0.1
+	{
+		server
+		{
+                 //frames are 12, 32, ammo at 56
+			first reloadweapon
+                        0	attachmodel  models/ammo/It_W_Beretta_clip.tik tag_weapon_left			// always 0									 
+			last	weaponcommand mainhand clip_fill						// last frame
+			last	removeattachedmodel  tag_weapon_left 0 models/ammo/It_W_Beretta_clip.tik	// last frame
+
+	                
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	beretta_stand_walk_fwd		weapon_pistol/walks_runs/pistol_alert_walk_forward.skc			deltadriven	crossblend 0.2 
+	beretta_stand_walk_back		weapon_pistol/walks_runs/pistol_alert_walk_backwards.skc		deltadriven	crossblend 0.2 
+	beretta_stand_walk_left		weapon_pistol/walks_runs/pistol_alert_walk_left.skc			deltadriven	crossblend 0.2 
+	beretta_stand_walk_right	weapon_pistol/walks_runs/pistol_alert_walk_right.skc			deltadriven	crossblend 0.2 
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	beretta_stand_run_fwd		weapon_pistol/walks_runs/jog_pistol.skc				deltadriven	crossblend 0.2 autosteps_run
+	beretta_stand_run_back		weapon_pistol/walks_runs/pistol_run_back.skc			deltadriven	crossblend 0.2 autosteps_run
+	beretta_stand_run_left		weapon_pistol/walks_runs/pistol_run_left.skc			deltadriven	crossblend 0.2 autosteps_run
+	beretta_stand_run_right		weapon_pistol/walks_runs/pistol_run_right.skc			deltadriven	crossblend 0.2 autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	beretta_stand_idle1	 	weapon_pistol/curious/pistol_stand_curious(basic_loop).skc    weight 1  crossblend 0.2	weight 1.0
+        beretta_stand_idle2	 	weapon_pistol/curious/pistol_stand_curious(twitch).skc	      weight 1  dontrepeate
+
+	//========================
+	// Crouching
+	//========================
+	beretta_crouch_idle		weapon_pistol/pistol_crouch_idle.skc			crossblend 0.2
+	
+	beretta_crouch_walk_fwd		weapon_pistol/walks_runs/pistol_crouch_walk_forward.skc	 
+	beretta_crouch_walk_back	weapon_pistol/pistol_crouch_walk_backwards.skc		 
+	beretta_crouch_walk_left	weapon_pistol/walks_runs/pistol_crouch_walk_left.skc	 
+	beretta_crouch_walk_right	weapon_pistol/walks_runs/pistol_crouch_walk_right.skc	 
+
+	beretta_crouch_run_fwd		weapon_pistol/walks_runs/pistol_crouch_run.skc		crossblend 0.2 autosteps_run
+	beretta_crouch_run_back		weapon_pistol/walks_runs/pistol_crouch_run_back.skc	crossblend 0.2 autosteps_run
+	beretta_crouch_run_left		weapon_pistol/walks_runs/pistol_crouch_run_left.skc	crossblend 0.2 autosteps_run
+	beretta_crouch_run_right	weapon_pistol/walks_runs/pistol_crouch_run_right.skc	crossblend 0.2 autosteps_run
+		
+	//========================
+	// Pistol Firing
+	//========================
+	beretta_stand_fire		viewmodel/beretta/A_W_MOD34Pistol_fire.skc		crossblend 0.05	
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	beretta_stand_run_fire		viewmodel/beretta/A_W_MOD34Pistol_fire.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	beretta_crouch_fire		viewmodel/beretta/A_W_MOD34Pistol_fire.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	beretta_crouch_run_fire		viewmodel/beretta/A_W_MOD34Pistol_fire.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Pistol Whip
+	//========================
+	beretta_butt1				viewmodel/beretta/A_W_MOD34Pistol_butt.skc	random
+	{
+		server
+		{
+			//moved to match the animation
+			6 fire mainhand secondary
+
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+
+	//beretta_butt2				viewmodel/beretta/A_W_MOD34Pistol_butt.skc	random
+	//{
+	//	server
+	//	{
+	//		// moved to match the animation
+	//		6 fire mainhand secondary
+	//	}
+	//	client
+	//	{
+	//		entry sound pistol_whip // the swish sound. 
+	//	}
+	//}
+
+	//========================
+	// Raise
+	//========================
+	beretta_stand_raise		viewmodel/beretta/A_W_MOD34Pistol_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_pistol_pullout
+		}
+	}
+	beretta_crouch_raise		viewmodel/beretta/A_W_MOD34Pistol_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_pistol_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	beretta_stand_lower	viewmodel/beretta/A_W_MOD34Pistol_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_pistol_putaway
+		}
+	}
+	beretta_crouch_lower	viewmodel/beretta/A_W_MOD34Pistol_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_pistol_putaway
+		}
+	}
+
+	//========================
+	// Jumping & Falling
+	//========================
+	beretta_jump_takeoff			viewmodel/pistol/pistol_jump_start.skc		crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	beretta_jump_run_takeoff		viewmodel/pistol/pistol_jump_start.skc		crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	beretta_fall			viewmodel/pistol/pistol_jump_loop.skc		crossblend 0.2
+	beretta_land			viewmodel/pistol/pistol_jump_end.skc		crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	beretta_land_hard		viewmodel/pistol/pistol_jump_end.skc		crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	pistol_stand_hit_head			weapon_pistol/minor_pain/pistol_stand_hit_head.skc				autosteps_walk
+	pistol_stand_hit_uppertorso01		weapon_pistol/minor_pain/pistol_stand_hit_head.skc		random		autosteps_walk
+	pistol_stand_hit_uppertorso02		weapon_pistol/minor_pain/pistol_stand_hit_torso.skc		random		autosteps_walk
+	pistol_stand_hit_lowertorso		weapon_pistol/minor_pain/pistol_stand_hit_lowertorso.skc			autosteps_walk
+	pistol_stand_hit_back			weapon_pistol/minor_pain/pistol_stand_hit_lowerback.skc				autosteps_walk
+	pistol_stand_hit_rarm			weapon_pistol/minor_pain/pistol_stand_hit_rarm.skc				autosteps_walk
+	pistol_stand_hit_larm			weapon_pistol/minor_pain/pistol_stand_hit_head.skc				autosteps_walk
+	pistol_stand_hit_leg			weapon_pistol/minor_pain/pistol_stand_hit_leg.skc					autosteps_walk
+
+	//Crouch//
+	pistol_crouch_hit_head			weapon_pistol/minor_pain/pistol_crouch_hit_head.skc				autosteps_walk
+	pistol_crouch_hit_uppertorso01		weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc			random	autosteps_walk
+	pistol_crouch_hit_uppertorso02		weapon_pistol/minor_pain/pistol_crouch_hit_front.skc			random	autosteps_walk
+	pistol_crouch_hit_lowertorso		weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc				autosteps_walk
+	pistol_crouch_hit_back			weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc				autosteps_walk
+	pistol_crouch_hit_rarm			weapon_pistol/minor_pain/pistol_crouch_hit_front.skc				autosteps_walk
+	pistol_crouch_hit_larm			weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc				autosteps_walk
+	pistol_crouch_hit_leg			weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc				autosteps_walk
+}

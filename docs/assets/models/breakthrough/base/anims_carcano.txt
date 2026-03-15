@@ -1,0 +1,201 @@
+animations
+{
+	$path models/human/animation
+
+	//===========================
+	// Reload Carcano (yet another bolt action rifle)
+	//===========================
+
+	carcano_reload		viewmodel/carcano/a_w_carcano_reload.skc		//crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon									// tell the weapon that we're reloading
+			entry	weaponcommand mainhand attachtohand offhand					// attach the weapon to the left hand
+			0	attachmodel models/ammo/It_W_Carcano_clip.tik tag_weapon_right			// attach the 1st clip to the right hand	
+			87	weaponcommand mainhand clip_fill						// put the clip ammo into the gun
+			last	removeattachedmodel tag_weapon_right 0 models/ammo/It_W_Carcano_clip.tik	// remove the 1st clip model from the right hand
+			last	weaponcommand mainhand attachtohand mainhand					// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	carcano_stand_walk_fwd			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_curious_walk_forward.skc		
+	carcano_stand_walk_back			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_curious_walk_backwards.skc		
+	carcano_stand_walk_left			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_curious_walk_left.skc			
+	carcano_stand_walk_right		viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_curious_walk_right.skc			
+
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	carcano_stand_run_fwd			viewmodel/carcano/a_w_carcano_idle.skc //weapon_rifle/walks_runs/rifle_jog.skc			autosteps_run
+	carcano_stand_run_back			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_jog_back.skc			autosteps_run
+	carcano_stand_run_left			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_run_left.skc			autosteps_run
+	carcano_stand_run_right			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_run_right.skc			autosteps_run
+
+	//========================
+	// Standing
+	//========================
+
+	carcano_stand_idle	 		viewmodel/carcano/a_w_carcano_idle.skc			//crossblend 0.2		
+
+	//========================
+	// Crouching
+	//========================
+	carcano_crouch_idle			viewmodel/carcano/a_w_carcano_idle.skc //weapon_rifle/crouch/rifle_crouch.skc			crossblend 0.2
+	carcano_crouch_walk_fwd			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouch_walk_forwards.skc		crossblend 0.1 
+	carcano_crouch_walk_back		viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouch_walk_back.skc		crossblend 0.1 
+	carcano_crouch_walk_left		viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouch_walk_left.skc		crossblend 0.1 
+	carcano_crouch_walk_right		viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouch_walk_right.skc		crossblend 0.1 
+
+	carcano_crouch_run_fwd			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	carcano_crouch_run_back			viewmodel/carcano/a_w_carcano_idle.skc //multiplayer/mp_rifle_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	carcano_crouch_run_left			viewmodel/carcano/a_w_carcano_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_left.skc	crossblend 0.1 autosteps_run
+	carcano_crouch_run_right		viewmodel/carcano/a_w_carcano_idle.skc //weapon_rifle/walks_runs/rifle_crouchrun_right.skc	crossblend 0.1 autosteps_run
+	
+	//========================
+	// Rifle Firing
+	//========================
+	carcano_butt			viewmodel/carcano/a_w_carcano_butt.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+	carcano_stand_fire		viewmodel/carcano/a_w_carcano_fire.skc		//crossblend 0.05	
+	{
+		server
+		{	
+			2 weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			entry fire
+			last weaponcommand mainhand attachtohand mainhand	// attach the weapon back to the right hand
+		}
+	}
+
+	$path models/human/animation
+	carcano_stand_run_fire		viewmodel/carcano/a_w_carcano_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			2 weaponcommand mainhand attachtohand offhand
+			entry fire
+			last weaponcommand mainhand attachtohand mainhand
+		}
+	}
+	$path models/human/animation
+
+	carcano_stand_walk_fire		viewmodel/carcano/a_w_carcano_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			2 weaponcommand mainhand attachtohand offhand
+			entry fire
+			last weaponcommand mainhand attachtohand mainhand
+		}
+	}
+	carcano_crouch_fire		viewmodel/carcano/a_w_carcano_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			2 weaponcommand mainhand attachtohand offhand
+			entry fire
+			last weaponcommand mainhand attachtohand mainhand
+		}
+	}
+	carcano_crouch_run_fire		viewmodel/carcano/a_w_carcano_fire.skc		//crossblend 0.05
+	{
+		server
+		{
+			2 weaponcommand mainhand attachtohand offhand
+			entry fire
+			last weaponcommand mainhand attachtohand mainhand
+		}
+	}
+
+
+	//===========================
+	// Carcano Rechambering
+	//===========================
+
+	carcano_stand_rechamber		viewmodel/carcano/a_w_carcano_rechamber.skc		//crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand //JS TEST
+			2 weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			35 weaponcommand mainhand attachtohand mainhand		// attach the weapon back to the right hand
+			//last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+	carcano_crouch_rechamber	viewmodel/carcano/a_w_carcano_rechamber.skc		//crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand attachtohand offhand //JS TEST
+			2 weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			35 weaponcommand mainhand attachtohand mainhand		// attach teh weapon back to the right hand
+			//last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+
+	//========================
+	// Raise Animations
+	//========================
+	carcano_stand_raise		viewmodel/carcano/a_w_carcano_pullout.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	carcano_crouch_raise		viewmodel/carcano/a_w_carcano_pullout.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	carcano_stand_lower		viewmodel/carcano/a_w_carcano_putaway.skc
+	{
+		server
+		{
+			18 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	carcano_crouch_lower		viewmodel/carcano/a_w_carcano_putaway.skc
+	{
+		server
+		{
+			10 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+
+}

@@ -1,0 +1,263 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload 
+	//========================
+	mg_reload		viewmodel/mg/tps_reload_bar.skc	crossblend 0.3
+	{
+		server
+		{
+			first reloadweapon													// tell the weapon that we're reloading
+//			1 	weaponcommand mainhand clip_empty								// make sure the weapon's clip is empty
+			15	attachmodel models/ammo/bar_clip.tik tag_weapon_left			// put the ammo clip in the left hand
+			48	weaponcommand mainhand clip_fill								// put the clip ammo into the gun
+			50	removeattachedmodel tag_weapon_left 0 models/ammo/bar_clip.tik	// remove the clip model from the left hand
+		}
+	}
+
+	//===========================
+	// FG 42
+	//===========================
+
+	//Temporarily Uses the mg_reload..needs its own animation.
+
+	fg42_reload		viewmodel/mg/tps_reload_bar.skc	crossblend 0.3
+	{
+		server
+		{
+			first reloadweapon													// tell the weapon that we're reloading
+//			1 	weaponcommand mainhand clip_empty								// make sure the weapon's clip is empty
+			15	attachmodel models/ammo/bar_clip.tik tag_weapon_left			// put the ammo clip in the left hand
+			48	weaponcommand mainhand clip_fill								// put the clip ammo into the gun
+			50	removeattachedmodel tag_weapon_left 0 models/ammo/bar_clip.tik	// remove the clip model from the left hand
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	mg_stand_walk_fwd	multiplayer/mp_bar_walk_forward.skc		deltadriven crossblend 0.2  //autosteps_walk
+	mg_stand_walk_back	multiplayer/mp_bar_walk_backwards.skc		deltadriven crossblend 0.2  //autosteps_walk
+	mg_stand_walk_left	multiplayer/mp_bar_walk_left.skc	deltadriven crossblend 0.2  //autosteps_walk
+	mg_stand_walk_right	multiplayer/mp_bar_walk_right.skc	deltadriven crossblend 0.2  //autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+
+	mg_stand_run_fwd		multiplayer/mp_bar_run_forward.skc		deltadriven crossblend 0.2 autosteps_run
+	mg_stand_run_back		multiplayer/mp_bar_run_backwards.skc			deltadriven crossblend 0.2 autosteps_run
+	mg_stand_run_left		multiplayer/mp_bar_run_left.skc			deltadriven crossblend 0.2 autosteps_run
+	mg_stand_run_right		multiplayer/mp_bar_run_right.skc		deltadriven crossblend 0.2 autosteps_run
+	
+	//========================
+	// Standing
+	//========================
+
+	mg_stand_idle	 		multiplayer/mp_bar_stand_alert.skc			crossblend 0.2	
+
+	//========================
+	// Crouching
+	//========================
+	mg_crouch_idle			multiplayer/mp_bar_crouch_idle.skc				crossblend 0.2
+	mg_crouch_walk_fwd		multiplayer/mp_rifle_crouch_walk_forwards.skc			crossblend 0.2 //autosteps_walk
+	mg_crouch_walk_back		multiplayer/mp_bar_crouch_walk_backwards.skc	        	 crossblend 0.2 //autosteps_walk
+	mg_crouch_walk_left		multiplayer/mp_rifle_crouch_walk_left.skc			crossblend 0.2 //autosteps_walk
+	mg_crouch_walk_right		multiplayer/mp_rifle_crouch_walk_right.skc			crossblend 0.2 //autosteps_walk
+
+	mg_crouch_run_fwd	multiplayer/mp_bar_crouch_run_forward.skc		crossblend 0.1 autosteps_run
+	mg_crouch_run_back	multiplayer/mp_bar_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	mg_crouch_run_left	multiplayer/mp_bar_crouch_run_left.skc		crossblend 0.1 autosteps_run
+	mg_crouch_run_right	multiplayer/mp_bar_crouch_run_right.skc		crossblend 0.1 autosteps_run
+
+	//========================
+	// mg Firing
+	//========================
+
+	mg_butt			weapon_bar/misc/bar_butt_stand.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+
+	mg_stand_fire		viewmodel/mg/tps_barfire_idle.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/protoanimations
+
+	mg_stand_run_fire	fire_rifle_trot.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/animation
+
+	mg_stand_walk_fire	viewmodel/mg/tps_barfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mg_crouch_fire		viewmodel/mg/tps_barfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mg_crouch_run_fire	viewmodel/mg/crouch_runfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Raise Animations for thompson
+	//========================
+	mg_stand_raise		viewmodel/mg/takeout_bar.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound bar_snd_pullout
+		}
+	}
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	mg_crouch_raise		viewmodel/mg/takeout_bar.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound bar_snd_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	mg_stand_lower			viewmodel/mg/putaway_bar.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound bar_snd_putaway
+		}
+	}
+	mg_crouch_lower			viewmodel/mg/putaway_bar.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound bar_snd_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+
+	$path models/human/protoanimations
+
+	mg_jump_takeoff			jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mg_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mg_fall				jump_stretch_loop.skc			crossblend 0.2
+	mg_land				jump_land.skc					crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	mg_land_hard			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+
+	//--------------
+	// PAIN ANIMATIONS
+	//--------------
+	$path models/human/animation
+
+	//Stand//
+	mg_stand_hit_head01			weapon_rifle/minor_pain/rifle_stand_hit_head.skc		random	autosteps_walk
+	mg_stand_hit_head02			weapon_rifle/minor_pain/rifle_stand_hit_head01.skc		random	autosteps_walk
+	mg_stand_hit_uppertorso			weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	mg_stand_hit_lowertorso			weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	mg_stand_hit_back			weapon_rifle/minor_pain/rifle_stand_hit_lower_back.skc			autosteps_walk
+	mg_stand_hit_rarm			weapon_rifle/minor_pain/rifle_stand_hit_Rshoulder.skc			autosteps_walk
+	//mg_stand_hit_rarm02			weapon_rifle/major_pain/rifle_stand_rarm.skc				autosteps_walk
+	mg_stand_hit_larm			weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	mg_stand_hit_leg			weapon_rifle/minor_pain/rifle_stand_hit_leg.skc				autosteps_walk
+
+
+	//Crouch//
+	mg_crouch_hit_head			weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	mg_crouch_hit_uppertorso01		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	mg_crouch_hit_uppertorso02		weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	mg_crouch_hit_uppertorso03		weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	mg_crouch_hit_uppertorso04		weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	mg_crouch_hit_lowertorso01		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	mg_crouch_hit_lowertorso02		weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	mg_crouch_hit_lowertorso03		weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	mg_crouch_hit_back			weapon_rifle/minor_pain/rifle_crouch_hit_back.skc			autosteps_walk
+	mg_crouch_hit_rarm01			weapon_rifle/minor_pain/rifle_crouch_hit_Rshoulder.skc		random	autosteps_walk
+	mg_crouch_hit_rarm02			weapon_rifle/minor_pain/rifle_crouch_hit_rarm.skc		random	autosteps_walk
+	mg_crouch_hit_larm			weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	mg_crouch_hit_leg			weapon_rifle/minor_pain/rifle_crouch_hit_front.skc			autosteps_walk
+}

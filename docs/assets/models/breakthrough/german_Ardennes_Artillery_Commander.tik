@@ -1,0 +1,50 @@
+TIKI
+setup
+{
+	scale 0.52
+
+	path models/human/german_winter_type1
+	skelmodel wintersoldier1.skd
+
+	surface top shader wintertop1_art
+	surface cullskirt shader cull_winterpants1_art
+	surface skirt shader winterpants1_art
+	
+	path models/human/heads
+	skelmodel head3.skd
+	surface head shader bjorn
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader knitgloves1
+
+	// GEAR
+	// =======================================================
+	path models/gear/winter
+
+	skelmodel winterk98clips.skd
+	surface winterk98clips shader german_riflebelt
+
+	skelmodel winterloadout.skd
+	surface winterloadout shader german_gear
+
+	// HELMET
+	// =======================================================
+	path models/gear/g_headgear
+	skelmodel coveredhelmet.skd
+	surface outside shader winterhelmet1
+	surface inside shader german-helmet_inside
+}
+
+init
+{
+	server
+	{
+		voicetype german // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt
+

@@ -1,0 +1,50 @@
+TIKI
+setup
+{
+	// this one is the 6th costal 202nd or whatnot
+	scale 0.52
+	path models/human/SC_Ax_ital_INF	          // Set path to set skelmodel from
+	skelmodel SC_Ax_ital_INF.skd		// Set body model
+
+        surface SC_Ax_ital_INF_Pants   shader SC_Ax_ital_INF_Pants
+        surface Sc_AX_Ital_Inf_tunic   shader SC_Ax_ital_INF_Tunic
+
+	skelmodel neckplug.skd		// Set neck plug to fix neck seam.
+   		surface Sc_AX_Ital_Inf_tunic   shader SC_Ax_ital_INF_Tunic
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader us_j
+        //$include models/human/heads/it_young_heads.tik
+	
+        // HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+	// HELMET
+	// =======================================================
+	path models/equipment/ItalianGear
+	skelmodel ax_ital_infhat.skd
+	surface ax_ital_infhat shader SC_AL_US_Inf_Helm
+}
+
+$define pulloutdir sound/weapons/pullout
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype italian // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end
