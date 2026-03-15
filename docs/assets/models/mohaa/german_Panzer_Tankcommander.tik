@@ -1,0 +1,55 @@
+TIKI
+setup
+{
+	path models/human/german_panzer_tankcommander	// Set path to set skelmodel from
+	skelmodel panzer_tankcommander.skd		// Set body model
+
+	surface coat1 shader tc_coat
+	surface pants shader obershutze_pants
+	surface coat2 shader tc_coat_c
+	
+
+	path models/human/heads			// Set new path for head model
+	skelmodel head7.skd			// Set head model
+	surface head shader maxwell
+
+	path models/human/hands			
+	skelmodel hand.skd		
+	surface hand shader l_gloves
+
+	path models/equipment/germangear
+
+
+	
+
+	skelmodel tankofficerhat.skd
+	surface hat shader tc_hat
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype axis5 // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,52 @@
+TIKI
+setup
+{
+	path models/human/allied_army_soldier	// Set path to set skelmodel from
+	skelmodel usarmy.skd			// Set body model
+
+	surface ranger_pants shader hbtpants
+	surface us_top shader hbt_jacket
+	surface armband shader hbt_pfc
+	surface us_top_c shader hbt_jacket_c
+
+//	$include models/human/heads/us_young_heads.tik
+	path models/human/heads
+	skelmodel head4.skd
+	surface head shader bignose
+
+	path models/human/hands			
+	skelmodel hand.skd		
+	surface hand shader handsnew
+
+	path models/equipment/USGear/helmets
+	skelmodel us_helmet.skd
+	surface us_helmet shader us-helmet_private
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype ranger // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

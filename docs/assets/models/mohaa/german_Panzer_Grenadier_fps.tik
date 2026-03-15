@@ -1,0 +1,41 @@
+TIKI
+setup
+{
+	path models/player/US_Army	// Set path to set skelmodel from
+	skelmodel USarmyplyr.skd		// Set base model
+
+	 
+	
+	surface viewsleeves shader viewsleeves_dak
+
+	// right hand
+	surface triggerhand shader handview 
+	
+	// different left hands
+	surface lefthand shader handview
+	surface garandhand shader handview
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include_fps.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

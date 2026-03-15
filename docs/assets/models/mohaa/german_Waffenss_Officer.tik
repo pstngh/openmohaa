@@ -1,0 +1,54 @@
+TIKI
+setup
+{
+	path models/human/german_wehrmact_officer	// Set path to set skelmodel from
+	skelmodel german_officer.skd			// Set body model
+
+	surface tunic shader Officer2_tunic 
+	surface pants shader Officer2_pants
+	surface tunic_c shader Officer2_tunic_c
+
+	path models/human/heads
+	skelmodel head7.skd
+//	surface head shader dolf
+	surface head shader roml
+
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handsnew
+
+
+	path models/equipment/germangear
+
+
+	skelmodel officer_hat.skd		
+	surface officer_hat shader officer2_hat
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype axis1 // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

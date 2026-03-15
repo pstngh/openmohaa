@@ -1,0 +1,46 @@
+TIKI
+setup
+{
+	path models/human/German_worker
+	skelmodel german_worker.skd
+
+	surface hand shader handsnew
+	surface shirt shader worker_shirt
+	surface pants shader worker_pants
+
+	path models/human/heads			// Set new path for head model
+	skelmodel head6.skd			// Set head model
+	surface head shader bensonazi
+
+//	path models/human/hands
+//	skelmodel hand.skd
+//	surface hand shader handsnew
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype axis4 // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

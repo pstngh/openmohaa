@@ -1,0 +1,52 @@
+TIKI
+setup
+{
+	path models/human/german_elite_gestapo
+	skelmodel gestapo.skd
+
+	surface pants shader Officer2_pants
+	surface coat shader gestapocoat
+	surface coatcull shader cull_gestapocoat
+
+	path models/human/heads			// Set new path for head model
+	skelmodel head6.skd			// Set head model
+	surface head shader bjorn
+
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader L_gloves
+
+	path models/equipment/germangear
+
+
+	skelmodel officer_hat.skd		
+	surface officer_hat shader officer2_hat
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype axis1 // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

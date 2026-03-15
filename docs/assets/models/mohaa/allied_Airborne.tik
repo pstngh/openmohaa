@@ -1,0 +1,55 @@
+TIKI
+setup
+{
+	path models/human/allied_airborne	// Set path to set skelmodel from
+	skelmodel airborne.skd		// Set body model
+
+	surface shirt shader airborne_top
+	surface pants shader airborne_pants
+	surface sleeve shader airborne_top_cull
+
+//	$include models/human/heads/us_young_heads.tik
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader tom
+
+	path models/human/hands			
+	skelmodel hand.skd		
+	surface hand shader handsnew
+
+	path models/equipment/USGear/airborne
+	skelmodel airborne_gear.skd
+	surface gear shader airborne_gear
+
+	path models/equipment/USGear/helmets
+	skelmodel us_helmet.skd
+	surface us_helmet shader blank_web
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype airborne // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+
+//
+// include the base player model definition
+//
+$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end
