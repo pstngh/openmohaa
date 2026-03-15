@@ -1,0 +1,424 @@
+menu "tow_Scoreboard" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource
+Label
+{
+name "axisback"
+rect 416 152 216 148
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.30
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "alliesback"
+rect 416 304 216 144
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.30
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "backdroppiece"
+rect 416 32 216 416
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+title " Ping"
+name "default"
+rect 376 32 40 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Time"
+name "default"
+rect 312 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Total"
+name "default"
+rect 248 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Kills"
+name "default"
+rect 184 32 64 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " Name"
+name "default"
+rect 56 32 128 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title " #"
+name "default"
+rect 32 32 24 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "INDENT_BORDER"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+title "Allied Objectives"
+name "default"
+rect 448 80 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "default"
+rect 448 104 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext1"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 128 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext2"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 152 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext3"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 176 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext4"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 200 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_alliedtext5"
+font "facfont-20"
+textalign left
+
+}
+resource
+CheckBox
+{
+name "Allied Obj 1 Check Box"
+rect 416 104 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_allied_obj1"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Allied Obj 2 Check Box"
+rect 416 128 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_allied_obj2"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Allied Obj 4 Check Box"
+rect 416 176 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_allied_obj4"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Allied Obj 5 Check Box"
+rect 416 200 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_allied_obj5"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Axis Objectives"
+name "default"
+rect 448 256 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+Label
+{
+name "default"
+rect 448 280 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext1"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 304 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext2"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 328 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext3"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 352 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext4"
+font "facfont-20"
+textalign left
+
+}
+resource
+Label
+{
+name "default"
+rect 448 376 176 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+linkcvar "cg_obj_axistext5"
+font "facfont-20"
+textalign left
+
+}
+resource
+CheckBox
+{
+name "Axis Obj 1 Check Box"
+rect 416 280 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_axis_obj1"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Axis Obj 2 Check Box"
+rect 416 304 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_axis_obj2"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Axis Obj 3 Check Box"
+rect 416 328 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "tow_axis_obj3"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Axis Obj 4 Check Box"
+rect 416 352 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_axis_obj4"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Axis Obj 5 Check Box"
+rect 416 376 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_axis_obj5"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Allied Obj 3 Check Box"
+rect 416 152 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar "tow_allied_obj3"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+end.

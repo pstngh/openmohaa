@@ -1,0 +1,97 @@
+menu "votesubclient" 640 480 NONE 0
+//fadein 0.25
+align centerx centery
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+virtualres 1
+
+resource
+Label
+{
+name "backdrop"
+rect 152 120 336 232
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.02 0.07 0.00 1.00
+borderstyle "NONE"
+}
+resource
+Button
+{
+name "Default"
+rect 0 120 152 232
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 488 120 152 232
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 0 640 120
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Button
+{
+name "Default"
+rect 0 352 640 128
+fgcolor 1.00 1.00 1.00 0.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+clicksound "sound/menu/back.wav"
+stuffcommand "popmenu 0"
+}
+resource
+Label
+{
+name "votesubtitle"
+rect 152 120 336 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.30
+borderstyle "3D_BORDER"
+linkcvar "ui_votesubtitle"
+font "facfont-20"
+
+}
+resource
+Label
+{
+title "Select the client for this vote:"
+name "title"
+rect 152 144 336 24
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+font "facfont-20"
+
+}
+resource
+ListBox
+{
+name "voteclientlist"
+rect 160 168 320 176
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.17 0.17 0.17 0.00
+borderstyle "NONE"
+font "facfont-20"
+ordernumber 1
+
+}
+end.

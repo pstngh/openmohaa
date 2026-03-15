@@ -1,0 +1,21 @@
+menu "t3l1_3" 640 480 NONE 1
+align centerx centery
+bgcolor 0 0 0 0
+borderstyle NONE
+bgfill 0 0 0 0
+fadein 1
+
+
+resource
+Label
+{
+name "t3l1_3"
+rect 64 368 512 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "textures/gametext/t3l1_ScreenText3"
+ordernumber 1
+
+}
+end.

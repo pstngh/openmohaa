@@ -1,0 +1,691 @@
+menu "multiplayerstart_round" 640 480 NONE 0
+bgcolor 1 1 1 1
+borderstyle NONE
+bgfill 0 0 0 1
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+include "ui/serverback.inc"
+
+
+resource
+CheckBox
+{
+name "Default"
+rect 200 112 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_healthdrop"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 200 144 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_realismmode"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 200 176 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_sprinton"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Label
+{
+title "Start Round Based Game"
+name "Default"
+rect 232 8 208 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+
+resource
+Field
+{
+title "server name entry"
+name "Default"
+rect 280 55 296 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_hostname"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+
+}
+// ===========================================================
+resource
+Label
+{
+title "Server Name:"
+name "Default"
+rect 60 50 208 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+
+resource
+Label
+{
+title "Game Options:"
+name "Default"
+rect 60 80 208 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+resource
+Label
+{
+title "Health Drop:"
+name "Default"
+rect 60 112 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Realistic Mode:"
+name "Default"
+rect 60 144 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+resource
+Label
+{
+title "Fast Run Speed:"
+name "Default"
+rect 60 176 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+resource
+Label
+{
+title "Team Damage:"
+name "Default"
+rect 60 208 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+
+resource
+Label
+{
+title "Max Players"
+name "Default"
+rect 370 111 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+resource
+Label
+{
+title "Frag Limit:"
+name "Default"
+rect 370 143 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+resource
+Label
+{
+title "Server Options"
+name "Default"
+rect 370 80 206 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+resource
+Button
+{
+name "Select Map"
+rect 56 320 112 16
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "dmmapselect dm obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+
+}
+
+resource
+CheckBox
+{
+name "Default"
+rect 200 208 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_teamdamage"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+// ====================================================================
+resource
+Label
+{
+title "Health Heal Rate:"
+name "Default"
+rect 60 240 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+PulldownMenuContainer
+{
+name "Default"
+rect 192 240 32 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+menushader "MENU" "textures/menu/pulldownarrowsmall"
+selmenushader "MENU" "textures/menu/pulldownarrowsmall_sel"
+addpopup "MENU" "Instant" command "set ui_healrate 100" 
+addpopup "MENU" "5 per sec" command "set ui_healrate 5"
+addpopup "MENU" "10 per sec" command "set ui_healrate 10"
+addpopup "MENU" "20 per sec" command "set ui_healrate 20"
+}
+
+resource
+label
+{
+title "HealRate"
+name "Default"
+rect 240 240 48 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "INDENT_BORDER"
+linkcvar "ui_healrate"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+}
+// ====================================================================
+
+resource
+Field
+{
+title "max player entry"
+name "Default"
+rect 522 115 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_maxclients"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 2
+
+}
+resource
+Field
+{
+title "score limit entry"
+name "Default"
+rect 522 147 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_fraglimit"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 5
+}
+
+resource
+Label
+{
+title "Inactive Spectate:"
+name "Default"
+rect 370 239 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Label
+{
+title "Inactive Kick:"
+name "Default"
+rect 370 271 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+// resource
+// Label
+// {
+// title "Team spawn Delay:"
+// name "Default"
+// rect 370 303 148 32
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 0.00
+// borderstyle "NONE"
+// shader "textures/mohmenu/mp_setup_btn1"
+// //hovershader "textures/mohmenu/quit_h"
+// font facfont-20
+// }
+
+resource
+Label
+{
+title "Dedicated Server:"
+name "Default"
+rect 370 304 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Label
+{
+title "Use GameSpy:"
+name "Default"
+rect 370 338 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Field
+{
+title "inactive spectate entry"
+name "Default"
+rect 522 243 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_inactivespectate"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 5
+}
+resource
+Field
+{
+title "inactive kick entry"
+name "Default"
+rect 522 275 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_inactivekick"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 5
+
+}
+// resource
+// Field
+// {
+// title "team spawn delay"
+// name "Default"
+// rect 522 307 54 24
+// fgcolor 1.00 1.00 1.00 1.00
+// bgcolor 0.50 0.50 0.50 1.00
+// borderstyle "INDENT_BORDER"
+// shader "textures/mohmenu/entry_field_bg"
+// clicksound "sound/menu/scroll.wav"
+// linkcvar "ui_team_spawn_interval"
+// //shader "textures/mohmenu/quit"
+// //hovershader "textures/mohmenu/quit_h"
+// font facfont-20
+// textalign left
+// SetNumeric
+// SetMaxChars 5
+// 
+// }
+resource
+CheckBox
+{
+name "Default"
+rect 536 308 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_dedicated"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+CheckBox
+{
+name "Default"
+rect 536 342 24 24
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "RAISED"
+linkcvar "ui_gamespy"
+checked_shader "textures/menu/checkbox_checked"
+unchecked_shader "textures/menu/checkbox_unchecked"
+
+}
+resource
+Field
+{
+title "time limit entry"
+name "Default"
+rect 522 179 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_timelimit"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 5
+
+}
+
+resource
+Label
+{
+title "Map Rotation Time:"
+name "Default"
+rect 370 175 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Label
+{
+title "Round Reset Time:"
+name "Default"
+rect 370 207 148 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Field
+{
+title "round limit entry"
+name "Default"
+rect 522 211 54 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "INDENT_BORDER"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_roundlimit"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+SetNumeric
+SetMaxChars 5
+
+}
+
+// =================================================================================
+
+
+resource
+Field
+{
+title "maplist entry"
+name "Default"
+rect 60 380 308 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+clicksound "sound/menu/scroll.wav"
+linkcvar "ui_maplist_round"
+// linkcvar "ui_maplist_obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign left
+}
+
+resource
+Button
+{
+title "Default Round Map Rotation"
+name "Default Round Map Rotation"
+rect 178 344 190 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+// shader "menu_button_trans"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+// stuffcommand "exec maplist_obj"
+stuffcommand "exec maplist_round"
+// stuffcommand "dmmapselect dm obj"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+
+resource
+Label
+{
+title "map title"
+name "Default"
+rect 60 316 208 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/entry_field_bg"
+linkcvar "ui_dmmap"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+textalign center
+dontlocalize
+}
+
+resource
+Button
+{
+title "Select Map"
+name "Select Map"
+rect 60 280 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+hovershader "menu_button_glow"
+clicksound "sound/menu/scroll.wav"
+stuffcommand "dmmapselect dm obj"
+// stuffcommand "dmmapselect dm obj obj"
+font facfont-20
+}
+
+resource
+Button
+{
+title "Setup Rotation"
+name "Setup Rotation"
+rect 60 344 118 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_setup_btn1"
+stuffcommand "PushMenu maprotationsetup"
+hovershader "menu_button_glow"
+hovercommand "set g_maprotation_filter round"
+font facfont-20
+}
+
+resource
+Button
+{
+name "Default"
+rect 60 416 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "3D_BORDER"
+shader "textures/mohmenu/back"
+hovershader "textures/mohmenu/back_h"
+clicksound "sound/menu/back.wav"
+stuffcommand "Popmenu 0"
+}
+
+resource
+Button
+{
+name "Start Game"
+rect 464 416 112 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "textures/mohmenu/start_game_btn"
+hovershader "menu_button_glow"
+clicksound "sound/menu/apply.wav"
+stuffcommand "ui_startdmmap 3 Round-Based-Match ui_maplist_round"
+//shader "textures/mohmenu/quit"
+//hovershader "textures/mohmenu/quit_h"
+font facfont-20
+}
+resource
+Label
+{
+name "title"
+rect 170 4 300 38
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 1.00
+borderstyle "NONE"
+shader "textures/mohmenu/mp_round"
+}
+end.

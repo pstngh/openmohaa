@@ -1,0 +1,62 @@
+menu "serverfull" 640 480 NONE 0
+bgcolor 0 0 0 1 
+borderstyle NONE
+bgfill 0 0 0 1 
+fullscreen 1
+//vidmode 3
+//fadein 0.5
+virtualres 1
+//postinclude ui/loadingbar.txt
+
+
+
+
+resource
+Label
+{
+name "Default"
+rect 384 0 256 512
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "sepiaload_b"
+}
+resource
+Label
+{
+name "Default"
+rect 0 0 512 512
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "sepiaload_a"
+}
+resource
+Label
+{
+title "Server is full"
+name "message"
+rect 216 216 208 48
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.70
+borderstyle "RAISED"
+font facfont-20
+
+}
+resource
+Button
+{
+name "continuebutton"
+rect 528 448 96 24
+// rect 272 448 96 24
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader "continue"
+hovershader "continue_h"
+clicksound "sound/menu/apply.wav"
+stuffcommand "popmenu 0"
+ordernumber 1
+
+}
+end.
