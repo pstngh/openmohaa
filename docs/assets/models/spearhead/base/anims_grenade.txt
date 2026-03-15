@@ -1,0 +1,254 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload Grenade
+	//========================
+	grenade_reload		viewmodel/grenade/grenade_pullout.skc
+	{
+		server
+		{
+			1	reloadweapon						// tell the weapon that we're reloading
+			2	weaponcommand mainhand clip_fill	// put the clip ammo into the gun
+		}
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	grenade_stand_walk_fwd		weapon_pistol/curious/pistol_walk_curious_forward.skc	//autosteps_walk
+	grenade_stand_walk_back		weapon_pistol/curious/pistol_walk_curious_backward.skc	//autosteps_walk
+	grenade_stand_walk_left		walks_runs/curiousw_left90.skc				//autosteps_walk
+	grenade_stand_walk_right	walks_runs/curiousw_right90.skc				//autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	grenade_stand_run_fwd		weapon_pistol/walks_runs/jog_pistol.skc		deltadriven crossblend 0.2 autosteps_run
+	grenade_stand_run_back		weapon_pistol/walks_runs/jog_back_pistol.skc	deltadriven crossblend 0.2 autosteps_run
+	grenade_stand_run_left		weapon_pistol/walks_runs/pistol_run_left.skc	deltadriven crossblend 0.2 autosteps_run
+	grenade_stand_run_right		weapon_pistol/walks_runs/pistol_run_right.skc	deltadriven crossblend 0.2 autosteps_run
+
+	//========================
+	// Standing
+	//========================
+//	grenade_stand_idle	 	viewmodel/grenade/idle_grenade.skc		crossblend 0.3
+	grenade_stand_idle1	 	weapon_pistol/curious/pistol_stand_curious(basic_loop).skc	weight 1
+	grenade_stand_idle2	 	weapon_pistol/curious/pistol_stand_curious(twitch).skc	weight 1 dontrepeate
+
+	//========================
+	// Crouching
+	//========================
+
+	grenade_crouch_idle		multiplayer/mp_grenade_crouch_idle.skc		crossblend 0.2		
+	
+	grenade_crouch_walk_fwd		weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	grenade_crouch_walk_back	weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	grenade_crouch_walk_left	weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	grenade_crouch_walk_right	weapon_grenade/walks_runs/walk_crouch_grenade.skc	//autosteps_walk
+	
+	grenade_crouch_run_fwd		weapon_pistol/walks_runs/pistol_crouch_run.skc		crossblend 0.2 autosteps_run
+	grenade_crouch_run_back		weapon_pistol/walks_runs/pistol_crouch_run.skc		crossblend 0.2 autosteps_run
+	grenade_crouch_run_left		weapon_pistol/walks_runs/pistol_crouch_run_left.skc	crossblend 0.2 autosteps_run
+	grenade_crouch_run_right	weapon_pistol/walks_runs/pistol_crouch_run_right.skc	crossblend 0.2 autosteps_run
+
+	//========================
+	// Grenade Firing 
+	//========================
+	grenade_stand_charge		multiplayer/mp_grenade_charge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge
+		}
+	}
+	grenade_crouch_charge		multiplayer/mp_grenade_charge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge
+		}
+	}
+
+	grenade_stand_fire		multiplayer/mp_grenade_throw.skc		crossblend 0.05
+	{
+		server
+		{
+			// the releasefire can't be delayed too long, or the weapon is unresponsive
+//			12 releasefire
+			2 releasefire
+		}
+	}
+	grenade_crouch_fire		multiplayer/mp_grenade_throw.skc		crossblend 0.05
+	{
+		server
+		{
+			// the releasefire can't be delayed too long, or the weapon is unresponsive
+//			12 releasefire
+			2 releasefire
+		}
+	}
+
+	//========================
+	// Grenade Secondary Firing 
+	//========================
+	grenade_stand_charge_secondary	multiplayer/mp_grenade_littlecharge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary
+		}
+	}
+	grenade_crouch_charge_secondary	multiplayer/mp_grenade_littlecharge.skc		crossblend 0.15
+	{
+		server
+		{
+			first charge mainhand secondary
+		}
+	}
+
+	grenade_stand_fire_secondary		multiplayer/mp_grenade_littlethrow.skc		crossblend 0.05
+	{
+		server
+		{
+			// the releasefire can't be delayed too long, or the weapon is unresponsive
+//			12 releasefire mainhand secondary
+			2 releasefire mainhand secondary
+		}
+	}
+	grenade_crouch_fire_secondary		multiplayer/mp_grenade_littlethrow.skc		crossblend 0.05
+	{
+		server
+		{
+			// the releasefire can't be delayed too long, or the weapon is unresponsive
+//			12 releasefire mainhand secondary
+			2 releasefire mainhand secondary
+		}
+	}
+
+	//========================
+	// Raise
+	//========================
+	grenade_stand_raise		viewmodel/grenade/grenade_pullout.skc	
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	grenade_crouch_raise	viewmodel/grenade/grenade_pullout.skc		
+	{
+		server
+		{
+			first activatenewweapon lefthand
+		}
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	grenade_stand_lower		viewmodel/grenade/grenade_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+	grenade_crouch_lower	viewmodel/grenade/grenade_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// Jumping & Falling
+	//========================
+
+	$path models/human/protoanimations
+
+	grenade_jump_takeoff		jump_takeoff.skc		crossblend 0.05
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	grenade_jump_run_takeoff	jump_takeoff.skc		crossblend 0.05
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	grenade_fall				jump_stretch_loop.skc	crossblend 0.1
+	grenade_land				jump_land.skc			crossblend 0.05
+	{
+		client
+		{
+			first landing
+		}
+	}
+	grenade_land_hard			jump_land.skc			crossblend 0.05
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	grenade_stand_hit_head			weapon_grenade/minor_pain/grenade_stand_hit_head.skc			autosteps_walk
+	grenade_stand_hit_uppertorso01		weapon_grenade/minor_pain/grenade_stand_hit_head.skc		random	autosteps_walk
+	grenade_stand_hit_uppertorso02		weapon_grenade/minor_pain/grenade_stand_hit_torso.skc		random	autosteps_walk
+	grenade_stand_hit_lowertorso		weapon_grenade/minor_pain/grenade_stand_hit_lowertorso.skc		autosteps_walk
+	grenade_stand_hit_back			weapon_grenade/minor_pain/grenade_stand_hit_lowerback.skc		autosteps_walk
+	grenade_stand_hit_rarm			weapon_grenade/minor_pain/grenade_stand_hit_rarm.skc			autosteps_walk
+	grenade_stand_hit_larm			weapon_grenade/minor_pain/grenade_stand_hit_head.skc			autosteps_walk
+	grenade_stand_hit_leg			weapon_grenade/minor_pain/grenade_stand_hit_leg.skc			autosteps_walk
+
+	//Crouch//
+	grenade_crouch_hit_head			weapon_pistol/minor_pain/pistol_crouch_hit_head.skc			autosteps_walk
+	grenade_crouch_hit_uppertorso01		weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc		random	autosteps_walk
+	grenade_crouch_hit_uppertorso02		weapon_pistol/minor_pain/pistol_crouch_hit_front.skc		random	autosteps_walk
+	grenade_crouch_hit_lowertorso		weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+	grenade_crouch_hit_back			weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+	grenade_crouch_hit_rarm			weapon_pistol/minor_pain/pistol_crouch_hit_front.skc			autosteps_walk
+	grenade_crouch_hit_larm			weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+	grenade_crouch_hit_leg			weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+}

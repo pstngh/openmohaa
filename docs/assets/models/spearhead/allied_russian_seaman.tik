@@ -1,0 +1,44 @@
+TIKI
+setup
+{
+	scale 0.52
+
+	path models/human/german_panzer_tankcommander	// Set path to set skelmodel from
+	skelmodel panzer_tankcommander.skd
+
+	surface coat1 shader soviet_seaman_tunic
+	surface pants shader soviet_corporal_pants
+	surface coat2 shader soviet_seaman_tunic
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader soviet_seaman_face
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader seaman_gloves
+
+	// GEAR
+	// =======================================================
+	path models/equipment/germangear
+	skelmodel shovel.skd
+	surface shovel shader german_gear
+
+	// HELMET
+	// =======================================================
+	path models/human/gear/SovietHat
+	skelmodel SeamanHat.skd
+	surface hat shader SeamanHat
+}
+
+init
+{
+	server
+	{
+		voicetype russian
+	}
+}
+
+$include models/player/base/include.txt

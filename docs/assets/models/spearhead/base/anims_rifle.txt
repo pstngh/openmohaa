@@ -1,0 +1,511 @@
+animations
+{
+	$path models/human/animation
+
+	//=========================
+	// Reload Garand
+	//========================
+	rifle_reload		viewmodel/rifle/tps_garand_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon										// tell the weapon that we're reloading
+			1	weaponcommand mainhand attachtohand offhand						// attach the weapon to the left hand
+			4	attachmodel models/ammo/garand_clip_reload.tik tag_weapon_right				// put the ammo clip in the right hand
+			34	weaponcommand mainhand clip_fill							// put the clip ammo into the gun
+			42	removeattachedmodel tag_weapon_right 0 models/ammo/garand_clip_reload.tik		// remove the clip model from the right hand
+			57	weaponcommand mainhand attachtohand mainhand						// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Reload Springfield (one shell at a time)
+	//========================
+	springfield_reload_start		viewmodel/rifle/tps_springfield_reload_start.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon								// tell the weapon that we're reloading
+			1	weaponcommand mainhand attachtohand offhand				// attach the weapon to the left hand
+		}
+	}
+	springfield_reload_loop			viewmodel/rifle/tps_springfield_reload_fill.skc		crossblend 0
+	{
+		server
+		{
+			first weaponcommand mainhand anim reload_single
+			0 attachmodel models/ammo/springfield_clip_reload.tik tag_weapon_right
+			8 weaponcommand mainhand clip_add 1							// put a single shell into the gun
+			8 removeattachedmodel tag_weapon_right 0 models/ammo/springfield_clip_reload.tik	// remove the clip model from the right hand
+		}
+	}
+	springfield_reload_end			viewmodel/rifle/tps_springfield_reload_end.skc		crossblend 0.0
+	{
+		server
+		{
+			first	weaponcommand mainhand anim reload_end
+			31	weaponcommand mainhand attachtohand mainhand		// reattach the weapon to the right hand
+		}
+	}
+
+
+	//========================
+	// Reload KAR98
+	//========================
+	kar98_reload		viewmodel/rifle/tps_kar98_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon
+			0	attachmodel models/ammo/kar98_clip_reload.tik tag_weapon_right			// tell the weapon that we're reloading
+			1	weaponcommand mainhand attachtohand offhand					// attach the weapon to the left hand
+			50	weaponcommand mainhand clip_fill						// put the clip ammo into the gun
+			50	removeattachedmodel tag_weapon_right 0 models/ammo/kar98_clip_reload.tik	// remove the clip model from the right hand
+			last	weaponcommand mainhand attachtohand mainhand					// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Reload SVT 40
+	//========================
+	svt_reload		viewmodel/svt40/svt_reload.skc		//crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon										// tell the weapon that we're reloading
+			19	attachmodel models/ammo/svt_clip_reload.tik tag_weapon_left				// put the ammo clip in the right hand
+			42	removeattachedmodel tag_weapon_left 0 models/ammo/svt_clip_reload.tik			// remove the clip model from the right hand
+			75	weaponcommand mainhand attachtohand offhand						// attach the weapon to the left hand
+			90	weaponcommand mainhand clip_fill							// put the clip ammo into the gun
+			last	weaponcommand mainhand attachtohand mainhand						// reattach the weapon to the right hand
+			
+		}
+	}
+
+	//===========================
+	// Reload Mosin Nagent Rifle
+	//===========================
+
+	mosin_reload		viewmodel/mosin_nagant/mosin_nagant_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon									// tell the weapon that we're reloading
+			1	weaponcommand mainhand attachtohand offhand					// attach the weapon to the left hand
+			30	attachmodel models/ammo/enfield_clip1.tik tag_weapon_right			// attach the 1st clip to the right hand	
+			75	weaponcommand mainhand clip_fill						// put the clip ammo into the gun
+			53	removeattachedmodel tag_weapon_right 0 models/ammo/enfield_clip1.tik		// remove the 1st clip model from the right hand
+			last	weaponcommand mainhand attachtohand mainhand					// reattach the weapon to the right hand
+		}
+	}
+
+	//===========================
+	// Reload Enfield Rifle
+	//===========================
+
+	//Temporarily Uses the rifle_reload..needs its own animation.
+
+	enfield_reload		viewmodel/enfield/enfield_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon									// tell the weapon that we're reloading
+			1	weaponcommand mainhand attachtohand offhand					// attach the weapon to the left hand
+			30	attachmodel models/ammo/enfield_clip2.tik "Bip01 R Hand"			// attach the 2nd clip to the right hand
+			30	attachmodel models/ammo/enfield_clip1.tik tag_weapon_right			// attach the 1st clip to the right hand	
+			80	weaponcommand mainhand clip_fill						// put the clip ammo into the gun
+			53	removeattachedmodel "Bip01 R Hand" 0 models/ammo/enfield_clip2.tik		// remove the 2nd clip model from the right hand
+			80	removeattachedmodel tag_weapon_right 0 models/ammo/enfield_clip1.tik		// remove the 1st clip model from the right hand
+			last	weaponcommand mainhand attachtohand mainhand					// reattach the weapon to the right hand
+		}
+	}
+
+	//===========================
+	// Reload G43
+	//===========================
+
+	g43_reload		viewmodel/g43/g43_reload.skc		crossblend 0.05
+	{
+		server
+		{
+			first reloadweapon
+			1	weaponcommand mainhand attachtohand mainhand				// attach the weapon to the left hand
+			15	attachmodel models/ammo/g43_clip.tik tag_weapon_left			// tell the weapon that we're reloading
+			49	removeattachedmodel tag_weapon_left 0 models/ammo/g43_clip.tik		// remove the clip model from the right hand
+			51	weaponcommand mainhand clip_fill					// put the clip ammo into the gun
+			last	weaponcommand mainhand attachtohand mainhand				// reattach the weapon to the right hand
+		}
+	}
+
+	//========================
+	// Walking/Cautious
+	//========================
+	rifle_stand_walk_fwd		multiplayer/mp_rifle_curious_walk_forward.skc		//autosteps_walk
+	rifle_stand_walk_back		multiplayer/mp_rifle_curious_walk_backwards.skc		//autosteps_walk
+	rifle_stand_walk_left		multiplayer/mp_rifle_curious_walk_left.skc			//autosteps_walk
+	rifle_stand_walk_right		multiplayer/mp_rifle_curious_walk_right.skc			//autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	rifle_stand_run_fwd		weapon_rifle/walks_runs/rifle_jog.skc				autosteps_run
+	rifle_stand_run_back		multiplayer/mp_rifle_jog_back.skc					autosteps_run
+	rifle_stand_run_left		multiplayer/mp_rifle_run_left.skc				autosteps_run
+	rifle_stand_run_right		multiplayer/mp_rifle_run_right.skc				autosteps_run
+
+	//========================
+	// Standing
+	//========================
+
+	rifle_stand_idle	 		multiplayer/mp_rifle_stand_curious.skc			crossblend 0.2		
+	
+	//========================
+	// Crouching
+	//========================
+	rifle_crouch_idle		weapon_rifle/crouch/rifle_crouch.skc			crossblend 0.2
+	rifle_crouch_walk_fwd		multiplayer/mp_rifle_crouch_walk_forwards.skc		crossblend 0.1 //autosteps_walk
+	rifle_crouch_walk_back		multiplayer/mp_rifle_crouch_walk_back.skc		crossblend 0.1 //autosteps_walk
+	rifle_crouch_walk_left		multiplayer/mp_rifle_crouch_walk_left.skc		crossblend 0.1 //autosteps_walk
+	rifle_crouch_walk_right		multiplayer/mp_rifle_crouch_walk_right.skc		crossblend 0.1 //autosteps_walk
+
+	rifle_crouch_run_fwd		multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	rifle_crouch_run_back		multiplayer/mp_rifle_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	rifle_crouch_run_left		weapon_rifle/walks_runs/rifle_crouchrun_left.skc	crossblend 0.1 autosteps_run
+	rifle_crouch_run_right		weapon_rifle/walks_runs/rifle_crouchrun_right.skc	crossblend 0.1 autosteps_run
+		
+	//========================
+	// Rifle Firing
+	//========================
+	rifle_butt			weapon_thompson/misc/thompson_butt_stand.skc		
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+	rifle_stand_fire		viewmodel/rifle/fire_rifle_stand.skc		crossblend 0.05	
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/protoanimations
+	rifle_stand_run_fire	fire_rifle_trot.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	$path models/human/animation
+
+	rifle_stand_walk_fire		viewmodel/rifle/walk_player_rifle.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	rifle_crouch_fire		viewmodel/rifle/fire_rifle_stand.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	rifle_crouch_run_fire		viewmodel/rifle/rifle_fire_crouch.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Mortar Rifle Firing
+	//========================
+
+	mortarrifle_attachmortar viewmodel/kar98grenade/kar98grenade_reload.skc	crossblend 0.03
+	{
+		server
+		{
+			27	attachmodel models/projectiles/riflemortar.tik tag_weapon_left				// put the ammo clip in the right hand
+			56	removeattachedmodel tag_weapon_left 0 models/projectiles/riflemortar.tik		// remove the clip model from the right hand
+		}
+	}	
+
+	mortarrifle_stand_fire		viewmodel/rifle/fire_rifle_stand.skc		crossblend 0.05	
+	{
+		server
+		{
+			entry fire mainhand secondary
+		}
+	}
+
+	$path models/human/protoanimations
+	mortarrifle_stand_run_fire	fire_rifle_trot.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire mainhand secondary
+		}
+	}
+	$path models/human/animation
+
+	mortarrifle_stand_walk_fire		viewmodel/rifle/walk_player_rifle.skc			crossblend 0.05
+	{
+		server
+		{
+			entry fire mainhand secondary
+		}
+	}
+	mortarrifle_crouch_fire		viewmodel/rifle/fire_rifle_stand.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire mainhand secondary
+		}
+	}
+	mortarrifle_crouch_run_fire		viewmodel/rifle/rifle_fire_crouch.skc		crossblend 0.05
+	{
+		server
+		{
+			entry fire mainhand secondary
+		}
+	}
+
+
+	//========================
+	// Springfield Rechambering
+	//========================
+	springfield_stand_rechamber		viewmodel/rifle/tps_springfield_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"	// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			47 weaponcommand mainhand attachtohand mainhand	// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle				// tell the weapon to return to the idle state
+		}
+	}
+	springfield_crouch_rechamber	viewmodel/rifle/tps_springfield_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"	// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			47 weaponcommand mainhand attachtohand mainhand	// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle				// tell the weapon to return to the idle state
+		}
+	}
+
+	//========================
+	// KAR98 Rechambering
+	//========================
+	kar98_stand_rechamber		viewmodel/rifle/tps_kar98_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"	// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			44 weaponcommand mainhand attachtohand mainhand	// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle				// tell the weapon to return to the idle state
+		}
+	}
+	kar98_crouch_rechamber		viewmodel/rifle/tps_kar98_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"	// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand	// attach the weapon to the left
+			44 weaponcommand mainhand attachtohand mainhand	// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle				// tell the weapon to return to the idle state
+		}
+	}
+
+	//===========================
+	// Mosin Nagent Rechambering
+	//===========================
+	
+	//Currently using the Kar98 rechamber.
+
+	mosin_stand_rechamber		viewmodel/mosin_nagant/mosin_nagant_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"			// tell the weapon what animation we want it to play
+			0 weaponcommand mainhand attachtohand offhand			// attach the weapon to the left
+			last weaponcommand mainhand attachtohand mainhand		// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle				// tell the weapon to return to the idle state
+		}
+	}
+	mosin_crouch_rechamber		viewmodel/mosin_nagant/mosin_nagant_rechamber.skc	crossblend 0.1
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			0 weaponcommand mainhand attachtohand offhand		// attach the weapon to the left
+			last weaponcommand mainhand attachtohand mainhand	// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+
+	//===========================
+	// Enfield Rechambering
+	//===========================
+	
+	//Currently using the Kar98 rechamber.
+
+	enfield_stand_rechamber		viewmodel/enfield/enfield_rechamber.skc		crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand		// attach the weapon to the left
+			42 weaponcommand mainhand attachtohand mainhand		// attach the weapon back to the right hand
+			last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+	enfield_crouch_rechamber		viewmodel/enfield/enfield_rechamber.skc	crossblend 0.0
+	{
+		server
+		{
+			entry weaponcommand mainhand anim "rechamber"		// tell the weapon what animation we want it to play
+			1 weaponcommand mainhand attachtohand offhand		// attach the weapon to the left
+			42 weaponcommand mainhand attachtohand mainhand		// attach teh weapon back to the right hand
+			last weaponcommand mainhand idle			// tell the weapon to return to the idle state
+		}
+	}
+
+	//========================
+	// Raise Animations
+	//========================
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	rifle_stand_raise		viewmodel/rifle/raise_rifle_standplayer.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	rifle_crouch_raise		viewmodel/rifle/raise_rifle_standplayer.skc
+	{
+		server
+		{
+			0 activatenewweapon garandhand
+		}
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	rifle_stand_lower		viewmodel/rifle/lower_rifle_stand.skc
+	{
+		server
+		{
+			18 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	rifle_crouch_lower	viewmodel/rifle/lower_rifle_stand.skc
+	{
+		server
+		{
+			10 deactivateweapon righthand
+		}
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+	rifle_jump_takeoff		viewmodel/rifle/jump_rifle_start.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	rifle_jump_run_takeoff		viewmodel/rifle/jump_rifle_start.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	rifle_fall			viewmodel/rifle/jump_rifle_loop.skc		crossblend 0.2
+	rifle_land			viewmodel/rifle/jump_rifle_end.skc		crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	rifle_land_hard			viewmodel/rifle/jump_rifle_end.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	//----------------
+	// PAIN ANIMATIONS
+	//----------------
+	$path models/human/animation
+
+	//Stand//
+	rifle_stand_hit_head01		weapon_rifle/minor_pain/rifle_stand_hit_head.skc		random	autosteps_walk
+	rifle_stand_hit_head02		weapon_rifle/minor_pain/rifle_stand_hit_head01.skc		random	autosteps_walk
+	rifle_stand_hit_uppertorso	weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_lowertorso	weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_back		weapon_rifle/minor_pain/rifle_stand_hit_lower_back.skc			autosteps_walk
+	rifle_stand_hit_rarm		weapon_rifle/minor_pain/rifle_stand_hit_Rshoulder.skc			autosteps_walk
+	//rifle_stand_hit_rarm02	weapon_rifle/major_pain/riflep_stand_rarm.skc			random	autosteps_walk
+	rifle_stand_hit_larm		weapon_rifle/minor_pain/rifle_stand_hit_torso.skc			autosteps_walk
+	rifle_stand_hit_leg		weapon_rifle/minor_pain/rifle_stand_hit_leg.skc				autosteps_walk
+
+	//Crouch//
+	rifle_crouch_hit_head		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	rifle_crouch_hit_uppertorso01	weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso02	weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso03	weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	rifle_crouch_hit_uppertorso04	weapon_rifle/minor_pain/rifle_hit_crouch_front_flyback.skc	random	autosteps_walk
+	rifle_crouch_hit_lowertorso01	weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc		random	autosteps_walk
+	rifle_crouch_hit_lowertorso02	weapon_rifle/minor_pain/rifle_crouch_hit_back02.skc		random	autosteps_walk
+	rifle_crouch_hit_lowertorso03	weapon_rifle/minor_pain/rifle_crouch_hit_front.skc		random	autosteps_walk
+	rifle_crouch_hit_back		weapon_rifle/minor_pain/rifle_crouch_hit_back.skc			autosteps_walk
+	rifle_crouch_hit_rarm01		weapon_rifle/minor_pain/rifle_crouch_hit_Rshoulder.skc		random	autosteps_walk
+	rifle_crouch_hit_rarm02		weapon_rifle/minor_pain/rifle_crouch_hit_rarm.skc		random	autosteps_walk
+	rifle_crouch_hit_larm		weapon_rifle/minor_pain/rifle_crouch_hit_torso.skc			autosteps_walk
+	rifle_crouch_hit_leg		weapon_rifle/minor_pain/rifle_hit_crouch_front_flyback.skc		autosteps_walk
+}

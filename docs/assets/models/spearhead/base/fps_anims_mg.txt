@@ -1,0 +1,94 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// BAR Anims
+	//========================
+	bar_idle1	 	viewmodel/mg/barpose.skc		crossblend 0.1		weight 1.0
+	//bar_idle2		viewmodel/idle_rifle2.skc		crossblend 0.2		weight 0.5	dontrepeate
+	//bar_idle3		viewmodel/idle_rifle3.skc		crossblend 0.2		weight 0.1	dontrepeate
+	bar_disabled 	viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	bar_fire		viewmodel/mg/barfire.skc		crossblend 0.05
+	bar_fire_secondary	viewmodel/mg/butt_bar_stand.skc		crossblend 0.3
+	{
+		client
+		{
+				entry sound pistol_whip // the swish sound. 
+		}
+	}
+	bar_reload		viewmodel/mg/reload_bar.skc		crossblend 0.3
+	bar_pullout		viewmodel/mg/takeout_bar.skc
+	{
+		client
+		{
+			enter sound bar_snd_pullout
+		}
+	}
+	bar_putaway		viewmodel/mg/putaway_bar.skc
+	{
+		client
+		{
+			enter sound bar_snd_putaway
+		}
+	}
+
+	//========================
+	// MP44 Anims
+	//========================
+	mp44_idle1	 	viewmodel/mp44/mp44_idle_stand.skc		crossblend 0.1		weight 1.0
+	//mp44_idle2	viewmodel/idle_rifle2.skc				crossblend 0.2		weight 0.5	dontrepeate
+	//mp44_idle3	viewmodel/idle_rifle3.skc				crossblend 0.2		weight 0.1	dontrepeate
+	mp44_disabled 	viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	mp44_fire		viewmodel/mp44/mp44_fire.skc			crossblend 0.05
+	mp44_fire_secondary	viewmodel/mp44/butt_mp44_stand.skc	crossblend 0.3
+	{
+		client
+		{
+				entry sound pistol_whip // the swish sound. 
+		}
+	}
+	mp44_reload		viewmodel/mp44/mp44_reload.skc			crossblend 0.3
+	mp44_pullout	viewmodel/mp44/mp44_pullout.skc
+	{
+		client
+		{
+			enter sound mp44_snd_pullout
+		}
+	}
+	mp44_putaway	viewmodel/mp44/mp44_putaway.skc
+	{
+		client
+		{
+			enter sound mp44_snd_putaway
+		}
+	}
+
+	//========================
+	// FG 42
+	//========================
+	fg42_idle	 	viewmodel/rifle/idle_rifle.skc					crossblend 0.2		
+	fg42_disabled 	viewmodel/unarmed/unarmed_idle.skc				crossblend 0.2
+	fg42_fire			viewmodel/rifle/fire_rifle_stand.skc			crossblend 0.05
+	{
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+	fg42_reload		viewmodel/rifle/vm_riflereload.skc				crossblend 0.05
+	fg42_pullout		viewmodel/rifle/raise_rifle_standplayer.skc
+	{
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	fg42_putaway		viewmodel/rifle/lower_rifle_stand.skc
+	{
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+}

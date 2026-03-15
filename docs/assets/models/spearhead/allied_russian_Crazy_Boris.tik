@@ -1,0 +1,42 @@
+TIKI
+setup
+{
+	scale 0.52
+
+	path models/human/German_worker
+	skelmodel german_worker.skd
+
+	surface hand shader handsnew
+	surface shirt shader boris_shirt
+	surface pants shader boris_pants
+
+	path models/human/heads			// Set new path for head model
+	skelmodel head2.skd			// Set head model
+	surface head shader boris_head
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader handssnow
+
+	// GEAR
+	// =======================================================
+}
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		voicetype russian // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+//
+// include the base animations definition
+//
+$include models/player/base/include.txt

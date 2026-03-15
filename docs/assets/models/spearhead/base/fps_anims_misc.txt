@@ -1,0 +1,44 @@
+// additional misc animations
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Unarmed Anims
+	//========================
+	unarmed_idle		viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	unarmed_disabled 	viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	unarmed_pullout		viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	unarmed_ladderstep	viewmodel/unarmed/unarmed_idle.skc
+	{
+		client
+		{
+			enter footstep "" ladder
+//			8 footstep		"Bip01 R Foot" ladder
+//			18 footstep		"Bip01 L Foot" ladder
+		}
+	}
+
+	//========================
+	// Papers Item
+	//========================
+	papers_idle			viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	papers_disabled 	viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	papers_pullout		viewmodel/papers/show_papers.skc		crossblend 0.2
+
+	//========================
+	// Packed Up MG42 Turret Item
+	//========================
+	mg42portable_idle		viewmodel/mg42/idle.skc				crossblend 0.2
+//	mg42portable_disabled 	viewmodel/mg42/idle.skc				crossblend 0.2
+	mg42portable_pullout	viewmodel/mg42/pullout.skc
+	mg42portable_putaway	viewmodel/mg42/putaway.skc
+	// Setup - when you begin to set the gun up for firing
+//	mg42_setup	viewmodel/mg42/setup.skc
+
+	// Packup - the end of the anim for packing up the tripod ready for carrying
+//	mg42_packup	viewmodel/mg42/packup.skc
+}
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,48 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/allied_army_soldier
+	skelmodel usarmy.skd
+
+	surface ranger_pants shader hbtpants_snow
+	surface us_top shader hbt_jacket_snow
+	surface armband shader hbt_pfc_snow
+	surface us_top_c shader hbt_jacket_c_snow
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader us_head_snow_3
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader hands_snow2
+
+	// GEAR
+	// =======================================================
+	path models/gear/us
+	
+	skelmodel 45holster.skd
+	surface 45holster shader 45holster
+
+	skelmodel haversack.skd
+	surface haversack shader usequip_snw
+
+	// HELMET
+	// =======================================================
+	path models/equipment/USGear/helmets
+	skelmodel us_helmet.skd
+	surface us_helmet shader us_pfc_snow_helmet1
+}
+
+init
+{
+	server
+	{
+		voicetype allied // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

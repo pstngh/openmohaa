@@ -1,0 +1,260 @@
+// additional misc animations
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Walking/Cautious
+	//========================
+	unarmed_stand_walk_fwd		weapon_pistol/curious/pistol_walk_curious_forward.skc
+	unarmed_stand_walk_back		weapon_pistol/curious/pistol_walk_curious_backward.skc
+	unarmed_stand_walk_left		walks_runs/curiousw_left90.skc
+	unarmed_stand_walk_right	walks_runs/curiousw_right90.skc
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+	unarmed_stand_run_fwd		walks_runs/alert_run.skc  		autosteps_run
+	unarmed_stand_run_back		walks_runs/alert_run.skc	 	autosteps_run
+	unarmed_stand_run_left		walks_runs/alert_run.skc	 	autosteps_run
+	unarmed_stand_run_right		walks_runs/alert_run.skc	 	autosteps_run
+
+	//========================
+	// Standing
+	//========================
+	
+	unarmed_stand_idle	 		weapon_unarmed/unarmed_stand_curious.skc			
+	
+	//========================
+	// Crouching
+	//========================
+//	unarmed_crouch_idle			viewmodel/pistol/crouch_coltpose.skc		crossblend 0.2
+	unarmed_crouch_idle			idle/unarmed_crouch_alert.skc			crossblend 0.25
+
+	unarmed_crouch_walk_fwd		viewmodel/pistol/walk_colt_crouch.skc		crossblend 0.2 //autosteps_walk
+	unarmed_crouch_walk_back	viewmodel/pistol/walk_colt_crouch.skc	crossblend 0.2 //autosteps_walk
+	unarmed_crouch_walk_left	viewmodel/pistol/walk_colt_crouch.skc		crossblend 0.2 //autosteps_walk
+	unarmed_crouch_walk_right	viewmodel/pistol/walk_colt_crouch.skc		crossblend 0.2 //autosteps_walk
+
+	unarmed_crouch_run_fwd		weapon_unarmed/unarmed_crouch_run.skc		 autosteps_run
+	unarmed_crouch_run_back		weapon_unarmed/unarmed_crouch_run.skc		 autosteps_run
+	unarmed_crouch_run_left		weapon_pistol/walks_runs/pistol_crouch_run_left.skc	crossblend 0.2 autosteps_run
+	unarmed_crouch_run_right	weapon_pistol/walks_runs/pistol_crouch_run_right.skc	crossblend 0.2 autosteps_run
+		
+	//========================
+	// Jumping Anims 
+	//========================
+
+	$path models/human/protoanimations
+
+	unarmed_jump_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot"
+		}
+	}
+	unarmed_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot"
+		}
+	}
+
+	//========================
+	// Falling & Landing
+	//========================
+	unarmed_fall				jump_stretch_loop.skc		crossblend 0.2
+	unarmed_land				jump_land.skc				crossblend 0
+	{
+		client
+		{
+			first landing
+		}
+	}
+	unarmed_land_hard			jump_land.skc				crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+
+	//========================
+	// Ladder
+	// (never has a weapon out when on a ladder)
+	//========================
+
+	$path models/human/animation
+
+	ladder_geton_top		misc/ladderdown_geton.skc		default_angles	crossblend 0
+	{
+		server
+		{
+//			17 viewmodelanim ladderstep 1
+			30 viewmodelanim ladderstep 1
+//			40 viewmodelanim ladderstep 1
+			last viewmodelanim ladderstep 1
+		}
+		client
+		{
+			7 footstep		"Bip01 R Foot" walk
+//			17 footstep		"" ladder
+			30 footstep		"" ladder
+//			40 footstep		"" ladder
+			last footstep	"" ladder
+		}
+	}
+	ladder_geton_bottom		misc/ladderup_geton.skc			default_angles	crossblend 0
+	{
+		server
+		{
+			8 viewmodelanim ladderstep 1
+		}
+		client
+		{
+			8 footstep		"Bip01 R Foot" ladder
+		}
+	}
+	ladder_getoff_top		misc/ladderup_getoff.skc		default_angles	crossblend 0
+	{
+		server
+		{
+			8 viewmodelanim ladderstep 1
+//			18 viewmodelanim ladderstep 1
+			31 ensureoverladder // this makes sure that the player is at a proper height
+			last ensureforwardoffladder // makes sure he got off properly
+		}
+		client
+		{
+			8 footstep		"" ladder
+//			18 footstep		"" ladder
+			28 footstep		"Bip01 R Foot" walk
+			39 footstep		"Bip01 L Foot" walk
+		}
+	}
+	ladder_getoff_bottom	misc/ladderdown_getoff.skc		default_angles	crossblend 0
+	{
+		client
+		{
+			14 footstep		"Bip01 L Foot" walk
+			last footstep	"Bip01 R Foot" walk
+		}
+	}
+	ladder_up_left			misc/ladderup_lefthand.skc		default_angles	crossblend 0
+	{
+		server
+		{
+//			last viewmodelanim ladderstep 1
+		}
+		client
+		{
+//			last footstep	"" ladder
+		}
+	}
+	ladder_up_right			misc/ladderup_righthand.skc		default_angles	crossblend 0
+	{
+		server
+		{
+			last viewmodelanim ladderstep 1
+		}
+		client
+		{
+			last footstep	"" ladder
+		}
+	}
+	ladder_down_left		misc/ladderdown_lefthand.skc	default_angles	crossblend 0
+	{
+		server
+		{
+			last viewmodelanim ladderstep 1
+		}
+		client
+		{
+			last footstep	"" ladder
+		}
+	}
+	ladder_down_right		misc/ladderdown_righthand.skc	default_angles	crossblend 0
+	{
+		server
+		{
+//			last viewmodelanim ladderstep 1
+		}
+		client
+		{
+//			last footstep	"" ladder
+		}
+	}
+	ladder_idle_right		misc/ladderpause_lefthigh.skc	default_angles	crossblend 0
+	ladder_idle_left		misc/ladderpause_righthigh.skc	default_angles	crossblend 0
+	ladder_slide			misc/ladder_slide.skc			default_angles	crossblend 0
+		
+	//========================
+	// Vehicle
+	// (never has a weapon out when in a vehicle)
+	//========================
+
+	vehicle_idle	scripted/flak88/offic_idle.skc
+
+	//========================
+	// Turrets
+	// (never has a weapon out when in a turret)
+	//========================
+
+//	turret_idle	scripted/flak88/offic_idle.skc
+	turret_idle1	weapon_mg42/mg42_stand_idle_a(loop).skc		weight 1.0
+	turret_idle2	weapon_mg42/mg42_stand_idle_b(twitch).skc	weight 0.2	dontrepeate
+		
+	//========================
+	// Disguise
+	//========================
+	show_papers			viewmodel/papers/show_papers.skc	crossblend 0.2
+	{
+		server
+		{
+			entry activatenewweapon
+			0 fire
+			last deactivateweapon righthand
+		}
+	}
+
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	unarmed_stand_hit_head			weapon_grenade/minor_pain/grenade_stand_hit_head.skc			autosteps_walk
+	unarmed_stand_hit_uppertorso01		weapon_grenade/minor_pain/grenade_stand_hit_head.skc 		random	autosteps_walk
+	unarmed_stand_hit_uppertorso02		weapon_grenade/minor_pain/grenade_stand_hit_torso.skc 		random	autosteps_walk
+	unarmed_stand_hit_lowertorso		weapon_grenade/minor_pain/grenade_stand_hit_lowertorso.skc		autosteps_walk
+	unarmed_stand_hit_back			weapon_grenade/minor_pain/grenade_stand_hit_lowerback.skc		autosteps_walk
+	unarmed_stand_hit_larm			weapon_grenade/minor_pain/grenade_stand_hit_head.skc			autosteps_walk
+	unarmed_stand_hit_rarm			weapon_grenade/minor_pain/grenade_stand_hit_rarm.skc			autosteps_walk
+	unarmed_stand_hit_leg			weapon_grenade/minor_pain/grenade_stand_hit_leg.skc			autosteps_walk
+
+	//Crouch//
+	unarmed_crouch_hit_head			weapon_pistol/minor_pain/pistol_crouch_hit_head.skc			autosteps_walk
+	unarmed_crouch_hit_uppertorso01		weapon_pistol/minor_pain/pistol_crouch_hit_torso.skc		random	autosteps_walk
+	unarmed_crouch_hit_uppertorso02		weapon_pistol/minor_pain/pistol_crouch_hit_front.skc		random	autosteps_walk
+	unarmed_crouch_hit_lowertorso		weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+	unarmed_crouch_hit_back			weapon_pistol/minor_pain/pistol_crouch_hit_head.skc			autosteps_walk
+	unarmed_crouch_hit_larm			weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+	unarmed_crouch_hit_rarm			weapon_pistol/minor_pain/pistol_crouch_hit_front.skc			autosteps_walk
+	unarmed_crouch_hit_leg			weapon_pistol/minor_pain/pistol_crouch_hit_front_flyback.skc		autosteps_walk
+}
+
+// include misc animation sets
+//$include models/human/animation/jog.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,130 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Thompson Anims
+	//========================
+	thompson_idle1	 		viewmodel/smg/idle_tommy_stand.skc			crossblend 0.1	weight 1.0
+	thompson_disabled 		viewmodel/unarmed/unarmed_idle.skc			crossblend 0.2
+	thompson_fire			viewmodel/smg/fire_tommy_stand.skc			crossblend 0
+	thompson_fire_secondary		viewmodel/smg/butt_tommy_stand.skc		crossblend 0.3
+	{
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+	thompson_reload			viewmodel/smg/reload_tommy_stand.skc		crossblend 0.3
+	thompson_pullout		viewmodel/smg/raise_tommy_stand.skc
+	{
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	$path models/human/protoanimations
+	thompson_putaway		lower_rifle_standplayer.skc
+	{
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	$path models/human/animation
+
+	
+	//========================
+	// MP40 Anims
+	//========================
+	mp40_idle1	 		viewmodel/mp40/mp40_stand_idle.skc		crossblend 0.25		weight 1.0
+	mp40_idle2	 		viewmodel/mp40/mp40_stand_idle_a.skc	crossblend 0.25		weight 1.0	dontrepeate
+	mp40_idle3	 		viewmodel/mp40/mp40_stand_idle_b.skc	crossblend 0.25		weight 1.0
+	mp40_idle4	 		viewmodel/mp40/mp40_stand_idle_c.skc	crossblend 0.25		weight 1.0
+	mp40_disabled 		viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	mp40_fire			viewmodel/mp40/mp40_stand_fire.skc		crossblend 0.05
+	mp40_fire_secondary		viewmodel/mp40/mp40_butt_stand.skc		crossblend 0.3
+	{
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+	mp40_reload			viewmodel/MP40/reload_mp40_stand.skc	crossblend 0.1
+	mp40_pullout		viewmodel/mp40/raise_mp40_stand.skc
+	{
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	$path models/human/protoanimations
+	mp40_putaway		lower_rifle_standplayer.skc
+	{
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+
+
+	$path models/human/animation
+
+	//========================
+	// sten Anims
+	//========================
+	sten_idle	 		viewmodel/sten/sten_idle.skc	crossblend 0.25		
+	sten_disabled 			viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	sten_fire			viewmodel/sten/sten_stand_fire.skc		crossblend 0.05	
+	sten_fire_secondary		viewmodel/sten/sten_butt.skc			crossblend 0.3
+	{	
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+	sten_reload			viewmodel/sten/sten_reload.skc	crossblend 0.1
+	sten_pullout			viewmodel/sten/raise_sten_stand.skc
+	{
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	sten_putaway			viewmodel/sten/sten_putaway.skc
+	{
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+	
+	//========================
+	// PPSH SMG Anims
+	//========================
+	ppsh_idle	 		viewmodel/ppsh/ppsh_idle.skc			crossblend 0.25		
+	ppsh_disabled 			viewmodel/unarmed/unarmed_idle.skc		crossblend 0.2
+	ppsh_fire			viewmodel/ppsh/ppsh_fire.skc			crossblend 0.05	
+	ppsh_fire_secondary		viewmodel/ppsh/ppsh_butt.skc			crossblend 0.3
+	{	
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}
+	ppsh_reload			viewmodel/ppsh/ppsh_reload.skc	crossblend 0.1
+	ppsh_pullout			viewmodel/ppsh/ppsh_pullout.skc
+	{
+		client
+		{
+			enter sound snd_rifle_pullout
+		}
+	}
+	ppsh_putaway			viewmodel/ppsh/ppsh_putaway.skc
+	{
+		client
+		{
+			enter sound snd_rifle_putaway
+		}
+	}
+}

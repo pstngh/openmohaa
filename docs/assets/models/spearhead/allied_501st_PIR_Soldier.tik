@@ -1,0 +1,48 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/allied_airborne
+	skelmodel airborne.skd
+
+	surface shirt shader usa_pt_top
+	surface pants shader usa_pt_pants
+	surface sleeve shader usa_pt_top_cull
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader us_head_pt_1
+
+	// HANDS
+	// =======================================================
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader pt_hands
+
+	// GEAR
+	// =======================================================
+	path models/equipment/USGear/airborne
+	skelmodel airborne_gear.skd
+	surface gear shader airborne_gear
+
+	// parachute pack
+	path models/human/gear/us_parachute_pack
+	skelmodel us_parachute_pack.skd
+	surface pack shader us_parachute_pack
+
+	// HELMET
+	// =======================================================
+	path models/equipment/UsGear/helmets
+	skelmodel us_helmet.skd
+	surface us_helmet shader us_pt_helmet1
+}
+
+init
+{
+	server
+	{
+		voicetype allied // set the voicetype to use for multiplayer instant messaging
+	}
+}
+
+$include models/player/base/include.txt

@@ -1,0 +1,435 @@
+// These are player animations shared between the
+// 3rd persons models, and first person models.
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Player model selection screen idle animations
+	//========================
+	americanselectionidle1			misc/00A100_idle.skc					weight	0.25
+	americanselectionidle2			misc/00A101_salute.skc					weight	0.25
+	americanselectionidle3			misc/00A102_cleanshoes.skc				weight	0.25
+	americanselectionidle4			misc/00A103_pullups.skc					weight	0.25
+	americanselectionidle5			misc/00A104_stretches.skc				weight	0.55 dontrepeate
+	americanselectionidle6			misc/00A105_pushups.skc					weight	0.25
+	americanselectionidle7			misc/00A106_jumpingjacks.skc				weight	0.25
+	
+	germanselectionidle1			misc/00G100_Axis_idle.skc				weight	0.25
+	germanselectionidle2			misc/00G101_Axis_Attention.skc				weight	0.25
+	germanselectionidle3			misc/00G102_Axis_Primping.skc				weight	0.25
+	germanselectionidle4			misc/00G103_Axis_Lookaround.skc				weight	0.25
+	germanselectionidle5			misc/00G104_Axis_Shoeshine.skc				weight	0.25 dontrepeate
+	germanselectionidle6			misc/00G105_Axis_lean.skc				weight	0.25
+	germanselectionidle7			misc/00G106_Axis_pushup.skc				weight	0.25
+	germanselectionidle8			misc/00G108_Axis_milling_1.skc				weight	0.25
+	germanselectionidle9			misc/00G109_Axis_milling_2.skc				weight	0.25
+
+	zzamericanspecialidle1			misc/00EGG1_Allied_Sitar.skc				weight	0.25 crossblend 0.3
+	zzgermanspecialidle1			misc/00EGG2_Axis_Sitar.skc				weight	0.25  crossblend 0.3
+
+	//===========================
+	//	Player Mountable Artillery
+	//===========================
+
+	aagun_idle			misc/aagun_driver.skc
+	flak88_idle			misc/flak88_driver.skc
+	nebelwerfer_idle		misc/nebelwerfer_driver.skc
+	granatwerfer_idle		misc/granatwerfer_driver.skc
+
+	$path models/human/animation
+
+	//========================
+	// Idle animation for model bounds
+	//========================
+//	idle 				viewmodel/pistol/coltpose.skc		crossblend 0.2
+	idle				scripted/flak88/offic_idle.skc
+
+	//========================
+	// Death
+	//========================
+	death1			deaths/death_fall_back.skc		default_angles crossblend 0.1 weight 1.0
+	{
+		server
+		{
+			last dead
+		}
+		client
+		{
+			12 bodyfall 0.8
+			14 landing 0.5
+		}
+	}
+	death2			deaths/death_fall_to_knees.skc	default_angles crossblend 0.1 weight 1.0
+	{
+		server
+		{
+			last dead
+		}
+		client
+		{
+			5 bodyfall 0.7
+			13 bodyfall 0.5
+		}
+	}
+	death3			deaths/death_headpistol.skc		default_angles crossblend 0.1 weight 1.0
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_crouch					deaths/death_frontcrouch.skc	default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_small 			deaths/death_upgrenade.skc		default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_large 			deaths/death_grenade.skc	default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_left 			deaths/death_left.skc			default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_right 			deaths/death_right.skc			default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_back 			deaths/death_backgrenade.skc	default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+	death_explosion_front 			deaths/death_chest.skc			default_angles crossblend 0.1
+	{
+		server
+		{
+			last dead
+		}
+	}
+
+
+
+	//////////////////////////////////
+	// 
+	// Deaths copied from single-player game (new_generic_human.tik)
+	// 
+	//////////////////////////////////
+
+	// Fall to knees and then forward.
+	death_fall_to_knees		deaths/death_fall_to_knees.skc
+	{
+		client
+		{
+			6  bodyfall   //knees
+			24 bodyfall   //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Weak-looking slow falling back animation.  Doesn't look very dead...
+	death_fall_back			deaths/death_fall_back.skc
+	{	
+		client
+		{
+			13 bodyfall	.7 //butt
+			14 bodyfall	   //back
+			last bodyfall	.1 //feet
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Shot in chest, reaches up with right hand, falls to hands and knees and dies.
+	death_chest				deaths/death_chest.skc
+	{	
+		client
+		{
+			9 bodyfall  .8 //knees
+			last bodyfall  .1
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Falls back (1-2 meters) clutching neck.
+	death_choke				deaths/death_choke.skc		
+	{
+		client
+		{
+			4 bodyfall //back
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Shot in crotch/stomach, fall kind of sideways.
+	death_crotch			deaths/stomach_death.skc
+	{	
+		client
+		{
+			25 bodyfall
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Fall/fly forward from a crouching position.  Could also work for running death.  Very simple.	
+	death_frontcrouch		deaths/death_frontcrouch.skc
+	{
+		client
+		{
+			2  bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Fall to knees and then flat, execution-style.  Good for headshots.
+	death_headpistol		deaths/death_headpistol.skc
+	{
+		client
+		{
+			9 bodyfall 	.6 //knees
+			19 bodyfall    //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Actually a running death.  Looks good for shot in the back of the head.
+	death_head_flyforward			deaths/death_run03.skc
+	{
+		client
+		{
+			3 bodyfall      //face
+			6 bodyfall .05  //Left Leg
+			7 bodyfall .05  //Right Leg
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Die while moving forward fast.
+	death_run01				deaths/death_run01.skc				random
+	{
+		client
+		{
+			3  bodyfall	.5//knees
+			7  bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Die while moving forward fast.
+	death_run02				deaths/death_run02.skc				random
+	{
+		client
+		{
+			7  bodyfall	//knees
+			
+		}	
+		server
+		{
+			last dead
+		}
+	}
+	// Die while moving forward fast.
+	death_run03				deaths/death_run03.skc				random
+	{
+		client
+		{
+			3 bodyfall      //face
+			6 bodyfall .05  //Left Leg
+			7 bodyfall .05  //Right Leg
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Flies back a meter or two, lands, legs go in the air
+	death_back1				deaths/back_death01.skc				random
+	{
+		client
+		{
+			8  bodyfall //back
+			24  bodyfall .2 //Right Leg
+			30  bodyfall .2 //Left Leg
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Flies back a meter or so, lands, legs go in the air a little
+	death_back2				deaths/back_death02.skc				random
+	{
+		client
+		{
+			8 bodyfall     //back
+			13 bodyfall .3 //Right Leg
+			17 bodyfall .2 //Left leg
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Flies back a meter or so, lands.  Very fast.
+	death_back3				deaths/death_back3.skc				random
+	{
+		client
+		{
+			7 bodyfall //back
+			9 bodyfall .2
+			11 bodyfall .2
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Fall/fly left and slightly back, 1-2 meters.  Looks like it's a bit slow.
+	death_left				deaths/death_left.skc
+	{
+		client
+		{
+			11 bodyfall //back
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Fall/fly right and slightly back, 1-2 meters.  Looks like it's a bit slow.
+	death_right				deaths/death_right.skc
+	{
+		client
+		{
+			12 bodyfall //back
+		}
+		server
+		{
+			last dead
+		}
+	}
+
+	// Hit hard in face or lower back.  Good for shotgun to upper chest or face.
+	death_knockedup				deaths/death_knockedup.skc
+	{
+		client
+		{
+			8 bodyfall
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Choking, fall forward.  Very painfull...
+	death_frontchoke		deaths/death_gassing02.skc
+	{
+		client
+		{
+			10 bodyfall //face
+			22 bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Slowly fall forward while spinning to the left (counter-clockwise)
+	death_twist				deaths/death_twist.skc
+	{
+		client
+		{
+			14 bodyfall //face
+			18 bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Fall to knees and then sideways.  Instant death sort of thing.
+	death_collapse			deaths/death_collapse.skc
+	{
+		client
+		{
+			7 bodyfall //face
+			18 bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	// Collapse and fall back & right.  Good for headshots most likely.
+	death_shoot				deaths/death_shoot.skc
+	{
+		client
+		{
+			13 bodyfall //face
+			18 bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+	death_prone				deaths/death_prone1.skc
+	{
+		client
+		{
+			7 bodyfall //face
+		}
+		server
+		{
+			last dead
+		}
+	}
+
+	rifle_pain_kneestodeath			weapon_mp44/major_pain/mp44_pain_kneestodeath.skc
+	{
+		server
+		{
+			last dead
+		}
+	}
+
+
+}

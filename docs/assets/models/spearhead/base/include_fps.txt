@@ -1,0 +1,88 @@
+// Main include file for 1st person player models
+setup
+{
+	scale 0.52	// Set default scale to 16/30.5 since world 
+				// is in 16 units per foot and model is in cm's
+	path models/human/animation		// Set path to get the animations from
+	path models/human/protoAnimations	// Set path to get the old animations from
+	 
+
+	radius 20				// defines size of shadow
+}
+
+init
+{
+	client
+	{
+		// Cache all the shaders used in the hud here 
+		// so that there's no hitches during the game
+		
+		// Health Bar Shaders
+		cacheimage textures/hud/healthback
+		cacheimage textures/hud/healthmeter
+		cacheimage textures/hud/healthmeterflash
+		
+		// Compass Shaders
+		cacheimage textures/hud/compassback
+		cacheimage textures/hud/compassface
+		cacheimage textures/hud/compasspainblank
+		cacheimage textures/hud/compasspain
+		cacheimage textures/hud/compassobjarrow
+		cacheimage textures/hud/compassobjball
+		cacheimage textures/hud/compassneedle
+				
+		// Weapons Bar Shaders
+		cacheimage textures/hud/weap_pistol
+		cacheimage textures/hud/weap_pistol_s
+		cacheimage textures/hud/weap_pistol_x
+		cacheimage textures/hud/weap_rifle
+		cacheimage textures/hud/weap_rifle_s
+		cacheimage textures/hud/weap_rifle_x
+		cacheimage textures/hud/weap_smg
+		cacheimage textures/hud/weap_smg_s
+		cacheimage textures/hud/weap_smg_x
+		cacheimage textures/hud/weap_mg
+		cacheimage textures/hud/weap_mg_s
+		cacheimage textures/hud/weap_mg_x
+		cacheimage textures/hud/weap_grenade
+		cacheimage textures/hud/weap_grenade_s
+		cacheimage textures/hud/weap_grenade_x
+		cacheimage textures/hud/weap_heavy
+		cacheimage textures/hud/weap_heavy_s
+		cacheimage textures/hud/weap_heavy_x
+		
+		// Weapon Ammo Shaders
+		cacheimage textures/hud/clip_pistol
+		cacheimage textures/hud/clip_rifle
+		cacheimage textures/hud/clip_fraggrenade
+		cacheimage textures/hud/clip_steilhandgranate
+		cacheimage textures/hud/clip_bazooka
+		cacheimage textures/hud/clip_panzerschreck
+		cacheimage textures/hud/clip_shotgun
+		
+		// Stop Watch Shaders
+		cacheimage textures/hud/stopwatchbase
+		cacheimage textures/hud/stopwatchhand
+	}
+}
+
+//
+// base sound folder definitions
+//
+
+//
+// include the animation files for the player
+//
+$include models/player/base/fps_anims_pistol.txt
+$include models/player/base/fps_anims_rifle.txt
+$include models/player/base/fps_anims_smg.txt
+$include models/player/base/fps_anims_mg.txt
+$include models/player/base/fps_anims_grenade.txt
+$include models/player/base/fps_anims_bazooka.txt
+$include models/player/base/fps_anims_shotgun.txt
+$include models/player/base/fps_anims_misc.txt
+
+$include models/player/base/anims_shared.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

@@ -1,0 +1,209 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Frag Grenade Anims
+	//========================
+	fraggrenade_idle	 	viewmodel/grenade/idle_grenade.skc			crossblend 0.3
+	fraggrenade_disabled		viewmodel/unarmed/unarmed_idle.skc			crossblend 0.2
+	fraggrenade_charge		viewmodel/grenade/vm_grenadeload.skc			crossblend 0.15
+	{
+		client
+		{
+			21	sound grenade_timer
+			exit	stopaliaschannel grenade_timer
+		}
+	}
+	fraggrenade_timer_charge	viewmodel/grenade/vm_grenadeload.skc			crossblend 0.15
+	{
+		client
+		{
+			21	sound grenade_timer
+			exit	stopaliaschannel grenade_timer
+		}
+	}
+	fraggrenade_fire		viewmodel/grenade/vm_grenaderelease.skc			crossblend 0.05
+	fraggrenade_reload		viewmodel/grenade/grenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	fraggrenade_pullout		viewmodel/grenade/grenade_pullout.skc	
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	fraggrenade_putaway		viewmodel/grenade/grenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// Stielhandgranate Anims
+	//========================
+	stielhandgranate_idle	 	viewmodel/steilhandgranate/idle_grenade.skc			crossblend 0.3
+	stielhandgranate_disabled 	viewmodel/unarmed/unarmed_idle.skc					crossblend 0.2
+	stielhandgranate_charge		viewmodel/steilhandgranate/vm_grenadeload.skc		crossblend 0.15
+	{
+		client
+		{
+			30	sound grenade_timer
+			exit	stopaliaschannel grenade_timer
+		}
+	}
+//	stielhandgranate_fire		viewmodel/steilhandgranate/vm_grenaderelease.skc	crossblend 0.05
+	stielhandgranate_fire		viewmodel/grenade/vm_grenaderelease.skc				crossblend 0.05
+	stielhandgranate_reload		viewmodel/steilhandgranate/grenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	stielhandgranate_pullout	viewmodel/steilhandgranate/grenade_pullout.skc		
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	stielhandgranate_putaway	viewmodel/steilhandgranate/grenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// Nebelhandgranate Anims
+	//========================
+	nebelhandgranate_idle	 	viewmodel/rdg1smokegrenade/rdg1smokegrenade_idle.skc			crossblend 0.3
+	nebelhandgranate_disabled 	viewmodel/unarmed/unarmed_idle.skc					crossblend 0.2
+	nebelhandgranate_charge		viewmodel/rdg1smokegrenade/rdg1smokegrenade_charge.skc			crossblend 0.15
+	nebelhandgranate_fire		viewmodel/rdg1smokegrenade/rdg1smokegrenade_fire.skc			crossblend 0.05
+	nebelhandgranate_reload		viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	nebelhandgranate_pullout	viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc		
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	nebelhandgranate_putaway	viewmodel/rdg1smokegrenade/rdg1smokegrenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// RDG-1 Smoke Grenade Anims
+	//========================
+	rdg1smokegrenade_idle	 	viewmodel/rdg1smokegrenade/rdg1smokegrenade_idle.skc			crossblend 0.3
+	rdg1smokegrenade_disabled 	viewmodel/unarmed/unarmed_idle.skc					crossblend 0.2
+	rdg1smokegrenade_charge		viewmodel/rdg1smokegrenade/rdg1smokegrenade_charge.skc			crossblend 0.15
+	rdg1smokegrenade_fire		viewmodel/rdg1smokegrenade/rdg1smokegrenade_fire.skc			crossblend 0.05
+	rdg1smokegrenade_reload		viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	rdg1smokegrenade_pullout	viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc		
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	rdg1smokegrenade_putaway	viewmodel/rdg1smokegrenade/rdg1smokegrenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// M18 Smoke Grenade Anims
+	//========================
+	m18smokegrenade_idle	 	viewmodel/rdg1smokegrenade/rdg1smokegrenade_idle.skc			crossblend 0.3
+	m18smokegrenade_disabled 	viewmodel/unarmed/unarmed_idle.skc					crossblend 0.2
+	m18smokegrenade_charge		viewmodel/rdg1smokegrenade/rdg1smokegrenade_charge.skc			crossblend 0.15
+	m18smokegrenade_fire		viewmodel/rdg1smokegrenade/rdg1smokegrenade_fire.skc			crossblend 0.05
+	m18smokegrenade_reload		viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	m18smokegrenade_pullout	viewmodel/rdg1smokegrenade/rdg1smokegrenade_pullout.skc		
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	m18smokegrenade_putaway	viewmodel/rdg1smokegrenade/rdg1smokegrenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+	//========================
+	// Millsgrenade Anims
+	//========================
+	millsgrenade_idle	 	viewmodel/millsgrenade/millsgrenade_idle.skc		crossblend 0.3
+	millsgrenade_disabled		viewmodel/unarmed/unarmed_idle.skc			crossblend 0.2
+	millsgrenade_charge		viewmodel/millsgrenade/millsgrenade_charge.skc
+	{
+		client
+		{
+			22	sound grenade_timer
+			exit	stopaliaschannel grenade_timer
+		}
+	}
+	millsgrenade_fire		viewmodel/millsgrenade/millsgrenade_fire.skc
+	millsgrenade_reload		viewmodel/millsgrenade/millsgrenade_pullout.skc
+	{
+		client
+		{
+			2 sound snd_grenade_pullout
+		}
+	}
+	millsgrenade_pullout	viewmodel/millsgrenade/millsgrenade_pullout.skc		
+	{
+		client
+		{
+			enter sound snd_grenade_pullout
+		}
+	}
+	millsgrenade_putaway	viewmodel/millsgrenade/millsgrenade_putaway.skc
+	{
+		client
+		{
+			enter sound snd_grenade_putaway
+		}
+	}
+
+}

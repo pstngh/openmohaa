@@ -1,0 +1,245 @@
+animations
+{
+	$path models/human/animation
+
+	//========================
+	// Reload 
+	//========================
+	mp44_reload		viewmodel/mp44/tps_mp44_reload.skc	crossblend 0.3
+	{
+		server
+		{
+			first reloadweapon													// tell the weapon that we're reloading
+//			1 	weaponcommand mainhand clip_empty								// make sure the weapon's clip is empty
+			0	attachmodel models/ammo/mp44_clip.tik tag_weapon_left			// put the ammo clip in the left hand
+			41	weaponcommand mainhand clip_fill								// put the clip ammo into the gun
+			42	removeattachedmodel tag_weapon_left 0 models/ammo/mp44_clip.tik	// remove the clip model from the left hand
+		}
+	}
+
+
+	//========================
+	// Walking/Cautious
+	//========================
+	mp44_stand_walk_fwd	multiplayer/mp_rifle_curious_walk_forward.skc		deltadriven crossblend 0.2 //autosteps_walk
+	mp44_stand_walk_back	multiplayer/mp_rifle_curious_walk_backwards.skc		deltadriven crossblend 0.2 //autosteps_walk
+	mp44_stand_walk_left	multiplayer/mp_rifle_curious_walk_left.skc		deltadriven crossblend 0.2 //autosteps_walk
+	mp44_stand_walk_right	multiplayer/mp_rifle_curious_walk_right.skc		deltadriven crossblend 0.2 //autosteps_walk
+
+	//========================
+	// Jogging/Relaxed
+	//========================
+
+	mp44_stand_run_fwd		weapon_rifle/walks_runs/rifle_jog.skc		deltadriven crossblend 0.2 autosteps_run
+	mp44_stand_run_back		multiplayer/mp_rifle_jog_back.skc		deltadriven crossblend 0.2 autosteps_run
+	mp44_stand_run_left		multiplayer/mp_rifle_run_left.skc		deltadriven crossblend 0.2 autosteps_run
+	mp44_stand_run_right		multiplayer/mp_rifle_run_right.skc		deltadriven crossblend 0.2 autosteps_run
+	
+	//========================
+	// Standing
+	//========================
+
+	mp44_stand_idle	 		multiplayer/mp_rifle_stand_curious.skc			crossblend 0.2	
+
+	//========================
+	// Crouching
+	//========================
+
+//	mp44_crouch_idle		viewmodel/mp44/mp44_crouchpose.skc		crossblend 0.2
+	mp44_crouch_idle		weapon_rifle/crouch/rifle_crouch.skc			crossblend 0.1
+	mp44_crouch_walk_fwd	multiplayer/mp_rifle_crouch_walk_forwards.skc	crossblend 0.2 //autosteps_walk
+	mp44_crouch_walk_back	multiplayer/mp_rifle_crouch_walk_back.skc		crossblend 0.2 //autosteps_walk
+	mp44_crouch_walk_left	multiplayer/mp_rifle_crouch_walk_left.skc	crossblend 0.2 //autosteps_walk
+	mp44_crouch_walk_right	multiplayer/mp_rifle_crouch_walk_right.skc	crossblend 0.2 //autosteps_walk
+
+	mp44_crouch_run_fwd		multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	mp44_crouch_run_back	multiplayer/mp_rifle_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	mp44_crouch_run_left	weapon_rifle/walks_runs/rifle_crouchrun_left.skc			crossblend 0.1 autosteps_run
+	mp44_crouch_run_right	weapon_rifle/walks_runs/rifle_crouchrun_right.skc			crossblend 0.1 autosteps_run
+
+	//========================
+	// mg Firing
+	//========================
+
+	mp44_butt			weapon_bar/misc/bar_butt_stand.skc				
+	{
+		server
+		{			
+			4 fire mainhand secondary
+		}
+		client
+		{
+			entry sound pistol_whip // the swish sound. 
+		}
+	}	
+
+	mp44_stand_fire		viewmodel/mp44/tps_mp44_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	
+
+	mp44_stand_run_fire	viewmodel/mp44/mp44_standfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	$path models/human/animation
+
+	mp44_stand_walk_fire	viewmodel/mp44/tps_mp44_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp44_crouch_fire	viewmodel/mp44/tps_mp44_fire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+	mp44_crouch_run_fire	viewmodel/mp44/mp44_crouchfire.skc	crossblend 0.05
+	{
+		server
+		{
+			entry fire
+		}
+	}
+
+	//========================
+	// Raise Animations for thompson
+	//========================
+	mp44_stand_raise		viewmodel/mp44/mp44_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound mp44_snd_pullout
+		}
+	}
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	mp44_crouch_raise		viewmodel/mp44/mp44_pullout.skc
+	{
+		server
+		{
+			first activatenewweapon
+		}
+		client
+		{
+			enter sound mp44_snd_pullout
+		}
+	}
+
+	//========================
+	// Lower
+	//========================
+	// THESE ARE ALL PLACEHOLDER ANIMATIONS!!!!!
+	mp44_stand_lower			viewmodel/mp44/mp44_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound mp44_snd_putaway
+		}
+	}
+	mp44_crouch_lower			viewmodel/mp44/mp44_putaway.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound mp44_snd_putaway
+		}
+	}
+	
+	//========================
+	// Jumping & Falling
+	//========================
+
+	$path models/human/protoanimations
+
+	mp44_jump_takeoff			jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mp44_jump_run_takeoff		jump_takeoff.skc			crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mp44_fall				jump_stretch_loop.skc			crossblend 0.2
+	mp44_land				jump_land.skc					crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	mp44_land_hard			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	
+	
+	//------------------
+	// PAIN ANIMATIONS//
+	//------------------
+	$path models/human/animation
+
+	//Stand//
+	mp44_stand_hit_head		weapon_mp44/minor_pain/mp44_stand_hit_head.skc				autosteps_walk
+	mp44_stand_hit_uppertorso01	weapon_mp44/minor_pain/mp44_stand_hit_torso.skc			random	autosteps_walk
+	mp44_stand_hit_uppertorso02	weapon_mp44/minor_pain/mp44_stand_hit_head.skc			random	autosteps_walk
+	mp44_stand_hit_lowertorso	weapon_mp44/minor_pain/mp44_stand_hit_lowertorso.skc			autosteps_walk
+	mp44_stand_hit_back		weapon_mp44/minor_pain/mp44_stand_hit_lowerback.skc			autosteps_walk
+	mp44_stand_hit_rarm		weapon_mp44/minor_pain/mp44_stand_hit_rarm.skc				autosteps_walk
+	mp44_stand_hit_larm		weapon_mp44/minor_pain/mp44_stand_hit_head.skc				autosteps_walk
+	mp44_stand_hit_leg		weapon_mp44/minor_pain/mp44_stand_hit_leg.skc				autosteps_walk
+			
+	//Crouch//
+	mp44_stand_hit_head01		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mp44_stand_hit_head02		weapon_mp44/minor_pain/mp44_crouch_hit_torso.skc		random	autosteps_walk
+	mp44_stand_hit_head03		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mp44_stand_hit_uppertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mp44_stand_hit_uppertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mp44_stand_hit_lowertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mp44_stand_hit_lowertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mp44_stand_hit_back01		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mp44_stand_hit_back02		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mp44_stand_hit_rarm		weapon_mp44/minor_pain/mp44_crouch_hit_rarm.skc				autosteps_walk
+	mp44_stand_hit_larm		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc			autosteps_walk
+	mp44_stand_hit_leg		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc		autosteps_walk
+}

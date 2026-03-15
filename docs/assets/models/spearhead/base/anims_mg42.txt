@@ -1,0 +1,247 @@
+animations
+{
+	$path models/human/animation
+
+	//========================================================================
+	//========================================================================
+	// Carrying the packed up MG42
+	//========================================================================
+	//========================================================================
+
+
+	//------------------
+	// standing
+	//------------------
+
+	mg42_stand_idle	 	multiplayer/mp_rifle_stand_curious.skc		crossblend 0.2	
+
+	mg42_stand_walk_fwd	multiplayer/mp_rifle_curious_walk_forward.skc	deltadriven crossblend 0.2 //autosteps_walk
+	mg42_stand_walk_back	multiplayer/mp_rifle_curious_walk_backwards.skc	deltadriven crossblend 0.2 //autosteps_walk
+	mg42_stand_walk_left	multiplayer/mp_rifle_curious_walk_left.skc	deltadriven crossblend 0.2 //autosteps_walk
+	mg42_stand_walk_right	multiplayer/mp_rifle_curious_walk_right.skc	deltadriven crossblend 0.2 //autosteps_walk
+
+	mg42_stand_run_fwd	weapon_mg42/walks_runs/mg42_run_forward.skc	deltadriven crossblend 0.2 autosteps_run
+	mg42_stand_run_back	multiplayer/mp_rifle_jog_back.skc		deltadriven crossblend 0.2 autosteps_run
+	mg42_stand_run_left	multiplayer/mp_rifle_run_left.skc		deltadriven crossblend 0.2 autosteps_run
+	mg42_stand_run_right	multiplayer/mp_rifle_run_right.skc		deltadriven crossblend 0.2 autosteps_run
+	
+
+	//------------------
+	// Crouching
+	//------------------
+
+	mg42_crouch_idle	weapon_rifle/crouch/rifle_crouch.skc		crossblend 0.1
+
+	mg42_crouch_walk_fwd	multiplayer/mp_rifle_crouch_walk_forwards.skc	crossblend 0.2 //autosteps_walk
+	mg42_crouch_walk_back	multiplayer/mp_rifle_crouch_walk_back.skc	crossblend 0.2 //autosteps_walk
+	mg42_crouch_walk_left	multiplayer/mp_rifle_crouch_walk_left.skc	crossblend 0.2 //autosteps_walk
+	mg42_crouch_walk_right	multiplayer/mp_rifle_crouch_walk_right.skc	crossblend 0.2 //autosteps_walk
+
+	mg42_crouch_run_fwd	multiplayer/mp_rifle_crouchrun.skc			crossblend 0.1 autosteps_run
+	mg42_crouch_run_back	multiplayer/mp_rifle_crouch_run_backwards.skc		crossblend 0.1 autosteps_run
+	mg42_crouch_run_left	weapon_rifle/walks_runs/rifle_crouchrun_left.skc	crossblend 0.1 autosteps_run
+	mg42_crouch_run_right	weapon_rifle/walks_runs/rifle_crouchrun_right.skc	crossblend 0.1 autosteps_run
+	
+
+	//------------------
+	// Jumping & Falling
+	//------------------
+
+	$path models/human/protoanimations
+
+	mg42_jump_takeoff		jump_takeoff.skc		crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mg42_jump_run_takeoff		jump_takeoff.skc		crossblend 0.1
+	{
+		server
+		{
+			first ai_event	footstep
+		}
+		client
+		{
+			first footstep	"Bip01 R Foot" run
+		}
+	}
+	mg42_fall			jump_stretch_loop.skc		crossblend 0.2
+	mg42_land			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	mg42_land_hard			jump_land.skc			crossblend 0.1
+	{
+		client
+		{
+			first landing
+		}
+	}
+	$path models/human/animation
+
+
+	//------------------
+	// Pickup
+	//------------------
+
+	// Should this be pullout?
+
+	mg42_pickup			viewmodel/mg42/pullout.skc
+	{
+		server
+		{
+			last deactivateweapon righthand
+		}
+		client
+		{
+			enter sound mp44_snd_putaway
+		}
+	}
+
+	// (No time for a drop animation as the player is already pulling out a new weapon)
+	
+
+	//------------------
+	// PAIN ANIMATIONS
+	//------------------
+
+	//stand//
+	mg42_stand_hit_head		weapon_mp44/minor_pain/mp44_stand_hit_head.skc				autosteps_walk
+	mg42_stand_hit_uppertorso01	weapon_mp44/minor_pain/mp44_stand_hit_torso.skc			random	autosteps_walk
+	mg42_stand_hit_uppertorso02	weapon_mp44/minor_pain/mp44_stand_hit_head.skc			random	autosteps_walk
+	mg42_stand_hit_lowertorso	weapon_mp44/minor_pain/mp44_stand_hit_lowertorso.skc			autosteps_walk
+	mg42_stand_hit_back		weapon_mp44/minor_pain/mp44_stand_hit_lowerback.skc			autosteps_walk
+	mg42_stand_hit_rarm		weapon_mp44/minor_pain/mp44_stand_hit_rarm.skc				autosteps_walk
+	mg42_stand_hit_larm		weapon_mp44/minor_pain/mp44_stand_hit_head.skc				autosteps_walk
+	mg42_stand_hit_leg		weapon_mp44/minor_pain/mp44_stand_hit_leg.skc				autosteps_walk
+			
+	//Crouch//
+	mg42_crouch_hit_head01		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42_crouch_hit_head02		weapon_mp44/minor_pain/mp44_crouch_hit_torso.skc		random	autosteps_walk
+	mg42_crouch_hit_head03		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42_crouch_hit_uppertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42_crouch_hit_uppertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42_crouch_hit_lowertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42_crouch_hit_lowertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42_crouch_hit_back01		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42_crouch_hit_back02		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42_crouch_hit_rarm		weapon_mp44/minor_pain/mp44_crouch_hit_rarm.skc				autosteps_walk
+	mg42_crouch_hit_larm		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc			autosteps_walk
+	mg42_crouch_hit_leg		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc		autosteps_walk
+
+
+	//------------------
+	// Setup/pack Animations for tripod
+	//------------------
+
+	mg42_setup		viewmodel/mg42/setup.skc
+	{
+		client
+		{
+			enter sound mp44_snd_pullout
+		}
+	}
+
+
+	mg42_packaway		viewmodel/mg42/packup.skc
+	{
+		client
+		{
+			enter sound mp44_snd_pullout
+		}
+	}
+
+
+
+	//========================================================================
+	//========================================================================
+	// Manning the MG42 tripod
+	//========================================================================
+	//========================================================================
+
+	//------------------
+	// Reload 
+	//------------------
+	//NOTE: This anim needs to last a little over 2.5 seconds
+//	mg42tripod_reload		viewmodel/mp44/tps_mp44_reload.skc	crossblend 0.3
+	mg42tripod_reload		weapon_mg42/tripod/aim_straight_straight.skc
+
+
+
+	//------------------
+	// Aiming and Firing
+	//------------------
+
+	mg42tripod_aim_straight_straight	weapon_mg42/tripod/aim_straight_straight.skc
+	mg42tripod_fire_straight_straight	weapon_mg42/tripod/aim_straight_straight.skc
+	mg42tripod_aim_straight_up15		weapon_mg42/tripod/aim_straight_up15.skc
+	mg42tripod_fire_straight_up15		weapon_mg42/tripod/aim_straight_up15.skc
+	mg42tripod_aim_straight_down15		weapon_mg42/tripod/aim_straight_down15.skc
+	mg42tripod_fire_straight_down15		weapon_mg42/tripod/aim_straight_down15.skc
+
+	mg42tripod_aim_left20_straight		weapon_mg42/tripod/aim_left20_straight.skc
+	mg42tripod_fire_left20_straight		weapon_mg42/tripod/aim_left20_straight.skc
+	mg42tripod_aim_left20_up15			weapon_mg42/tripod/aim_left20_up15.skc
+	mg42tripod_fire_left20_up15			weapon_mg42/tripod/aim_left20_up15.skc
+	mg42tripod_aim_left20_down15		weapon_mg42/tripod/aim_left20_down15.skc
+	mg42tripod_fire_left20_down15		weapon_mg42/tripod/aim_left20_down15.skc
+
+	mg42tripod_aim_left40_straight		weapon_mg42/tripod/aim_left40_straight.skc
+	mg42tripod_fire_left40_straight		weapon_mg42/tripod/aim_left40_straight.skc
+
+	mg42tripod_aim_left40_up15			weapon_mg42/tripod/aim_left40_up15.skc
+	mg42tripod_fire_left40_up15			weapon_mg42/tripod/aim_left40_up15.skc
+	mg42tripod_aim_left40_down15		weapon_mg42/tripod/aim_left40_down15.skc
+	mg42tripod_fire_left40_down15		weapon_mg42/tripod/aim_left40_down15.skc
+
+	mg42tripod_aim_right20_straight		weapon_mg42/tripod/aim_right20_straight.skc
+	mg42tripod_fire_right20_straight	weapon_mg42/tripod/aim_right20_straight.skc
+	mg42tripod_aim_right20_up15			weapon_mg42/tripod/aim_right20_up15.skc
+	mg42tripod_fire_right20_up15		weapon_mg42/tripod/aim_right20_up15.skc
+	mg42tripod_aim_right20_down15		weapon_mg42/tripod/aim_right20_down15.skc
+	mg42tripod_fire_right20_down15		weapon_mg42/tripod/aim_right20_down15.skc
+
+	mg42tripod_aim_right40_straight		weapon_mg42/tripod/aim_right40_straight.skc
+	mg42tripod_fire_right40_straight	weapon_mg42/tripod/aim_right40_straight.skc
+	mg42tripod_aim_right40_up15			weapon_mg42/tripod/aim_right40_up15.skc
+	mg42tripod_fire_right40_up15		weapon_mg42/tripod/aim_right40_up15.skc
+	mg42tripod_aim_right40_down15		weapon_mg42/tripod/aim_right40_down15.skc
+	mg42tripod_fire_right40_down15		weapon_mg42/tripod/aim_right40_down15.skc
+
+	//------------------
+	// PACKUP & SETUP
+	//------------------
+
+	//NOTE: This anim needs to last a little over 2.0 seconds
+	mg42tripod_packup		weapon_mg42/tripod/aim_straight_straight.skc
+
+	//NOTE: This anim needs to last a little over 2.0 seconds
+	mg42tripod_setup		weapon_mg42/tripod/aim_straight_straight.skc
+
+
+	//------------------
+	// PAIN ANIMATIONS
+	//------------------
+			
+	mg42tripod_hit_head01		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42tripod_hit_head02		weapon_mp44/minor_pain/mp44_crouch_hit_torso.skc		random	autosteps_walk
+	mg42tripod_hit_head03		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42tripod_hit_uppertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42tripod_hit_uppertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42tripod_hit_lowertorso01	weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42tripod_hit_lowertorso02	weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42tripod_hit_back01		weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc	random	autosteps_walk
+	mg42tripod_hit_back02		weapon_mp44/minor_pain/mp44_crouch_hit_front.skc		random	autosteps_walk
+	mg42tripod_hit_rarm			weapon_mp44/minor_pain/mp44_crouch_hit_rarm.skc				autosteps_walk
+	mg42tripod_hit_larm			weapon_mp44/minor_pain/mp44_crouch_hit_front.skc			autosteps_walk
+	mg42tripod_hit_leg			weapon_mp44/minor_pain/mp44_crouch_hit_torso_flyback.skc		autosteps_walk
+}
