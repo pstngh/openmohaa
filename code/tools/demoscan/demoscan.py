@@ -1076,6 +1076,107 @@ class DemoScanner:
             return s[1:-1]
         return s
 
+    # Known dmstartammo values (clip + backup) for the community realism mod.
+    # Format: weapon_name_lower -> (realism_total, default_total)
+    # The ammo_snapshot tracks max observed amount per weapon, which at spawn
+    # equals dmstartammo. After firing, the count only decreases.
+    WEAPON_AMMO_TABLE = {
+        "colt 45":             (21, 100),
+        "walther p38":         (24, 100),
+        "k98 rifle":           (60, 200),
+        "bar":                 (240, 200),
+        "stg 44":              (180, 200),
+        "springfield sniper":  (60, 50),
+        "k98 sniper":          (60, 50),
+        "thompson smg":        (180, 200),
+        "mp40 smg":            (192, 200),
+    }
+
+    def detect_mode(self):
+        """Detect game mode using grenade count and weapon ammo cross-check.
+
+        Returns "realism", "default", or None if indeterminate.
+
+        Detection logic:
+        1. Grenade count: <=3 suggests realism, >3 suggests default.
+        2. Weapon ammo cross-check: pistol ammo is the strongest signal
+           (21/24 in realism vs 100 in default). Other weapons can confirm.
+        3. If grenade and ammo signals agree, that's the mode.
+        4. If they disagree, ammo wins (grenades can be thrown before recording).
+        5. If only one signal is available, use it.
+        """
+        grenade_mode = None
+        if self.grenade_count is not None:
+            grenade_mode = "realism" if self.grenade_count <= 3 else "default"
+
+        ammo_mode = self._detect_mode_from_ammo()
+
+        if ammo_mode is not None and grenade_mode is not None:
+            # Both available - ammo wins on conflict (grenades can be thrown)
+            return ammo_mode
+        if ammo_mode is not None:
+            return ammo_mode
+        if grenade_mode is not None:
+            return grenade_mode
+        return None
+
+    def _detect_mode_from_ammo(self):
+        """Check weapon ammo counts against known realism/default values.
+
+        Returns "realism", "default", or None.
+
+        For each weapon we observe, the max ammo seen is at most dmstartammo
+        (player may have fired some). So:
+        - If observed > realism_total: must be default
+        - If observed <= realism_total and realism_total < default_total: likely realism
+        - For weapons where realism > default (BAR, snipers): reversed logic
+
+        Pistols are the best discriminator (21/24 vs 100).
+        """
+        realism_votes = 0
+        default_votes = 0
+
+        for ammo_name, observed in self.ammo_snapshot.items():
+            lower = ammo_name.lower()
+            entry = self.WEAPON_AMMO_TABLE.get(lower)
+            if entry is None:
+                continue
+            realism_total, default_total = entry
+
+            if realism_total < default_total:
+                # Normal case (pistols, K98 rifle, Thompson, MP40, StG 44)
+                # Realism has less ammo than default
+                if observed > realism_total:
+                    # More ammo than realism allows -> must be default
+                    default_votes += 1
+                else:
+                    # Could be realism (or default after firing a lot)
+                    # Strong signal if it's a pistol (21/24 vs 100)
+                    if default_total - realism_total > 50:
+                        # Large gap (pistols): strong realism signal
+                        realism_votes += 2
+                    else:
+                        realism_votes += 1
+            else:
+                # Inverted case (BAR, snipers): realism has MORE ammo
+                if observed > default_total:
+                    # More ammo than default allows -> must be realism
+                    realism_votes += 1
+                else:
+                    # Ambiguous for these weapons, weak signal
+                    pass
+
+        if realism_votes == 0 and default_votes == 0:
+            return None
+        if default_votes > 0 and realism_votes == 0:
+            return "default"
+        if realism_votes > 0 and default_votes == 0:
+            return "realism"
+        # Mixed signals: go with the stronger vote
+        if default_votes > realism_votes:
+            return "default"
+        return "realism"
+
     @staticmethod
     def _is_grenade_weapon(name):
         """Check if a weapon name refers to a grenade (not a primary weapon)."""
@@ -1182,14 +1283,8 @@ def main():
         weapons = [w for w in scanner.weapons_seen if not DemoScanner._is_grenade_weapon(w)]
         grenade_count = scanner.grenade_count
 
-        # Determine game mode from grenade count
-        if grenade_count is not None:
-            if grenade_count <= 3:
-                mode = "realism"
-            else:
-                mode = "default"
-        else:
-            mode = None
+        # Determine game mode from grenade count + weapon ammo cross-check
+        mode = scanner.detect_mode()
 
         results.append((rel_path, player_names, None, weapons, grenade_count, mode, scanner))
 
