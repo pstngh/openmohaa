@@ -740,10 +740,17 @@ static int CG_CalcViewValues(void)
         //  position using default offsets. Only applies to spectator-follow mode;
         //  cinematic and turret cameras (identified by CF_CAMERA_ANGLES_* flags) are
         //  left untouched.
+        //
+        //  The recompute is skipped for normal 3rd-person demos: if the baked camera
+        //  is already more than 32 units from the eye the server placed it correctly
+        //  (minimum unobstructed 3rd-person distance is ~61 units) and should be
+        //  left alone.  cg_spectatefollow_force bypasses this distance gate.
         if ((cg.demoPlayback || cg_spectatefollow_force->integer)
             && !(ps->camera_flags
                  & (CF_CAMERA_ANGLES_ABSOLUTE | CF_CAMERA_ANGLES_IGNORE_PITCH | CF_CAMERA_ANGLES_IGNORE_YAW
-                    | CF_CAMERA_ANGLES_ALLOWOFFSET | CF_CAMERA_ANGLES_TURRETMODE))) {
+                    | CF_CAMERA_ANGLES_ALLOWOFFSET | CF_CAMERA_ANGLES_TURRETMODE))
+            && (cg_spectatefollow_force->integer
+                || DistanceSquared(cg.camera_origin, cg.playerHeadPos) < 32.0f * 32.0f)) {
             vec3_t  vCamTarget, forward, right, up;
             vec3_t  vMins = {-2, -2, -2};
             vec3_t  vMaxs = {2, 2, 2};
