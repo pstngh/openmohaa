@@ -118,6 +118,11 @@ cvar_t *ui_timemessage;
 cvar_t *cg_fov;
 cvar_t *cg_cheats;
 cvar_t *cg_followplayer;
+cvar_t *cg_spectatefollow_force;
+cvar_t *cg_spectatefollow_forward;
+cvar_t *cg_spectatefollow_right;
+cvar_t *cg_spectatefollow_up;
+cvar_t *cg_spectatefollow_pitch;
 
 /*
 =================
