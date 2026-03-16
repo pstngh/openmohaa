@@ -5,16 +5,22 @@ demoscan.py - Scan MoHAA .dm3 demo files for player names and loadout info.
 Reads all .dm3 files in a folder (recursively) and outputs a text file
 listing every demo and the players who appear in it, including mid-game joins.
 For AA demos (protocol 6/8), also extracts the recording player's primary
-weapon(s) and grenade count at spawn (6 = default, 3 = realism mode).
+weapon(s), grenade count at spawn (6 = default, 3 = realism mode), and all
+ammo types with their max observed amounts.
+
+The --sort option copies demos into separate default/ and realism/ subfolders
+based on the detected game mode, with an unknown/ folder for demos where the
+mode could not be determined.
 
 Usage:
-    python demoscan.py <folder> [-o output.txt] [-p PlayerName]
+    python demoscan.py <folder> [-o output.txt] [-p PlayerName] [-s sortdir]
 
 Examples:
     python demoscan.py C:\mohaa\demos
     python demoscan.py C:\mohaa\demos -o results.txt
     python demoscan.py C:\mohaa\demos -p "SomeName"
-    python demoscan.py C:\mohaa\demos -p "SomeName" -p "OtherPlayer"
+    python demoscan.py C:\mohaa\demos -s C:\sorted_demos
+    python demoscan.py C:\mohaa\demos -s C:\sorted_demos -o results.txt
 
 Copyright (C) 2026 the OpenMoHAA team
 
@@ -37,6 +43,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import argparse
 import os
+import shutil
 import struct
 import sys
 
@@ -656,6 +663,7 @@ class DemoScanner:
         self.weapons_seen = []  # list of weapon configstring names seen
         self.grenade_count = None  # grenade count from first spawn snapshot
         self.recording_client = None  # clientNum of the recording player
+        self.ammo_snapshot = {}  # name -> max amount seen (for all ammo types)
         # Internal state for delta decoding across snapshots
         self._prev_ps_arrays = None  # previous playerState arrays for delta
         self._snap_ok = 0  # snapshots parsed successfully
@@ -1037,6 +1045,7 @@ class DemoScanner:
         (from SV_FindIndex), so we look up configstrings[CS_WEAPONS + value].
         We track the maximum grenade count seen across all snapshots, since
         the count at spawn is the highest it will be (before any are thrown).
+        Also tracks all ammo types with their max observed amounts.
         """
         for i in range(MAX_AMMO):
             name_idx = arrays["ammo_name_index"][i]
@@ -1045,8 +1054,14 @@ class DemoScanner:
             # ammo_name_index stores relative offset within CS_WEAPONS
             cs_idx = CS_WEAPONS + name_idx
             ammo_name = self.configstrings.get(cs_idx, "")
+            if not ammo_name:
+                continue
+            count = arrays["ammo_amount"][i]
+            # Track max amount seen for every ammo type
+            if count > 0:
+                prev = self.ammo_snapshot.get(ammo_name, 0)
+                self.ammo_snapshot[ammo_name] = max(prev, count)
             if ammo_name.lower() in ("grenade", "agrenade"):
-                count = arrays["ammo_amount"][i]
                 self._grenade_values.append(count)
                 if count > 0:
                     if self.grenade_count is None:
@@ -1117,6 +1132,11 @@ def main():
         action="store_true",
         help="Show extra debug info (CS_WEAPONS configstrings, raw ammo data)",
     )
+    parser.add_argument(
+        "-s", "--sort",
+        metavar="DIR",
+        help="Sort demos into DIR/default/ and DIR/realism/ subfolders (copies files)",
+    )
     args = parser.parse_args()
 
     if not os.path.isdir(args.folder):
@@ -1162,7 +1182,42 @@ def main():
         weapons = [w for w in scanner.weapons_seen if not DemoScanner._is_grenade_weapon(w)]
         grenade_count = scanner.grenade_count
 
-        results.append((rel_path, player_names, None, weapons, grenade_count, scanner))
+        # Determine game mode from grenade count
+        if grenade_count is not None:
+            if grenade_count <= 3:
+                mode = "realism"
+            else:
+                mode = "default"
+        else:
+            mode = None
+
+        results.append((rel_path, player_names, None, weapons, grenade_count, mode, scanner))
+
+    # Sort demos into folders if requested
+    sort_counts = {"default": 0, "realism": 0, "unknown": 0}
+    if args.sort:
+        sort_dir = args.sort
+        for sub in ("default", "realism", "unknown"):
+            os.makedirs(os.path.join(sort_dir, sub), exist_ok=True)
+
+        for rel_path, players, error, weapons, grenade_count, mode, scanner in results:
+            if error or players is None:
+                continue
+            src = os.path.join(args.folder, rel_path)
+            if mode:
+                dest_sub = mode
+            else:
+                dest_sub = "unknown"
+            dest = os.path.join(sort_dir, dest_sub, os.path.basename(rel_path))
+            # Avoid overwriting: append a number if file exists
+            if os.path.exists(dest):
+                base, ext = os.path.splitext(os.path.basename(rel_path))
+                n = 1
+                while os.path.exists(dest):
+                    dest = os.path.join(sort_dir, dest_sub, "%s_%d%s" % (base, n, ext))
+                    n += 1
+            shutil.copy2(src, dest)
+            sort_counts[dest_sub] += 1
 
     # Write output
     with open(args.output, "w", encoding="utf-8") as f:
@@ -1171,7 +1226,7 @@ def main():
             f.write("#\n")
 
         matches = 0
-        for rel_path, players, error, weapons, grenade_count, scanner in results:
+        for rel_path, players, error, weapons, grenade_count, mode, scanner in results:
             if error:
                 f.write("%s\n  ERROR: %s\n\n" % (rel_path, error))
                 continue
@@ -1187,16 +1242,16 @@ def main():
             if weapons:
                 f.write("  Weapon(s): %s\n" % ", ".join(weapons))
             if grenade_count is not None:
-                # Spawn counts are either 3 (realism) or 6 (default).
-                # The observed max may be lower if recording started after
-                # some grenades were thrown, so infer the spawn count.
-                if grenade_count <= 3:
-                    spawn_count = 3
-                    mode = "realism"
-                else:
-                    spawn_count = 6
-                    mode = "default"
+                spawn_count = 3 if grenade_count <= 3 else 6
                 f.write("  Grenades: %d (%s)\n" % (spawn_count, mode))
+            # Show ammo breakdown for all ammo types
+            if scanner.ammo_snapshot:
+                ammo_parts = []
+                for ammo_name, amount in sorted(scanner.ammo_snapshot.items()):
+                    ammo_parts.append("%s: %d" % (ammo_name, amount))
+                f.write("  Ammo: %s\n" % ", ".join(ammo_parts))
+            if mode:
+                f.write("  Mode: %s\n" % mode)
             if args.verbose and scanner:
                 # Dump CS_WEAPONS configstrings
                 weapon_cs = {}
@@ -1237,12 +1292,19 @@ def main():
         if filter_names:
             f.write("# Demos matching filter: %d\n" % matches)
         f.write("# Errors: %d\n" % errors)
+        if args.sort:
+            f.write("# Sorted: %d default, %d realism, %d unknown\n"
+                    % (sort_counts["default"], sort_counts["realism"], sort_counts["unknown"]))
 
     print("\nDone! %d demos scanned, %d errors." % (len(demos), errors))
     if filter_names:
-        matching = sum(1 for _, p, e in results if p is not None and e is None)
+        matching = sum(1 for _, p, e, *_ in results if p is not None and e is None)
         print("Demos matching filter: %d" % matching)
     print("Results written to: %s" % args.output)
+    if args.sort:
+        print("Sorted: %d default, %d realism, %d unknown (in %s)"
+              % (sort_counts["default"], sort_counts["realism"],
+                 sort_counts["unknown"], args.sort))
 
 
 if __name__ == "__main__":
