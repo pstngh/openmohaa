@@ -772,7 +772,7 @@ static int CG_CalcViewValues(void)
                 int   snapEnt;
 
                 if (fLean == 0.0f) {
-                    float bestDistSq = FLT_MAX;
+                    float bestDistSq = 1e37f;
 
                     for (snapEnt = 0; snapEnt < cg.snap->numEntities; snapEnt++) {
                         entityState_t *es = &cg.snap->entities[snapEnt];
