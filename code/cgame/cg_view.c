@@ -757,36 +757,44 @@ static int CG_CalcViewValues(void)
             VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
 
             // Added in OPM
-            //  In 3rd-person spectator mode, ps->fLeanAngle is always 0 (the spectator's
-            //  own lean). The followed player's lean is encoded server-side in their entity
-            //  state as bone_angles[PELVIS_TAG(3)][2] = fLeanAngle * 0.8f.
-            //  Scan nearby player entities to find the followed player and recover their lean.
+            //  In spectator-follow mode the server-side feature that forces a
+            //  first-person view also zeroes ps->fLeanAngle, so it cannot be
+            //  read directly.  The followed player's lean is still encoded in
+            //  their entity state: bone_angles[PELVIS_TAG=3][2] = fLeanAngle * 0.8f
+            //  (set by PmoveAdjustAngleSettings on the server).
+            //
+            //  Scan the current snapshot's entity list to find the nearest
+            //  ET_PLAYER entity (excluding ourselves) whose origin matches
+            //  ps->origin — that is the player being spectated.  Use raw
+            //  snapshot data throughout to avoid any stale interpolated state.
             {
-                int   followEnt;
-                float fFollowLeanAngle = 0.0f;
-                float bestDistSq       = 10000.0f; // 100-unit search radius
+                float fLean    = ps->fLeanAngle; // non-zero if server copied it
+                int   snapEnt;
 
-                for (followEnt = 0; followEnt < MAX_CLIENTS; followEnt++) {
-                    centity_t *followCent;
-                    float      distSq;
+                if (fLean == 0.0f) {
+                    float bestDistSq = FLT_MAX;
 
-                    if (followEnt == cg.snap->ps.clientNum) {
-                        continue;
-                    }
-                    followCent = &cg_entities[followEnt];
-                    if (followCent->currentState.eType != ET_PLAYER) {
-                        continue;
-                    }
-                    distSq = DistanceSquared(followCent->lerpOrigin, ps->origin);
-                    if (distSq < bestDistSq) {
-                        bestDistSq = distSq;
-                        // bone_angles[3] = PELVIS_TAG, [2] = Z = fLeanAngle * 0.8f
-                        fFollowLeanAngle = followCent->currentState.bone_angles[3][2] / 0.8f;
+                    for (snapEnt = 0; snapEnt < cg.snap->numEntities; snapEnt++) {
+                        entityState_t *es = &cg.snap->entities[snapEnt];
+                        float          distSq;
+
+                        if (es->number == cg.snap->ps.clientNum) {
+                            continue;
+                        }
+                        if (es->eType != ET_PLAYER) {
+                            continue;
+                        }
+                        distSq = DistanceSquared(es->origin, cg.snap->ps.origin);
+                        if (distSq < bestDistSq) {
+                            bestDistSq = distSq;
+                            // PELVIS_TAG = 3, [2] = Z component = fLeanAngle * 0.8f
+                            fLean = es->bone_angles[3][2] / 0.8f;
+                        }
                     }
                 }
 
-                if (fFollowLeanAngle != 0.0f) {
-                    VectorMA(vCamTarget, fFollowLeanAngle * 0.65f, right, vCamTarget);
+                if (fLean != 0.0f) {
+                    VectorMA(vCamTarget, fLean * 0.65f, right, vCamTarget);
                 }
             }
 
