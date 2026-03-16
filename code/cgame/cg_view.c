@@ -764,15 +764,17 @@ static int CG_CalcViewValues(void)
             //  (set by PmoveAdjustAngleSettings on the server).
             //
             //  Scan the current snapshot's entity list to find the nearest
-            //  ET_PLAYER entity (excluding ourselves) whose origin matches
-            //  ps->origin — that is the player being spectated.  Use raw
-            //  snapshot data throughout to avoid any stale interpolated state.
+            //  ET_PLAYER entity (excluding ourselves) — that is the player
+            //  being spectated.  Then interpolate bone_angles between
+            //  currentState and nextState (using cg.frameInterpolation) to
+            //  avoid per-snapshot snapping.
             {
-                float fLean    = ps->fLeanAngle; // non-zero if server copied it
+                float fLean = ps->fLeanAngle; // non-zero if server copied it
                 int   snapEnt;
 
                 if (fLean == 0.0f) {
-                    float bestDistSq = 1e37f;
+                    float bestDistSq  = 1e37f;
+                    int   followNum   = -1;
 
                     for (snapEnt = 0; snapEnt < cg.snap->numEntities; snapEnt++) {
                         entityState_t *es = &cg.snap->entities[snapEnt];
@@ -787,9 +789,17 @@ static int CG_CalcViewValues(void)
                         distSq = DistanceSquared(es->origin, cg.snap->ps.origin);
                         if (distSq < bestDistSq) {
                             bestDistSq = distSq;
-                            // PELVIS_TAG = 3, [2] = Z component = fLeanAngle * 0.8f
-                            fLean = es->bone_angles[3][2] / 0.8f;
+                            followNum  = es->number;
                         }
+                    }
+
+                    if (followNum >= 0) {
+                        // PELVIS_TAG = 3, [2] = Z component = fLeanAngle * 0.8f
+                        // Interpolate between snapshots to avoid per-frame snapping.
+                        centity_t *fc       = &cg_entities[followNum];
+                        float      curLean  = fc->currentState.bone_angles[3][2];
+                        float      nextLean = fc->nextState.bone_angles[3][2];
+                        fLean = (curLean + cg.frameInterpolation * (nextLean - curLean)) / 0.8f;
                     }
                 }
 
