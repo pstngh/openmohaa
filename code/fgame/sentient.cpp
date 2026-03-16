@@ -1241,8 +1241,6 @@ void Sentient::takeItem(const char *name)
 
     item = FindItem(name);
     if (item) {
-        gi.DPrintf("Taking item %s away from player\n", item->getName().c_str());
-
         item->PostEvent(EV_Remove, 0);
         return;
     }
@@ -1250,8 +1248,6 @@ void Sentient::takeItem(const char *name)
     Ammo *ammo;
     ammo = FindAmmoByName(name);
     if (ammo) {
-        gi.DPrintf("Taking ammo %s away from player\n", name);
-
         ammo->setAmount(0);
     }
 }
@@ -1262,8 +1258,6 @@ void Sentient::takeAmmoType(const char *name)
 
     ammo = FindAmmoByName(name);
     if (ammo) {
-        gi.DPrintf("Taking ammo %s away from player\n", name);
-
         ammo->setAmount(0);
     }
 }
