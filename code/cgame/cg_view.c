@@ -735,22 +735,12 @@ static int CG_CalcViewValues(void)
     // if we are in a camera view, we take our audio cues directly from the camera
     if (ps->pm_flags & PMF_CAMERA_VIEW) {
         // Added in OPM
-        //  During demo playback (or when cg_spectatefollow_force is set), ignore the
-        //  server-baked camera_origin and recompute directly from the player's eye
-        //  position using default offsets. Only applies to spectator-follow mode;
-        //  cinematic and turret cameras (identified by CF_CAMERA_ANGLES_* flags) are
-        //  left untouched.
-        //
-        //  The recompute is skipped for normal 3rd-person demos: if the baked camera
-        //  is already more than 32 units from the eye the server placed it correctly
-        //  (minimum unobstructed 3rd-person distance is ~61 units) and should be
-        //  left alone.  cg_spectatefollow_force bypasses this distance gate.
-        if ((cg.demoPlayback || cg_spectatefollow_force->integer)
-            && !(ps->camera_flags
-                 & (CF_CAMERA_ANGLES_ABSOLUTE | CF_CAMERA_ANGLES_IGNORE_PITCH | CF_CAMERA_ANGLES_IGNORE_YAW
-                    | CF_CAMERA_ANGLES_ALLOWOFFSET | CF_CAMERA_ANGLES_TURRETMODE))
-            && (cg_spectatefollow_force->integer
-                || DistanceSquared(cg.camera_origin, cg.playerHeadPos) < 32.0f * 32.0f)) {
+        //  During demo playback (or when cg_spectatefollow_force is set), always
+        //  ignore the server-baked camera_origin and recompute the view using the
+        //  default game offsets.  This ensures demos recorded with server-side
+        //  camera modifications (e.g. forced first-person anti-cheat) are always
+        //  shown with standard 3rd-person behaviour.
+        if (cg.demoPlayback || cg_spectatefollow_force->integer) {
             vec3_t  vCamTarget, forward, right, up;
             vec3_t  vMins = {-2, -2, -2};
             vec3_t  vMaxs = {2, 2, 2};
