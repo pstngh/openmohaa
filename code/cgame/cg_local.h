@@ -514,6 +514,11 @@ extern "C" {
     extern cvar_t *cg_fov;
     extern cvar_t *cg_cheats;
     extern cvar_t *cg_followplayer;
+    extern cvar_t *cg_spectatefollow_force;
+    extern cvar_t *cg_spectatefollow_forward;
+    extern cvar_t *cg_spectatefollow_right;
+    extern cvar_t *cg_spectatefollow_up;
+    extern cvar_t *cg_spectatefollow_pitch;
 
     //
     // cg_main.c

@@ -215,6 +215,12 @@ void CG_RegisterCvars(void)
     cg_fov = cgi.Cvar_Get("cg_fov", "80", CVAR_ARCHIVE);
     cg_cheats = cgi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
     cg_followplayer = cgi.Cvar_Get("cg_followplayer", "", CVAR_ARCHIVE | CVAR_USERINFO);
+
+    cg_spectatefollow_force   = cgi.Cvar_Get("cg_spectatefollow_force", "0", CVAR_ARCHIVE);
+    cg_spectatefollow_forward = cgi.Cvar_Get("cg_spectatefollow_forward", "-56", CVAR_ARCHIVE);
+    cg_spectatefollow_right   = cgi.Cvar_Get("cg_spectatefollow_right", "0", CVAR_ARCHIVE);
+    cg_spectatefollow_up      = cgi.Cvar_Get("cg_spectatefollow_up", "24", CVAR_ARCHIVE);
+    cg_spectatefollow_pitch   = cgi.Cvar_Get("cg_spectatefollow_pitch", "2", CVAR_ARCHIVE);
 }
 /*
 ===============

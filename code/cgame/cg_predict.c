@@ -375,6 +375,48 @@ static void CG_InterpolatePlayerStateCamera(void)
         cg.camera_origin[i] = prev->ps.camera_origin[i] + f * (next->ps.camera_origin[i] - prev->ps.camera_origin[i]);
         cg.camera_angles[i] = LerpAngle(prev->ps.camera_angles[i], next->ps.camera_angles[i], f);
     }
+
+    // Added in OPM
+    //  Override server-baked spectator camera position with a client-computed one
+    //  using configurable offsets. This allows demos recorded with custom server or
+    //  anti-cheat spectator camera settings to be played back with the standard camera.
+    //  Only applies to spectator-follow mode (not cinematic or turret cameras).
+    if (cg_spectatefollow_force->integer
+        && (cg.snap->ps.pm_flags & PMF_CAMERA_VIEW)
+        && !(cg.predicted_player_state.camera_flags
+             & (CF_CAMERA_ANGLES_ABSOLUTE | CF_CAMERA_ANGLES_IGNORE_PITCH | CF_CAMERA_ANGLES_IGNORE_YAW
+                | CF_CAMERA_ANGLES_ALLOWOFFSET | CF_CAMERA_ANGLES_TURRETMODE))) {
+        playerState_t *ps = &cg.predicted_player_state;
+        vec3_t         vEyePos, vCamTarget, forward, right, up;
+        vec3_t         vMins = {-2, -2, -2};
+        vec3_t         vMaxs = {2, 2, 2};
+        trace_t        trace;
+
+        // Reconstruct eye position from the followed player's origin and view height
+        VectorCopy(ps->origin, vEyePos);
+        vEyePos[2] += ps->viewheight;
+
+        // Compute the desired camera position using the raw view angles and client cvars
+        AngleVectors(ps->viewangles, forward, right, up);
+
+        VectorCopy(vEyePos, vCamTarget);
+        VectorMA(vCamTarget, cg_spectatefollow_forward->value, forward, vCamTarget);
+        VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
+        VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
+
+        if (ps->fLeanAngle != 0.0f) {
+            VectorMA(vCamTarget, ps->fLeanAngle * 0.65f, right, vCamTarget);
+        }
+
+        // Trace to avoid clipping through walls
+        CG_Trace(&trace, vEyePos, vMins, vMaxs, vCamTarget, cg.snap->ps.clientNum, MASK_CAMERASOLID, qfalse, qtrue, "SpectateFollowForce");
+
+        // Set camera angles from raw view angles with pitch correction
+        VectorCopy(ps->viewangles, cg.camera_angles);
+        cg.camera_angles[PITCH] += cg_spectatefollow_pitch->value * trace.fraction;
+
+        VectorCopy(trace.endpos, cg.camera_origin);
+    }
 }
 
 /*
