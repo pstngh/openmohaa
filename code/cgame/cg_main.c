@@ -123,6 +123,9 @@ cvar_t *cg_spectatefollow_forward;
 cvar_t *cg_spectatefollow_right;
 cvar_t *cg_spectatefollow_up;
 cvar_t *cg_spectatefollow_pitch;
+// Added in OPM
+cvar_t *cg_demo_firstperson;
+cvar_t *cg_demo_followclient;
 
 /*
 =================
@@ -226,6 +229,9 @@ void CG_RegisterCvars(void)
     cg_spectatefollow_right   = cgi.Cvar_Get("cg_spectatefollow_right", "0", CVAR_ARCHIVE);
     cg_spectatefollow_up      = cgi.Cvar_Get("cg_spectatefollow_up", "24", CVAR_ARCHIVE);
     cg_spectatefollow_pitch   = cgi.Cvar_Get("cg_spectatefollow_pitch", "2", CVAR_ARCHIVE);
+    // Added in OPM
+    cg_demo_firstperson   = cgi.Cvar_Get("cg_demo_firstperson", "0", CVAR_ARCHIVE);
+    cg_demo_followclient  = cgi.Cvar_Get("cg_demo_followclient", "-1", CVAR_ARCHIVE);
 }
 /*
 ===============

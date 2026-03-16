@@ -519,6 +519,9 @@ extern "C" {
     extern cvar_t *cg_spectatefollow_right;
     extern cvar_t *cg_spectatefollow_up;
     extern cvar_t *cg_spectatefollow_pitch;
+    // Added in OPM
+    extern cvar_t *cg_demo_firstperson;
+    extern cvar_t *cg_demo_followclient;
 
     //
     // cg_main.c

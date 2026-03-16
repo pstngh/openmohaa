@@ -744,76 +744,113 @@ static int CG_CalcViewValues(void)
             vec3_t  vCamTarget, forward, right, up;
             vec3_t  vMins = {-2, -2, -2};
             vec3_t  vMaxs = {2, 2, 2};
+            vec3_t  vHeadPos, vViewAngles;
             trace_t trace;
+            int     followEnt = -1;
 
-            AngleVectors(ps->viewangles, forward, right, up);
-
-            VectorCopy(cg.playerHeadPos, vCamTarget);
-            VectorMA(vCamTarget, cg_spectatefollow_forward->value, forward, vCamTarget);
-            VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
-            VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
+            // Default source: the snapshot's playerState (the demo recorder's spec target).
+            VectorCopy(cg.playerHeadPos, vHeadPos);
+            VectorCopy(ps->viewangles, vViewAngles);
 
             // Added in OPM
-            //  In spectator-follow mode the server-side feature that forces a
-            //  first-person view also zeroes ps->fLeanAngle, so it cannot be
-            //  read directly.  The followed player's lean is still encoded in
-            //  their entity state: bone_angles[PELVIS_TAG=3][2] = fLeanAngle * 0.8f
-            //  (set by PmoveAdjustAngleSettings on the server).
-            //
-            //  Scan the current snapshot's entity list to find the nearest
-            //  ET_PLAYER entity (excluding ourselves) — that is the player
-            //  being spectated.  Then interpolate bone_angles between
-            //  currentState and nextState (using cg.frameInterpolation) to
-            //  avoid per-snapshot snapping.
-            {
-                float fLean = ps->fLeanAngle; // non-zero if server copied it
-                int   snapEnt;
+            //  cg_demo_followclient lets the viewer switch to a different player
+            //  in the snapshot.  Find the requested entity, interpolate its
+            //  origin between snapshots, and use its angles for orientation.
+            //  Falls back to the original target if the entity is not present.
+            if (cg.demoPlayback && cg_demo_followclient->integer >= 0) {
+                int targetNum = cg_demo_followclient->integer;
+                int snapEnt;
 
-                if (fLean == 0.0f) {
-                    float bestDistSq  = 1e37f;
-                    int   followNum   = -1;
-
+                if (targetNum < MAX_CLIENTS) {
                     for (snapEnt = 0; snapEnt < cg.snap->numEntities; snapEnt++) {
                         entityState_t *es = &cg.snap->entities[snapEnt];
-                        float          distSq;
-
-                        if (es->number == cg.snap->ps.clientNum) {
-                            continue;
-                        }
-                        if (es->eType != ET_PLAYER) {
-                            continue;
-                        }
-                        distSq = DistanceSquared(es->origin, cg.snap->ps.origin);
-                        if (distSq < bestDistSq) {
-                            bestDistSq = distSq;
-                            followNum  = es->number;
+                        if (es->number == targetNum && es->eType == ET_PLAYER) {
+                            centity_t *ce = &cg_entities[targetNum];
+                            vec3_t     delta;
+                            VectorSubtract(ce->nextState.origin, ce->currentState.origin, delta);
+                            VectorMA(ce->currentState.origin, cg.frameInterpolation, delta, vHeadPos);
+                            vHeadPos[2] += ps->viewheight;
+                            VectorCopy(ce->currentState.angles, vViewAngles);
+                            followEnt = targetNum;
+                            break;
                         }
                     }
-
-                    if (followNum >= 0) {
-                        // PELVIS_TAG = 3, [2] = Z component = fLeanAngle * 0.8f
-                        // Interpolate between snapshots to avoid per-frame snapping.
-                        centity_t *fc       = &cg_entities[followNum];
-                        float      curLean  = fc->currentState.bone_angles[3][2];
-                        float      nextLean = fc->nextState.bone_angles[3][2];
-                        fLean = (curLean + cg.frameInterpolation * (nextLean - curLean)) / 0.8f;
-                    }
-                }
-
-                if (fLean != 0.0f) {
-                    VectorMA(vCamTarget, fLean * 0.65f, right, vCamTarget);
                 }
             }
 
-            CG_Trace(
-                &trace, cg.playerHeadPos, vMins, vMaxs, vCamTarget, cg.snap->ps.clientNum, MASK_CAMERASOLID,
-                qfalse, qtrue, "SpectateFollowForce"
-            );
+            // Added in OPM
+            //  cg_demo_firstperson places the camera at the player's eye with no
+            //  offset.  For the original demo target ps->viewangles has the exact
+            //  recorded view angles including pitch; for a cg_demo_followclient
+            //  override the entity angles are used (yaw is accurate; pitch is the
+            //  body/aiming pitch from the entity state).
+            if (cg.demoPlayback && cg_demo_firstperson->integer) {
+                VectorCopy(vHeadPos, cg.refdef.vieworg);
+                VectorCopy(vViewAngles, cg.refdefViewAngles);
+            } else {
+                AngleVectors(vViewAngles, forward, right, up);
 
-            VectorCopy(trace.endpos, cg.refdef.vieworg);
+                VectorCopy(vHeadPos, vCamTarget);
+                VectorMA(vCamTarget, cg_spectatefollow_forward->value, forward, vCamTarget);
+                VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
+                VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
 
-            VectorCopy(ps->viewangles, cg.refdefViewAngles);
-            cg.refdefViewAngles[PITCH] += cg_spectatefollow_pitch->value * trace.fraction;
+                // Added in OPM
+                //  Recover the followed player's lean angle.  When the server zeroes
+                //  fLeanAngle (e.g. forced first-person anti-cheat), it is still
+                //  encoded in the entity's bone_angles[PELVIS_TAG=3][2] = lean * 0.8f.
+                //  When cg_demo_followclient overrides the target, use that entity's
+                //  lean directly instead of the nearest-entity search.
+                {
+                    float fLean  = (followEnt < 0) ? ps->fLeanAngle : 0.0f;
+                    int   snapEnt;
+
+                    if (fLean == 0.0f) {
+                        int leanEnt = followEnt;
+
+                        if (leanEnt < 0) {
+                            float bestDistSq = 1e37f;
+
+                            for (snapEnt = 0; snapEnt < cg.snap->numEntities; snapEnt++) {
+                                entityState_t *es = &cg.snap->entities[snapEnt];
+                                float          distSq;
+
+                                if (es->number == cg.snap->ps.clientNum) {
+                                    continue;
+                                }
+                                if (es->eType != ET_PLAYER) {
+                                    continue;
+                                }
+                                distSq = DistanceSquared(es->origin, cg.snap->ps.origin);
+                                if (distSq < bestDistSq) {
+                                    bestDistSq = distSq;
+                                    leanEnt    = es->number;
+                                }
+                            }
+                        }
+
+                        if (leanEnt >= 0) {
+                            centity_t *fc      = &cg_entities[leanEnt];
+                            float      curLean = fc->currentState.bone_angles[3][2];
+                            float      nxtLean = fc->nextState.bone_angles[3][2];
+                            fLean = (curLean + cg.frameInterpolation * (nxtLean - curLean)) / 0.8f;
+                        }
+                    }
+
+                    if (fLean != 0.0f) {
+                        VectorMA(vCamTarget, fLean * 0.65f, right, vCamTarget);
+                    }
+                }
+
+                CG_Trace(
+                    &trace, vHeadPos, vMins, vMaxs, vCamTarget, cg.snap->ps.clientNum, MASK_CAMERASOLID,
+                    qfalse, qtrue, "SpectateFollowForce"
+                );
+
+                VectorCopy(trace.endpos, cg.refdef.vieworg);
+                VectorCopy(vViewAngles, cg.refdefViewAngles);
+                cg.refdefViewAngles[PITCH] += cg_spectatefollow_pitch->value * trace.fraction;
+            }
         } else {
             // Set the aural position to that of the camera
             VectorCopy(cg.camera_origin, cg.refdef.vieworg);
