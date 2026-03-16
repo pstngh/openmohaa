@@ -450,32 +450,98 @@ static void SV_Admin_ClientKickReason(client_t *cl)
     SV_KickClientForReason(target, reason);
 }
 
+/*
+===========
+SV_AdminConvertWildcardToCIDR
+
+Converts wildcard IP notation (e.g. "188.241.144.*") to CIDR notation
+(e.g. "188.241.144.0/24") so admins can use the more intuitive wildcard
+format in ban commands.
+============
+*/
+static void SV_AdminConvertWildcardToCIDR(const char *input, char *output, size_t outputSize)
+{
+    int octets[4] = {0, 0, 0, 0};
+    int numOctets = 0;
+    const char *p = input;
+    char token[16];
+    int tokenLen;
+
+    // Parse up to 4 dot-separated octets, stopping at wildcard
+    while (numOctets < 4 && *p) {
+        tokenLen = 0;
+        while (*p && *p != '.' && tokenLen < (int)(sizeof(token) - 1)) {
+            token[tokenLen++] = *p++;
+        }
+        token[tokenLen] = '\0';
+
+        // Check for wildcard
+        if (strchr(token, '*')) {
+            break;
+        }
+
+        octets[numOctets] = atoi(token);
+        numOctets++;
+
+        if (*p == '.') {
+            p++;
+        }
+    }
+
+    // If no wildcard was found, pass through unchanged
+    if (!strchr(input, '*')) {
+        Q_strncpyz(output, input, outputSize);
+        return;
+    }
+
+    switch (numOctets) {
+    case 0:
+        Com_sprintf(output, outputSize, "0.0.0.0/0");
+        break;
+    case 1:
+        Com_sprintf(output, outputSize, "%d.0.0.0/8", octets[0]);
+        break;
+    case 2:
+        Com_sprintf(output, outputSize, "%d.%d.0.0/16", octets[0], octets[1]);
+        break;
+    case 3:
+        Com_sprintf(output, outputSize, "%d.%d.%d.0/24", octets[0], octets[1], octets[2]);
+        break;
+    default:
+        Q_strncpyz(output, input, outputSize);
+        break;
+    }
+}
+
 // ---- Command: ad_banip <ip> ----
 static void SV_Admin_BanIP(client_t *cl)
 {
     char ip[64];
+    char cidr[64];
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_BAN, "ad_banip")) {
         return;
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banip <ip>\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banip <ip or wildcard, e.g. 192.168.1.*>\n\"");
         return;
     }
 
     // Extract before Cbuf clobbers Cmd_Argv
     Q_strncpyz(ip, Cmd_Argv(1), sizeof(ip));
+    SV_AdminConvertWildcardToCIDR(ip, cidr, sizeof(cidr));
 
-    Com_Printf("sv_admin: %s (%s) banning IP %s\n", cl->name, cl->adminUsername, ip);
-    Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s\n", ip));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned.\n\"", ip);
+    Com_Printf("sv_admin: %s (%s) banning IP %s\n", cl->name, cl->adminUsername, cidr);
+    Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s\n", cidr));
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned.\n\"", cidr);
 }
 
 // ---- Command: ad_banipr <ip> <reason> ----
 static void SV_Admin_BanIPReason(client_t *cl)
 {
     char ip[64];
+    char cidr[64];
     char reason[256];
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_BAN, "ad_banipr")) {
@@ -483,17 +549,18 @@ static void SV_Admin_BanIPReason(client_t *cl)
     }
 
     if (Cmd_Argc() < 3) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banipr <ip> <reason>\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_banipr <ip or wildcard, e.g. 192.168.1.*> <reason>\n\"");
         return;
     }
 
     // Extract before Cbuf clobbers Cmd_Argv
     Q_strncpyz(ip, Cmd_Argv(1), sizeof(ip));
+    SV_AdminConvertWildcardToCIDR(ip, cidr, sizeof(cidr));
     Q_strncpyz(reason, Cmd_ArgsFrom(2), sizeof(reason));
 
-    Com_Printf("sv_admin: %s (%s) banning IP %s for: %s\n", cl->name, cl->adminUsername, ip, reason);
-    Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s:%s\n", ip, reason));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned for: %s\n\"", ip, reason);
+    Com_Printf("sv_admin: %s (%s) banning IP %s for: %s\n", cl->name, cl->adminUsername, cidr, reason);
+    Cbuf_ExecuteText(EXEC_NOW, va("banaddr %s:%s\n", cidr, reason));
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been banned for: %s\n\"", cidr, reason);
 }
 
 // ---- Command: ad_banid <clientnum> ----
@@ -562,22 +629,24 @@ static void SV_Admin_BanIDReason(client_t *cl)
 static void SV_Admin_UnbanIP(client_t *cl)
 {
     char ip[64];
+    char cidr[64];
 
     if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_BAN, "ad_unbanip")) {
         return;
     }
 
     if (Cmd_Argc() < 2) {
-        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_unbanip <ip>\n\"");
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Usage: ad_unbanip <ip or wildcard, e.g. 192.168.1.*>\n\"");
         return;
     }
 
     // Extract before Cbuf clobbers Cmd_Argv
     Q_strncpyz(ip, Cmd_Argv(1), sizeof(ip));
+    SV_AdminConvertWildcardToCIDR(ip, cidr, sizeof(cidr));
 
-    Com_Printf("sv_admin: %s (%s) unbanning IP %s\n", cl->name, cl->adminUsername, ip);
-    Cbuf_ExecuteText(EXEC_NOW, va("bandel %s\n", ip));
-    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been unbanned.\n\"", ip);
+    Com_Printf("sv_admin: %s (%s) unbanning IP %s\n", cl->name, cl->adminUsername, cidr);
+    Cbuf_ExecuteText(EXEC_NOW, va("bandel %s\n", cidr));
+    SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "IP %s has been unbanned.\n\"", cidr);
 }
 
 // ---- Command: ad_listips ----
