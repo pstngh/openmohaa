@@ -578,18 +578,6 @@ void SV_DirectConnect( netadr_t from ) {
 	}
 
 	if ( !newcl ) {
-		// No free slot - try to evict a bot to make room
-		for ( i = sv_maxclients->integer - 1; i >= startIndex; i-- ) {
-			cl = &svs.clients[i];
-			if (cl->netchan.remoteAddress.type == NA_BOT) {
-				SV_DropClient(cl, "making room for real player");
-				newcl = cl;
-				break;
-			}
-		}
-	}
-
-	if ( !newcl ) {
 		if ( NET_IsLocalAddress( from ) ) {
 			Com_Error( ERR_FATAL, "server is full on local connect\n" );
 			return;

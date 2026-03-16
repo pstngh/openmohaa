@@ -889,9 +889,6 @@ const char *G_ClientConnect(int clientNum, qboolean firstTime, qboolean differen
     gentity_t *ent;
     char       userinfo[MAX_INFO_STRING];
 
-    // Added in OPM
-    G_BotShift(clientNum);
-
     ent = &g_entities[clientNum];
 
     gi.GetUserinfo(clientNum, userinfo, sizeof(userinfo));
@@ -962,9 +959,11 @@ const char *G_ClientConnect(int clientNum, qboolean firstTime, qboolean differen
 
     // don't do the "xxx connected" messages if they were caried over from previous level
     if (firstTime && g_gametype->integer != GT_SINGLE_PLAYER) {
-        G_PrintfClient(ent, "is preparing for deployment\n");
+        if (!(ent->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(ent, "is preparing for deployment\n");
 
-        G_PrintToAllClients(va("%s is preparing for deployment\n", client->pers.netname), 2);
+            G_PrintToAllClients(va("%s is preparing for deployment\n", client->pers.netname), 2);
+        }
     }
     return NULL;
 }
@@ -1019,10 +1018,12 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
             G_MoveClientToIntermission(ent->entity);
         } else {
             if (g_gametype->integer != GT_SINGLE_PLAYER) {
-                // send effect if in a multiplayer game
-                G_PrintfClient(ent, "has entered the battle\n");
+                if (!(ent->r.svFlags & SVF_BOT)) {
+                    // send effect if in a multiplayer game
+                    G_PrintfClient(ent, "has entered the battle\n");
 
-                G_PrintToAllClients(va("%s has entered the battle\n", ent->client->pers.netname), 2);
+                    G_PrintToAllClients(va("%s has entered the battle\n", ent->client->pers.netname), 2);
+                }
             }
         }
 
@@ -1094,12 +1095,11 @@ void G_ClientDisconnect(gentity_t *ent)
         if (ent->r.svFlags & SVF_BOT) {
             BotControllerManager& controllerManager = botManager.getControllerManager();
             if (BotController *controller = controllerManager.findController(ent->entity)) {
+                gi.DPrintf("BOT: disconnecting '%s' (slot %d), controller cleanup\n", ent->client->pers.netname, (int)(ent - g_entities));
                 controllerManager.removeController(controller);
+            } else {
+                gi.DPrintf("BOT: WARNING disconnecting '%s' (slot %d) but no controller found\n", ent->client->pers.netname, (int)(ent - g_entities));
             }
-
-            // Notify the bot spawner so it doesn't immediately create a
-            // replacement that would just be evicted again.
-            G_NotifyBotEvicted();
         }
 
         assert(ent->entity->IsSubclassOfPlayer());
@@ -1201,7 +1201,9 @@ void G_PrintfClient(gentity_t *ent, const char *fmt, ...)
     va_end(argptr);
 
     if (ent->r.svFlags & SVF_BOT) {
-        gi.Printf("%s %s", ent->client->pers.netname, msg);
+        // Suppress bot killfeed/death messages from the main console;
+        // they are still visible with developer 1.
+        gi.DPrintf("%s %s", ent->client->pers.netname, msg);
         return;
     }
 

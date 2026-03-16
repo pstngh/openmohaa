@@ -34,7 +34,6 @@ struct bot_info_t {
 
 void         G_BotBegin(gentity_t *ent);
 void         G_BotThink(gentity_t *ent, int msec);
-void         G_BotShift(int clientNum);
 gentity_t   *G_GetFirstBot();
 unsigned int G_GetBotId(gentity_t *e);
 gentity_t   *G_AddBot(const bot_info_t *info = NULL);
@@ -52,6 +51,5 @@ void         G_BotInit();
 void         G_BotFrame();
 void         G_BotPostInit();
 void         G_SpawnBots();
-void         G_NotifyBotEvicted();
 const char  *G_GetRandomAlliedPlayerModel();
 const char  *G_GetRandomGermanPlayerModel();
