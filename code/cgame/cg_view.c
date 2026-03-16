@@ -734,11 +734,48 @@ static int CG_CalcViewValues(void)
 
     // if we are in a camera view, we take our audio cues directly from the camera
     if (ps->pm_flags & PMF_CAMERA_VIEW) {
-        // Set the aural position to that of the camera
-        VectorCopy(cg.camera_origin, cg.refdef.vieworg);
+        // Added in OPM
+        //  During demo playback (or when cg_spectatefollow_force is set), ignore the
+        //  server-baked camera_origin and recompute directly from the player's eye
+        //  position using default offsets. Only applies to spectator-follow mode;
+        //  cinematic and turret cameras (identified by CF_CAMERA_ANGLES_* flags) are
+        //  left untouched.
+        if ((cg.demoPlayback || cg_spectatefollow_force->integer)
+            && !(ps->camera_flags
+                 & (CF_CAMERA_ANGLES_ABSOLUTE | CF_CAMERA_ANGLES_IGNORE_PITCH | CF_CAMERA_ANGLES_IGNORE_YAW
+                    | CF_CAMERA_ANGLES_ALLOWOFFSET | CF_CAMERA_ANGLES_TURRETMODE))) {
+            vec3_t  vCamTarget, forward, right, up;
+            vec3_t  vMins = {-2, -2, -2};
+            vec3_t  vMaxs = {2, 2, 2};
+            trace_t trace;
 
-        // Set the aural axis to the camera's angles
-        VectorCopy(cg.camera_angles, cg.refdefViewAngles);
+            AngleVectors(ps->viewangles, forward, right, up);
+
+            VectorCopy(cg.playerHeadPos, vCamTarget);
+            VectorMA(vCamTarget, cg_spectatefollow_forward->value, forward, vCamTarget);
+            VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
+            VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
+
+            if (ps->fLeanAngle != 0.0f) {
+                VectorMA(vCamTarget, ps->fLeanAngle * 0.65f, right, vCamTarget);
+            }
+
+            CG_Trace(
+                &trace, cg.playerHeadPos, vMins, vMaxs, vCamTarget, cg.snap->ps.clientNum, MASK_CAMERASOLID,
+                qfalse, qtrue, "SpectateFollowForce"
+            );
+
+            VectorCopy(trace.endpos, cg.refdef.vieworg);
+
+            VectorCopy(ps->viewangles, cg.refdefViewAngles);
+            cg.refdefViewAngles[PITCH] += cg_spectatefollow_pitch->value * trace.fraction;
+        } else {
+            // Set the aural position to that of the camera
+            VectorCopy(cg.camera_origin, cg.refdef.vieworg);
+
+            // Set the aural axis to the camera's angles
+            VectorCopy(cg.camera_angles, cg.refdefViewAngles);
+        }
 
         if (cg_protocol >= PROTOCOL_MOHTA_MIN && (ps->pm_flags & PMF_DAMAGE_ANGLES)) {
             // Handle camera shake
