@@ -756,8 +756,38 @@ static int CG_CalcViewValues(void)
             VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
             VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
 
-            if (ps->fLeanAngle != 0.0f) {
-                VectorMA(vCamTarget, ps->fLeanAngle * 0.65f, right, vCamTarget);
+            // Added in OPM
+            //  In 3rd-person spectator mode, ps->fLeanAngle is always 0 (the spectator's
+            //  own lean). The followed player's lean is encoded server-side in their entity
+            //  state as bone_angles[PELVIS_TAG(3)][2] = fLeanAngle * 0.8f.
+            //  Scan nearby player entities to find the followed player and recover their lean.
+            {
+                int   followEnt;
+                float fFollowLeanAngle = 0.0f;
+                float bestDistSq       = 10000.0f; // 100-unit search radius
+
+                for (followEnt = 0; followEnt < MAX_CLIENTS; followEnt++) {
+                    centity_t *followCent;
+                    float      distSq;
+
+                    if (followEnt == cg.snap->ps.clientNum) {
+                        continue;
+                    }
+                    followCent = &cg_entities[followEnt];
+                    if (followCent->currentState.eType != ET_PLAYER) {
+                        continue;
+                    }
+                    distSq = DistanceSquared(followCent->lerpOrigin, ps->origin);
+                    if (distSq < bestDistSq) {
+                        bestDistSq = distSq;
+                        // bone_angles[3] = PELVIS_TAG, [2] = Z = fLeanAngle * 0.8f
+                        fFollowLeanAngle = followCent->currentState.bone_angles[3][2] / 0.8f;
+                    }
+                }
+
+                if (fFollowLeanAngle != 0.0f) {
+                    VectorMA(vCamTarget, fFollowLeanAngle * 0.65f, right, vCamTarget);
+                }
             }
 
             CG_Trace(
