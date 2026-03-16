@@ -13,14 +13,16 @@ based on the detected game mode, with an unknown/ folder for demos where the
 mode could not be determined.
 
 Usage:
-    python demoscan.py <folder> [-o output.txt] [-p PlayerName] [-s sortdir]
+    python demoscan.py [folder] [-o output.txt] [-p PlayerName] [-s [sortdir]]
 
 Examples:
+    python demoscan.py                              # scan current directory
+    python demoscan.py -s                            # scan and sort in current directory
     python demoscan.py C:\mohaa\demos
     python demoscan.py C:\mohaa\demos -o results.txt
     python demoscan.py C:\mohaa\demos -p "SomeName"
-    python demoscan.py C:\mohaa\demos -s C:\sorted_demos
-    python demoscan.py C:\mohaa\demos -s C:\sorted_demos -o results.txt
+    python demoscan.py C:\mohaa\demos -s             # sort inside the demo folder
+    python demoscan.py C:\mohaa\demos -s C:\sorted   # sort into a different folder
 
 Copyright (C) 2026 the OpenMoHAA team
 
@@ -1216,7 +1218,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Scan MoHAA .dm3 demo files for player names."
     )
-    parser.add_argument("folder", help="Folder containing .dm3 files (scanned recursively)")
+    parser.add_argument(
+        "folder",
+        nargs="?",
+        default=".",
+        help="Folder containing .dm3 files (default: current directory)",
+    )
     parser.add_argument(
         "-o", "--output",
         default="demoscan_results.txt",
@@ -1235,10 +1242,17 @@ def main():
     )
     parser.add_argument(
         "-s", "--sort",
+        nargs="?",
+        const="",
+        default=None,
         metavar="DIR",
-        help="Sort demos into DIR/default/ and DIR/realism/ subfolders (copies files)",
+        help="Sort demos into default/ and realism/ subfolders (default: inside scan folder)",
     )
     args = parser.parse_args()
+
+    # --sort with no argument defaults to the scan folder
+    if args.sort is not None and args.sort == "":
+        args.sort = args.folder
 
     if not os.path.isdir(args.folder):
         print("Error: '%s' is not a directory" % args.folder, file=sys.stderr)
