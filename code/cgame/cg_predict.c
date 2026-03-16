@@ -380,8 +380,10 @@ static void CG_InterpolatePlayerStateCamera(void)
     //  Override server-baked spectator camera position with a client-computed one
     //  using configurable offsets. This allows demos recorded with custom server or
     //  anti-cheat spectator camera settings to be played back with the standard camera.
+    //  Applied automatically during demo playback, or when cg_spectatefollow_force is
+    //  set (for live spectating on servers with non-default camera settings).
     //  Only applies to spectator-follow mode (not cinematic or turret cameras).
-    if (cg_spectatefollow_force->integer
+    if ((cg.demoPlayback || cg_spectatefollow_force->integer)
         && (cg.snap->ps.pm_flags & PMF_CAMERA_VIEW)
         && !(cg.predicted_player_state.camera_flags
              & (CF_CAMERA_ANGLES_ABSOLUTE | CF_CAMERA_ANGLES_IGNORE_PITCH | CF_CAMERA_ANGLES_IGNORE_YAW
