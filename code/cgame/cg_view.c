@@ -756,10 +756,6 @@ static int CG_CalcViewValues(void)
             VectorMA(vCamTarget, cg_spectatefollow_right->value, right, vCamTarget);
             VectorMA(vCamTarget, cg_spectatefollow_up->value, up, vCamTarget);
 
-            if (ps->fLeanAngle != 0.0f) {
-                VectorMA(vCamTarget, ps->fLeanAngle * 0.65f, right, vCamTarget);
-            }
-
             CG_Trace(
                 &trace, cg.playerHeadPos, vMins, vMaxs, vCamTarget, cg.snap->ps.clientNum, MASK_CAMERASOLID,
                 qfalse, qtrue, "SpectateFollowForce"
