@@ -2134,6 +2134,147 @@ void BulletAttack_Stat(Entity *owner, Entity *target, trace_t *trace, Weapon *we
     }
 }
 
+//
+// Antilag (lag compensation) system
+//
+// Stores entity position history and allows rewinding entities
+// to past positions so bullet traces match what the client saw.
+//
+
+#define ANTILAG_MAX_HISTORY 20
+
+struct antilag_record_t {
+    int    time;
+    vec3_t origin;
+};
+
+static struct {
+    antilag_record_t history[ANTILAG_MAX_HISTORY];
+    int              head;
+    int              count;
+    vec3_t           savedOrigin;
+} antilag_data[MAX_GENTITIES];
+
+void Antilag_StoreEntityPositions(void)
+{
+    int i;
+
+    if (!g_antilag->integer) {
+        return;
+    }
+
+    for (i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+
+        if (!ent->inuse || !ent->entity || ent->entity->IsDead()) {
+            continue;
+        }
+
+        int idx = antilag_data[i].head;
+        antilag_data[i].history[idx].time = level.svsTime;
+        VectorCopy(ent->s.origin, antilag_data[i].history[idx].origin);
+
+        antilag_data[i].head = (idx + 1) % ANTILAG_MAX_HISTORY;
+        if (antilag_data[i].count < ANTILAG_MAX_HISTORY) {
+            antilag_data[i].count++;
+        }
+    }
+}
+
+static void Antilag_FindPosition(int entityNum, int targetTime, vec3_t outOrigin)
+{
+    auto &data = antilag_data[entityNum];
+
+    if (data.count == 0) {
+        gentity_t *ent = &g_entities[entityNum];
+        VectorCopy(ent->s.origin, outOrigin);
+        return;
+    }
+
+    // Find the two records bracketing targetTime
+    int newest = (data.head - 1 + ANTILAG_MAX_HISTORY) % ANTILAG_MAX_HISTORY;
+    int oldest = (data.head - data.count + ANTILAG_MAX_HISTORY) % ANTILAG_MAX_HISTORY;
+
+    // If target time is older than our oldest record, use the oldest
+    if (targetTime <= data.history[oldest].time) {
+        VectorCopy(data.history[oldest].origin, outOrigin);
+        return;
+    }
+
+    // If target time is newer than our newest record, use the newest
+    if (targetTime >= data.history[newest].time) {
+        VectorCopy(data.history[newest].origin, outOrigin);
+        return;
+    }
+
+    // Find the two records to interpolate between
+    for (int j = 0; j < data.count - 1; j++) {
+        int idx0 = (oldest + j) % ANTILAG_MAX_HISTORY;
+        int idx1 = (oldest + j + 1) % ANTILAG_MAX_HISTORY;
+
+        if (targetTime >= data.history[idx0].time && targetTime <= data.history[idx1].time) {
+            int   dt = data.history[idx1].time - data.history[idx0].time;
+            float frac;
+
+            if (dt > 0) {
+                frac = (float)(targetTime - data.history[idx0].time) / (float)dt;
+            } else {
+                frac = 0;
+            }
+
+            for (int k = 0; k < 3; k++) {
+                outOrigin[k] = data.history[idx0].origin[k]
+                             + frac * (data.history[idx1].origin[k] - data.history[idx0].origin[k]);
+            }
+            return;
+        }
+    }
+
+    // Fallback: use newest
+    VectorCopy(data.history[newest].origin, outOrigin);
+}
+
+static void Antilag_RewindEntities(int shooterNum, int pingMs)
+{
+    int targetTime = level.svsTime - pingMs;
+
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+
+        if (!ent->inuse || !ent->entity || i == shooterNum) {
+            continue;
+        }
+
+        // Save current position
+        VectorCopy(ent->s.origin, antilag_data[i].savedOrigin);
+
+        // Rewind to the past position
+        vec3_t rewoundOrigin;
+        Antilag_FindPosition(i, targetTime, rewoundOrigin);
+
+        VectorCopy(rewoundOrigin, ent->s.origin);
+
+        // Re-link to update spatial hashing and absmin/absmax
+        gi.linkentity(ent);
+    }
+}
+
+static void Antilag_RestoreEntities(int shooterNum)
+{
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+
+        if (!ent->inuse || !ent->entity || i == shooterNum) {
+            continue;
+        }
+
+        VectorCopy(antilag_data[i].savedOrigin, ent->s.origin);
+
+        // Re-link to restore spatial hashing and absmin/absmax
+        gi.linkentity(ent);
+    }
+}
+
 float BulletAttack(
     Vector  start,
     Vector  vBarrel,
@@ -2201,6 +2342,18 @@ float BulletAttack(
         weap = NULL;
     }
 
+    // Antilag: rewind entity positions to match what the shooter saw
+    int  antilagShooterNum = -1;
+    bool antilagActive     = false;
+    if (g_antilag->integer && owner && owner->client) {
+        antilagShooterNum = owner->edict - g_entities;
+        int pingMs        = owner->client->ping;
+        if (pingMs > 0) {
+            Antilag_RewindEntities(antilagShooterNum, pingMs);
+            antilagActive = true;
+        }
+    }
+
     for (i = 0; i < count; i++) {
         trace_t tracethrough;
 
@@ -2230,9 +2383,17 @@ float BulletAttack(
             while (trace.fraction < 1.0f) {
                 Vector vDeltaTrace;
 
-                trace = G_Trace(
-                    vTraceStart, vec_zero, vec_zero, vTraceEnd, newowner, MASK_SHOT_TRIG, false, "BulletAttack", true
-                );
+                {
+                    Vector bulletMins, bulletMaxs;
+                    float  bw = g_bulletWidth->value;
+                    if (bw > 0) {
+                        bulletMins = Vector(-bw, -bw, -bw);
+                        bulletMaxs = Vector(bw, bw, bw);
+                    }
+                    trace = G_Trace(
+                        vTraceStart, bulletMins, bulletMaxs, vTraceEnd, newowner, MASK_SHOT_TRIG, false, "BulletAttack", true
+                    );
+                }
 
                 vTmpEnd = trace.endpos;
 
@@ -2615,6 +2776,11 @@ float BulletAttack(
     }
 
     gi.MSG_EndCGM();
+
+    // Antilag: restore entity positions
+    if (antilagActive) {
+        Antilag_RestoreEntities(antilagShooterNum);
+    }
 
     if (damage_total > 0) {
         return damage_total;

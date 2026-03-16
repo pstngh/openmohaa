@@ -297,6 +297,9 @@ cvar_t *g_bot_manualmove;
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
 
+cvar_t *g_bulletWidth;
+cvar_t *g_antilag;
+
 cvar_t *cl_running;
 
 // Whether or instant messages are allowed
@@ -715,4 +718,7 @@ void CVAR_Init(void)
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
+
+    g_bulletWidth = gi.Cvar_Get("g_bulletWidth", "0", 0);
+    g_antilag     = gi.Cvar_Get("g_antilag", "0", 0);
 }

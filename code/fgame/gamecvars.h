@@ -341,6 +341,9 @@ extern cvar_t *g_teambalance;
 
 extern cvar_t *g_navigation_legacy;
 
+extern cvar_t *g_bulletWidth;
+extern cvar_t *g_antilag;
+
 void CVAR_Init(void);
 
 #ifdef __cplusplus

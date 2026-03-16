@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "g_bot.h"
 #include "navigation_recast_load.h"
+#include "weaputils.h"
 
 #include "../corepp/tiki.h"
 
@@ -629,6 +630,9 @@ void G_RunFrame(int levelTime, int frameTime)
         // Process any pending events that got posted during the physics code.
         L_ProcessPendingEvents();
         level.DoEarthquakes();
+
+        // Store entity positions for antilag before building player states
+        Antilag_StoreEntityPositions();
 
         // build the playerstate_t structures for all players
         G_ClientEndServerFrames();

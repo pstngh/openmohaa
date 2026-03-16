@@ -288,6 +288,9 @@ void ExplosionAttack
 	bool			hurtOwnerOnly = false
 );
 
+// Antilag: store entity positions each server frame for lag compensation
+void Antilag_StoreEntityPositions(void);
+
 float BulletAttack
 	(
 	Vector   start,
