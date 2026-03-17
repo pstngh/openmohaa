@@ -68,6 +68,11 @@ init
 		dmcrosshair		1
 		dmmovementspeed 	0.99
 
+		// DM Realism Attributes
+		dmrealism bulletcount	12
+		dmrealism bulletdamage	15
+		dmrealism movementspeed	1.0
+
 	}
 	client
 	{

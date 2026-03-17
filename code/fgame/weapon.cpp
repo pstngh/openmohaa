@@ -884,7 +884,7 @@ void Weapon::SetUseNoAmmo(Event *ev)
 //======================
 void Weapon::SetStartAmmo(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -946,7 +946,7 @@ float Weapon::GetMaxChargeTime(firemode_t mode)
 //======================
 void Weapon::SetAmmoRequired(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -2346,7 +2346,7 @@ void Weapon::AttachToHand(Event *ev)
 //======================
 void Weapon::SetCantPartialReload(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3167,7 +3167,7 @@ int Weapon::ClipAmmo(firemode_t mode)
 //======================
 void Weapon::SetFireDelay(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3260,7 +3260,7 @@ firemode_t Weapon::GetFireMode()
 //======================
 void Weapon::SetProjectile(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3364,7 +3364,7 @@ void Weapon::SetBulletThroughMetal(Event *ev)
 //======================
 void Weapon::SetBulletRange(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3398,7 +3398,7 @@ void Weapon::SetRange(Event *ev)
 //======================
 void Weapon::SetBulletCount(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3424,7 +3424,7 @@ void Weapon::SetDMBulletCount(Event *ev)
 //======================
 void Weapon::SetBulletSpread(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3462,7 +3462,7 @@ void Weapon::SetDMBulletSpread(Event *ev)
 //======================
 void Weapon::SetZoomSpreadMult(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3487,7 +3487,7 @@ void Weapon::SetDMZoomSpreadMult(Event *ev)
 //======================
 void Weapon::SetFireSpreadMult(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 
@@ -3903,7 +3903,7 @@ void Weapon::SetViewKick(Event *ev)
 //======================
 void Weapon::SetMovementSpeed(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
 

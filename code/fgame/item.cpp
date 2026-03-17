@@ -780,7 +780,7 @@ void Item::SetMax(int maxamount)
 
 void Item::SetAmountEvent(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
     setAmount(ev->GetInteger(1));
@@ -788,7 +788,7 @@ void Item::SetAmountEvent(Event *ev)
 
 void Item::SetMaxAmount(Event *ev)
 {
-    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_protocol <= protocol_e::PROTOCOL_MOH && g_gametype->integer != GT_SINGLE_PLAYER && !g_realismmode->integer) {
         return;
     }
     SetMax(ev->GetInteger(1));

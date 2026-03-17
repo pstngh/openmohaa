@@ -53,6 +53,10 @@ init
 		dmcrosshair		1
 		dmmovementspeed	0.75
 
+		// DM Realism Attributes
+		dmrealism startammo		3
+		dmrealism firedelay		6.0
+		dmrealism movementspeed	0.6
 
 		cache			models/projectiles/panzerschreckshell.tik
 		cache			models/projectiles/bazookashell_dm.tik

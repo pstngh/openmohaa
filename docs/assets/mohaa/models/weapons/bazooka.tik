@@ -61,7 +61,12 @@ init
 		dmfiredelay		1.0
 		dmcrosshair		1
 		dmmovementspeed	0.75
-		
+
+		// DM Realism Attributes
+		dmrealism startammo		3
+		dmrealism firedelay		9.0
+		dmrealism movementspeed	0.6
+
 		// this is attached to the player during reload
 		cache models/ammo/bazooka_shell.tik
 

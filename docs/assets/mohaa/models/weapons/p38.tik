@@ -97,7 +97,12 @@ init
 		secondary dmammorequired	0
 		secondary dmbulletrange		96
 		secondary dmbulletdamage	35
-		
+
+		// DM Realism Attributes
+		dmrealism startammo		24
+		dmrealism bulletdamage	60
+		secondary dmrealism bulletdamage	55
+
 		// this is attached to the player during reload
 		cache models/ammo/p38_clip.tik
 	}

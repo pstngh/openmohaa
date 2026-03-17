@@ -78,6 +78,11 @@ init
 
 		dmcrosshair			1
 
+		// DM Realism Attributes
+		dmrealism startammo		60
+		dmrealism bulletdamage	106
+		dmrealism movementspeed	1.0
+
 		surface material7 +nodraw
 		surface material8 +nodraw
 		

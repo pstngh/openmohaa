@@ -83,6 +83,12 @@ init
 
 		dmmovementspeed		0.89  //orig 0.76
 
+		// DM Realism Attributes
+		dmrealism startammo		240
+		dmrealism firespreadmult	0.38 0.68 200 1.5
+		dmrealism bulletdamage	104
+		dmrealism movementspeed	0.85
+
 		// this is attached to the player during reload
 		cache models/ammo/bar_clip.tik
 	}

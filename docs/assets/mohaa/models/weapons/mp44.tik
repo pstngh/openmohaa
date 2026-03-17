@@ -78,6 +78,11 @@ init
 		dmcrosshair			1
 		dmmovementspeed		0.89  //orig 0.76
 
+		// DM Realism Attributes
+		dmrealism startammo		180
+		dmrealism bulletdamage	80
+		dmrealism movementspeed	0.85
+
 		// this is attached to the player during reload
 		cache models/ammo/mp44_clip.tik
 	}
