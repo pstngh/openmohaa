@@ -727,7 +727,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 420;
+    int winH = 470;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -777,7 +777,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // ---- Section: Server ----
     HWND hLblServer = CreateWindowA(
-        "STATIC", "SERVER", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
+        "STATIC", "SERVER", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
     SendMessageA(hLblServer, WM_SETFONT, (WPARAM)hFontSection, TRUE);
     y += 20;
@@ -834,7 +834,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // ---- Section: Game Selection (segmented control) ----
     HWND hLblGame = CreateWindowA(
-        "STATIC", "GAME", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
+        "STATIC", "GAME", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
     SendMessageA(hLblGame, WM_SETFONT, (WPARAM)hFontSection, TRUE);
     y += 20;
@@ -883,7 +883,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // ---- Section: Bookmarks ----
     HWND hLblBm = CreateWindowA(
-        "STATIC", "BOOKMARKS", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
+        "STATIC", "BOOKMARKS", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
     SendMessageA(hLblBm, WM_SETFONT, (WPARAM)hFontSection, TRUE);
     y += 22;
