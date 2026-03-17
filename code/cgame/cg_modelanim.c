@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "cg_local.h"
 #include "../corepp/tiki.h"
 
-static qboolean cg_forceModelAllowed = qfalse;
 
 /*
 ===============
@@ -777,37 +776,15 @@ void CG_AttachEyeEntity(
 
 /*
 ===============
-CG_IsValidServerModel
-===============
-*/
-qboolean CG_IsValidServerModel(const char *modelpath)
-{
-    const char *str;
-    int         i;
-
-    for (i = 1; i < MAX_MODELS; i++) {
-        str = CG_ConfigString(CS_MODELS + i);
-        if (!Q_stricmp(str, modelpath)) {
-            return qtrue;
-        }
-    }
-
-    return qfalse;
-}
-
-/*
-===============
 CG_CheckValidModels
 
 This verifies the allied player model and the german player model:
 - If they don't exist on the client, reset to the default allied player model
-- If they don't exist on the server, don't allow forceModel so the client explicitly know the skin isn't supported
 ===============
 */
 void CG_CheckValidModels()
 {
     const char *modelpath;
-    qboolean    isDirty = qfalse;
 
     if (dm_playermodel->modified) {
         // Check for allied model
@@ -818,10 +795,7 @@ void CG_CheckValidModels()
             );
 
             cgi.Cvar_Set("dm_playermodel", dm_playermodel->resetString);
-            modelpath = va("models/player/%s.tik", dm_playermodel->string);
         }
-
-        cg.serverAlliedModelValid = CG_IsValidServerModel(modelpath);
     }
 
     if (dm_playergermanmodel->modified) {
@@ -829,20 +803,13 @@ void CG_CheckValidModels()
         modelpath = va("models/player/%s.tik", dm_playergermanmodel->string);
         if (!cgi.R_RegisterModel(modelpath)) {
             cgi.Printf(
-                "Allied model '%s' is invalid, resetting to '%s'\n",
+                "Axis model '%s' is invalid, resetting to '%s'\n",
                 dm_playergermanmodel->string,
                 dm_playergermanmodel->resetString
             );
 
             cgi.Cvar_Set("dm_playergermanmodel", dm_playergermanmodel->resetString);
-            modelpath = va("models/player/%s.tik", dm_playergermanmodel->string);
         }
-
-        cg.serverAxisModelValid = CG_IsValidServerModel(modelpath);
-    }
-
-    if (dm_playermodel->modified || dm_playergermanmodel->modified) {
-        cg_forceModelAllowed = cg.serverAlliedModelValid && cg.serverAxisModelValid;
     }
 }
 
@@ -853,21 +820,8 @@ CG_ServerModelLoaded
 */
 void CG_ServerModelLoaded(const char *name, qhandle_t handle)
 {
-    if (!Q_stricmpn(name, "models/player/", 14) && (!cg.serverAlliedModelValid || !cg.serverAxisModelValid)) {
-        char modelName[MAX_QPATH];
-        COM_StripExtension(name + 14, modelName, sizeof(modelName));
-
-        //
-        // The player model has been loaded on the server
-        // so try again parsing
-        //
-        if (!Q_stricmp(modelName, dm_playermodel->string)) {
-            dm_playermodel->modified = qtrue;
-        }
-        if (!Q_stricmp(modelName, dm_playergermanmodel->string)) {
-            dm_playergermanmodel->modified = qtrue;
-        }
-    }
+    (void)name;
+    (void)handle;
 }
 
 /*
@@ -877,54 +831,35 @@ CG_ServerModelUnloaded
 */
 void CG_ServerModelUnloaded(qhandle_t handle)
 {
-#if 0
-    if (cg.serverAlliedModelValid && handle == cg.hAlliedPlayerModelHandle) {
-        dm_playermodel->modified = qtrue;
-    }
-    if (cg.serverAxisModelValid && handle == cg.hAxisPlayerModelHandle) {
-        dm_playergermanmodel->modified = qtrue;
-    }
-#endif
+    (void)handle;
 }
 
 /*
 ===============
 CG_UpdateForceModels
+
+// Changed in OPM
+//  Force models no longer requires the model to be present in the
+//  server's CS_MODELS configstrings. The client only needs to have
+//  the model files available locally (e.g. from a 3rd party pk3).
 ===============
 */
 void CG_UpdateForceModels()
 {
     qhandle_t hModel;
-    char     *pszAlliesPartial;
-    char     *pszAxisPartial;
     char      szAlliesModel[256];
     char      szAxisModel[256];
     qboolean  isDirty;
 
     isDirty = dm_playermodel->modified || dm_playergermanmodel->modified || cg_forceModel->modified;
 
-    if (!cg_forceModelAllowed) {
-        if (isDirty) {
-            cgi.Printf(
-                "One or more of the selected players model don't exist on the server or are not loaded, using the "
-                "default skin\n"
-            );
-        }
-
-        return;
-    }
-
     if (cg.pAlliedPlayerModel && cg.pAxisPlayerModel && !isDirty) {
         return;
     }
 
-    pszAlliesPartial = dm_playermodel->string;
-    pszAxisPartial   = dm_playergermanmodel->string;
-
-    Com_sprintf(szAlliesModel, sizeof(szAlliesModel), "models/player/%s.tik", pszAlliesPartial);
-    Com_sprintf(szAxisModel, sizeof(szAxisModel), "models/player/%s.tik", pszAxisPartial);
-
-    hModel = cg.serverAlliedModelValid ? cgi.R_RegisterModel(szAlliesModel) : 0;
+    // Allied model
+    Com_sprintf(szAlliesModel, sizeof(szAlliesModel), "models/player/%s.tik", dm_playermodel->string);
+    hModel = cgi.R_RegisterModel(szAlliesModel);
     if (!hModel) {
         Com_sprintf(szAlliesModel, sizeof(szAlliesModel), "models/player/%s.tik", dm_playermodel->resetString);
         hModel = cgi.R_RegisterModel(szAlliesModel);
@@ -941,7 +876,9 @@ void CG_UpdateForceModels()
         cg.pAlliedPlayerModel       = NULL;
     }
 
-    hModel = cg.serverAxisModelValid ? cgi.R_RegisterModel(szAxisModel) : 0;
+    // Axis model
+    Com_sprintf(szAxisModel, sizeof(szAxisModel), "models/player/%s.tik", dm_playergermanmodel->string);
+    hModel = cgi.R_RegisterModel(szAxisModel);
     if (!hModel) {
         Com_sprintf(szAxisModel, sizeof(szAxisModel), "models/player/%s.tik", dm_playergermanmodel->resetString);
         hModel = cgi.R_RegisterModel(szAxisModel);
@@ -957,10 +894,6 @@ void CG_UpdateForceModels()
         cg.hAxisPlayerModelHandle = 0;
         cg.pAxisPlayerModel       = 0;
     }
-
-    // Clear modified flag
-    //dm_playermodel->modified       = qfalse;
-    //dm_playergermanmodel->modified = qfalse;
 }
 
 /*
@@ -1134,7 +1067,7 @@ void CG_ModelAnim(centity_t *cent, qboolean bDoShaderTime)
     model.tiki      = cgi.R_Model_GetHandle(cgs.model_draw[s1->modelindex]);
 
     if (s1->number != cg.snap->ps.clientNum && (s1->eType == ET_PLAYER || (s1->eFlags & EF_DEAD))) {
-        if (cg_forceModel->integer && cg_forceModelAllowed) {
+        if (cg_forceModel->integer) {
             //CG_UpdateForceModels();
 
             if (s1->eFlags & EF_AXIS) {

@@ -270,8 +270,6 @@ extern "C" {
         qhandle_t hAlliedPlayerModelHandle;
         dtiki_t  *pAxisPlayerModel;
         qhandle_t hAxisPlayerModelHandle;
-        qboolean  serverAlliedModelValid;
-        qboolean  serverAxisModelValid;
 
         // view eyes
         vec3_t vOffsetViewAngles;
