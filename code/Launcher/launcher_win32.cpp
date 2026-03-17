@@ -35,23 +35,32 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    pragma comment(lib, "comctl32.lib")
 
 // Dark theme colors
-#    define CLR_BG          RGB(30, 30, 30)
-#    define CLR_BG_EDIT     RGB(45, 45, 45)
-#    define CLR_TEXT         RGB(220, 220, 220)
-#    define CLR_TEXT_DIS     RGB(100, 100, 100)
-#    define CLR_BORDER       RGB(70, 70, 70)
-#    define CLR_BTN         RGB(55, 55, 55)
-#    define CLR_BTN_HOVER   RGB(70, 70, 70)
-#    define CLR_BTN_PRESSED RGB(40, 40, 40)
+#    define CLR_BG            RGB(30, 30, 30)
+#    define CLR_BG_EDIT       RGB(45, 45, 45)
+#    define CLR_TEXT           RGB(220, 220, 220)
+#    define CLR_TEXT_DIM       RGB(130, 130, 130)
+#    define CLR_TEXT_DIS       RGB(100, 100, 100)
+#    define CLR_BORDER         RGB(70, 70, 70)
+#    define CLR_BTN           RGB(55, 55, 55)
+#    define CLR_BTN_HOVER     RGB(70, 70, 70)
+#    define CLR_BTN_PRESSED   RGB(40, 40, 40)
+#    define CLR_ACCENT         RGB(80, 140, 210)
+#    define CLR_ACCENT_HOVER  RGB(90, 155, 230)
+#    define CLR_SEG_ACTIVE    RGB(80, 140, 210)
+#    define CLR_SEG_INACTIVE  RGB(50, 50, 50)
+#    define CLR_SEG_HOVER     RGB(65, 65, 65)
+#    define CLR_SEPARATOR     RGB(55, 55, 55)
+#    define CLR_CONNECT       RGB(46, 125, 50)
+#    define CLR_CONNECT_HOVER RGB(56, 142, 60)
 
 // Control IDs
 #    define ID_EDIT_IP       101
 #    define ID_EDIT_PASS     103
 #    define ID_EDIT_RCON     105
 #    define ID_EDIT_NICKNAME 106
-#    define ID_RADIO_AA      110
-#    define ID_RADIO_SH      111
-#    define ID_RADIO_BT      112
+#    define ID_BTN_GAME_AA   110
+#    define ID_BTN_GAME_SH   111
+#    define ID_BTN_GAME_BT   112
 #    define ID_BTN_CONNECT   120
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
@@ -61,17 +70,19 @@ static HWND             hEditIP;
 static HWND             hEditPass;
 static HWND             hEditRcon;
 static HWND             hEditNickname;
-static HWND             hRadioAA;
-static HWND             hRadioSH;
-static HWND             hRadioBT;
+static HWND             hBtnGameAA;
+static HWND             hBtnGameSH;
+static HWND             hBtnGameBT;
 static HWND             hBtnBookmark[MAX_BOOKMARKS];
 static HWND             hBtnBmSave[MAX_BOOKMARKS];
 static HWND             hBtnBmDel[MAX_BOOKMARKS];
 static LauncherSettings currentSettings;
 static HFONT            hFont;
+static HFONT            hFontSection;
 static HBRUSH           hBrushBg;
 static HBRUSH           hBrushEdit;
 static HWND             hHoverBtn;
+static int              selectedGame;
 
 static void DrawDarkButton(DRAWITEMSTRUCT *dis)
 {
@@ -82,21 +93,19 @@ static void DrawDarkButton(DRAWITEMSTRUCT *dis)
     BOOL    focused  = (dis->itemState & ODS_FOCUS);
     BOOL    hover    = (dis->hwndItem == hHoverBtn) && !disabled;
 
-    // Button face
     COLORREF bgColor = pressed ? CLR_BTN_PRESSED : (hover ? CLR_BTN_HOVER : CLR_BTN);
     HBRUSH   hBr     = CreateSolidBrush(bgColor);
     FillRect(hdc, &rc, hBr);
     DeleteObject(hBr);
 
-    // Border
+    // Rounded-ish border
     HPEN hPen = CreatePen(PS_SOLID, 1, focused ? RGB(100, 100, 100) : CLR_BORDER);
     HPEN hOld = (HPEN)SelectObject(hdc, hPen);
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, 4, 4);
     SelectObject(hdc, hOld);
     DeleteObject(hPen);
 
-    // Text
     char text[128];
     GetWindowTextA(dis->hwndItem, text, sizeof(text));
     SetBkMode(hdc, TRANSPARENT);
@@ -104,87 +113,141 @@ static void DrawDarkButton(DRAWITEMSTRUCT *dis)
     DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
-static void DrawDarkGroupBox(DRAWITEMSTRUCT *dis)
+static void DrawConnectButton(DRAWITEMSTRUCT *dis)
 {
-    HDC  hdc = dis->hDC;
-    RECT rc  = dis->rcItem;
+    HDC     hdc     = dis->hDC;
+    RECT    rc      = dis->rcItem;
+    BOOL    pressed = (dis->itemState & ODS_SELECTED);
+    BOOL    hover   = (dis->hwndItem == hHoverBtn);
+
+    COLORREF bgColor = pressed ? CLR_BTN_PRESSED : (hover ? CLR_CONNECT_HOVER : CLR_CONNECT);
+    HBRUSH   hBr     = CreateSolidBrush(bgColor);
+    FillRect(hdc, &rc, hBr);
+    DeleteObject(hBr);
+
+    HPEN hPen = CreatePen(PS_SOLID, 1, pressed ? CLR_BORDER : CLR_CONNECT);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, 6, 6);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(255, 255, 255));
+    char text[128];
+    GetWindowTextA(dis->hwndItem, text, sizeof(text));
+    DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
+
+static void DrawSegmentedButton(DRAWITEMSTRUCT *dis)
+{
+    HDC  hdc  = dis->hDC;
+    RECT rc   = dis->rcItem;
+    BOOL hover = (dis->hwndItem == hHoverBtn);
+
+    int  btnGame = dis->CtlID - ID_BTN_GAME_AA;
+    BOOL active  = (btnGame == selectedGame);
+
+    COLORREF bgColor;
+    if (active) {
+        bgColor = CLR_SEG_ACTIVE;
+    } else if (hover) {
+        bgColor = CLR_SEG_HOVER;
+    } else {
+        bgColor = CLR_SEG_INACTIVE;
+    }
+
+    HBRUSH hBr = CreateSolidBrush(bgColor);
+    FillRect(hdc, &rc, hBr);
+    DeleteObject(hBr);
+
+    // Draw border
+    HPEN hPen = CreatePen(PS_SOLID, 1, active ? CLR_SEG_ACTIVE : CLR_BORDER);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+
+    // Left segment gets left rounded corners, right gets right rounded, middle gets none
+    if (btnGame == 0) {
+        RoundRect(hdc, rc.left, rc.top, rc.right + 1, rc.bottom, 6, 6);
+        // Overwrite right corners with straight edges
+        RECT rightEdge = {rc.right - 4, rc.top, rc.right + 1, rc.bottom};
+        HBRUSH hBr2    = CreateSolidBrush(bgColor);
+        FillRect(hdc, &rightEdge, hBr2);
+        DeleteObject(hBr2);
+        // Redraw right border line
+        MoveToEx(hdc, rc.right - 1, rc.top, NULL);
+        LineTo(hdc, rc.right - 1, rc.bottom);
+    } else if (btnGame == 2) {
+        RoundRect(hdc, rc.left - 1, rc.top, rc.right, rc.bottom, 6, 6);
+        // Overwrite left corners with straight edges
+        RECT leftEdge = {rc.left - 1, rc.top, rc.left + 4, rc.bottom};
+        HBRUSH hBr2   = CreateSolidBrush(bgColor);
+        FillRect(hdc, &leftEdge, hBr2);
+        DeleteObject(hBr2);
+        // Redraw left border line
+        MoveToEx(hdc, rc.left, rc.top, NULL);
+        LineTo(hdc, rc.left, rc.bottom);
+    } else {
+        Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+    }
+
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+
+    // Draw top and bottom borders for all segments
+    HPEN hBorderPen = CreatePen(PS_SOLID, 1, active ? CLR_SEG_ACTIVE : CLR_BORDER);
+    SelectObject(hdc, hBorderPen);
+    MoveToEx(hdc, rc.left, rc.top, NULL);
+    LineTo(hdc, rc.right, rc.top);
+    MoveToEx(hdc, rc.left, rc.bottom - 1, NULL);
+    LineTo(hdc, rc.right, rc.bottom - 1);
+    DeleteObject(hBorderPen);
+
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, active ? RGB(255, 255, 255) : CLR_TEXT);
 
     char text[64];
     GetWindowTextA(dis->hwndItem, text, sizeof(text));
+    DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
 
-    // Measure text
-    SIZE textSize;
-    GetTextExtentPoint32A(hdc, text, (int)strlen(text), &textSize);
+static void DrawBookmarkDeleteButton(DRAWITEMSTRUCT *dis)
+{
+    HDC     hdc     = dis->hDC;
+    RECT    rc      = dis->rcItem;
+    BOOL    pressed = (dis->itemState & ODS_SELECTED);
+    BOOL    disabled = (dis->itemState & ODS_DISABLED);
+    BOOL    hover   = (dis->hwndItem == hHoverBtn) && !disabled;
 
-    // Fill background
-    FillRect(hdc, &rc, hBrushBg);
+    COLORREF bgColor;
+    if (disabled) {
+        bgColor = CLR_BTN;
+    } else if (pressed) {
+        bgColor = RGB(120, 40, 40);
+    } else if (hover) {
+        bgColor = RGB(100, 50, 50);
+    } else {
+        bgColor = CLR_BTN;
+    }
 
-    // Draw frame (inset from top by half text height)
-    int textTop = rc.top;
-    RECT frameRc = {rc.left, textTop + textSize.cy / 2, rc.right, rc.bottom};
+    HBRUSH hBr = CreateSolidBrush(bgColor);
+    FillRect(hdc, &rc, hBr);
+    DeleteObject(hBr);
+
     HPEN hPen = CreatePen(PS_SOLID, 1, CLR_BORDER);
     HPEN hOld = (HPEN)SelectObject(hdc, hPen);
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    Rectangle(hdc, frameRc.left, frameRc.top, frameRc.right, frameRc.bottom);
+    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, 4, 4);
     SelectObject(hdc, hOld);
     DeleteObject(hPen);
 
-    // Draw text label with gap in frame
-    int textX = rc.left + 8;
-    RECT textBg = {textX - 2, textTop, textX + textSize.cx + 2, textTop + textSize.cy};
-    FillRect(hdc, &textBg, hBrushBg);
     SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, CLR_TEXT);
-    TextOutA(hdc, textX, textTop, text, (int)strlen(text));
+    SetTextColor(hdc, disabled ? CLR_TEXT_DIS : (hover ? RGB(255, 120, 120) : CLR_TEXT));
+    DrawTextA(hdc, "X", 1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
-static void DrawDarkRadioButton(DRAWITEMSTRUCT *dis)
-{
-    HDC  hdc = dis->hDC;
-    RECT rc  = dis->rcItem;
-    BOOL checked = (dis->itemState & ODS_SELECTED)
-                || (SendMessageA(dis->hwndItem, BM_GETCHECK, 0, 0) == BST_CHECKED);
-
-    FillRect(hdc, &rc, hBrushBg);
-
-    // Draw radio circle
-    int circleSize = 12;
-    int circleY    = rc.top + (rc.bottom - rc.top - circleSize) / 2;
-    HPEN hPen      = CreatePen(PS_SOLID, 1, CLR_BORDER);
-    HPEN hOld      = (HPEN)SelectObject(hdc, hPen);
-    HBRUSH hBrFill = CreateSolidBrush(CLR_BG_EDIT);
-    SelectObject(hdc, hBrFill);
-    Ellipse(hdc, rc.left, circleY, rc.left + circleSize, circleY + circleSize);
-    SelectObject(hdc, hOld);
-    DeleteObject(hPen);
-    DeleteObject(hBrFill);
-
-    // Inner filled dot if checked
-    if (checked) {
-        int dotInset  = 3;
-        HBRUSH hDot   = CreateSolidBrush(RGB(100, 180, 255));
-        SelectObject(hdc, GetStockObject(NULL_PEN));
-        SelectObject(hdc, hDot);
-        Ellipse(
-            hdc,
-            rc.left + dotInset,
-            circleY + dotInset,
-            rc.left + circleSize - dotInset,
-            circleY + circleSize - dotInset
-        );
-        DeleteObject(hDot);
-    }
-
-    // Text
-    RECT textRc = {rc.left + circleSize + 4, rc.top, rc.right, rc.bottom};
-    SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, CLR_TEXT);
-    char text[64];
-    GetWindowTextA(dis->hwndItem, text, sizeof(text));
-    DrawTextA(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-}
-
-static LRESULT CALLBACK DarkBtnSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+static LRESULT CALLBACK
+DarkBtnSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
     (void)uIdSubclass;
     (void)dwRefData;
@@ -228,20 +291,15 @@ static void GetWindowString(HWND hwnd, std::string& out)
 
 static int GetSelectedGame()
 {
-    if (SendMessageA(hRadioSH, BM_GETCHECK, 0, 0) == BST_CHECKED) {
-        return 1;
-    }
-    if (SendMessageA(hRadioBT, BM_GETCHECK, 0, 0) == BST_CHECKED) {
-        return 2;
-    }
-    return 0;
+    return selectedGame;
 }
 
 static void SetSelectedGame(int gameType)
 {
-    SendMessageA(hRadioAA, BM_SETCHECK, gameType == 0 ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageA(hRadioSH, BM_SETCHECK, gameType == 1 ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageA(hRadioBT, BM_SETCHECK, gameType == 2 ? BST_CHECKED : BST_UNCHECKED, 0);
+    selectedGame = gameType;
+    InvalidateRect(hBtnGameAA, NULL, FALSE);
+    InvalidateRect(hBtnGameSH, NULL, FALSE);
+    InvalidateRect(hBtnGameBT, NULL, FALSE);
 }
 
 static void ReadCurrentFields()
@@ -403,14 +461,34 @@ static BOOL PromptForName(HWND hwndParent, const char *defaultName, char *outNam
     HINSTANCE hInst = GetModuleHandle(NULL);
 
     HWND hLabel = CreateWindowA("STATIC", "Name:", WS_CHILD | WS_VISIBLE, 10, 12, 40, 20, hNamePopup, NULL, hInst, NULL);
-    hNameEdit = CreateWindowA(
-        "EDIT", defaultName ? defaultName : "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 55, 10, 220, 22, hNamePopup, NULL, hInst, NULL
+    hNameEdit   = CreateWindowA(
+        "EDIT",
+        defaultName ? defaultName : "",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+        55,
+        10,
+        220,
+        22,
+        hNamePopup,
+        NULL,
+        hInst,
+        NULL
     );
     hNameOK = CreateWindowA(
         "BUTTON", "OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 70, 42, 70, 24, hNamePopup, (HMENU)1001, hInst, NULL
     );
     hNameCancel = CreateWindowA(
-        "BUTTON", "Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 155, 42, 70, 24, hNamePopup, (HMENU)1002, hInst, NULL
+        "BUTTON",
+        "Cancel",
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+        155,
+        42,
+        70,
+        24,
+        hNamePopup,
+        (HMENU)1002,
+        hInst,
+        NULL
     );
 
     if (hFont) {
@@ -511,11 +589,24 @@ static void SetFontOnChildren(HWND hwnd, HFONT font)
     }
 }
 
+static void DrawSeparator(HDC hdc, int x, int y, int w)
+{
+    HPEN hPen = CreatePen(PS_SOLID, 1, CLR_SEPARATOR);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    MoveToEx(hdc, x, y, NULL);
+    LineTo(hdc, x + w, y);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
     case WM_CTLCOLORSTATIC: {
-        HDC hdc = (HDC)wParam;
+        HDC  hdc    = (HDC)wParam;
+        HWND hCtrl  = (HWND)lParam;
+        char className[32];
+        GetClassNameA(hCtrl, className, sizeof(className));
         SetTextColor(hdc, CLR_TEXT);
         SetBkColor(hdc, CLR_BG);
         return (LRESULT)hBrushBg;
@@ -528,13 +619,29 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return (LRESULT)hBrushEdit;
     }
 
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC         hdc = BeginPaint(hwnd, &ps);
+        RECT        clientRect;
+        GetClientRect(hwnd, &clientRect);
+        int margin = 16;
+        int innerW = clientRect.right - 2 * margin;
+        // Draw separators between sections
+        // We'll draw them at known Y positions based on layout
+        // These are set after controls are created, stored in static vars
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+
     case WM_DRAWITEM: {
         DRAWITEMSTRUCT *dis = (DRAWITEMSTRUCT *)lParam;
         if (dis->CtlType == ODT_BUTTON) {
-            if (dis->CtlID == 0) {
-                DrawDarkGroupBox(dis);
-            } else if (dis->CtlID >= ID_RADIO_AA && dis->CtlID <= ID_RADIO_BT) {
-                DrawDarkRadioButton(dis);
+            if (dis->CtlID >= ID_BTN_GAME_AA && dis->CtlID <= ID_BTN_GAME_BT) {
+                DrawSegmentedButton(dis);
+            } else if (dis->CtlID == ID_BTN_CONNECT) {
+                DrawConnectButton(dis);
+            } else if (dis->CtlID >= ID_BTN_BMDEL && dis->CtlID < ID_BTN_BMDEL + MAX_BOOKMARKS) {
+                DrawBookmarkDeleteButton(dis);
             } else {
                 DrawDarkButton(dis);
             }
@@ -544,16 +651,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     }
 
     case WM_COMMAND: {
-        int id   = LOWORD(wParam);
+        int id = LOWORD(wParam);
 
-        // Manual radio button handling (owner-drawn replaces auto behavior)
-        if (id >= ID_RADIO_AA && id <= ID_RADIO_BT) {
-            SendMessageA(hRadioAA, BM_SETCHECK, id == ID_RADIO_AA ? BST_CHECKED : BST_UNCHECKED, 0);
-            SendMessageA(hRadioSH, BM_SETCHECK, id == ID_RADIO_SH ? BST_CHECKED : BST_UNCHECKED, 0);
-            SendMessageA(hRadioBT, BM_SETCHECK, id == ID_RADIO_BT ? BST_CHECKED : BST_UNCHECKED, 0);
-            InvalidateRect(hRadioAA, NULL, TRUE);
-            InvalidateRect(hRadioSH, NULL, TRUE);
-            InvalidateRect(hRadioBT, NULL, TRUE);
+        // Segmented game selection
+        if (id >= ID_BTN_GAME_AA && id <= ID_BTN_GAME_BT) {
+            SetSelectedGame(id - ID_BTN_GAME_AA);
             return 0;
         }
 
@@ -610,6 +712,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SystemParametersInfoA(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
     hFont = CreateFontIndirectA(&ncm.lfMessageFont);
 
+    // Create a slightly smaller font for section labels
+    LOGFONTA lfSection    = ncm.lfMessageFont;
+    lfSection.lfWeight    = FW_SEMIBOLD;
+    hFontSection          = CreateFontIndirectA(&lfSection);
+
     WNDCLASSA wc    = {};
     wc.lpfnWndProc  = WndProc;
     wc.hInstance     = hInstance;
@@ -619,8 +726,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(1));
     RegisterClassA(&wc);
 
-    int winW = 390;
-    int winH = 390;
+    int winW = 400;
+    int winH = 420;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -636,18 +743,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         NULL
     );
 
-    // Margins and layout constants
-    int margin  = 10;
-    int innerX  = margin + 10;
-    int innerW  = winW - 2 * margin - 40;
-    int editH   = 22;
-    int labelW  = 65;
-    int editX   = innerX + labelW + 5;
-    int editW   = innerW - labelW - 5;
+    // Layout constants
+    int margin  = 16;
+    int contentW = winW - 2 * margin - 20;
+    int editH   = 24;
+    int labelW  = 68;
+    int editX   = margin + labelW + 8;
+    int editW   = contentW - labelW - 8;
+    int rowGap  = 30;
 
-    // ---- Nickname (persistent, separate from server settings) ----
-    int y = 10;
-    CreateWindowA("STATIC", "Nickname:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
+    int y = 14;
+
+    // ---- Section: Nickname ----
+    HWND hLblNick = CreateWindowA(
+        "STATIC", "Nickname:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL
+    );
+    SendMessageA(hLblNick, WM_SETFONT, (WPARAM)hFontSection, TRUE);
+
     hEditNickname = CreateWindowA(
         "EDIT",
         "",
@@ -661,27 +773,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
+    y += rowGap + 6;
 
-    // ---- Server Settings group ----
-    int grpY = y + editH + 10;
-    int grpH = 105;
-    CreateWindowA(
-        "BUTTON",
-        "Server Settings",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
-        margin,
-        grpY,
-        winW - 2 * margin - 20,
-        grpH,
-        hwnd,
-        NULL,
-        hInstance,
-        NULL
+    // ---- Section: Server ----
+    HWND hLblServer = CreateWindowA(
+        "STATIC", "SERVER", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
+    SendMessageA(hLblServer, WM_SETFONT, (WPARAM)hFontSection, TRUE);
+    y += 20;
 
-    y = grpY + 20;
-
-    CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
+    CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL);
     hEditIP = CreateWindowA(
         "EDIT",
         "",
@@ -695,10 +796,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
-    y += 28;
+    y += rowGap;
 
     CreateWindowA(
-        "STATIC", "Password:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL
+        "STATIC", "Password:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL
     );
     hEditPass = CreateWindowA(
         "EDIT",
@@ -713,9 +814,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
-    y += 28;
+    y += rowGap;
 
-    CreateWindowA("STATIC", "RCON:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
+    CreateWindowA("STATIC", "RCON:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL);
     hEditRcon = CreateWindowA(
         "EDIT",
         "",
@@ -729,87 +830,66 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
+    y += rowGap + 6;
 
-    // ---- Game Selection group ----
-    int grp2Y = grpY + grpH + 8;
-    int grp2H = 50;
-    CreateWindowA(
-        "BUTTON",
-        "Game",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
-        margin,
-        grp2Y,
-        winW - 2 * margin - 20,
-        grp2H,
-        hwnd,
-        NULL,
-        hInstance,
-        NULL
+    // ---- Section: Game Selection (segmented control) ----
+    HWND hLblGame = CreateWindowA(
+        "STATIC", "GAME", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
+    SendMessageA(hLblGame, WM_SETFONT, (WPARAM)hFontSection, TRUE);
+    y += 20;
 
-    int radioY = grp2Y + 20;
-    int radioW = 100;
-    hRadioAA   = CreateWindowA(
+    int segW = contentW / 3;
+    hBtnGameAA = CreateWindowA(
         "BUTTON",
         "Allied Assault",
-        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_GROUP,
-        innerX,
-        radioY,
-        radioW,
-        20,
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+        margin,
+        y,
+        segW,
+        28,
         hwnd,
-        (HMENU)ID_RADIO_AA,
+        (HMENU)ID_BTN_GAME_AA,
         hInstance,
         NULL
     );
-    hRadioSH = CreateWindowA(
+    hBtnGameSH = CreateWindowA(
         "BUTTON",
         "Spearhead",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-        innerX + radioW + 5,
-        radioY,
-        radioW,
-        20,
+        margin + segW,
+        y,
+        segW,
+        28,
         hwnd,
-        (HMENU)ID_RADIO_SH,
+        (HMENU)ID_BTN_GAME_SH,
         hInstance,
         NULL
     );
-    hRadioBT = CreateWindowA(
+    hBtnGameBT = CreateWindowA(
         "BUTTON",
         "Breakthrough",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-        innerX + 2 * (radioW + 5),
-        radioY,
-        radioW,
-        20,
+        margin + 2 * segW,
+        y,
+        contentW - 2 * segW,
+        28,
         hwnd,
-        (HMENU)ID_RADIO_BT,
+        (HMENU)ID_BTN_GAME_BT,
         hInstance,
         NULL
     );
+    y += 38;
 
-    // ---- Bookmarks group ----
-    int grp3Y  = grp2Y + grp2H + 8;
-    int bmRows = MAX_BOOKMARKS;
-    int grp3H  = 22 + bmRows * 28 + 5;
-    CreateWindowA(
-        "BUTTON",
-        "Bookmarks",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
-        margin,
-        grp3Y,
-        winW - 2 * margin - 20,
-        grp3H,
-        hwnd,
-        NULL,
-        hInstance,
-        NULL
+    // ---- Section: Bookmarks ----
+    HWND hLblBm = CreateWindowA(
+        "STATIC", "BOOKMARKS", WS_CHILD | WS_VISIBLE, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
     );
+    SendMessageA(hLblBm, WM_SETFONT, (WPARAM)hFontSection, TRUE);
+    y += 22;
 
-    int bmY    = grp3Y + 20;
-    int bmBtnW = innerW - 90;
-    int saveW  = 45;
+    int bmBtnW = contentW - 90;
+    int saveW  = 48;
     int delW   = 30;
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
@@ -817,10 +897,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             "BUTTON",
             "(empty)",
             WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-            innerX,
-            bmY,
+            margin,
+            y,
             bmBtnW,
-            24,
+            26,
             hwnd,
             (HMENU)(UINT_PTR)(ID_BTN_BM_0 + i),
             hInstance,
@@ -830,10 +910,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             "BUTTON",
             "Save",
             WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-            innerX + bmBtnW + 5,
-            bmY,
+            margin + bmBtnW + 4,
+            y,
             saveW,
-            24,
+            26,
             hwnd,
             (HMENU)(UINT_PTR)(ID_BTN_BMSAVE + i),
             hInstance,
@@ -843,42 +923,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             "BUTTON",
             "X",
             WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-            innerX + bmBtnW + 5 + saveW + 5,
-            bmY,
+            margin + bmBtnW + 4 + saveW + 4,
+            y,
             delW,
-            24,
+            26,
             hwnd,
             (HMENU)(UINT_PTR)(ID_BTN_BMDEL + i),
             hInstance,
             NULL
         );
-        bmY += 28;
+        y += 30;
     }
 
-    // ---- Connect button at the bottom ----
-    int connectY = grp3Y + grp3H + 10;
-    int connectW = winW - 2 * margin - 20;
+    y += 6;
+
+    // ---- Connect button ----
     CreateWindowA(
         "BUTTON",
         "Connect",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         margin,
-        connectY,
-        connectW,
-        30,
+        y,
+        contentW,
+        34,
         hwnd,
         (HMENU)ID_BTN_CONNECT,
         hInstance,
         NULL
     );
 
-    // Subclass push buttons for hover tracking
+    // Subclass all owner-drawn buttons for hover tracking
+    HWND allButtons[] = {hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT)};
+    for (HWND btn : allButtons) {
+        if (btn) {
+            SetWindowSubclass(btn, DarkBtnSubclassProc, 0, 0);
+        }
+    }
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         SetWindowSubclass(hBtnBookmark[i], DarkBtnSubclassProc, 0, 0);
         SetWindowSubclass(hBtnBmSave[i], DarkBtnSubclassProc, 0, 0);
         SetWindowSubclass(hBtnBmDel[i], DarkBtnSubclassProc, 0, 0);
     }
-    SetWindowSubclass(GetDlgItem(hwnd, ID_BTN_CONNECT), DarkBtnSubclassProc, 0, 0);
 
     // Apply font to all children
     SetFontOnChildren(hwnd, hFont);
@@ -889,7 +974,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetWindowTextA(hEditPass, currentSettings.password.c_str());
     SetWindowTextA(hEditRcon, currentSettings.rconPassword.c_str());
     SetWindowTextA(hEditNickname, currentSettings.nickname.c_str());
-    SetSelectedGame(currentSettings.gameType);
+    selectedGame = currentSettings.gameType;
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         UpdateBookmarkButton(i);
@@ -906,6 +991,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (hFont) {
         DeleteObject(hFont);
+    }
+    if (hFontSection) {
+        DeleteObject(hFontSection);
     }
     if (hBrushBg) {
         DeleteObject(hBrushBg);
