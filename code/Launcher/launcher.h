@@ -1,6 +1,6 @@
 /*
 ===========================================================================
-Copyright (C) 2025 the OpenMoHAA team
+Copyright (C) 2026 the OpenMoHAA team
 
 This file is part of OpenMoHAA source code.
 
@@ -20,13 +20,33 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-// launch.h: Base interface for starting programs
+// launcher.h: GUI launcher for OpenMoHAA
 
-#include "../qcommon/q_platform.h"
+#pragma once
 
-#include <filesystem>
 #include <string>
-#include <vector>
 
-std::filesystem::path GetProgramLocation();
-void                  LaunchProgram(const std::filesystem::path& path, const std::vector<std::string>& argumentList);
+#define MAX_BOOKMARKS 4
+
+struct Bookmark {
+    std::string name;
+    std::string ip;
+    std::string password;
+    std::string rconPassword;
+};
+
+struct LauncherSettings {
+    std::string ip;
+    std::string password;
+    std::string rconPassword;
+    int         gameType; // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
+    Bookmark    bookmarks[MAX_BOOKMARKS];
+};
+
+// Settings persistence (launcher_settings.cpp)
+std::string      GetSettingsPath();
+LauncherSettings LoadSettings();
+void             SaveSettings(const LauncherSettings& settings);
+
+// Game launching (launcher_launch.cpp)
+void LaunchGame(const LauncherSettings& settings);
