@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   update-icons:
@@ -66,19 +65,15 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
         fi
 
-    - name: Create Pull Request
+    - name: Commit and push
       if: steps.changes.outputs.changed == 'true'
-      uses: peter-evans/create-pull-request@v7
-      with:
-        commit-message: "Update Windows icon files from SVG sources"
-        title: "Update Windows icon files from SVG sources"
-        body: |
-          Auto-generated from SVG files in `misc/` using Inkscape and ImageMagick.
-
-          Sizes included: 16x16, 32x32, 48x48, 256x256.
-        branch: auto/update-icons
-        delete-branch: true
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add misc/windows/*.ico
+        git commit -m "Update Windows icon files from SVG sources"
+        git push
 
     - name: No changes
       if: steps.changes.outputs.changed == 'false'
-      run: echo "No icon changes detected, skipping PR creation."
+      run: echo "No icon changes detected, nothing to commit."
