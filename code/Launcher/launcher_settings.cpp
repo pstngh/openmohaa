@@ -90,6 +90,8 @@ LauncherSettings LoadSettings()
             settings.password = value;
         } else if (key == "rcon") {
             settings.rconPassword = value;
+        } else if (key == "nickname") {
+            settings.nickname = value;
         } else if (key == "game") {
             int g = atoi(value.c_str());
             if (g >= 0 && g <= 2) {
@@ -128,6 +130,7 @@ void SaveSettings(const LauncherSettings& settings)
     file << "ip=" << settings.ip << "\n";
     file << "password=" << settings.password << "\n";
     file << "rcon=" << settings.rconPassword << "\n";
+    file << "nickname=" << settings.nickname << "\n";
     file << "game=" << settings.gameType << "\n";
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {

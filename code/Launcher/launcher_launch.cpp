@@ -97,6 +97,12 @@ void LaunchGame(const LauncherSettings& settings)
         args.push_back(settings.rconPassword);
     }
 
+    if (!settings.nickname.empty()) {
+        args.push_back("+set");
+        args.push_back("name");
+        args.push_back(settings.nickname);
+    }
+
 #ifdef _WIN32
     std::wstring cmdLine = L"\"" + std::wstring(programPath.begin(), programPath.end()) + L"\"";
     for (size_t i = 0; i < args.size(); i++) {

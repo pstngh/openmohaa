@@ -192,5 +192,5 @@ function(create_game_variant target_name target_game)
     endif()
 endfunction()
 
-create_game_variant(openmohaa_spearhead 1)
-create_game_variant(openmohaa_breakthrough 2)
+create_game_variant(spearhead 1)
+create_game_variant(breakthrough 2)

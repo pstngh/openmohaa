@@ -39,6 +39,7 @@ struct LauncherSettings {
     std::string ip;
     std::string password;
     std::string rconPassword;
+    std::string nickname;
     int         gameType; // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
     Bookmark    bookmarks[MAX_BOOKMARKS];
 };
