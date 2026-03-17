@@ -35,10 +35,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    pragma comment(lib, "comctl32.lib")
 
 // Dark theme colors
-#    define CLR_BG      RGB(30, 30, 30)
-#    define CLR_BG_EDIT RGB(45, 45, 45)
-#    define CLR_TEXT     RGB(220, 220, 220)
-#    define CLR_BORDER   RGB(70, 70, 70)
+#    define CLR_BG          RGB(30, 30, 30)
+#    define CLR_BG_EDIT     RGB(45, 45, 45)
+#    define CLR_TEXT         RGB(220, 220, 220)
+#    define CLR_TEXT_DIS     RGB(100, 100, 100)
+#    define CLR_BORDER       RGB(70, 70, 70)
+#    define CLR_BTN         RGB(55, 55, 55)
+#    define CLR_BTN_HOVER   RGB(70, 70, 70)
+#    define CLR_BTN_PRESSED RGB(40, 40, 40)
 
 // Control IDs
 #    define ID_EDIT_IP       101
@@ -67,6 +71,149 @@ static LauncherSettings currentSettings;
 static HFONT            hFont;
 static HBRUSH           hBrushBg;
 static HBRUSH           hBrushEdit;
+static HWND             hHoverBtn;
+
+static void DrawDarkButton(DRAWITEMSTRUCT *dis)
+{
+    HDC     hdc  = dis->hDC;
+    RECT    rc   = dis->rcItem;
+    BOOL    pressed  = (dis->itemState & ODS_SELECTED);
+    BOOL    disabled = (dis->itemState & ODS_DISABLED);
+    BOOL    focused  = (dis->itemState & ODS_FOCUS);
+    BOOL    hover    = (dis->hwndItem == hHoverBtn) && !disabled;
+
+    // Button face
+    COLORREF bgColor = pressed ? CLR_BTN_PRESSED : (hover ? CLR_BTN_HOVER : CLR_BTN);
+    HBRUSH   hBr     = CreateSolidBrush(bgColor);
+    FillRect(hdc, &rc, hBr);
+    DeleteObject(hBr);
+
+    // Border
+    HPEN hPen = CreatePen(PS_SOLID, 1, focused ? RGB(100, 100, 100) : CLR_BORDER);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+
+    // Text
+    char text[128];
+    GetWindowTextA(dis->hwndItem, text, sizeof(text));
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, disabled ? CLR_TEXT_DIS : CLR_TEXT);
+    DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
+
+static void DrawDarkGroupBox(DRAWITEMSTRUCT *dis)
+{
+    HDC  hdc = dis->hDC;
+    RECT rc  = dis->rcItem;
+
+    char text[64];
+    GetWindowTextA(dis->hwndItem, text, sizeof(text));
+
+    // Measure text
+    SIZE textSize;
+    GetTextExtentPoint32A(hdc, text, (int)strlen(text), &textSize);
+
+    // Fill background
+    FillRect(hdc, &rc, hBrushBg);
+
+    // Draw frame (inset from top by half text height)
+    int textTop = rc.top;
+    RECT frameRc = {rc.left, textTop + textSize.cy / 2, rc.right, rc.bottom};
+    HPEN hPen = CreatePen(PS_SOLID, 1, CLR_BORDER);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    Rectangle(hdc, frameRc.left, frameRc.top, frameRc.right, frameRc.bottom);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+
+    // Draw text label with gap in frame
+    int textX = rc.left + 8;
+    RECT textBg = {textX - 2, textTop, textX + textSize.cx + 2, textTop + textSize.cy};
+    FillRect(hdc, &textBg, hBrushBg);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, CLR_TEXT);
+    TextOutA(hdc, textX, textTop, text, (int)strlen(text));
+}
+
+static void DrawDarkRadioButton(DRAWITEMSTRUCT *dis)
+{
+    HDC  hdc = dis->hDC;
+    RECT rc  = dis->rcItem;
+    BOOL checked = (dis->itemState & ODS_SELECTED)
+                || (SendMessageA(dis->hwndItem, BM_GETCHECK, 0, 0) == BST_CHECKED);
+
+    FillRect(hdc, &rc, hBrushBg);
+
+    // Draw radio circle
+    int circleSize = 12;
+    int circleY    = rc.top + (rc.bottom - rc.top - circleSize) / 2;
+    HPEN hPen      = CreatePen(PS_SOLID, 1, CLR_BORDER);
+    HPEN hOld      = (HPEN)SelectObject(hdc, hPen);
+    HBRUSH hBrFill = CreateSolidBrush(CLR_BG_EDIT);
+    SelectObject(hdc, hBrFill);
+    Ellipse(hdc, rc.left, circleY, rc.left + circleSize, circleY + circleSize);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+    DeleteObject(hBrFill);
+
+    // Inner filled dot if checked
+    if (checked) {
+        int dotInset  = 3;
+        HBRUSH hDot   = CreateSolidBrush(RGB(100, 180, 255));
+        SelectObject(hdc, GetStockObject(NULL_PEN));
+        SelectObject(hdc, hDot);
+        Ellipse(
+            hdc,
+            rc.left + dotInset,
+            circleY + dotInset,
+            rc.left + circleSize - dotInset,
+            circleY + circleSize - dotInset
+        );
+        DeleteObject(hDot);
+    }
+
+    // Text
+    RECT textRc = {rc.left + circleSize + 4, rc.top, rc.right, rc.bottom};
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, CLR_TEXT);
+    char text[64];
+    GetWindowTextA(dis->hwndItem, text, sizeof(text));
+    DrawTextA(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+}
+
+static LRESULT CALLBACK DarkBtnSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+    (void)uIdSubclass;
+    (void)dwRefData;
+
+    switch (msg) {
+    case WM_MOUSEMOVE: {
+        if (hHoverBtn != hwnd) {
+            hHoverBtn = hwnd;
+            InvalidateRect(hwnd, NULL, FALSE);
+            TRACKMOUSEEVENT tme = {};
+            tme.cbSize          = sizeof(tme);
+            tme.dwFlags         = TME_LEAVE;
+            tme.hwndTrack       = hwnd;
+            TrackMouseEvent(&tme);
+        }
+        break;
+    }
+    case WM_MOUSELEAVE:
+        if (hHoverBtn == hwnd) {
+            hHoverBtn = NULL;
+            InvalidateRect(hwnd, NULL, FALSE);
+        }
+        break;
+    case WM_NCDESTROY:
+        RemoveWindowSubclass(hwnd, DarkBtnSubclassProc, uIdSubclass);
+        break;
+    }
+    return DefSubclassProc(hwnd, msg, wParam, lParam);
+}
 
 static void GetWindowString(HWND hwnd, std::string& out)
 {
@@ -166,6 +313,15 @@ static LRESULT CALLBACK NamePopupProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     case WM_CTLCOLORDLG:
         return (LRESULT)hBrushBg;
 
+    case WM_DRAWITEM: {
+        DRAWITEMSTRUCT *dis = (DRAWITEMSTRUCT *)lParam;
+        if (dis->CtlType == ODT_BUTTON) {
+            DrawDarkButton(dis);
+            return TRUE;
+        }
+        break;
+    }
+
     case WM_COMMAND: {
         int id = LOWORD(wParam);
         if (id == 1001) { // OK
@@ -251,10 +407,10 @@ static BOOL PromptForName(HWND hwndParent, const char *defaultName, char *outNam
         "EDIT", defaultName ? defaultName : "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 55, 10, 220, 22, hNamePopup, NULL, hInst, NULL
     );
     hNameOK = CreateWindowA(
-        "BUTTON", "OK", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 70, 42, 70, 24, hNamePopup, (HMENU)1001, hInst, NULL
+        "BUTTON", "OK", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 70, 42, 70, 24, hNamePopup, (HMENU)1001, hInst, NULL
     );
     hNameCancel = CreateWindowA(
-        "BUTTON", "Cancel", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 155, 42, 70, 24, hNamePopup, (HMENU)1002, hInst, NULL
+        "BUTTON", "Cancel", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 155, 42, 70, 24, hNamePopup, (HMENU)1002, hInst, NULL
     );
 
     if (hFont) {
@@ -372,15 +528,34 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return (LRESULT)hBrushEdit;
     }
 
-    case WM_CTLCOLORBTN: {
-        HDC hdc = (HDC)wParam;
-        SetTextColor(hdc, CLR_TEXT);
-        SetBkColor(hdc, CLR_BG);
-        return (LRESULT)hBrushBg;
+    case WM_DRAWITEM: {
+        DRAWITEMSTRUCT *dis = (DRAWITEMSTRUCT *)lParam;
+        if (dis->CtlType == ODT_BUTTON) {
+            if (dis->CtlID == 0) {
+                DrawDarkGroupBox(dis);
+            } else if (dis->CtlID >= ID_RADIO_AA && dis->CtlID <= ID_RADIO_BT) {
+                DrawDarkRadioButton(dis);
+            } else {
+                DrawDarkButton(dis);
+            }
+            return TRUE;
+        }
+        break;
     }
 
     case WM_COMMAND: {
         int id   = LOWORD(wParam);
+
+        // Manual radio button handling (owner-drawn replaces auto behavior)
+        if (id >= ID_RADIO_AA && id <= ID_RADIO_BT) {
+            SendMessageA(hRadioAA, BM_SETCHECK, id == ID_RADIO_AA ? BST_CHECKED : BST_UNCHECKED, 0);
+            SendMessageA(hRadioSH, BM_SETCHECK, id == ID_RADIO_SH ? BST_CHECKED : BST_UNCHECKED, 0);
+            SendMessageA(hRadioBT, BM_SETCHECK, id == ID_RADIO_BT ? BST_CHECKED : BST_UNCHECKED, 0);
+            InvalidateRect(hRadioAA, NULL, TRUE);
+            InvalidateRect(hRadioSH, NULL, TRUE);
+            InvalidateRect(hRadioBT, NULL, TRUE);
+            return 0;
+        }
 
         if (id == ID_BTN_CONNECT) {
             ReadCurrentFields();
@@ -493,7 +668,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     CreateWindowA(
         "BUTTON",
         "Server Settings",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
         margin,
         grpY,
         winW - 2 * margin - 20,
@@ -561,7 +736,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     CreateWindowA(
         "BUTTON",
         "Game",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
         margin,
         grp2Y,
         winW - 2 * margin - 20,
@@ -577,7 +752,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hRadioAA   = CreateWindowA(
         "BUTTON",
         "Allied Assault",
-        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP,
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | WS_GROUP,
         innerX,
         radioY,
         radioW,
@@ -590,7 +765,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hRadioSH = CreateWindowA(
         "BUTTON",
         "Spearhead",
-        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         innerX + radioW + 5,
         radioY,
         radioW,
@@ -603,7 +778,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hRadioBT = CreateWindowA(
         "BUTTON",
         "Breakthrough",
-        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         innerX + 2 * (radioW + 5),
         radioY,
         radioW,
@@ -621,7 +796,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     CreateWindowA(
         "BUTTON",
         "Bookmarks",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+        WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_OWNERDRAW,
         margin,
         grp3Y,
         winW - 2 * margin - 20,
@@ -641,7 +816,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hBtnBookmark[i] = CreateWindowA(
             "BUTTON",
             "(empty)",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
             innerX,
             bmY,
             bmBtnW,
@@ -654,7 +829,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hBtnBmSave[i] = CreateWindowA(
             "BUTTON",
             "Save",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
             innerX + bmBtnW + 5,
             bmY,
             saveW,
@@ -667,7 +842,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hBtnBmDel[i] = CreateWindowA(
             "BUTTON",
             "X",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
             innerX + bmBtnW + 5 + saveW + 5,
             bmY,
             delW,
@@ -686,7 +861,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     CreateWindowA(
         "BUTTON",
         "Connect",
-        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         margin,
         connectY,
         connectW,
@@ -696,6 +871,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
+
+    // Subclass push buttons for hover tracking
+    for (int i = 0; i < MAX_BOOKMARKS; i++) {
+        SetWindowSubclass(hBtnBookmark[i], DarkBtnSubclassProc, 0, 0);
+        SetWindowSubclass(hBtnBmSave[i], DarkBtnSubclassProc, 0, 0);
+        SetWindowSubclass(hBtnBmDel[i], DarkBtnSubclassProc, 0, 0);
+    }
+    SetWindowSubclass(GetDlgItem(hwnd, ID_BTN_CONNECT), DarkBtnSubclassProc, 0, 0);
 
     // Apply font to all children
     SetFontOnChildren(hwnd, hFont);
