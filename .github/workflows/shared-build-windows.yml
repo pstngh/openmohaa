@@ -258,17 +258,21 @@ jobs:
             $src = Join-Path '${{github.workspace}}/install/bin' $name
             if (Test-Path $src) { Copy-Item $src -Destination '${{github.workspace}}/package/client' }
         }
-        foreach ($name in @('cgame.dll', 'game.dll')) {
-            $src = Join-Path '${{github.workspace}}/install/lib' $name
-            if (Test-Path $src) { Copy-Item $src -Destination '${{github.workspace}}/package/client' }
+        foreach ($installDir in @('${{github.workspace}}/install/bin', '${{github.workspace}}/install/lib')) {
+            foreach ($name in @('cgame.dll', 'game.dll')) {
+                $src = Join-Path $installDir $name
+                if (Test-Path $src) { Copy-Item $src -Destination '${{github.workspace}}/package/client' }
+            }
         }
         # Server package: omohaaded, game, cURL only (no SDL2, no OpenAL, no cgame)
         New-Item -ItemType Directory '${{github.workspace}}/package/server'
         Copy-Item '${{github.workspace}}/thirdparties/curl/install/bin/*.dll' -Destination '${{github.workspace}}/package/server'
         $serverExe = Join-Path '${{github.workspace}}/install/bin' 'omohaaded.exe'
         if (Test-Path $serverExe) { Copy-Item $serverExe -Destination '${{github.workspace}}/package/server' }
-        $gameDll = Join-Path '${{github.workspace}}/install/lib' 'game.dll'
-        if (Test-Path $gameDll) { Copy-Item $gameDll -Destination '${{github.workspace}}/package/server' }
+        foreach ($installDir in @('${{github.workspace}}/install/bin', '${{github.workspace}}/install/lib')) {
+            $gameDll = Join-Path $installDir 'game.dll'
+            if (Test-Path $gameDll) { Copy-Item $gameDll -Destination '${{github.workspace}}/package/server' }
+        }
 
     ###
     # Artifacts
