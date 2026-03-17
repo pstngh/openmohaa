@@ -78,7 +78,6 @@ static HWND             hBtnBmSave[MAX_BOOKMARKS];
 static HWND             hBtnBmDel[MAX_BOOKMARKS];
 static LauncherSettings currentSettings;
 static HFONT            hFont;
-static HFONT            hFontSection;
 static HBRUSH           hBrushBg;
 static HBRUSH           hBrushEdit;
 static HWND             hHoverBtn;
@@ -712,11 +711,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SystemParametersInfoA(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
     hFont = CreateFontIndirectA(&ncm.lfMessageFont);
 
-    // Create a slightly smaller font for section labels
-    LOGFONTA lfSection    = ncm.lfMessageFont;
-    lfSection.lfWeight    = FW_SEMIBOLD;
-    hFontSection          = CreateFontIndirectA(&lfSection);
-
     WNDCLASSA wc    = {};
     wc.lpfnWndProc  = WndProc;
     wc.hInstance     = hInstance;
@@ -727,7 +721,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 470;
+    int winH = 410;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -755,10 +749,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int y = 14;
 
     // ---- Section: Nickname ----
-    HWND hLblNick = CreateWindowA(
+    CreateWindowA(
         "STATIC", "Nickname:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL
     );
-    SendMessageA(hLblNick, WM_SETFONT, (WPARAM)hFontSection, TRUE);
 
     hEditNickname = CreateWindowA(
         "EDIT",
@@ -775,13 +768,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
     y += rowGap + 6;
 
-    // ---- Section: Server ----
-    HWND hLblServer = CreateWindowA(
-        "STATIC", "SERVER", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
-    );
-    SendMessageA(hLblServer, WM_SETFONT, (WPARAM)hFontSection, TRUE);
-    y += 20;
-
+    // ---- Server fields ----
     CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL);
     hEditIP = CreateWindowA(
         "EDIT",
@@ -832,13 +819,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
     y += rowGap + 6;
 
-    // ---- Section: Game Selection (segmented control) ----
-    HWND hLblGame = CreateWindowA(
-        "STATIC", "GAME", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
-    );
-    SendMessageA(hLblGame, WM_SETFONT, (WPARAM)hFontSection, TRUE);
-    y += 20;
-
+    // ---- Game Selection (segmented control) ----
     int segW = contentW / 3;
     hBtnGameAA = CreateWindowA(
         "BUTTON",
@@ -881,13 +862,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
     y += 38;
 
-    // ---- Section: Bookmarks ----
-    HWND hLblBm = CreateWindowA(
-        "STATIC", "BOOKMARKS", WS_CHILD | WS_VISIBLE | SS_CENTER, margin, y, contentW, 16, hwnd, NULL, hInstance, NULL
-    );
-    SendMessageA(hLblBm, WM_SETFONT, (WPARAM)hFontSection, TRUE);
-    y += 22;
-
+    // ---- Bookmarks ----
     int bmBtnW = contentW - 90;
     int saveW  = 48;
     int delW   = 30;
@@ -991,9 +966,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (hFont) {
         DeleteObject(hFont);
-    }
-    if (hFontSection) {
-        DeleteObject(hFontSection);
     }
     if (hBrushBg) {
         DeleteObject(hBrushBg);
