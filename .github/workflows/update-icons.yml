@@ -1,6 +1,11 @@
 name: "Update Icons"
 
 on:
+  push:
+    paths:
+      - 'misc/openmohaa.svg'
+      - 'misc/openmohaas.svg'
+      - 'misc/openmohaab.svg'
   workflow_dispatch:
 
 permissions:
