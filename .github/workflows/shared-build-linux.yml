@@ -233,13 +233,29 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Copy libraries
-        mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/'
-        if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
-        if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+        # Client package: client executables, cgame, game, SDL2, OpenAL, cURL
+        mkdir -p ${{github.workspace}}/package/client
+        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/client/'
+        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/client/'
+        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/client/'
+        if [ -d ${{github.workspace}}/install/bin/openmohaa ]; then
+          for f in openmohaa spearhead breakthrough; do
+            [ -f ${{github.workspace}}/install/bin/openmohaa/$f ] && cp -l ${{github.workspace}}/install/bin/openmohaa/$f '${{github.workspace}}/package/client/'
+          done
+        fi
+        if [ -d ${{github.workspace}}/install/lib/openmohaa ]; then
+          [ -f ${{github.workspace}}/install/lib/openmohaa/cgame.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/cgame.so '${{github.workspace}}/package/client/'
+          [ -f ${{github.workspace}}/install/lib/openmohaa/game.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/game.so '${{github.workspace}}/package/client/'
+        fi
+        # Server package: omohaaded, game, cURL only (no SDL2, no OpenAL, no cgame)
+        mkdir -p ${{github.workspace}}/package/server
+        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/server/'
+        if [ -d ${{github.workspace}}/install/bin/openmohaa ]; then
+          [ -f ${{github.workspace}}/install/bin/openmohaa/omohaaded ] && cp -l ${{github.workspace}}/install/bin/openmohaa/omohaaded '${{github.workspace}}/package/server/'
+        fi
+        if [ -d ${{github.workspace}}/install/lib/openmohaa ]; then
+          [ -f ${{github.workspace}}/install/lib/openmohaa/game.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/game.so '${{github.workspace}}/package/server/'
+        fi
 
     ###
     # Artifacts
@@ -247,8 +263,14 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-linux-${{matrix.architecture.name}}
+        name: out-linux-${{matrix.architecture.name}}-client
         if-no-files-found: error
         compression-level: 9
-        path:
-          ${{github.workspace}}/package
+        path: ${{github.workspace}}/package/client
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: out-linux-${{matrix.architecture.name}}-server
+        if-no-files-found: error
+        compression-level: 9
+        path: ${{github.workspace}}/package/server

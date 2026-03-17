@@ -40,9 +40,11 @@ jobs:
     strategy:
       matrix:
         target_os: [
-          'linux-amd64',
+          'linux-amd64-client',
+          'linux-amd64-server',
           'macos-multiarch-arm64-x86_64',
-          'windows-x64',
+          'windows-x64-client',
+          'windows-x64-server',
         ]
 
     runs-on: ubuntu-24.04
