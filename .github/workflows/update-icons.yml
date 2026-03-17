@@ -1,0 +1,84 @@
+name: "Update Windows Icons"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-icons:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y inkscape imagemagick
+
+    - name: Convert SVGs to ICOs
+      run: |
+        set -euo pipefail
+
+        convert_svg_to_ico() {
+          local svg="$1"
+          local ico="$2"
+          local tmpdir
+          tmpdir=$(mktemp -d)
+
+          echo "Converting $svg -> $ico"
+
+          for size in 16 32 48 256; do
+            inkscape "$svg" \
+              --export-type=png \
+              --export-filename="$tmpdir/${size}.png" \
+              --export-width=$size \
+              --export-height=$size
+          done
+
+          convert \
+            "$tmpdir/16.png" \
+            "$tmpdir/32.png" \
+            "$tmpdir/48.png" \
+            "$tmpdir/256.png" \
+            "$ico"
+
+          rm -rf "$tmpdir"
+        }
+
+        for svg in misc/openmohaa.svg misc/openmohaas.svg misc/openmohaab.svg; do
+          name=$(basename "$svg" .svg)
+          ico="misc/windows/${name}.ico"
+          if [ -f "$svg" ]; then
+            convert_svg_to_ico "$svg" "$ico"
+          else
+            echo "Warning: $svg not found, skipping"
+          fi
+        done
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --quiet misc/windows/*.ico; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Create Pull Request
+      if: steps.changes.outputs.changed == 'true'
+      uses: peter-evans/create-pull-request@v7
+      with:
+        commit-message: "Update Windows icon files from SVG sources"
+        title: "Update Windows icon files from SVG sources"
+        body: |
+          Auto-generated from SVG files in `misc/` using Inkscape and ImageMagick.
+
+          Sizes included: 16x16, 32x32, 48x48, 256x256.
+        branch: auto/update-icons
+        delete-branch: true
+
+    - name: No changes
+      if: steps.changes.outputs.changed == 'false'
+      run: echo "No icon changes detected, skipping PR creation."
