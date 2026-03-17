@@ -529,6 +529,57 @@ void G_UpdatePureStatusHUD(void)
 
 /*
 ================
+G_GetUncleanPlayerSuffix
+
+Added in OPM
+When sv_pure is enabled, returns a comma-separated string of unclean
+player names. Returns an empty string if sv_pure is off or all players
+are clean.
+================
+*/
+const char *G_GetUncleanPlayerSuffix(void)
+{
+    static char  uncleanNames[1024];
+    static cvar_t *sv_pure = NULL;
+
+    if (!sv_pure) {
+        sv_pure = gi.Cvar_Find("sv_pure");
+    }
+
+    if (!sv_pure || !sv_pure->integer) {
+        uncleanNames[0] = '\0';
+        return uncleanNames;
+    }
+
+    int    uncleanCount = 0;
+    size_t offset       = 0;
+
+    uncleanNames[0] = '\0';
+
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse || !ent->client || !ent->entity) {
+            continue;
+        }
+
+        if (ent->r.svFlags & SVF_BOT) {
+            continue;
+        }
+
+        if (!gi.IsClientPure(i)) {
+            if (uncleanCount > 0 && offset < sizeof(uncleanNames) - 2) {
+                offset += Com_sprintf(uncleanNames + offset, sizeof(uncleanNames) - offset, ", ");
+            }
+            offset += Com_sprintf(uncleanNames + offset, sizeof(uncleanNames) - offset, "%s", ent->client->pers.netname);
+            uncleanCount++;
+        }
+    }
+
+    return uncleanNames;
+}
+
+/*
+================
 G_RunFrame
 
 Advances the non-player objects in the world

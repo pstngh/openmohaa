@@ -341,6 +341,9 @@ extern cvar_t *g_teambalance;
 
 extern cvar_t *g_navigation_legacy;
 
+// Added in OPM
+extern cvar_t *g_roundstartdelay;
+
 void CVAR_Init(void);
 
 #ifdef __cplusplus

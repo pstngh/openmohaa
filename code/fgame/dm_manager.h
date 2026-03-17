@@ -183,6 +183,10 @@ private:
     bool m_bAllowAxisRespawn;
     bool m_bRoundActive;
 
+    // Added in OPM
+    bool m_bRoundFreezeActive;
+    int  m_iRoundCountdown;
+
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
     size_t scoreLength;
@@ -230,6 +234,8 @@ public:
     bool       GameAllowsRespawns(void) const;
     void       SetGameAllowsRespawns(bool bAllow);
     bool       AllowRespawn(void) const;
+    // Added in OPM
+    bool       IsRoundFreezeActive(void) const;
     int        GetRoundLimit(void) const;
     void       SetDefaultRoundLimit(int round_limit);
     const_str  GetClockSide(void) const;
@@ -297,6 +303,12 @@ inline bool DM_Manager::GameAllowsRespawns(void) const
 inline void DM_Manager::SetGameAllowsRespawns(bool bAllow)
 {
     m_bAllowRespawns = bAllow;
+}
+
+// Added in OPM
+inline bool DM_Manager::IsRoundFreezeActive(void) const
+{
+    return m_bRoundFreezeActive;
 }
 
 extern DM_Manager dmManager;
