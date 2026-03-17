@@ -169,7 +169,8 @@ void CG_RegisterCvars(void)
     cg_acidtrip                   = cgi.Cvar_Get("cg_acidtrip", "0", CVAR_CHEAT);
     cg_hud                        = cgi.Cvar_Get("cg_hud", "0", 0);
     cg_huddraw_force              = cgi.Cvar_Get("cg_huddraw_force", "0", CVAR_SAVEGAME);
-    cg_drawsvlag                  = cgi.Cvar_Get("cg_drawsvlag", "0", CVAR_ARCHIVE);
+    // Changed in OPM: force cg_drawsvlag off (ROM prevents user from enabling it)
+    cg_drawsvlag                  = cgi.Cvar_Get("cg_drawsvlag", "0", CVAR_ROM);
     cg_crosshair                  = cgi.Cvar_Get("cg_crosshair", "textures/hud/crosshair", CVAR_ARCHIVE);
 
     // 1.11 and below will fallback to cg_crosshair if the texture doesn't exist
