@@ -238,24 +238,22 @@ jobs:
         cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/client/'
         cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/client/'
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/client/'
-        if [ -d ${{github.workspace}}/install/bin/openmohaa ]; then
+        for install_dir in ${{github.workspace}}/install/bin/openmohaa ${{github.workspace}}/install/lib/openmohaa; do
+          [ -d "$install_dir" ] || continue
           for f in openmohaa spearhead breakthrough; do
-            [ -f ${{github.workspace}}/install/bin/openmohaa/$f ] && cp -l ${{github.workspace}}/install/bin/openmohaa/$f '${{github.workspace}}/package/client/'
+            [ -f "$install_dir/$f" ] && cp -l "$install_dir/$f" '${{github.workspace}}/package/client/'
           done
-        fi
-        if [ -d ${{github.workspace}}/install/lib/openmohaa ]; then
-          [ -f ${{github.workspace}}/install/lib/openmohaa/cgame.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/cgame.so '${{github.workspace}}/package/client/'
-          [ -f ${{github.workspace}}/install/lib/openmohaa/game.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/game.so '${{github.workspace}}/package/client/'
-        fi
+          [ -f "$install_dir/cgame.so" ] && cp -l "$install_dir/cgame.so" '${{github.workspace}}/package/client/'
+          [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/client/'
+        done
         # Server package: omohaaded, game, cURL only (no SDL2, no OpenAL, no cgame)
         mkdir -p ${{github.workspace}}/package/server
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/server/'
-        if [ -d ${{github.workspace}}/install/bin/openmohaa ]; then
-          [ -f ${{github.workspace}}/install/bin/openmohaa/omohaaded ] && cp -l ${{github.workspace}}/install/bin/openmohaa/omohaaded '${{github.workspace}}/package/server/'
-        fi
-        if [ -d ${{github.workspace}}/install/lib/openmohaa ]; then
-          [ -f ${{github.workspace}}/install/lib/openmohaa/game.so ] && cp -l ${{github.workspace}}/install/lib/openmohaa/game.so '${{github.workspace}}/package/server/'
-        fi
+        for install_dir in ${{github.workspace}}/install/bin/openmohaa ${{github.workspace}}/install/lib/openmohaa; do
+          [ -d "$install_dir" ] || continue
+          [ -f "$install_dir/omohaaded" ] && cp -l "$install_dir/omohaaded" '${{github.workspace}}/package/server/'
+          [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/server/'
+        done
 
     ###
     # Artifacts
