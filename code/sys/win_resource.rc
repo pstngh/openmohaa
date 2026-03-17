@@ -51,12 +51,25 @@ END
 // Icon
 //
 
+// Added in OPM
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-#ifndef __MINGW32__
-IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/openmohaa.ico"
+// Select the correct icon based on game variant.
+#if DEFAULT_TARGET_GAME == 1
+#define ICON_FILE "openmohaas.ico"
+#define APP_TITLE "OpenMoHAA Spearhead"
+#elif DEFAULT_TARGET_GAME == 2
+#define ICON_FILE "openmohaab.ico"
+#define APP_TITLE "OpenMoHAA Breakthrough"
 #else
-IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaa.ico"
+#define ICON_FILE "openmohaa.ico"
+#define APP_TITLE "OpenMoHAA"
+#endif
+
+#ifndef __MINGW32__
+IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/" ICON_FILE
+#else
+IDI_ICON1               ICON    DISCARDABLE     "misc/windows/" ICON_FILE
 #endif
 
 
@@ -65,9 +78,9 @@ IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaa.ico"
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_STRING1             "OpenMoHAA"
+    IDS_STRING1             APP_TITLE
 END
 
 #ifndef NO_RC_MANIFEST
