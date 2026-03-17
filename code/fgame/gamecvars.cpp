@@ -314,6 +314,10 @@ cvar_t *g_teambalance;
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
+// Added in OPM
+// Freeze duration at round start in seconds (0 = disabled)
+cvar_t *g_roundstartdelay;
+
 void CVAR_Init(void)
 {
     int i;
@@ -713,6 +717,9 @@ void CVAR_Init(void)
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
+
+    // Added in OPM
+    g_roundstartdelay = gi.Cvar_Get("g_roundstartdelay", "5", CVAR_ARCHIVE);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

@@ -408,6 +408,7 @@ void       G_RunThink(gentity_t *ent);
 void QDECL G_LogPrintf(const char *fmt, ...);
 void       SendScoreboardMessageToAllClients(void);
 void       G_UpdatePureStatusHUD(void);
+const char *G_GetUncleanPlayerSuffix(void);
 void QDECL G_Printf(const char *fmt, ...) Q_PRINTF_FUNC(1, 2);
 void QDECL G_Error(const char *fmt, ...) Q_PRINTF_FUNC(1, 2);
 void QDECL G_Error(errorParm_t type, const char *fmt, ...) Q_PRINTF_FUNC(2, 3);
