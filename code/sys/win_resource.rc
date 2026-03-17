@@ -56,20 +56,23 @@ END
 // remains consistent on all systems.
 // Select the correct icon based on game variant.
 #if DEFAULT_TARGET_GAME == 1
-#define ICON_FILE "openmohaas.ico"
-#define APP_TITLE "OpenMoHAA Spearhead"
-#elif DEFAULT_TARGET_GAME == 2
-#define ICON_FILE "openmohaab.ico"
-#define APP_TITLE "OpenMoHAA Breakthrough"
-#else
-#define ICON_FILE "openmohaa.ico"
-#define APP_TITLE "OpenMoHAA"
-#endif
-
 #ifndef __MINGW32__
-IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/" ICON_FILE
+IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/openmohaas.ico"
 #else
-IDI_ICON1               ICON    DISCARDABLE     "misc/windows/" ICON_FILE
+IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaas.ico"
+#endif
+#elif DEFAULT_TARGET_GAME == 2
+#ifndef __MINGW32__
+IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/openmohaab.ico"
+#else
+IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaab.ico"
+#endif
+#else
+#ifndef __MINGW32__
+IDI_ICON1               ICON    DISCARDABLE     "../../misc/windows/openmohaa.ico"
+#else
+IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaa.ico"
+#endif
 #endif
 
 
@@ -80,7 +83,13 @@ IDI_ICON1               ICON    DISCARDABLE     "misc/windows/" ICON_FILE
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_STRING1             APP_TITLE
+#if DEFAULT_TARGET_GAME == 1
+    IDS_STRING1             "OpenMoHAA Spearhead"
+#elif DEFAULT_TARGET_GAME == 2
+    IDS_STRING1             "OpenMoHAA Breakthrough"
+#else
+    IDS_STRING1             "OpenMoHAA"
+#endif
 END
 
 #ifndef NO_RC_MANIFEST
