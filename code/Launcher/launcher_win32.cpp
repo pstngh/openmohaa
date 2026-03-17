@@ -34,10 +34,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #    pragma comment(lib, "comctl32.lib")
 
-// Colors
-#    define CLR_BG       RGB(240, 240, 240)
-#    define CLR_BG_EDIT  RGB(255, 255, 255)
-#    define CLR_TEXT      RGB(0, 0, 0)
+// Dark theme colors
+#    define CLR_BG      RGB(30, 30, 30)
+#    define CLR_BG_EDIT RGB(45, 45, 45)
+#    define CLR_TEXT     RGB(220, 220, 220)
+#    define CLR_BORDER   RGB(70, 70, 70)
 
 // Control IDs
 #    define ID_EDIT_IP       101
@@ -62,9 +63,10 @@ static HWND             hRadioBT;
 static HWND             hBtnBookmark[MAX_BOOKMARKS];
 static HWND             hBtnBmSave[MAX_BOOKMARKS];
 static HWND             hBtnBmDel[MAX_BOOKMARKS];
-static HWND             hStatusLabel;
 static LauncherSettings currentSettings;
 static HFONT            hFont;
+static HBRUSH           hBrushBg;
+static HBRUSH           hBrushEdit;
 
 static void GetWindowString(HWND hwnd, std::string& out)
 {
@@ -104,17 +106,6 @@ static void ReadCurrentFields()
     currentSettings.gameType = GetSelectedGame();
 }
 
-static void UpdateStatusLabel()
-{
-    std::string text = "Currently connected as: ";
-    if (!currentSettings.nickname.empty()) {
-        text += currentSettings.nickname;
-    } else {
-        text += "(no nickname set)";
-    }
-    SetWindowTextA(hStatusLabel, text.c_str());
-}
-
 static void UpdateBookmarkButton(int index)
 {
     if (currentSettings.bookmarks[index].name.empty()) {
@@ -137,6 +128,20 @@ static void LoadBookmark(int index)
     SetWindowTextA(hEditIP, bm.ip.c_str());
     SetWindowTextA(hEditPass, bm.password.c_str());
     SetWindowTextA(hEditRcon, bm.rconPassword.c_str());
+    // Nickname is NOT changed by loading a bookmark - it's persistent
+}
+
+static void AutoSaveBookmark()
+{
+    // If the current IP matches an existing bookmark, update it
+    for (int i = 0; i < MAX_BOOKMARKS; i++) {
+        if (!currentSettings.bookmarks[i].name.empty() && currentSettings.bookmarks[i].ip == currentSettings.ip) {
+            currentSettings.bookmarks[i].password     = currentSettings.password;
+            currentSettings.bookmarks[i].rconPassword = currentSettings.rconPassword;
+            UpdateBookmarkButton(i);
+            break;
+        }
+    }
 }
 
 // Name input popup window
@@ -150,6 +155,17 @@ static char namePopupResult[64];
 static LRESULT CALLBACK NamePopupProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLOREDIT: {
+        HDC hdc = (HDC)wParam;
+        SetTextColor(hdc, CLR_TEXT);
+        SetBkColor(hdc, CLR_BG_EDIT);
+        return (LRESULT)hBrushEdit;
+    }
+
+    case WM_CTLCOLORDLG:
+        return (LRESULT)hBrushBg;
+
     case WM_COMMAND: {
         int id = LOWORD(wParam);
         if (id == 1001) { // OK
@@ -200,7 +216,7 @@ static BOOL PromptForName(HWND hwndParent, const char *defaultName, char *outNam
         wc.lpfnWndProc  = NamePopupProc;
         wc.hInstance     = GetModuleHandle(NULL);
         wc.lpszClassName = "OMLauncherNamePopup";
-        wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+        wc.hbrBackground = hBrushBg;
         wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
         RegisterClassA(&wc);
         registered = TRUE;
@@ -342,23 +358,37 @@ static void SetFontOnChildren(HWND hwnd, HFONT font)
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
+    case WM_CTLCOLORSTATIC: {
+        HDC hdc = (HDC)wParam;
+        SetTextColor(hdc, CLR_TEXT);
+        SetBkColor(hdc, CLR_BG);
+        return (LRESULT)hBrushBg;
+    }
+
+    case WM_CTLCOLOREDIT: {
+        HDC hdc = (HDC)wParam;
+        SetTextColor(hdc, CLR_TEXT);
+        SetBkColor(hdc, CLR_BG_EDIT);
+        return (LRESULT)hBrushEdit;
+    }
+
+    case WM_CTLCOLORBTN: {
+        HDC hdc = (HDC)wParam;
+        SetTextColor(hdc, CLR_TEXT);
+        SetBkColor(hdc, CLR_BG);
+        return (LRESULT)hBrushBg;
+    }
+
     case WM_COMMAND: {
-        int  id   = LOWORD(wParam);
-        int  code = HIWORD(wParam);
+        int id   = LOWORD(wParam);
 
         if (id == ID_BTN_CONNECT) {
             ReadCurrentFields();
+            AutoSaveBookmark();
             SaveSettings(currentSettings);
             LaunchGame(currentSettings);
             // Close the launcher after spawning the game
             DestroyWindow(hwnd);
-            return 0;
-        }
-
-        // Update status label when nickname changes
-        if (id == ID_EDIT_NICKNAME && code == EN_CHANGE) {
-            GetWindowString(hEditNickname, currentSettings.nickname);
-            UpdateStatusLabel();
             return 0;
         }
 
@@ -395,6 +425,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     InitCommonControls();
 
+    // Create dark theme brushes
+    hBrushBg   = CreateSolidBrush(CLR_BG);
+    hBrushEdit = CreateSolidBrush(CLR_BG_EDIT);
+
     // Use the system default GUI font
     NONCLIENTMETRICSA ncm = {};
     ncm.cbSize            = sizeof(ncm);
@@ -405,12 +439,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.lpfnWndProc  = WndProc;
     wc.hInstance     = hInstance;
     wc.lpszClassName = "OpenMoHAALauncher";
-    wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+    wc.hbrBackground = hBrushBg;
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    wc.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(1));
     RegisterClassA(&wc);
 
     int winW = 390;
-    int winH = 400;
+    int winH = 390;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -435,68 +470,166 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int editX   = innerX + labelW + 5;
     int editW   = innerW - labelW - 5;
 
-    // ---- Server Settings group ----
-    int grpY  = 5;
-    int grpH  = 128;
-    HWND hGrp1 = CreateWindowA(
-        "BUTTON", "Server Settings",
-        WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        margin, grpY, winW - 2 * margin - 20, grpH,
-        hwnd, NULL, hInstance, NULL
+    // ---- Nickname (persistent, separate from server settings) ----
+    int y = 10;
+    CreateWindowA("STATIC", "Nickname:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
+    hEditNickname = CreateWindowA(
+        "EDIT",
+        "",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+        editX,
+        y,
+        editW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_NICKNAME,
+        hInstance,
+        NULL
     );
 
-    int y = grpY + 20;
+    // ---- Server Settings group ----
+    int grpY = y + editH + 10;
+    int grpH = 105;
+    CreateWindowA(
+        "BUTTON",
+        "Server Settings",
+        WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+        margin,
+        grpY,
+        winW - 2 * margin - 20,
+        grpH,
+        hwnd,
+        NULL,
+        hInstance,
+        NULL
+    );
+
+    y = grpY + 20;
 
     CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
-    hEditIP = CreateWindowA("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, editX, y, editW, editH, hwnd, (HMENU)ID_EDIT_IP, hInstance, NULL);
+    hEditIP = CreateWindowA(
+        "EDIT",
+        "",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+        editX,
+        y,
+        editW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_IP,
+        hInstance,
+        NULL
+    );
     y += 28;
 
-    CreateWindowA("STATIC", "Password:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
-    hEditPass = CreateWindowA("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_PASSWORD, editX, y, editW, editH, hwnd, (HMENU)ID_EDIT_PASS, hInstance, NULL);
+    CreateWindowA(
+        "STATIC", "Password:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL
+    );
+    hEditPass = CreateWindowA(
+        "EDIT",
+        "",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_PASSWORD,
+        editX,
+        y,
+        editW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_PASS,
+        hInstance,
+        NULL
+    );
     y += 28;
 
     CreateWindowA("STATIC", "RCON:", WS_CHILD | WS_VISIBLE, innerX, y + 2, labelW, 20, hwnd, NULL, hInstance, NULL);
-    hEditRcon = CreateWindowA("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_PASSWORD, editX, y, editW, editH, hwnd, (HMENU)ID_EDIT_RCON, hInstance, NULL);
-    y += 28;
-
-    // Connect button and Nickname on same row inside server settings group
-    int connectW = 80;
-    CreateWindowA(
-        "BUTTON", "Connect",
-        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        innerX, y, connectW, 26,
-        hwnd, (HMENU)ID_BTN_CONNECT, hInstance, NULL
+    hEditRcon = CreateWindowA(
+        "EDIT",
+        "",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_PASSWORD,
+        editX,
+        y,
+        editW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_RCON,
+        hInstance,
+        NULL
     );
-
-    int nickEditX = innerX + connectW + 10;
-    int nickEditW = editX + editW - nickEditX;
-    hEditNickname = CreateWindowA("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, nickEditX, y, nickEditW, editH, hwnd, (HMENU)ID_EDIT_NICKNAME, hInstance, NULL);
 
     // ---- Game Selection group ----
     int grp2Y = grpY + grpH + 8;
     int grp2H = 50;
     CreateWindowA(
-        "BUTTON", "Game",
+        "BUTTON",
+        "Game",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        margin, grp2Y, winW - 2 * margin - 20, grp2H,
-        hwnd, NULL, hInstance, NULL
+        margin,
+        grp2Y,
+        winW - 2 * margin - 20,
+        grp2H,
+        hwnd,
+        NULL,
+        hInstance,
+        NULL
     );
 
     int radioY = grp2Y + 20;
     int radioW = 100;
-    hRadioAA = CreateWindowA("BUTTON", "Allied Assault", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP, innerX, radioY, radioW, 20, hwnd, (HMENU)ID_RADIO_AA, hInstance, NULL);
-    hRadioSH = CreateWindowA("BUTTON", "Spearhead", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, innerX + radioW + 5, radioY, radioW, 20, hwnd, (HMENU)ID_RADIO_SH, hInstance, NULL);
-    hRadioBT = CreateWindowA("BUTTON", "Breakthrough", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, innerX + 2 * (radioW + 5), radioY, radioW, 20, hwnd, (HMENU)ID_RADIO_BT, hInstance, NULL);
+    hRadioAA   = CreateWindowA(
+        "BUTTON",
+        "Allied Assault",
+        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP,
+        innerX,
+        radioY,
+        radioW,
+        20,
+        hwnd,
+        (HMENU)ID_RADIO_AA,
+        hInstance,
+        NULL
+    );
+    hRadioSH = CreateWindowA(
+        "BUTTON",
+        "Spearhead",
+        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+        innerX + radioW + 5,
+        radioY,
+        radioW,
+        20,
+        hwnd,
+        (HMENU)ID_RADIO_SH,
+        hInstance,
+        NULL
+    );
+    hRadioBT = CreateWindowA(
+        "BUTTON",
+        "Breakthrough",
+        WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+        innerX + 2 * (radioW + 5),
+        radioY,
+        radioW,
+        20,
+        hwnd,
+        (HMENU)ID_RADIO_BT,
+        hInstance,
+        NULL
+    );
 
     // ---- Bookmarks group ----
-    int grp3Y = grp2Y + grp2H + 8;
+    int grp3Y  = grp2Y + grp2H + 8;
     int bmRows = MAX_BOOKMARKS;
     int grp3H  = 22 + bmRows * 28 + 5;
     CreateWindowA(
-        "BUTTON", "Bookmarks",
+        "BUTTON",
+        "Bookmarks",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        margin, grp3Y, winW - 2 * margin - 20, grp3H,
-        hwnd, NULL, hInstance, NULL
+        margin,
+        grp3Y,
+        winW - 2 * margin - 20,
+        grp3H,
+        hwnd,
+        NULL,
+        hInstance,
+        NULL
     );
 
     int bmY    = grp3Y + 20;
@@ -506,33 +639,62 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         hBtnBookmark[i] = CreateWindowA(
-            "BUTTON", "(empty)",
+            "BUTTON",
+            "(empty)",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            innerX, bmY, bmBtnW, 24,
-            hwnd, (HMENU)(UINT_PTR)(ID_BTN_BM_0 + i), hInstance, NULL
+            innerX,
+            bmY,
+            bmBtnW,
+            24,
+            hwnd,
+            (HMENU)(UINT_PTR)(ID_BTN_BM_0 + i),
+            hInstance,
+            NULL
         );
         hBtnBmSave[i] = CreateWindowA(
-            "BUTTON", "Save",
+            "BUTTON",
+            "Save",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            innerX + bmBtnW + 5, bmY, saveW, 24,
-            hwnd, (HMENU)(UINT_PTR)(ID_BTN_BMSAVE + i), hInstance, NULL
+            innerX + bmBtnW + 5,
+            bmY,
+            saveW,
+            24,
+            hwnd,
+            (HMENU)(UINT_PTR)(ID_BTN_BMSAVE + i),
+            hInstance,
+            NULL
         );
         hBtnBmDel[i] = CreateWindowA(
-            "BUTTON", "X",
+            "BUTTON",
+            "X",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            innerX + bmBtnW + 5 + saveW + 5, bmY, delW, 24,
-            hwnd, (HMENU)(UINT_PTR)(ID_BTN_BMDEL + i), hInstance, NULL
+            innerX + bmBtnW + 5 + saveW + 5,
+            bmY,
+            delW,
+            24,
+            hwnd,
+            (HMENU)(UINT_PTR)(ID_BTN_BMDEL + i),
+            hInstance,
+            NULL
         );
         bmY += 28;
     }
 
-    // Status label at the bottom
-    int statusY = grp3Y + grp3H + 8;
-    hStatusLabel = CreateWindowA(
-        "STATIC", "Currently connected as: (no nickname set)",
-        WS_CHILD | WS_VISIBLE,
-        margin, statusY, winW - 2 * margin - 20, 20,
-        hwnd, NULL, hInstance, NULL
+    // ---- Connect button at the bottom ----
+    int connectY = grp3Y + grp3H + 10;
+    int connectW = winW - 2 * margin - 20;
+    CreateWindowA(
+        "BUTTON",
+        "Connect",
+        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        margin,
+        connectY,
+        connectW,
+        30,
+        hwnd,
+        (HMENU)ID_BTN_CONNECT,
+        hInstance,
+        NULL
     );
 
     // Apply font to all children
@@ -545,7 +707,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetWindowTextA(hEditRcon, currentSettings.rconPassword.c_str());
     SetWindowTextA(hEditNickname, currentSettings.nickname.c_str());
     SetSelectedGame(currentSettings.gameType);
-    UpdateStatusLabel();
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         UpdateBookmarkButton(i);
@@ -562,6 +723,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (hFont) {
         DeleteObject(hFont);
+    }
+    if (hBrushBg) {
+        DeleteObject(hBrushBg);
+    }
+    if (hBrushEdit) {
+        DeleteObject(hBrushEdit);
     }
 
     return (int)msg.wParam;
