@@ -617,9 +617,9 @@ void CVAR_Init(void)
 
     g_lastsave                 = gi.Cvar_Get("g_lastsave", "", CVAR_ARCHIVE);
     g_forceteamspectate        = gi.Cvar_Get("g_forceteamspectate", "1", 0);
-    g_spectatefollow_forward   = gi.Cvar_Get("g_spectatefollow_forward", "-56", 0);
+    g_spectatefollow_forward   = gi.Cvar_Get("g_spectatefollow_forward", "0", 0);
     g_spectatefollow_right     = gi.Cvar_Get("g_spectatefollow_right", "0", 0);
-    g_spectatefollow_up        = gi.Cvar_Get("g_spectatefollow_up", "24", 0);
+    g_spectatefollow_up        = gi.Cvar_Get("g_spectatefollow_up", "0", 0);
     g_spectatefollow_pitch     = gi.Cvar_Get("g_spectatefollow_pitch", "2", 0);
     g_spectate_allow_full_chat = gi.Cvar_Get("g_spectate_allow_full_chat", "0", 0);
 

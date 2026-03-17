@@ -9481,10 +9481,7 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs += right * g_spectatefollow_right->value;
         vCamOfs += up * g_spectatefollow_up->value;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
-        }
-
+        // Removed in OPM: lean should not move the spectator camera
         start = pPlayer->origin;
         start[2] += pPlayer->maxs[2] - 2.0;
 
