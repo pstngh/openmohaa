@@ -197,6 +197,7 @@ typedef struct client_s {
 	int				nonPureChecksums[1024];
 	int				nNonPureChecksums;
 	qboolean		gotCP2;
+	int				autokickTime; // Added in OPM - svs.time when to kick, 0 = no pending kick
     netchan_t		netchan;
 	// Added in 2.0
     netprofclient_t netprofile;

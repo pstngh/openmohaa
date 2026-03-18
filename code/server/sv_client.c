@@ -1589,9 +1589,9 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		else {
 			cl->pureAuthentic = 0;
 			// Changed in OPM
-			if (sv_autokick->integer) {
-				SV_DropClient(cl, "Unpure client detected. Invalid or missing pk3 files.");
-				return;
+			if (sv_autokick->integer && !cl->autokickTime) {
+				cl->autokickTime = svs.time + sv_autokick->integer * 1000;
+				Com_DPrintf("Client %s will be kicked in %d seconds\n", cl->name, sv_autokick->integer);
 			}
 			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}

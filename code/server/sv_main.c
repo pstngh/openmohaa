@@ -964,6 +964,27 @@ static void SV_CheckTimeouts( void ) {
 
 /*
 ==================
+SV_CheckAutokick
+
+Added in OPM
+Kick clients that failed pure validation after their grace period.
+==================
+*/
+static void SV_CheckAutokick( void ) {
+	int			i;
+	client_t	*cl;
+
+	for (i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++) {
+		if (cl->state >= CS_CONNECTED && cl->autokickTime && svs.time >= cl->autokickTime) {
+			cl->autokickTime = 0;
+			SV_DropClient(cl, "Unpure client detected. Invalid or missing pk3 files.");
+		}
+	}
+}
+
+
+/*
+==================
 SV_CheckPaused
 ==================
 */
@@ -1150,6 +1171,10 @@ void SV_Frame( int msec ) {
 
 	// check timeouts
 	SV_CheckTimeouts();
+
+	// Added in OPM
+	// kick unpure clients after their grace period expires
+	SV_CheckAutokick();
 
 	// send messages back to the clients
 	SV_SendClientMessages();
