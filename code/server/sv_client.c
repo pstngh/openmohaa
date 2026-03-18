@@ -913,6 +913,13 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 	Com_DPrintf( "Going from CS_PRIMED to CS_ACTIVE for %s\n", client->name );
 	client->state = CS_ACTIVE;
 
+	// Added in OPM
+	// Start the autokick timer now that the client is fully in the game
+	if (client->autokickTime == -1) {
+		client->autokickTime = svs.time + sv_autokick->integer * 1000;
+		Com_DPrintf("Client %s will be kicked in %d seconds\n", client->name, sv_autokick->integer);
+	}
+
 	// resend all configstrings using the cs commands since these are
 	// no longer sent when the client is CS_PRIMED
 	SV_UpdateConfigstrings( client );
@@ -1589,9 +1596,8 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		else {
 			cl->pureAuthentic = 0;
 			// Changed in OPM
-			if (sv_autokick->integer && !cl->autokickTime) {
-				cl->autokickTime = svs.time + sv_autokick->integer * 1000;
-				Com_DPrintf("Client %s will be kicked in %d seconds\n", cl->name, sv_autokick->integer);
+			if (sv_autokick->integer) {
+				cl->autokickTime = -1;
 			}
 			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}

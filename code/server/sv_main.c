@@ -975,7 +975,7 @@ static void SV_CheckAutokick( void ) {
 	client_t	*cl;
 
 	for (i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++) {
-		if (cl->state >= CS_CONNECTED && cl->autokickTime && svs.time >= cl->autokickTime) {
+		if (cl->state >= CS_CONNECTED && cl->autokickTime > 0 && svs.time >= cl->autokickTime) {
 			cl->autokickTime = 0;
 			SV_DropClient(cl, "Unpure client detected. Invalid or missing pk3 files.");
 		}
