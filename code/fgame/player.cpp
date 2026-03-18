@@ -5584,7 +5584,20 @@ void Player::EvaluateState(State *forceTorso, State *forceLegs)
                     StopPartAnimating(legs);
                     animdone_Legs = true;
                 } else if (legsAnim != "") {
-                    SetPartAnim(legsAnim, legs);
+                    // Added in OPM
+                    //  When g_preventghostawalk is enabled, preserve animation timing
+                    //  across weapon switches in the same leg state. This prevents
+                    //  "ghost walking" where players switch weapons to reset footstep sounds.
+                    if (g_preventghostwalk->integer && currentState_Legs == laststate_Legs) {
+                        float oldTime = GetTime(m_iPartSlot[legs]);
+                        SetPartAnim(legsAnim, legs);
+
+                        if (animtimes[m_iPartSlot[legs]] > 0) {
+                            SetTime(m_iPartSlot[legs], fmod(oldTime, animtimes[m_iPartSlot[legs]]));
+                        }
+                    } else {
+                        SetPartAnim(legsAnim, legs);
+                    }
                 }
             } else {
                 currentState_Legs = laststate_Legs;

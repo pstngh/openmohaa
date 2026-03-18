@@ -343,6 +343,7 @@ extern cvar_t *g_navigation_legacy;
 
 // Added in OPM
 extern cvar_t *g_roundstartdelay;
+extern cvar_t *g_preventghostwalk;
 
 void CVAR_Init(void);
 
