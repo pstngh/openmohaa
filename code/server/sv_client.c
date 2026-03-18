@@ -1485,32 +1485,6 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		// we basically use this while loop to avoid using 'goto' :)
 		while (bGood) {
 
-			/*
-			// must be at least 6: "cl_paks cgame ui @ firstref ... numChecksums"
-			// numChecksums is encoded
-			if (nClientPaks < 6) {
-				bGood = qfalse;
-				break;
-			}
-			// verify first to be the cgame checksum
-			pArg = Cmd_Argv(nCurArg++);
-			if (!pArg || *pArg == '@' || atoi(pArg) != nChkSum1 ) {
-				bGood = qfalse;
-				break;
-			}
-			// verify the second to be the ui checksum
-			pArg = Cmd_Argv(nCurArg++);
-			if (!pArg || *pArg == '@' || atoi(pArg) != nChkSum2 ) {
-				bGood = qfalse;
-				break;
-			}
-			// should be sitting at the delimeter now
-			pArg = Cmd_Argv(nCurArg++);
-			if (*pArg != '@') {
-				bGood = qfalse;
-				break;
-			}
-			*/
 			// store checksums since tokenization is not re-entrant
 			for (i = 0; nCurArg < nClientPaks; i++) {
 				nClientChkSum[i] = atoi(Cmd_Argv(nCurArg++));
@@ -1518,6 +1492,15 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 
 			// store number to compare against (minus one cause the last is the number of checksums)
 			nClientPaks = i - 1;
+
+			// Changed in OPM
+			// A legitimate client must report at least one loaded pak.
+			// An empty or trivially small cp command would skip all validation.
+			if (nClientPaks <= 0) {
+				Com_DPrintf("Client %s sent cp with %d paks (need at least 1)\n", cl->name, nClientPaks);
+				bGood = qfalse;
+				break;
+			}
 
 			// make sure none of the client check sums are the same
 			// so the client can't send 5 the same checksums
@@ -1560,14 +1543,41 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 					// Check the feed-independent checksum (from cp2) against the whitelist.
 					if (cl->gotCP2 && i < cl->nNonPureChecksums) {
 						if (!SV_IsChecksumWhitelisted(cl->nonPureChecksums[i])) {
+							Com_DPrintf("Client %s: pak %d pure_checksum %d (non-pure %d) not matched and not whitelisted\n",
+								cl->name, i, nClientChkSum[i], cl->nonPureChecksums[i]);
 							bGood = qfalse;
 							break;
 						}
 					} else {
 						// No cp2 data available for this pak, can't whitelist-validate
+						Com_DPrintf("Client %s: pak %d pure_checksum %d not matched, no cp2 data\n",
+							cl->name, i, nClientChkSum[i]);
 						bGood = qfalse;
 						break;
 					}
+				}
+			}
+			if ( bGood == qfalse ) {
+				break;
+			}
+
+			// Changed in OPM
+			// Reverse check: verify the client has ALL server paks.
+			// Without this, a client could replace a server pak with a different
+			// file whose pure_checksum doesn't collide with any server pak,
+			// yet the missing original server pak would go undetected because
+			// the forward loop only checks client->server direction.
+			for (i = 0; i < nServerPaks; i++) {
+				for (j = 0; j < nClientPaks; j++) {
+					if (nServerChkSum[i] == nClientChkSum[j]) {
+						break;
+					}
+				}
+				if (j >= nClientPaks) {
+					Com_DPrintf("Client %s: missing server pak %d (pure_checksum %d)\n",
+						cl->name, i, nServerChkSum[i]);
+					bGood = qfalse;
+					break;
 				}
 			}
 			if ( bGood == qfalse ) {
