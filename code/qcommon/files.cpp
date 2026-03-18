@@ -3891,6 +3891,53 @@ const char *FS_LoadedPakPureChecksums( void ) {
 	return info;
 }
 
+// Added in OPM
+/*
+=====================
+FS_LoadedPakPureAndChecksums
+
+Fills two parallel arrays with the pure (feed-dependent) and feed-independent
+checksums of all loaded pk3 files, deduplicated by pure_checksum.
+Used by the server to identify whitelisted community paks during the reverse
+pure validation check.
+=====================
+*/
+void FS_LoadedPakPureAndChecksums( int *pureChecksums, int *checksums, int *count, int maxCount ) {
+	searchpath_t	*search;
+	int seen[1024];
+	int nSeen = 0;
+	int n = 0;
+
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
+
+		if ( !search->pack ) {
+			continue;
+		}
+
+		// Deduplicate by pure_checksum, same as FS_LoadedPakPureChecksums
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
+		}
+
+		if ( n < maxCount ) {
+			pureChecksums[n] = search->pack->pure_checksum;
+			checksums[n] = search->pack->checksum;
+			n++;
+		}
+	}
+
+	*count = n;
+}
+
 /*
 =====================
 FS_ReferencedPakChecksums

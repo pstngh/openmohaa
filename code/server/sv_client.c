@@ -1447,6 +1447,7 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 	int nChkSum1, nChkSum2, nClientPaks, nServerPaks, i, j, nCurArg;
 	int nClientChkSum[1024];
 	int nServerChkSum[1024];
+	int nServerFeedIndepChkSum[1024]; // Added in OPM - feed-independent checksums for reverse check
 	const char *pPaks, *pArg;
 	qboolean bGood = qtrue;
 
@@ -1526,15 +1527,12 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 				break;
 
 			// get the pure checksums of the pk3 files loaded by the server
-			pPaks = FS_LoadedPakPureChecksums();
-			Cmd_TokenizeString( pPaks );
-			nServerPaks = Cmd_Argc();
-			if (nServerPaks > 1024)
-				nServerPaks = 1024;
-
-			for (i = 0; i < nServerPaks; i++) {
-				nServerChkSum[i] = atoi(Cmd_Argv(i));
-			}
+			// Added in OPM
+			// Get both pure (feed-dependent) and feed-independent checksums
+			// in lockstep, so the reverse check can identify whitelisted
+			// community paks that the client is not required to have.
+			nServerPaks = 0;
+			FS_LoadedPakPureAndChecksums(nServerChkSum, nServerFeedIndepChkSum, &nServerPaks, 1024);
 
 			// check if the client has provided any pure checksums of pk3 files not loaded by the server
 			for (i = 0; i < nClientPaks; i++) {
@@ -1573,6 +1571,9 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 			// file whose pure_checksum doesn't collide with any server pak,
 			// yet the missing original server pak would go undetected because
 			// the forward loop only checks client->server direction.
+			// However, skip whitelisted community paks — the client is not
+			// required to have paks that the server loaded for other purposes
+			// (e.g., map packs).
 			for (i = 0; i < nServerPaks; i++) {
 				for (j = 0; j < nClientPaks; j++) {
 					if (nServerChkSum[i] == nClientChkSum[j]) {
@@ -1580,6 +1581,11 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 					}
 				}
 				if (j >= nClientPaks) {
+					// Server pak not found on client — check if it's a whitelisted
+					// community pak that the client doesn't need to have.
+					if (SV_IsChecksumWhitelisted(nServerFeedIndepChkSum[i])) {
+						continue;
+					}
 					Com_DPrintf("Client %s: missing server pak %d (pure_checksum %d)\n",
 						cl->name, i, nServerChkSum[i]);
 					bGood = qfalse;
