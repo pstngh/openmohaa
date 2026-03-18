@@ -1352,36 +1352,37 @@ static void SV_Disconnect_f( client_t *cl ) {
 // cp2 command) against this whitelist.
 //==================================================================
 static const int sv_pureChecksumWhitelist[] = {
-    // ---- Official MoHAA paks ----
-    -1589950738, // pak0.pk3
-      229290730, // pak0.pk3 (English UK)
-      301277748, // pak0.pk3 (variant)
-     1379145895, // pak1.pk3
-      651935416, // pak1.pk3 (English UK)
-      450555014, // pak1.pk3 (variant)
-    -1583317731, // pak2.pk3
-     -467062589, // pak3.pk3
-      981818134, // pak4.pk3
-      179434094, // pak5.pk3 (Allied Assault)
-      671078817, // pak5.pk3 (Spearhead)
-     1273215132, // Pak5.pk3 (Breakthrough)
-     -971350291, // Pak5.pk3 (English UK)
-    -1628503586, // Pak5.pk3 (variant)
-    -1716277136, // pak6.pk3
-      596498058, // Pak6.pk3
-     -258570352, // Pak6EnUk.pk3 (English UK)
-     -430288593, // pak6.pk3 (variant)
-      927563442, // pak7.pk3
-    -1159718974, // Pak7.pk3
-     1554659266, // pak7.pk3 (English UK)
-    -1938713004, // pak8.pk3
-      178498079, // pak9.pk3
-     -372026498, // pak10.pk3
-     -740534367, // pak11.pk3
-       38873949, // pak12.pk3
-     -226499784, // pak13.pk3
-      730285072, // pak14.pk3
-     2077479519, // pak15.pk3
+    // ---- Allied Assault US (main/) ----
+      301277748, // Pak0.pk3
+      450555014, // Pak1.pk3
+     -605964971, // Pak2.pk3
+      755737592, // Pak3.pk3
+     1893706666, // Pak4.pk3
+    -1628503586, // Pak5.pk3
+     -430288593, // pak6.pk3
+
+    // ---- Allied Assault GOG/UK (main/) ----
+      229290730, // Pak0.pk3
+      651935416, // Pak1.pk3
+    //                Pak2.pk3 — same as US
+    //                Pak3.pk3 — same as US
+    //                Pak4.pk3 — same as US
+     -971350291, // Pak5.pk3
+     -258570352, // Pak6EnUk.pk3
+     1554659266, // pak7.pk3
+
+    // ---- Spearhead (mainta/) ----
+      715937181, // pak1.pk3
+     1097510018, // pak2.pk3
+     -315852488, // pak3.pk3
+      707446526, // pak4.pk3
+
+    // ---- Breakthrough (maintb/) ----
+    -2139430121, // pak1.pk3
+    -1496149871, // pak2.pk3
+       94279464, // pak3.pk3
+     -989893643, // pak4.pk3
+    -1243210066, // pak5.pk3
 
     // ---- Approved community paks ----
      -749714968, // User-CrizzBlood_2.1.pk3
