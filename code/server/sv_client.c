@@ -1584,10 +1584,12 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 					// Server pak not found on client — check if it's a whitelisted
 					// community pak that the client doesn't need to have.
 					if (SV_IsChecksumWhitelisted(nServerFeedIndepChkSum[i])) {
+						Com_DPrintf("Client %s: server pak %d (pure_checksum %d, checksum %d) not on client but whitelisted, skipping\n",
+							cl->name, i, nServerChkSum[i], nServerFeedIndepChkSum[i]);
 						continue;
 					}
-					Com_DPrintf("Client %s: missing server pak %d (pure_checksum %d)\n",
-						cl->name, i, nServerChkSum[i]);
+					Com_DPrintf("Client %s: missing server pak %d (pure_checksum %d, checksum %d)\n",
+						cl->name, i, nServerChkSum[i], nServerFeedIndepChkSum[i]);
 					bGood = qfalse;
 					break;
 				}
