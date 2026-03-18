@@ -374,6 +374,7 @@ extern	cvar_t	*sv_maxPing;
 extern	cvar_t	*g_gametype;
 extern	cvar_t	*g_gametypestring;
 extern	cvar_t	*sv_pure;
+extern	cvar_t	*sv_autokick; // Added in OPM
 extern	cvar_t	*sv_floodProtect;
 extern	cvar_t	*sv_lanForceRate;
 extern	cvar_t	*sv_maplist;

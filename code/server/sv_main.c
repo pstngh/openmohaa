@@ -58,6 +58,7 @@ cvar_t	*sv_dlRate;
 cvar_t	*sv_minPing;
 cvar_t	*sv_maxPing;
 cvar_t	*sv_pure;
+cvar_t	*sv_autokick; // Added in OPM
 cvar_t	*sv_floodProtect;
 cvar_t	*sv_maplist;
 cvar_t	*sv_drawentities;

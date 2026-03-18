@@ -1589,8 +1589,10 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		else {
 			cl->pureAuthentic = 0;
 			// Changed in OPM
-			// Don't kick unpure clients, just mark them as not pure-authenticated.
-			// The game module will display pure status to all players via HUD.
+			if (sv_autokick->integer) {
+				SV_DropClient(cl, "Unpure client detected. Invalid or missing pk3 files.");
+				return;
+			}
 			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}
 	}
