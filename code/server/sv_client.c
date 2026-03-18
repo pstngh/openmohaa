@@ -1354,17 +1354,26 @@ static void SV_Disconnect_f( client_t *cl ) {
 static const int sv_pureChecksumWhitelist[] = {
     // ---- Official MoHAA paks ----
     -1589950738, // pak0.pk3
+      229290730, // pak0.pk3 (English UK)
+      301277748, // pak0.pk3 (variant)
      1379145895, // pak1.pk3
+      651935416, // pak1.pk3 (English UK)
+      450555014, // pak1.pk3 (variant)
     -1583317731, // pak2.pk3
      -467062589, // pak3.pk3
       981818134, // pak4.pk3
       179434094, // pak5.pk3 (Allied Assault)
       671078817, // pak5.pk3 (Spearhead)
      1273215132, // Pak5.pk3 (Breakthrough)
+     -971350291, // Pak5.pk3 (English UK)
+    -1628503586, // Pak5.pk3 (variant)
     -1716277136, // pak6.pk3
       596498058, // Pak6.pk3
+     -258570352, // Pak6EnUk.pk3 (English UK)
+     -430288593, // pak6.pk3 (variant)
       927563442, // pak7.pk3
     -1159718974, // Pak7.pk3
+     1554659266, // pak7.pk3 (English UK)
     -1938713004, // pak8.pk3
       178498079, // pak9.pk3
      -372026498, // pak10.pk3
