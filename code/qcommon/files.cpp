@@ -3886,45 +3886,33 @@ const char *FS_ReferencedPakChecksums( void ) {
 =====================
 FS_ReferencedPakPureChecksums
 
-Returns a space separated string containing the pure checksums of all referenced pk3 files.
-Servers with sv_pure set will get this string back from clients for pure validation
-
-The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
+// Changed in OPM
+// Returns a space separated string containing the pure checksums of all loaded pk3 files.
+// Previously only sent referenced paks, which allowed unvalidated paks to slip through
+// the purity check since they weren't reported to the server.
 =====================
 */
 const char *FS_ReferencedPakPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
-	int nFlags, numPaks, checksum;
+	int numPaks, checksum;
 
 	info[0] = 0;
 
 	checksum = fs_checksumFeed;
 	numPaks = 0;
-	for (nFlags = FS_GENERAL_REF; nFlags; nFlags = nFlags >> 1) {
-		/*
-		if (nFlags & FS_GENERAL_REF) {
-			// add a delimter between must haves and general refs
-			//Q_strcat(info, sizeof(info), "@ ");
-			info[strlen(info)+1] = '\0';
-			info[strlen(info)+2] = '\0';
-			info[strlen(info)] = '@';
-			info[strlen(info)] = ' ';
+	// Changed in OPM
+	// Send all loaded paks, not just referenced ones, so the server can validate
+	// the client's entire pk3 set during the purity check.
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		if ( !search->pack ) {
+			continue;
 		}
-		*/
-		for ( search = fs_searchpaths ; search ; search = search->next ) {
-			// is the element a pak file and has it been referenced based on flag?
-			if ( search->pack && (search->pack->referenced & nFlags)) {
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
-				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
-					break;
-				}
-				checksum ^= search->pack->pure_checksum;
-				numPaks++;
-			}
-		}
+		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
+		checksum ^= search->pack->pure_checksum;
+		numPaks++;
 	}
-	// last checksum is the encoded number of referenced pk3s
+	// last checksum is the encoded number of pk3s
 	checksum ^= numPaks;
 	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
 
@@ -3936,35 +3924,34 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 =====================
 FS_ReferencedPakNonPureChecksums
 
-Returns a space separated string containing the feed-independent checksums of all
-referenced pk3 files, in the same order as FS_ReferencedPakPureChecksums().
-Used by the client to send a cp2 command so the server can validate unknown paks
-against a hardcoded whitelist of known-good checksums.
+// Changed in OPM
+// Returns a space separated string containing the feed-independent checksums of all
+// loaded pk3 files, in the same order as FS_ReferencedPakPureChecksums().
+// Used by the client to send a cp2 command so the server can validate unknown paks
+// against a hardcoded whitelist of known-good checksums.
 =====================
 */
 const char *FS_ReferencedPakNonPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
-	int nFlags, numPaks, checksum;
+	int numPaks, checksum;
 
 	info[0] = 0;
 
 	checksum = fs_checksumFeed;
 	numPaks = 0;
-	for (nFlags = FS_GENERAL_REF; nFlags; nFlags = nFlags >> 1) {
-		for ( search = fs_searchpaths ; search ; search = search->next ) {
-			// is the element a pak file and has it been referenced based on flag?
-			if ( search->pack && (search->pack->referenced & nFlags)) {
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
-				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
-					break;
-				}
-				checksum ^= search->pack->checksum;
-				numPaks++;
-			}
+	// Changed in OPM
+	// Send all loaded paks, not just referenced ones, matching the change
+	// in FS_ReferencedPakPureChecksums() so positions stay aligned.
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		if ( !search->pack ) {
+			continue;
 		}
+		Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
+		checksum ^= search->pack->checksum;
+		numPaks++;
 	}
-	// last checksum is the encoded number of referenced pk3s
+	// last checksum is the encoded number of pk3s
 	checksum ^= numPaks;
 	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
 
