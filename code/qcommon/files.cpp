@@ -2996,11 +2996,28 @@ Useful for populating the sv_pure whitelist in sv_client.c.
 static void FS_PakChecksums_f( void ) {
 	searchpath_t *s;
 	int count = 0;
+	// Changed in OPM
+	// Deduplicate to handle overlapping search paths
+	int seen[1024];
+	int nSeen = 0;
 
 	Com_Printf( "Loaded pk3 checksums:\n" );
 	for ( s = fs_searchpaths; s; s = s->next ) {
+		int i;
 		if ( !s->pack ) {
 			continue;
+		}
+
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == s->pack->checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = s->pack->checksum;
 		}
 
 		Com_Printf( "  %12d  %s\n", s->pack->checksum, s->pack->pakBasename );
@@ -3840,13 +3857,30 @@ back to the server.
 const char *FS_LoadedPakPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
+	// Changed in OPM
+	// Deduplicate to handle overlapping search paths
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
 		// is the element a pak file?
 		if ( !search->pack ) {
 			continue;
+		}
+
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
 		}
 
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
@@ -3896,6 +3930,8 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
 	int numPaks, checksum;
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
@@ -3904,9 +3940,24 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 	// Changed in OPM
 	// Send all loaded paks, not just referenced ones, so the server can validate
 	// the client's entire pk3 set during the purity check.
+	// Skip duplicate paks that appear when multiple search paths resolve to the
+	// same directory (e.g. launcher sets fs_homepath to the same dir as fs_basepath).
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
 		if ( !search->pack ) {
 			continue;
+		}
+		// deduplicate by pure_checksum
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
 		}
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
 		checksum ^= search->pack->pure_checksum;
@@ -3935,6 +3986,8 @@ const char *FS_ReferencedPakNonPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
 	int numPaks, checksum;
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
@@ -3943,9 +3996,23 @@ const char *FS_ReferencedPakNonPureChecksums( void ) {
 	// Changed in OPM
 	// Send all loaded paks, not just referenced ones, matching the change
 	// in FS_ReferencedPakPureChecksums() so positions stay aligned.
+	// Skip duplicates from overlapping search paths.
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
 		if ( !search->pack ) {
 			continue;
+		}
+		// deduplicate by checksum
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->checksum;
 		}
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
 		checksum ^= search->pack->checksum;
