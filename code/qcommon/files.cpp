@@ -3008,8 +3008,10 @@ static void FS_PakChecksums_f( void ) {
 			continue;
 		}
 
+		// Changed in OPM
+		// Deduplicate by pure_checksum for consistency with the cp/cp2 functions.
 		for ( i = 0; i < nSeen; i++ ) {
-			if ( seen[i] == s->pack->checksum ) {
+			if ( seen[i] == s->pack->pure_checksum ) {
 				break;
 			}
 		}
@@ -3017,7 +3019,7 @@ static void FS_PakChecksums_f( void ) {
 			continue;
 		}
 		if ( nSeen < 1024 ) {
-			seen[nSeen++] = s->pack->checksum;
+			seen[nSeen++] = s->pack->pure_checksum;
 		}
 
 		Com_Printf( "  %12d  %s\n", s->pack->checksum, s->pack->pakBasename );
@@ -4002,9 +4004,11 @@ const char *FS_ReferencedPakNonPureChecksums( void ) {
 		if ( !search->pack ) {
 			continue;
 		}
-		// deduplicate by checksum
+		// Changed in OPM
+		// Deduplicate by pure_checksum (same key as FS_ReferencedPakPureChecksums)
+		// so both functions skip exactly the same paks, keeping positions aligned.
 		for ( i = 0; i < nSeen; i++ ) {
-			if ( seen[i] == search->pack->checksum ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
 				break;
 			}
 		}
@@ -4012,7 +4016,7 @@ const char *FS_ReferencedPakNonPureChecksums( void ) {
 			continue;
 		}
 		if ( nSeen < 1024 ) {
-			seen[nSeen++] = search->pack->checksum;
+			seen[nSeen++] = search->pack->pure_checksum;
 		}
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
 		checksum ^= search->pack->checksum;
