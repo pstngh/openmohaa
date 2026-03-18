@@ -103,6 +103,21 @@ void LaunchGame(const LauncherSettings& settings)
         args.push_back(settings.nickname);
     }
 
+    if (settings.overrideResolution && settings.resolutionIndex >= 0 && settings.resolutionIndex < resolutionCount) {
+        const ResolutionEntry& res = resolutionList[settings.resolutionIndex];
+        args.push_back("+set");
+        args.push_back("r_mode");
+        args.push_back(std::to_string(res.rMode));
+        if (res.rMode == -1) {
+            args.push_back("+set");
+            args.push_back("r_customwidth");
+            args.push_back(std::to_string(res.customWidth));
+            args.push_back("+set");
+            args.push_back("r_customheight");
+            args.push_back(std::to_string(res.customHeight));
+        }
+    }
+
 #ifdef _WIN32
     std::wstring cmdLine = L"\"" + std::wstring(programPath.begin(), programPath.end()) + L"\"";
     for (size_t i = 0; i < args.size(); i++) {

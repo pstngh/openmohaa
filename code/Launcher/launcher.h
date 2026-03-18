@@ -35,12 +35,35 @@ struct Bookmark {
     std::string rconPassword;
 };
 
+struct ResolutionEntry {
+    const char *label;
+    int         rMode;      // r_mode value, -1 for custom
+    int         customWidth; // only used when rMode == -1
+    int         customHeight;
+};
+
+static const ResolutionEntry resolutionList[] = {
+    {"800x600",   4, 0,    0},
+    {"960x720",   5, 0,    0},
+    {"1024x768",  6, 0,    0},
+    {"1152x864",  7, 0,    0},
+    {"1280x720",  -1, 1280, 720},
+    {"1280x1024", 8, 0,    0},
+    {"1600x1200", 9, 0,    0},
+    {"1920x1080", -1, 1920, 1080},
+    {"3840x2160", -1, 3840, 2160},
+};
+
+static const int resolutionCount = sizeof(resolutionList) / sizeof(resolutionList[0]);
+
 struct LauncherSettings {
     std::string ip;
     std::string password;
     std::string rconPassword;
     std::string nickname;
-    int         gameType; // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
+    int         gameType;          // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
+    bool        overrideResolution; // Whether resolution override is enabled
+    int         resolutionIndex;    // Index into resolutionList
     Bookmark    bookmarks[MAX_BOOKMARKS];
 };
 

@@ -67,7 +67,9 @@ std::string GetSettingsPath()
 LauncherSettings LoadSettings()
 {
     LauncherSettings settings;
-    settings.gameType = 0;
+    settings.gameType          = 0;
+    settings.overrideResolution = false;
+    settings.resolutionIndex   = 0;
 
     std::ifstream file(GetSettingsPath());
     if (!file.is_open()) {
@@ -96,6 +98,13 @@ LauncherSettings LoadSettings()
             int g = atoi(value.c_str());
             if (g >= 0 && g <= 2) {
                 settings.gameType = g;
+            }
+        } else if (key == "override_resolution") {
+            settings.overrideResolution = (atoi(value.c_str()) != 0);
+        } else if (key == "resolution_index") {
+            int r = atoi(value.c_str());
+            if (r >= 0 && r < resolutionCount) {
+                settings.resolutionIndex = r;
             }
         } else {
             // Bookmark keys: bookmark_name_0, bookmark_ip_0, etc.
@@ -132,6 +141,8 @@ void SaveSettings(const LauncherSettings& settings)
     file << "rcon=" << settings.rconPassword << "\n";
     file << "nickname=" << settings.nickname << "\n";
     file << "game=" << settings.gameType << "\n";
+    file << "override_resolution=" << (settings.overrideResolution ? 1 : 0) << "\n";
+    file << "resolution_index=" << settings.resolutionIndex << "\n";
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         if (!settings.bookmarks[i].name.empty()) {

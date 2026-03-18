@@ -62,6 +62,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_BTN_GAME_SH   111
 #    define ID_BTN_GAME_BT   112
 #    define ID_BTN_CONNECT   120
+#    define ID_CHK_RESOLUTION 125
+#    define ID_CMB_RESOLUTION 126
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
 #    define ID_BTN_BMDEL     150
@@ -76,6 +78,8 @@ static HWND             hBtnGameBT;
 static HWND             hBtnBookmark[MAX_BOOKMARKS];
 static HWND             hBtnBmSave[MAX_BOOKMARKS];
 static HWND             hBtnBmDel[MAX_BOOKMARKS];
+static HWND             hChkResolution;
+static HWND             hCmbResolution;
 static LauncherSettings currentSettings;
 static HFONT            hFont;
 static HBRUSH           hBrushBg;
@@ -301,13 +305,24 @@ static void SetSelectedGame(int gameType)
     InvalidateRect(hBtnGameBT, NULL, FALSE);
 }
 
+static void UpdateResolutionComboState()
+{
+    BOOL enabled = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    EnableWindow(hCmbResolution, enabled);
+}
+
 static void ReadCurrentFields()
 {
     GetWindowString(hEditIP, currentSettings.ip);
     GetWindowString(hEditPass, currentSettings.password);
     GetWindowString(hEditRcon, currentSettings.rconPassword);
     GetWindowString(hEditNickname, currentSettings.nickname);
-    currentSettings.gameType = GetSelectedGame();
+    currentSettings.gameType          = GetSelectedGame();
+    currentSettings.overrideResolution = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    currentSettings.resolutionIndex   = (int)SendMessageA(hCmbResolution, CB_GETCURSEL, 0, 0);
+    if (currentSettings.resolutionIndex < 0) {
+        currentSettings.resolutionIndex = 0;
+    }
 }
 
 static void UpdateBookmarkButton(int index)
@@ -618,6 +633,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return (LRESULT)hBrushEdit;
     }
 
+    case WM_CTLCOLORLISTBOX: {
+        HDC hdc = (HDC)wParam;
+        SetTextColor(hdc, CLR_TEXT);
+        SetBkColor(hdc, CLR_BG_EDIT);
+        return (LRESULT)hBrushEdit;
+    }
+
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC         hdc = BeginPaint(hwnd, &ps);
@@ -655,6 +677,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         // Segmented game selection
         if (id >= ID_BTN_GAME_AA && id <= ID_BTN_GAME_BT) {
             SetSelectedGame(id - ID_BTN_GAME_AA);
+            return 0;
+        }
+
+        if (id == ID_CHK_RESOLUTION) {
+            UpdateResolutionComboState();
             return 0;
         }
 
@@ -721,7 +748,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 410;
+    int winH = 440;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -766,6 +793,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
+    y += rowGap;
+
+    // ---- Resolution override ----
+    int chkW = 90;
+    hChkResolution = CreateWindowA(
+        "BUTTON",
+        "Resolution:",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        margin,
+        y + 2,
+        chkW,
+        20,
+        hwnd,
+        (HMENU)ID_CHK_RESOLUTION,
+        hInstance,
+        NULL
+    );
+    hCmbResolution = CreateWindowA(
+        "COMBOBOX",
+        "",
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL | WS_DISABLED,
+        margin + chkW + 4,
+        y,
+        editW - chkW + labelW + 4,
+        200,
+        hwnd,
+        (HMENU)ID_CMB_RESOLUTION,
+        hInstance,
+        NULL
+    );
+    for (int i = 0; i < resolutionCount; i++) {
+        SendMessageA(hCmbResolution, CB_ADDSTRING, 0, (LPARAM)resolutionList[i].label);
+    }
+    SendMessageA(hCmbResolution, CB_SETCURSEL, 0, 0);
     y += rowGap + 6;
 
     // ---- Server fields ----
@@ -950,6 +1011,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetWindowTextA(hEditRcon, currentSettings.rconPassword.c_str());
     SetWindowTextA(hEditNickname, currentSettings.nickname.c_str());
     selectedGame = currentSettings.gameType;
+
+    // Restore resolution settings
+    if (currentSettings.overrideResolution) {
+        SendMessageA(hChkResolution, BM_SETCHECK, BST_CHECKED, 0);
+    }
+    if (currentSettings.resolutionIndex >= 0 && currentSettings.resolutionIndex < resolutionCount) {
+        SendMessageA(hCmbResolution, CB_SETCURSEL, currentSettings.resolutionIndex, 0);
+    }
+    UpdateResolutionComboState();
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         UpdateBookmarkButton(i);
