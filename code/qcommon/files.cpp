@@ -2984,6 +2984,31 @@ void FS_Path_f( void ) {
 	}
 }
 
+// Added in OPM
+/*
+============
+FS_PakChecksums_f
+
+Prints the name and feed-independent checksum of every loaded pk3 file.
+Useful for populating the sv_pure whitelist in sv_client.c.
+============
+*/
+static void FS_PakChecksums_f( void ) {
+	searchpath_t *s;
+	int count = 0;
+
+	Com_Printf( "Loaded pk3 checksums:\n" );
+	for ( s = fs_searchpaths; s; s = s->next ) {
+		if ( !s->pack ) {
+			continue;
+		}
+
+		Com_Printf( "  %12d  %s\n", s->pack->checksum, s->pack->pakBasename );
+		count++;
+	}
+	Com_Printf( "%d pk3 files total\n", count );
+}
+
 /*
 ============
 FS_TouchFile_f
@@ -3667,6 +3692,7 @@ static void FS_Startup(const char* gameName)
 	Cmd_AddCommand ("fdir", FS_NewDir_f );
 	Cmd_AddCommand ("touchFile", FS_TouchFile_f );
 	Cmd_AddCommand ("which", FS_Which_f );
+	Cmd_AddCommand ("pak_checksums", FS_PakChecksums_f ); // Added in OPM
 
 	Sys_Mkdir(fs_homepath->string);
 
