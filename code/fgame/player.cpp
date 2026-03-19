@@ -9490,13 +9490,19 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs = pPlayer->origin;
         vCamOfs[2] += pPlayer->viewheight;
 
-        vCamOfs += forward * g_spectatefollow_forward->value;
-        vCamOfs += right * g_spectatefollow_right->value;
-        vCamOfs += up * g_spectatefollow_up->value;
+        // Added in OPM: g_spectatefix controls camera mode
+        // 1 = eye position (forward/up cvars apply), 0 = original MoHAA offset with lean
+        if (g_spectatefix->integer) {
+            vCamOfs += forward * g_spectatefollow_forward->value;
+            vCamOfs += right * g_spectatefollow_right->value;
+            vCamOfs += up * g_spectatefollow_up->value;
+        } else {
+            vCamOfs += forward * -56.0f;
+            vCamOfs += up * 24.0f;
 
-        // Added in OPM: optionally remove lean offset from spectator camera
-        if (!g_spectatefollow_nolean->integer && pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
+            if (pPlayer->client->ps.fLeanAngle != 0.0f) {
+                vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
+            }
         }
 
         start = pPlayer->origin;

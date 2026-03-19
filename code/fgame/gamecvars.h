@@ -329,7 +329,7 @@ extern cvar_t *g_bot_manualmove;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
-extern cvar_t *g_spectatefollow_nolean;
+extern cvar_t *g_spectatefix;
 
 extern cvar_t *cl_running;
 

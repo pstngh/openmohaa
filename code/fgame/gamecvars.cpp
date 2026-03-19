@@ -296,7 +296,7 @@ cvar_t *g_bot_manualmove;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
-cvar_t *g_spectatefollow_nolean;
+cvar_t *g_spectatefix;
 
 cvar_t *cl_running;
 
@@ -698,7 +698,7 @@ void CVAR_Init(void)
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
-    g_spectatefollow_nolean      = gi.Cvar_Get("g_spectatefollow_nolean", "1", 0);
+    g_spectatefix      = gi.Cvar_Get("g_spectatefix", "1", 0);
 
     if (maxclients->integer + sv_maxbots->integer > MAX_CLIENTS) {
         unsigned int lowered;
