@@ -467,15 +467,18 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 }
 
 // Added in OPM
-// HUD element index reserved for sv_pure status display
+// HUD element indices reserved for sv_pure status display
+#define HUDDRAW_PURE_DOT    254
 #define HUDDRAW_PURE_STATUS 255
 
 /*
 ================
 G_UpdatePureStatusHUD
 
-When sv_pure is enabled, broadcasts a "x/y Players Clean" HUD element
-at the bottom-right corner of the screen for all clients.
+Displays a status indicator at the bottom-right corner for all clients:
+  - Green dot + "X/Y Players Clean" when sv_pure is on and all verified
+  - Red dot + "X/Y Players Clean" when sv_pure is on and some unverified
+  - Grey dot + "Pure Inactive" when sv_pure is off or not supported
 ================
 */
 void G_UpdatePureStatusHUD(void)
@@ -486,43 +489,76 @@ void G_UpdatePureStatusHUD(void)
         sv_pure = gi.Cvar_Find("sv_pure");
     }
 
+    char  statusText[128];
+    float dotColor[3];
+    float textColor[3];
+
     if (!sv_pure || !sv_pure->integer) {
-        return;
+        // Pure not active: grey
+        Com_sprintf(statusText, sizeof(statusText), "Pure Inactive");
+        dotColor[0]  = 0.5f;
+        dotColor[1]  = 0.5f;
+        dotColor[2]  = 0.5f;
+        textColor[0] = 0.5f;
+        textColor[1] = 0.5f;
+        textColor[2] = 0.5f;
+    } else {
+        int totalPlayers = 0;
+        int purePlayers  = 0;
+
+        for (int i = 0; i < game.maxclients; i++) {
+            gentity_t *ent = &g_entities[i];
+            if (!ent->inuse || !ent->client || !ent->entity) {
+                continue;
+            }
+
+            // Don't count bots
+            if (ent->r.svFlags & SVF_BOT) {
+                continue;
+            }
+
+            totalPlayers++;
+
+            if (gi.IsClientPure(i)) {
+                purePlayers++;
+            }
+        }
+
+        Com_sprintf(statusText, sizeof(statusText), "%d/%d Players Clean", purePlayers, totalPlayers);
+
+        if (purePlayers == totalPlayers) {
+            // All clean: green
+            dotColor[0]  = 0.2f;
+            dotColor[1]  = 0.8f;
+            dotColor[2]  = 0.2f;
+            textColor[0] = 0.7f;
+            textColor[1] = 1.0f;
+            textColor[2] = 0.7f;
+        } else {
+            // Some unclean: red
+            dotColor[0]  = 0.9f;
+            dotColor[1]  = 0.2f;
+            dotColor[2]  = 0.2f;
+            textColor[0] = 1.0f;
+            textColor[1] = 0.6f;
+            textColor[2] = 0.6f;
+        }
     }
 
-    int totalPlayers = 0;
-    int purePlayers  = 0;
+    // Dot indicator (small colored square)
+    HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
+    HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
+    HudDrawRect(HUDDRAW_PURE_DOT, -108, -18, 6, 6);
+    HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
+    HudDrawColor(HUDDRAW_PURE_DOT, dotColor);
+    HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
 
-    for (int i = 0; i < game.maxclients; i++) {
-        gentity_t *ent = &g_entities[i];
-        if (!ent->inuse || !ent->client || !ent->entity) {
-            continue;
-        }
-
-        // Don't count bots
-        if (ent->r.svFlags & SVF_BOT) {
-            continue;
-        }
-
-        totalPlayers++;
-
-        if (gi.IsClientPure(i)) {
-            purePlayers++;
-        }
-    }
-
-    char statusText[128];
-    Com_sprintf(statusText, sizeof(statusText), "%d/%d Players Clean", purePlayers, totalPlayers);
-
-    float color[3] = {1.0f, 1.0f, 1.0f};
-
-    // HUD_ALIGN_X_RIGHT adds vidWidth to iX, text draws left-to-right.
-    // bVirtualScreen off so the font renders at native size (no pixelation).
+    // Text label
     HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
     HudDrawRect(HUDDRAW_PURE_STATUS, -100, -16, 0, 0);
     HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
     HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
-    HudDrawColor(HUDDRAW_PURE_STATUS, color);
+    HudDrawColor(HUDDRAW_PURE_STATUS, textColor);
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
     HudDrawString(HUDDRAW_PURE_STATUS, statusText);
 }
