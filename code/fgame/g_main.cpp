@@ -476,8 +476,8 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 G_UpdatePureStatusHUD
 
 Displays a status indicator at the bottom-right corner for all clients:
-  - Purple dot + "X/Y Clean" when sv_pure is on and all verified
-  - Teal dot + "X/Y Clean" when sv_pure is on and some unverified
+  - Green dot + "X/Y Clean" when sv_pure is on and all verified
+  - Red dot + "X/Y Clean" when sv_pure is on and some unverified
   - Grey dot + "Anticheat Off" when sv_pure is off or not supported
 ================
 */
@@ -527,21 +527,21 @@ void G_UpdatePureStatusHUD(void)
         Com_sprintf(statusText, sizeof(statusText), "%d/%d Clean", purePlayers, totalPlayers);
 
         if (purePlayers == totalPlayers) {
-            // All clean: purple (renders as purple due to engine color mapping)
-            dotColor[0]  = 0.2f;
-            dotColor[1]  = 0.8f;
-            dotColor[2]  = 0.2f;
-            textColor[0] = 0.7f;
+            // All clean: green
+            dotColor[0]  = 0.0f;
+            dotColor[1]  = 1.0f;
+            dotColor[2]  = 0.0f;
+            textColor[0] = 0.5f;
             textColor[1] = 1.0f;
-            textColor[2] = 0.7f;
+            textColor[2] = 0.5f;
         } else {
-            // Some unclean: teal (renders as teal due to engine color mapping)
-            dotColor[0]  = 0.9f;
-            dotColor[1]  = 0.2f;
-            dotColor[2]  = 0.2f;
+            // Some unclean: red
+            dotColor[0]  = 1.0f;
+            dotColor[1]  = 0.0f;
+            dotColor[2]  = 0.0f;
             textColor[0] = 1.0f;
-            textColor[1] = 0.6f;
-            textColor[2] = 0.6f;
+            textColor[1] = 0.4f;
+            textColor[2] = 0.4f;
         }
     }
 
