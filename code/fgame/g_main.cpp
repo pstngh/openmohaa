@@ -476,8 +476,8 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 G_UpdatePureStatusHUD
 
 Displays a status indicator at the bottom-right corner for each client:
-  - Green dot + "X/Y Clean" when sv_pure is on and the player is verified
-  - Red dot + "X/Y Clean" when sv_pure is on and the player is unverified
+  - Green dot + "X/Y" when sv_pure is on and the player is verified
+  - Red dot + "X/Y" when sv_pure is on and the player is unverified
   - Grey dot + "Anticheat Off" when sv_pure is off or not supported
 ================
 */
@@ -498,7 +498,7 @@ void G_UpdatePureStatusHUD(void)
 
         // Broadcast shared layout to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -100, -10, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -50, -10, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
@@ -532,11 +532,11 @@ void G_UpdatePureStatusHUD(void)
             }
         }
 
-        Com_sprintf(statusText, sizeof(statusText), "%d/%d Clean", purePlayers, totalPlayers);
+        Com_sprintf(statusText, sizeof(statusText), "%d/%d", purePlayers, totalPlayers);
 
         // Broadcast shared layout and text to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -100, -10, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -50, -10, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
@@ -549,8 +549,8 @@ void G_UpdatePureStatusHUD(void)
         HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
 
         // Send per-client colors: dot and text share the same color
-        float greenColor[3] = {0.5f, 1.0f, 0.5f};
-        float redColor[3]   = {1.0f, 0.4f, 0.4f};
+        float greenColor[3] = {0.0f, 1.0f, 0.0f};
+        float redColor[3]   = {1.0f, 0.0f, 0.0f};
 
         // Set a default color so the dot isn't black before per-client updates
         HudDrawColor(HUDDRAW_PURE_DOT, greenColor);
