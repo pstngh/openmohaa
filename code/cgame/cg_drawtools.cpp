@@ -1420,7 +1420,7 @@ static void CG_DrawPureStatusDot(void)
     // Position the dot to the right of the text, in virtual 640x480 coords
     // The HUD text is right-aligned at (640 + iX, 480 + iY)
     float dotX = 640.0f + elem->iX + textWidth + 3.0f;
-    float dotY = 480.0f + elem->iY + 3.0f;
+    float dotY = 480.0f + elem->iY + 4.0f;
     float dotW = PURE_DOT_SIZE;
     float dotH = PURE_DOT_SIZE;
 
