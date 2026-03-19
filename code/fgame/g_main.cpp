@@ -495,7 +495,7 @@ void G_UpdatePureStatusHUD(void)
     // Shared layout for all modes
     HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
     HudDrawRect(HUDDRAW_PURE_STATUS, -80, -14, 0, 0);
-    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 1);
+    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
     HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
 
