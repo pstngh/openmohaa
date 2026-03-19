@@ -498,7 +498,7 @@ void G_UpdatePureStatusHUD(void)
 
         // Broadcast shared layout to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -16, -16, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -120, -16, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
@@ -507,7 +507,7 @@ void G_UpdatePureStatusHUD(void)
 
         HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
         HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -6, -18, 6, 6);
+        HudDrawRect(HUDDRAW_PURE_DOT, -130, -18, 6, 6);
         HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
         HudDrawColor(HUDDRAW_PURE_DOT, greyColor);
         HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
@@ -536,7 +536,7 @@ void G_UpdatePureStatusHUD(void)
 
         // Broadcast shared layout and text to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -16, -16, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -120, -16, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
@@ -544,7 +544,7 @@ void G_UpdatePureStatusHUD(void)
 
         HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
         HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -6, -18, 6, 6);
+        HudDrawRect(HUDDRAW_PURE_DOT, -130, -18, 6, 6);
         HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
         HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
 
