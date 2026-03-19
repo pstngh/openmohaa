@@ -1423,6 +1423,20 @@ static const int sv_pureChecksumWhitelist[] = {
     -1608042595, // z_default-aa.pk3.zip
      -560997973, // z_default-bt.pk3
     -1052288580, // zz_reloaded_anticlip_nov12.pk3
+     1590026150, // zzzzzzzzzzzzzz_mohaa_Ladder.pk3
+     -947194434, // zzz_anti_camperv6.pk3
+     -681498863, // zzz-user-crosshairmiddlefix_yellow.pk3
+     -907776901, // zzz-user-crosshairmiddlefix_white.pk3
+     1052417941, // zzz-user-crosshairmiddlefix_red.pk3
+     -191119956, // zzz-user-crosshairmiddlefix_magenta.pk3
+     -826017323, // zzz-user-crosshairmiddlefix_green.pk3
+      520752487, // zzz-user-crosshairmiddlefix_cyan.pk3
+     -230634816, // zzz-user-crosshairmiddlefix_blue.pk3
+     -890164208, // zzz-stockthinlinescope2048x2048.pk3
+      448191105, // zzz-CBMOHAA_PACK_REFORGED_RESSURRECTED.pk3
+     -290717941, // user_the_bridge_mohargentina_v1.4.pk3
+    -1467661122, // the_complex(Vers_A1).pk3
+     1151169435, // darksize-mappack.pk3
 };
 
 static const int sv_pureChecksumWhitelistSize = sizeof(sv_pureChecksumWhitelist) / sizeof(sv_pureChecksumWhitelist[0]);
