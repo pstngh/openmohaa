@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "navigate.h"
 #include "navigation_path.h"
 
-#define MAX_BOT_FUNCTIONS 5
+#define MAX_BOT_FUNCTIONS 6
 
 typedef struct nodeAttract_s {
     float             m_fRespawnTime;
@@ -198,6 +198,11 @@ private:
     int m_iNextTauntTime;
     int m_iLastFireTime;
 
+    // Bomb site
+    SafePtr<Entity> m_pBombTarget;
+    int             m_iBombSearchTime;
+    int             m_iBombUseTime;
+
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -247,6 +252,16 @@ private:
     void        State_BeginWeapon(void);
     void        State_EndWeapon(void);
     void        State_Weapon(void);
+
+    static void InitState_BombSite(botfunc_t *func);
+    bool        CheckCondition_BombSite(void);
+    void        State_BeginBombSite(void);
+    void        State_EndBombSite(void);
+    void        State_BombSite(void);
+
+    Entity *FindBombTarget(void);
+    bool    IsOnBombTeam(void) const;
+    bool    IsObjectiveGameMode(void) const;
 
     void CheckStates(void);
 

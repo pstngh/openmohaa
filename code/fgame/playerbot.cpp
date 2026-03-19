@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "consoleevent.h"
 #include "debuglines.h"
+#include "dm_manager.h"
 #include "scriptexception.h"
 #include "vehicleturret.h"
 #include "weaputils.h"
@@ -76,6 +77,10 @@ BotController::BotController()
 
     m_iNextTauntTime = 0;
 
+    m_pBombTarget    = NULL;
+    m_iBombSearchTime = 0;
+    m_iBombUseTime    = 0;
+
     m_StateFlags = 0;
 }
 
@@ -104,8 +109,9 @@ void BotController::Init(void)
     InitState_Attack(&botfuncs[0]);
     InitState_Curious(&botfuncs[1]);
     InitState_Grenade(&botfuncs[2]);
-    InitState_Idle(&botfuncs[3]);
-    //InitState_Weapon(&botfuncs[4]);
+    InitState_BombSite(&botfuncs[3]);
+    InitState_Idle(&botfuncs[4]);
+    //InitState_Weapon(&botfuncs[5]);
 }
 
 void BotController::GetUsercmd(usercmd_t *ucmd)
@@ -564,6 +570,9 @@ void BotController::State_Reset(void)
     m_vLastDeathPos   = vec_zero;
     m_pEnemy          = NULL;
     m_iEnemyEyesTag   = -1;
+    m_pBombTarget     = NULL;
+    m_iBombSearchTime = 0;
+    m_iBombUseTime    = 0;
 }
 
 /*
@@ -1101,6 +1110,179 @@ void BotController::State_BeginWeapon(void)
     }
 
     SendCommand(va("use \"%s\"", weap->model.c_str()));
+}
+
+/*
+====================
+BombSite state
+
+Navigate to bomb sites and plant/defuse bombs
+====================
+*/
+void BotController::InitState_BombSite(botfunc_t *func)
+{
+    func->CheckCondition = &BotController::CheckCondition_BombSite;
+    func->ThinkState     = &BotController::State_BombSite;
+    func->EndState       = &BotController::State_EndBombSite;
+}
+
+bool BotController::IsObjectiveGameMode(void) const
+{
+    return g_gametype->integer == GT_OBJECTIVE || g_gametype->integer == GT_TOW;
+}
+
+bool BotController::IsOnBombTeam(void) const
+{
+    const_str plantSide = dmManager.GetBombPlantTeam();
+
+    if (plantSide == STRING_DRAW) {
+        return false;
+    }
+
+    teamtype_t botTeam = controlledEnt->GetTeam();
+    if (plantSide == STRING_ALLIES && botTeam == TEAM_ALLIES) {
+        return true;
+    }
+    if (plantSide == STRING_AXIS && botTeam == TEAM_AXIS) {
+        return true;
+    }
+
+    return false;
+}
+
+Entity *BotController::FindBombTarget(void)
+{
+    Entity *bestTarget          = NULL;
+    float   bestDistanceSquared = 99999999.0f;
+    bool    isPlanter           = IsOnBombTeam();
+    int     i;
+
+    for (i = 0; i < game.maxentities; i++) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse || !ent->entity) {
+            continue;
+        }
+
+        Entity    *entity    = ent->entity;
+        const str& modelName = entity->model;
+
+        if (modelName.length() == 0) {
+            continue;
+        }
+
+        const char *modelStr = modelName.c_str();
+        bool isUnplanted = strstr(modelStr, "pulse_explosive") != NULL;
+        bool isPlanted   = !isUnplanted && strstr(modelStr, "explosive") != NULL;
+
+        if (isPlanter && isUnplanted) {
+            // Planting team seeks unplanted bombs
+        } else if (!isPlanter && isPlanted) {
+            // Defending team seeks planted bombs to defuse
+        } else {
+            continue;
+        }
+
+        if (entity->hidden()) {
+            continue;
+        }
+
+        float distSquared = (entity->origin - controlledEnt->origin).lengthSquared();
+        if (distSquared < bestDistanceSquared) {
+            bestDistanceSquared = distSquared;
+            bestTarget          = entity;
+        }
+    }
+
+    return bestTarget;
+}
+
+bool BotController::CheckCondition_BombSite(void)
+{
+    if (!IsObjectiveGameMode()) {
+        return false;
+    }
+
+    if (m_iAttackTime) {
+        return false;
+    }
+
+    // Only search for bomb targets periodically
+    if (level.inttime > m_iBombSearchTime) {
+        m_pBombTarget     = FindBombTarget();
+        m_iBombSearchTime = level.inttime + 2000 + (rand() % 3000);
+    }
+
+    return m_pBombTarget != NULL;
+}
+
+void BotController::State_BeginBombSite(void)
+{
+    movement.ClearMove();
+    m_iBombUseTime = 0;
+}
+
+void BotController::State_EndBombSite(void)
+{
+    m_botCmd.buttons &= ~BUTTON_USE;
+    m_iBombUseTime = 0;
+}
+
+void BotController::State_BombSite(void)
+{
+    if (!m_pBombTarget) {
+        return;
+    }
+
+    // Don't attack while planting
+    m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+
+    Vector bombPos  = m_pBombTarget->origin;
+    Vector delta    = bombPos - controlledEnt->origin;
+    float  distSq   = delta.lengthSquared();
+    float  useDist  = 128.0f;
+    float  useDistSq = useDist * useDist;
+
+    if (distSq <= useDistSq) {
+        // Close enough to the bomb - face it and hold Use
+        rotation.AimAt(bombPos);
+
+        // Check if we can see the bomb (FOV and distance check)
+        if (controlledEnt->CanSee(m_pBombTarget, 45, useDist, false)) {
+            // Hold the Use button to plant/defuse
+            m_botCmd.buttons |= BUTTON_USE;
+
+            if (!m_iBombUseTime) {
+                m_iBombUseTime = level.inttime;
+            }
+
+            // Stop moving while planting
+            movement.ClearMove();
+        } else {
+            // Can't see it yet, keep moving closer and face it
+            m_botCmd.buttons &= ~BUTTON_USE;
+            m_iBombUseTime = 0;
+
+            if (!movement.IsMoving()) {
+                movement.MoveTo(bombPos);
+            }
+        }
+    } else {
+        // Not close enough - navigate to the bomb
+        m_botCmd.buttons &= ~BUTTON_USE;
+        m_iBombUseTime = 0;
+
+        AimAtAimNode();
+
+        if (!movement.IsMoving() || movement.MoveDone()) {
+            movement.MoveTo(bombPos);
+        }
+    }
+
+    // Re-check if bomb target is still valid
+    if (m_pBombTarget->hidden()) {
+        m_pBombTarget     = NULL;
+        m_iBombSearchTime = 0;
+    }
 }
 
 Weapon *BotController::FindWeaponWithAmmo()
