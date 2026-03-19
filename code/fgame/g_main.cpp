@@ -476,9 +476,9 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 G_UpdatePureStatusHUD
 
 Displays a status indicator at the bottom-right corner for all clients:
-  - Green dot + "X/Y Players Clean" when sv_pure is on and all verified
-  - Red dot + "X/Y Players Clean" when sv_pure is on and some unverified
-  - Grey dot + "Pure Inactive" when sv_pure is off or not supported
+  - Purple dot + "X/Y Clean" when sv_pure is on and all verified
+  - Teal dot + "X/Y Clean" when sv_pure is on and some unverified
+  - Grey dot + "Anticheat Off" when sv_pure is off or not supported
 ================
 */
 void G_UpdatePureStatusHUD(void)
@@ -495,7 +495,7 @@ void G_UpdatePureStatusHUD(void)
 
     if (!sv_pure || !sv_pure->integer) {
         // Pure not active: grey
-        Com_sprintf(statusText, sizeof(statusText), "Pure Inactive");
+        Com_sprintf(statusText, sizeof(statusText), "Anticheat Off");
         dotColor[0]  = 0.5f;
         dotColor[1]  = 0.5f;
         dotColor[2]  = 0.5f;
@@ -524,10 +524,10 @@ void G_UpdatePureStatusHUD(void)
             }
         }
 
-        Com_sprintf(statusText, sizeof(statusText), "%d/%d Players Clean", purePlayers, totalPlayers);
+        Com_sprintf(statusText, sizeof(statusText), "%d/%d Clean", purePlayers, totalPlayers);
 
         if (purePlayers == totalPlayers) {
-            // All clean: green
+            // All clean: purple (renders as purple due to engine color mapping)
             dotColor[0]  = 0.2f;
             dotColor[1]  = 0.8f;
             dotColor[2]  = 0.2f;
@@ -535,7 +535,7 @@ void G_UpdatePureStatusHUD(void)
             textColor[1] = 1.0f;
             textColor[2] = 0.7f;
         } else {
-            // Some unclean: red
+            // Some unclean: teal (renders as teal due to engine color mapping)
             dotColor[0]  = 0.9f;
             dotColor[1]  = 0.2f;
             dotColor[2]  = 0.2f;
@@ -545,22 +545,22 @@ void G_UpdatePureStatusHUD(void)
         }
     }
 
-    // Dot indicator (small colored square)
-    HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
-    HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-    HudDrawRect(HUDDRAW_PURE_DOT, -108, -18, 6, 6);
-    HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
-    HudDrawColor(HUDDRAW_PURE_DOT, dotColor);
-    HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
-
-    // Text label
+    // Text label (left side)
     HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-    HudDrawRect(HUDDRAW_PURE_STATUS, -100, -16, 0, 0);
+    HudDrawRect(HUDDRAW_PURE_STATUS, -16, -16, 0, 0);
     HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
     HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
     HudDrawColor(HUDDRAW_PURE_STATUS, textColor);
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
     HudDrawString(HUDDRAW_PURE_STATUS, statusText);
+
+    // Dot indicator (small colored square, right side after text)
+    HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
+    HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
+    HudDrawRect(HUDDRAW_PURE_DOT, -6, -18, 6, 6);
+    HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
+    HudDrawColor(HUDDRAW_PURE_DOT, dotColor);
+    HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
 }
 
 /*
