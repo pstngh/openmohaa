@@ -494,9 +494,9 @@ void G_UpdatePureStatusHUD(void)
 
     // Shared layout for all modes
     HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-    HudDrawRect(HUDDRAW_PURE_STATUS, -80, -16, 0, 0);
+    HudDrawRect(HUDDRAW_PURE_STATUS, -60, -14, 0, 0);
     HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 1);
-    HudDrawFont(HUDDRAW_PURE_STATUS, "facfont-16");
+    HudDrawFont(HUDDRAW_PURE_STATUS, "facfont-12");
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
 
     if (!sv_pure || !sv_pure->integer) {
