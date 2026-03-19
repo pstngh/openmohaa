@@ -1396,21 +1396,31 @@ The dot color is derived from the HUD element's current color.
 ==============
 */
 #define HUDDRAW_PURE_STATUS 255
-#define PURE_DOT_SIZE       4.0f
+#define PURE_DOT_SIZE       6.0f
 
 static void CG_DrawPureStatusDot(void)
 {
     hdelement_t *elem = &cgi.HudDrawElements[HUDDRAW_PURE_STATUS];
 
-    // Only draw if the HUD element has visible text
+    // Only draw if the HUD element has visible content
     if (!elem->string[0] || elem->vColor[3] == 0.0f) {
         return;
     }
 
-    // Position the dot to the left of the text, in virtual 640x480 coords
+    // Calculate text width to place dot after the text
+    float textWidth = 0.0f;
+    fontheader_t *pFont = elem->pFont;
+    if (!pFont) {
+        pFont = cgs.media.hudDrawFont;
+    }
+    if (pFont) {
+        textWidth = (float)cgi.UI_FontStringWidth(pFont, elem->string, -1);
+    }
+
+    // Position the dot to the right of the text, in virtual 640x480 coords
     // The HUD text is right-aligned at (640 + iX, 480 + iY)
-    float dotX = 640.0f + elem->iX - PURE_DOT_SIZE - 4.0f;
-    float dotY = 480.0f + elem->iY + 2.0f;
+    float dotX = 640.0f + elem->iX + textWidth + 3.0f;
+    float dotY = 480.0f + elem->iY + 1.0f;
     float dotW = PURE_DOT_SIZE;
     float dotH = PURE_DOT_SIZE;
 

@@ -500,9 +500,9 @@ void G_UpdatePureStatusHUD(void)
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
 
     if (!sv_pure || !sv_pure->integer) {
-        // Pure not active: grey "Anticheat Off" for everyone
+        // Pure not active: grey dot, no text
         HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
-        HudDrawString(HUDDRAW_PURE_STATUS, "Anticheat Off");
+        HudDrawString(HUDDRAW_PURE_STATUS, " ");
     } else {
         int totalPlayers = 0;
         int purePlayers  = 0;
@@ -536,16 +536,14 @@ void G_UpdatePureStatusHUD(void)
             }
 
             char statusText[128];
+            Com_sprintf(statusText, sizeof(statusText), "%d/%d", purePlayers, totalPlayers);
 
             if (gi.IsClientPure(i)) {
-                Com_sprintf(statusText, sizeof(statusText), "Clean (%d/%d)", purePlayers, totalPlayers);
                 iHudDrawColor(i, HUDDRAW_PURE_STATUS, greenColor);
-                iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
             } else {
-                Com_sprintf(statusText, sizeof(statusText), "Unclean (%d/%d)", purePlayers, totalPlayers);
                 iHudDrawColor(i, HUDDRAW_PURE_STATUS, redColor);
-                iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
             }
+            iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
         }
     }
 }
