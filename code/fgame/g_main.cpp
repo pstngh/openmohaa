@@ -498,7 +498,7 @@ void G_UpdatePureStatusHUD(void)
 
         // Broadcast shared layout to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -120, -16, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -100, -10, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
@@ -507,7 +507,7 @@ void G_UpdatePureStatusHUD(void)
 
         HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
         HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -130, -18, 6, 6);
+        HudDrawRect(HUDDRAW_PURE_DOT, -6, -7, 6, 6);
         HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
         HudDrawColor(HUDDRAW_PURE_DOT, greyColor);
         HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
@@ -536,7 +536,7 @@ void G_UpdatePureStatusHUD(void)
 
         // Broadcast shared layout and text to all
         HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -120, -16, 0, 0);
+        HudDrawRect(HUDDRAW_PURE_STATUS, -100, -10, 0, 0);
         HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
         HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
         HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
@@ -544,15 +544,17 @@ void G_UpdatePureStatusHUD(void)
 
         HudDrawShader(HUDDRAW_PURE_DOT, "gfx/2d/blank");
         HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -130, -18, 6, 6);
+        HudDrawRect(HUDDRAW_PURE_DOT, -6, -7, 6, 6);
         HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
         HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
 
-        // Send per-client colors based on each player's own pure status
-        float greenDot[3]  = {0.0f, 1.0f, 0.0f};
-        float greenText[3] = {0.5f, 1.0f, 0.5f};
-        float redDot[3]    = {1.0f, 0.0f, 0.0f};
-        float redText[3]   = {1.0f, 0.4f, 0.4f};
+        // Send per-client colors: dot and text share the same color
+        float greenColor[3] = {0.5f, 1.0f, 0.5f};
+        float redColor[3]   = {1.0f, 0.4f, 0.4f};
+
+        // Set a default color so the dot isn't black before per-client updates
+        HudDrawColor(HUDDRAW_PURE_DOT, greenColor);
+        HudDrawColor(HUDDRAW_PURE_STATUS, greenColor);
 
         for (int i = 0; i < game.maxclients; i++) {
             gentity_t *ent = &g_entities[i];
@@ -565,13 +567,13 @@ void G_UpdatePureStatusHUD(void)
             }
 
             if (gi.IsClientPure(i)) {
-                // Clean: green
-                iHudDrawColor(i, HUDDRAW_PURE_DOT, greenDot);
-                iHudDrawColor(i, HUDDRAW_PURE_STATUS, greenText);
+                // Clean: green dot and text
+                iHudDrawColor(i, HUDDRAW_PURE_DOT, greenColor);
+                iHudDrawColor(i, HUDDRAW_PURE_STATUS, greenColor);
             } else {
-                // Unclean: red
-                iHudDrawColor(i, HUDDRAW_PURE_DOT, redDot);
-                iHudDrawColor(i, HUDDRAW_PURE_STATUS, redText);
+                // Unclean: red dot and text
+                iHudDrawColor(i, HUDDRAW_PURE_DOT, redColor);
+                iHudDrawColor(i, HUDDRAW_PURE_STATUS, redColor);
             }
         }
     }
