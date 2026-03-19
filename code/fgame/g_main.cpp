@@ -468,17 +468,16 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 
 // Added in OPM
 // HUD element indices reserved for sv_pure status display
-#define HUDDRAW_PURE_DOT    254
 #define HUDDRAW_PURE_STATUS 255
 
 /*
 ================
 G_UpdatePureStatusHUD
 
-Displays a status indicator at the bottom-right corner for each client:
-  - Green dot + "X/Y" when sv_pure is on and the player is verified
-  - Red dot + "X/Y" when sv_pure is on and the player is unverified
-  - Grey dot + "Anticheat Off" when sv_pure is off or not supported
+Displays a status text at the bottom-right corner for each client:
+  - Green "Clean (X/Y)" when sv_pure is on and the player is verified
+  - Red "Unclean (X/Y)" when sv_pure is on and the player is unverified
+  - Grey "Anticheat Off" when sv_pure is off or not supported
 ================
 */
 void G_UpdatePureStatusHUD(void)
@@ -489,28 +488,21 @@ void G_UpdatePureStatusHUD(void)
         sv_pure = gi.Cvar_Find("sv_pure");
     }
 
-    char  statusText[128];
-    float greyColor[3] = {0.5f, 0.5f, 0.5f};
+    float greyColor[3]  = {0.5f, 0.5f, 0.5f};
+    float greenColor[3] = {0.0f, 1.0f, 0.0f};
+    float redColor[3]   = {1.0f, 0.0f, 0.0f};
+
+    // Shared layout for all modes
+    HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
+    HudDrawRect(HUDDRAW_PURE_STATUS, -130, -14, 0, 0);
+    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
+    HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
+    HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
 
     if (!sv_pure || !sv_pure->integer) {
-        // Pure not active: grey for everyone
-        Com_sprintf(statusText, sizeof(statusText), "Anticheat Off");
-
-        // Broadcast shared layout to all
-        HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -60, -14, 0, 0);
-        HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
-        HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
+        // Pure not active: grey "Anticheat Off" for everyone
         HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
-        HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
-        HudDrawString(HUDDRAW_PURE_STATUS, statusText);
-
-        HudDrawShader(HUDDRAW_PURE_DOT, "$whiteimage");
-        HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -12, -12, 8, 8);
-        HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
-        HudDrawColor(HUDDRAW_PURE_DOT, greyColor);
-        HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
+        HudDrawString(HUDDRAW_PURE_STATUS, "Anticheat Off");
     } else {
         int totalPlayers = 0;
         int purePlayers  = 0;
@@ -532,30 +524,7 @@ void G_UpdatePureStatusHUD(void)
             }
         }
 
-        Com_sprintf(statusText, sizeof(statusText), "%d/%d", purePlayers, totalPlayers);
-
-        // Broadcast shared layout and text to all
-        HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_STATUS, -60, -14, 0, 0);
-        HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
-        HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
-        HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
-        HudDrawString(HUDDRAW_PURE_STATUS, statusText);
-
-        HudDrawShader(HUDDRAW_PURE_DOT, "$whiteimage");
-        HudDrawAlign(HUDDRAW_PURE_DOT, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-        HudDrawRect(HUDDRAW_PURE_DOT, -12, -12, 8, 8);
-        HudDrawVirtualSize(HUDDRAW_PURE_DOT, 0);
-        HudDrawAlpha(HUDDRAW_PURE_DOT, 1.0f);
-
-        // Send per-client colors: dot and text share the same color
-        float greenColor[3] = {0.0f, 1.0f, 0.0f};
-        float redColor[3]   = {1.0f, 0.0f, 0.0f};
-
-        // Set a default color so the dot isn't black before per-client updates
-        HudDrawColor(HUDDRAW_PURE_DOT, greenColor);
-        HudDrawColor(HUDDRAW_PURE_STATUS, greenColor);
-
+        // Send per-client text and color
         for (int i = 0; i < game.maxclients; i++) {
             gentity_t *ent = &g_entities[i];
             if (!ent->inuse || !ent->client || !ent->entity) {
@@ -566,14 +535,16 @@ void G_UpdatePureStatusHUD(void)
                 continue;
             }
 
+            char statusText[128];
+
             if (gi.IsClientPure(i)) {
-                // Clean: green dot and text
-                iHudDrawColor(i, HUDDRAW_PURE_DOT, greenColor);
+                Com_sprintf(statusText, sizeof(statusText), "Clean (%d/%d)", purePlayers, totalPlayers);
                 iHudDrawColor(i, HUDDRAW_PURE_STATUS, greenColor);
+                iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
             } else {
-                // Unclean: red dot and text
-                iHudDrawColor(i, HUDDRAW_PURE_DOT, redColor);
+                Com_sprintf(statusText, sizeof(statusText), "Unclean (%d/%d)", purePlayers, totalPlayers);
                 iHudDrawColor(i, HUDDRAW_PURE_STATUS, redColor);
+                iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
             }
         }
     }
