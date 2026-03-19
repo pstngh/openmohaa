@@ -865,7 +865,37 @@ int NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family )
 	}
 
 	Q_strncpyz( base, s, sizeof( base ) );
-	
+
+	// Added in OPM: clean up the address string
+	// Strip leading whitespace and junk
+	{
+		char *start = base;
+		char *end;
+		char *dst;
+
+		// Skip leading non-address characters (whitespace, letters, etc.)
+		// Stop at a digit, '[' (IPv6), or ':' (IPv6 shorthand)
+		while (*start && *start != '[' && *start != ':' && (*start < '0' || *start > '9')) {
+			start++;
+		}
+
+		// Strip trailing whitespace and junk after the address
+		end = start + strlen(start) - 1;
+		while (end > start && (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+			end--;
+		}
+		end[1] = '\0';
+
+		// Shift cleaned string to the beginning of base
+		if (start != base) {
+			dst = base;
+			while (*start) {
+				*dst++ = *start++;
+			}
+			*dst = '\0';
+		}
+	}
+
 	if(*base == '[' || Q_CountChar(base, ':') > 1)
 	{
 		// This is an ipv6 address, handle it specially.
