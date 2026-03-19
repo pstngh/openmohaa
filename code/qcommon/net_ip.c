@@ -276,6 +276,33 @@ static struct addrinfo *SearchAddrInfo(struct addrinfo *hints, sa_family_t famil
 Sys_StringToSockaddr
 =============
 */
+// Added in OPM
+// Checks if a string looks like an IPv4 address (digits and dots only)
+// but is malformed (not exactly 4 octets). This catches cases like
+// "141.94.205" which getaddrinfo would try to resolve as a hostname.
+static qboolean Sys_IsmalformedIPv4(const char *s)
+{
+	int dots = 0;
+	qboolean allDigitsAndDots = qtrue;
+
+	for (const char *p = s; *p; p++) {
+		if (*p == '.') {
+			dots++;
+		} else if (*p < '0' || *p > '9') {
+			allDigitsAndDots = qfalse;
+			break;
+		}
+	}
+
+	// If it's all digits and dots, it looks like an IPv4 address.
+	// A valid one must have exactly 3 dots (4 octets).
+	if (allDigitsAndDots && dots > 0 && dots != 3) {
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 static qboolean Sys_StringToSockaddr(const char *s, struct sockaddr *sadr, int sadr_len, sa_family_t family)
 {
 	struct addrinfo hints;
@@ -283,9 +310,15 @@ static qboolean Sys_StringToSockaddr(const char *s, struct sockaddr *sadr, int s
 	struct addrinfo *search = NULL;
 	struct addrinfo *hintsp;
 	int retval;
-	
+
 	memset(sadr, '\0', sizeof(*sadr));
 	memset(&hints, '\0', sizeof(hints));
+
+	// Added in OPM: reject malformed IPv4 addresses early
+	if (Sys_IsmalformedIPv4(s)) {
+		Com_Printf("Sys_StringToSockaddr: Malformed IPv4 address: %s\n", s);
+		return qfalse;
+	}
 
 	hintsp = &hints;
 	hintsp->ai_family = family;
