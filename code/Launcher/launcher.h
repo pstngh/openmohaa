@@ -61,9 +61,9 @@ struct LauncherSettings {
     std::string password;
     std::string rconPassword;
     std::string nickname;
-    int         gameType;          // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
-    bool        overrideResolution; // Whether resolution override is enabled
-    int         resolutionIndex;    // Index into resolutionList
+    int         gameType          = 0; // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
+    bool        overrideResolution = false; // Whether resolution override is enabled
+    int         resolutionIndex   = 0; // Index into resolutionList
     Bookmark    bookmarks[MAX_BOOKMARKS];
 };
 
