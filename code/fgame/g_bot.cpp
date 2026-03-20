@@ -471,11 +471,8 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     Info_SetValueForKey(userinfo, "name", botName);
 
-    //
-    // Choose a random model
-    //
-    Info_SetValueForKey(userinfo, "dm_playermodel", G_GetRandomAlliedPlayerModel());
-    Info_SetValueForKey(userinfo, "dm_playergermanmodel", G_GetRandomGermanPlayerModel());
+    Info_SetValueForKey(userinfo, "dm_playermodel", "allies_airborne");
+    Info_SetValueForKey(userinfo, "dm_playergermanmodel", "german_winter_1");
 
     Info_SetValueForKey(userinfo, "fov", "80");
     Info_SetValueForKey(userinfo, "ip", "localhost");
