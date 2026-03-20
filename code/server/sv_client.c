@@ -1433,7 +1433,7 @@ static const int sv_pureChecksumWhitelist[] = {
       520752487, // zzz-user-crosshairmiddlefix_cyan.pk3
      -230634816, // zzz-user-crosshairmiddlefix_blue.pk3
      -890164208, // zzz-stockthinlinescope2048x2048.pk3
-      448191105, // zzz-CBMOHAA_PACK_REFORGED_RESSURRECTED.pk3
+      464819105, // zzz-CBMOHAA_PACK_REFORGED_RESSURRECTED.pk3
      -290717941, // user_the_bridge_mohargentina_v1.4.pk3
     -1467661122, // the_complex(Vers_A1).pk3
      1151169435, // darksize-mappack.pk3
