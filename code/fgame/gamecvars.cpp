@@ -313,6 +313,9 @@ cvar_t *g_bot_shoot_bobbing;
 // Bot weapon distribution
 cvar_t *g_bot_sniper;
 
+// Bot objective debug logging
+cvar_t *g_bot_debug_obj;
+
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
 
@@ -757,6 +760,8 @@ void CVAR_Init(void)
 
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
+
+    g_bot_debug_obj = gi.Cvar_Get("g_bot_debug_obj", "0", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

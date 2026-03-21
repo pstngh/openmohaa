@@ -422,6 +422,11 @@ extern cvar_t *g_bot_shoot_bobbing;
  */
 extern cvar_t *g_bot_sniper;
 
+/**
+ * @brief Enable debug logging for bot objective behavior (0=off, 1=on).
+ */
+extern cvar_t *g_bot_debug_obj;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
