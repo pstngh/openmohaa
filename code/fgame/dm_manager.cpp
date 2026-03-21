@@ -1594,6 +1594,10 @@ void DM_Manager::StartRound(void)
     m_fRoundEndTime = 0.0f;
     m_bRoundActive  = true;
 
+    // Reset bot objective so it gets re-discovered for this round
+    m_vBotObjectiveLocation = vec_zero;
+    m_bBotObjectiveSet      = false;
+
     // respawn all players
     for (i = 0, ent = g_entities; i < game.maxclients; i++, ent++) {
         if (!ent->inuse || !ent->client || !ent->entity) {

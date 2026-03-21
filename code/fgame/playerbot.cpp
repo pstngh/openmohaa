@@ -1101,6 +1101,8 @@ void BotController::InitState_Objective(botfunc_t *func)
 
 bool BotController::CheckCondition_Objective(void)
 {
+    bool bDebug = g_bot_debug_obj->integer != 0;
+
     if (g_gametype->integer != GT_OBJECTIVE && g_gametype->integer != GT_TEAM_ROUNDS) {
         return false;
     }
@@ -1110,35 +1112,84 @@ bool BotController::CheckCondition_Objective(void)
     // a valid objective location from multiple sources.
     //
     if (!dmManager.IsBotObjectiveSet()) {
-        Vector vFallback = vec_zero;
+        Vector     vFallback = vec_zero;
+        const char *source   = NULL;
 
         // 1. Try team-specific objective locations (used by TOW and
         //    maps with m_bForceTeamObjectiveLocation)
         if (g_gametype->integer >= GT_TOW || level.m_bForceTeamObjectiveLocation) {
-            if (controlledEnt->GetTeam() == TEAM_AXIS) {
+            if (controlledEnt->GetTeam() == TEAM_AXIS && level.m_vAxisObjectiveLocation != vec_zero) {
                 vFallback = level.m_vAxisObjectiveLocation;
-            } else if (controlledEnt->GetTeam() == TEAM_ALLIES) {
+                source    = "AxisObjectiveLocation";
+            } else if (controlledEnt->GetTeam() == TEAM_ALLIES && level.m_vAlliedObjectiveLocation != vec_zero) {
                 vFallback = level.m_vAlliedObjectiveLocation;
+                source    = "AlliedObjectiveLocation";
             }
         }
 
         // 2. Try the generic objective location
-        if (vFallback == vec_zero) {
+        if (vFallback == vec_zero && level.m_vObjectiveLocation != vec_zero) {
             vFallback = level.m_vObjectiveLocation;
+            source    = "ObjectiveLocation";
         }
 
-        // 3. Auto-discover from func_objective entities in the map
+        // 3. Scan CS_OBJECTIVES configstrings for any current objective with a location
+        if (vFallback == vec_zero) {
+            for (int i = 0; i < MAX_OBJECTIVES; i++) {
+                const char *s = gi.getConfigstring(CS_OBJECTIVES + i);
+                if (!s || !s[0]) {
+                    continue;
+                }
+
+                const char *flagStr = Info_ValueForKey(s, "flags");
+                int         flags   = atoi(flagStr);
+
+                if (flags & OBJ_FLAG_CURRENT) {
+                    const char *loc = Info_ValueForKey(s, "loc");
+                    Vector      v;
+                    if (sscanf(loc, "%f %f %f", &v[0], &v[1], &v[2]) == 3 && v != vec_zero) {
+                        vFallback = v;
+                        source    = va("CS_OBJECTIVES[%d]", i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 4. Auto-discover from func_objective entities in the map
         if (vFallback == vec_zero) {
             Entity *obj = G_FindClass(NULL, "func_objective");
             if (obj) {
                 vFallback = obj->origin;
+                source    = "func_objective entity";
             }
         }
 
         if (vFallback == vec_zero) {
+            if (bDebug) {
+                gi.DPrintf(
+                    "BOT_OBJ [%s]: No objective location found. gametype=%d, "
+                    "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
+                    controlledEnt->client->pers.netname,
+                    g_gametype->integer,
+                    level.m_vObjectiveLocation[0], level.m_vObjectiveLocation[1], level.m_vObjectiveLocation[2],
+                    level.m_vAlliedObjectiveLocation[0], level.m_vAlliedObjectiveLocation[1], level.m_vAlliedObjectiveLocation[2],
+                    level.m_vAxisObjectiveLocation[0], level.m_vAxisObjectiveLocation[1], level.m_vAxisObjectiveLocation[2]
+                );
+            }
             return false;
         }
+
         dmManager.SetBotObjectiveLocation(vFallback);
+
+        if (bDebug) {
+            gi.DPrintf(
+                "BOT_OBJ [%s]: Objective set to (%g %g %g) from %s\n",
+                controlledEnt->client->pers.netname,
+                vFallback[0], vFallback[1], vFallback[2],
+                source
+            );
+        }
     }
 
     return true;
@@ -1156,6 +1207,18 @@ void BotController::State_BeginObjective(void)
         m_bIsOnBombTeam = true;
     } else if (dmManager.GetBombPlantTeam() == STRING_ALLIES && controlledEnt->GetTeam() == TEAM_ALLIES) {
         m_bIsOnBombTeam = true;
+    }
+
+    if (g_bot_debug_obj->integer) {
+        Vector vObjPos = dmManager.GetBotObjectiveLocation();
+        gi.DPrintf(
+            "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, objPos=(%g %g %g)\n",
+            controlledEnt->client->pers.netname,
+            controlledEnt->GetTeam(),
+            (int)dmManager.GetBombPlantTeam(),
+            m_bIsOnBombTeam,
+            vObjPos[0], vObjPos[1], vObjPos[2]
+        );
     }
 }
 
@@ -1198,6 +1261,21 @@ void BotController::State_Objective(void)
     Vector vObjPos      = dmManager.GetBotObjectiveLocation();
     bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
     bool   bInCombat    = m_iAttackTime != 0;
+
+    // Periodic debug logging (every 2 seconds)
+    if (g_bot_debug_obj->integer && level.inttime % 2000 < 50) {
+        Vector vDelta = controlledEnt->origin - vObjPos;
+        gi.DPrintf(
+            "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d bombPlanted=%d "
+            "dist=%.0f pos=(%.0f %.0f %.0f) obj=(%.0f %.0f %.0f) moving=%d\n",
+            controlledEnt->client->pers.netname,
+            m_iObjectiveState, bInCombat, m_bIsOnBombTeam, bBombPlanted,
+            vDelta.length(),
+            controlledEnt->origin[0], controlledEnt->origin[1], controlledEnt->origin[2],
+            vObjPos[0], vObjPos[1], vObjPos[2],
+            movement.IsMoving()
+        );
+    }
 
     // Cancel any in-progress plant/defuse if we're in combat
     if (bInCombat

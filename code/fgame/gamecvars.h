@@ -274,22 +274,6 @@ extern cvar_t *sv_minPlayers;
 extern cvar_t *sv_sharedbots;
 
 /**
- * @brief Minimum time to pause (bursting).
- */
-extern cvar_t *g_bot_attack_burst_min_time;
-/**
- * @brief Random time added to pause (bursting).
- */
-extern cvar_t *g_bot_attack_burst_random_delay;
-/**
- * @brief Minimum duration of continuous firing.
- */
-extern cvar_t *g_bot_attack_continuousfire_min_firetime;
-/**
- * @brief Random time added to the continuous firing duration.
- */
-extern cvar_t *g_bot_attack_continuousfire_random_firetime;
-/**
  * @brief The minimum time before the bot starts reacting.
  */
 extern cvar_t *g_bot_attack_react_min_delay;
@@ -302,19 +286,17 @@ extern cvar_t *g_bot_attack_react_random_delay;
  */
 extern cvar_t *g_bot_attack_spreadmult;
 /**
+ * @brief Max aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_max;
+/**
+ * @brief Min aim height as fraction of viewheight (0.0-1.0).
+ */
+extern cvar_t *g_bot_aim_height_min;
+/**
  * @brief The degrees per seconds when the bot turns.
  */
 extern cvar_t *g_bot_turn_speed;
-/**
- * @brief A value that determines the chance of the bot sending an instant message on kill.
- * 0 = disable
- * The higher the value, the lower the frequency of instant messages.
- */
-extern cvar_t *g_bot_instamsg_chance;
-/**
- * @brief The delay at which the bot can send an instant message again.
- */
-extern cvar_t *g_bot_instamsg_delay;
 
 /**
  * @brief The delay before spawning bots at the beginning of the map.
@@ -323,9 +305,127 @@ extern cvar_t *g_bot_initial_spawn_delay;
 
 /**
  * @brief When enabled, the game no longer controls bots.
- * 
  */
 extern cvar_t *g_bot_manualmove;
+
+/**
+ * @brief Enable aggressive movement (strafe + lean) for bots.
+ * 0 = disabled, 1 = enabled
+ */
+extern cvar_t *g_bot_aggressive_movement;
+
+/**
+ * @brief Strafe intensity multiplier (0.0 to 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+
+/**
+ * @brief Minimum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_min_interval;
+
+/**
+ * @brief Maximum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_max_interval;
+
+/**
+ * @brief Probability (0.0 to 1.0) that lean direction matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_coupling;
+
+/**
+ * @brief Whether bots use dmspreadmult from weapon tik files.
+ * 1 = use weapon spread multipliers (default), 0 = ignore them for bots
+ */
+extern cvar_t *g_bot_use_dmspreadmult;
+
+/**
+ * @brief Cap bot fire spread mult at full magazine level.
+ * 1 = cap spread at what a full magazine spray would produce (default)
+ * 0 = no cap, spread grows indefinitely (original behavior)
+ */
+extern cvar_t *g_bot_cap_firespreadmult;
+
+/**
+ * @brief Fixed bot fire spread as fraction of full magazine.
+ * -1 = normal accumulating behavior (default)
+ * 0 = no spread mult (base accuracy)
+ * 0.5 = always 50% of full mag spread
+ * 1.0 = always full mag spread
+ * 2.0 = always 2x full mag spread
+ */
+extern cvar_t *g_bot_firespreadmult_scale;
+
+/**
+ * @brief Cap human client fire spread mult at full magazine level.
+ * 1 = cap spread at what a full magazine spray would produce
+ * 0 = no cap (default, original behavior)
+ */
+extern cvar_t *g_cap_firespreadmult;
+
+/**
+ * @brief Fixed client fire spread as fraction of full magazine.
+ * -1 = normal accumulating behavior (default)
+ * 0 = no spread mult (base accuracy)
+ * 0.5 = always 50% of full mag spread
+ * 1.0 = always full mag spread
+ * 2.0 = always 2x full mag spread
+ */
+extern cvar_t *g_firespreadmult_scale;
+
+/**
+ * @brief Disable fire spread decay once spread reaches the clip-based cap.
+ * 1 = spread decays normally until it reaches maxFromClip, then freezes there
+ * 0 = normal decay behavior (default)
+ * Use with g_cap_firespreadmult 1 for intended behavior.
+ */
+extern cvar_t *g_firespreadmult_nodecay_at_cap;
+
+/**
+ * @brief Disable bot fire spread decay once spread reaches the clip-based cap.
+ * 1 = spread decays normally until it reaches maxFromClip, then freezes there
+ * 0 = normal decay behavior (default)
+ * Use with g_bot_cap_firespreadmult 1 for intended behavior.
+ */
+extern cvar_t *g_bot_firespreadmult_nodecay_at_cap;
+
+/**
+ * @brief Force bots to a specific team.
+ * Values: "auto" (default), "axis", "allies"
+ */
+extern cvar_t *g_bot_team;
+
+/**
+ * @brief Enable bot strafe and lean movement.
+ */
+extern cvar_t *g_bot_strafe;
+/**
+ * @brief Minimum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_min_time;
+/**
+ * @brief Maximum time between strafe direction changes (seconds).
+ */
+extern cvar_t *g_bot_strafe_max_time;
+/**
+ * @brief Chance (0-100) that lean matches strafe direction.
+ */
+extern cvar_t *g_bot_lean_match_chance;
+/**
+ * @brief Enable forward/backward bobbing when shooting (0=off, 1=on).
+ */
+extern cvar_t *g_bot_shoot_bobbing;
+
+/**
+ * @brief Percentage of bots that get sniper rifles (rest get SMG, axis also 5% MG).
+ */
+extern cvar_t *g_bot_sniper;
+
+/**
+ * @brief Enable debug logging for bot objective behavior (0=off, 1=on).
+ */
+extern cvar_t *g_bot_debug_obj;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
@@ -338,6 +438,13 @@ extern cvar_t *g_textmsg_allowed;
 extern cvar_t *g_textmsg_minDelay;
 
 extern cvar_t *g_teambalance;
+
+/**
+ * @brief Force AA-style behavior in BT.
+ * 0 = default BT behavior (default)
+ * 1 = AA-style leans (snappier, 40 deg, more head tilt) and AA-style pain animations
+ */
+extern cvar_t *g_aastyle;
 
 extern cvar_t *g_navigation_legacy;
 
