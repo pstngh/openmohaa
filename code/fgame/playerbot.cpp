@@ -37,6 +37,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // We assume that we have limited access to the server-side
 // and that most logic come from the playerstate_s structure
 
+// Objective state constants
+#define BOT_OBJ_STATE_NONE      0
+#define BOT_OBJ_STATE_MOVING    1
+#define BOT_OBJ_STATE_PLANTING  2
+#define BOT_OBJ_STATE_DEFENDING 3
+#define BOT_OBJ_STATE_DEFUSING  4
+
+#define BOT_PLANT_DEFUSE_TIME   5.0f
+#define BOT_OBJ_PROXIMITY       128.0f
+#define BOT_OBJ_ENEMY_RANGE     512.0f
+#define BOT_OBJ_DEFEND_RADIUS   384.0f
+
 CLASS_DECLARATION(Listener, BotController, NULL) {
     {NULL, NULL}
 };
@@ -191,6 +203,11 @@ void BotController::UpdateBotStates(void)
 
 void BotController::CheckUse(void)
 {
+    // Don't toggle use button while planting/defusing
+    if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
+        return;
+    }
+
     Vector  dir;
     Vector  start;
     Vector  end;
@@ -598,6 +615,11 @@ void BotController::State_Idle(void)
 
     AimAtAimNode();
 
+    // If Objective state is active, let it control movement
+    if (m_StateFlags & (1 << 2)) {
+        return;
+    }
+
     if (!movement.MoveToBestAttractivePoint() && !movement.IsMoving()) {
         if (m_vLastDeathPos != vec_zero) {
             movement.MoveTo(m_vLastDeathPos);
@@ -989,17 +1011,6 @@ Objective state
 Handle bomb plant/defuse in objective game modes
 ====================
 */
-
-#define BOT_OBJ_STATE_NONE      0
-#define BOT_OBJ_STATE_MOVING    1
-#define BOT_OBJ_STATE_PLANTING  2
-#define BOT_OBJ_STATE_DEFENDING 3
-#define BOT_OBJ_STATE_DEFUSING  4
-
-#define BOT_PLANT_DEFUSE_TIME   5.0f
-#define BOT_OBJ_PROXIMITY       128.0f
-#define BOT_OBJ_ENEMY_RANGE     512.0f
-#define BOT_OBJ_DEFEND_RADIUS   384.0f
 
 void BotController::InitState_Objective(botfunc_t *func)
 {
