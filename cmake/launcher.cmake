@@ -5,7 +5,7 @@ endif()
 include(utils/svg_to_icns)
 
 function (create_game_client name output_name target_game icon_svg)
-    add_executable(${name} MACOSX_BUNDLE ${CLIENT_BINARY_SOURCES})
+    add_executable(${name} ${CLIENT_EXECUTABLE_OPTIONS} ${CLIENT_BINARY_SOURCES})
 
     target_include_directories(     ${name} PRIVATE ${CLIENT_INCLUDE_DIRS})
     target_include_directories(     ${name} PRIVATE ${SOURCE_DIR}/client)
@@ -41,6 +41,11 @@ function (create_game_client name output_name target_game icon_svg)
     set_target_properties(${name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
     INSTALL(TARGETS ${name} DESTINATION ${INSTALL_BINDIR_FULL})
+
+    if (MSVC)
+        target_link_options(${name} PRIVATE "/MANIFEST:NO")
+        INSTALL(FILES $<TARGET_PDB_FILE:${name}> DESTINATION ${INSTALL_BINDIR_FULL} OPTIONAL)
+    endif()
 
     # Set up macOS .app bundle with per-game icon
     if(APPLE AND BUILD_MACOS_APP)

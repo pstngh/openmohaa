@@ -1027,12 +1027,35 @@ bool BotController::CheckCondition_Objective(void)
     }
 
     //
-    // If no explicit bot objective was set via script, fall back to
-    // the existing objective location that maps already populate
-    // via SetCurrentObjective / set_objective_pos.
+    // If no explicit bot objective was set via script, try to discover
+    // a valid objective location from multiple sources.
     //
     if (!dmManager.IsBotObjectiveSet()) {
-        Vector vFallback = level.m_vObjectiveLocation;
+        Vector vFallback = vec_zero;
+
+        // 1. Try team-specific objective locations (used by TOW and
+        //    maps with m_bForceTeamObjectiveLocation)
+        if (g_gametype->integer >= GT_TOW || level.m_bForceTeamObjectiveLocation) {
+            if (controlledEnt->GetTeam() == TEAM_AXIS) {
+                vFallback = level.m_vAxisObjectiveLocation;
+            } else if (controlledEnt->GetTeam() == TEAM_ALLIES) {
+                vFallback = level.m_vAlliedObjectiveLocation;
+            }
+        }
+
+        // 2. Try the generic objective location
+        if (vFallback == vec_zero) {
+            vFallback = level.m_vObjectiveLocation;
+        }
+
+        // 3. Auto-discover from func_objective entities in the map
+        if (vFallback == vec_zero) {
+            Entity *obj = G_FindClass(NULL, "func_objective");
+            if (obj) {
+                vFallback = obj->origin;
+            }
+        }
+
         if (vFallback == vec_zero) {
             return false;
         }
