@@ -1039,11 +1039,6 @@ bool BotController::CheckCondition_Objective(void)
         dmManager.SetBotObjectiveLocation(vFallback);
     }
 
-    // Don't run objective logic while in combat
-    if (m_iAttackTime) {
-        return false;
-    }
-
     return true;
 }
 
@@ -1100,6 +1095,17 @@ void BotController::State_Objective(void)
 {
     Vector vObjPos     = dmManager.GetBotObjectiveLocation();
     bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
+
+    // While actively fighting, keep objective state alive but skip actions.
+    // The attack state handles movement/aiming; once combat ends the bot
+    // will immediately resume moving toward the objective.
+    if (m_iAttackTime) {
+        // Cancel any in-progress plant/defuse since we're under fire
+        if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
+            m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+        }
+        return;
+    }
 
     // Don't fire while doing objective actions (unless attack state handles it)
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
