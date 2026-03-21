@@ -1116,23 +1116,22 @@ bool BotController::IsEnemyNearby(float fRadius) const
 
 void BotController::State_Objective(void)
 {
-    Vector vObjPos     = dmManager.GetBotObjectiveLocation();
+    Vector vObjPos      = dmManager.GetBotObjectiveLocation();
     bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
+    bool   bInCombat    = m_iAttackTime != 0;
 
-    // While actively fighting, keep objective state alive but skip actions.
-    // The attack state handles movement/aiming; once combat ends the bot
-    // will immediately resume moving toward the objective.
-    if (m_iAttackTime) {
-        // Cancel any in-progress plant/defuse since we're under fire
-        if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
-            m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-        }
-        return;
+    // Cancel any in-progress plant/defuse if we're in combat
+    if (bInCombat
+        && (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING)) {
+        m_iObjectiveState = BOT_OBJ_STATE_MOVING;
     }
 
-    // Don't fire while doing objective actions (unless attack state handles it)
-    m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
-    CheckReload();
+    // Only suppress fire buttons when not in combat
+    // (the attack state handles shooting when in combat)
+    if (!bInCombat) {
+        m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+        CheckReload();
+    }
 
     if (m_bIsOnBombTeam) {
         //
@@ -1140,7 +1139,7 @@ void BotController::State_Objective(void)
         //
         if (!bBombPlanted) {
             // Need to plant the bomb
-            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+            if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
                     // Start planting
                     m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
@@ -1171,7 +1170,8 @@ void BotController::State_Objective(void)
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                 }
             } else {
-                // Move toward objective
+                // Move toward objective (even during combat — attack state
+                // handles aiming/shooting, this overrides its chase movement)
                 m_iObjectiveState = BOT_OBJ_STATE_MOVING;
                 movement.MoveTo(vObjPos);
             }
@@ -1202,7 +1202,7 @@ void BotController::State_Objective(void)
             }
         } else {
             // Bomb is planted! Rush to defuse
-            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+            if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
@@ -1231,7 +1231,7 @@ void BotController::State_Objective(void)
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                 }
             } else {
-                // Rush to bomb
+                // Rush to bomb (even during combat)
                 m_iObjectiveState = BOT_OBJ_STATE_MOVING;
                 movement.MoveTo(vObjPos);
             }
