@@ -76,6 +76,11 @@ BotController::BotController()
 
     m_iNextTauntTime = 0;
 
+    m_iObjectiveState   = 0;
+    m_fPlantDefuseStart = 0;
+    m_fPlantHealthStart = 0;
+    m_bIsOnBombTeam     = false;
+
     m_StateFlags = 0;
 }
 
@@ -103,7 +108,7 @@ void BotController::Init(void)
 
     InitState_Attack(&botfuncs[0]);
     InitState_Curious(&botfuncs[1]);
-    InitState_Grenade(&botfuncs[2]);
+    InitState_Objective(&botfuncs[2]);
     InitState_Idle(&botfuncs[3]);
     //InitState_Weapon(&botfuncs[4]);
 }
@@ -616,8 +621,16 @@ void BotController::State_Idle(void)
             Vector preferredDir;
             float  radius = 512 + G_Random(2048);
 
-            preferredDir += Vector(controlledEnt->orientation[0]) * (rand() % 5 ? 1024 : -1024);
-            preferredDir += Vector(controlledEnt->orientation[2]) * (rand() % 5 ? 1024 : -1024);
+            // In objective modes, bias roaming toward the objective
+            if (dmManager.IsBotObjectiveSet()
+                && (g_gametype->integer == GT_OBJECTIVE || g_gametype->integer == GT_TEAM_ROUNDS)) {
+                preferredDir = dmManager.GetBotObjectiveLocation() - controlledEnt->origin;
+                preferredDir.normalize();
+                preferredDir *= 1024;
+            } else {
+                preferredDir += Vector(controlledEnt->orientation[0]) * (rand() % 5 ? 1024 : -1024);
+                preferredDir += Vector(controlledEnt->orientation[2]) * (rand() % 5 ? 1024 : -1024);
+            }
             movement.AvoidPath(controlledEnt->origin + randomDir, radius, preferredDir);
         }
     }
@@ -1050,26 +1063,210 @@ void BotController::State_Attack(void)
 
 /*
 ====================
-Grenade state
+Objective state
 
-Avoid any grenades
+Handle bomb plant/defuse in objective game modes
 ====================
 */
-void BotController::InitState_Grenade(botfunc_t *func)
+
+#define BOT_OBJ_STATE_NONE      0
+#define BOT_OBJ_STATE_MOVING    1
+#define BOT_OBJ_STATE_PLANTING  2
+#define BOT_OBJ_STATE_DEFENDING 3
+#define BOT_OBJ_STATE_DEFUSING  4
+
+#define BOT_PLANT_DEFUSE_TIME   5.0f
+#define BOT_OBJ_PROXIMITY       128.0f
+#define BOT_OBJ_ENEMY_RANGE     512.0f
+#define BOT_OBJ_DEFEND_RADIUS   384.0f
+
+void BotController::InitState_Objective(botfunc_t *func)
 {
-    func->CheckCondition = &BotController::CheckCondition_Grenade;
-    func->ThinkState     = &BotController::State_Grenade;
+    func->CheckCondition = &BotController::CheckCondition_Objective;
+    func->BeginState     = &BotController::State_BeginObjective;
+    func->EndState       = &BotController::State_EndObjective;
+    func->ThinkState     = &BotController::State_Objective;
 }
 
-bool BotController::CheckCondition_Grenade(void)
+bool BotController::CheckCondition_Objective(void)
 {
-    // FIXME: TODO
+    if (g_gametype->integer != GT_OBJECTIVE && g_gametype->integer != GT_TEAM_ROUNDS) {
+        return false;
+    }
+
+    if (!dmManager.IsBotObjectiveSet()) {
+        return false;
+    }
+
+    // Don't run objective logic while in combat
+    if (m_iAttackTime) {
+        return false;
+    }
+
+    return true;
+}
+
+void BotController::State_BeginObjective(void)
+{
+    m_iObjectiveState   = BOT_OBJ_STATE_NONE;
+    m_fPlantDefuseStart = 0;
+    m_fPlantHealthStart = 0;
+
+    // Determine if this bot is on the planting team
+    m_bIsOnBombTeam = false;
+    if (dmManager.GetBombPlantTeam() == STRING_AXIS && controlledEnt->GetTeam() == TEAM_AXIS) {
+        m_bIsOnBombTeam = true;
+    } else if (dmManager.GetBombPlantTeam() == STRING_ALLIES && controlledEnt->GetTeam() == TEAM_ALLIES) {
+        m_bIsOnBombTeam = true;
+    }
+}
+
+void BotController::State_EndObjective(void)
+{
+    m_iObjectiveState = BOT_OBJ_STATE_NONE;
+}
+
+bool BotController::IsNearObjective(float fRadius) const
+{
+    Vector vObjPos = dmManager.GetBotObjectiveLocation();
+    Vector vDelta  = controlledEnt->origin - vObjPos;
+    return vDelta.lengthSquared() <= fRadius * fRadius;
+}
+
+bool BotController::IsEnemyNearby(float fRadius) const
+{
+    float fRadiusSq = fRadius * fRadius;
+
+    for (int i = 1; i <= SentientList.NumObjects(); i++) {
+        Sentient *sent = SentientList.ObjectAt(i);
+
+        if (!IsValidEnemy(sent)) {
+            continue;
+        }
+
+        Vector vDelta = sent->origin - controlledEnt->origin;
+        if (vDelta.lengthSquared() <= fRadiusSq) {
+            if (controlledEnt->CanSee(sent, 360, fRadius, false)) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
-void BotController::State_Grenade(void)
+void BotController::State_Objective(void)
 {
-    // FIXME: TODO
+    Vector vObjPos     = dmManager.GetBotObjectiveLocation();
+    bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
+
+    // Don't fire while doing objective actions (unless attack state handles it)
+    m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+    CheckReload();
+
+    if (m_bIsOnBombTeam) {
+        //
+        // Attacking team logic
+        //
+        if (!bBombPlanted) {
+            // Need to plant the bomb
+            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+                if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
+                    // Start planting
+                    m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
+                    m_fPlantDefuseStart = level.time;
+                    m_fPlantHealthStart = controlledEnt->health;
+                    movement.ClearMove();
+                }
+
+                // Check if planting should be cancelled
+                if (controlledEnt->health < m_fPlantHealthStart) {
+                    // Took damage, abort
+                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    return;
+                }
+
+                if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
+                    // Enemy spotted nearby, abort
+                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    return;
+                }
+
+                // Crouch while planting
+                m_botCmd.upmove = -1;
+
+                // Check if plant is complete
+                if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
+                    dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() + 1);
+                    m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                }
+            } else {
+                // Move toward objective
+                m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                movement.MoveTo(vObjPos);
+            }
+        } else {
+            // Bomb is planted, defend it
+            m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+            if (!IsNearObjective(BOT_OBJ_DEFEND_RADIUS)) {
+                movement.MoveNear(vObjPos, BOT_OBJ_DEFEND_RADIUS);
+            } else if (!movement.IsMoving()) {
+                // Patrol around the bomb site
+                Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
+                movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS * 0.5f);
+            }
+        }
+    } else {
+        //
+        // Defending team logic
+        //
+        if (!bBombPlanted) {
+            // No bomb planted, patrol near objective
+            m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+            if (!IsNearObjective(BOT_OBJ_DEFEND_RADIUS * 2)) {
+                movement.MoveNear(vObjPos, BOT_OBJ_DEFEND_RADIUS);
+            } else if (!movement.IsMoving()) {
+                // Lurk around the objective area
+                Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
+                movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS);
+            }
+        } else {
+            // Bomb is planted! Rush to defuse
+            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+                if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
+                    // Start defusing
+                    m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
+                    m_fPlantDefuseStart = level.time;
+                    m_fPlantHealthStart = controlledEnt->health;
+                    movement.ClearMove();
+                }
+
+                // Check if defusing should be cancelled
+                if (controlledEnt->health < m_fPlantHealthStart) {
+                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    return;
+                }
+
+                if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
+                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    return;
+                }
+
+                // Crouch while defusing
+                m_botCmd.upmove = -1;
+
+                // Check if defuse is complete
+                if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
+                    dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() - 1);
+                    m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                }
+            } else {
+                // Rush to bomb
+                m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                movement.MoveTo(vObjPos);
+            }
+        }
+    }
 }
 
 /*
@@ -1205,6 +1402,15 @@ void BotController::Spawned(void)
     ClearEnemy();
     m_iCuriousTime   = 0;
     m_botCmd.buttons = 0;
+
+    // Recache bomb team assignment on respawn
+    m_iObjectiveState = BOT_OBJ_STATE_NONE;
+    m_bIsOnBombTeam   = false;
+    if (dmManager.GetBombPlantTeam() == STRING_AXIS && controlledEnt->GetTeam() == TEAM_AXIS) {
+        m_bIsOnBombTeam = true;
+    } else if (dmManager.GetBombPlantTeam() == STRING_ALLIES && controlledEnt->GetTeam() == TEAM_ALLIES) {
+        m_bIsOnBombTeam = true;
+    }
 }
 
 void BotController::Think()

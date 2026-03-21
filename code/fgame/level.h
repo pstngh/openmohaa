@@ -355,6 +355,8 @@ public:
     void EventSetTargetsDestroyed(Event *ev);
     void EventGetBombsPlanted(Event *ev);
     void EventSetBombsPlanted(Event *ev);
+    void EventGetBotObjectiveLocation(Event *ev);
+    void EventSetBotObjectiveLocation(Event *ev);
     void EventGetRoundBased(Event *ev);
     void EventGetObjectiveBased(Event *ev);
     void EventRainDensitySet(Event *ev);

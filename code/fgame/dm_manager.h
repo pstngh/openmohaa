@@ -183,6 +183,10 @@ private:
     bool m_bAllowAxisRespawn;
     bool m_bRoundActive;
 
+    // Bot objective info
+    Vector m_vBotObjectiveLocation;
+    bool   m_bBotObjectiveSet;
+
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
     size_t scoreLength;
@@ -259,6 +263,11 @@ public:
 
     DM_Team *GetTeam(str name);
     DM_Team *GetTeam(teamtype_t team);
+
+    // Bot objective
+    const Vector& GetBotObjectiveLocation(void) const;
+    void          SetBotObjectiveLocation(const Vector& vPos);
+    bool          IsBotObjectiveSet(void) const;
 
 protected:
     static int compareScores(const void *elem1, const void *elem2);
