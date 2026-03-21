@@ -496,7 +496,7 @@ PlayerStart *DM_Team::GetRandomSpawnpointWithMetric(
 
     for (int i = 1; i <= m_spawnpoints.NumObjects(); i++) {
         spot = m_spawnpoints.ObjectAt(i);
-        if (!spot->m_bForbidSpawns || player->GetLastSpawnpoint() != spot) {
+        if (spot->m_bForbidSpawns && player->GetLastSpawnpoint() != spot) {
             continue;
         }
 
@@ -1114,6 +1114,21 @@ void DM_Manager::InitGame(void)
         }
     }
 
+    //
+    // If the map has no team-specific spawn points (e.g. Breakthrough maps loaded in TDM),
+    // fall back to using the deathmatch spawn points for both teams.
+    //
+    if (g_gametype->integer >= GT_TEAM
+        && !m_team_allies.m_spawnpoints.NumObjects()
+        && !m_team_axis.m_spawnpoints.NumObjects()
+        && m_team_freeforall.m_spawnpoints.NumObjects()) {
+        for (i = 1; i <= m_team_freeforall.m_spawnpoints.NumObjects(); i++) {
+            PlayerStart *const spawnpoint = m_team_freeforall.m_spawnpoints.ObjectAt(i);
+            m_team_allies.m_spawnpoints.AddObject(spawnpoint);
+            m_team_axis.m_spawnpoints.AddObject(spawnpoint);
+        }
+    }
+
     if (g_gametype->integer > GT_SINGLE_PLAYER) {
         if (g_gametype->integer < GT_MAX_GAME_TYPE) {
             m_teams.ClearObjectList();
@@ -1623,12 +1638,18 @@ void DM_Manager::EndRound()
 
 bool DM_Manager::AllowRespawn() const
 {
-    if (GameAllowsRespawns()) {
+    //
+    // FFA and TDM always allow respawning.
+    // Map scripts (e.g. Breakthrough TOW scripts) may call
+    // level.dmrespawning 0 which sets m_bAllowRespawns to false,
+    // but that should not prevent respawning in non-objective modes.
+    //
+    if (g_gametype->integer <= GT_TEAM) {
         return true;
     }
 
-    if (g_gametype->integer <= GT_TEAM) {
-        return false;
+    if (GameAllowsRespawns()) {
+        return true;
     }
 
     if (!m_team_axis.m_players.NumObjects() && !m_team_axis.m_bHasSpawnedPlayers) {
@@ -1777,6 +1798,14 @@ void DM_Manager::StopTeamRespawn(eController controller)
 
 bool DM_Manager::AllowTeamRespawn(int teamnum) const
 {
+    //
+    // Team respawn restrictions only apply to TOW and objective modes.
+    // In FFA and TDM, always allow respawning.
+    //
+    if (g_gametype->integer <= GT_TEAM) {
+        return true;
+    }
+
     if (teamnum == TEAM_ALLIES) {
         return m_bAllowAlliedRespawn;
     } else if (teamnum == TEAM_AXIS) {

@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "entity.h"
 #include "trigger.h"
 #include "playerstart.h"
+#include "gamecvars.h"
 
 /*****************************************************************************/
 /*QUAKED info_player_start (0.75 0.75 0) (-16 -16 0) (16 16 96)
@@ -101,6 +102,15 @@ void PlayerStart::EventEnableSpawn(Event *ev)
 
 void PlayerStart::EventDisableSpawn(Event *ev)
 {
+    //
+    // In FFA and TDM, ignore disablespawn from map scripts.
+    // Breakthrough map scripts manage spawn points for TOW objectives,
+    // but those scripts shouldn't restrict spawning in non-TOW modes.
+    //
+    if (g_gametype->integer <= GT_TEAM) {
+        return;
+    }
+
     m_bForbidSpawns = true;
 }
 
