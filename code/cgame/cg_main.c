@@ -107,7 +107,6 @@ cvar_t *vm_offset_vel_side;
 cvar_t *vm_offset_vel_up;
 cvar_t *vm_offset_upvel;
 cvar_t *vm_lean_lower;
-cvar_t *g_leanstyle;
 cvar_t *voiceChat;
 cvar_t *cg_shadowscount;
 cvar_t *cg_shadowdebug;
@@ -200,7 +199,6 @@ void CG_RegisterCvars(void)
     vm_offset_vel_up              = cgi.Cvar_Get("vm_offset_vel_up", "-4.0", 0);
     vm_offset_upvel               = cgi.Cvar_Get("vm_offset_upvel", "0.0025", 0);
     vm_lean_lower                 = cgi.Cvar_Get("vm_lean_lower", "0.1", 0);
-    g_leanstyle                   = cgi.Cvar_Get("g_leanstyle", "0", 0);
     voiceChat                     = cgi.Cvar_Get("cg_voicechat", "1", 0);
 
     ui_timemessage = cgi.Cvar_Get("ui_timemessage", "", 0);
