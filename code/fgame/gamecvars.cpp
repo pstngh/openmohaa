@@ -330,6 +330,9 @@ cvar_t *g_textmsg_minDelay;
 // Whether or not to prevent teams from being unbalanced
 cvar_t *g_teambalance;
 
+// Force AA-style behavior in BT (leans + pain anims)
+cvar_t *g_aastyle;
+
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
@@ -756,6 +759,8 @@ void CVAR_Init(void)
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
+
+    g_aastyle = gi.Cvar_Get("g_aastyle", "0", 0);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 
