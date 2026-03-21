@@ -505,7 +505,7 @@ void CG_PredictPlayerState(void)
     }
 
     cg_pmove.noFootsteps = (cgs.dmflags & DF_NO_FOOTSTEPS) > 0;
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
+    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !g_leanstyle->integer) {
         // Leaning while moving is allowed in mohta and mohtt only with a specific dm flag bit set
         cg_pmove.alwaysAllowLean = (cgs.dmflags & DF_ALLOW_LEAN_MOVEMENT) ? qtrue : qfalse;
 

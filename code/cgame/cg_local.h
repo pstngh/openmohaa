@@ -503,6 +503,7 @@ extern "C" {
     extern cvar_t *vm_offset_vel_up;
     extern cvar_t *vm_offset_upvel;
     extern cvar_t *vm_lean_lower;
+    extern cvar_t *g_leanstyle;
     extern cvar_t *voiceChat;
     extern cvar_t *cg_shadowscount;
     extern cvar_t *cg_shadowdebug;

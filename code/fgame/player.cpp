@@ -3710,7 +3710,7 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
         pm->pmove_msec = 33;
     }
 
-    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
+    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN && !g_leanstyle->integer) {
         if (g_gametype->integer != GT_SINGLE_PLAYER) {
             //
             // Added in 2.0

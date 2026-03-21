@@ -432,6 +432,13 @@ extern cvar_t *g_textmsg_minDelay;
 
 extern cvar_t *g_teambalance;
 
+/**
+ * @brief Use AA-style lean mechanics instead of BT-style.
+ * 0 = use default lean for current game version (default)
+ * 1 = force AA-style lean (snappier, 40 deg max, more head tilt, lean while moving)
+ */
+extern cvar_t *g_leanstyle;
+
 extern cvar_t *g_navigation_legacy;
 
 void CVAR_Init(void);

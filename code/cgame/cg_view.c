@@ -290,7 +290,7 @@ void CG_OffsetFirstPersonView(refEntity_t *pREnt, qboolean bUseWorldPosition)
                 VectorMA(origin, oHead.origin[i], mat[i], origin);
             }
 
-            if (cg_target_game >= TG_MOHTA) {
+            if (cg_target_game >= TG_MOHTA && !g_leanstyle->integer) {
                 // Changed in 2.0
                 //  Slight less angle
                 cg.refdefViewAngles[2] += cg.predicted_player_state.fLeanAngle * 0.2;
