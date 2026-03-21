@@ -375,18 +375,20 @@ extern cvar_t *g_cap_firespreadmult;
 extern cvar_t *g_firespreadmult_scale;
 
 /**
- * @brief Disable fire spread decay for human clients.
- * 1 = spread builds up and stays at max (no decay)
+ * @brief Disable fire spread decay once spread reaches the clip-based cap.
+ * 1 = spread decays normally until it reaches maxFromClip, then freezes there
  * 0 = normal decay behavior (default)
+ * Use with g_cap_firespreadmult 1 for intended behavior.
  */
-extern cvar_t *g_firespreadmult_nodecay;
+extern cvar_t *g_firespreadmult_nodecay_at_cap;
 
 /**
- * @brief Disable fire spread decay for bots.
- * 1 = spread builds up and stays at max (no decay)
+ * @brief Disable bot fire spread decay once spread reaches the clip-based cap.
+ * 1 = spread decays normally until it reaches maxFromClip, then freezes there
  * 0 = normal decay behavior (default)
+ * Use with g_bot_cap_firespreadmult 1 for intended behavior.
  */
-extern cvar_t *g_bot_firespreadmult_nodecay;
+extern cvar_t *g_bot_firespreadmult_nodecay_at_cap;
 
 /**
  * @brief Force bots to a specific team.

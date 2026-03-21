@@ -299,8 +299,8 @@ cvar_t *g_bot_cap_firespreadmult;
 cvar_t *g_bot_firespreadmult_scale;
 cvar_t *g_cap_firespreadmult;
 cvar_t *g_firespreadmult_scale;
-cvar_t *g_firespreadmult_nodecay;
-cvar_t *g_bot_firespreadmult_nodecay;
+cvar_t *g_firespreadmult_nodecay_at_cap;
+cvar_t *g_bot_firespreadmult_nodecay_at_cap;
 cvar_t *g_bot_team;
 
 // Bot strafe and lean
@@ -745,8 +745,8 @@ void CVAR_Init(void)
     g_bot_firespreadmult_scale = gi.Cvar_Get("g_bot_firespreadmult_scale", "-1", 0);
     g_cap_firespreadmult           = gi.Cvar_Get("g_cap_firespreadmult", "0", 0);
     g_firespreadmult_scale         = gi.Cvar_Get("g_firespreadmult_scale", "-1", 0);
-    g_firespreadmult_nodecay       = gi.Cvar_Get("g_firespreadmult_nodecay", "0", 0);
-    g_bot_firespreadmult_nodecay   = gi.Cvar_Get("g_bot_firespreadmult_nodecay", "0", 0);
+    g_firespreadmult_nodecay_at_cap       = gi.Cvar_Get("g_firespreadmult_nodecay_at_cap", "0", 0);
+    g_bot_firespreadmult_nodecay_at_cap   = gi.Cvar_Get("g_bot_firespreadmult_nodecay_at_cap", "0", 0);
 
     // Bot strafe and lean (alternative cvars from IddQ1 branch)
     g_bot_strafe            = gi.Cvar_Get("g_bot_strafe", "1", 0);

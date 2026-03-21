@@ -1395,11 +1395,27 @@ void Weapon::Shoot(Event *ev)
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
         if (m_fFireSpreadMultAmount[mode] != 0.0f) {
-            // Check if nodecay is enabled for this entity
-            bool isBot = owner && owner->client && G_IsBot(owner->edict);
-            bool nodecay = isBot ? g_bot_firespreadmult_nodecay->integer : g_firespreadmult_nodecay->integer;
+            bool isBot     = owner && owner->client && G_IsBot(owner->edict);
+            bool skipDecay = false;
 
-            if (!nodecay) {
+            // Check if spread is at the clip-based cap and nodecay_at_cap is enabled
+            if (owner && owner->client) {
+                bool nodecayAtCap = isBot
+                    ? g_bot_firespreadmult_nodecay_at_cap->integer
+                    : g_firespreadmult_nodecay_at_cap->integer;
+
+                if (nodecayAtCap) {
+                    int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                    float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+
+                    if ((maxFromClip > 0 && m_fFireSpreadMult[mode] >= maxFromClip)
+                     || (maxFromClip < 0 && m_fFireSpreadMult[mode] <= maxFromClip)) {
+                        skipDecay = true;
+                    }
+                }
+            }
+
+            if (!skipDecay) {
                 float fTime = level.time - m_fFireSpreadMultTime[mode];
 
                 if (fTime <= m_fFireSpreadMultTimeCap[mode]) {
