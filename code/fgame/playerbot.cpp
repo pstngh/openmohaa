@@ -1105,8 +1105,17 @@ bool BotController::CheckCondition_Objective(void)
         return false;
     }
 
+    //
+    // If no explicit bot objective was set via script, fall back to
+    // the existing objective location that maps already populate
+    // via SetCurrentObjective / set_objective_pos.
+    //
     if (!dmManager.IsBotObjectiveSet()) {
-        return false;
+        Vector vFallback = level.m_vObjectiveLocation;
+        if (vFallback == vec_zero) {
+            return false;
+        }
+        dmManager.SetBotObjectiveLocation(vFallback);
     }
 
     // Don't run objective logic while in combat
