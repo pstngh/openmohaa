@@ -357,8 +357,8 @@ void CVAR_Init(void)
 
     if (g_target_game >= target_game_e::TG_MOHTT) {
         // Breakthrough defaults:
-        //  DF_DISALLOW_KAR98_MORTAR | DF_WEAPON_NO_LANDMINE | DF_WEAPON_NO_ROCKET
-        dmflags = gi.Cvar_Get("dmflags", "336871424", CVAR_SERVERINFO);
+        //  DF_DISALLOW_KAR98_MORTAR | DF_WEAPON_NO_LANDMINE | DF_WEAPON_NO_ROCKET | DF_OLD_SNIPER
+        dmflags = gi.Cvar_Get("dmflags", "337395712", CVAR_SERVERINFO);
     } else {
         dmflags = gi.Cvar_Get("dmflags", "0", CVAR_SERVERINFO);
     }
