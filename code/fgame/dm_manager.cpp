@@ -685,6 +685,8 @@ DM_Manager::DM_Manager()
     m_bAllowAlliedRespawn  = true;
     m_bRoundActive         = false;
     m_iTotalMapTime        = 0;
+    m_vBotObjectiveLocation = vec_zero;
+    m_bBotObjectiveSet      = false;
 }
 
 DM_Manager::~DM_Manager() {}
@@ -1785,6 +1787,22 @@ int DM_Manager::GetBombsPlanted(void) const
 void DM_Manager::SetBombsPlanted(int num)
 {
     m_iNumBombsPlanted = num;
+}
+
+const Vector& DM_Manager::GetBotObjectiveLocation(void) const
+{
+    return m_vBotObjectiveLocation;
+}
+
+void DM_Manager::SetBotObjectiveLocation(const Vector& vPos)
+{
+    m_vBotObjectiveLocation = vPos;
+    m_bBotObjectiveSet      = true;
+}
+
+bool DM_Manager::IsBotObjectiveSet(void) const
+{
+    return m_bBotObjectiveSet;
 }
 
 void DM_Manager::StopTeamRespawn(eController controller)

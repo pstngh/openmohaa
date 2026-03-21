@@ -397,6 +397,36 @@ Event EV_Level_SetBombsPlanted2
     EV_NORMAL
 );
 
+Event EV_Level_GetBotObjectiveLocation
+(
+    "bot_objective_location",
+    EV_DEFAULT,
+    NULL,
+    NULL,
+    "Gets the current bot objective location",
+    EV_GETTER
+);
+
+Event EV_Level_SetBotObjectiveLocation
+(
+    "bot_objective_location",
+    EV_DEFAULT,
+    "v",
+    "location",
+    "Sets the bot objective location",
+    EV_SETTER
+);
+
+Event EV_Level_SetBotObjectiveLocation2
+(
+    "bot_objective_location",
+    EV_DEFAULT,
+    "v",
+    "location",
+    "the bot objective location",
+    EV_NORMAL
+);
+
 Event EV_Level_GetRoundBased
 (
     "roundbased",
@@ -693,6 +723,9 @@ CLASS_DECLARATION(Listener, Level, NULL) {
     {&EV_Level_GetBombsPlanted,               &Level::EventGetBombsPlanted         },
     {&EV_Level_SetBombsPlanted,               &Level::EventSetBombsPlanted         },
     {&EV_Level_SetBombsPlanted2,              &Level::EventSetBombsPlanted         },
+    {&EV_Level_GetBotObjectiveLocation,       &Level::EventGetBotObjectiveLocation },
+    {&EV_Level_SetBotObjectiveLocation,       &Level::EventSetBotObjectiveLocation },
+    {&EV_Level_SetBotObjectiveLocation2,      &Level::EventSetBotObjectiveLocation },
     {&EV_Level_GetRoundBased,                 &Level::EventGetRoundBased           },
     {&EV_Level_GetObjectiveBased,             &Level::EventGetObjectiveBased       },
     {&EV_Level_Rain_Density_Set,              &Level::EventRainDensitySet          },
@@ -2233,6 +2266,16 @@ void Level::EventGetBombsPlanted(Event *ev)
 void Level::EventSetBombsPlanted(Event *ev)
 {
     dmManager.SetBombsPlanted(ev->GetInteger(1));
+}
+
+void Level::EventGetBotObjectiveLocation(Event *ev)
+{
+    ev->AddVector(dmManager.GetBotObjectiveLocation());
+}
+
+void Level::EventSetBotObjectiveLocation(Event *ev)
+{
+    dmManager.SetBotObjectiveLocation(ev->GetVector(1));
 }
 
 void Level::EventGetRoundBased(Event *ev)

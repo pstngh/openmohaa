@@ -193,6 +193,12 @@ private:
     SafePtr<Sentient> m_pEnemy;
     int               m_iEnemyEyesTag;
 
+    // Objective state
+    int   m_iObjectiveState;     // 0=none, 1=moving_to_obj, 2=planting, 3=defending, 4=defusing
+    float m_fPlantDefuseStart;   // When bot started planting/defusing
+    float m_fPlantHealthStart;   // Bot health when plant/defuse started
+    bool  m_bIsOnBombTeam;       // Is this bot on the planting team?
+
     // Input
     usercmd_t  m_botCmd;
     usereyes_t m_botEyes;
@@ -249,11 +255,13 @@ private:
     void        State_Attack(void);
     bool        IsValidEnemy(Sentient *sent) const;
 
-    static void InitState_Grenade(botfunc_t *func);
-    bool        CheckCondition_Grenade(void);
-    void        State_BeginGrenade(void);
-    void        State_EndGrenade(void);
-    void        State_Grenade(void);
+    static void InitState_Objective(botfunc_t *func);
+    bool        CheckCondition_Objective(void);
+    void        State_BeginObjective(void);
+    void        State_EndObjective(void);
+    void        State_Objective(void);
+    bool        IsNearObjective(float fRadius) const;
+    bool        IsEnemyNearby(float fRadius) const;
 
     static void InitState_Weapon(botfunc_t *func);
     bool        CheckCondition_Weapon(void);
