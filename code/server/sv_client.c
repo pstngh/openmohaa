@@ -1611,7 +1611,16 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 			cl->pureAuthentic = 0;
 			// Changed in OPM
 			if (sv_autokick->integer) {
-				cl->autokickTime = -1;
+				if (cl->state >= CS_ACTIVE) {
+					// Client is already in-game (e.g. after map restart),
+					// set the kick time directly since SV_ClientEnterWorld won't run again.
+					cl->autokickTime = svs.time + sv_autokick->integer * 1000;
+					Com_DPrintf("Client %s will be kicked in %d seconds\n", cl->name, sv_autokick->integer);
+				} else {
+					// Client is still connecting, use sentinel value.
+					// SV_ClientEnterWorld will convert this to a real time.
+					cl->autokickTime = -1;
+				}
 			}
 			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}
