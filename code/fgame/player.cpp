@@ -9191,42 +9191,22 @@ void Player::EquipWeapons()
     PostEvent(event, 0.3f);
 
     //
-    // Pistols and grenades
+    // Pistols
     //
     switch (nationality) {
     case NA_BRITISH:
-        giveItem("weapons/mills_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/M18_smoke_grenade.tik");
-        }
         giveItem("weapons/Webley_Revolver.tik");
         break;
     case NA_RUSSIAN:
-        giveItem("weapons/Russian_F1_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/RDG-1_Smoke_grenade.tik");
-        }
         giveItem("weapons/Nagant_revolver.tik");
         break;
     case NA_GERMAN:
-        giveItem("weapons/steilhandgranate.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/nebelhandgranate.tik");
-        }
         giveItem("weapons/p38.tik");
         break;
     case NA_ITALIAN:
-        giveItem("weapons/it_w_bomba.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/it_w_bombabreda.tik");
-        }
         giveItem("weapons/it_w_beretta.tik");
         break;
     default:
-        giveItem("weapons/m2frag_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/M18_smoke_grenade.tik");
-        }
         giveItem("weapons/colt45.tik");
         break;
     }
@@ -9291,10 +9271,8 @@ void Player::EquipWeapons_ver8()
 
         if (dm_team == TEAM_ALLIES) {
             giveItem("models/weapons/colt45.tik");
-            giveItem("models/weapons/m2frag_grenade.tik");
         } else {
             giveItem("models/weapons/p38.tik");
-            giveItem("models/weapons/steilhandgranate.tik");
         }
 
         giveItem("models/items/binoculars.tik");
