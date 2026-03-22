@@ -191,6 +191,7 @@ private:
     static const int MAX_BOMB_SITES = 8;
     Vector m_vBombSites[MAX_BOMB_SITES];
     bool   m_bBombSitePlanted[MAX_BOMB_SITES];
+    int    m_iBombSitePlanter[MAX_BOMB_SITES];  // entnum of the bot planting (-1 = none)
     int    m_iNumBombSites;
 
     // scoreboard data
@@ -282,6 +283,9 @@ public:
     void          ClearBombSites(void);
     bool          IsBombSitePlanted(int index) const;
     void          SetBombSitePlanted(int index, bool planted);
+    int           GetBombSitePlanter(int index) const;
+    bool          ClaimBombSitePlanter(int index, int entnum);
+    void          ReleaseBombSitePlanter(int index, int entnum);
 
 protected:
     static int compareScores(const void *elem1, const void *elem2);
