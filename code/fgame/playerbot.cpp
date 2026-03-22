@@ -1341,8 +1341,17 @@ void BotController::State_Objective(void)
                 m_botCmd.rightmove   = 0;
                 m_botCmd.upmove      = -1;
 
-                // Press USE to interact with the bomb trigger
-                m_botCmd.buttons |= BUTTON_USE;
+                // Look down at the bomb
+                rotation.AimAt(vObjPos);
+
+                // Hold USE to plant. Release briefly every ~0.5s so the
+                // rising-edge detection in DoUse can re-fire if the first
+                // attempt missed (e.g. bot wasn't facing the trigger yet).
+                if (fmod(level.time - m_fPlantDefuseStart, 0.5f) < 0.1f) {
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                } else {
+                    m_botCmd.buttons |= BUTTON_USE;
+                }
 
                 // Check if plant is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
@@ -1401,8 +1410,16 @@ void BotController::State_Objective(void)
                 m_botCmd.rightmove   = 0;
                 m_botCmd.upmove      = -1;
 
-                // Press USE to interact with the bomb trigger
-                m_botCmd.buttons |= BUTTON_USE;
+                // Look down at the bomb
+                rotation.AimAt(vObjPos);
+
+                // Hold USE to defuse. Release briefly every ~0.5s so the
+                // rising-edge detection in DoUse can re-fire if needed.
+                if (fmod(level.time - m_fPlantDefuseStart, 0.5f) < 0.1f) {
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                } else {
+                    m_botCmd.buttons |= BUTTON_USE;
+                }
 
                 // Check if defuse is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
