@@ -1264,7 +1264,11 @@ bool BotController::CheckCondition_Objective(void)
         //    In obj_ maps, bomb plant sites are script_model entities with
         //    the "pulse_explosive" tiki model.
         //    Collect ALL bomb sites so attacking bots can be split among them.
-        if (vFallback == vec_zero) {
+        //    Always scan for bomb sites regardless of whether a fallback was
+        //    already found — earlier methods may discover an objective location
+        //    but not enumerate individual bomb sites, which is needed to split
+        //    bots across multiple plant locations.
+        {
             dmManager.ClearBombSites();
             for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
                 if (!ent->inuse || !ent->entity) {
