@@ -687,6 +687,7 @@ DM_Manager::DM_Manager()
     m_iTotalMapTime        = 0;
     m_vBotObjectiveLocation = vec_zero;
     m_bBotObjectiveSet      = false;
+    m_iNumBombSites         = 0;
 }
 
 DM_Manager::~DM_Manager() {}
@@ -1612,6 +1613,7 @@ void DM_Manager::StartRound(void)
     // Reset bot objective so it gets re-discovered for this round
     m_vBotObjectiveLocation = vec_zero;
     m_bBotObjectiveSet      = false;
+    m_iNumBombSites         = 0;
 
     // respawn all players
     for (i = 0, ent = g_entities; i < game.maxclients; i++, ent++) {
@@ -1807,6 +1809,28 @@ void DM_Manager::SetBotObjectiveLocation(const Vector& vPos)
 bool DM_Manager::IsBotObjectiveSet(void) const
 {
     return m_bBotObjectiveSet;
+}
+
+int DM_Manager::GetNumBombSites(void) const
+{
+    return m_iNumBombSites;
+}
+
+const Vector& DM_Manager::GetBombSite(int index) const
+{
+    return m_vBombSites[index];
+}
+
+void DM_Manager::AddBombSite(const Vector& vPos)
+{
+    if (m_iNumBombSites < MAX_BOMB_SITES) {
+        m_vBombSites[m_iNumBombSites++] = vPos;
+    }
+}
+
+void DM_Manager::ClearBombSites(void)
+{
+    m_iNumBombSites = 0;
 }
 
 void DM_Manager::StopTeamRespawn(eController controller)
