@@ -23,9 +23,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'x64',   os: 'windows-2025',   config: 'x64',    toolset: 'x64',        arch_option: 'VC-WIN64A'    },
-          {name: 'x86',   os: 'windows-2025',   config: 'Win32',  toolset: 'x64_x86',    arch_option: 'VC-WIN32'     },
-          {name: 'arm64', os: 'windows-11-arm', config: 'ARM64',  toolset: 'x64_arm64',  arch_option: 'VC-WIN64-ARM' }
+          {name: 'x64',   os: 'windows-2025',   config: 'x64',    toolset: 'x64',        arch_option: 'VC-WIN64A'    }
         ]
 
     name: "Building for platform windows-${{matrix.architecture.name}}"
@@ -87,11 +85,7 @@ jobs:
       if: steps.cache-required-packages.outputs.cache-hit != 'true'
       run: |
         $DownloadPath="$($env:USERPROFILE)\Downloads"
-        if ("${{ matrix.architecture.config }}" -ieq "ARM64") {
-          Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-winarm64.zip" -OutFile "$DownloadPath\ninja-win.zip"
-        } else {
-          Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "$DownloadPath\ninja-win.zip"
-        }
+        Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "$DownloadPath\ninja-win.zip"
         Expand-Archive -Path "$DownloadPath\ninja-win.zip" -DestinationPath "C:\Packages\ninja"
         Invoke-WebRequest "https://download.qt.io/official_releases/jom/jom.zip" -OutFile "$DownloadPath\jom.zip"
         Expand-Archive -Path "$DownloadPath\jom.zip" -DestinationPath "C:\Packages\jom"
@@ -100,10 +94,6 @@ jobs:
       run: |
         $env:PATH += ";C:\Packages\ninja;C:\Packages\jom;"
         echo "PATH=$($env:PATH)" >> $env:GITHUB_ENV
-        if ("${{ matrix.architecture.config }}" -ieq "ARM64") {
-            # Workaround against linking errors related to interlocked functions
-            echo "CFLAGS=/forceInterlockedFunctions-" >> $env:GITHUB_ENV
-        }
 
     ###
     # SDL
@@ -175,7 +165,7 @@ jobs:
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
         # Unfortunately soft-oal produces a binary called OpenAL32 even in 64-bit
-        if (("x64", "ARM64") -icontains "${{ matrix.architecture.config }}") { Rename-Item -Path '.\install\bin\OpenAL32.dll' -NewName 'OpenAL64.dll' }
+        Rename-Item -Path '.\install\bin\OpenAL32.dll' -NewName 'OpenAL64.dll'
 
     ###
     # cURL
