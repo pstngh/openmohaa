@@ -54,7 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BOT_USE_HOLDING  2
 
 #define BOT_PLANT_DEFUSE_TIME   5.0f
-#define BOT_OBJ_PROXIMITY       128.0f
+#define BOT_OBJ_PROXIMITY       48.0f
 #define BOT_OBJ_ENEMY_RANGE     512.0f
 #define BOT_OBJ_DEFEND_RADIUS   384.0f
 
@@ -867,6 +867,12 @@ void BotController::State_Attack(void)
     bool    bNoMove = false;
     bool    bFiring = false;
 
+    // While planting or defusing, don't aim/shoot/move at enemies —
+    // objective state owns the bot completely in those states
+    if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
+        return;
+    }
+
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
         m_iAttackTime = 0;
@@ -1067,6 +1073,12 @@ void BotController::State_Attack(void)
     }
 
     if (bNoMove) {
+        return;
+    }
+
+    // Don't chase enemies while actively planting or defusing —
+    // objective state controls movement in those states
+    if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
         return;
     }
 
@@ -1390,15 +1402,20 @@ void BotController::State_Objective(void)
         );
     }
 
-    // Cancel any in-progress plant/defuse if we're in combat
-    if (bInCombat
+    // Cancel plant/defuse if we enter combat, but only if we haven't
+    // committed to holding USE yet (once holding, we must not interrupt
+    // or the 5-second plant/defuse timer resets)
+    if (bInCombat && m_iUseState < BOT_USE_HOLDING
         && (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING)) {
         m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+        m_iUseState       = BOT_USE_AIMING;
     }
 
-    // Only suppress fire buttons when not in combat
-    // (the attack state handles shooting when in combat)
-    if (!bInCombat) {
+    // Suppress fire when not in combat, or when actively planting/defusing
+    // (can't shoot and hold USE at the same time)
+    if (!bInCombat
+        || m_iObjectiveState == BOT_OBJ_STATE_PLANTING
+        || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
         CheckReload();
     }
@@ -1408,8 +1425,9 @@ void BotController::State_Objective(void)
         // Attacking team logic
         //
         if (!bMySitePlanted) {
-            // Need to plant our assigned bomb
-            if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
+            // Need to plant our assigned bomb — commit once close enough,
+            // regardless of combat (attack state skips movement while planting)
+            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
                     // Start planting
                     m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
@@ -1541,7 +1559,7 @@ void BotController::State_Objective(void)
                 }
             }
 
-            if (fBestDist <= BOT_OBJ_PROXIMITY && !bInCombat) {
+            if (fBestDist <= BOT_OBJ_PROXIMITY) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
