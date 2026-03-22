@@ -45,6 +45,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BOT_OBJ_STATE_DEFENDING 3
 #define BOT_OBJ_STATE_DEFUSING  4
 
+// Sub-states for plant/defuse USE key sequencing:
+// AIMING  = rotating to face the bomb, USE is released
+// EDGE    = facing bomb, release USE for 1 frame to create a rising edge
+// HOLDING = hold USE continuously (DoUse fires on the rising edge frame)
+#define BOT_USE_AIMING   0
+#define BOT_USE_EDGE     1
+#define BOT_USE_HOLDING  2
+
 #define BOT_PLANT_DEFUSE_TIME   5.0f
 #define BOT_OBJ_PROXIMITY       128.0f
 #define BOT_OBJ_ENEMY_RANGE     512.0f
@@ -86,6 +94,7 @@ BotController::BotController()
     m_iLastUnseenTime = 0;
 
     m_iObjectiveState   = 0;
+    m_iUseState         = 0;
     m_fPlantDefuseStart = 0;
     m_fPlantHealthStart = 0;
     m_bIsOnBombTeam     = false;
@@ -635,8 +644,12 @@ void BotController::State_Idle(void)
             float  radius = 512 + G_Random(2048);
 
             // In objective modes, bias roaming toward the objective
+            // Only attackers should rush the objective; defenders roam
+            // randomly until a bomb is planted (objective state handles
+            // rushing to defuse).
             if (dmManager.IsBotObjectiveSet()
-                && (g_gametype->integer == GT_OBJECTIVE || g_gametype->integer == GT_TEAM_ROUNDS)) {
+                && (g_gametype->integer == GT_OBJECTIVE || g_gametype->integer == GT_TEAM_ROUNDS)
+                && (m_bIsOnBombTeam || dmManager.GetBombsPlanted() > 0)) {
                 preferredDir = dmManager.GetBotObjectiveLocation() - controlledEnt->origin;
                 preferredDir.normalize();
                 preferredDir *= 1024;
@@ -1318,20 +1331,21 @@ void BotController::State_Objective(void)
                 if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
                     // Start planting
                     m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
+                    m_iUseState         = BOT_USE_AIMING;
                     m_fPlantDefuseStart = level.time;
                     m_fPlantHealthStart = controlledEnt->health;
                 }
 
                 // Check if planting should be cancelled
                 if (controlledEnt->health < m_fPlantHealthStart) {
-                    // Took damage, abort
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    m_iUseState       = BOT_USE_AIMING;
                     return;
                 }
 
                 if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
-                    // Enemy spotted nearby, abort
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    m_iUseState       = BOT_USE_AIMING;
                     return;
                 }
 
@@ -1344,22 +1358,60 @@ void BotController::State_Objective(void)
                 // Look at the bomb objective
                 rotation.AimAt(vObjPos);
 
-                // Only hold USE once we're facing the bomb (within 15 degrees).
-                // Planting requires holding USE for ~5s straight — we can't
-                // release it or the timer resets.
-                if (rotation.IsNearTargetAngles(15.0f)) {
-                    m_botCmd.buttons |= BUTTON_USE;
-                } else {
-                    // Not facing the bomb yet — release USE and reset the
-                    // plant timer so it starts fresh once we're aimed
+                // USE key state machine:
+                // AIMING  -> face bomb, USE released
+                // EDGE    -> release USE for 1 frame (ensures rising edge next frame)
+                // HOLDING -> hold USE (DoUse fires on the first HOLDING frame)
+                switch (m_iUseState) {
+                case BOT_USE_AIMING:
                     m_botCmd.buttons &= ~BUTTON_USE;
+                    if (rotation.IsNearTargetAngles(15.0f)) {
+                        // Facing bomb — release USE this frame to guarantee
+                        // a clean rising edge next frame
+                        m_iUseState = BOT_USE_EDGE;
+
+                        if (g_bot_debug_obj->integer) {
+                            gi.Printf("BOT_OBJ [%s]: facing bomb, releasing USE for edge\n",
+                                controlledEnt->client->pers.netname);
+                        }
+                    }
+                    break;
+
+                case BOT_USE_EDGE:
+                    // Keep USE released for this one frame
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                    m_iUseState         = BOT_USE_HOLDING;
                     m_fPlantDefuseStart = level.time;
+
+                    if (g_bot_debug_obj->integer) {
+                        gi.Printf("BOT_OBJ [%s]: edge frame, will hold USE next frame\n",
+                            controlledEnt->client->pers.netname);
+                    }
+                    break;
+
+                case BOT_USE_HOLDING:
+                    // Hold USE continuously — DoUse fires on the first frame,
+                    // then map scripts check useheld each frame
+                    m_botCmd.buttons |= BUTTON_USE;
+
+                    if (g_bot_debug_obj->integer && level.inttime % 1000 < 50) {
+                        gi.Printf("BOT_OBJ [%s]: holding USE, %.1fs elapsed\n",
+                            controlledEnt->client->pers.netname,
+                            level.time - m_fPlantDefuseStart);
+                    }
+                    break;
                 }
 
                 // Check if plant is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
                     dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() + 1);
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                    m_iUseState       = BOT_USE_AIMING;
+
+                    if (g_bot_debug_obj->integer) {
+                        gi.Printf("BOT_OBJ [%s]: plant complete!\n",
+                            controlledEnt->client->pers.netname);
+                    }
                 }
             } else {
                 // Move toward objective (even during combat — attack state
@@ -1383,8 +1435,13 @@ void BotController::State_Objective(void)
         // Defending team logic
         //
         if (!bBombPlanted) {
-            // No bomb planted — defenders don't need to go to the bomb site.
-            // Let them roam freely (normal movement/combat behavior).
+            // No bomb planted — defenders roam freely.
+            // Clear any previous objective movement so bots don't rush a bomb site.
+            if (m_iObjectiveState != BOT_OBJ_STATE_NONE) {
+                movement.ClearMove();
+                m_iObjectiveState = BOT_OBJ_STATE_NONE;
+                m_iUseState       = BOT_USE_AIMING;
+            }
             return;
         } else {
             // Bomb is planted! Rush to defuse
@@ -1392,6 +1449,7 @@ void BotController::State_Objective(void)
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
+                    m_iUseState         = BOT_USE_AIMING;
                     m_fPlantDefuseStart = level.time;
                     m_fPlantHealthStart = controlledEnt->health;
                 }
@@ -1399,11 +1457,13 @@ void BotController::State_Objective(void)
                 // Check if defusing should be cancelled
                 if (controlledEnt->health < m_fPlantHealthStart) {
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    m_iUseState       = BOT_USE_AIMING;
                     return;
                 }
 
                 if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    m_iUseState       = BOT_USE_AIMING;
                     return;
                 }
 
@@ -1416,18 +1476,31 @@ void BotController::State_Objective(void)
                 // Look at the bomb objective
                 rotation.AimAt(vObjPos);
 
-                // Only hold USE once we're facing the bomb (within 15 degrees).
-                if (rotation.IsNearTargetAngles(15.0f)) {
-                    m_botCmd.buttons |= BUTTON_USE;
-                } else {
+                // USE key state machine (same as planting)
+                switch (m_iUseState) {
+                case BOT_USE_AIMING:
                     m_botCmd.buttons &= ~BUTTON_USE;
+                    if (rotation.IsNearTargetAngles(15.0f)) {
+                        m_iUseState = BOT_USE_EDGE;
+                    }
+                    break;
+
+                case BOT_USE_EDGE:
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                    m_iUseState         = BOT_USE_HOLDING;
                     m_fPlantDefuseStart = level.time;
+                    break;
+
+                case BOT_USE_HOLDING:
+                    m_botCmd.buttons |= BUTTON_USE;
+                    break;
                 }
 
                 // Check if defuse is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
                     dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() - 1);
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                    m_iUseState       = BOT_USE_AIMING;
                 }
             } else {
                 // Rush to bomb (even during combat)
