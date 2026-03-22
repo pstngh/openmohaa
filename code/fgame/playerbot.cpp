@@ -79,7 +79,9 @@ static void BotObjDebug(const char *fmt, ...)
 #define BOT_USE_HOLDING  2
 
 #define BOT_PLANT_DEFUSE_TIME   5.0f
+#define BOT_PLANT_TIMEOUT       8.0f   // Give up planting if script didn't fire after this long
 #define BOT_OBJ_PROXIMITY       96.0f
+#define BOT_OBJ_MAX_Z_DIFF      40.0f  // Max Z difference for planting/defusing (avoid wrong floor)
 #define BOT_OBJ_ENEMY_RANGE     512.0f
 #define BOT_OBJ_DEFEND_RADIUS   384.0f
 
@@ -1285,7 +1287,7 @@ bool BotController::CheckCondition_Objective(void)
                     bFound = true;
                 }
                 if (bFound && ent->entity->origin != vec_zero) {
-                    dmManager.AddBombSite(ent->entity->origin);
+                    dmManager.AddBombSite(ent->entity->origin, ent->s.number);
                     BotObjDebug(
                         "BOT_OBJ: Found bomb site #%d at (%g %g %g) entity '%s'\n",
                         dmManager.GetNumBombSites(),
@@ -1386,13 +1388,19 @@ void BotController::State_EndObjective(void)
     m_iUseState       = BOT_USE_AIMING;
 }
 
-bool BotController::IsNearObjective(float fRadius) const
+bool BotController::IsNearObjective(float fRadius, float fMaxZDiff) const
 {
     Vector vObjPos = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
     Vector vDelta  = controlledEnt->origin - vObjPos;
-    // Use XY distance only — bombs may be at a different Z height
-    // (on tables, elevated platforms, etc.) which inflates 3D distance
-    return vDelta.lengthXYSquared() <= fRadius * fRadius;
+    if (vDelta.lengthXYSquared() > fRadius * fRadius) {
+        return false;
+    }
+    // For planting/defusing, also check Z difference to avoid
+    // trying to interact with bombs on a different floor level
+    if (fMaxZDiff > 0 && fabs(vDelta[2]) > fMaxZDiff) {
+        return false;
+    }
+    return true;
 }
 
 bool BotController::IsEnemyNearby(float fRadius) const
@@ -1459,10 +1467,12 @@ void BotController::State_Objective(void)
         // Attacking team logic
         //
         if (!bMySitePlanted) {
+            // Check proximity with Z-difference validation to avoid
+            // trying to plant from the wrong floor level
+            bool bInRange = IsNearObjective(BOT_OBJ_PROXIMITY, BOT_OBJ_MAX_Z_DIFF);
+
             // Already in PLANTING state — stay in it regardless of distance
             // (don't let small drift reset the USE state machine)
-            bool bInRange = IsNearObjective(BOT_OBJ_PROXIMITY);
-
             if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || bInRange) {
                 // Try to claim the planter slot for this site
                 bool bIsPlanter = dmManager.ClaimBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
@@ -1494,11 +1504,21 @@ void BotController::State_Objective(void)
                     return;
                 }
 
-                // Stop moving and crouch while planting
+                // Stop moving while planting
                 movement.ClearMove();
                 m_botCmd.forwardmove = 0;
                 m_botCmd.rightmove   = 0;
-                m_botCmd.upmove      = -1;
+
+                // Only crouch if the bomb is at roughly the same height or below.
+                // If the bomb is significantly above (e.g. on a table/console),
+                // crouching lowers the view too much for the USE trace to reach
+                // the trigger_use brush.
+                float fZDiff = vObjPos[2] - controlledEnt->origin[2];
+                if (fZDiff > 20.0f) {
+                    m_botCmd.upmove = 0;  // stand — bomb is above us
+                } else {
+                    m_botCmd.upmove = -1; // crouch — bomb is at same level or below
+                }
 
                 // Look at the bomb objective
                 rotation.AimAt(vObjPos);
@@ -1536,17 +1556,45 @@ void BotController::State_Objective(void)
                     break;
                 }
 
-                // Check if plant is complete
-                if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
-                    dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() + 1);
-                    if (m_iBombSiteIndex >= 0) {
-                        dmManager.SetBombSitePlanted(m_iBombSiteIndex, true);
+                // Check if plant is complete by verifying the actual game state.
+                // The script changes the bomb model from pulse_explosive to explosive
+                // when planting succeeds. Don't rely solely on an internal timer —
+                // if the USE trace didn't reach the trigger, the script never fires.
+                {
+                    bool bPlantVerified = false;
+                    int  iBombEntnum    = dmManager.GetBombSiteEntnum(m_iBombSiteIndex);
+                    if (iBombEntnum >= 0 && iBombEntnum < globals.num_entities) {
+                        gentity_t *bombEnt = &g_entities[iBombEntnum];
+                        if (bombEnt->inuse && bombEnt->tiki && bombEnt->tiki->name) {
+                            // After planting, the script sets model to "items/explosive.tik"
+                            // (no longer "pulse_explosive")
+                            if (!strstr(bombEnt->tiki->name, "pulse_explosive")) {
+                                bPlantVerified = true;
+                            }
+                        }
                     }
-                    dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
-                    m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
-                    m_iUseState       = BOT_USE_AIMING;
-                    BotObjDebug("BOT_OBJ [%s]: plant complete on site %d!\n",
-                        controlledEnt->client->pers.netname, m_iBombSiteIndex);
+
+                    if (bPlantVerified) {
+                        // The game script confirmed the plant
+                        dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() + 1);
+                        if (m_iBombSiteIndex >= 0) {
+                            dmManager.SetBombSitePlanted(m_iBombSiteIndex, true);
+                        }
+                        dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+                        m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                        m_iUseState       = BOT_USE_AIMING;
+                        BotObjDebug("BOT_OBJ [%s]: plant verified on site %d!\n",
+                            controlledEnt->client->pers.netname, m_iBombSiteIndex);
+                    } else if (level.time - m_fPlantDefuseStart >= BOT_PLANT_TIMEOUT) {
+                        // Timeout — USE held long enough but script never completed.
+                        // The interaction likely failed (wrong position, trace blocked, etc.)
+                        // Release the slot and retry by going back to MOVING state.
+                        dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+                        m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                        m_iUseState       = BOT_USE_AIMING;
+                        BotObjDebug("BOT_OBJ [%s]: plant timeout on site %d, retrying\n",
+                            controlledEnt->client->pers.netname, m_iBombSiteIndex);
+                    }
                 }
             } else {
                 // Move toward objective (even during combat — attack state
@@ -1596,7 +1644,14 @@ void BotController::State_Objective(void)
                 }
             }
 
-            if (m_iObjectiveState == BOT_OBJ_STATE_DEFUSING || fBestDist <= BOT_OBJ_PROXIMITY) {
+            // Check Z difference for defusing — same issue as planting
+            bool bDefuseInRange = (m_iObjectiveState == BOT_OBJ_STATE_DEFUSING);
+            if (!bDefuseInRange && fBestDist <= BOT_OBJ_PROXIMITY) {
+                float fDefuseZDiff = fabs(controlledEnt->origin[2] - vDefusePos[2]);
+                bDefuseInRange = (fDefuseZDiff <= BOT_OBJ_MAX_Z_DIFF);
+            }
+
+            if (bDefuseInRange) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
@@ -1613,11 +1668,18 @@ void BotController::State_Objective(void)
                     return;
                 }
 
-                // Stop moving and crouch while defusing
+                // Stop moving while defusing
                 movement.ClearMove();
                 m_botCmd.forwardmove = 0;
                 m_botCmd.rightmove   = 0;
-                m_botCmd.upmove      = -1;
+
+                // Same crouch logic as planting — stand if bomb is above us
+                float fDefuseZ = vDefusePos[2] - controlledEnt->origin[2];
+                if (fDefuseZ > 20.0f) {
+                    m_botCmd.upmove = 0;
+                } else {
+                    m_botCmd.upmove = -1;
+                }
 
                 // Look at the bomb
                 rotation.AimAt(vDefusePos);
@@ -1642,14 +1704,36 @@ void BotController::State_Objective(void)
                     break;
                 }
 
-                // Check if defuse is complete
-                if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
-                    dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() - 1);
-                    if (iDefuseSite >= 0) {
-                        dmManager.SetBombSitePlanted(iDefuseSite, false);
+                // Check if defuse is complete by verifying the game state.
+                // When defused, the script sets the model back to pulse_explosive.
+                {
+                    bool bDefuseVerified = false;
+                    int  iBombEntnum     = dmManager.GetBombSiteEntnum(iDefuseSite);
+                    if (iBombEntnum >= 0 && iBombEntnum < globals.num_entities) {
+                        gentity_t *bombEnt = &g_entities[iBombEntnum];
+                        if (bombEnt->inuse && bombEnt->tiki && bombEnt->tiki->name) {
+                            // After defusing, the script sets model back to pulse_explosive
+                            if (strstr(bombEnt->tiki->name, "pulse_explosive")) {
+                                bDefuseVerified = true;
+                            }
+                        }
                     }
-                    m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
-                    m_iUseState       = BOT_USE_AIMING;
+
+                    if (bDefuseVerified) {
+                        dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() - 1);
+                        if (iDefuseSite >= 0) {
+                            dmManager.SetBombSitePlanted(iDefuseSite, false);
+                        }
+                        m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                        m_iUseState       = BOT_USE_AIMING;
+                        BotObjDebug("BOT_OBJ [%s]: defuse verified on site %d!\n",
+                            controlledEnt->client->pers.netname, iDefuseSite);
+                    } else if (level.time - m_fPlantDefuseStart >= BOT_PLANT_TIMEOUT) {
+                        m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                        m_iUseState       = BOT_USE_AIMING;
+                        BotObjDebug("BOT_OBJ [%s]: defuse timeout on site %d, retrying\n",
+                            controlledEnt->client->pers.netname, iDefuseSite);
+                    }
                 }
             } else {
                 // Rush to nearest planted bomb (even during combat)

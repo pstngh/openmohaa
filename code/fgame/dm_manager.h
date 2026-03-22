@@ -190,6 +190,7 @@ private:
     // Multiple bomb sites for distributing bots
     static const int MAX_BOMB_SITES = 8;
     Vector m_vBombSites[MAX_BOMB_SITES];
+    int    m_iBombSiteEntnum[MAX_BOMB_SITES];   // entnum of the bomb entity (pulse_explosive)
     bool   m_bBombSitePlanted[MAX_BOMB_SITES];
     int    m_iBombSitePlanter[MAX_BOMB_SITES];  // entnum of the bot planting (-1 = none)
     int    m_iNumBombSites;
@@ -279,7 +280,8 @@ public:
     // Bomb site management
     int           GetNumBombSites(void) const;
     const Vector& GetBombSite(int index) const;
-    void          AddBombSite(const Vector& vPos);
+    int           GetBombSiteEntnum(int index) const;
+    void          AddBombSite(const Vector& vPos, int entnum);
     void          ClearBombSites(void);
     bool          IsBombSitePlanted(int index) const;
     void          SetBombSitePlanted(int index, bool planted);

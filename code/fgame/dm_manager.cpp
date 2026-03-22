@@ -1800,9 +1800,18 @@ const Vector& DM_Manager::GetBombSite(int index) const
     return m_vBombSites[index];
 }
 
-void DM_Manager::AddBombSite(const Vector& vPos)
+int DM_Manager::GetBombSiteEntnum(int index) const
+{
+    if (index < 0 || index >= m_iNumBombSites) {
+        return -1;
+    }
+    return m_iBombSiteEntnum[index];
+}
+
+void DM_Manager::AddBombSite(const Vector& vPos, int entnum)
 {
     if (m_iNumBombSites < MAX_BOMB_SITES) {
+        m_iBombSiteEntnum[m_iNumBombSites] = entnum;
         m_vBombSites[m_iNumBombSites++] = vPos;
     }
 }
@@ -1811,6 +1820,7 @@ void DM_Manager::ClearBombSites(void)
 {
     m_iNumBombSites = 0;
     memset(m_bBombSitePlanted, 0, sizeof(m_bBombSitePlanted));
+    memset(m_iBombSiteEntnum, -1, sizeof(m_iBombSiteEntnum));
     for (int i = 0; i < MAX_BOMB_SITES; i++) {
         m_iBombSitePlanter[i] = -1;
     }

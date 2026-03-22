@@ -251,7 +251,7 @@ private:
     void        State_BeginObjective(void);
     void        State_EndObjective(void);
     void        State_Objective(void);
-    bool        IsNearObjective(float fRadius) const;
+    bool        IsNearObjective(float fRadius, float fMaxZDiff = 0) const;
     bool        IsEnemyNearby(float fRadius) const;
 
     static void InitState_Weapon(botfunc_t *func);
