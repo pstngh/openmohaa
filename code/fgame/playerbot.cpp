@@ -1081,6 +1081,34 @@ bool BotController::CheckCondition_Objective(void)
             }
         }
 
+        // One-time entity dump for diagnostics (always runs before discovery)
+        if (bDebug) {
+            static bool bDumped = false;
+            if (!bDumped) {
+                bDumped = true;
+                gi.DPrintf("BOT_OBJ: Entity dump for objective discovery:\n");
+                for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
+                    if (!ent->inuse || !ent->entity) {
+                        continue;
+                    }
+                    const char *cls  = ent->entity->getClassID();
+                    const char *tnam = ent->entity->TargetName().c_str();
+                    const char *mdl  = ent->entity->model.c_str();
+                    if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0)) {
+                        gi.DPrintf(
+                            "  [%d] class='%s' targetname='%s' model='%s' origin=(%.0f %.0f %.0f)"
+                            " absmin=(%.0f %.0f %.0f) absmax=(%.0f %.0f %.0f)\n",
+                            ent->entity->entnum, cls,
+                            tnam, mdl,
+                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2],
+                            ent->entity->absmin[0], ent->entity->absmin[1], ent->entity->absmin[2],
+                            ent->entity->absmax[0], ent->entity->absmax[1], ent->entity->absmax[2]
+                        );
+                    }
+                }
+            }
+        }
+
         // 5. Find bomb explosive entities (script_model with pulse_explosive model).
         //    These are the actual bomb plant sites in obj_ maps.
         if (vFallback == vec_zero) {
@@ -1114,29 +1142,6 @@ bool BotController::CheckCondition_Objective(void)
 
         if (vFallback == vec_zero) {
             if (bDebug) {
-                // One-time entity class dump for diagnostics
-                static bool bDumped = false;
-                if (!bDumped) {
-                    bDumped = true;
-                    gi.DPrintf("BOT_OBJ: Entity dump for objective discovery:\n");
-                    for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
-                        if (!ent->inuse || !ent->entity) {
-                            continue;
-                        }
-                        const char *cls  = ent->entity->getClassID();
-                        const char *tnam = ent->entity->TargetName().c_str();
-                        const char *mdl  = ent->entity->model.c_str();
-                        if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0)) {
-                            gi.DPrintf(
-                                "  [%d] class='%s' targetname='%s' model='%s' origin=(%.0f %.0f %.0f)\n",
-                                ent->entity->entnum, cls,
-                                tnam, mdl,
-                                ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2]
-                            );
-                        }
-                    }
-                }
-
                 gi.DPrintf(
                     "BOT_OBJ [%s]: No objective location found. gametype=%d, "
                     "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
