@@ -35,6 +35,31 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "windows.h"
 #include "g_bot.h"
 
+// Debug logging helper — writes to both console and bot_obj_debug.log
+static void BotObjDebug(const char *fmt, ...)
+{
+    if (!g_bot_debug_obj->integer) {
+        return;
+    }
+
+    char    buf[1024];
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    gi.Printf("%s", buf);
+
+    fileHandle_t f = gi.FS_FOpenFileAppend("bot_obj_debug.log");
+    if (f) {
+        char line[1100];
+        int  len = snprintf(line, sizeof(line), "[%.2f] %s", level.time, buf);
+        gi.FS_Write(line, len, f);
+        gi.FS_FCloseFile(f);
+    }
+}
+
 // We assume that we have limited access to the server-side
 // and that most logic come from the playerstate_s structure
 
@@ -1178,14 +1203,12 @@ bool BotController::CheckCondition_Objective(void)
                 }
                 if (bFound && ent->entity->origin != vec_zero) {
                     dmManager.AddBombSite(ent->entity->origin);
-                    if (bDebug) {
-                        gi.Printf(
-                            "BOT_OBJ: Found bomb site #%d at (%g %g %g) entity '%s'\n",
-                            dmManager.GetNumBombSites(),
-                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2],
-                            ent->entity->TargetName().c_str()
-                        );
-                    }
+                    BotObjDebug(
+                        "BOT_OBJ: Found bomb site #%d at (%g %g %g) entity '%s'\n",
+                        dmManager.GetNumBombSites(),
+                        ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2],
+                        ent->entity->TargetName().c_str()
+                    );
                     if (vFallback == vec_zero) {
                         vFallback = ent->entity->origin;
                         source    = va("bomb model entity '%s'", ent->entity->TargetName().c_str());
@@ -1210,30 +1233,26 @@ bool BotController::CheckCondition_Objective(void)
         }
 
         if (vFallback == vec_zero) {
-            if (bDebug) {
-                gi.Printf(
-                    "BOT_OBJ [%s]: No objective location found. gametype=%d, "
-                    "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
-                    controlledEnt->client->pers.netname,
-                    g_gametype->integer,
-                    level.m_vObjectiveLocation[0], level.m_vObjectiveLocation[1], level.m_vObjectiveLocation[2],
-                    level.m_vAlliedObjectiveLocation[0], level.m_vAlliedObjectiveLocation[1], level.m_vAlliedObjectiveLocation[2],
-                    level.m_vAxisObjectiveLocation[0], level.m_vAxisObjectiveLocation[1], level.m_vAxisObjectiveLocation[2]
-                );
-            }
+            BotObjDebug(
+                "BOT_OBJ [%s]: No objective location found. gametype=%d, "
+                "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
+                controlledEnt->client->pers.netname,
+                g_gametype->integer,
+                level.m_vObjectiveLocation[0], level.m_vObjectiveLocation[1], level.m_vObjectiveLocation[2],
+                level.m_vAlliedObjectiveLocation[0], level.m_vAlliedObjectiveLocation[1], level.m_vAlliedObjectiveLocation[2],
+                level.m_vAxisObjectiveLocation[0], level.m_vAxisObjectiveLocation[1], level.m_vAxisObjectiveLocation[2]
+            );
             return false;
         }
 
         dmManager.SetBotObjectiveLocation(vFallback);
 
-        if (bDebug) {
-            gi.Printf(
-                "BOT_OBJ [%s]: Objective set to (%g %g %g) from %s\n",
-                controlledEnt->client->pers.netname,
-                vFallback[0], vFallback[1], vFallback[2],
-                source
-            );
-        }
+        BotObjDebug(
+            "BOT_OBJ [%s]: Objective set to (%g %g %g) from %s\n",
+            controlledEnt->client->pers.netname,
+            vFallback[0], vFallback[1], vFallback[2],
+            source
+        );
     }
 
     return true;
@@ -1262,18 +1281,16 @@ void BotController::State_BeginObjective(void)
         m_vMyObjective   = dmManager.GetBombSite(m_iBombSiteIndex);
     }
 
-    if (g_bot_debug_obj->integer) {
-        gi.Printf(
-            "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, "
-            "bombSites=%d, myObj=(%g %g %g)\n",
-            controlledEnt->client->pers.netname,
-            controlledEnt->GetTeam(),
-            (int)dmManager.GetBombPlantTeam(),
-            m_bIsOnBombTeam,
-            dmManager.GetNumBombSites(),
-            m_vMyObjective[0], m_vMyObjective[1], m_vMyObjective[2]
-        );
-    }
+    BotObjDebug(
+        "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, "
+        "bombSites=%d, myObj=(%g %g %g)\n",
+        controlledEnt->client->pers.netname,
+        controlledEnt->GetTeam(),
+        (int)dmManager.GetBombPlantTeam(),
+        m_bIsOnBombTeam,
+        dmManager.GetNumBombSites(),
+        m_vMyObjective[0], m_vMyObjective[1], m_vMyObjective[2]
+    );
 }
 
 void BotController::State_EndObjective(void)
@@ -1326,9 +1343,9 @@ void BotController::State_Objective(void)
     bool   bInCombat       = m_iAttackTime != 0;
 
     // Periodic debug logging (every 2 seconds)
-    if (g_bot_debug_obj->integer && level.inttime % 2000 < 50) {
+    if (level.inttime % 2000 < 50) {
         Vector vDelta = controlledEnt->origin - vObjPos;
-        gi.Printf(
+        BotObjDebug(
             "BOT_OBJ [%s]: state=%d useState=%d inCombat=%d bombTeam=%d anyPlanted=%d mySitePlanted=%d site=%d "
             "distXY=%.0f dist3D=%.0f pos=(%.0f %.0f %.0f) myObj=(%.0f %.0f %.0f) moving=%d\n",
             controlledEnt->client->pers.netname,
@@ -1412,11 +1429,8 @@ void BotController::State_Objective(void)
                     m_botCmd.buttons &= ~BUTTON_USE;
                     if (rotation.IsNearTargetAngles(15.0f)) {
                         m_iUseState = BOT_USE_EDGE;
-
-                        if (g_bot_debug_obj->integer) {
-                            gi.Printf("BOT_OBJ [%s]: facing bomb, releasing USE for edge\n",
-                                controlledEnt->client->pers.netname);
-                        }
+                        BotObjDebug("BOT_OBJ [%s]: facing bomb, releasing USE for edge\n",
+                            controlledEnt->client->pers.netname);
                     }
                     break;
 
@@ -1424,18 +1438,15 @@ void BotController::State_Objective(void)
                     m_botCmd.buttons &= ~BUTTON_USE;
                     m_iUseState         = BOT_USE_HOLDING;
                     m_fPlantDefuseStart = level.time;
-
-                    if (g_bot_debug_obj->integer) {
-                        gi.Printf("BOT_OBJ [%s]: edge frame, will hold USE next frame\n",
-                            controlledEnt->client->pers.netname);
-                    }
+                    BotObjDebug("BOT_OBJ [%s]: edge frame, will hold USE next frame\n",
+                        controlledEnt->client->pers.netname);
                     break;
 
                 case BOT_USE_HOLDING:
                     m_botCmd.buttons |= BUTTON_USE;
 
-                    if (g_bot_debug_obj->integer && level.inttime % 1000 < 50) {
-                        gi.Printf("BOT_OBJ [%s]: holding USE, %.1fs elapsed\n",
+                    if (level.inttime % 1000 < 50) {
+                        BotObjDebug("BOT_OBJ [%s]: holding USE, %.1fs elapsed\n",
                             controlledEnt->client->pers.netname,
                             level.time - m_fPlantDefuseStart);
                     }
@@ -1451,11 +1462,8 @@ void BotController::State_Objective(void)
                     dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                     m_iUseState       = BOT_USE_AIMING;
-
-                    if (g_bot_debug_obj->integer) {
-                        gi.Printf("BOT_OBJ [%s]: plant complete on site %d!\n",
-                            controlledEnt->client->pers.netname, m_iBombSiteIndex);
-                    }
+                    BotObjDebug("BOT_OBJ [%s]: plant complete on site %d!\n",
+                        controlledEnt->client->pers.netname, m_iBombSiteIndex);
                 }
             } else {
                 // Move toward objective (even during combat — attack state
