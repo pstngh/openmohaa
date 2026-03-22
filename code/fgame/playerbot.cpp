@@ -1603,14 +1603,35 @@ void BotController::State_Objective(void)
                 movement.MoveTo(vObjPos);
             }
         } else {
-            // Bomb is planted, defend it
-            m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
-            if (!IsNearObjective(BOT_OBJ_DEFEND_RADIUS)) {
-                movement.MoveNear(vObjPos, BOT_OBJ_DEFEND_RADIUS);
-            } else if (!movement.IsMoving()) {
-                // Patrol around the bomb site
-                Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
-                movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS * 0.5f);
+            // My site is planted. Check if another site was defused and needs replanting.
+            bool bReassigned = false;
+            for (int s = 0; s < dmManager.GetNumBombSites(); s++) {
+                if (s != m_iBombSiteIndex && !dmManager.IsBombSitePlanted(s)) {
+                    // Site s is not planted — reassign to go plant it
+                    BotObjDebug("BOT_OBJ [%s]: site %d planted, reassigning to unplanted site %d\n",
+                        controlledEnt->client->pers.netname, m_iBombSiteIndex, s);
+                    dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+                    m_iBombSiteIndex  = s;
+                    m_vMyObjective    = dmManager.GetBombSite(s);
+                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
+                    m_iUseState       = BOT_USE_AIMING;
+                    vObjPos           = m_vMyObjective;
+                    movement.MoveTo(vObjPos);
+                    bReassigned = true;
+                    break;
+                }
+            }
+
+            if (!bReassigned) {
+                // All sites planted — defend this one
+                m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                if (!IsNearObjective(BOT_OBJ_DEFEND_RADIUS)) {
+                    movement.MoveNear(vObjPos, BOT_OBJ_DEFEND_RADIUS);
+                } else if (!movement.IsMoving()) {
+                    // Patrol around the bomb site
+                    Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
+                    movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS * 0.5f);
+                }
             }
         }
     } else {
