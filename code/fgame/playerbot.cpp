@@ -1082,29 +1082,39 @@ bool BotController::CheckCondition_Objective(void)
             }
         }
 
-        // One-time entity dump for diagnostics (always runs before discovery)
+        // One-time entity dump for diagnostics (written to bot_obj_dump.txt)
         if (bDebug) {
             static bool bDumped = false;
             if (!bDumped) {
                 bDumped = true;
-                gi.Printf("BOT_OBJ: Entity dump for objective discovery:\n");
-                for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
-                    if (!ent->inuse || !ent->entity) {
-                        continue;
+                fileHandle_t f = gi.FS_FOpenFileWrite("bot_obj_dump.txt");
+                if (f) {
+                    const char *header = "BOT_OBJ: Entity dump for objective discovery:\n";
+                    gi.FS_Write(header, strlen(header), f);
+                    for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
+                        if (!ent->inuse || !ent->entity) {
+                            continue;
+                        }
+                        const char *cls  = ent->entity->getClassID();
+                        const char *tnam = ent->entity->TargetName().c_str();
+                        const char *mdl  = ent->entity->model.c_str();
+                        const char *tiki = ent->tiki ? ent->tiki->name : "";
+                        if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0) || tiki[0]) {
+                            char line[512];
+                            int len = snprintf(line, sizeof(line),
+                                "  [%d] class='%s' tname='%s' model='%s' tiki='%s'"
+                                " org=(%.0f %.0f %.0f)\n",
+                                ent->entity->entnum, cls,
+                                tnam, mdl, tiki,
+                                ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2]
+                            );
+                            if (len > 0) {
+                                gi.FS_Write(line, len, f);
+                            }
+                        }
                     }
-                    const char *cls  = ent->entity->getClassID();
-                    const char *tnam = ent->entity->TargetName().c_str();
-                    const char *mdl  = ent->entity->model.c_str();
-                    const char *tiki = ent->tiki ? ent->tiki->name : "";
-                    if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0) || tiki[0]) {
-                        gi.Printf(
-                            "  [%d] class='%s' tname='%s' model='%s' tiki='%s'"
-                            " org=(%.0f %.0f %.0f)\n",
-                            ent->entity->entnum, cls,
-                            tnam, mdl, tiki,
-                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2]
-                        );
-                    }
+                    gi.FS_FCloseFile(f);
+                    gi.Printf("BOT_OBJ: Entity dump written to bot_obj_dump.txt\n");
                 }
             }
         }
