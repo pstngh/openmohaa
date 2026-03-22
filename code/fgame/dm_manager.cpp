@@ -1811,6 +1811,9 @@ void DM_Manager::ClearBombSites(void)
 {
     m_iNumBombSites = 0;
     memset(m_bBombSitePlanted, 0, sizeof(m_bBombSitePlanted));
+    for (int i = 0; i < MAX_BOMB_SITES; i++) {
+        m_iBombSitePlanter[i] = -1;
+    }
 }
 
 bool DM_Manager::IsBombSitePlanted(int index) const
@@ -1825,6 +1828,42 @@ void DM_Manager::SetBombSitePlanted(int index, bool planted)
 {
     if (index >= 0 && index < m_iNumBombSites) {
         m_bBombSitePlanted[index] = planted;
+    }
+}
+
+int DM_Manager::GetBombSitePlanter(int index) const
+{
+    if (index < 0 || index >= m_iNumBombSites) {
+        return -1;
+    }
+    return m_iBombSitePlanter[index];
+}
+
+bool DM_Manager::ClaimBombSitePlanter(int index, int entnum)
+{
+    if (index < 0 || index >= m_iNumBombSites) {
+        return false;
+    }
+
+    // Check if the current planter is still valid (alive and in-game)
+    if (m_iBombSitePlanter[index] != -1 && m_iBombSitePlanter[index] != entnum) {
+        gentity_t *planterEnt = &g_entities[m_iBombSitePlanter[index]];
+        if (!planterEnt->inuse || !planterEnt->entity || planterEnt->entity->IsDead()) {
+            m_iBombSitePlanter[index] = -1;
+        }
+    }
+
+    if (m_iBombSitePlanter[index] == -1 || m_iBombSitePlanter[index] == entnum) {
+        m_iBombSitePlanter[index] = entnum;
+        return true;
+    }
+    return false;
+}
+
+void DM_Manager::ReleaseBombSitePlanter(int index, int entnum)
+{
+    if (index >= 0 && index < m_iNumBombSites && m_iBombSitePlanter[index] == entnum) {
+        m_iBombSitePlanter[index] = -1;
     }
 }
 

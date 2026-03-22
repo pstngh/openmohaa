@@ -1347,7 +1347,12 @@ void BotController::State_BeginObjective(void)
 
 void BotController::State_EndObjective(void)
 {
+    // Release planter slot if we were planting
+    if (m_iBombSiteIndex >= 0) {
+        dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+    }
     m_iObjectiveState = BOT_OBJ_STATE_NONE;
+    m_iUseState       = BOT_USE_AIMING;
 }
 
 bool BotController::IsNearObjective(float fRadius) const
@@ -1402,13 +1407,12 @@ void BotController::State_Objective(void)
         );
     }
 
-    // Cancel plant/defuse if we enter combat, but only if we haven't
-    // committed to holding USE yet (once holding, we must not interrupt
-    // or the 5-second plant/defuse timer resets)
-    if (bInCombat && m_iUseState < BOT_USE_HOLDING
+    // Cancel plant/defuse if we enter combat, but only while still
+    // aiming. Once the USE key sequence has started (EDGE or HOLDING),
+    // we must commit or the plant/defuse timer resets.
+    if (bInCombat && m_iUseState == BOT_USE_AIMING
         && (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING)) {
         m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-        m_iUseState       = BOT_USE_AIMING;
     }
 
     // Suppress fire when not in combat, or when actively planting/defusing
@@ -1425,9 +1429,23 @@ void BotController::State_Objective(void)
         // Attacking team logic
         //
         if (!bMySitePlanted) {
-            // Need to plant our assigned bomb — commit once close enough,
-            // regardless of combat (attack state skips movement while planting)
+            // Need to plant our assigned bomb.
+            // Only ONE bot per site can plant — the rest provide cover.
             if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+                // Try to claim the planter slot for this site
+                bool bIsPlanter = dmManager.ClaimBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+
+                if (!bIsPlanter) {
+                    // Someone else is planting — defend the area
+                    m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
+                    m_iUseState       = BOT_USE_AIMING;
+                    if (!movement.IsMoving()) {
+                        Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
+                        movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS * 0.5f);
+                    }
+                    return;
+                }
+
                 if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
                     // Start planting
                     m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
@@ -1436,9 +1454,9 @@ void BotController::State_Objective(void)
                     m_fPlantHealthStart = controlledEnt->health;
                 }
 
-                // Abort planting only if we took damage — commit to
-                // planting even if enemies are nearby
+                // Abort if we took damage — release the planter slot
                 if (controlledEnt->health < m_fPlantHealthStart) {
+                    dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
                     m_iUseState       = BOT_USE_AIMING;
                     return;
@@ -1461,8 +1479,6 @@ void BotController::State_Objective(void)
                 case BOT_USE_AIMING:
                     m_botCmd.buttons &= ~BUTTON_USE;
                     if (rotation.IsNearTargetAngles(15.0f)) {
-                        // Facing bomb — release USE this frame to guarantee
-                        // a clean rising edge next frame
                         m_iUseState = BOT_USE_EDGE;
 
                         if (g_bot_debug_obj->integer) {
@@ -1473,7 +1489,6 @@ void BotController::State_Objective(void)
                     break;
 
                 case BOT_USE_EDGE:
-                    // Keep USE released for this one frame
                     m_botCmd.buttons &= ~BUTTON_USE;
                     m_iUseState         = BOT_USE_HOLDING;
                     m_fPlantDefuseStart = level.time;
@@ -1485,8 +1500,6 @@ void BotController::State_Objective(void)
                     break;
 
                 case BOT_USE_HOLDING:
-                    // Hold USE continuously — DoUse fires on the first frame,
-                    // then map scripts check useheld each frame
                     m_botCmd.buttons |= BUTTON_USE;
 
                     if (g_bot_debug_obj->integer && level.inttime % 1000 < 50) {
@@ -1503,6 +1516,7 @@ void BotController::State_Objective(void)
                     if (m_iBombSiteIndex >= 0) {
                         dmManager.SetBombSitePlanted(m_iBombSiteIndex, true);
                     }
+                    dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                     m_iUseState       = BOT_USE_AIMING;
 
@@ -1782,6 +1796,13 @@ void BotController::Think()
 void BotController::Killed(const Event& ev)
 {
     Entity *attacker;
+
+    // Release planter slot on death
+    if (m_iBombSiteIndex >= 0) {
+        dmManager.ReleaseBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
+    }
+    m_iObjectiveState = BOT_OBJ_STATE_NONE;
+    m_iUseState       = BOT_USE_AIMING;
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {
