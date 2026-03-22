@@ -93,6 +93,7 @@ BotController::BotController()
     m_fPlantDefuseStart = 0;
     m_fPlantHealthStart = 0;
     m_bIsOnBombTeam     = false;
+    m_vMyObjective      = vec_zero;
 
     m_StateFlags = 0;
 }
@@ -1201,7 +1202,9 @@ bool BotController::CheckCondition_Objective(void)
         // 5. Find bomb explosive entities by tiki model name.
         //    In obj_ maps, bomb plant sites are script_model entities with
         //    the "pulse_explosive" tiki model.
+        //    Collect ALL bomb sites so attacking bots can be split among them.
         if (vFallback == vec_zero) {
+            dmManager.ClearBombSites();
             for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
                 if (!ent->inuse || !ent->entity) {
                     continue;
@@ -1217,9 +1220,19 @@ bool BotController::CheckCondition_Objective(void)
                     bFound = true;
                 }
                 if (bFound && ent->entity->origin != vec_zero) {
-                    vFallback = ent->entity->origin;
-                    source    = va("bomb model entity '%s'", ent->entity->TargetName().c_str());
-                    break;
+                    dmManager.AddBombSite(ent->entity->origin);
+                    if (bDebug) {
+                        gi.Printf(
+                            "BOT_OBJ: Found bomb site #%d at (%g %g %g) entity '%s'\n",
+                            dmManager.GetNumBombSites(),
+                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2],
+                            ent->entity->TargetName().c_str()
+                        );
+                    }
+                    if (vFallback == vec_zero) {
+                        vFallback = ent->entity->origin;
+                        source    = va("bomb model entity '%s'", ent->entity->TargetName().c_str());
+                    }
                 }
             }
         }
@@ -1283,15 +1296,24 @@ void BotController::State_BeginObjective(void)
         m_bIsOnBombTeam = true;
     }
 
+    // Assign this bot a bomb site. Split attacking bots across available
+    // bomb sites using their entity number so they don't all rush the same one.
+    m_vMyObjective = dmManager.GetBotObjectiveLocation();
+    if (m_bIsOnBombTeam && dmManager.GetNumBombSites() > 1) {
+        int siteIndex = controlledEnt->entnum % dmManager.GetNumBombSites();
+        m_vMyObjective = dmManager.GetBombSite(siteIndex);
+    }
+
     if (g_bot_debug_obj->integer) {
-        Vector vObjPos = dmManager.GetBotObjectiveLocation();
         gi.Printf(
-            "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, objPos=(%g %g %g)\n",
+            "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, "
+            "bombSites=%d, myObj=(%g %g %g)\n",
             controlledEnt->client->pers.netname,
             controlledEnt->GetTeam(),
             (int)dmManager.GetBombPlantTeam(),
             m_bIsOnBombTeam,
-            vObjPos[0], vObjPos[1], vObjPos[2]
+            dmManager.GetNumBombSites(),
+            m_vMyObjective[0], m_vMyObjective[1], m_vMyObjective[2]
         );
     }
 }
@@ -1303,7 +1325,7 @@ void BotController::State_EndObjective(void)
 
 bool BotController::IsNearObjective(float fRadius) const
 {
-    Vector vObjPos = dmManager.GetBotObjectiveLocation();
+    Vector vObjPos = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
     Vector vDelta  = controlledEnt->origin - vObjPos;
     return vDelta.lengthSquared() <= fRadius * fRadius;
 }
@@ -1332,7 +1354,8 @@ bool BotController::IsEnemyNearby(float fRadius) const
 
 void BotController::State_Objective(void)
 {
-    Vector vObjPos      = dmManager.GetBotObjectiveLocation();
+    // Attackers use their assigned bomb site, defenders use the shared location
+    Vector vObjPos      = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
     bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
     bool   bInCombat    = m_iAttackTime != 0;
 
@@ -1341,7 +1364,7 @@ void BotController::State_Objective(void)
         Vector vDelta = controlledEnt->origin - vObjPos;
         gi.Printf(
             "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d bombPlanted=%d "
-            "dist=%.0f pos=(%.0f %.0f %.0f) obj=(%.0f %.0f %.0f) moving=%d\n",
+            "dist=%.0f pos=(%.0f %.0f %.0f) myObj=(%.0f %.0f %.0f) moving=%d\n",
             controlledEnt->client->pers.netname,
             m_iObjectiveState, bInCombat, m_bIsOnBombTeam, bBombPlanted,
             vDelta.length(),

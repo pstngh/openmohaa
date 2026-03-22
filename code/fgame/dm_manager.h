@@ -187,6 +187,11 @@ private:
     Vector m_vBotObjectiveLocation;
     bool   m_bBotObjectiveSet;
 
+    // Multiple bomb sites for distributing bots
+    static const int MAX_BOMB_SITES = 8;
+    Vector m_vBombSites[MAX_BOMB_SITES];
+    int    m_iNumBombSites;
+
     // scoreboard data
     char   scoreString[MAX_STRING_CHARS];
     size_t scoreLength;
@@ -268,6 +273,12 @@ public:
     const Vector& GetBotObjectiveLocation(void) const;
     void          SetBotObjectiveLocation(const Vector& vPos);
     bool          IsBotObjectiveSet(void) const;
+
+    // Bomb site management
+    int           GetNumBombSites(void) const;
+    const Vector& GetBombSite(int index) const;
+    void          AddBombSite(const Vector& vPos);
+    void          ClearBombSites(void);
 
 protected:
     static int compareScores(const void *elem1, const void *elem2);

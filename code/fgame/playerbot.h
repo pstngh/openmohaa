@@ -186,10 +186,11 @@ private:
     int               m_iEnemyEyesTag;
 
     // Objective state
-    int   m_iObjectiveState;     // 0=none, 1=moving_to_obj, 2=planting, 3=defending, 4=defusing
-    float m_fPlantDefuseStart;   // When bot started planting/defusing
-    float m_fPlantHealthStart;   // Bot health when plant/defuse started
-    bool  m_bIsOnBombTeam;       // Is this bot on the planting team?
+    int    m_iObjectiveState;     // 0=none, 1=moving_to_obj, 2=planting, 3=defending, 4=defusing
+    float  m_fPlantDefuseStart;  // When bot started planting/defusing
+    float  m_fPlantHealthStart;  // Bot health when plant/defuse started
+    bool   m_bIsOnBombTeam;      // Is this bot on the planting team?
+    Vector m_vMyObjective;       // Per-bot assigned bomb site
 
     // Input
     usercmd_t  m_botCmd;
