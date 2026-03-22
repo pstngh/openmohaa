@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "consoleevent.h"
 #include "debuglines.h"
+#include "../corepp/tiki.h"
 #include "scriptexception.h"
 #include "vehicleturret.h"
 #include "weaputils.h"
