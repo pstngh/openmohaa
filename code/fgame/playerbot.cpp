@@ -1343,15 +1343,9 @@ void BotController::State_Objective(void)
         // Defending team logic
         //
         if (!bBombPlanted) {
-            // No bomb planted, patrol near objective
-            m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
-            if (!IsNearObjective(BOT_OBJ_DEFEND_RADIUS * 2)) {
-                movement.MoveNear(vObjPos, BOT_OBJ_DEFEND_RADIUS);
-            } else if (!movement.IsMoving()) {
-                // Lurk around the objective area
-                Vector randomDir(G_CRandom(8), G_CRandom(8), 0);
-                movement.MoveNear(vObjPos + randomDir, BOT_OBJ_DEFEND_RADIUS);
-            }
+            // No bomb planted — defenders don't need to go to the bomb site.
+            // Let them roam freely (normal movement/combat behavior).
+            return;
         } else {
             // Bomb is planted! Rush to defuse
             if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
