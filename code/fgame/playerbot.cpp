@@ -1094,30 +1094,39 @@ bool BotController::CheckCondition_Objective(void)
                     const char *cls  = ent->entity->getClassID();
                     const char *tnam = ent->entity->TargetName().c_str();
                     const char *mdl  = ent->entity->model.c_str();
-                    if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0)) {
+                    const char *tiki = ent->tiki ? ent->tiki->name : "";
+                    if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0) || tiki[0]) {
                         gi.DPrintf(
-                            "  [%d] class='%s' targetname='%s' model='%s' origin=(%.0f %.0f %.0f)"
-                            " absmin=(%.0f %.0f %.0f) absmax=(%.0f %.0f %.0f)\n",
+                            "  [%d] class='%s' tname='%s' model='%s' tiki='%s'"
+                            " org=(%.0f %.0f %.0f)\n",
                             ent->entity->entnum, cls,
-                            tnam, mdl,
-                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2],
-                            ent->entity->absmin[0], ent->entity->absmin[1], ent->entity->absmin[2],
-                            ent->entity->absmax[0], ent->entity->absmax[1], ent->entity->absmax[2]
+                            tnam, mdl, tiki,
+                            ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2]
                         );
                     }
                 }
             }
         }
 
-        // 5. Find bomb explosive entities (script_model with pulse_explosive model).
-        //    These are the actual bomb plant sites in obj_ maps.
+        // 5. Find bomb explosive entities by tiki model name.
+        //    In obj_ maps, bomb plant sites are script_model entities with
+        //    the "pulse_explosive" tiki model.
         if (vFallback == vec_zero) {
             for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
                 if (!ent->inuse || !ent->entity) {
                     continue;
                 }
+                // Check both Entity::model and edict->tiki->name
+                bool bFound = false;
                 if (ent->entity->model.length() > 0
                     && strstr(ent->entity->model.c_str(), "pulse_explosive")) {
+                    bFound = true;
+                }
+                if (!bFound && ent->tiki && ent->tiki->name
+                    && strstr(ent->tiki->name, "pulse_explosive")) {
+                    bFound = true;
+                }
+                if (bFound && ent->entity->origin != vec_zero) {
                     vFallback = ent->entity->origin;
                     source    = va("bomb model entity '%s'", ent->entity->TargetName().c_str());
                     break;
