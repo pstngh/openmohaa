@@ -1086,7 +1086,7 @@ bool BotController::CheckCondition_Objective(void)
             static bool bDumped = false;
             if (!bDumped) {
                 bDumped = true;
-                gi.DPrintf("BOT_OBJ: Entity dump for objective discovery:\n");
+                gi.Printf("BOT_OBJ: Entity dump for objective discovery:\n");
                 for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
                     if (!ent->inuse || !ent->entity) {
                         continue;
@@ -1096,7 +1096,7 @@ bool BotController::CheckCondition_Objective(void)
                     const char *mdl  = ent->entity->model.c_str();
                     const char *tiki = ent->tiki ? ent->tiki->name : "";
                     if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0) || tiki[0]) {
-                        gi.DPrintf(
+                        gi.Printf(
                             "  [%d] class='%s' tname='%s' model='%s' tiki='%s'"
                             " org=(%.0f %.0f %.0f)\n",
                             ent->entity->entnum, cls,
@@ -1151,7 +1151,7 @@ bool BotController::CheckCondition_Objective(void)
 
         if (vFallback == vec_zero) {
             if (bDebug) {
-                gi.DPrintf(
+                gi.Printf(
                     "BOT_OBJ [%s]: No objective location found. gametype=%d, "
                     "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
                     controlledEnt->client->pers.netname,
@@ -1167,7 +1167,7 @@ bool BotController::CheckCondition_Objective(void)
         dmManager.SetBotObjectiveLocation(vFallback);
 
         if (bDebug) {
-            gi.DPrintf(
+            gi.Printf(
                 "BOT_OBJ [%s]: Objective set to (%g %g %g) from %s\n",
                 controlledEnt->client->pers.netname,
                 vFallback[0], vFallback[1], vFallback[2],
@@ -1195,7 +1195,7 @@ void BotController::State_BeginObjective(void)
 
     if (g_bot_debug_obj->integer) {
         Vector vObjPos = dmManager.GetBotObjectiveLocation();
-        gi.DPrintf(
+        gi.Printf(
             "BOT_OBJ [%s]: BeginObjective - team=%d, bombPlantTeam=%d, isOnBombTeam=%d, objPos=(%g %g %g)\n",
             controlledEnt->client->pers.netname,
             controlledEnt->GetTeam(),
@@ -1249,7 +1249,7 @@ void BotController::State_Objective(void)
     // Periodic debug logging (every 2 seconds)
     if (g_bot_debug_obj->integer && level.inttime % 2000 < 50) {
         Vector vDelta = controlledEnt->origin - vObjPos;
-        gi.DPrintf(
+        gi.Printf(
             "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d bombPlanted=%d "
             "dist=%.0f pos=(%.0f %.0f %.0f) obj=(%.0f %.0f %.0f) moving=%d\n",
             controlledEnt->client->pers.netname,
