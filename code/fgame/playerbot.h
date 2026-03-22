@@ -141,6 +141,7 @@ public:
     const Vector& GetTargetAngles() const;
     void          SetTargetAngles(Vector vAngles);
     void          AimAt(Vector vPos);
+    bool          IsNearTargetAngles(float tolerance) const;
 
 private:
     SafePtr<Player> controlledEntity;
