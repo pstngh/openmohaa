@@ -628,6 +628,11 @@ bool BotController::CheckCondition_Idle(void)
 
 void BotController::State_Idle(void)
 {
+    // Don't interfere with planting/defusing at all
+    if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
+        return;
+    }
+
     if (CheckWindows()) {
         m_botCmd.buttons ^= BUTTON_ATTACKLEFT;
         m_iLastFireTime = level.inttime;
@@ -708,6 +713,11 @@ bool BotController::CheckCondition_Curious(void)
 
 void BotController::State_Curious(void)
 {
+    // Don't interfere with planting/defusing
+    if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING) {
+        return;
+    }
+
     if (CheckWindows()) {
         m_botCmd.buttons ^= BUTTON_ATTACKLEFT;
         m_iLastFireTime = level.inttime;
@@ -1428,9 +1438,11 @@ void BotController::State_Objective(void)
         // Attacking team logic
         //
         if (!bMySitePlanted) {
-            // Need to plant our assigned bomb.
-            // Only ONE bot per site can plant — the rest provide cover.
-            if (IsNearObjective(BOT_OBJ_PROXIMITY)) {
+            // Already in PLANTING state — stay in it regardless of distance
+            // (don't let small drift reset the USE state machine)
+            bool bInRange = IsNearObjective(BOT_OBJ_PROXIMITY);
+
+            if (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || bInRange) {
                 // Try to claim the planter slot for this site
                 bool bIsPlanter = dmManager.ClaimBombSitePlanter(m_iBombSiteIndex, controlledEnt->entnum);
 
@@ -1572,7 +1584,7 @@ void BotController::State_Objective(void)
                 }
             }
 
-            if (fBestDist <= BOT_OBJ_PROXIMITY) {
+            if (m_iObjectiveState == BOT_OBJ_STATE_DEFUSING || fBestDist <= BOT_OBJ_PROXIMITY) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
