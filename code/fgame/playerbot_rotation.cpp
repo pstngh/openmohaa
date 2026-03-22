@@ -151,3 +151,10 @@ void BotRotation::AimAt(Vector vPos)
 
     SetTargetAngles(vTarget);
 }
+
+bool BotRotation::IsNearTargetAngles(float tolerance) const
+{
+    float diffYaw   = AngleDifference(m_vCurrentAng[YAW], m_vTargetAng[YAW]);
+    float diffPitch = AngleDifference(m_vCurrentAng[PITCH], m_vTargetAng[PITCH]);
+    return fabs(diffYaw) <= tolerance && fabs(diffPitch) <= tolerance;
+}

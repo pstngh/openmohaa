@@ -1420,16 +1420,19 @@ void BotController::State_Objective(void)
                 m_botCmd.rightmove   = 0;
                 m_botCmd.upmove      = -1;
 
-                // Look down at the bomb
+                // Look at the bomb objective
                 rotation.AimAt(vObjPos);
 
-                // Hold USE to plant. Release briefly every ~0.5s so the
-                // rising-edge detection in DoUse can re-fire if the first
-                // attempt missed (e.g. bot wasn't facing the trigger yet).
-                if (fmod(level.time - m_fPlantDefuseStart, 0.5f) < 0.1f) {
-                    m_botCmd.buttons &= ~BUTTON_USE;
-                } else {
+                // Only hold USE once we're facing the bomb (within 15 degrees).
+                // Planting requires holding USE for ~5s straight — we can't
+                // release it or the timer resets.
+                if (rotation.IsNearTargetAngles(15.0f)) {
                     m_botCmd.buttons |= BUTTON_USE;
+                } else {
+                    // Not facing the bomb yet — release USE and reset the
+                    // plant timer so it starts fresh once we're aimed
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                    m_fPlantDefuseStart = level.time;
                 }
 
                 // Check if plant is complete
@@ -1489,15 +1492,15 @@ void BotController::State_Objective(void)
                 m_botCmd.rightmove   = 0;
                 m_botCmd.upmove      = -1;
 
-                // Look down at the bomb
+                // Look at the bomb objective
                 rotation.AimAt(vObjPos);
 
-                // Hold USE to defuse. Release briefly every ~0.5s so the
-                // rising-edge detection in DoUse can re-fire if needed.
-                if (fmod(level.time - m_fPlantDefuseStart, 0.5f) < 0.1f) {
-                    m_botCmd.buttons &= ~BUTTON_USE;
-                } else {
+                // Only hold USE once we're facing the bomb (within 15 degrees).
+                if (rotation.IsNearTargetAngles(15.0f)) {
                     m_botCmd.buttons |= BUTTON_USE;
+                } else {
+                    m_botCmd.buttons &= ~BUTTON_USE;
+                    m_fPlantDefuseStart = level.time;
                 }
 
                 // Check if defuse is complete
