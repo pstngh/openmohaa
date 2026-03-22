@@ -188,6 +188,7 @@ private:
 
     // Objective state
     int    m_iObjectiveState;     // 0=none, 1=moving_to_obj, 2=planting, 3=defending, 4=defusing
+    int    m_iUseState;          // USE key sub-state: BOT_USE_AIMING/EDGE/HOLDING
     float  m_fPlantDefuseStart;  // When bot started planting/defusing
     float  m_fPlantHealthStart;  // Bot health when plant/defuse started
     bool   m_bIsOnBombTeam;      // Is this bot on the planting team?
