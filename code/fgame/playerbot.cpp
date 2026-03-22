@@ -1133,7 +1133,7 @@ bool BotController::CheckCondition_Objective(void)
             source    = "ObjectiveLocation";
         }
 
-        // 3. Scan CS_OBJECTIVES configstrings for any current objective with a location
+        // 3. Scan CS_OBJECTIVES configstrings for any objective with a location
         if (vFallback == vec_zero) {
             for (int i = 0; i < MAX_OBJECTIVES; i++) {
                 const char *s = gi.getConfigstring(CS_OBJECTIVES + i);
@@ -1141,17 +1141,12 @@ bool BotController::CheckCondition_Objective(void)
                     continue;
                 }
 
-                const char *flagStr = Info_ValueForKey(s, "flags");
-                int         flags   = atoi(flagStr);
-
-                if (flags & OBJ_FLAG_CURRENT) {
-                    const char *loc = Info_ValueForKey(s, "loc");
-                    Vector      v;
-                    if (sscanf(loc, "%f %f %f", &v[0], &v[1], &v[2]) == 3 && v != vec_zero) {
-                        vFallback = v;
-                        source    = va("CS_OBJECTIVES[%d]", i);
-                        break;
-                    }
+                const char *loc = Info_ValueForKey(s, "loc");
+                Vector      v;
+                if (loc[0] && sscanf(loc, "%f %f %f", &v[0], &v[1], &v[2]) == 3 && v != vec_zero) {
+                    vFallback = v;
+                    source    = va("CS_OBJECTIVES[%d]", i);
+                    break;
                 }
             }
         }
@@ -1165,8 +1160,62 @@ bool BotController::CheckCondition_Objective(void)
             }
         }
 
+        // 5. Find bomb explosive entities (script_model with pulse_explosive model).
+        //    These are the actual bomb plant sites in obj_ maps.
+        if (vFallback == vec_zero) {
+            for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
+                if (!ent->inuse || !ent->entity) {
+                    continue;
+                }
+                if (ent->entity->model.length() > 0
+                    && strstr(ent->entity->model.c_str(), "pulse_explosive")) {
+                    vFallback = ent->entity->origin;
+                    source    = va("bomb model entity '%s'", ent->entity->TargetName().c_str());
+                    break;
+                }
+            }
+        }
+
+        // 6. Find trigger_use entities as a last resort — these are
+        //    the interaction points for planting/defusing in obj_ maps.
+        //    Brush entities often have origin at (0,0,0), so use the
+        //    center of absmin/absmax instead.
+        if (vFallback == vec_zero) {
+            Entity *trig = G_FindClass(NULL, "trigger_use");
+            if (trig) {
+                Vector center = (trig->absmin + trig->absmax) * 0.5f;
+                if (center != vec_zero) {
+                    vFallback = center;
+                    source    = "trigger_use entity";
+                }
+            }
+        }
+
         if (vFallback == vec_zero) {
             if (bDebug) {
+                // One-time entity class dump for diagnostics
+                static bool bDumped = false;
+                if (!bDumped) {
+                    bDumped = true;
+                    gi.DPrintf("BOT_OBJ: Entity dump for objective discovery:\n");
+                    for (gentity_t *ent = &g_entities[0]; ent < &g_entities[globals.num_entities]; ent++) {
+                        if (!ent->inuse || !ent->entity) {
+                            continue;
+                        }
+                        const char *cls  = ent->entity->getClassID();
+                        const char *tnam = ent->entity->TargetName().c_str();
+                        const char *mdl  = ent->entity->model.c_str();
+                        if (tnam[0] || (mdl[0] && strcmp(cls, "worldspawn") != 0)) {
+                            gi.DPrintf(
+                                "  [%d] class='%s' targetname='%s' model='%s' origin=(%.0f %.0f %.0f)\n",
+                                ent->entity->entnum, cls,
+                                tnam, mdl,
+                                ent->entity->origin[0], ent->entity->origin[1], ent->entity->origin[2]
+                            );
+                        }
+                    }
+                }
+
                 gi.DPrintf(
                     "BOT_OBJ [%s]: No objective location found. gametype=%d, "
                     "objLoc=(%g %g %g), alliedLoc=(%g %g %g), axisLoc=(%g %g %g)\n",
