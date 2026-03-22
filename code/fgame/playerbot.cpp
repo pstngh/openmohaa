@@ -54,7 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BOT_USE_HOLDING  2
 
 #define BOT_PLANT_DEFUSE_TIME   5.0f
-#define BOT_OBJ_PROXIMITY       48.0f
+#define BOT_OBJ_PROXIMITY       96.0f
 #define BOT_OBJ_ENEMY_RANGE     512.0f
 #define BOT_OBJ_DEFEND_RADIUS   384.0f
 
@@ -1359,7 +1359,9 @@ bool BotController::IsNearObjective(float fRadius) const
 {
     Vector vObjPos = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
     Vector vDelta  = controlledEnt->origin - vObjPos;
-    return vDelta.lengthSquared() <= fRadius * fRadius;
+    // Use XY distance only — bombs may be at a different Z height
+    // (on tables, elevated platforms, etc.) which inflates 3D distance
+    return vDelta.lengthXYSquared() <= fRadius * fRadius;
 }
 
 bool BotController::IsEnemyNearby(float fRadius) const
@@ -1396,24 +1398,21 @@ void BotController::State_Objective(void)
     if (g_bot_debug_obj->integer && level.inttime % 2000 < 50) {
         Vector vDelta = controlledEnt->origin - vObjPos;
         gi.Printf(
-            "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d anyPlanted=%d mySitePlanted=%d site=%d "
-            "dist=%.0f pos=(%.0f %.0f %.0f) myObj=(%.0f %.0f %.0f) moving=%d\n",
+            "BOT_OBJ [%s]: state=%d useState=%d inCombat=%d bombTeam=%d anyPlanted=%d mySitePlanted=%d site=%d "
+            "distXY=%.0f dist3D=%.0f pos=(%.0f %.0f %.0f) myObj=(%.0f %.0f %.0f) moving=%d\n",
             controlledEnt->client->pers.netname,
-            m_iObjectiveState, bInCombat, m_bIsOnBombTeam, bAnyBombPlanted, bMySitePlanted, m_iBombSiteIndex,
-            vDelta.length(),
+            m_iObjectiveState, m_iUseState, bInCombat, m_bIsOnBombTeam, bAnyBombPlanted, bMySitePlanted, m_iBombSiteIndex,
+            vDelta.lengthXY(), vDelta.length(),
             controlledEnt->origin[0], controlledEnt->origin[1], controlledEnt->origin[2],
             vObjPos[0], vObjPos[1], vObjPos[2],
             movement.IsMoving()
         );
     }
 
-    // Cancel plant/defuse if we enter combat, but only while still
-    // aiming. Once the USE key sequence has started (EDGE or HOLDING),
-    // we must commit or the plant/defuse timer resets.
-    if (bInCombat && m_iUseState == BOT_USE_AIMING
-        && (m_iObjectiveState == BOT_OBJ_STATE_PLANTING || m_iObjectiveState == BOT_OBJ_STATE_DEFUSING)) {
-        m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-    }
+    // Don't let combat status interfere with planting/defusing.
+    // Once the bot reaches the bomb and enters PLANTING/DEFUSING,
+    // it commits fully. The attack state already returns early
+    // when planting/defusing, so there's no conflict.
 
     // Suppress fire when not in combat, or when actively planting/defusing
     // (can't shoot and hold USE at the same time)
