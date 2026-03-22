@@ -1810,6 +1810,22 @@ void DM_Manager::AddBombSite(const Vector& vPos)
 void DM_Manager::ClearBombSites(void)
 {
     m_iNumBombSites = 0;
+    memset(m_bBombSitePlanted, 0, sizeof(m_bBombSitePlanted));
+}
+
+bool DM_Manager::IsBombSitePlanted(int index) const
+{
+    if (index < 0 || index >= m_iNumBombSites) {
+        return false;
+    }
+    return m_bBombSitePlanted[index];
+}
+
+void DM_Manager::SetBombSitePlanted(int index, bool planted)
+{
+    if (index >= 0 && index < m_iNumBombSites) {
+        m_bBombSitePlanted[index] = planted;
+    }
 }
 
 void DM_Manager::StopTeamRespawn(eController controller)

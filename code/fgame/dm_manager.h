@@ -190,6 +190,7 @@ private:
     // Multiple bomb sites for distributing bots
     static const int MAX_BOMB_SITES = 8;
     Vector m_vBombSites[MAX_BOMB_SITES];
+    bool   m_bBombSitePlanted[MAX_BOMB_SITES];
     int    m_iNumBombSites;
 
     // scoreboard data
@@ -279,6 +280,8 @@ public:
     const Vector& GetBombSite(int index) const;
     void          AddBombSite(const Vector& vPos);
     void          ClearBombSites(void);
+    bool          IsBombSitePlanted(int index) const;
+    void          SetBombSitePlanted(int index, bool planted);
 
 protected:
     static int compareScores(const void *elem1, const void *elem2);

@@ -102,6 +102,7 @@ BotController::BotController()
     m_fPlantDefuseStart = 0;
     m_fPlantHealthStart = 0;
     m_bIsOnBombTeam     = false;
+    m_iBombSiteIndex    = -1;
     m_vMyObjective      = vec_zero;
 
     m_StateFlags = 0;
@@ -1311,10 +1312,11 @@ void BotController::State_BeginObjective(void)
 
     // Assign this bot a bomb site. Split attacking bots across available
     // bomb sites using their entity number so they don't all rush the same one.
-    m_vMyObjective = dmManager.GetBotObjectiveLocation();
-    if (m_bIsOnBombTeam && dmManager.GetNumBombSites() > 1) {
-        int siteIndex = controlledEnt->entnum % dmManager.GetNumBombSites();
-        m_vMyObjective = dmManager.GetBombSite(siteIndex);
+    m_vMyObjective   = dmManager.GetBotObjectiveLocation();
+    m_iBombSiteIndex = -1;
+    if (m_bIsOnBombTeam && dmManager.GetNumBombSites() > 0) {
+        m_iBombSiteIndex = controlledEnt->entnum % dmManager.GetNumBombSites();
+        m_vMyObjective   = dmManager.GetBombSite(m_iBombSiteIndex);
     }
 
     if (g_bot_debug_obj->integer) {
@@ -1368,18 +1370,19 @@ bool BotController::IsEnemyNearby(float fRadius) const
 void BotController::State_Objective(void)
 {
     // Attackers use their assigned bomb site, defenders use the shared location
-    Vector vObjPos      = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
-    bool   bBombPlanted = dmManager.GetBombsPlanted() > 0;
-    bool   bInCombat    = m_iAttackTime != 0;
+    Vector vObjPos         = m_bIsOnBombTeam ? m_vMyObjective : dmManager.GetBotObjectiveLocation();
+    bool   bAnyBombPlanted = dmManager.GetBombsPlanted() > 0;
+    bool   bMySitePlanted  = m_iBombSiteIndex >= 0 && dmManager.IsBombSitePlanted(m_iBombSiteIndex);
+    bool   bInCombat       = m_iAttackTime != 0;
 
     // Periodic debug logging (every 2 seconds)
     if (g_bot_debug_obj->integer && level.inttime % 2000 < 50) {
         Vector vDelta = controlledEnt->origin - vObjPos;
         gi.Printf(
-            "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d bombPlanted=%d "
+            "BOT_OBJ [%s]: state=%d inCombat=%d bombTeam=%d anyPlanted=%d mySitePlanted=%d site=%d "
             "dist=%.0f pos=(%.0f %.0f %.0f) myObj=(%.0f %.0f %.0f) moving=%d\n",
             controlledEnt->client->pers.netname,
-            m_iObjectiveState, bInCombat, m_bIsOnBombTeam, bBombPlanted,
+            m_iObjectiveState, bInCombat, m_bIsOnBombTeam, bAnyBombPlanted, bMySitePlanted, m_iBombSiteIndex,
             vDelta.length(),
             controlledEnt->origin[0], controlledEnt->origin[1], controlledEnt->origin[2],
             vObjPos[0], vObjPos[1], vObjPos[2],
@@ -1404,8 +1407,8 @@ void BotController::State_Objective(void)
         //
         // Attacking team logic
         //
-        if (!bBombPlanted) {
-            // Need to plant the bomb
+        if (!bMySitePlanted) {
+            // Need to plant our assigned bomb
             if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_PLANTING) {
                     // Start planting
@@ -1415,14 +1418,9 @@ void BotController::State_Objective(void)
                     m_fPlantHealthStart = controlledEnt->health;
                 }
 
-                // Check if planting should be cancelled
+                // Abort planting only if we took damage — commit to
+                // planting even if enemies are nearby
                 if (controlledEnt->health < m_fPlantHealthStart) {
-                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-                    m_iUseState       = BOT_USE_AIMING;
-                    return;
-                }
-
-                if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
                     m_iUseState       = BOT_USE_AIMING;
                     return;
@@ -1484,12 +1482,15 @@ void BotController::State_Objective(void)
                 // Check if plant is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
                     dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() + 1);
+                    if (m_iBombSiteIndex >= 0) {
+                        dmManager.SetBombSitePlanted(m_iBombSiteIndex, true);
+                    }
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                     m_iUseState       = BOT_USE_AIMING;
 
                     if (g_bot_debug_obj->integer) {
-                        gi.Printf("BOT_OBJ [%s]: plant complete!\n",
-                            controlledEnt->client->pers.netname);
+                        gi.Printf("BOT_OBJ [%s]: plant complete on site %d!\n",
+                            controlledEnt->client->pers.netname, m_iBombSiteIndex);
                     }
                 }
             } else {
@@ -1513,7 +1514,7 @@ void BotController::State_Objective(void)
         //
         // Defending team logic
         //
-        if (!bBombPlanted) {
+        if (!bAnyBombPlanted) {
             // No bomb planted — defenders roam freely.
             // Clear any previous objective movement so bots don't rush a bomb site.
             if (m_iObjectiveState != BOT_OBJ_STATE_NONE) {
@@ -1523,8 +1524,24 @@ void BotController::State_Objective(void)
             }
             return;
         } else {
-            // Bomb is planted! Rush to defuse
-            if (!bInCombat && IsNearObjective(BOT_OBJ_PROXIMITY)) {
+            // Bomb is planted! Find the nearest planted site to rush to
+            int    iDefuseSite = -1;
+            float  fBestDist   = 1e9f;
+            Vector vDefusePos  = vObjPos;
+
+            for (int s = 0; s < dmManager.GetNumBombSites(); s++) {
+                if (dmManager.IsBombSitePlanted(s)) {
+                    Vector vDelta = controlledEnt->origin - dmManager.GetBombSite(s);
+                    float  fDist  = vDelta.length();
+                    if (fDist < fBestDist) {
+                        fBestDist  = fDist;
+                        iDefuseSite = s;
+                        vDefusePos  = dmManager.GetBombSite(s);
+                    }
+                }
+            }
+
+            if (fBestDist <= BOT_OBJ_PROXIMITY && !bInCombat) {
                 if (m_iObjectiveState != BOT_OBJ_STATE_DEFUSING) {
                     // Start defusing
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
@@ -1533,14 +1550,9 @@ void BotController::State_Objective(void)
                     m_fPlantHealthStart = controlledEnt->health;
                 }
 
-                // Check if defusing should be cancelled
+                // Only abort defuse if we took damage — do NOT abort just
+                // because enemies are nearby. Defusing under fire is critical.
                 if (controlledEnt->health < m_fPlantHealthStart) {
-                    m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-                    m_iUseState       = BOT_USE_AIMING;
-                    return;
-                }
-
-                if (IsEnemyNearby(BOT_OBJ_ENEMY_RANGE)) {
                     m_iObjectiveState = BOT_OBJ_STATE_MOVING;
                     m_iUseState       = BOT_USE_AIMING;
                     return;
@@ -1552,8 +1564,8 @@ void BotController::State_Objective(void)
                 m_botCmd.rightmove   = 0;
                 m_botCmd.upmove      = -1;
 
-                // Look at the bomb objective
-                rotation.AimAt(vObjPos);
+                // Look at the bomb
+                rotation.AimAt(vDefusePos);
 
                 // USE key state machine (same as planting)
                 switch (m_iUseState) {
@@ -1578,13 +1590,16 @@ void BotController::State_Objective(void)
                 // Check if defuse is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
                     dmManager.SetBombsPlanted(dmManager.GetBombsPlanted() - 1);
+                    if (iDefuseSite >= 0) {
+                        dmManager.SetBombSitePlanted(iDefuseSite, false);
+                    }
                     m_iObjectiveState = BOT_OBJ_STATE_DEFENDING;
                     m_iUseState       = BOT_USE_AIMING;
                 }
             } else {
-                // Rush to bomb (even during combat)
+                // Rush to nearest planted bomb (even during combat)
                 m_iObjectiveState = BOT_OBJ_STATE_MOVING;
-                movement.MoveTo(vObjPos);
+                movement.MoveTo(vDefusePos);
             }
         }
     }
