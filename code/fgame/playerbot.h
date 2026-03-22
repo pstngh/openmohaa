@@ -201,6 +201,7 @@ private:
     float  m_fPlantHealthStart;  // Bot health when plant/defuse started
     bool   m_bIsOnBombTeam;      // Is this bot on the planting team?
     Vector m_vMyObjective;       // Per-bot assigned bomb site
+    int    m_iBombSiteIndex;     // Which bomb site this bot is assigned to (-1 = none)
 
     // Input
     usercmd_t  m_botCmd;
