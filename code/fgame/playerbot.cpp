@@ -1399,7 +1399,6 @@ void BotController::State_Objective(void)
                     m_iObjectiveState   = BOT_OBJ_STATE_PLANTING;
                     m_fPlantDefuseStart = level.time;
                     m_fPlantHealthStart = controlledEnt->health;
-                    movement.ClearMove();
                 }
 
                 // Check if planting should be cancelled
@@ -1415,8 +1414,14 @@ void BotController::State_Objective(void)
                     return;
                 }
 
-                // Crouch while planting
-                m_botCmd.upmove = -1;
+                // Stop moving and crouch while planting
+                movement.ClearMove();
+                m_botCmd.forwardmove = 0;
+                m_botCmd.rightmove   = 0;
+                m_botCmd.upmove      = -1;
+
+                // Press USE to interact with the bomb trigger
+                m_botCmd.buttons |= BUTTON_USE;
 
                 // Check if plant is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
@@ -1456,7 +1461,6 @@ void BotController::State_Objective(void)
                     m_iObjectiveState   = BOT_OBJ_STATE_DEFUSING;
                     m_fPlantDefuseStart = level.time;
                     m_fPlantHealthStart = controlledEnt->health;
-                    movement.ClearMove();
                 }
 
                 // Check if defusing should be cancelled
@@ -1470,8 +1474,14 @@ void BotController::State_Objective(void)
                     return;
                 }
 
-                // Crouch while defusing
-                m_botCmd.upmove = -1;
+                // Stop moving and crouch while defusing
+                movement.ClearMove();
+                m_botCmd.forwardmove = 0;
+                m_botCmd.rightmove   = 0;
+                m_botCmd.upmove      = -1;
+
+                // Press USE to interact with the bomb trigger
+                m_botCmd.buttons |= BUTTON_USE;
 
                 // Check if defuse is complete
                 if (level.time - m_fPlantDefuseStart >= BOT_PLANT_DEFUSE_TIME) {
