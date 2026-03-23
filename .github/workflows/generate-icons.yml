@@ -23,7 +23,11 @@ on:
 
 jobs:
   generate-icons:
+<<<<<<< HEAD
     name: "Generate .icns, .ico, and SDL header"
+=======
+    name: "Generate .icns and .ico files"
+>>>>>>> origin/main
     runs-on: macos-15
     permissions:
       contents: write
@@ -38,8 +42,11 @@ jobs:
 
     - name: Generate icons
       run: |
+<<<<<<< HEAD
         set -euo pipefail
 
+=======
+>>>>>>> origin/main
         for app in openmohaa openmohaab openmohaas launcher; do
           SVG="misc/${app}.svg"
 
@@ -63,6 +70,7 @@ jobs:
           ###
           # Windows .ico
           ###
+<<<<<<< HEAD
           for size in 16 32 48 256; do
             rsvg-convert -w $size -h $size "$SVG" -o "${app}_${size}.png"
           done
@@ -122,13 +130,36 @@ jobs:
         git add misc/macos/openmohaa.icns misc/macos/openmohaab.icns misc/macos/openmohaas.icns misc/macos/launcher.icns
         git add misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico
         git add code/sdl/sdl_icon.h
+=======
+          for size in 16 32 48 64 128 256; do
+            rsvg-convert -w $size -h $size "$SVG" -o "${app}_${size}.png"
+          done
+          magick "${app}_16.png" "${app}_32.png" "${app}_48.png" \
+                 "${app}_64.png" "${app}_128.png" "${app}_256.png" \
+                 "misc/windows/${app}.ico"
+          rm -f "${app}_16.png" "${app}_32.png" "${app}_48.png" \
+                "${app}_64.png" "${app}_128.png" "${app}_256.png"
+        done
+
+    - name: Commit and push icons to all branches
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git add misc/macos/openmohaa.icns misc/macos/openmohaab.icns misc/macos/openmohaas.icns misc/macos/launcher.icns
+        git add misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico
+>>>>>>> origin/main
 
         if git diff --staged --quiet; then
           echo "No icon changes detected."
           exit 0
         fi
 
+<<<<<<< HEAD
         git commit -m "Update macOS .icns, Windows .ico, and SDL icon header from SVG sources"
+=======
+        git commit -m "Update macOS .icns and Windows .ico icons from SVG sources"
+>>>>>>> origin/main
         git push origin main
 
         # Propagate generated icons to all other remote branches
@@ -137,10 +168,16 @@ jobs:
           git checkout "$branch"
           git checkout main -- \
             misc/macos/openmohaa.icns misc/macos/openmohaab.icns misc/macos/openmohaas.icns misc/macos/launcher.icns \
+<<<<<<< HEAD
             misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico \
             code/sdl/sdl_icon.h
           if ! git diff --staged --quiet; then
             git commit -m "Update macOS .icns, Windows .ico, and SDL icon header from SVG sources"
+=======
+            misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico
+          if ! git diff --staged --quiet; then
+            git commit -m "Update macOS .icns and Windows .ico icons from SVG sources"
+>>>>>>> origin/main
             git push origin "$branch"
           fi
         done
