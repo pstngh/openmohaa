@@ -6,6 +6,7 @@ on:
       - 'misc/openmohaa.svg'
       - 'misc/openmohaas.svg'
       - 'misc/openmohaab.svg'
+      - 'misc/openmohaa-launcher.svg'
   workflow_dispatch:
 
 permissions:
@@ -52,9 +53,12 @@ jobs:
           rm -rf "$tmpdir"
         }
 
-        for svg in misc/openmohaa.svg misc/openmohaas.svg misc/openmohaab.svg; do
+        for svg in misc/openmohaa.svg misc/openmohaas.svg misc/openmohaab.svg misc/openmohaa-launcher.svg; do
           name=$(basename "$svg" .svg)
-          ico="misc/windows/${name}.ico"
+          case "$name" in
+            openmohaa-launcher) ico="misc/windows/launcher.ico" ;;
+            *) ico="misc/windows/${name}.ico" ;;
+          esac
           if [ -f "$svg" ]; then
             convert_svg_to_ico "$svg" "$ico"
           else
