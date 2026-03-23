@@ -975,7 +975,26 @@ static void SV_CheckAutokick( void ) {
 	client_t	*cl;
 
 	for (i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++) {
-		if (cl->state >= CS_CONNECTED && cl->autokickTime > 0 && svs.time >= cl->autokickTime) {
+		if (cl->state < CS_CONNECTED) {
+			continue;
+		}
+
+		// If sv_autokick was set to 0, cancel any pending kicks
+		if (!sv_autokick->integer) {
+			if (cl->autokickTime != 0) {
+				cl->autokickTime = 0;
+			}
+			continue;
+		}
+
+		// If autokick was enabled and client failed pure validation
+		// but has no pending kick timer, start one now
+		if (cl->autokickTime == 0 && cl->gotCP && !cl->pureAuthentic) {
+			cl->autokickTime = svs.time + sv_autokick->integer * 1000;
+			Com_DPrintf("Client %s will be kicked in %d seconds\n", cl->name, sv_autokick->integer);
+		}
+
+		if (cl->autokickTime > 0 && svs.time >= cl->autokickTime) {
 			cl->autokickTime = 0;
 			SV_DropClient(cl, "Unpure client detected. Invalid or missing pk3 files.");
 		}
