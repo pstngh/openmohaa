@@ -1,0 +1,101 @@
+##########################
+#
+# Generate macOS (.icns) and Windows (.ico) icons
+# from SVG sources for all three app variants.
+#
+# Runs on macos-15 (required for iconutil).
+# Commits generated icons back to main, then
+# propagates the changes to all other branches.
+#
+##########################
+name: "Generate macOS and Windows Icons"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'misc/openmohaa.svg'
+      - 'misc/openmohaab.svg'
+      - 'misc/openmohaas.svg'
+      - 'misc/launcher.svg'
+
+jobs:
+  generate-icons:
+    name: "Generate .icns and .ico files"
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install tools
+      run: brew install librsvg imagemagick
+
+    - name: Generate icons
+      run: |
+        for app in openmohaa openmohaab openmohaas launcher; do
+          SVG="misc/${app}.svg"
+
+          ###
+          # macOS .icns
+          ###
+          mkdir -p "${app}.iconset"
+          rsvg-convert -w 16   -h 16   "$SVG" -o "${app}.iconset/icon_16x16.png"
+          rsvg-convert -w 32   -h 32   "$SVG" -o "${app}.iconset/icon_16x16@2x.png"
+          rsvg-convert -w 32   -h 32   "$SVG" -o "${app}.iconset/icon_32x32.png"
+          rsvg-convert -w 64   -h 64   "$SVG" -o "${app}.iconset/icon_32x32@2x.png"
+          rsvg-convert -w 128  -h 128  "$SVG" -o "${app}.iconset/icon_128x128.png"
+          rsvg-convert -w 256  -h 256  "$SVG" -o "${app}.iconset/icon_128x128@2x.png"
+          rsvg-convert -w 256  -h 256  "$SVG" -o "${app}.iconset/icon_256x256.png"
+          rsvg-convert -w 512  -h 512  "$SVG" -o "${app}.iconset/icon_256x256@2x.png"
+          rsvg-convert -w 512  -h 512  "$SVG" -o "${app}.iconset/icon_512x512.png"
+          rsvg-convert -w 1024 -h 1024 "$SVG" -o "${app}.iconset/icon_512x512@2x.png"
+          iconutil -c icns "${app}.iconset" -o "misc/macos/${app}.icns"
+          rm -rf "${app}.iconset"
+
+          ###
+          # Windows .ico
+          ###
+          for size in 16 32 48 64 128 256; do
+            rsvg-convert -w $size -h $size "$SVG" -o "${app}_${size}.png"
+          done
+          magick "${app}_16.png" "${app}_32.png" "${app}_48.png" \
+                 "${app}_64.png" "${app}_128.png" "${app}_256.png" \
+                 "misc/windows/${app}.ico"
+          rm -f "${app}_16.png" "${app}_32.png" "${app}_48.png" \
+                "${app}_64.png" "${app}_128.png" "${app}_256.png"
+        done
+
+    - name: Commit and push icons to all branches
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git add misc/macos/openmohaa.icns misc/macos/openmohaab.icns misc/macos/openmohaas.icns misc/macos/launcher.icns
+        git add misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico
+
+        if git diff --staged --quiet; then
+          echo "No icon changes detected."
+          exit 0
+        fi
+
+        git commit -m "Update macOS .icns and Windows .ico icons from SVG sources"
+        git push origin main
+
+        # Propagate generated icons to all other remote branches
+        for branch in $(git branch -r | grep -v 'HEAD' | grep -v 'origin/main' | sed 's|origin/||'); do
+          echo "Updating branch: $branch"
+          git checkout "$branch"
+          git checkout main -- \
+            misc/macos/openmohaa.icns misc/macos/openmohaab.icns misc/macos/openmohaas.icns misc/macos/launcher.icns \
+            misc/windows/openmohaa.ico misc/windows/openmohaab.ico misc/windows/openmohaas.ico misc/windows/launcher.ico
+          if ! git diff --staged --quiet; then
+            git commit -m "Update macOS .icns and Windows .ico icons from SVG sources"
+            git push origin "$branch"
+          fi
+        done
