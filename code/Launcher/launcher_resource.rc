@@ -3,4 +3,4 @@
 #include <winresrc.h>
 
 // Icon
-1 ICON "../../misc/windows/launcher.ico"
+1 ICON "../../misc/windows/openmohaa-launcher.ico"
