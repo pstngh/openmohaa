@@ -300,14 +300,7 @@
         <!-- Section 1: Pak/Pure Validation -->
         <section class="changelog-section" id="pak-pure">
             <h2><span class="tag tag-server">Server</span> &nbsp;<span data-i18n="s1_title">Pak/Pure Validation System</span></h2>
-            <p data-i18n="s1_desc">The pure validation system has been overhauled to be more flexible and community-friendly.</p>
-            <ul>
-                <li data-i18n-html="s1_item1">Replaced pak whitelist with verified checksums from official game paks (US, UK/GOG, Spearhead, Breakthrough)</li>
-                <li data-i18n-html="s1_item2">Added 60+ community pk3s to the checksum whitelist, so players with popular community maps and packs can join pure servers</li>
-                <li data-i18n-html="s1_item3">New feed-independent checksum validation via <code>cp2</code> client command — allows verification regardless of pak load order</li>
-                <li data-i18n="s1_item4">Fixed reverse pure check for clients without community paks</li>
-                <li data-i18n="s1_item5">Server no longer requires clients to have the exact same paks — just verified ones</li>
-            </ul>
+            <p data-i18n-html="s1_desc">The pure validation system has been improved to be more flexible and community-friendly, with broader support for official and community paks. Enable with <code>sv_pure 1</code>.</p>
         </section>
 
         <!-- Section 2: sv_autokick (emphasized) -->
@@ -321,8 +314,6 @@
                         <tr>
                             <th data-i18n="cvar_name">Cvar</th>
                             <th data-i18n="cvar_default">Default</th>
-                            <th data-i18n="cvar_type">Type</th>
-                            <th data-i18n="cvar_flags">Flags</th>
                             <th data-i18n="cvar_desc">Description</th>
                         </tr>
                     </thead>
@@ -330,8 +321,6 @@
                         <tr>
                             <td class="cvar-name">sv_autokick</td>
                             <td class="cvar-default">0</td>
-                            <td>Integer</td>
-                            <td class="cvar-flags">CVAR_ARCHIVE</td>
                             <td data-i18n="s2_cvar_desc">Seconds to wait before kicking unpure clients. 0 = disabled.</td>
                         </tr>
                     </tbody>
@@ -374,8 +363,6 @@
                         <tr>
                             <th data-i18n="cvar_name">Cvar</th>
                             <th data-i18n="cvar_default">Default</th>
-                            <th data-i18n="cvar_type">Type</th>
-                            <th data-i18n="cvar_flags">Flags</th>
                             <th data-i18n="cvar_desc">Description</th>
                         </tr>
                     </thead>
@@ -383,8 +370,6 @@
                         <tr>
                             <td class="cvar-name">g_spectatefix</td>
                             <td class="cvar-default">1</td>
-                            <td>Boolean</td>
-                            <td class="cvar-flags">—</td>
                             <td data-i18n="s4_cvar_desc">Toggle between fixed (1) and original MoHAA (0) spectator camera.</td>
                         </tr>
                     </tbody>
@@ -411,8 +396,6 @@
                         <tr>
                             <th data-i18n="cvar_name">Cvar</th>
                             <th data-i18n="cvar_default">Default</th>
-                            <th data-i18n="cvar_type">Type</th>
-                            <th data-i18n="cvar_flags">Flags</th>
                             <th data-i18n="cvar_desc">Description</th>
                         </tr>
                     </thead>
@@ -420,8 +403,6 @@
                         <tr>
                             <td class="cvar-name">g_roundstartdelay</td>
                             <td class="cvar-default">5</td>
-                            <td>Integer</td>
-                            <td class="cvar-flags">CVAR_ARCHIVE</td>
                             <td data-i18n="s5_cvar_desc">Seconds to freeze players at round start. 0 = disabled.</td>
                         </tr>
                     </tbody>
@@ -451,8 +432,6 @@
                         <tr>
                             <th data-i18n="cvar_name">Cvar</th>
                             <th data-i18n="cvar_default">Default</th>
-                            <th data-i18n="cvar_type">Type</th>
-                            <th data-i18n="cvar_flags">Flags</th>
                             <th data-i18n="cvar_desc">Description</th>
                         </tr>
                     </thead>
@@ -460,8 +439,6 @@
                         <tr>
                             <td class="cvar-name">g_preventghostwalk</td>
                             <td class="cvar-default">0</td>
-                            <td>Boolean</td>
-                            <td class="cvar-flags">CVAR_ARCHIVE</td>
                             <td data-i18n="s6_cvar_desc">Preserve leg animation timing across weapon switches to prevent ghost walking. 0 = disabled.</td>
                         </tr>
                     </tbody>
@@ -477,35 +454,6 @@
             </div>
         </section>
 
-        <!-- Section 7: Network/Address Validation -->
-        <section class="changelog-section" id="network">
-            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s7_title">Network &amp; Address Validation</span></h2>
-            <ul>
-                <li data-i18n-html="s7_item1">Server address input is now auto-cleaned in <code>NET_StringToAdr</code> — whitespace and protocol prefixes are stripped automatically</li>
-                <li data-i18n-html="s7_item2">Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts</li>
-            </ul>
-        </section>
-
-        <!-- Section 8: Launcher Resolution Override -->
-        <section class="changelog-section" id="launcher">
-            <h2><span class="tag tag-client">Launcher</span> &nbsp;<span data-i18n="s8_title">Resolution Override (Windows)</span></h2>
-            <p data-i18n="s8_desc">The Windows launcher now includes a resolution override option.</p>
-            <ul>
-                <li data-i18n="s8_item1">New toggleable checkbox to override the in-game resolution at launch</li>
-                <li data-i18n="s8_item2">9 presets available: 800x600, 960x720, 1024x768, 1152x864, 1280x720, 1280x1024, 1600x1200, 1920x1080, 3840x2160</li>
-                <li data-i18n-html="s8_item3">Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones</li>
-                <li data-i18n="s8_item4">Settings are saved and persist between launches</li>
-            </ul>
-        </section>
-
-        <!-- Section 9: Icon Updates -->
-        <section class="changelog-section" id="icons">
-            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s9_title">Icon Updates</span></h2>
-            <ul>
-                <li data-i18n-html="s9_item1">New <code>openmohaa-launcher.ico</code> icon for the Windows launcher</li>
-                <li data-i18n="s9_item2">Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)</li>
-            </ul>
-        </section>
     </main>
 
     <footer>
@@ -519,20 +467,13 @@
                 subtitle: "Recent changes and new features",
                 cvar_name: "Cvar",
                 cvar_default: "Default",
-                cvar_type: "Type",
-                cvar_flags: "Flags",
                 cvar_desc: "Description",
                 behavior_title: "Behavior",
                 footer: "OpenMoHAA Project \u2014 Licensed under GPL v2+",
 
                 // Section 1: Pak/Pure Validation
                 s1_title: "Pak/Pure Validation System",
-                s1_desc: "The pure validation system has been overhauled to be more flexible and community-friendly.",
-                s1_item1: "Replaced pak whitelist with verified checksums from official game paks (US, UK/GOG, Spearhead, Breakthrough)",
-                s1_item2: "Added 60+ community pk3s to the checksum whitelist, so players with popular community maps and packs can join pure servers",
-                s1_item3: "New feed-independent checksum validation via <code>cp2</code> client command \u2014 allows verification regardless of pak load order",
-                s1_item4: "Fixed reverse pure check for clients without community paks",
-                s1_item5: "Server no longer requires clients to have the exact same paks \u2014 just verified ones",
+                s1_desc: "The pure validation system has been improved to be more flexible and community-friendly, with broader support for official and community paks. Enable with <code>sv_pure 1</code>.",
 
                 // Section 2: sv_autokick
                 s2_title: "sv_autokick",
@@ -577,23 +518,6 @@
                 s6_beh1: "<code>g_preventghostwalk 0</code> (default): original behavior \u2014 weapon switches restart the leg animation from the beginning, allowing ghost walking",
                 s6_beh2: "<code>g_preventghostwalk 1</code>: when a player switches weapons while in the same leg state (e.g. walking), the animation clock is preserved \u2014 footstep timing continues uninterrupted",
 
-                // Section 7: Network
-                s7_title: "Network & Address Validation",
-                s7_item1: "Server address input is now auto-cleaned in <code>NET_StringToAdr</code> \u2014 whitespace and protocol prefixes are stripped automatically",
-                s7_item2: "Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts",
-
-                // Section 8: Launcher
-                s8_title: "Resolution Override (Windows)",
-                s8_desc: "The Windows launcher now includes a resolution override option.",
-                s8_item1: "New toggleable checkbox to override the in-game resolution at launch",
-                s8_item2: "9 presets available: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s8_item3: "Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones",
-                s8_item4: "Settings are saved and persist between launches",
-
-                // Section 9: Icons
-                s9_title: "Icon Updates",
-                s9_item1: "New <code>openmohaa-launcher.ico</code> icon for the Windows launcher",
-                s9_item2: "Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)"
             },
 
             es: {
@@ -601,20 +525,13 @@
                 subtitle: "Cambios recientes y nuevas funcionalidades",
                 cvar_name: "Cvar",
                 cvar_default: "Valor por defecto",
-                cvar_type: "Tipo",
-                cvar_flags: "Flags",
                 cvar_desc: "Descripci\u00f3n",
                 behavior_title: "Comportamiento",
                 footer: "Proyecto OpenMoHAA \u2014 Licencia GPL v2+",
 
                 // Section 1
                 s1_title: "Sistema de Validaci\u00f3n Pak/Pure",
-                s1_desc: "El sistema de validaci\u00f3n pure fue renovado para ser m\u00e1s flexible y amigable con la comunidad.",
-                s1_item1: "Se reemplaz\u00f3 la lista blanca de paks con checksums verificados de los paks oficiales del juego (US, UK/GOG, Spearhead, Breakthrough)",
-                s1_item2: "Se agregaron m\u00e1s de 60 pk3s de la comunidad a la lista de checksums, para que los jugadores con mapas y packs populares puedan conectarse a servidores pure",
-                s1_item3: "Nueva validaci\u00f3n de checksum independiente del feed mediante el comando <code>cp2</code> del cliente \u2014 permite verificaci\u00f3n sin importar el orden de carga de los paks",
-                s1_item4: "Se corrigi\u00f3 la verificaci\u00f3n reversa de pure para clientes sin paks de la comunidad",
-                s1_item5: "El servidor ya no requiere que los clientes tengan exactamente los mismos paks \u2014 solo que sean verificados",
+                s1_desc: "El sistema de validaci\u00f3n pure fue mejorado para ser m\u00e1s flexible y amigable con la comunidad, con mayor soporte para paks oficiales y de la comunidad. Activar con <code>sv_pure 1</code>.",
 
                 // Section 2
                 s2_title: "sv_autokick",
@@ -659,23 +576,6 @@
                 s6_beh1: "<code>g_preventghostwalk 0</code> (por defecto): comportamiento original \u2014 los cambios de arma reinician la animaci\u00f3n de piernas desde el principio, permitiendo ghost walking",
                 s6_beh2: "<code>g_preventghostwalk 1</code>: cuando un jugador cambia de arma en el mismo estado de piernas (ej. caminando), el reloj de animaci\u00f3n se preserva \u2014 el ritmo de pisadas contin\u00faa sin interrupci\u00f3n",
 
-                // Section 7
-                s7_title: "Red y Validaci\u00f3n de Direcciones",
-                s7_item1: "La entrada de direcci\u00f3n del servidor ahora se limpia autom\u00e1ticamente en <code>NET_StringToAdr</code> \u2014 se eliminan espacios en blanco y prefijos de protocolo",
-                s7_item2: "Las direcciones IPv4 malformadas (ej. <code>192.168</code> con cantidad incorrecta de octetos) se rechazan temprano, evitando intentos innecesarios de resoluci\u00f3n DNS",
-
-                // Section 8
-                s8_title: "Selecci\u00f3n de Resoluci\u00f3n (Windows)",
-                s8_desc: "El launcher de Windows ahora incluye una opci\u00f3n para seleccionar la resoluci\u00f3n.",
-                s8_item1: "Nuevo checkbox para sobreescribir la resoluci\u00f3n del juego al iniciar",
-                s8_item2: "9 opciones disponibles: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s8_item3: "Usa el cvar <code>r_mode</code> para resoluciones est\u00e1ndar, o <code>r_customwidth</code> / <code>r_customheight</code> para las no est\u00e1ndar",
-                s8_item4: "La configuraci\u00f3n se guarda y persiste entre ejecuciones",
-
-                // Section 9
-                s9_title: "Actualizaci\u00f3n de \u00cdconos",
-                s9_item1: "Nuevo \u00edcono <code>openmohaa-launcher.ico</code> para el launcher de Windows",
-                s9_item2: "\u00cdconos actualizados generados desde SVG para macOS (.icns) y Windows (.ico)"
             },
 
             pt: {
@@ -683,20 +583,13 @@
                 subtitle: "Altera\u00e7\u00f5es recentes e novas funcionalidades",
                 cvar_name: "Cvar",
                 cvar_default: "Padr\u00e3o",
-                cvar_type: "Tipo",
-                cvar_flags: "Flags",
                 cvar_desc: "Descri\u00e7\u00e3o",
                 behavior_title: "Comportamento",
                 footer: "Projeto OpenMoHAA \u2014 Licen\u00e7a GPL v2+",
 
                 // Section 1
                 s1_title: "Sistema de Valida\u00e7\u00e3o Pak/Pure",
-                s1_desc: "O sistema de valida\u00e7\u00e3o pure foi reformulado para ser mais flex\u00edvel e amig\u00e1vel \u00e0 comunidade.",
-                s1_item1: "Lista branca de paks substitu\u00edda por checksums verificados dos paks oficiais do jogo (US, UK/GOG, Spearhead, Breakthrough)",
-                s1_item2: "Mais de 60 pk3s da comunidade adicionados \u00e0 lista de checksums, para que jogadores com mapas e pacotes populares possam entrar em servidores pure",
-                s1_item3: "Nova valida\u00e7\u00e3o de checksum independente do feed atrav\u00e9s do comando <code>cp2</code> do cliente \u2014 permite verifica\u00e7\u00e3o independente da ordem de carregamento dos paks",
-                s1_item4: "Corrigida a verifica\u00e7\u00e3o reversa de pure para clientes sem paks da comunidade",
-                s1_item5: "O servidor n\u00e3o exige mais que os clientes tenham exatamente os mesmos paks \u2014 apenas que sejam verificados",
+                s1_desc: "O sistema de valida\u00e7\u00e3o pure foi melhorado para ser mais flex\u00edvel e amig\u00e1vel \u00e0 comunidade, com suporte mais amplo para paks oficiais e da comunidade. Ative com <code>sv_pure 1</code>.",
 
                 // Section 2
                 s2_title: "sv_autokick",
@@ -741,23 +634,6 @@
                 s6_beh1: "<code>g_preventghostwalk 0</code> (padr\u00e3o): comportamento original \u2014 trocas de arma reiniciam a anima\u00e7\u00e3o das pernas do in\u00edcio, permitindo ghost walking",
                 s6_beh2: "<code>g_preventghostwalk 1</code>: quando um jogador troca de arma no mesmo estado das pernas (ex: andando), o rel\u00f3gio de anima\u00e7\u00e3o \u00e9 preservado \u2014 o ritmo dos passos continua sem interrup\u00e7\u00e3o",
 
-                // Section 7
-                s7_title: "Rede e Valida\u00e7\u00e3o de Endere\u00e7os",
-                s7_item1: "A entrada de endere\u00e7o do servidor agora \u00e9 limpa automaticamente em <code>NET_StringToAdr</code> \u2014 espa\u00e7os em branco e prefixos de protocolo s\u00e3o removidos",
-                s7_item2: "Endere\u00e7os IPv4 malformados (ex: <code>192.168</code> com n\u00famero incorreto de octetos) s\u00e3o rejeitados antecipadamente, evitando tentativas desnecess\u00e1rias de resolu\u00e7\u00e3o DNS",
-
-                // Section 8
-                s8_title: "Sele\u00e7\u00e3o de Resolu\u00e7\u00e3o (Windows)",
-                s8_desc: "O launcher do Windows agora inclui uma op\u00e7\u00e3o de sele\u00e7\u00e3o de resolu\u00e7\u00e3o.",
-                s8_item1: "Novo checkbox para substituir a resolu\u00e7\u00e3o do jogo ao iniciar",
-                s8_item2: "9 op\u00e7\u00f5es dispon\u00edveis: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s8_item3: "Usa o cvar <code>r_mode</code> para resolu\u00e7\u00f5es padr\u00e3o, ou <code>r_customwidth</code> / <code>r_customheight</code> para as n\u00e3o padr\u00e3o",
-                s8_item4: "As configura\u00e7\u00f5es s\u00e3o salvas e persistem entre execu\u00e7\u00f5es",
-
-                // Section 9
-                s9_title: "Atualiza\u00e7\u00e3o de \u00cdcones",
-                s9_item1: "Novo \u00edcone <code>openmohaa-launcher.ico</code> para o launcher do Windows",
-                s9_item2: "\u00cdcones atualizados gerados a partir de SVG para macOS (.icns) e Windows (.ico)"
             }
         };
 
