@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenMoHAA Changelog</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            background: #1f2937;
+            color: #f0883e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        header {
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        .header-text p {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        .lang-switcher {
+            display: flex;
+            gap: 4px;
+        }
+
+        .lang-switcher button {
+            background: transparent;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .lang-switcher button:hover {
+            color: #e6edf3;
+            border-color: #58a6ff;
+        }
+
+        .lang-switcher button.active {
+            background: #58a6ff;
+            color: #0d1117;
+            border-color: #58a6ff;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        .changelog-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .changelog-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 16px;
+            padding-left: 14px;
+            border-left: 4px solid #58a6ff;
+        }
+
+        .changelog-section.cvar-emphasis {
+            border-color: #7ee787;
+            border-width: 1px;
+        }
+
+        .changelog-section.cvar-emphasis h2 {
+            border-left-color: #7ee787;
+        }
+
+        .changelog-section p {
+            color: #c9d1d9;
+            margin-bottom: 12px;
+        }
+
+        .changelog-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .changelog-section ul li {
+            color: #c9d1d9;
+            padding: 6px 0 6px 20px;
+            position: relative;
+        }
+
+        .changelog-section ul li::before {
+            content: '•';
+            position: absolute;
+            left: 4px;
+            color: #58a6ff;
+        }
+
+        .cvar-table-wrapper {
+            overflow-x: auto;
+            margin: 16px 0;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+
+        .cvar-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .cvar-table thead {
+            background: #21262d;
+        }
+
+        .cvar-table th {
+            text-align: left;
+            padding: 12px 16px;
+            color: #e6edf3;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #30363d;
+            white-space: nowrap;
+        }
+
+        .cvar-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #21262d;
+            vertical-align: top;
+        }
+
+        .cvar-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .cvar-table tbody tr:nth-child(even) {
+            background: #0d1117;
+        }
+
+        .cvar-table .cvar-name {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            color: #7ee787;
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .cvar-table .cvar-default {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            color: #f0883e;
+        }
+
+        .cvar-table .cvar-flags {
+            color: #8b949e;
+            font-size: 0.85rem;
+        }
+
+        .behavior-list {
+            margin-top: 16px;
+        }
+
+        .behavior-list h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #c9d1d9;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-server {
+            background: rgba(136, 87, 229, 0.2);
+            color: #b392f0;
+            border: 1px solid rgba(136, 87, 229, 0.3);
+        }
+
+        .tag-client {
+            background: rgba(88, 166, 255, 0.2);
+            color: #79c0ff;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+
+        .tag-game {
+            background: rgba(126, 231, 135, 0.2);
+            color: #7ee787;
+            border: 1px solid rgba(126, 231, 135, 0.3);
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: #484f58;
+            font-size: 0.85rem;
+            border-top: 1px solid #21262d;
+        }
+
+        @media (max-width: 768px) {
+            .header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .changelog-section {
+                padding: 20px 16px;
+            }
+
+            .cvar-table {
+                font-size: 0.85rem;
+            }
+
+            .cvar-table th,
+            .cvar-table td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div class="header-text">
+                <h1 data-i18n="title">OpenMoHAA Changelog</h1>
+                <p data-i18n="subtitle">Recent changes and new features</p>
+            </div>
+            <div class="lang-switcher">
+                <button data-lang="en" class="active">EN</button>
+                <button data-lang="es">ES</button>
+                <button data-lang="pt">PT-BR</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Section 1: Pak/Pure Validation -->
+        <section class="changelog-section" id="pak-pure">
+            <h2><span class="tag tag-server">Server</span> &nbsp;<span data-i18n="s1_title">Pak/Pure Validation System</span></h2>
+            <p data-i18n="s1_desc">The pure validation system has been overhauled to be more flexible and community-friendly.</p>
+            <ul>
+                <li data-i18n-html="s1_item1">Replaced pak whitelist with verified checksums from official game paks (US, UK/GOG, Spearhead, Breakthrough)</li>
+                <li data-i18n-html="s1_item2">Added 60+ community pk3s to the checksum whitelist, so players with popular community maps and packs can join pure servers</li>
+                <li data-i18n-html="s1_item3">New feed-independent checksum validation via <code>cp2</code> client command — allows verification regardless of pak load order</li>
+                <li data-i18n="s1_item4">Fixed reverse pure check for clients without community paks</li>
+                <li data-i18n="s1_item5">Server no longer requires clients to have the exact same paks — just verified ones</li>
+            </ul>
+        </section>
+
+        <!-- Section 2: sv_autokick (emphasized) -->
+        <section class="changelog-section cvar-emphasis" id="sv-autokick">
+            <h2><span class="tag tag-server">Server</span> &nbsp;<span data-i18n="s2_title">sv_autokick</span></h2>
+            <p data-i18n="s2_desc">Automatically kick clients that fail pure pak validation after a configurable grace period.</p>
+
+            <div class="cvar-table-wrapper">
+                <table class="cvar-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="cvar_name">Cvar</th>
+                            <th data-i18n="cvar_default">Default</th>
+                            <th data-i18n="cvar_type">Type</th>
+                            <th data-i18n="cvar_flags">Flags</th>
+                            <th data-i18n="cvar_desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cvar-name">sv_autokick</td>
+                            <td class="cvar-default">0</td>
+                            <td>Integer</td>
+                            <td class="cvar-flags">CVAR_ARCHIVE</td>
+                            <td data-i18n="s2_cvar_desc">Seconds to wait before kicking unpure clients. 0 = disabled.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="behavior-list">
+                <h3 data-i18n="behavior_title">Behavior</h3>
+                <ul>
+                    <li data-i18n-html="s2_beh1">Set to <code>0</code> (default): disabled — unpure clients stay connected but are marked as impure</li>
+                    <li data-i18n-html="s2_beh2">Set to a positive integer (e.g. <code>5</code>): clients failing pure validation are kicked after that many seconds</li>
+                    <li data-i18n="s2_beh3">The kick timer starts when the client enters the game (CS_ACTIVE state), not during loading — so they have time to see the kick message</li>
+                    <li data-i18n="s2_beh4">If a client fails validation after a map restart (already in-game), the timer starts immediately</li>
+                    <li data-i18n-html="s2_beh5">Setting <code>sv_autokick</code> to <code>0</code> at runtime cancels all pending kicks</li>
+                    <li data-i18n-html="s2_beh6">Enabling <code>sv_autokick</code> at runtime starts kick timers for any already-connected unpure clients</li>
+                    <li data-i18n-html="s2_beh7">Kick message: <code>Unpure client detected. Invalid or missing pk3 files.</code></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 3: Pure Status HUD -->
+        <section class="changelog-section" id="pure-hud">
+            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s3_title">Pure Status HUD</span></h2>
+            <p data-i18n="s3_desc">A new HUD element shows the pure validation status of connected players at a glance.</p>
+            <ul>
+                <li data-i18n-html="s3_item1">Displays <code>N/M</code> in the bottom-right corner of the screen (N = pure players, M = total players)</li>
+                <li data-i18n="s3_item2">A colored dot indicator appears next to the count: green means you are pure, red means you are impure</li>
+                <li data-i18n="s3_item3">Uses virtual 640x480 coordinate system, auto-scaled to your actual screen resolution</li>
+            </ul>
+        </section>
+
+        <!-- Section 4: g_spectatefix (emphasized) -->
+        <section class="changelog-section cvar-emphasis" id="spectator">
+            <h2><span class="tag tag-game">Game</span> &nbsp;<span data-i18n="s4_title">g_spectatefix</span></h2>
+            <p data-i18n="s4_desc">Control the spectator follow-camera behavior with a toggle between modern and original MoHAA modes.</p>
+
+            <div class="cvar-table-wrapper">
+                <table class="cvar-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="cvar_name">Cvar</th>
+                            <th data-i18n="cvar_default">Default</th>
+                            <th data-i18n="cvar_type">Type</th>
+                            <th data-i18n="cvar_flags">Flags</th>
+                            <th data-i18n="cvar_desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cvar-name">g_spectatefix</td>
+                            <td class="cvar-default">1</td>
+                            <td>Boolean</td>
+                            <td class="cvar-flags">—</td>
+                            <td data-i18n="s4_cvar_desc">Toggle between fixed (1) and original MoHAA (0) spectator camera.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="behavior-list">
+                <h3 data-i18n="behavior_title">Behavior</h3>
+                <ul>
+                    <li data-i18n-html="s4_beh1"><code>g_spectatefix 1</code> (default): Uses the player's eye position for the spectator camera — cleaner, more predictable follow behavior</li>
+                    <li data-i18n-html="s4_beh2"><code>g_spectatefix 0</code>: Reverts to the original MoHAA spectator camera — 56 units behind the player, 24 units above, with lean angle interpolation</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 5: Network/Address Validation -->
+        <section class="changelog-section" id="network">
+            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s5_title">Network &amp; Address Validation</span></h2>
+            <ul>
+                <li data-i18n-html="s5_item1">Server address input is now auto-cleaned in <code>NET_StringToAdr</code> — whitespace and protocol prefixes are stripped automatically</li>
+                <li data-i18n-html="s5_item2">Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts</li>
+            </ul>
+        </section>
+
+        <!-- Section 6: Launcher Resolution Override -->
+        <section class="changelog-section" id="launcher">
+            <h2><span class="tag tag-client">Launcher</span> &nbsp;<span data-i18n="s6_title">Resolution Override (Windows)</span></h2>
+            <p data-i18n="s6_desc">The Windows launcher now includes a resolution override option.</p>
+            <ul>
+                <li data-i18n="s6_item1">New toggleable checkbox to override the in-game resolution at launch</li>
+                <li data-i18n="s6_item2">9 presets available: 800x600, 960x720, 1024x768, 1152x864, 1280x720, 1280x1024, 1600x1200, 1920x1080, 3840x2160</li>
+                <li data-i18n-html="s6_item3">Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones</li>
+                <li data-i18n="s6_item4">Settings are saved and persist between launches</li>
+            </ul>
+        </section>
+
+        <!-- Section 7: Icon Updates -->
+        <section class="changelog-section" id="icons">
+            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s7_title">Icon Updates</span></h2>
+            <ul>
+                <li data-i18n-html="s7_item1">New <code>openmohaa-launcher.ico</code> icon for the Windows launcher</li>
+                <li data-i18n="s7_item2">Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <span data-i18n="footer">OpenMoHAA Project — Licensed under GPL v2+</span>
+    </footer>
+
+    <script>
+        const translations = {
+            en: {
+                title: "OpenMoHAA Changelog",
+                subtitle: "Recent changes and new features",
+                cvar_name: "Cvar",
+                cvar_default: "Default",
+                cvar_type: "Type",
+                cvar_flags: "Flags",
+                cvar_desc: "Description",
+                behavior_title: "Behavior",
+                footer: "OpenMoHAA Project \u2014 Licensed under GPL v2+",
+
+                // Section 1: Pak/Pure Validation
+                s1_title: "Pak/Pure Validation System",
+                s1_desc: "The pure validation system has been overhauled to be more flexible and community-friendly.",
+                s1_item1: "Replaced pak whitelist with verified checksums from official game paks (US, UK/GOG, Spearhead, Breakthrough)",
+                s1_item2: "Added 60+ community pk3s to the checksum whitelist, so players with popular community maps and packs can join pure servers",
+                s1_item3: "New feed-independent checksum validation via <code>cp2</code> client command \u2014 allows verification regardless of pak load order",
+                s1_item4: "Fixed reverse pure check for clients without community paks",
+                s1_item5: "Server no longer requires clients to have the exact same paks \u2014 just verified ones",
+
+                // Section 2: sv_autokick
+                s2_title: "sv_autokick",
+                s2_desc: "Automatically kick clients that fail pure pak validation after a configurable grace period.",
+                s2_cvar_desc: "Seconds to wait before kicking unpure clients. 0 = disabled.",
+                s2_beh1: "Set to <code>0</code> (default): disabled \u2014 unpure clients stay connected but are marked as impure",
+                s2_beh2: "Set to a positive integer (e.g. <code>5</code>): clients failing pure validation are kicked after that many seconds",
+                s2_beh3: "The kick timer starts when the client enters the game (CS_ACTIVE state), not during loading \u2014 so they have time to see the kick message",
+                s2_beh4: "If a client fails validation after a map restart (already in-game), the timer starts immediately",
+                s2_beh5: "Setting <code>sv_autokick</code> to <code>0</code> at runtime cancels all pending kicks",
+                s2_beh6: "Enabling <code>sv_autokick</code> at runtime starts kick timers for any already-connected unpure clients",
+                s2_beh7: "Kick message: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
+
+                // Section 3: Pure Status HUD
+                s3_title: "Pure Status HUD",
+                s3_desc: "A new HUD element shows the pure validation status of connected players at a glance.",
+                s3_item1: "Displays <code>N/M</code> in the bottom-right corner of the screen (N = pure players, M = total players)",
+                s3_item2: "A colored dot indicator appears next to the count: green means you are pure, red means you are impure",
+                s3_item3: "Uses virtual 640\u00d7480 coordinate system, auto-scaled to your actual screen resolution",
+
+                // Section 4: g_spectatefix
+                s4_title: "g_spectatefix",
+                s4_desc: "Control the spectator follow-camera behavior with a toggle between modern and original MoHAA modes.",
+                s4_cvar_desc: "Toggle between fixed (1) and original MoHAA (0) spectator camera.",
+                s4_beh1: "<code>g_spectatefix 1</code> (default): Uses the player's eye position for the spectator camera \u2014 cleaner, more predictable follow behavior",
+                s4_beh2: "<code>g_spectatefix 0</code>: Reverts to the original MoHAA spectator camera \u2014 56 units behind the player, 24 units above, with lean angle interpolation",
+
+                // Section 5: Network
+                s5_title: "Network & Address Validation",
+                s5_item1: "Server address input is now auto-cleaned in <code>NET_StringToAdr</code> \u2014 whitespace and protocol prefixes are stripped automatically",
+                s5_item2: "Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts",
+
+                // Section 6: Launcher
+                s6_title: "Resolution Override (Windows)",
+                s6_desc: "The Windows launcher now includes a resolution override option.",
+                s6_item1: "New toggleable checkbox to override the in-game resolution at launch",
+                s6_item2: "9 presets available: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s6_item3: "Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones",
+                s6_item4: "Settings are saved and persist between launches",
+
+                // Section 7: Icons
+                s7_title: "Icon Updates",
+                s7_item1: "New <code>openmohaa-launcher.ico</code> icon for the Windows launcher",
+                s7_item2: "Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)"
+            },
+
+            es: {
+                title: "OpenMoHAA \u2014 Registro de Cambios",
+                subtitle: "Cambios recientes y nuevas funcionalidades",
+                cvar_name: "Cvar",
+                cvar_default: "Valor por defecto",
+                cvar_type: "Tipo",
+                cvar_flags: "Flags",
+                cvar_desc: "Descripci\u00f3n",
+                behavior_title: "Comportamiento",
+                footer: "Proyecto OpenMoHAA \u2014 Licencia GPL v2+",
+
+                // Section 1
+                s1_title: "Sistema de Validaci\u00f3n Pak/Pure",
+                s1_desc: "El sistema de validaci\u00f3n pure fue renovado para ser m\u00e1s flexible y amigable con la comunidad.",
+                s1_item1: "Se reemplaz\u00f3 la lista blanca de paks con checksums verificados de los paks oficiales del juego (US, UK/GOG, Spearhead, Breakthrough)",
+                s1_item2: "Se agregaron m\u00e1s de 60 pk3s de la comunidad a la lista de checksums, para que los jugadores con mapas y packs populares puedan conectarse a servidores pure",
+                s1_item3: "Nueva validaci\u00f3n de checksum independiente del feed mediante el comando <code>cp2</code> del cliente \u2014 permite verificaci\u00f3n sin importar el orden de carga de los paks",
+                s1_item4: "Se corrigi\u00f3 la verificaci\u00f3n reversa de pure para clientes sin paks de la comunidad",
+                s1_item5: "El servidor ya no requiere que los clientes tengan exactamente los mismos paks \u2014 solo que sean verificados",
+
+                // Section 2
+                s2_title: "sv_autokick",
+                s2_desc: "Expulsa autom\u00e1ticamente a los clientes que fallan la validaci\u00f3n pure despu\u00e9s de un per\u00edodo de gracia configurable.",
+                s2_cvar_desc: "Segundos de espera antes de expulsar clientes impuros. 0 = deshabilitado.",
+                s2_beh1: "En <code>0</code> (por defecto): deshabilitado \u2014 los clientes impuros se quedan conectados pero se marcan como impuros",
+                s2_beh2: "Con un entero positivo (ej. <code>5</code>): los clientes que fallen la validaci\u00f3n pure son expulsados despu\u00e9s de esos segundos",
+                s2_beh3: "El temporizador de expulsi\u00f3n comienza cuando el cliente entra al juego (estado CS_ACTIVE), no durante la carga \u2014 as\u00ed tienen tiempo de ver el mensaje",
+                s2_beh4: "Si un cliente falla la validaci\u00f3n despu\u00e9s de un reinicio de mapa (ya en juego), el temporizador comienza de inmediato",
+                s2_beh5: "Poner <code>sv_autokick</code> en <code>0</code> en tiempo de ejecuci\u00f3n cancela todas las expulsiones pendientes",
+                s2_beh6: "Activar <code>sv_autokick</code> en tiempo de ejecuci\u00f3n inicia temporizadores para los clientes impuros ya conectados",
+                s2_beh7: "Mensaje de expulsi\u00f3n: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
+
+                // Section 3
+                s3_title: "HUD de Estado Pure",
+                s3_desc: "Un nuevo elemento del HUD muestra el estado de validaci\u00f3n pure de los jugadores conectados de un vistazo.",
+                s3_item1: "Muestra <code>N/M</code> en la esquina inferior derecha de la pantalla (N = jugadores puros, M = jugadores totales)",
+                s3_item2: "Un indicador de punto de color aparece junto al conteo: verde significa que sos puro, rojo significa que sos impuro",
+                s3_item3: "Usa un sistema de coordenadas virtual de 640\u00d7480, escalado autom\u00e1ticamente a tu resoluci\u00f3n real",
+
+                // Section 4
+                s4_title: "g_spectatefix",
+                s4_desc: "Control\u00e1 el comportamiento de la c\u00e1mara de espectador con un toggle entre los modos moderno y original de MoHAA.",
+                s4_cvar_desc: "Alterna entre c\u00e1mara de espectador corregida (1) y original de MoHAA (0).",
+                s4_beh1: "<code>g_spectatefix 1</code> (por defecto): Usa la posici\u00f3n de los ojos del jugador para la c\u00e1mara de espectador \u2014 seguimiento m\u00e1s limpio y predecible",
+                s4_beh2: "<code>g_spectatefix 0</code>: Vuelve a la c\u00e1mara de espectador original de MoHAA \u2014 56 unidades detr\u00e1s del jugador, 24 unidades arriba, con interpolaci\u00f3n del \u00e1ngulo de inclinaci\u00f3n",
+
+                // Section 5
+                s5_title: "Red y Validaci\u00f3n de Direcciones",
+                s5_item1: "La entrada de direcci\u00f3n del servidor ahora se limpia autom\u00e1ticamente en <code>NET_StringToAdr</code> \u2014 se eliminan espacios en blanco y prefijos de protocolo",
+                s5_item2: "Las direcciones IPv4 malformadas (ej. <code>192.168</code> con cantidad incorrecta de octetos) se rechazan temprano, evitando intentos innecesarios de resoluci\u00f3n DNS",
+
+                // Section 6
+                s6_title: "Selecci\u00f3n de Resoluci\u00f3n (Windows)",
+                s6_desc: "El launcher de Windows ahora incluye una opci\u00f3n para seleccionar la resoluci\u00f3n.",
+                s6_item1: "Nuevo checkbox para sobreescribir la resoluci\u00f3n del juego al iniciar",
+                s6_item2: "9 opciones disponibles: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s6_item3: "Usa el cvar <code>r_mode</code> para resoluciones est\u00e1ndar, o <code>r_customwidth</code> / <code>r_customheight</code> para las no est\u00e1ndar",
+                s6_item4: "La configuraci\u00f3n se guarda y persiste entre ejecuciones",
+
+                // Section 7
+                s7_title: "Actualizaci\u00f3n de \u00cdconos",
+                s7_item1: "Nuevo \u00edcono <code>openmohaa-launcher.ico</code> para el launcher de Windows",
+                s7_item2: "\u00cdconos actualizados generados desde SVG para macOS (.icns) y Windows (.ico)"
+            },
+
+            pt: {
+                title: "OpenMoHAA \u2014 Registro de Altera\u00e7\u00f5es",
+                subtitle: "Altera\u00e7\u00f5es recentes e novas funcionalidades",
+                cvar_name: "Cvar",
+                cvar_default: "Padr\u00e3o",
+                cvar_type: "Tipo",
+                cvar_flags: "Flags",
+                cvar_desc: "Descri\u00e7\u00e3o",
+                behavior_title: "Comportamento",
+                footer: "Projeto OpenMoHAA \u2014 Licen\u00e7a GPL v2+",
+
+                // Section 1
+                s1_title: "Sistema de Valida\u00e7\u00e3o Pak/Pure",
+                s1_desc: "O sistema de valida\u00e7\u00e3o pure foi reformulado para ser mais flex\u00edvel e amig\u00e1vel \u00e0 comunidade.",
+                s1_item1: "Lista branca de paks substitu\u00edda por checksums verificados dos paks oficiais do jogo (US, UK/GOG, Spearhead, Breakthrough)",
+                s1_item2: "Mais de 60 pk3s da comunidade adicionados \u00e0 lista de checksums, para que jogadores com mapas e pacotes populares possam entrar em servidores pure",
+                s1_item3: "Nova valida\u00e7\u00e3o de checksum independente do feed atrav\u00e9s do comando <code>cp2</code> do cliente \u2014 permite verifica\u00e7\u00e3o independente da ordem de carregamento dos paks",
+                s1_item4: "Corrigida a verifica\u00e7\u00e3o reversa de pure para clientes sem paks da comunidade",
+                s1_item5: "O servidor n\u00e3o exige mais que os clientes tenham exatamente os mesmos paks \u2014 apenas que sejam verificados",
+
+                // Section 2
+                s2_title: "sv_autokick",
+                s2_desc: "Expulsa automaticamente clientes que falham na valida\u00e7\u00e3o pure ap\u00f3s um per\u00edodo de toler\u00e2ncia configur\u00e1vel.",
+                s2_cvar_desc: "Segundos de espera antes de expulsar clientes impuros. 0 = desabilitado.",
+                s2_beh1: "Em <code>0</code> (padr\u00e3o): desabilitado \u2014 clientes impuros continuam conectados mas s\u00e3o marcados como impuros",
+                s2_beh2: "Com um inteiro positivo (ex: <code>5</code>): clientes que falharem na valida\u00e7\u00e3o pure s\u00e3o expulsos ap\u00f3s essa quantidade de segundos",
+                s2_beh3: "O temporizador de expuls\u00e3o come\u00e7a quando o cliente entra no jogo (estado CS_ACTIVE), n\u00e3o durante o carregamento \u2014 assim eles t\u00eam tempo de ver a mensagem",
+                s2_beh4: "Se um cliente falha na valida\u00e7\u00e3o ap\u00f3s um reinicio de mapa (j\u00e1 em jogo), o temporizador come\u00e7a imediatamente",
+                s2_beh5: "Colocar <code>sv_autokick</code> em <code>0</code> em tempo de execu\u00e7\u00e3o cancela todas as expuls\u00f5es pendentes",
+                s2_beh6: "Ativar <code>sv_autokick</code> em tempo de execu\u00e7\u00e3o inicia temporizadores para os clientes impuros j\u00e1 conectados",
+                s2_beh7: "Mensagem de expuls\u00e3o: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
+
+                // Section 3
+                s3_title: "HUD de Status Pure",
+                s3_desc: "Um novo elemento do HUD mostra o status de valida\u00e7\u00e3o pure dos jogadores conectados de forma r\u00e1pida.",
+                s3_item1: "Exibe <code>N/M</code> no canto inferior direito da tela (N = jogadores puros, M = total de jogadores)",
+                s3_item2: "Um indicador de ponto colorido aparece ao lado do contador: verde significa que voc\u00ea \u00e9 puro, vermelho significa que voc\u00ea \u00e9 impuro",
+                s3_item3: "Usa sistema de coordenadas virtual de 640\u00d7480, escalado automaticamente para sua resolu\u00e7\u00e3o real",
+
+                // Section 4
+                s4_title: "g_spectatefix",
+                s4_desc: "Controle o comportamento da c\u00e2mera de espectador com uma op\u00e7\u00e3o entre os modos moderno e original do MoHAA.",
+                s4_cvar_desc: "Alterna entre c\u00e2mera de espectador corrigida (1) e original do MoHAA (0).",
+                s4_beh1: "<code>g_spectatefix 1</code> (padr\u00e3o): Usa a posi\u00e7\u00e3o dos olhos do jogador para a c\u00e2mera de espectador \u2014 acompanhamento mais limpo e previs\u00edvel",
+                s4_beh2: "<code>g_spectatefix 0</code>: Volta \u00e0 c\u00e2mera de espectador original do MoHAA \u2014 56 unidades atr\u00e1s do jogador, 24 unidades acima, com interpola\u00e7\u00e3o do \u00e2ngulo de inclina\u00e7\u00e3o",
+
+                // Section 5
+                s5_title: "Rede e Valida\u00e7\u00e3o de Endere\u00e7os",
+                s5_item1: "A entrada de endere\u00e7o do servidor agora \u00e9 limpa automaticamente em <code>NET_StringToAdr</code> \u2014 espa\u00e7os em branco e prefixos de protocolo s\u00e3o removidos",
+                s5_item2: "Endere\u00e7os IPv4 malformados (ex: <code>192.168</code> com n\u00famero incorreto de octetos) s\u00e3o rejeitados antecipadamente, evitando tentativas desnecess\u00e1rias de resolu\u00e7\u00e3o DNS",
+
+                // Section 6
+                s6_title: "Sele\u00e7\u00e3o de Resolu\u00e7\u00e3o (Windows)",
+                s6_desc: "O launcher do Windows agora inclui uma op\u00e7\u00e3o de sele\u00e7\u00e3o de resolu\u00e7\u00e3o.",
+                s6_item1: "Novo checkbox para substituir a resolu\u00e7\u00e3o do jogo ao iniciar",
+                s6_item2: "9 op\u00e7\u00f5es dispon\u00edveis: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s6_item3: "Usa o cvar <code>r_mode</code> para resolu\u00e7\u00f5es padr\u00e3o, ou <code>r_customwidth</code> / <code>r_customheight</code> para as n\u00e3o padr\u00e3o",
+                s6_item4: "As configura\u00e7\u00f5es s\u00e3o salvas e persistem entre execu\u00e7\u00f5es",
+
+                // Section 7
+                s7_title: "Atualiza\u00e7\u00e3o de \u00cdcones",
+                s7_item1: "Novo \u00edcone <code>openmohaa-launcher.ico</code> para o launcher do Windows",
+                s7_item2: "\u00cdcones atualizados gerados a partir de SVG para macOS (.icns) e Windows (.ico)"
+            }
+        };
+
+        let currentLang = 'en';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+
+            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                var key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+                var key = el.getAttribute('data-i18n-html');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+
+            document.querySelectorAll('.lang-switcher button').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+
+            try { localStorage.setItem('omohaa-lang', lang); } catch(e) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                var saved = localStorage.getItem('omohaa-lang');
+                if (saved && translations[saved]) {
+                    currentLang = saved;
+                }
+            } catch(e) {}
+
+            document.querySelectorAll('.lang-switcher button').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    setLanguage(btn.getAttribute('data-lang'));
+                });
+            });
+
+            if (currentLang !== 'en') {
+                setLanguage(currentLang);
+            }
+        });
+    </script>
+</body>
+</html>
