@@ -466,8 +466,30 @@
             line-height: 1.45;
         }
 
-        .update-entry p code {
+        .update-entry p code,
+        .update-entry li code {
             font-size: 0.78rem;
+        }
+
+        .update-entry ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .update-entry ul li {
+            font-size: 0.82rem;
+            color: #8b949e;
+            line-height: 1.45;
+            padding: 2px 0 2px 12px;
+            position: relative;
+        }
+
+        .update-entry ul li::before {
+            content: '–';
+            position: absolute;
+            left: 0;
+            color: #484f58;
         }
 
         .behavior-list {
@@ -661,6 +683,28 @@
                     <p>Description of the update.</p>
                 </div>
                 -->
+                <div class="update-entry">
+                    <time class="update-date">2026-03-24</time>
+                    <ul>
+                        <li>Treat <code>dmflags -1</code> as all weapons allowed with bottomless clip</li>
+                        <li>Add configurable round-start freeze countdown with in-game broadcast</li>
+                        <li>Remove door-blocking prevention (players can block doors again)</li>
+                        <li>Revert ghost walk prevention (silent movement via weapon switching re-enabled)</li>
+                        <li>Disable <code>g_teamkillkick</code> by default</li>
+                        <li>Disable <code>r_uselod</code> by default</li>
+                        <li>Fix spectator camera: remove lean offset, position at player eyes</li>
+                        <li>Make brightness/gamma renderer cvars cheat-protected</li>
+                        <li>Limit <code>s_volume</code> to [0, 1], disable <code>s_ambientvolume</code> by default</li>
+                        <li>Simplify and clamp FPS HUD display</li>
+                        <li>Lower max FOV clamp from 120 to 101</li>
+                        <li>Fix sound spatialization bugs (wrong left/right positioning)</li>
+                        <li>Force <code>cl_autoRecordDemo 1</code> on startup</li>
+                        <li>Set default <code>cl_maxpackets 125</code> and <code>com_maxfps 250</code></li>
+                        <li>Disable Windows client console window</li>
+                        <li>Hardcode intro sequence to skip on startup</li>
+                        <li>Add F7 as console toggle key</li>
+                    </ul>
+                </div>
                 <div class="update-entry">
                     <time class="update-date">2024-03-24</time>
                     <p>Page launched. Initial features: Pak/Pure validation, <code>sv_autokick</code>, <code>g_spectatefix</code>, <code>g_roundstartdelay</code>, <code>g_preventghostwalk</code>.</p>
