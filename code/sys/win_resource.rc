@@ -84,11 +84,11 @@ IDI_ICON1               ICON    DISCARDABLE     "misc/windows/openmohaa.ico"
 STRINGTABLE DISCARDABLE
 BEGIN
 #if DEFAULT_TARGET_GAME == 1
-    IDS_STRING1             "OpenMoHAA Spearhead"
+    IDS_STRING1             "MoHSH"
 #elif DEFAULT_TARGET_GAME == 2
-    IDS_STRING1             "OpenMoHAA Breakthrough"
+    IDS_STRING1             "MoHBT"
 #else
-    IDS_STRING1             "OpenMoHAA"
+    IDS_STRING1             "MoHAA"
 #endif
 END
 

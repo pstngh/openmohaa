@@ -254,7 +254,7 @@ jobs:
         Copy-Item '${{github.workspace}}/thirdparties/SDL2/install/bin/*.dll' -Destination '${{github.workspace}}/package/client'
         Copy-Item '${{github.workspace}}/thirdparties/soft-oal/install/bin/*.dll' -Destination '${{github.workspace}}/package/client'
         Copy-Item '${{github.workspace}}/thirdparties/curl/install/bin/*.dll' -Destination '${{github.workspace}}/package/client'
-        foreach ($name in @('openmohaa.exe', 'spearhead.exe', 'breakthrough.exe', 'launcher.exe')) {
+        foreach ($name in @('moh.exe', 'spearhead.exe', 'breakthrough.exe', 'launcher.exe')) {
             $src = Join-Path '${{github.workspace}}/install/bin' $name
             if (Test-Path $src) { Copy-Item $src -Destination '${{github.workspace}}/package/client' }
         }
@@ -267,7 +267,7 @@ jobs:
         # Server package: omohaaded, game, cURL only (no SDL2, no OpenAL, no cgame)
         New-Item -ItemType Directory '${{github.workspace}}/package/server'
         Copy-Item '${{github.workspace}}/thirdparties/curl/install/bin/*.dll' -Destination '${{github.workspace}}/package/server'
-        $serverExe = Join-Path '${{github.workspace}}/install/bin' 'omohaaded.exe'
+        $serverExe = Join-Path '${{github.workspace}}/install/bin' 'moh_server.exe'
         if (Test-Path $serverExe) { Copy-Item $serverExe -Destination '${{github.workspace}}/package/server' }
         foreach ($installDir in @('${{github.workspace}}/install/bin', '${{github.workspace}}/install/lib')) {
             $gameDll = Join-Path $installDir 'game.dll'

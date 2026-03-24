@@ -238,20 +238,20 @@ jobs:
         cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/client/'
         cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/client/'
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/client/'
-        for install_dir in ${{github.workspace}}/install/bin/openmohaa ${{github.workspace}}/install/lib/openmohaa; do
+        for install_dir in ${{github.workspace}}/install/bin/mohaa ${{github.workspace}}/install/lib/mohaa; do
           [ -d "$install_dir" ] || continue
-          for f in openmohaa spearhead breakthrough; do
+          for f in moh spearhead breakthrough; do
             [ -f "$install_dir/$f" ] && cp -l "$install_dir/$f" '${{github.workspace}}/package/client/'
           done
           [ -f "$install_dir/cgame.so" ] && cp -l "$install_dir/cgame.so" '${{github.workspace}}/package/client/'
           [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/client/'
         done
-        # Server package: omohaaded, game, cURL only (no SDL2, no OpenAL, no cgame)
+        # Server package: moh_server, game, cURL only (no SDL2, no OpenAL, no cgame)
         mkdir -p ${{github.workspace}}/package/server
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/server/'
-        for install_dir in ${{github.workspace}}/install/bin/openmohaa ${{github.workspace}}/install/lib/openmohaa; do
+        for install_dir in ${{github.workspace}}/install/bin/mohaa ${{github.workspace}}/install/lib/mohaa; do
           [ -d "$install_dir" ] || continue
-          [ -f "$install_dir/omohaaded" ] && cp -l "$install_dir/omohaaded" '${{github.workspace}}/package/server/'
+          [ -f "$install_dir/moh_server" ] && cp -l "$install_dir/moh_server" '${{github.workspace}}/package/server/'
           [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/server/'
         done
 

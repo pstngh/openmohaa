@@ -66,9 +66,9 @@ void LaunchGame(const LauncherSettings& settings)
 {
     std::string programDir  = GetProgramDir();
 #ifdef _WIN32
-    std::string programName = "openmohaa.exe";
+    std::string programName = "moh.exe";
 #else
-    std::string programName = "openmohaa";
+    std::string programName = "moh";
 #endif
     std::string programPath = programDir + "/" + programName;
 
