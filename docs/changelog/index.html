@@ -252,6 +252,105 @@
             border: 1px solid rgba(126, 231, 135, 0.3);
         }
 
+        .discord-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: #8b949e;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+
+        .discord-link:hover {
+            color: #e6edf3;
+            border-color: #5865f2;
+            text-decoration: none;
+        }
+
+        .discord-link svg {
+            flex-shrink: 0;
+        }
+
+        .downloads-bar {
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 12px 0;
+        }
+
+        .downloads-bar-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .downloads-label {
+            color: #8b949e;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .dl-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+        }
+
+        .dl-btn:hover {
+            text-decoration: none;
+        }
+
+        .dl-btn-server {
+            background: rgba(136, 87, 229, 0.15);
+            color: #b392f0;
+            border-color: rgba(136, 87, 229, 0.3);
+        }
+
+        .dl-btn-server:hover {
+            background: rgba(136, 87, 229, 0.25);
+            border-color: #b392f0;
+        }
+
+        .dl-btn-client {
+            background: rgba(88, 166, 255, 0.15);
+            color: #79c0ff;
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+
+        .dl-btn-client:hover {
+            background: rgba(88, 166, 255, 0.25);
+            border-color: #79c0ff;
+        }
+
+        .dl-btn-drive {
+            background: rgba(126, 231, 135, 0.1);
+            color: #7ee787;
+            border-color: rgba(126, 231, 135, 0.25);
+        }
+
+        .dl-btn-drive:hover {
+            background: rgba(126, 231, 135, 0.2);
+            border-color: #7ee787;
+        }
+
         footer {
             text-align: center;
             padding: 24px;
@@ -288,19 +387,49 @@
                 <h1 data-i18n="title">OpenMoHAA Changelog</h1>
                 <p data-i18n="subtitle">Recent changes and new features</p>
             </div>
-            <div class="lang-switcher">
-                <button data-lang="en" class="active">EN</button>
-                <button data-lang="es">ES</button>
-                <button data-lang="pt">PT-BR</button>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <a href="https://dsc.gg/ForteFFA" target="_blank" rel="noopener" class="discord-link" title="Join our Discord">
+                    <svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                    </svg>
+                    Discord
+                </a>
+                <div class="lang-switcher">
+                    <button data-lang="en" class="active">EN</button>
+                    <button data-lang="es">ES</button>
+                    <button data-lang="pt">PT-BR</button>
+                </div>
             </div>
         </div>
     </header>
+
+    <div class="downloads-bar">
+        <div class="downloads-bar-inner">
+            <span class="downloads-label" data-i18n="dl_label">Download</span>
+            <a href="../../out-linux-amd64-server.zip" class="dl-btn dl-btn-server" data-i18n="dl_server">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06z"/></svg>
+                Linux Server (amd64)
+            </a>
+            <a href="../../out-windows-x64-client.zip" class="dl-btn dl-btn-client" data-i18n="dl_client">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06z"/></svg>
+                Windows Client (x64)
+            </a>
+            <a href="https://drive.google.com/drive/folders/1XNMGJDgJqCGqbXk0CeT5gyY2Fv1OV8EL" target="_blank" rel="noopener" class="dl-btn dl-btn-drive" data-i18n="dl_drive">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg>
+                Game Files (Google Drive)
+            </a>
+        </div>
+    </div>
 
     <main>
         <!-- Section 1: Pak/Pure Validation -->
         <section class="changelog-section" id="pak-pure">
             <h2><span class="tag tag-server">Server</span> &nbsp;<span data-i18n="s1_title">Pak/Pure Validation System</span></h2>
             <p data-i18n-html="s1_desc">The pure validation system has been improved to be more flexible and community-friendly, with broader support for official and community paks. Enable with <code>sv_pure 1</code>.</p>
+            <ul>
+                <li data-i18n-html="s1_hud1">A new HUD element shows the pure status of all connected players &mdash; displayed as <code>N/M</code> (pure / total) in the bottom-right corner</li>
+                <li data-i18n="s1_hud2">A colored dot indicates your own status: green = pure, red = impure</li>
+            </ul>
         </section>
 
         <!-- Section 2: sv_autokick (emphasized) -->
@@ -339,17 +468,6 @@
                     <li data-i18n-html="s2_beh7">Kick message: <code>Unpure client detected. Invalid or missing pk3 files.</code></li>
                 </ul>
             </div>
-        </section>
-
-        <!-- Section 3: Pure Status HUD -->
-        <section class="changelog-section" id="pure-hud">
-            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s3_title">Pure Status HUD</span></h2>
-            <p data-i18n="s3_desc">A new HUD element shows the pure validation status of connected players at a glance.</p>
-            <ul>
-                <li data-i18n-html="s3_item1">Displays <code>N/M</code> in the bottom-right corner of the screen (N = pure players, M = total players)</li>
-                <li data-i18n="s3_item2">A colored dot indicator appears next to the count: green means you are pure, red means you are impure</li>
-                <li data-i18n="s3_item3">Uses virtual 640x480 coordinate system, auto-scaled to your actual screen resolution</li>
-            </ul>
         </section>
 
         <!-- Section 4: g_spectatefix (emphasized) -->
@@ -470,10 +588,16 @@
                 cvar_desc: "Description",
                 behavior_title: "Behavior",
                 footer: "OpenMoHAA Project \u2014 Licensed under GPL v2+",
+                dl_label: "Download",
+                dl_server: "Linux Server (amd64)",
+                dl_client: "Windows Client (x64)",
+                dl_drive: "Game Files (Google Drive)",
 
                 // Section 1: Pak/Pure Validation
                 s1_title: "Pak/Pure Validation System",
                 s1_desc: "The pure validation system has been improved to be more flexible and community-friendly, with broader support for official and community paks. Enable with <code>sv_pure 1</code>.",
+                s1_hud1: "A new HUD element shows the pure status of all connected players \u2014 displayed as <code>N/M</code> (pure / total) in the bottom-right corner",
+                s1_hud2: "A colored dot indicates your own status: green = pure, red = impure",
 
                 // Section 2: sv_autokick
                 s2_title: "sv_autokick",
@@ -486,13 +610,6 @@
                 s2_beh5: "Setting <code>sv_autokick</code> to <code>0</code> at runtime cancels all pending kicks",
                 s2_beh6: "Enabling <code>sv_autokick</code> at runtime starts kick timers for any already-connected unpure clients",
                 s2_beh7: "Kick message: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
-
-                // Section 3: Pure Status HUD
-                s3_title: "Pure Status HUD",
-                s3_desc: "A new HUD element shows the pure validation status of connected players at a glance.",
-                s3_item1: "Displays <code>N/M</code> in the bottom-right corner of the screen (N = pure players, M = total players)",
-                s3_item2: "A colored dot indicator appears next to the count: green means you are pure, red means you are impure",
-                s3_item3: "Uses virtual 640\u00d7480 coordinate system, auto-scaled to your actual screen resolution",
 
                 // Section 4: g_spectatefix
                 s4_title: "g_spectatefix",
@@ -528,10 +645,16 @@
                 cvar_desc: "Descripci\u00f3n",
                 behavior_title: "Comportamiento",
                 footer: "Proyecto OpenMoHAA \u2014 Licencia GPL v2+",
+                dl_label: "Descargar",
+                dl_server: "Servidor Linux (amd64)",
+                dl_client: "Cliente Windows (x64)",
+                dl_drive: "Archivos del juego (Google Drive)",
 
                 // Section 1
                 s1_title: "Sistema de Validaci\u00f3n Pak/Pure",
                 s1_desc: "El sistema de validaci\u00f3n pure fue mejorado para ser m\u00e1s flexible y amigable con la comunidad, con mayor soporte para paks oficiales y de la comunidad. Activar con <code>sv_pure 1</code>.",
+                s1_hud1: "Un nuevo elemento del HUD muestra el estado pure de todos los jugadores conectados \u2014 se muestra como <code>N/M</code> (puros / total) en la esquina inferior derecha",
+                s1_hud2: "Un punto de color indica tu propio estado: verde = puro, rojo = impuro",
 
                 // Section 2
                 s2_title: "sv_autokick",
@@ -544,13 +667,6 @@
                 s2_beh5: "Poner <code>sv_autokick</code> en <code>0</code> en tiempo de ejecuci\u00f3n cancela todas las expulsiones pendientes",
                 s2_beh6: "Activar <code>sv_autokick</code> en tiempo de ejecuci\u00f3n inicia temporizadores para los clientes impuros ya conectados",
                 s2_beh7: "Mensaje de expulsi\u00f3n: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
-
-                // Section 3
-                s3_title: "HUD de Estado Pure",
-                s3_desc: "Un nuevo elemento del HUD muestra el estado de validaci\u00f3n pure de los jugadores conectados de un vistazo.",
-                s3_item1: "Muestra <code>N/M</code> en la esquina inferior derecha de la pantalla (N = jugadores puros, M = jugadores totales)",
-                s3_item2: "Un indicador de punto de color aparece junto al conteo: verde significa que sos puro, rojo significa que sos impuro",
-                s3_item3: "Usa un sistema de coordenadas virtual de 640\u00d7480, escalado autom\u00e1ticamente a tu resoluci\u00f3n real",
 
                 // Section 4
                 s4_title: "g_spectatefix",
@@ -586,10 +702,16 @@
                 cvar_desc: "Descri\u00e7\u00e3o",
                 behavior_title: "Comportamento",
                 footer: "Projeto OpenMoHAA \u2014 Licen\u00e7a GPL v2+",
+                dl_label: "Download",
+                dl_server: "Servidor Linux (amd64)",
+                dl_client: "Cliente Windows (x64)",
+                dl_drive: "Arquivos do jogo (Google Drive)",
 
                 // Section 1
                 s1_title: "Sistema de Valida\u00e7\u00e3o Pak/Pure",
                 s1_desc: "O sistema de valida\u00e7\u00e3o pure foi melhorado para ser mais flex\u00edvel e amig\u00e1vel \u00e0 comunidade, com suporte mais amplo para paks oficiais e da comunidade. Ative com <code>sv_pure 1</code>.",
+                s1_hud1: "Um novo elemento do HUD mostra o status pure de todos os jogadores conectados \u2014 exibido como <code>N/M</code> (puros / total) no canto inferior direito",
+                s1_hud2: "Um ponto colorido indica seu pr\u00f3prio status: verde = puro, vermelho = impuro",
 
                 // Section 2
                 s2_title: "sv_autokick",
@@ -602,13 +724,6 @@
                 s2_beh5: "Colocar <code>sv_autokick</code> em <code>0</code> em tempo de execu\u00e7\u00e3o cancela todas as expuls\u00f5es pendentes",
                 s2_beh6: "Ativar <code>sv_autokick</code> em tempo de execu\u00e7\u00e3o inicia temporizadores para os clientes impuros j\u00e1 conectados",
                 s2_beh7: "Mensagem de expuls\u00e3o: <code>Unpure client detected. Invalid or missing pk3 files.</code>",
-
-                // Section 3
-                s3_title: "HUD de Status Pure",
-                s3_desc: "Um novo elemento do HUD mostra o status de valida\u00e7\u00e3o pure dos jogadores conectados de forma r\u00e1pida.",
-                s3_item1: "Exibe <code>N/M</code> no canto inferior direito da tela (N = jogadores puros, M = total de jogadores)",
-                s3_item2: "Um indicador de ponto colorido aparece ao lado do contador: verde significa que voc\u00ea \u00e9 puro, vermelho significa que voc\u00ea \u00e9 impuro",
-                s3_item3: "Usa sistema de coordenadas virtual de 640\u00d7480, escalado automaticamente para sua resolu\u00e7\u00e3o real",
 
                 // Section 4
                 s4_title: "g_spectatefix",
