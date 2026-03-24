@@ -400,33 +400,110 @@
             </div>
         </section>
 
-        <!-- Section 5: Network/Address Validation -->
+        <!-- Section 5: g_roundstartdelay -->
+        <section class="changelog-section cvar-emphasis" id="roundstartdelay">
+            <h2><span class="tag tag-game">Game</span> &nbsp;<span data-i18n="s5_title">g_roundstartdelay</span></h2>
+            <p data-i18n="s5_desc">Freeze players in place at the start of each round in round-based game modes, with a countdown printed to chat.</p>
+
+            <div class="cvar-table-wrapper">
+                <table class="cvar-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="cvar_name">Cvar</th>
+                            <th data-i18n="cvar_default">Default</th>
+                            <th data-i18n="cvar_type">Type</th>
+                            <th data-i18n="cvar_flags">Flags</th>
+                            <th data-i18n="cvar_desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cvar-name">g_roundstartdelay</td>
+                            <td class="cvar-default">5</td>
+                            <td>Integer</td>
+                            <td class="cvar-flags">CVAR_ARCHIVE</td>
+                            <td data-i18n="s5_cvar_desc">Seconds to freeze players at round start. 0 = disabled.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="behavior-list">
+                <h3 data-i18n="behavior_title">Behavior</h3>
+                <ul>
+                    <li data-i18n="s5_beh1">Only applies to round-based game modes (Round, TOW, Objective, Liberation)</li>
+                    <li data-i18n-html="s5_beh2">Set to <code>0</code>: disabled — round starts immediately with no freeze</li>
+                    <li data-i18n-html="s5_beh3">Set to a positive integer (e.g. <code>5</code>): players are frozen for that many seconds; a countdown is printed to chat each second</li>
+                    <li data-i18n-html="s5_beh4">When the countdown reaches zero, a <code>Go, GLHF!</code> message is broadcast and movement is unlocked</li>
+                    <li data-i18n="s5_beh5">Any active freeze is cancelled automatically when a round ends</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 6: g_preventghostwalk -->
+        <section class="changelog-section cvar-emphasis" id="preventghostwalk">
+            <h2><span class="tag tag-game">Game</span> &nbsp;<span data-i18n="s6_title">g_preventghostwalk</span></h2>
+            <p data-i18n="s6_desc">Prevent the "ghost walking" exploit where players switch weapons mid-stride to reset footstep sounds and move more quietly.</p>
+
+            <div class="cvar-table-wrapper">
+                <table class="cvar-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="cvar_name">Cvar</th>
+                            <th data-i18n="cvar_default">Default</th>
+                            <th data-i18n="cvar_type">Type</th>
+                            <th data-i18n="cvar_flags">Flags</th>
+                            <th data-i18n="cvar_desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cvar-name">g_preventghostwalk</td>
+                            <td class="cvar-default">0</td>
+                            <td>Boolean</td>
+                            <td class="cvar-flags">CVAR_ARCHIVE</td>
+                            <td data-i18n="s6_cvar_desc">Preserve leg animation timing across weapon switches to prevent ghost walking. 0 = disabled.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="behavior-list">
+                <h3 data-i18n="behavior_title">Behavior</h3>
+                <ul>
+                    <li data-i18n-html="s6_beh1"><code>g_preventghostwalk 0</code> (default): original behavior — weapon switches restart the leg animation from the beginning, allowing ghost walking</li>
+                    <li data-i18n-html="s6_beh2"><code>g_preventghostwalk 1</code>: when a player switches weapons while in the same leg state (e.g. walking), the animation clock is preserved — footstep timing continues uninterrupted</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 7: Network/Address Validation -->
         <section class="changelog-section" id="network">
-            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s5_title">Network &amp; Address Validation</span></h2>
+            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s7_title">Network &amp; Address Validation</span></h2>
             <ul>
-                <li data-i18n-html="s5_item1">Server address input is now auto-cleaned in <code>NET_StringToAdr</code> — whitespace and protocol prefixes are stripped automatically</li>
-                <li data-i18n-html="s5_item2">Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts</li>
+                <li data-i18n-html="s7_item1">Server address input is now auto-cleaned in <code>NET_StringToAdr</code> — whitespace and protocol prefixes are stripped automatically</li>
+                <li data-i18n-html="s7_item2">Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts</li>
             </ul>
         </section>
 
-        <!-- Section 6: Launcher Resolution Override -->
+        <!-- Section 8: Launcher Resolution Override -->
         <section class="changelog-section" id="launcher">
-            <h2><span class="tag tag-client">Launcher</span> &nbsp;<span data-i18n="s6_title">Resolution Override (Windows)</span></h2>
-            <p data-i18n="s6_desc">The Windows launcher now includes a resolution override option.</p>
+            <h2><span class="tag tag-client">Launcher</span> &nbsp;<span data-i18n="s8_title">Resolution Override (Windows)</span></h2>
+            <p data-i18n="s8_desc">The Windows launcher now includes a resolution override option.</p>
             <ul>
-                <li data-i18n="s6_item1">New toggleable checkbox to override the in-game resolution at launch</li>
-                <li data-i18n="s6_item2">9 presets available: 800x600, 960x720, 1024x768, 1152x864, 1280x720, 1280x1024, 1600x1200, 1920x1080, 3840x2160</li>
-                <li data-i18n-html="s6_item3">Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones</li>
-                <li data-i18n="s6_item4">Settings are saved and persist between launches</li>
+                <li data-i18n="s8_item1">New toggleable checkbox to override the in-game resolution at launch</li>
+                <li data-i18n="s8_item2">9 presets available: 800x600, 960x720, 1024x768, 1152x864, 1280x720, 1280x1024, 1600x1200, 1920x1080, 3840x2160</li>
+                <li data-i18n-html="s8_item3">Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones</li>
+                <li data-i18n="s8_item4">Settings are saved and persist between launches</li>
             </ul>
         </section>
 
-        <!-- Section 7: Icon Updates -->
+        <!-- Section 9: Icon Updates -->
         <section class="changelog-section" id="icons">
-            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s7_title">Icon Updates</span></h2>
+            <h2><span class="tag tag-client">Client</span> &nbsp;<span data-i18n="s9_title">Icon Updates</span></h2>
             <ul>
-                <li data-i18n-html="s7_item1">New <code>openmohaa-launcher.ico</code> icon for the Windows launcher</li>
-                <li data-i18n="s7_item2">Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)</li>
+                <li data-i18n-html="s9_item1">New <code>openmohaa-launcher.ico</code> icon for the Windows launcher</li>
+                <li data-i18n="s9_item2">Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)</li>
             </ul>
         </section>
     </main>
@@ -483,23 +560,40 @@
                 s4_beh1: "<code>g_spectatefix 1</code> (default): Uses the player's eye position for the spectator camera \u2014 cleaner, more predictable follow behavior",
                 s4_beh2: "<code>g_spectatefix 0</code>: Reverts to the original MoHAA spectator camera \u2014 56 units behind the player, 24 units above, with lean angle interpolation",
 
-                // Section 5: Network
-                s5_title: "Network & Address Validation",
-                s5_item1: "Server address input is now auto-cleaned in <code>NET_StringToAdr</code> \u2014 whitespace and protocol prefixes are stripped automatically",
-                s5_item2: "Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts",
+                // Section 5: g_roundstartdelay
+                s5_title: "g_roundstartdelay",
+                s5_desc: "Freeze players in place at the start of each round in round-based game modes, with a countdown printed to chat.",
+                s5_cvar_desc: "Seconds to freeze players at round start. 0 = disabled.",
+                s5_beh1: "Only applies to round-based game modes (Round, TOW, Objective, Liberation)",
+                s5_beh2: "Set to <code>0</code>: disabled \u2014 round starts immediately with no freeze",
+                s5_beh3: "Set to a positive integer (e.g. <code>5</code>): players are frozen for that many seconds; a countdown is printed to chat each second",
+                s5_beh4: "When the countdown reaches zero, a <code>Go, GLHF!</code> message is broadcast and movement is unlocked",
+                s5_beh5: "Any active freeze is cancelled automatically when a round ends",
 
-                // Section 6: Launcher
-                s6_title: "Resolution Override (Windows)",
-                s6_desc: "The Windows launcher now includes a resolution override option.",
-                s6_item1: "New toggleable checkbox to override the in-game resolution at launch",
-                s6_item2: "9 presets available: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s6_item3: "Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones",
-                s6_item4: "Settings are saved and persist between launches",
+                // Section 6: g_preventghostwalk
+                s6_title: "g_preventghostwalk",
+                s6_desc: "Prevent the \u201cghost walking\u201d exploit where players switch weapons mid-stride to reset footstep sounds and move more quietly.",
+                s6_cvar_desc: "Preserve leg animation timing across weapon switches to prevent ghost walking. 0 = disabled.",
+                s6_beh1: "<code>g_preventghostwalk 0</code> (default): original behavior \u2014 weapon switches restart the leg animation from the beginning, allowing ghost walking",
+                s6_beh2: "<code>g_preventghostwalk 1</code>: when a player switches weapons while in the same leg state (e.g. walking), the animation clock is preserved \u2014 footstep timing continues uninterrupted",
 
-                // Section 7: Icons
-                s7_title: "Icon Updates",
-                s7_item1: "New <code>openmohaa-launcher.ico</code> icon for the Windows launcher",
-                s7_item2: "Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)"
+                // Section 7: Network
+                s7_title: "Network & Address Validation",
+                s7_item1: "Server address input is now auto-cleaned in <code>NET_StringToAdr</code> \u2014 whitespace and protocol prefixes are stripped automatically",
+                s7_item2: "Malformed IPv4 addresses (e.g. <code>192.168</code> with the wrong number of octets) are rejected early, preventing unnecessary DNS resolution attempts",
+
+                // Section 8: Launcher
+                s8_title: "Resolution Override (Windows)",
+                s8_desc: "The Windows launcher now includes a resolution override option.",
+                s8_item1: "New toggleable checkbox to override the in-game resolution at launch",
+                s8_item2: "9 presets available: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s8_item3: "Uses <code>r_mode</code> cvar for standard resolutions, or <code>r_customwidth</code> / <code>r_customheight</code> for non-standard ones",
+                s8_item4: "Settings are saved and persist between launches",
+
+                // Section 9: Icons
+                s9_title: "Icon Updates",
+                s9_item1: "New <code>openmohaa-launcher.ico</code> icon for the Windows launcher",
+                s9_item2: "Updated SVG-sourced icons for macOS (.icns) and Windows (.ico)"
             },
 
             es: {
@@ -549,22 +643,39 @@
                 s4_beh2: "<code>g_spectatefix 0</code>: Vuelve a la c\u00e1mara de espectador original de MoHAA \u2014 56 unidades detr\u00e1s del jugador, 24 unidades arriba, con interpolaci\u00f3n del \u00e1ngulo de inclinaci\u00f3n",
 
                 // Section 5
-                s5_title: "Red y Validaci\u00f3n de Direcciones",
-                s5_item1: "La entrada de direcci\u00f3n del servidor ahora se limpia autom\u00e1ticamente en <code>NET_StringToAdr</code> \u2014 se eliminan espacios en blanco y prefijos de protocolo",
-                s5_item2: "Las direcciones IPv4 malformadas (ej. <code>192.168</code> con cantidad incorrecta de octetos) se rechazan temprano, evitando intentos innecesarios de resoluci\u00f3n DNS",
+                s5_title: "g_roundstartdelay",
+                s5_desc: "Congela a los jugadores al inicio de cada ronda en modos de juego por rondas, con un conteo regresivo en el chat.",
+                s5_cvar_desc: "Segundos para congelar a los jugadores al inicio de la ronda. 0 = deshabilitado.",
+                s5_beh1: "Solo aplica a modos de juego por rondas (Round, TOW, Objective, Liberation)",
+                s5_beh2: "En <code>0</code>: deshabilitado \u2014 la ronda comienza inmediatamente sin congelamiento",
+                s5_beh3: "Con un entero positivo (ej. <code>5</code>): los jugadores quedan congelados esa cantidad de segundos; el conteo regresivo se muestra en el chat cada segundo",
+                s5_beh4: "Cuando el conteo llega a cero, se transmite un mensaje <code>Go, GLHF!</code> y el movimiento se desbloquea",
+                s5_beh5: "Cualquier congelamiento activo se cancela autom\u00e1ticamente cuando termina la ronda",
 
                 // Section 6
-                s6_title: "Selecci\u00f3n de Resoluci\u00f3n (Windows)",
-                s6_desc: "El launcher de Windows ahora incluye una opci\u00f3n para seleccionar la resoluci\u00f3n.",
-                s6_item1: "Nuevo checkbox para sobreescribir la resoluci\u00f3n del juego al iniciar",
-                s6_item2: "9 opciones disponibles: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s6_item3: "Usa el cvar <code>r_mode</code> para resoluciones est\u00e1ndar, o <code>r_customwidth</code> / <code>r_customheight</code> para las no est\u00e1ndar",
-                s6_item4: "La configuraci\u00f3n se guarda y persiste entre ejecuciones",
+                s6_title: "g_preventghostwalk",
+                s6_desc: "Evita el exploit de \u201cghost walking\u201d donde los jugadores cambian de arma a mitad del paso para reiniciar los sonidos de pisadas y moverse m\u00e1s silenciosamente.",
+                s6_cvar_desc: "Preserva el tiempo de animaci\u00f3n de piernas al cambiar de arma para evitar ghost walking. 0 = deshabilitado.",
+                s6_beh1: "<code>g_preventghostwalk 0</code> (por defecto): comportamiento original \u2014 los cambios de arma reinician la animaci\u00f3n de piernas desde el principio, permitiendo ghost walking",
+                s6_beh2: "<code>g_preventghostwalk 1</code>: cuando un jugador cambia de arma en el mismo estado de piernas (ej. caminando), el reloj de animaci\u00f3n se preserva \u2014 el ritmo de pisadas contin\u00faa sin interrupci\u00f3n",
 
                 // Section 7
-                s7_title: "Actualizaci\u00f3n de \u00cdconos",
-                s7_item1: "Nuevo \u00edcono <code>openmohaa-launcher.ico</code> para el launcher de Windows",
-                s7_item2: "\u00cdconos actualizados generados desde SVG para macOS (.icns) y Windows (.ico)"
+                s7_title: "Red y Validaci\u00f3n de Direcciones",
+                s7_item1: "La entrada de direcci\u00f3n del servidor ahora se limpia autom\u00e1ticamente en <code>NET_StringToAdr</code> \u2014 se eliminan espacios en blanco y prefijos de protocolo",
+                s7_item2: "Las direcciones IPv4 malformadas (ej. <code>192.168</code> con cantidad incorrecta de octetos) se rechazan temprano, evitando intentos innecesarios de resoluci\u00f3n DNS",
+
+                // Section 8
+                s8_title: "Selecci\u00f3n de Resoluci\u00f3n (Windows)",
+                s8_desc: "El launcher de Windows ahora incluye una opci\u00f3n para seleccionar la resoluci\u00f3n.",
+                s8_item1: "Nuevo checkbox para sobreescribir la resoluci\u00f3n del juego al iniciar",
+                s8_item2: "9 opciones disponibles: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s8_item3: "Usa el cvar <code>r_mode</code> para resoluciones est\u00e1ndar, o <code>r_customwidth</code> / <code>r_customheight</code> para las no est\u00e1ndar",
+                s8_item4: "La configuraci\u00f3n se guarda y persiste entre ejecuciones",
+
+                // Section 9
+                s9_title: "Actualizaci\u00f3n de \u00cdconos",
+                s9_item1: "Nuevo \u00edcono <code>openmohaa-launcher.ico</code> para el launcher de Windows",
+                s9_item2: "\u00cdconos actualizados generados desde SVG para macOS (.icns) y Windows (.ico)"
             },
 
             pt: {
@@ -614,22 +725,39 @@
                 s4_beh2: "<code>g_spectatefix 0</code>: Volta \u00e0 c\u00e2mera de espectador original do MoHAA \u2014 56 unidades atr\u00e1s do jogador, 24 unidades acima, com interpola\u00e7\u00e3o do \u00e2ngulo de inclina\u00e7\u00e3o",
 
                 // Section 5
-                s5_title: "Rede e Valida\u00e7\u00e3o de Endere\u00e7os",
-                s5_item1: "A entrada de endere\u00e7o do servidor agora \u00e9 limpa automaticamente em <code>NET_StringToAdr</code> \u2014 espa\u00e7os em branco e prefixos de protocolo s\u00e3o removidos",
-                s5_item2: "Endere\u00e7os IPv4 malformados (ex: <code>192.168</code> com n\u00famero incorreto de octetos) s\u00e3o rejeitados antecipadamente, evitando tentativas desnecess\u00e1rias de resolu\u00e7\u00e3o DNS",
+                s5_title: "g_roundstartdelay",
+                s5_desc: "Congela os jogadores no in\u00edcio de cada rodada em modos de jogo por rodadas, com uma contagem regressiva no chat.",
+                s5_cvar_desc: "Segundos para congelar os jogadores no in\u00edcio da rodada. 0 = desabilitado.",
+                s5_beh1: "Aplica-se apenas a modos de jogo por rodadas (Round, TOW, Objective, Liberation)",
+                s5_beh2: "Em <code>0</code>: desabilitado \u2014 a rodada come\u00e7a imediatamente sem congelamento",
+                s5_beh3: "Com um inteiro positivo (ex: <code>5</code>): os jogadores ficam congelados por essa quantidade de segundos; a contagem regressiva \u00e9 exibida no chat a cada segundo",
+                s5_beh4: "Quando a contagem chega a zero, uma mensagem <code>Go, GLHF!</code> \u00e9 transmitida e o movimento \u00e9 desbloqueado",
+                s5_beh5: "Qualquer congelamento ativo \u00e9 cancelado automaticamente quando a rodada termina",
 
                 // Section 6
-                s6_title: "Sele\u00e7\u00e3o de Resolu\u00e7\u00e3o (Windows)",
-                s6_desc: "O launcher do Windows agora inclui uma op\u00e7\u00e3o de sele\u00e7\u00e3o de resolu\u00e7\u00e3o.",
-                s6_item1: "Novo checkbox para substituir a resolu\u00e7\u00e3o do jogo ao iniciar",
-                s6_item2: "9 op\u00e7\u00f5es dispon\u00edveis: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
-                s6_item3: "Usa o cvar <code>r_mode</code> para resolu\u00e7\u00f5es padr\u00e3o, ou <code>r_customwidth</code> / <code>r_customheight</code> para as n\u00e3o padr\u00e3o",
-                s6_item4: "As configura\u00e7\u00f5es s\u00e3o salvas e persistem entre execu\u00e7\u00f5es",
+                s6_title: "g_preventghostwalk",
+                s6_desc: "Previne o exploit de \u201cghost walking\u201d onde jogadores trocam de arma no meio do passo para reiniciar os sons de passos e se mover mais silenciosamente.",
+                s6_cvar_desc: "Preserva o tempo de anima\u00e7\u00e3o das pernas ao trocar de arma para evitar ghost walking. 0 = desabilitado.",
+                s6_beh1: "<code>g_preventghostwalk 0</code> (padr\u00e3o): comportamento original \u2014 trocas de arma reiniciam a anima\u00e7\u00e3o das pernas do in\u00edcio, permitindo ghost walking",
+                s6_beh2: "<code>g_preventghostwalk 1</code>: quando um jogador troca de arma no mesmo estado das pernas (ex: andando), o rel\u00f3gio de anima\u00e7\u00e3o \u00e9 preservado \u2014 o ritmo dos passos continua sem interrup\u00e7\u00e3o",
 
                 // Section 7
-                s7_title: "Atualiza\u00e7\u00e3o de \u00cdcones",
-                s7_item1: "Novo \u00edcone <code>openmohaa-launcher.ico</code> para o launcher do Windows",
-                s7_item2: "\u00cdcones atualizados gerados a partir de SVG para macOS (.icns) e Windows (.ico)"
+                s7_title: "Rede e Valida\u00e7\u00e3o de Endere\u00e7os",
+                s7_item1: "A entrada de endere\u00e7o do servidor agora \u00e9 limpa automaticamente em <code>NET_StringToAdr</code> \u2014 espa\u00e7os em branco e prefixos de protocolo s\u00e3o removidos",
+                s7_item2: "Endere\u00e7os IPv4 malformados (ex: <code>192.168</code> com n\u00famero incorreto de octetos) s\u00e3o rejeitados antecipadamente, evitando tentativas desnecess\u00e1rias de resolu\u00e7\u00e3o DNS",
+
+                // Section 8
+                s8_title: "Sele\u00e7\u00e3o de Resolu\u00e7\u00e3o (Windows)",
+                s8_desc: "O launcher do Windows agora inclui uma op\u00e7\u00e3o de sele\u00e7\u00e3o de resolu\u00e7\u00e3o.",
+                s8_item1: "Novo checkbox para substituir a resolu\u00e7\u00e3o do jogo ao iniciar",
+                s8_item2: "9 op\u00e7\u00f5es dispon\u00edveis: 800\u00d7600, 960\u00d7720, 1024\u00d7768, 1152\u00d7864, 1280\u00d7720, 1280\u00d71024, 1600\u00d71200, 1920\u00d71080, 3840\u00d72160",
+                s8_item3: "Usa o cvar <code>r_mode</code> para resolu\u00e7\u00f5es padr\u00e3o, ou <code>r_customwidth</code> / <code>r_customheight</code> para as n\u00e3o padr\u00e3o",
+                s8_item4: "As configura\u00e7\u00f5es s\u00e3o salvas e persistem entre execu\u00e7\u00f5es",
+
+                // Section 9
+                s9_title: "Atualiza\u00e7\u00e3o de \u00cdcones",
+                s9_item1: "Novo \u00edcone <code>openmohaa-launcher.ico</code> para o launcher do Windows",
+                s9_item2: "\u00cdcones atualizados gerados a partir de SVG para macOS (.icns) e Windows (.ico)"
             }
         };
 
