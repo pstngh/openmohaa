@@ -1041,7 +1041,7 @@ static void SV_DelBanFromList(qboolean isexception)
 			curban = &serverBans[index];
 			
 			if(curban->isexception == isexception		&&
-			   curban->subnet >= mask 			&&
+			   curban->subnet == mask			&&
 			   NET_CompareBaseAdrMask(curban->ip, ip, mask))
 			{
 				Com_Printf("Deleting %s %s/%d\n",
