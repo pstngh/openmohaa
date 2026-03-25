@@ -180,6 +180,11 @@ typedef struct {
     void (*FreeRawImage)(byte *pic);
 
     void (*Set2DInitialShaderTime)(float startTime);
+
+    // ImGui overlay menu
+    void (*ImGuiMenuToggle)(void);
+    int  (*ImGuiMenuIsVisible)(void);
+    int  (*ImGuiMenuProcessEvent)(void *sdlEvent);
 } refexport_t;
 
 //

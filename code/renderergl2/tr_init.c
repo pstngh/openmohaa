@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 
 #include "tr_local.h"
+#include "../client/cl_imgui_menu.h"
 
 #include "tr_dsa.h"
 
@@ -2084,6 +2085,10 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
     re.FreeRawImage = R_FreeRawImage;
     
 	re.Set2DInitialShaderTime = Set2DInitialShaderTime;
+
+	re.ImGuiMenuToggle = ImGuiMenu_Toggle;
+	re.ImGuiMenuIsVisible = ImGuiMenu_IsVisible;
+	re.ImGuiMenuProcessEvent = ImGuiMenu_ProcessEvent;
 
 	return &re;
 }

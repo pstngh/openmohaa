@@ -1093,6 +1093,19 @@ void CL_KeyEvent(int key, qboolean down, unsigned time)
         return;
     }
 
+    // F7 toggles ImGui overlay menu
+    if (key == K_F7 && down) {
+        if (re.ImGuiMenuToggle) {
+            re.ImGuiMenuToggle();
+        }
+        return;
+    }
+
+    // When ImGui menu is visible, consume all key input
+    if (re.ImGuiMenuIsVisible && re.ImGuiMenuIsVisible()) {
+        return;
+    }
+
     if (clc.state > CA_DISCONNECTED && cge && !Key_GetCatcher() && cge->CG_CheckCaptureKey(key, down, time)
         && key != K_ESCAPE) {
         if (key != K_CONSOLE && (!keys[K_SHIFT].down || key != K_ESCAPE)) {

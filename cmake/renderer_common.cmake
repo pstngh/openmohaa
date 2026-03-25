@@ -18,6 +18,19 @@ set(SDL_RENDERER_SOURCES
     ${SOURCE_DIR}/sdl/sdl_glimp.c
 )
 
+# Dear ImGui sources for the in-game overlay menu (F7)
+set(IMGUI_DIR ${SOURCE_DIR}/thirdparty/imgui)
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_impl_sdl2.cpp
+    ${IMGUI_DIR}/imgui_impl_opengl2.cpp
+    ${SOURCE_DIR}/client/cl_imgui_menu.cpp
+)
+list(APPEND SDL_RENDERER_SOURCES ${IMGUI_SOURCES})
+
 set(DYNAMIC_RENDERER_SOURCES
     ${SOURCE_DIR}/renderercommon/tr_subs.c
     ${SOURCE_DIR}/qcommon/q_shared.c
@@ -38,5 +51,6 @@ elseif(NOT BUILD_RENDERER_GL1 AND NOT BUILD_RENDERER_GL2)
     message(FATAL_ERROR "Zero static renderers enabled; choose one")
 endif()
 
+list(APPEND RENDERER_INCLUDE_DIRS ${SOURCE_DIR}/thirdparty/imgui)
 list(APPEND RENDERER_LIBRARIES ${COMMON_LIBRARIES})
 

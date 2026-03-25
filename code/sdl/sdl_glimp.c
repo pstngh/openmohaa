@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../renderercommon/tr_common.h"
 #include "../sys/sys_local.h"
 #include "sdl_icon.h"
+#include "../client/cl_imgui_menu.h"
 
 typedef enum
 {
@@ -88,6 +89,8 @@ GLimp_Shutdown
 */
 void GLimp_Shutdown( void )
 {
+	ImGuiMenu_Shutdown();
+
 	ri.IN_Shutdown();
 
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
@@ -1177,6 +1180,9 @@ success:
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	ri.IN_Init( SDL_window );
+
+	// Initialize ImGui overlay menu
+	ImGuiMenu_Init( SDL_window, SDL_glContext );
 }
 
 
@@ -1192,6 +1198,9 @@ void GLimp_EndFrame( void )
 	// don't flip if drawing to front buffer
 	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 )
 	{
+		// Draw ImGui overlay before swap
+		ImGuiMenu_Draw();
+
 		SDL_GL_SwapWindow( SDL_window );
 	}
 

@@ -1044,6 +1044,10 @@ static void IN_ProcessEvents( void )
 
 	while( SDL_PollEvent( &e ) )
 	{
+		// Forward events to ImGui menu when visible
+		if( re.ImGuiMenuProcessEvent && re.ImGuiMenuProcessEvent( &e ) )
+			continue;
+
 		switch( e.type )
 		{
 			case SDL_KEYDOWN:
