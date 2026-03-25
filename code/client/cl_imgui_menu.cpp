@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 OpenMoHAA ImGui Menu - Ported from Volute project
-F7 in-game overlay menu with Players, Server, Chat, Game, and Settings tabs
+F7 in-game overlay menu with Game and Server tabs.
 
 This file is compiled as part of the renderer (SDL_RENDERER_SOURCES) so
 it uses the renderer import table (ri.*) for engine interaction.
@@ -51,7 +51,7 @@ enum CrosshairType {
 };
 
 // ---------------------------------------------------------------------------
-// Game settings (persisted via cvars where possible)
+// Game settings
 // ---------------------------------------------------------------------------
 static struct {
     // FOV
@@ -68,18 +68,10 @@ static struct {
     bool showFPS;
     bool drawGun;
 
-    // Chat
-    char chatHistory[64][256];
-    int  chatHistoryCount;
-    char chatInput[256];
-
     // Rcon
     char rconPassword[128];
     bool rconAuthenticated;
     char rconCommand[512];
-
-    // Player filter
-    char playerFilter[128];
 } s_settings;
 
 static void ResetSettings(void)
@@ -95,12 +87,9 @@ static void ResetSettings(void)
     s_settings.crosshairGap = 4.0f;
     s_settings.showFPS = false;
     s_settings.drawGun = true;
-    s_settings.chatHistoryCount = 0;
     s_settings.rconAuthenticated = false;
-    memset(s_settings.chatInput, 0, sizeof(s_settings.chatInput));
     memset(s_settings.rconPassword, 0, sizeof(s_settings.rconPassword));
     memset(s_settings.rconCommand, 0, sizeof(s_settings.rconCommand));
-    memset(s_settings.playerFilter, 0, sizeof(s_settings.playerFilter));
 }
 
 // ---------------------------------------------------------------------------
@@ -165,51 +154,62 @@ static void SetHalfLifeTheme()
 }
 
 // ---------------------------------------------------------------------------
-// Tab: Players (rcon only)
+// Tab: Game Settings (FOV, crosshair, HUD)
 // ---------------------------------------------------------------------------
-static void DrawPlayersTab()
+static void DrawGameTab()
 {
-    ImGui::Text("Players (requires rcon)");
+    ImGui::Text("Game Settings");
     ImGui::Separator();
 
-    if (!s_settings.rconAuthenticated) {
-        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Not authenticated. Enter rcon password in Server tab first.");
-        return;
+    // FOV
+    if (ImGui::CollapsingHeader("Field of View", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::SliderFloat("FOV", &s_settings.fov, 60.0f, 120.0f, "%.0f")) {
+            char cmd[64];
+            snprintf(cmd, sizeof(cmd), "cg_fov %g\n", (double)s_settings.fov);
+            ExecCmd(cmd);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reset FOV")) {
+            s_settings.fov = 80.0f;
+            ExecCmd("cg_fov 80\n");
+        }
     }
 
-    ImGui::InputText("Filter", s_settings.playerFilter, sizeof(s_settings.playerFilter));
-    ImGui::Separator();
+    // Crosshair settings
+    if (ImGui::CollapsingHeader("Crosshair", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const char *crosshairTypes[] = {"Original", "Circle", "Lines"};
+        if (ImGui::Combo("Type", &s_settings.crosshairType, crosshairTypes, 3)) {
+            char cmd[64];
+            snprintf(cmd, sizeof(cmd), "cg_crosshair %d\n", s_settings.crosshairType);
+            ExecCmd(cmd);
+        }
 
-    if (ImGui::Button("Refresh Player List")) {
-        ExecCmd("rcon status\n");
+        if (s_settings.crosshairType != CROSSHAIR_ORIGINAL) {
+            ImGui::SliderFloat("Size", &s_settings.crosshairSize, 5.0f, 50.0f, "%.0f");
+            ImGui::SliderFloat("Thickness", &s_settings.crosshairThickness, 0.5f, 5.0f, "%.1f");
+            ImGui::SliderFloat("Gap", &s_settings.crosshairGap, 0.0f, 20.0f, "%.0f");
+            ImGui::ColorEdit4("Color", s_settings.crosshairColor, ImGuiColorEditFlags_NoInputs);
+        }
     }
 
-    ImGui::Spacing();
-
-    if (ImGui::BeginTable("PlayerTable", 4,
-        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
-    {
-        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 30.0f);
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("Ping", ImGuiTableColumnFlags_WidthFixed, 50.0f);
-        ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 120.0f);
-        ImGui::TableHeadersRow();
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::TextDisabled("--");
-        ImGui::TableNextColumn();
-        ImGui::TextDisabled("Use 'Refresh' to fetch player list via rcon");
-        ImGui::TableNextColumn();
-        ImGui::TextDisabled("--");
-        ImGui::TableNextColumn();
-        ImGui::TextDisabled("--");
-
-        ImGui::EndTable();
+    // HUD Options
+    if (ImGui::CollapsingHeader("HUD Options")) {
+        if (ImGui::Checkbox("Show FPS", &s_settings.showFPS)) {
+            ExecCmd(s_settings.showFPS ? "cg_drawfps 1\n" : "cg_drawfps 0\n");
+        }
+        if (ImGui::Checkbox("Draw Weapon", &s_settings.drawGun)) {
+            ExecCmd(s_settings.drawGun ? "cg_drawGun 1\n" : "cg_drawGun 0\n");
+        }
     }
 
-    ImGui::Spacing();
-    ImGui::TextWrapped("Tip: Use the Server tab's rcon console for kick/ban commands.");
+    // Graphics quick settings
+    if (ImGui::CollapsingHeader("Graphics Quick Settings")) {
+        if (ImGui::Button("Low"))    { ExecCmd("exec low.cfg\n"); }
+        ImGui::SameLine();
+        if (ImGui::Button("Medium")) { ExecCmd("exec medium.cfg\n"); }
+        ImGui::SameLine();
+        if (ImGui::Button("High"))   { ExecCmd("exec high.cfg\n"); }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -275,205 +275,6 @@ static void DrawServerTab()
 }
 
 // ---------------------------------------------------------------------------
-// Tab: Chat
-// ---------------------------------------------------------------------------
-static void DrawChatTab()
-{
-    ImGui::Text("Chat History");
-    ImGui::Separator();
-
-    ImGui::BeginChild("ChatHistory", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 30), true,
-                      ImGuiWindowFlags_AlwaysVerticalScrollbar);
-
-    if (s_settings.chatHistoryCount == 0) {
-        ImGui::TextDisabled("No chat messages recorded yet.");
-        ImGui::TextDisabled("Chat messages will appear here during gameplay.");
-    } else {
-        for (int i = 0; i < s_settings.chatHistoryCount; i++) {
-            ImGui::TextWrapped("%s", s_settings.chatHistory[i]);
-        }
-        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 20.0f) {
-            ImGui::SetScrollHereY(1.0f);
-        }
-    }
-
-    ImGui::EndChild();
-
-    bool sendChat = ImGui::InputText("##chat_input", s_settings.chatInput, sizeof(s_settings.chatInput),
-                                     ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SameLine();
-    if (ImGui::Button("Send##chat") || sendChat) {
-        if (s_settings.chatInput[0]) {
-            char cmd[300];
-            snprintf(cmd, sizeof(cmd), "say %s\n", s_settings.chatInput);
-            ExecCmd(cmd);
-
-            if (s_settings.chatHistoryCount < 64) {
-                snprintf(s_settings.chatHistory[s_settings.chatHistoryCount],
-                         sizeof(s_settings.chatHistory[0]),
-                         "You: %s", s_settings.chatInput);
-                s_settings.chatHistoryCount++;
-            }
-
-            s_settings.chatInput[0] = '\0';
-        }
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("Clear History")) {
-        s_settings.chatHistoryCount = 0;
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tab: Game Settings (FOV, crosshair, fonts, misc)
-// ---------------------------------------------------------------------------
-static void DrawGameTab()
-{
-    ImGui::Text("Game Settings");
-    ImGui::Separator();
-
-    // FOV
-    if (ImGui::CollapsingHeader("Field of View", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::SliderFloat("FOV", &s_settings.fov, 60.0f, 120.0f, "%.0f")) {
-            char cmd[64];
-            snprintf(cmd, sizeof(cmd), "cg_fov %g\n", (double)s_settings.fov);
-            ExecCmd(cmd);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset FOV")) {
-            s_settings.fov = 80.0f;
-            ExecCmd("cg_fov 80\n");
-        }
-    }
-
-    // Crosshair settings
-    if (ImGui::CollapsingHeader("Crosshair", ImGuiTreeNodeFlags_DefaultOpen)) {
-        const char *crosshairTypes[] = {"Original", "Circle", "Lines"};
-        if (ImGui::Combo("Type", &s_settings.crosshairType, crosshairTypes, 3)) {
-            char cmd[64];
-            snprintf(cmd, sizeof(cmd), "cg_crosshair %d\n", s_settings.crosshairType);
-            ExecCmd(cmd);
-        }
-
-        if (s_settings.crosshairType != CROSSHAIR_ORIGINAL) {
-            ImGui::SliderFloat("Size", &s_settings.crosshairSize, 5.0f, 50.0f, "%.0f");
-            ImGui::SliderFloat("Thickness", &s_settings.crosshairThickness, 0.5f, 5.0f, "%.1f");
-            ImGui::SliderFloat("Gap", &s_settings.crosshairGap, 0.0f, 20.0f, "%.0f");
-            ImGui::ColorEdit4("Color", s_settings.crosshairColor, ImGuiColorEditFlags_NoInputs);
-        }
-    }
-
-    // HUD Options
-    if (ImGui::CollapsingHeader("HUD Options")) {
-        if (ImGui::Checkbox("Show FPS", &s_settings.showFPS)) {
-            ExecCmd(s_settings.showFPS ? "cg_drawfps 1\n" : "cg_drawfps 0\n");
-        }
-        if (ImGui::Checkbox("Draw Weapon", &s_settings.drawGun)) {
-            ExecCmd(s_settings.drawGun ? "cg_drawGun 1\n" : "cg_drawGun 0\n");
-        }
-    }
-
-    // Graphics quick settings
-    if (ImGui::CollapsingHeader("Graphics Quick Settings")) {
-        if (ImGui::Button("Low"))    { ExecCmd("exec low.cfg\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("Medium")) { ExecCmd("exec medium.cfg\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("High"))   { ExecCmd("exec high.cfg\n"); }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tab: Settings / Other
-// ---------------------------------------------------------------------------
-static void DrawSettingsTab()
-{
-    ImGui::Text("Settings");
-    ImGui::Separator();
-
-    // Name
-    static char playerName[64] = {};
-    static bool nameLoaded = false;
-    if (!nameLoaded) {
-        const char *name = GetCvarString("name");
-        if (name && name[0]) {
-            Q_strncpyz(playerName, name, sizeof(playerName));
-        }
-        nameLoaded = true;
-    }
-
-    if (ImGui::InputText("Player Name", playerName, sizeof(playerName), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        char cmd[128];
-        snprintf(cmd, sizeof(cmd), "name \"%s\"\n", playerName);
-        ExecCmd(cmd);
-    }
-
-    ImGui::Spacing();
-
-    // Network settings
-    if (ImGui::CollapsingHeader("Network")) {
-        static int rate = 25000;
-        if (ImGui::InputInt("Rate", &rate, 1000, 5000)) {
-            if (rate < 2500) rate = 2500;
-            if (rate > 100000) rate = 100000;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Apply Rate")) {
-            char cmd[64];
-            snprintf(cmd, sizeof(cmd), "rate %d\n", rate);
-            ExecCmd(cmd);
-        }
-    }
-
-    // Console commands
-    if (ImGui::CollapsingHeader("Quick Commands")) {
-        if (ImGui::Button("Reconnect"))   { ExecCmd("reconnect\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("Disconnect"))  { ExecCmd("disconnect\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("Quit"))        { ExecCmd("quit\n"); }
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("Screenshot"))  { ExecCmd("screenshot\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("Record Demo")) { ExecCmd("record\n"); }
-        ImGui::SameLine();
-        if (ImGui::Button("Stop Demo"))   { ExecCmd("stoprecord\n"); }
-    }
-
-    // Cvar console
-    if (ImGui::CollapsingHeader("Console Variable")) {
-        static char cvarName[128] = {};
-        static char cvarValue[256] = {};
-
-        ImGui::InputText("Cvar Name", cvarName, sizeof(cvarName));
-        ImGui::InputText("Cvar Value", cvarValue, sizeof(cvarValue));
-
-        if (ImGui::Button("Get")) {
-            const char *val = GetCvarString(cvarName);
-            if (val) {
-                Q_strncpyz(cvarValue, val, sizeof(cvarValue));
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Set")) {
-            if (cvarName[0]) {
-                char cmd[512];
-                snprintf(cmd, sizeof(cmd), "set %s \"%s\"\n", cvarName, cvarValue);
-                ExecCmd(cmd);
-            }
-        }
-    }
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::TextDisabled("OpenMoHAA ImGui Menu (based on Volute)");
-    ImGui::TextDisabled("Press F7 to toggle this menu");
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -520,14 +321,7 @@ int ImGuiMenu_IsVisible(void)
 void ImGuiMenu_Toggle(void)
 {
     s_visible = !s_visible;
-
-    if (s_visible) {
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-        SDL_ShowCursor(SDL_TRUE);
-    } else {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_ShowCursor(SDL_FALSE);
-    }
+    // Mouse handling is done by the client via Key_SetCatcher
 }
 
 void ImGuiMenu_Draw(void)
@@ -535,22 +329,16 @@ void ImGuiMenu_Draw(void)
     if (!s_initialized) return;
     if (!s_visible) return;
 
-    // Save OpenGL state
-    GLint lastTexture;       glGetIntegerv(GL_TEXTURE_BINDING_2D, &lastTexture);
-    GLint lastViewport[4];   glGetIntegerv(GL_VIEWPORT, lastViewport);
-    GLboolean lastBlend     = glIsEnabled(GL_BLEND);
-    GLboolean lastDepthTest = glIsEnabled(GL_DEPTH_TEST);
-    GLboolean lastCullFace  = glIsEnabled(GL_CULL_FACE);
-    GLboolean lastScissor   = glIsEnabled(GL_SCISSOR_TEST);
+    // ImGui's OpenGL2 backend (ImGui_ImplOpenGL2_RenderDrawData) already
+    // does comprehensive GL state save/restore via glPushAttrib/glPopAttrib.
+    // No additional state management needed here.
 
-    // Start ImGui frame
     ImGui_ImplOpenGL2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    // Set up window
     ImGuiIO &io = ImGui::GetIO();
-    ImGui::SetNextWindowSize(ImVec2(600, 450), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
                            ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 
@@ -558,24 +346,12 @@ void ImGuiMenu_Draw(void)
                  ImGuiWindowFlags_NoCollapse);
 
     if (ImGui::BeginTabBar("MenuTabs")) {
-        if (ImGui::BeginTabItem("Players")) {
-            DrawPlayersTab();
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Server")) {
-            DrawServerTab();
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Chat")) {
-            DrawChatTab();
-            ImGui::EndTabItem();
-        }
         if (ImGui::BeginTabItem("Game")) {
             DrawGameTab();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Settings")) {
-            DrawSettingsTab();
+        if (ImGui::BeginTabItem("Server")) {
+            DrawServerTab();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
@@ -583,23 +359,8 @@ void ImGuiMenu_Draw(void)
 
     ImGui::End();
 
-    // Render ImGui
     ImGui::Render();
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-
-    // Restore OpenGL state
-    glBindTexture(GL_TEXTURE_2D, lastTexture);
-    glViewport(lastViewport[0], lastViewport[1], lastViewport[2], lastViewport[3]);
-    if (lastBlend)     glEnable(GL_BLEND);     else glDisable(GL_BLEND);
-    if (lastDepthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
-    if (lastCullFace)  glEnable(GL_CULL_FACE);  else glDisable(GL_CULL_FACE);
-    if (lastScissor)   glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
-
-    // If user closed via the X button on the ImGui window
-    if (!s_visible) {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_ShowCursor(SDL_FALSE);
-    }
 }
 
 int ImGuiMenu_ProcessEvent(void *sdlEvent)

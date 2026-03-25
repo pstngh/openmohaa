@@ -1097,12 +1097,23 @@ void CL_KeyEvent(int key, qboolean down, unsigned time)
     if (key == K_F7 && down) {
         if (re.ImGuiMenuToggle) {
             re.ImGuiMenuToggle();
+            // Use engine's keycatcher to properly handle mouse grab/release
+            if (re.ImGuiMenuIsVisible && re.ImGuiMenuIsVisible()) {
+                Key_SetCatcher(Key_GetCatcher() | KEYCATCH_UI);
+            } else {
+                Key_SetCatcher(Key_GetCatcher() & ~KEYCATCH_UI);
+            }
         }
         return;
     }
 
-    // When ImGui menu is visible, consume all key input
+    // When ImGui menu is visible, consume all key input except F7 and Escape
     if (re.ImGuiMenuIsVisible && re.ImGuiMenuIsVisible()) {
+        if (key == K_ESCAPE && down) {
+            // Escape closes the menu
+            re.ImGuiMenuToggle();
+            Key_SetCatcher(Key_GetCatcher() & ~KEYCATCH_UI);
+        }
         return;
     }
 
