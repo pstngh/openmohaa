@@ -1077,7 +1077,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // ---- Support & Donations button ----
     HWND hBtnSupport = CreateWindowA(
         "BUTTON",
-        "Support && Discord",
+        "Support && Donations",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         margin,
         y,
