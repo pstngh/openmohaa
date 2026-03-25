@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    endif
 #    include <Windows.h>
 #    include <CommCtrl.h>
+#    include <shellapi.h>
 
 #    pragma comment(lib, "comctl32.lib")
 
@@ -66,6 +67,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_CMB_RESOLUTION  126
 #    define ID_EDIT_CUSTOM_W   127
 #    define ID_EDIT_CUSTOM_H   128
+#    define ID_BTN_SUPPORT    129
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
 #    define ID_BTN_BMDEL     150
@@ -717,6 +719,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
 
+        if (id == ID_BTN_SUPPORT) {
+            ShellExecuteA(NULL, "open", "https://dsc.gg/ForteFFA", NULL, NULL, SW_SHOWNORMAL);
+            return 0;
+        }
+
         if (id == ID_BTN_CONNECT) {
             ReadCurrentFields();
             AutoSaveBookmark();
@@ -780,7 +787,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 470;
+    int winH = 510;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -1065,9 +1072,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
+    y += 40;
+
+    // ---- Support & Donations button ----
+    HWND hBtnSupport = CreateWindowA(
+        "BUTTON",
+        "Support && Discord",
+        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+        margin,
+        y,
+        contentW,
+        28,
+        hwnd,
+        (HMENU)ID_BTN_SUPPORT,
+        hInstance,
+        NULL
+    );
 
     // Subclass all owner-drawn buttons for hover tracking
-    HWND allButtons[] = {hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT)};
+    HWND allButtons[] = {hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT), hBtnSupport};
     for (HWND btn : allButtons) {
         if (btn) {
             SetWindowSubclass(btn, DarkBtnSubclassProc, 0, 0);
