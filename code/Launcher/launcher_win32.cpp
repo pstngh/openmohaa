@@ -68,6 +68,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_EDIT_CUSTOM_W   127
 #    define ID_EDIT_CUSTOM_H   128
 #    define ID_BTN_SUPPORT    129
+#    define ID_BTN_RES_BACK   161
 #    define ID_BTN_DONATE     160
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
@@ -88,6 +89,7 @@ static HWND             hCmbResolution;
 static HWND             hEditCustomW;
 static HWND             hEditCustomH;
 static HWND             hLblCustomX;
+static HWND             hBtnResBack;
 static LauncherSettings currentSettings;
 static HFONT            hFont;
 static HBRUSH           hBrushBg;
@@ -315,17 +317,17 @@ static void SetSelectedGame(int gameType)
 
 static void UpdateResolutionComboState()
 {
-    BOOL enabled    = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
-    int  sel        = (int)SendMessageA(hCmbResolution, CB_GETCURSEL, 0, 0);
-    BOOL isCustom   = enabled && (sel == resolutionCount); // "Custom" is the last entry
-    int  showCustom = isCustom ? SW_SHOW : SW_HIDE;
+    BOOL enabled  = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    int  sel      = (int)SendMessageA(hCmbResolution, CB_GETCURSEL, 0, 0);
+    BOOL isCustom = enabled && (sel == resolutionCount); // "Custom" is the last entry
 
+    // Inline swap: show combo OR custom fields, never both
+    ShowWindow(hCmbResolution, isCustom ? SW_HIDE : SW_SHOW);
     EnableWindow(hCmbResolution, enabled);
-    ShowWindow(hEditCustomW, showCustom);
-    ShowWindow(hEditCustomH, showCustom);
-    ShowWindow(hLblCustomX, showCustom);
-    EnableWindow(hEditCustomW, isCustom);
-    EnableWindow(hEditCustomH, isCustom);
+    ShowWindow(hEditCustomW, isCustom ? SW_SHOW : SW_HIDE);
+    ShowWindow(hEditCustomH, isCustom ? SW_SHOW : SW_HIDE);
+    ShowWindow(hLblCustomX, isCustom ? SW_SHOW : SW_HIDE);
+    ShowWindow(hBtnResBack, isCustom ? SW_SHOW : SW_HIDE);
 }
 
 static void ReadCurrentFields()
@@ -720,6 +722,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
 
+        if (id == ID_BTN_RES_BACK) {
+            // Switch back from custom fields to combo, select previous preset
+            SendMessageA(hCmbResolution, CB_SETCURSEL, 0, 0);
+            UpdateResolutionComboState();
+            return 0;
+        }
+
         if (id == ID_BTN_SUPPORT) {
             ShellExecuteA(NULL, "open", "https://dsc.gg/ForteFFA", NULL, NULL, SW_SHOWNORMAL);
             return 0;
@@ -795,7 +804,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 510;
+    int winH = 480;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -875,12 +884,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     SendMessageA(hCmbResolution, CB_ADDSTRING, 0, (LPARAM) "Custom");
     SendMessageA(hCmbResolution, CB_SETCURSEL, 0, 0);
-    y += rowGap + 2;
 
-    // Custom resolution fields (hidden by default)
+    // Custom resolution fields (same row as combo, hidden by default)
+    int customX     = margin + chkW + 4;
     int customEditW = 56;
     int customXW    = 14;
-    int customX     = margin + chkW + 4;
+    int backW       = 28;
     hEditCustomW    = CreateWindowA(
         "EDIT",
         "1920",
@@ -920,7 +929,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         hInstance,
         NULL
     );
-    y += rowGap + 4;
+    hBtnResBack = CreateWindowA(
+        "BUTTON",
+        "<",
+        WS_CHILD | BS_OWNERDRAW,
+        customX + 2 * customEditW + customXW + 6,
+        y,
+        backW,
+        editH,
+        hwnd,
+        (HMENU)ID_BTN_RES_BACK,
+        hInstance,
+        NULL
+    );
+    y += rowGap + 6;
 
     // ---- Server fields ----
     CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL);
@@ -1112,7 +1134,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
 
     // Subclass all owner-drawn buttons for hover tracking
-    HWND allButtons[] = {hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT), hBtnSupport, hBtnDonate};
+    HWND allButtons[] = {
+        hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT), hBtnSupport, hBtnDonate, hBtnResBack
+    };
     for (HWND btn : allButtons) {
         if (btn) {
             SetWindowSubclass(btn, DarkBtnSubclassProc, 0, 0);
