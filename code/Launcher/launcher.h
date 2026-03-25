@@ -63,7 +63,9 @@ struct LauncherSettings {
     std::string nickname;
     int         gameType          = 0; // 0=Base (AA), 1=Spearhead (SH), 2=Breakthrough (BT)
     bool        overrideResolution = false; // Whether resolution override is enabled
-    int         resolutionIndex   = 0; // Index into resolutionList
+    int         resolutionIndex   = 0; // Index into resolutionList, resolutionCount = custom
+    int         customWidth       = 1920; // Custom resolution width
+    int         customHeight      = 1080; // Custom resolution height
     Bookmark    bookmarks[MAX_BOOKMARKS];
 };
 

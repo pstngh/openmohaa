@@ -103,8 +103,18 @@ LauncherSettings LoadSettings()
             settings.overrideResolution = (atoi(value.c_str()) != 0);
         } else if (key == "resolution_index") {
             int r = atoi(value.c_str());
-            if (r >= 0 && r < resolutionCount) {
+            if (r >= 0 && r <= resolutionCount) {
                 settings.resolutionIndex = r;
+            }
+        } else if (key == "custom_width") {
+            int w = atoi(value.c_str());
+            if (w > 0) {
+                settings.customWidth = w;
+            }
+        } else if (key == "custom_height") {
+            int h = atoi(value.c_str());
+            if (h > 0) {
+                settings.customHeight = h;
             }
         } else {
             // Bookmark keys: bookmark_name_0, bookmark_ip_0, etc.
@@ -143,6 +153,8 @@ void SaveSettings(const LauncherSettings& settings)
     file << "game=" << settings.gameType << "\n";
     file << "override_resolution=" << (settings.overrideResolution ? 1 : 0) << "\n";
     file << "resolution_index=" << settings.resolutionIndex << "\n";
+    file << "custom_width=" << settings.customWidth << "\n";
+    file << "custom_height=" << settings.customHeight << "\n";
 
     for (int i = 0; i < MAX_BOOKMARKS; i++) {
         if (!settings.bookmarks[i].name.empty()) {

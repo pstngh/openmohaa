@@ -62,8 +62,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_BTN_GAME_SH   111
 #    define ID_BTN_GAME_BT   112
 #    define ID_BTN_CONNECT   120
-#    define ID_CHK_RESOLUTION 125
-#    define ID_CMB_RESOLUTION 126
+#    define ID_CHK_RESOLUTION  125
+#    define ID_CMB_RESOLUTION  126
+#    define ID_EDIT_CUSTOM_W   127
+#    define ID_EDIT_CUSTOM_H   128
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
 #    define ID_BTN_BMDEL     150
@@ -80,6 +82,9 @@ static HWND             hBtnBmSave[MAX_BOOKMARKS];
 static HWND             hBtnBmDel[MAX_BOOKMARKS];
 static HWND             hChkResolution;
 static HWND             hCmbResolution;
+static HWND             hEditCustomW;
+static HWND             hEditCustomH;
+static HWND             hLblCustomX;
 static LauncherSettings currentSettings;
 static HFONT            hFont;
 static HBRUSH           hBrushBg;
@@ -307,8 +312,17 @@ static void SetSelectedGame(int gameType)
 
 static void UpdateResolutionComboState()
 {
-    BOOL enabled = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    BOOL enabled    = (SendMessageA(hChkResolution, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    int  sel        = (int)SendMessageA(hCmbResolution, CB_GETCURSEL, 0, 0);
+    BOOL isCustom   = enabled && (sel == resolutionCount); // "Custom" is the last entry
+    int  showCustom = isCustom ? SW_SHOW : SW_HIDE;
+
     EnableWindow(hCmbResolution, enabled);
+    ShowWindow(hEditCustomW, showCustom);
+    ShowWindow(hEditCustomH, showCustom);
+    ShowWindow(hLblCustomX, showCustom);
+    EnableWindow(hEditCustomW, isCustom);
+    EnableWindow(hEditCustomH, isCustom);
 }
 
 static void ReadCurrentFields()
@@ -322,6 +336,19 @@ static void ReadCurrentFields()
     currentSettings.resolutionIndex   = (int)SendMessageA(hCmbResolution, CB_GETCURSEL, 0, 0);
     if (currentSettings.resolutionIndex < 0) {
         currentSettings.resolutionIndex = 0;
+    }
+
+    // Read custom resolution fields
+    std::string wStr, hStr;
+    GetWindowString(hEditCustomW, wStr);
+    GetWindowString(hEditCustomH, hStr);
+    int w = atoi(wStr.c_str());
+    int h = atoi(hStr.c_str());
+    if (w > 0) {
+        currentSettings.customWidth = w;
+    }
+    if (h > 0) {
+        currentSettings.customHeight = h;
     }
 }
 
@@ -685,6 +712,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
 
+        if (id == ID_CMB_RESOLUTION && HIWORD(wParam) == CBN_SELCHANGE) {
+            UpdateResolutionComboState();
+            return 0;
+        }
+
         if (id == ID_BTN_CONNECT) {
             ReadCurrentFields();
             AutoSaveBookmark();
@@ -748,7 +780,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassA(&wc);
 
     int winW = 400;
-    int winH = 440;
+    int winH = 470;
 
     HWND hwnd = CreateWindowA(
         "OpenMoHAALauncher",
@@ -826,8 +858,54 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     for (int i = 0; i < resolutionCount; i++) {
         SendMessageA(hCmbResolution, CB_ADDSTRING, 0, (LPARAM)resolutionList[i].label);
     }
+    SendMessageA(hCmbResolution, CB_ADDSTRING, 0, (LPARAM) "Custom");
     SendMessageA(hCmbResolution, CB_SETCURSEL, 0, 0);
-    y += rowGap + 6;
+    y += rowGap + 2;
+
+    // Custom resolution fields (hidden by default)
+    int customEditW = 56;
+    int customXW    = 14;
+    int customX     = margin + chkW + 4;
+    hEditCustomW    = CreateWindowA(
+        "EDIT",
+        "1920",
+        WS_CHILD | WS_BORDER | ES_AUTOHSCROLL | ES_NUMBER,
+        customX,
+        y,
+        customEditW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_CUSTOM_W,
+        hInstance,
+        NULL
+    );
+    hLblCustomX = CreateWindowA(
+        "STATIC",
+        "x",
+        WS_CHILD | SS_CENTER,
+        customX + customEditW,
+        y + 3,
+        customXW,
+        20,
+        hwnd,
+        NULL,
+        hInstance,
+        NULL
+    );
+    hEditCustomH = CreateWindowA(
+        "EDIT",
+        "1080",
+        WS_CHILD | WS_BORDER | ES_AUTOHSCROLL | ES_NUMBER,
+        customX + customEditW + customXW,
+        y,
+        customEditW,
+        editH,
+        hwnd,
+        (HMENU)ID_EDIT_CUSTOM_H,
+        hInstance,
+        NULL
+    );
+    y += rowGap + 4;
 
     // ---- Server fields ----
     CreateWindowA("STATIC", "IP:", WS_CHILD | WS_VISIBLE, margin, y + 3, labelW, 20, hwnd, NULL, hInstance, NULL);
@@ -1016,8 +1094,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (currentSettings.overrideResolution) {
         SendMessageA(hChkResolution, BM_SETCHECK, BST_CHECKED, 0);
     }
-    if (currentSettings.resolutionIndex >= 0 && currentSettings.resolutionIndex < resolutionCount) {
+    if (currentSettings.resolutionIndex >= 0 && currentSettings.resolutionIndex <= resolutionCount) {
         SendMessageA(hCmbResolution, CB_SETCURSEL, currentSettings.resolutionIndex, 0);
+    }
+    // Restore custom resolution values
+    {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d", currentSettings.customWidth);
+        SetWindowTextA(hEditCustomW, buf);
+        snprintf(buf, sizeof(buf), "%d", currentSettings.customHeight);
+        SetWindowTextA(hEditCustomH, buf);
     }
     UpdateResolutionComboState();
 

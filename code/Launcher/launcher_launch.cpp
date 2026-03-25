@@ -103,18 +103,31 @@ void LaunchGame(const LauncherSettings& settings)
         args.push_back(settings.nickname);
     }
 
-    if (settings.overrideResolution && settings.resolutionIndex >= 0 && settings.resolutionIndex < resolutionCount) {
-        const ResolutionEntry& res = resolutionList[settings.resolutionIndex];
-        args.push_back("+set");
-        args.push_back("r_mode");
-        args.push_back(std::to_string(res.rMode));
-        if (res.rMode == -1) {
+    if (settings.overrideResolution && settings.resolutionIndex >= 0 && settings.resolutionIndex <= resolutionCount) {
+        if (settings.resolutionIndex == resolutionCount) {
+            // Custom resolution entered by the user
+            args.push_back("+set");
+            args.push_back("r_mode");
+            args.push_back("-1");
             args.push_back("+set");
             args.push_back("r_customwidth");
-            args.push_back(std::to_string(res.customWidth));
+            args.push_back(std::to_string(settings.customWidth));
             args.push_back("+set");
             args.push_back("r_customheight");
-            args.push_back(std::to_string(res.customHeight));
+            args.push_back(std::to_string(settings.customHeight));
+        } else {
+            const ResolutionEntry& res = resolutionList[settings.resolutionIndex];
+            args.push_back("+set");
+            args.push_back("r_mode");
+            args.push_back(std::to_string(res.rMode));
+            if (res.rMode == -1) {
+                args.push_back("+set");
+                args.push_back("r_customwidth");
+                args.push_back(std::to_string(res.customWidth));
+                args.push_back("+set");
+                args.push_back("r_customheight");
+                args.push_back(std::to_string(res.customHeight));
+            }
         }
     }
 
