@@ -52,5 +52,11 @@ elseif(NOT BUILD_RENDERER_GL1 AND NOT BUILD_RENDERER_GL2)
 endif()
 
 list(APPEND RENDERER_INCLUDE_DIRS ${SOURCE_DIR}/thirdparty/imgui)
+
+# ImGui OpenGL2 backend calls GL functions directly (not via qgl wrappers),
+# so we need to link the platform OpenGL library
+find_package(OpenGL REQUIRED)
+list(APPEND RENDERER_LIBRARIES OpenGL::GL)
+
 list(APPEND RENDERER_LIBRARIES ${COMMON_LIBRARIES})
 
