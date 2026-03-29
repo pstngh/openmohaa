@@ -868,9 +868,10 @@ int DM_Manager::compareScores(const void *elem1, const void *elem2)
         }
 
         // sort by death if they have the same number of kills
-        if (p1->GetNumDeaths() > p2->GetNumDeaths()) {
+        // fewer deaths should rank higher
+        if (p1->GetNumDeaths() < p2->GetNumDeaths()) {
             return -1;
-        } else if (p1->GetNumDeaths() < p2->GetNumDeaths()) {
+        } else if (p1->GetNumDeaths() > p2->GetNumDeaths()) {
             return 1;
         }
 
