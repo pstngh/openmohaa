@@ -12022,6 +12022,10 @@ void Player::SetInvulnerable()
         return;
     }
 
+    if (edict->r.svFlags & SVF_BOT) {
+        return;
+    }
+
     //
     // The player can now be invulnerable
     //
