@@ -69,7 +69,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_EDIT_CUSTOM_H   128
 #    define ID_BTN_SUPPORT    129
 #    define ID_BTN_RES_BACK   161
-#    define ID_BTN_DONATE     160
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
 #    define ID_BTN_BMDEL     150
@@ -734,12 +733,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
 
-        if (id == ID_BTN_DONATE) {
-            ShellExecuteA(
-                NULL, "open", "https://www.paypal.com/donate/?hosted_button_id=D95SSREJTQNEY", NULL, NULL, SW_SHOWNORMAL
-            );
-            return 0;
-        }
 
         if (id == ID_BTN_CONNECT) {
             ReadCurrentFields();
@@ -1104,38 +1097,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
     y += 40;
 
-    // ---- Discord & Donate buttons ----
-    int halfW = (contentW - 8) / 2;
+    // ---- Discord button ----
     HWND hBtnSupport = CreateWindowA(
         "BUTTON",
         "Discord",
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
         margin,
         y,
-        halfW,
+        contentW,
         28,
         hwnd,
         (HMENU)ID_BTN_SUPPORT,
         hInstance,
         NULL
     );
-    HWND hBtnDonate = CreateWindowA(
-        "BUTTON",
-        "Donate",
-        WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-        margin + halfW + 8,
-        y,
-        contentW - halfW - 8,
-        28,
-        hwnd,
-        (HMENU)ID_BTN_DONATE,
-        hInstance,
-        NULL
-    );
 
     // Subclass all owner-drawn buttons for hover tracking
     HWND allButtons[] = {
-        hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT), hBtnSupport, hBtnDonate, hBtnResBack
+        hBtnGameAA, hBtnGameSH, hBtnGameBT, GetDlgItem(hwnd, ID_BTN_CONNECT), hBtnSupport, hBtnResBack
     };
     for (HWND btn : allButtons) {
         if (btn) {
