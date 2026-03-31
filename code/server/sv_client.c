@@ -1449,7 +1449,7 @@ static const int sv_pureChecksumWhitelist[] = {
      1783187329, // zzzz_Mappack_2
       648375743, // zzzz_Mappack_10
       242915408, // zzzz_Mappack_1
-      118526000, // zzzz_Mappack
+      118526003, // zzzz_Mappack
      -751397954, // LSE_Mp_Weapons_Pack
      1473684683, // LSE_Mp_Skins_Pack
     -1869537560, // zzzz_LSE_Mp_BA_Skin_Pack_2
