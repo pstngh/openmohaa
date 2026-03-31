@@ -1437,6 +1437,24 @@ static const int sv_pureChecksumWhitelist[] = {
      -290717941, // user_the_bridge_mohargentina_v1.4.pk3
     -1467661122, // the_complex(Vers_A1).pk3
      1151169435, // darksize-mappack.pk3
+     -859957711, // zzzz_Mappack_SH
+     -929527665, // zzzz_Mappack_FT
+       -8517406, // zzzz_Mappack_9
+     -218412300, // zzzz_Mappack_8
+      165193325, // zzzz_Mappack_7
+     1591278370, // zzzz_Mappack_6
+      -25094259, // zzzz_Mappack_5
+      376591094, // zzzz_Mappack_4
+     1596903475, // zzzz_Mappack_3
+     1783187329, // zzzz_Mappack_2
+      648375743, // zzzz_Mappack_10
+      242915408, // zzzz_Mappack_1
+      118526000, // zzzz_Mappack
+     -751397954, // LSE_Mp_Weapons_Pack
+     1473684683, // LSE_Mp_Skins_Pack
+    -1869537560, // zzzz_LSE_Mp_BA_Skin_Pack_2
+    -1403604420, // zzzz-rcon_mohamerica_v1.1
+    -1072780067, // zzzz-MoHArg-MohAmerica-Pack
 };
 
 static const int sv_pureChecksumWhitelistSize = sizeof(sv_pureChecksumWhitelist) / sizeof(sv_pureChecksumWhitelist[0]);
