@@ -1455,6 +1455,7 @@ static const int sv_pureChecksumWhitelist[] = {
     -1869537560, // zzzz_LSE_Mp_BA_Skin_Pack_2
     -1403604420, // zzzz-rcon_mohamerica_v1.1
     -1072780067, // zzzz-MoHArg-MohAmerica-Pack
+      256184405, // zzz-mwdmenu_v2.5
 };
 
 static const int sv_pureChecksumWhitelistSize = sizeof(sv_pureChecksumWhitelist) / sizeof(sv_pureChecksumWhitelist[0]);
