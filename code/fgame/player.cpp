@@ -4777,6 +4777,14 @@ void Player::Think(void)
         }
 
         if (IsSpectator()) {
+            // Changed in OPM
+            //  Use 1.11-style spectator switching for all protocols:
+            //  Use cycles to the next player directly instead of
+            //  detaching to free spec first (2.0+ behavior).
+            if ((server_new_buttons & BUTTON_USE)) {
+                SetPlayerSpectate(true);
+            }
+
             if (g_protocol >= PROTOCOL_MOHTA_MIN) {
                 if (m_iPlayerSpectating) {
                     if (last_ucmd.upmove) {
@@ -4792,13 +4800,6 @@ void Player::Think(void)
                     } else {
                         m_bSpectatorSwitching = false;
                     }
-                } else if ((server_new_buttons & BUTTON_USE)) {
-                    SetPlayerSpectateRandom();
-                    server_new_buttons &= ~BUTTON_USE;
-                }
-            } else {
-                if ((server_new_buttons & BUTTON_USE)) {
-                    SetPlayerSpectate(true);
                 }
             }
 
@@ -4817,17 +4818,11 @@ void Player::Think(void)
                     }
                 }
             } else {
-                if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-                    // Changed in 2.0
-                    //  Use = clear spectator
-                    if (m_iPlayerSpectating && (server_new_buttons & BUTTON_USE)) {
-                        m_iPlayerSpectating = 0;
-                    }
-                } else {
-                    // On 1.11 and below, up = clear spectator
-                    if (last_ucmd.upmove) {
-                        m_iPlayerSpectating = 0;
-                    }
+                // Changed in OPM
+                //  Use 1.11-style: upmove clears spectator for all protocols
+                //  (2.0+ used Use to clear, which caused double-press issue)
+                if (last_ucmd.upmove) {
+                    m_iPlayerSpectating = 0;
                 }
 
                 if (m_iPlayerSpectating) {
