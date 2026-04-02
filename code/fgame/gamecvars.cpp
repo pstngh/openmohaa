@@ -314,6 +314,7 @@ cvar_t *g_teambalance;
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
+cvar_t *g_headstand;
 void CVAR_Init(void)
 {
     int i;
@@ -714,5 +715,6 @@ void CVAR_Init(void)
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 
+    g_headstand         = gi.Cvar_Get("g_headstand", "0", CVAR_ARCHIVE);
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }
