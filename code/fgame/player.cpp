@@ -5584,7 +5584,20 @@ void Player::EvaluateState(State *forceTorso, State *forceLegs)
                     StopPartAnimating(legs);
                     animdone_Legs = true;
                 } else if (legsAnim != "") {
-                    SetPartAnim(legsAnim, legs);
+                    // Added in OPM
+                    //  When g_preventghostawalk is enabled, preserve animation timing
+                    //  across weapon switches in the same leg state. This prevents
+                    //  "ghost walking" where players switch weapons to reset footstep sounds.
+                    if (g_preventghostwalk->integer && currentState_Legs == laststate_Legs) {
+                        float oldTime = GetTime(m_iPartSlot[legs]);
+                        SetPartAnim(legsAnim, legs);
+
+                        if (animtimes[m_iPartSlot[legs]] > 0) {
+                            SetTime(m_iPartSlot[legs], fmod(oldTime, animtimes[m_iPartSlot[legs]]));
+                        }
+                    } else {
+                        SetPartAnim(legsAnim, legs);
+                    }
                 }
             } else {
                 currentState_Legs = laststate_Legs;
@@ -9477,12 +9490,19 @@ void Player::GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector&
         vCamOfs = pPlayer->origin;
         vCamOfs[2] += pPlayer->viewheight;
 
-        vCamOfs += forward * g_spectatefollow_forward->value;
-        vCamOfs += right * g_spectatefollow_right->value;
-        vCamOfs += up * g_spectatefollow_up->value;
+        // Added in OPM: g_spectatefix controls camera mode
+        // 1 = eye position (forward/up cvars apply), 0 = original MoHAA offset with lean
+        if (g_spectatefix->integer) {
+            vCamOfs += forward * g_spectatefollow_forward->value;
+            vCamOfs += right * g_spectatefollow_right->value;
+            vCamOfs += up * g_spectatefollow_up->value;
+        } else {
+            vCamOfs += forward * -56.0f;
+            vCamOfs += up * 24.0f;
 
-        if (pPlayer->client->ps.fLeanAngle != 0.0f) {
-            vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
+            if (pPlayer->client->ps.fLeanAngle != 0.0f) {
+                vCamOfs += pPlayer->client->ps.fLeanAngle * 0.65f * right;
+            }
         }
 
         start = pPlayer->origin;
@@ -10933,12 +10953,6 @@ void Player::EventDMMessage(Event *ev)
         Q_strcat(szPrintString, sizeof(szPrintString), " ");
     } else if (iMode > 0) {
         Q_strcat(szPrintString, sizeof(szPrintString), gi.CL_LV_ConvertString("(private)"));
-        Q_strcat(szPrintString, sizeof(szPrintString), " ");
-    } else {
-        // Added in OPM
-        //  Specify that the client is talking to everyone
-        //  This was also a feature of Daven's fixes
-        Q_strcat(szPrintString, sizeof(szPrintString), gi.CL_LV_ConvertString("(all)"));
         Q_strcat(szPrintString, sizeof(szPrintString), " ");
     }
 

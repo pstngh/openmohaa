@@ -467,15 +467,17 @@ void G_AddGEntity(gentity_t *edict, qboolean showentnums)
 }
 
 // Added in OPM
-// HUD element index reserved for sv_pure status display
+// HUD element indices reserved for sv_pure status display
 #define HUDDRAW_PURE_STATUS 255
 
 /*
 ================
 G_UpdatePureStatusHUD
 
-When sv_pure is enabled, broadcasts a "x/y Players Clean" HUD element
-at the bottom-right corner of the screen for all clients.
+Displays a status text at the bottom-right corner for each client:
+  - Green "Clean (X/Y)" when sv_pure is on and the player is verified
+  - Red "Unclean (X/Y)" when sv_pure is on and the player is unverified
+  - Grey "Anticheat Off" when sv_pure is off or not supported
 ================
 */
 void G_UpdatePureStatusHUD(void)
@@ -486,45 +488,64 @@ void G_UpdatePureStatusHUD(void)
         sv_pure = gi.Cvar_Find("sv_pure");
     }
 
-    if (!sv_pure || !sv_pure->integer) {
-        return;
-    }
+    float greyColor[3]  = {0.5f, 0.5f, 0.5f};
+    float greenColor[3] = {0.0f, 1.0f, 0.0f};
+    float redColor[3]   = {1.0f, 0.0f, 0.0f};
 
-    int totalPlayers = 0;
-    int purePlayers  = 0;
-
-    for (int i = 0; i < game.maxclients; i++) {
-        gentity_t *ent = &g_entities[i];
-        if (!ent->inuse || !ent->client || !ent->entity) {
-            continue;
-        }
-
-        // Don't count bots
-        if (ent->r.svFlags & SVF_BOT) {
-            continue;
-        }
-
-        totalPlayers++;
-
-        if (gi.IsClientPure(i)) {
-            purePlayers++;
-        }
-    }
-
-    char statusText[128];
-    Com_sprintf(statusText, sizeof(statusText), "%d/%d Players Clean", purePlayers, totalPlayers);
-
-    float color[3] = {1.0f, 1.0f, 1.0f};
-
-    // HUD_ALIGN_X_RIGHT adds vidWidth to iX, text draws left-to-right.
-    // bVirtualScreen off so the font renders at native size (no pixelation).
+    // Shared layout for all modes
     HudDrawAlign(HUDDRAW_PURE_STATUS, HUD_ALIGN_X_RIGHT, HUD_ALIGN_Y_BOTTOM);
-    HudDrawRect(HUDDRAW_PURE_STATUS, -100, -16, 0, 0);
-    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 0);
+    HudDrawRect(HUDDRAW_PURE_STATUS, -30, -14, 0, 0);
+    HudDrawVirtualSize(HUDDRAW_PURE_STATUS, 1);
     HudDrawFont(HUDDRAW_PURE_STATUS, "verdana-12");
-    HudDrawColor(HUDDRAW_PURE_STATUS, color);
     HudDrawAlpha(HUDDRAW_PURE_STATUS, 1.0f);
-    HudDrawString(HUDDRAW_PURE_STATUS, statusText);
+
+    if (!sv_pure || !sv_pure->integer) {
+        // Pure not active: grey dot, no text
+        HudDrawColor(HUDDRAW_PURE_STATUS, greyColor);
+        HudDrawString(HUDDRAW_PURE_STATUS, " ");
+    } else {
+        int totalPlayers = 0;
+        int purePlayers  = 0;
+
+        for (int i = 0; i < game.maxclients; i++) {
+            gentity_t *ent = &g_entities[i];
+            if (!ent->inuse || !ent->client || !ent->entity) {
+                continue;
+            }
+
+            if (ent->r.svFlags & SVF_BOT) {
+                continue;
+            }
+
+            totalPlayers++;
+
+            if (gi.IsClientPure(i)) {
+                purePlayers++;
+            }
+        }
+
+        // Send per-client text and color
+        for (int i = 0; i < game.maxclients; i++) {
+            gentity_t *ent = &g_entities[i];
+            if (!ent->inuse || !ent->client || !ent->entity) {
+                continue;
+            }
+
+            if (ent->r.svFlags & SVF_BOT) {
+                continue;
+            }
+
+            char statusText[128];
+            Com_sprintf(statusText, sizeof(statusText), "%d/%d", purePlayers, totalPlayers);
+
+            if (gi.IsClientPure(i)) {
+                iHudDrawColor(i, HUDDRAW_PURE_STATUS, greenColor);
+            } else {
+                iHudDrawColor(i, HUDDRAW_PURE_STATUS, redColor);
+            }
+            iHudDrawString(i, HUDDRAW_PURE_STATUS, statusText);
+        }
+    }
 }
 
 /*

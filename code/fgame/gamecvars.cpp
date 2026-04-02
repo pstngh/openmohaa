@@ -296,6 +296,7 @@ cvar_t *g_bot_manualmove;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
+cvar_t *g_spectatefix;
 
 cvar_t *cl_running;
 
@@ -317,6 +318,8 @@ cvar_t *g_navigation_legacy;
 // Added in OPM
 // Freeze duration at round start in seconds (0 = disabled)
 cvar_t *g_roundstartdelay;
+// Prevent ghost walking by preserving leg animation timing across weapon switches
+cvar_t *g_preventghostwalk;
 
 void CVAR_Init(void)
 {
@@ -617,9 +620,9 @@ void CVAR_Init(void)
 
     g_lastsave                 = gi.Cvar_Get("g_lastsave", "", CVAR_ARCHIVE);
     g_forceteamspectate        = gi.Cvar_Get("g_forceteamspectate", "1", 0);
-    g_spectatefollow_forward   = gi.Cvar_Get("g_spectatefollow_forward", "-56", 0);
+    g_spectatefollow_forward   = gi.Cvar_Get("g_spectatefollow_forward", "0", 0);
     g_spectatefollow_right     = gi.Cvar_Get("g_spectatefollow_right", "0", 0);
-    g_spectatefollow_up        = gi.Cvar_Get("g_spectatefollow_up", "24", 0);
+    g_spectatefollow_up        = gi.Cvar_Get("g_spectatefollow_up", "0", 0);
     g_spectatefollow_pitch     = gi.Cvar_Get("g_spectatefollow_pitch", "2", 0);
     g_spectate_allow_full_chat = gi.Cvar_Get("g_spectate_allow_full_chat", "0", 0);
 
@@ -695,6 +698,7 @@ void CVAR_Init(void)
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
+    g_spectatefix      = gi.Cvar_Get("g_spectatefix", "1", 0);
 
     if (maxclients->integer + sv_maxbots->integer > MAX_CLIENTS) {
         unsigned int lowered;
@@ -719,7 +723,8 @@ void CVAR_Init(void)
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 
     // Added in OPM
-    g_roundstartdelay = gi.Cvar_Get("g_roundstartdelay", "5", CVAR_ARCHIVE);
+    g_roundstartdelay   = gi.Cvar_Get("g_roundstartdelay", "5", CVAR_ARCHIVE);
+    g_preventghostwalk  = gi.Cvar_Get("g_preventghostwalk", "0", CVAR_ARCHIVE);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

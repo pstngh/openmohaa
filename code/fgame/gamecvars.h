@@ -329,6 +329,7 @@ extern cvar_t *g_bot_manualmove;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
+extern cvar_t *g_spectatefix;
 
 extern cvar_t *cl_running;
 
@@ -343,6 +344,7 @@ extern cvar_t *g_navigation_legacy;
 
 // Added in OPM
 extern cvar_t *g_roundstartdelay;
+extern cvar_t *g_preventghostwalk;
 
 void CVAR_Init(void);
 
