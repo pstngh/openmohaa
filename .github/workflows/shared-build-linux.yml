@@ -233,13 +233,27 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Copy libraries
-        mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/'
-        if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
-        if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+        # Client package: client executables, cgame, game, SDL2, OpenAL, cURL
+        mkdir -p ${{github.workspace}}/package/client
+        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/client/'
+        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/client/'
+        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/client/'
+        for install_dir in ${{github.workspace}}/install/bin/mohaa ${{github.workspace}}/install/lib/mohaa; do
+          [ -d "$install_dir" ] || continue
+          for f in moh spearhead breakthrough; do
+            [ -f "$install_dir/$f" ] && cp -l "$install_dir/$f" '${{github.workspace}}/package/client/'
+          done
+          [ -f "$install_dir/cgame.so" ] && cp -l "$install_dir/cgame.so" '${{github.workspace}}/package/client/'
+          [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/client/'
+        done
+        # Server package: moh_server, game, cURL only (no SDL2, no OpenAL, no cgame)
+        mkdir -p ${{github.workspace}}/package/server
+        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/server/'
+        for install_dir in ${{github.workspace}}/install/bin/mohaa ${{github.workspace}}/install/lib/mohaa; do
+          [ -d "$install_dir" ] || continue
+          [ -f "$install_dir/moh_server" ] && cp -l "$install_dir/moh_server" '${{github.workspace}}/package/server/'
+          [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/server/'
+        done
 
     ###
     # Artifacts
@@ -247,8 +261,14 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-linux-${{matrix.architecture.name}}
+        name: out-linux-${{matrix.architecture.name}}-client
         if-no-files-found: error
         compression-level: 9
-        path:
-          ${{github.workspace}}/package
+        path: ${{github.workspace}}/package/client
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: out-linux-${{matrix.architecture.name}}-server
+        if-no-files-found: error
+        compression-level: 9
+        path: ${{github.workspace}}/package/server

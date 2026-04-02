@@ -1,0 +1,147 @@
+name: "Update Icons"
+
+on:
+  push:
+    paths:
+      - 'misc/openmohaa.svg'
+      - 'misc/openmohaas.svg'
+      - 'misc/openmohaab.svg'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-icons:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y inkscape imagemagick python3
+
+    - name: Convert SVGs to ICOs
+      run: |
+        set -euo pipefail
+
+        convert_svg_to_ico() {
+          local svg="$1"
+          local ico="$2"
+          local tmpdir
+          tmpdir=$(mktemp -d)
+
+          echo "Converting $svg -> $ico"
+
+          for size in 16 32 48 256; do
+            inkscape "$svg" \
+              --export-type=png \
+              --export-filename="$tmpdir/${size}.png" \
+              --export-width=$size \
+              --export-height=$size
+          done
+
+          convert \
+            "$tmpdir/16.png" \
+            "$tmpdir/32.png" \
+            "$tmpdir/48.png" \
+            "$tmpdir/256.png" \
+            "$ico"
+
+          rm -rf "$tmpdir"
+        }
+
+        for svg in misc/openmohaa.svg misc/openmohaas.svg misc/openmohaab.svg; do
+          name=$(basename "$svg" .svg)
+          ico="misc/windows/${name}.ico"
+          if [ -f "$svg" ]; then
+            convert_svg_to_ico "$svg" "$ico"
+          else
+            echo "Warning: $svg not found, skipping"
+          fi
+        done
+
+    - name: Generate SDL window icon header
+      run: |
+        set -euo pipefail
+
+        tmpdir=$(mktemp -d)
+
+        # Render SVG to 32x32 RGBA raw pixels
+        inkscape misc/openmohaa.svg \
+          --export-type=png \
+          --export-filename="$tmpdir/icon32.png" \
+          --export-width=32 \
+          --export-height=32
+
+        convert "$tmpdir/icon32.png" -depth 8 "RGBA:$tmpdir/icon32.rgba"
+
+        # Convert raw RGBA to C header
+        python3 -c "
+        import sys
+
+        with open('$tmpdir/icon32.rgba', 'rb') as f:
+            data = f.read()
+
+        assert len(data) == 32 * 32 * 4, f'Expected {32*32*4} bytes, got {len(data)}'
+
+        lines = []
+        lines.append('/* Generated from misc/openmohaa.svg - do not edit manually */')
+        lines.append('')
+        lines.append('static const struct {')
+        lines.append('  unsigned int \t width;')
+        lines.append('  unsigned int \t height;')
+        lines.append('  unsigned int \t bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ ')
+        lines.append('  unsigned char\t pixel_data[32 * 32 * 4 + 1];')
+        lines.append('} CLIENT_WINDOW_ICON = {')
+        lines.append('  32, 32, 4,')
+
+        # Build octal-escaped string literals, ~70 chars per line
+        buf = '  \"'
+        col = 3
+        for byte in data:
+            if byte >= 32 and byte < 127 and byte != ord('\"') and byte != ord('\\\\'):
+                esc = chr(byte)
+                esc_len = 1
+            else:
+                esc = '\\\\{:03o}'.format(byte)
+                esc_len = 4
+            if col + esc_len > 74:
+                buf += '\"\n  \"'
+                col = 3
+            buf += esc
+            col += esc_len
+
+        buf += '\",'
+        lines.append(buf)
+        lines.append('};')
+        lines.append('')
+
+        with open('code/sdl/sdl_icon.h', 'w', newline='\n') as f:
+            f.write('\n'.join(lines))
+        "
+
+        rm -rf "$tmpdir"
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --quiet misc/windows/*.ico code/sdl/sdl_icon.h; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Commit and push
+      if: steps.changes.outputs.changed == 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add misc/windows/*.ico code/sdl/sdl_icon.h
+        git commit -m "Update icon files from SVG sources"
+        git push
+
+    - name: No changes
+      if: steps.changes.outputs.changed == 'false'
+      run: echo "No icon changes detected, nothing to commit."

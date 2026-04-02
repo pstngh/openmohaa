@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 extern "C" {
 #endif
 
-#define PRODUCT_NAME					"OpenMoHAA"
+#define PRODUCT_NAME					"MoHAA"
 #define PRODUCT_DATE					__DATE__
 
 #define BASEGAME				"main"
@@ -77,8 +77,8 @@ extern "C" {
 // Note: An universal client is not currently possible without refactoring the network and the file system.
 //       Pak files must be reloaded on-the-fly depending on the server the client is connecting to.
 //
- #define HOMEPATH_NAME_UNIX_LEGACY	".openmohaa"
- #define HOMEPATH_NAME				"openmohaa"
+ #define HOMEPATH_NAME_UNIX_LEGACY	".mohaa"
+ #define HOMEPATH_NAME				"mohaa"
 
 #define CONFIG_PREFIX			"omconfig"
 

@@ -30,9 +30,6 @@ endif()
 
 list(APPEND CLIENT_DEFINITIONS USE_ICON)
 
-set_source_files_properties(${SOURCE_DIR}/sys/win_resource.rc
-    PROPERTIES COMPILE_DEFINITIONS WINDOWS_ICON_PATH=${WINDOWS_ICON_PATH})
-
 if(MSVC)
     # We have our own manifest, disable auto creation
     list(APPEND SERVER_LINK_OPTIONS "/MANIFEST:NO")
