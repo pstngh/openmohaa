@@ -4119,12 +4119,14 @@ void Player::ClientMove(usercmd_t *ucmd)
         Pmove(&pm);
         GetMoveInfo(&pm);
 
-        if (g_gametype->integer != GT_SINGLE_PLAYER && groundentity && groundentity->entity
-            && groundentity->entity->IsSubclassOfSentient()) {
+        if (g_gametype->integer != GT_SINGLE_PLAYER && !g_headstand->integer && groundentity
+            && groundentity->entity && groundentity->entity->IsSubclassOfSentient()) {
             //
             // Added in 2.0
             // If the player is on another sentient, try to make it fall off
             //
+            // Added in OPM
+            //  g_headstand cvar allows disabling this to restore 1.x behavior
             velocity -= Vector(orientation[0]) * (random() * 20.f);
             velocity -= Vector(orientation[1]) * (random() * 10.f);
         }
@@ -7922,9 +7924,12 @@ void Player::Jump(Event *ev)
         return;
     }
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER) {
+    if (g_gametype->integer != GT_SINGLE_PLAYER && !g_headstand->integer) {
         // Added in 2.0
         //  Don't jump when on top of another sentient
+        //
+        // Added in OPM
+        //  g_headstand cvar allows disabling this to restore 1.x behavior
         if (groundentity && groundentity->entity && groundentity->entity->IsSubclassOfSentient()) {
             return;
         }

@@ -320,6 +320,7 @@ cvar_t *g_navigation_legacy;
 cvar_t *g_roundstartdelay;
 // Prevent ghost walking by preserving leg animation timing across weapon switches
 cvar_t *g_preventghostwalk;
+cvar_t *g_headstand;
 
 void CVAR_Init(void)
 {
@@ -725,6 +726,7 @@ void CVAR_Init(void)
     // Added in OPM
     g_roundstartdelay   = gi.Cvar_Get("g_roundstartdelay", "5", CVAR_ARCHIVE);
     g_preventghostwalk  = gi.Cvar_Get("g_preventghostwalk", "0", CVAR_ARCHIVE);
+    g_headstand         = gi.Cvar_Get("g_headstand", "0", CVAR_ARCHIVE);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }
