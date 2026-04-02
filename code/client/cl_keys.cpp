@@ -1100,7 +1100,8 @@ void CL_KeyEvent(int key, qboolean down, unsigned time)
         }
     }
 
-    if (key == K_CONSOLE || (keys[K_SHIFT].down && key == K_ESCAPE)) {
+    // Added in OPM: K_F7 as additional console toggle key
+    if (key == K_CONSOLE || key == K_F7 || (keys[K_SHIFT].down && key == K_ESCAPE)) {
         if (!down) {
             return;
         }
