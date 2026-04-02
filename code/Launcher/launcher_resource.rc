@@ -1,0 +1,6 @@
+// Resource script for the OpenMoHAA launcher
+
+#include <winresrc.h>
+
+// Icon
+1 ICON "../../misc/windows/openmohaa-launcher.ico"

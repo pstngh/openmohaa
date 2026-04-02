@@ -148,3 +148,49 @@ if (MSVC)
 	target_link_options(${CLIENT_BINARY} PRIVATE "/MANIFEST:NO")
 	INSTALL(FILES $<TARGET_PDB_FILE:${CLIENT_BINARY}> DESTINATION ${INSTALL_BINDIR_FULL} OPTIONAL)
 endif()
+
+# Added in OPM
+# Full game binaries for Spearhead and Breakthrough that default to the
+# correct com_target_game value without needing a launcher or command-line args.
+function(create_game_variant target_name target_game)
+    add_executable(${target_name} ${CLIENT_EXECUTABLE_OPTIONS} ${CLIENT_BINARY_SOURCES})
+
+    target_include_directories(     ${target_name} PRIVATE ${CLIENT_INCLUDE_DIRS})
+    target_include_directories(     ${target_name} PRIVATE ${SOURCE_DIR}/client)
+    target_compile_definitions(     ${target_name} PRIVATE ${CLIENT_DEFINITIONS} DEFAULT_TARGET_GAME=${target_game})
+    target_compile_options(         ${target_name} PRIVATE ${CLIENT_COMPILE_OPTIONS})
+    target_link_libraries(          ${target_name} PRIVATE ${COMMON_LIBRARIES} ${CLIENT_LIBRARIES})
+    target_link_options(            ${target_name} PRIVATE ${CLIENT_LINK_OPTIONS})
+
+    set_output_dirs(${target_name})
+
+    if(NOT USE_RENDERER_DLOPEN)
+        target_sources(${target_name} PRIVATE
+            ${RENDERER_GL1_BINARY_SOURCES}
+            ${RENDERER_GL2_BINARY_SOURCES})
+
+        target_include_directories( ${target_name} PRIVATE ${RENDERER_INCLUDE_DIRS})
+        target_compile_definitions( ${target_name} PRIVATE ${RENDERER_DEFINITIONS})
+        target_compile_options(     ${target_name} PRIVATE ${RENDERER_COMPILE_OPTIONS})
+        target_link_libraries(      ${target_name} PRIVATE ${RENDERER_LIBRARIES})
+    endif()
+
+    foreach(LIBRARY IN LISTS CLIENT_DEPLOY_LIBRARIES)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${LIBRARY}
+                $<TARGET_FILE_DIR:${target_name}>)
+    endforeach()
+
+    set_target_properties(${target_name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+
+    INSTALL(TARGETS ${target_name} DESTINATION ${INSTALL_BINDIR_FULL})
+
+    if(MSVC)
+        target_link_options(${target_name} PRIVATE "/MANIFEST:NO")
+        INSTALL(FILES $<TARGET_PDB_FILE:${target_name}> DESTINATION ${INSTALL_BINDIR_FULL} OPTIONAL)
+    endif()
+endfunction()
+
+create_game_variant(spearhead 1)
+create_game_variant(breakthrough 2)
