@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "player.h"
 #include "navigate.h"
 #include "navigation_path.h"
+#include "g_bot.h"
 
 #define MAX_BOT_FUNCTIONS 5
 
@@ -176,6 +177,8 @@ private:
     BotMovement movement;
     BotRotation rotation;
 
+    BotType m_botType;
+
     // States
     int    m_iCuriousTime;
     int    m_iAttackTime;
@@ -184,6 +187,13 @@ private:
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
     int    m_iContinuousFireTime;
+
+    // Original bot fields (used only when m_botType == BOT_TYPE_ORIGINAL)
+    Vector m_vAimOffset;
+    int    m_iLastAimTime;
+    Vector m_vLastCuriousPos;
+    Vector m_vLastDeathPos;
+
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
@@ -283,6 +293,8 @@ public:
     void UpdateBotStates(void);
     void CheckReload(void);
 
+    void AimAtAimNode(void);
+
     void NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDistanceSquared, float fRadiusSquared);
     void ClearEnemy(void);
 
@@ -301,6 +313,8 @@ public:
 public:
     void    setControlledEntity(Player *player);
     Player *getControlledEntity() const;
+    BotType getBotType() const;
+    void    setBotType(BotType type);
 
 private:
     SafePtr<Player> controlledEnt;
@@ -314,7 +328,7 @@ public:
 public:
     ~BotControllerManager();
 
-    BotController                    *createController(Player *player);
+    BotController                    *createController(Player *player, BotType type = BOT_TYPE_ORIGINAL);
     void                              removeController(BotController *controller);
     BotController                    *findController(Entity *ent);
     const Container<BotController *>& getControllers() const;

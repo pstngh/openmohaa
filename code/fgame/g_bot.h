@@ -22,17 +22,27 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #pragma once
 
+enum BotType {
+    BOT_TYPE_ORIGINAL = 0,
+    BOT_TYPE_BASH     = 1
+};
+
 struct saved_bot_t {
-    char userinfo[MAX_INFO_STRING];
+    char    userinfo[MAX_INFO_STRING];
+    BotType type;
 
     saved_bot_t();
 };
 
 struct bot_info_t {
-    str name;
+    str     name;
+    BotType type;
+
+    bot_info_t() : type(BOT_TYPE_ORIGINAL) {}
 };
 
 void         G_BotBegin(gentity_t *ent);
+void         G_BotBeginWithType(gentity_t *ent, BotType type);
 void         G_BotThink(gentity_t *ent, int msec);
 gentity_t   *G_GetFirstBot();
 unsigned int G_GetBotId(gentity_t *e);
@@ -40,8 +50,9 @@ gentity_t   *G_AddBot(const bot_info_t *info = NULL);
 gentity_t   *G_RestoreBot(const saved_bot_t& saved);
 void         G_AddBots(unsigned int num);
 void         G_RemoveBot(gentity_t *ent);
-void         G_RemoveBots(unsigned int num);
+void         G_RemoveBots(unsigned int num, BotType type);
 unsigned int G_GetNumBots();
+unsigned int G_GetNumBotsByType(BotType type);
 const char  *G_GetBotSkill();
 bool         G_IsBot(gentity_t *ent);
 bool         G_IsPlayer(gentity_t *ent);

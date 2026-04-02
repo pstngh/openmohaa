@@ -73,6 +73,8 @@ consolecmd_t G_ConsoleCmds[] = {
     {"addbot",          G_AddBotCommand,      qfalse},
     {"addbotnamed",     G_AddBotNamedCommand, qfalse},
     {"removebot",       G_RemoveBotCommand,   qfalse},
+    {"addbashbot",      G_AddBashBotCommand,      qfalse},
+    {"removebashbot",   G_RemoveBashBotCommand,   qfalse},
 #ifdef _DEBUG
     {"bot",             G_BotCommand,         qfalse},
 #endif
@@ -685,6 +687,46 @@ qboolean G_RemoveBotCommand(gentity_t *ent)
     totalnumbots = sv_numbots->integer - Q_min(numbots, sv_numbots->integer);
 
     gi.cvar_set("sv_numbots", va("%d", totalnumbots));
+    return qtrue;
+}
+
+qboolean G_AddBashBotCommand(gentity_t *ent)
+{
+    unsigned int numbots;
+    unsigned int totalnumbots;
+
+    if (gi.Argc() <= 1) {
+        gi.Printf("Usage: addbashbot [numbots]\n");
+        return qfalse;
+    }
+
+    numbots = atoi(gi.Argv(1));
+
+    if (numbots > game.maxclients) {
+        gi.Printf("addbashbot must be between 1-%d\n", game.maxclients);
+        return qfalse;
+    }
+
+    totalnumbots = Q_min(numbots + sv_numbashbots->integer, sv_maxbots->integer);
+
+    gi.cvar_set("sv_numbashbots", va("%d", totalnumbots));
+    return qtrue;
+}
+
+qboolean G_RemoveBashBotCommand(gentity_t *ent)
+{
+    unsigned int numbots;
+    unsigned int totalnumbots;
+
+    if (gi.Argc() <= 1) {
+        gi.Printf("Usage: removebashbot [numbots]\n");
+        return qfalse;
+    }
+
+    numbots      = atoi(gi.Argv(1));
+    totalnumbots = sv_numbashbots->integer - Q_min(numbots, sv_numbashbots->integer);
+
+    gi.cvar_set("sv_numbashbots", va("%d", totalnumbots));
     return qtrue;
 }
 

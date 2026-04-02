@@ -36,6 +36,7 @@ Container<str> germanModelList;
 
 saved_bot_t::saved_bot_t()
     : userinfo {0}
+    , type(BOT_TYPE_ORIGINAL)
 {}
 
 static void G_ReadBotSessionData();
@@ -165,6 +166,11 @@ Begin spawning a new bot entity
 */
 void G_BotBegin(gentity_t *ent)
 {
+    G_BotBeginWithType(ent, BOT_TYPE_ORIGINAL);
+}
+
+void G_BotBeginWithType(gentity_t *ent, BotType type)
+{
     Player        *player;
     BotController *controller;
 
@@ -173,8 +179,7 @@ void G_BotBegin(gentity_t *ent)
 
     G_ClientBegin(ent, NULL);
 
-    controller = botManager.getControllerManager().createController(player);
-    //player->setController(controller);
+    controller = botManager.getControllerManager().createController(player, type);
 }
 
 /*
@@ -406,10 +411,20 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     // Connect the bot for the first time
     // setup user info and stuff
-    G_BotConnect(clientNum, qtrue, userinfo);
-    G_BotBegin(e);
+    BotType type = (info && info->type == BOT_TYPE_BASH) ? BOT_TYPE_BASH : BOT_TYPE_ORIGINAL;
 
-    gi.DPrintf("BOT: added '%s' in slot %d (shared=%d)\n", botName, clientNum, sv_sharedbots->integer);
+    G_BotConnect(clientNum, qtrue, userinfo);
+
+    // Bash bots appear as real players — clear the SVF_BOT flag
+    // that G_BotConnect sets unconditionally
+    if (type == BOT_TYPE_BASH) {
+        e->r.svFlags &= ~SVF_BOT;
+    }
+
+    G_BotBeginWithType(e, type);
+
+    gi.DPrintf("BOT: added '%s' in slot %d (type=%s, shared=%d)\n",
+        botName, clientNum, type == BOT_TYPE_BASH ? "bash" : "original", sv_sharedbots->integer);
 
     return e;
 }
@@ -432,10 +447,17 @@ gentity_t *G_RestoreBot(const saved_bot_t& saved)
         return NULL;
     }
 
-    gi.DPrintf("BOT: restoring bot in slot %d\n", (int)(e - g_entities));
+    gi.DPrintf("BOT: restoring bot in slot %d (type=%s)\n",
+        (int)(e - g_entities), saved.type == BOT_TYPE_BASH ? "bash" : "original");
 
     G_BotConnect(e - g_entities, qfalse, saved.userinfo);
-    G_BotBegin(e);
+
+    // Bash bots appear as real players
+    if (saved.type == BOT_TYPE_BASH) {
+        e->r.svFlags &= ~SVF_BOT;
+    }
+
+    G_BotBeginWithType(e, saved.type);
 
     return e;
 }
@@ -495,7 +517,17 @@ G_RemoveBots
 Remove the specified number of bots
 ============
 */
-void G_RemoveBots(unsigned int num)
+static bool G_IsBotOfType(gentity_t *e, BotType type)
+{
+    if (!G_IsBot(e)) {
+        return false;
+    }
+
+    BotController *controller = botManager.getControllerManager().findController(e->entity);
+    return controller && controller->getBotType() == type;
+}
+
+void G_RemoveBots(unsigned int num, BotType type)
 {
     unsigned int removed = 0;
     unsigned int n;
@@ -512,7 +544,7 @@ void G_RemoveBots(unsigned int num)
         // with the higest player count
         for (n = 0; n < game.maxclients && removed < num; n++) {
             gentity_t *e = &g_entities[n];
-            if (!G_IsBot(e)) {
+            if (!G_IsBotOfType(e, type)) {
                 continue;
             }
 
@@ -538,7 +570,7 @@ void G_RemoveBots(unsigned int num)
     //
     for (n = 0; n < game.maxclients && removed < num; n++) {
         gentity_t *e = &g_entities[n];
-        if (!G_IsBot(e)) {
+        if (!G_IsBotOfType(e, type)) {
             continue;
         }
 
@@ -555,6 +587,26 @@ G_GetNumBots
 unsigned int G_GetNumBots()
 {
     return botManager.getControllerManager().getControllers().NumObjects();
+}
+
+/*
+===========
+G_GetNumBotsByType
+============
+*/
+unsigned int G_GetNumBotsByType(BotType type)
+{
+    unsigned int count = 0;
+    const Container<BotController *>& controllers = botManager.getControllerManager().getControllers();
+
+    for (int i = 1; i <= controllers.NumObjects(); i++) {
+        BotController *controller = controllers.ObjectAt(i);
+        if (controller->getBotType() == type) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 /*
@@ -607,6 +659,7 @@ void G_SaveBots()
 
         saved_bot_t& saved = saved_bots[num_saved_bots++];
         memcpy(saved.userinfo, player->client->pers.userinfo, sizeof(saved.userinfo));
+        saved.type = controller->getBotType();
     }
 }
 
@@ -623,12 +676,6 @@ void G_RestoreBots()
 
     if (saved_bots) {
         if (g_gametype->integer != GT_SINGLE_PLAYER) {
-            const unsigned int numToSpawn = G_GetNumBotsToSpawn();
-
-            if (num_saved_bots > numToSpawn) {
-                num_saved_bots = numToSpawn;
-            }
-
             for (n = 0; n < num_saved_bots; n++) {
                 const saved_bot_t& saved = saved_bots[n];
 
@@ -881,34 +928,70 @@ G_SpawnBots
 Called each frame to manage bot spawning
 ============
 */
+static void G_AddBotsOfType(unsigned int num, BotType type)
+{
+    bot_info_t info;
+    info.type = type;
+
+    for (unsigned int n = 0; n < num; n++) {
+        G_AddBot(&info);
+    }
+}
+
 void G_SpawnBots()
 {
-    unsigned int numBotsToSpawn;
-    unsigned int numSpawnedBots;
-
     if (g_gametype->integer == GT_SINGLE_PLAYER) {
         // No bot on single-player
         return;
     }
 
-    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_numbots->modified) {
+    if (level.time - botInitTime < g_bot_initial_spawn_delay->value
+        && !sv_numbots->modified && !sv_numbashbots->modified) {
         // Wait before spawning all bots
         return;
     }
 
-    numBotsToSpawn = G_GetNumBotsToSpawn();
-    numSpawnedBots = botManager.getControllerManager().getControllers().NumObjects();
+    unsigned int totalBots = botManager.getControllerManager().getControllers().NumObjects();
 
     //
-    // Spawn bots
+    // Original bots (sv_numbots)
     //
-    if (numBotsToSpawn > numSpawnedBots) {
-        gi.DPrintf("BOT: spawning %d bot(s) (target=%d, current=%d)\n", numBotsToSpawn - numSpawnedBots, numBotsToSpawn, numSpawnedBots);
-        G_AddBots(numBotsToSpawn - numSpawnedBots);
-    } else if (numBotsToSpawn < numSpawnedBots) {
-        gi.DPrintf("BOT: removing %d bot(s) (target=%d, current=%d)\n", numSpawnedBots - numBotsToSpawn, numBotsToSpawn, numSpawnedBots);
-        G_RemoveBots(numSpawnedBots - numBotsToSpawn);
+    unsigned int numOriginalTarget  = G_GetNumBotsToSpawn();
+    unsigned int numOriginalCurrent = G_GetNumBotsByType(BOT_TYPE_ORIGINAL);
+
+    if (numOriginalTarget > numOriginalCurrent) {
+        unsigned int toAdd = numOriginalTarget - numOriginalCurrent;
+        gi.DPrintf("BOT: spawning %d original bot(s) (target=%d, current=%d)\n", toAdd, numOriginalTarget, numOriginalCurrent);
+        G_AddBotsOfType(toAdd, BOT_TYPE_ORIGINAL);
+    } else if (numOriginalTarget < numOriginalCurrent) {
+        unsigned int toRemove = numOriginalCurrent - numOriginalTarget;
+        gi.DPrintf("BOT: removing %d original bot(s) (target=%d, current=%d)\n", toRemove, numOriginalTarget, numOriginalCurrent);
+        G_RemoveBots(toRemove, BOT_TYPE_ORIGINAL);
     } else {
         sv_numbots->modified = false;
+    }
+
+    //
+    // Bash bots (sv_numbashbots)
+    //
+    unsigned int numBashTarget  = Q_min((unsigned int)sv_numbashbots->integer, (unsigned int)sv_maxbots->integer);
+    unsigned int numBashCurrent = G_GetNumBotsByType(BOT_TYPE_BASH);
+
+    // Cap bash bots so total doesn't exceed sv_maxbots
+    unsigned int currentOriginal = G_GetNumBotsByType(BOT_TYPE_ORIGINAL);
+    if (numBashTarget + currentOriginal > (unsigned int)sv_maxbots->integer) {
+        numBashTarget = sv_maxbots->integer - currentOriginal;
+    }
+
+    if (numBashTarget > numBashCurrent) {
+        unsigned int toAdd = numBashTarget - numBashCurrent;
+        gi.DPrintf("BOT: spawning %d bash bot(s) (target=%d, current=%d)\n", toAdd, numBashTarget, numBashCurrent);
+        G_AddBotsOfType(toAdd, BOT_TYPE_BASH);
+    } else if (numBashTarget < numBashCurrent) {
+        unsigned int toRemove = numBashCurrent - numBashTarget;
+        gi.DPrintf("BOT: removing %d bash bot(s) (target=%d, current=%d)\n", toRemove, numBashTarget, numBashCurrent);
+        G_RemoveBots(toRemove, BOT_TYPE_BASH);
+    } else {
+        sv_numbashbots->modified = false;
     }
 }

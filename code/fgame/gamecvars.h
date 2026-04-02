@@ -269,6 +269,7 @@ extern cvar_t *sv_scriptfiles;
 
 extern cvar_t *sv_maxbots;
 extern cvar_t *sv_numbots;
+extern cvar_t *sv_numbashbots;
 extern cvar_t *sv_minPlayers;
 extern cvar_t *sv_sharedbots;
 

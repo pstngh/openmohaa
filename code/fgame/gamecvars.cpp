@@ -268,8 +268,10 @@ cvar_t *sv_scriptfiles;
 
 // The maximum number of allocated bot clients
 cvar_t *sv_maxbots;
-// The number of bots that should be spawned
+// The number of original bots that should be spawned
 cvar_t *sv_numbots;
+// The number of bash bots that should be spawned
+cvar_t *sv_numbashbots;
 // The minimum number of players that should be present in-game.
 //  If the number of real players is below this number,
 //  the game will automatically add bots to fill the gap
@@ -679,6 +681,7 @@ void CVAR_Init(void)
     sv_maxbots     = gi.Cvar_Get("sv_maxbots", "0", CVAR_LATCH);
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "1", CVAR_LATCH);
     sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
+    sv_numbashbots = gi.Cvar_Get("sv_numbashbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
     g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0.1", 0);
