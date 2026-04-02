@@ -1084,6 +1084,8 @@ void SV_Init (void)
     // sv_pure is disabled by default in mohaa
 	// the problem is because of difference in pak files between languages
 	sv_pure = Cvar_Get ("sv_pure", "0", CVAR_SYSTEMINFO );
+	// Added in OPM
+	sv_autokick = Cvar_Get ("sv_autokick", "0", CVAR_ARCHIVE );
 #ifdef USE_VOIP
 	sv_voip = Cvar_Get("sv_voip", "1", CVAR_LATCH);
 	Cvar_CheckRange(sv_voip, 0, 1, qtrue);

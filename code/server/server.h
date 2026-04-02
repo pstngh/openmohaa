@@ -197,6 +197,7 @@ typedef struct client_s {
 	int				nonPureChecksums[1024];
 	int				nNonPureChecksums;
 	qboolean		gotCP2;
+	int				autokickTime; // Added in OPM - svs.time when to kick, 0 = no pending kick
     netchan_t		netchan;
 	// Added in 2.0
     netprofclient_t netprofile;
@@ -374,6 +375,7 @@ extern	cvar_t	*sv_maxPing;
 extern	cvar_t	*g_gametype;
 extern	cvar_t	*g_gametypestring;
 extern	cvar_t	*sv_pure;
+extern	cvar_t	*sv_autokick; // Added in OPM
 extern	cvar_t	*sv_floodProtect;
 extern	cvar_t	*sv_lanForceRate;
 extern	cvar_t	*sv_maplist;

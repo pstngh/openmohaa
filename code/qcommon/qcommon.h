@@ -862,6 +862,8 @@ const char *FS_GamePureChecksum( void );
 const char *FS_LoadedPakNames( void );
 const char *FS_LoadedPakChecksums( void );
 const char *FS_LoadedPakPureChecksums( void );
+// Added in OPM
+void FS_LoadedPakPureAndChecksums( int *pureChecksums, int *checksums, int *count, int maxCount );
 // Returns a space separated string containing the checksums of all loaded pk3 files.
 // Servers with sv_pure set will get this string and pass it to clients.
 

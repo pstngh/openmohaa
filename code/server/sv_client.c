@@ -913,6 +913,13 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 	Com_DPrintf( "Going from CS_PRIMED to CS_ACTIVE for %s\n", client->name );
 	client->state = CS_ACTIVE;
 
+	// Added in OPM
+	// Start the autokick timer now that the client is fully in the game
+	if (client->autokickTime == -1) {
+		client->autokickTime = svs.time + sv_autokick->integer * 1000;
+		Com_DPrintf("Client %s will be kicked in %d seconds\n", client->name, sv_autokick->integer);
+	}
+
 	// resend all configstrings using the cs commands since these are
 	// no longer sent when the client is CS_PRIMED
 	SV_UpdateConfigstrings( client );
@@ -1352,27 +1359,37 @@ static void SV_Disconnect_f( client_t *cl ) {
 // cp2 command) against this whitelist.
 //==================================================================
 static const int sv_pureChecksumWhitelist[] = {
-    // ---- Official MoHAA paks ----
-    -1589950738, // pak0.pk3
-     1379145895, // pak1.pk3
-    -1583317731, // pak2.pk3
-     -467062589, // pak3.pk3
-      981818134, // pak4.pk3
-      179434094, // pak5.pk3 (Allied Assault)
-      671078817, // pak5.pk3 (Spearhead)
-     1273215132, // Pak5.pk3 (Breakthrough)
-    -1716277136, // pak6.pk3
-      596498058, // Pak6.pk3
-      927563442, // pak7.pk3
-    -1159718974, // Pak7.pk3
-    -1938713004, // pak8.pk3
-      178498079, // pak9.pk3
-     -372026498, // pak10.pk3
-     -740534367, // pak11.pk3
-       38873949, // pak12.pk3
-     -226499784, // pak13.pk3
-      730285072, // pak14.pk3
-     2077479519, // pak15.pk3
+    // ---- Allied Assault US (main/) ----
+      301277748, // Pak0.pk3
+      450555014, // Pak1.pk3
+     -605964971, // Pak2.pk3
+      755737592, // Pak3.pk3
+     1893706666, // Pak4.pk3
+    -1628503586, // Pak5.pk3
+     -430288593, // pak6.pk3
+
+    // ---- Allied Assault GOG/UK (main/) ----
+      229290730, // Pak0.pk3
+      651935416, // Pak1.pk3
+    //                Pak2.pk3 — same as US
+    //                Pak3.pk3 — same as US
+    //                Pak4.pk3 — same as US
+     -971350291, // Pak5.pk3
+     -258570352, // Pak6EnUk.pk3
+     1554659266, // pak7.pk3
+
+    // ---- Spearhead (mainta/) ----
+      715937181, // pak1.pk3
+     1097510018, // pak2.pk3
+     -315852488, // pak3.pk3
+      707446526, // pak4.pk3
+
+    // ---- Breakthrough (maintb/) ----
+    -2139430121, // pak1.pk3
+    -1496149871, // pak2.pk3
+       94279464, // pak3.pk3
+     -989893643, // pak4.pk3
+    -1243210066, // pak5.pk3
 
     // ---- Approved community paks ----
      -749714968, // User-CrizzBlood_2.1.pk3
@@ -1401,6 +1418,44 @@ static const int sv_pureChecksumWhitelist[] = {
      -434856894, // zzz-stockthinlinescope1024x1024.pk3
     -1714111710, // zzz-stockthinlinescope512x512.pk3
      1153308349, // z_M0NST3R_WAR_MENU.pk3
+      751767784, // Chernobyl_version-Final.pk3
+    -1788130937, // obj_finalv2.pk3
+    -1608042595, // z_default-aa.pk3.zip
+     -560997973, // z_default-bt.pk3
+    -1052288580, // zz_reloaded_anticlip_nov12.pk3
+     1590026150, // zzzzzzzzzzzzzz_mohaa_Ladder.pk3
+     -947194434, // zzz_anti_camperv6.pk3
+     -681498863, // zzz-user-crosshairmiddlefix_yellow.pk3
+     -907776901, // zzz-user-crosshairmiddlefix_white.pk3
+     1052417941, // zzz-user-crosshairmiddlefix_red.pk3
+     -191119956, // zzz-user-crosshairmiddlefix_magenta.pk3
+     -826017323, // zzz-user-crosshairmiddlefix_green.pk3
+      520752487, // zzz-user-crosshairmiddlefix_cyan.pk3
+     -230634816, // zzz-user-crosshairmiddlefix_blue.pk3
+     -890164208, // zzz-stockthinlinescope2048x2048.pk3
+      464819105, // zzz-CBMOHAA_PACK_REFORGED_RESSURRECTED.pk3
+     -290717941, // user_the_bridge_mohargentina_v1.4.pk3
+    -1467661122, // the_complex(Vers_A1).pk3
+     1151169435, // darksize-mappack.pk3
+     -859957711, // zzzz_Mappack_SH
+     -929527665, // zzzz_Mappack_FT
+       -8517406, // zzzz_Mappack_9
+     -218412300, // zzzz_Mappack_8
+      165193325, // zzzz_Mappack_7
+     1591278370, // zzzz_Mappack_6
+      -25094259, // zzzz_Mappack_5
+      376591094, // zzzz_Mappack_4
+     1596903475, // zzzz_Mappack_3
+     1783187329, // zzzz_Mappack_2
+      648375743, // zzzz_Mappack_10
+      242915408, // zzzz_Mappack_1
+      118526003, // zzzz_Mappack
+     -751397954, // LSE_Mp_Weapons_Pack
+     1473684683, // LSE_Mp_Skins_Pack
+    -1869537560, // zzzz_LSE_Mp_BA_Skin_Pack_2
+    -1403604420, // zzzz-rcon_mohamerica_v1.1
+    -1072780067, // zzzz-MoHArg-MohAmerica-Pack
+      256184405, // zzz-mwdmenu_v2.5
 };
 
 static const int sv_pureChecksumWhitelistSize = sizeof(sv_pureChecksumWhitelist) / sizeof(sv_pureChecksumWhitelist[0]);
@@ -1476,32 +1531,6 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		// we basically use this while loop to avoid using 'goto' :)
 		while (bGood) {
 
-			/*
-			// must be at least 6: "cl_paks cgame ui @ firstref ... numChecksums"
-			// numChecksums is encoded
-			if (nClientPaks < 6) {
-				bGood = qfalse;
-				break;
-			}
-			// verify first to be the cgame checksum
-			pArg = Cmd_Argv(nCurArg++);
-			if (!pArg || *pArg == '@' || atoi(pArg) != nChkSum1 ) {
-				bGood = qfalse;
-				break;
-			}
-			// verify the second to be the ui checksum
-			pArg = Cmd_Argv(nCurArg++);
-			if (!pArg || *pArg == '@' || atoi(pArg) != nChkSum2 ) {
-				bGood = qfalse;
-				break;
-			}
-			// should be sitting at the delimeter now
-			pArg = Cmd_Argv(nCurArg++);
-			if (*pArg != '@') {
-				bGood = qfalse;
-				break;
-			}
-			*/
 			// store checksums since tokenization is not re-entrant
 			for (i = 0; nCurArg < nClientPaks; i++) {
 				nClientChkSum[i] = atoi(Cmd_Argv(nCurArg++));
@@ -1509,6 +1538,15 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 
 			// store number to compare against (minus one cause the last is the number of checksums)
 			nClientPaks = i - 1;
+
+			// Changed in OPM
+			// A legitimate client must report at least one loaded pak.
+			// An empty or trivially small cp command would skip all validation.
+			if (nClientPaks <= 0) {
+				Com_DPrintf("Client %s sent cp with %d paks (need at least 1)\n", cl->name, nClientPaks);
+				bGood = qfalse;
+				break;
+			}
 
 			// make sure none of the client check sums are the same
 			// so the client can't send 5 the same checksums
@@ -1531,10 +1569,9 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 			pPaks = FS_LoadedPakPureChecksums();
 			Cmd_TokenizeString( pPaks );
 			nServerPaks = Cmd_Argc();
-			if (nServerPaks > 1024)
+			if ( nServerPaks > 1024 )
 				nServerPaks = 1024;
-
-			for (i = 0; i < nServerPaks; i++) {
+			for ( i = 0 ; i < nServerPaks ; i++ ) {
 				nServerChkSum[i] = atoi(Cmd_Argv(i));
 			}
 
@@ -1551,11 +1588,15 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 					// Check the feed-independent checksum (from cp2) against the whitelist.
 					if (cl->gotCP2 && i < cl->nNonPureChecksums) {
 						if (!SV_IsChecksumWhitelisted(cl->nonPureChecksums[i])) {
+							Com_DPrintf("Client %s: pak %d pure_checksum %d (non-pure %d) not matched and not whitelisted\n",
+								cl->name, i, nClientChkSum[i], cl->nonPureChecksums[i]);
 							bGood = qfalse;
 							break;
 						}
 					} else {
 						// No cp2 data available for this pak, can't whitelist-validate
+						Com_DPrintf("Client %s: pak %d pure_checksum %d not matched, no cp2 data\n",
+							cl->name, i, nClientChkSum[i]);
 						bGood = qfalse;
 						break;
 					}
@@ -1588,8 +1629,18 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		else {
 			cl->pureAuthentic = 0;
 			// Changed in OPM
-			// Don't kick unpure clients, just mark them as not pure-authenticated.
-			// The game module will display pure status to all players via HUD.
+			if (sv_autokick->integer) {
+				if (cl->state >= CS_ACTIVE) {
+					// Client is already in-game (e.g. after map restart),
+					// set the kick time directly since SV_ClientEnterWorld won't run again.
+					cl->autokickTime = svs.time + sv_autokick->integer * 1000;
+					Com_DPrintf("Client %s will be kicked in %d seconds\n", cl->name, sv_autokick->integer);
+				} else {
+					// Client is still connecting, use sentinel value.
+					// SV_ClientEnterWorld will convert this to a real time.
+					cl->autokickTime = -1;
+				}
+			}
 			Com_DPrintf("Client %s failed pure validation (not kicked)\n", cl->name);
 		}
 	}

@@ -2984,6 +2984,50 @@ void FS_Path_f( void ) {
 	}
 }
 
+// Added in OPM
+/*
+============
+FS_PakChecksums_f
+
+Prints the name and feed-independent checksum of every loaded pk3 file.
+Useful for populating the sv_pure whitelist in sv_client.c.
+============
+*/
+static void FS_PakChecksums_f( void ) {
+	searchpath_t *s;
+	int count = 0;
+	// Changed in OPM
+	// Deduplicate to handle overlapping search paths
+	int seen[1024];
+	int nSeen = 0;
+
+	Com_Printf( "Loaded pk3 checksums:\n" );
+	for ( s = fs_searchpaths; s; s = s->next ) {
+		int i;
+		if ( !s->pack ) {
+			continue;
+		}
+
+		// Changed in OPM
+		// Deduplicate by pure_checksum for consistency with the cp/cp2 functions.
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == s->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = s->pack->pure_checksum;
+		}
+
+		Com_Printf( "  %12d  %s\n", s->pack->checksum, s->pack->pakBasename );
+		count++;
+	}
+	Com_Printf( "%d pk3 files total\n", count );
+}
+
 /*
 ============
 FS_TouchFile_f
@@ -3667,6 +3711,7 @@ static void FS_Startup(const char* gameName)
 	Cmd_AddCommand ("fdir", FS_NewDir_f );
 	Cmd_AddCommand ("touchFile", FS_TouchFile_f );
 	Cmd_AddCommand ("which", FS_Which_f );
+	Cmd_AddCommand ("pak_checksums", FS_PakChecksums_f ); // Added in OPM
 
 	Sys_Mkdir(fs_homepath->string);
 
@@ -3814,19 +3859,83 @@ back to the server.
 const char *FS_LoadedPakPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
+	// Changed in OPM
+	// Deduplicate to handle overlapping search paths
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
 		// is the element a pak file?
 		if ( !search->pack ) {
 			continue;
+		}
+
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
 		}
 
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
 	}
 
 	return info;
+}
+
+// Added in OPM
+/*
+=====================
+FS_LoadedPakPureAndChecksums
+
+Fills two parallel arrays with the pure (feed-dependent) and feed-independent
+checksums of all loaded pk3 files, deduplicated by pure_checksum.
+Used by the server to identify whitelisted community paks during the reverse
+pure validation check.
+=====================
+*/
+void FS_LoadedPakPureAndChecksums( int *pureChecksums, int *checksums, int *count, int maxCount ) {
+	searchpath_t	*search;
+	int seen[1024];
+	int nSeen = 0;
+	int n = 0;
+
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
+
+		if ( !search->pack ) {
+			continue;
+		}
+
+		// Deduplicate by pure_checksum, same as FS_LoadedPakPureChecksums
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
+			}
+		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
+		}
+
+		if ( n < maxCount ) {
+			pureChecksums[n] = search->pack->pure_checksum;
+			checksums[n] = search->pack->checksum;
+			n++;
+		}
+	}
+
+	*count = n;
 }
 
 /*
@@ -3860,45 +3969,50 @@ const char *FS_ReferencedPakChecksums( void ) {
 =====================
 FS_ReferencedPakPureChecksums
 
-Returns a space separated string containing the pure checksums of all referenced pk3 files.
-Servers with sv_pure set will get this string back from clients for pure validation
-
-The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
+// Changed in OPM
+// Returns a space separated string containing the pure checksums of all loaded pk3 files.
+// Previously only sent referenced paks, which allowed unvalidated paks to slip through
+// the purity check since they weren't reported to the server.
 =====================
 */
 const char *FS_ReferencedPakPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
-	int nFlags, numPaks, checksum;
+	int numPaks, checksum;
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
 	checksum = fs_checksumFeed;
 	numPaks = 0;
-	for (nFlags = FS_GENERAL_REF; nFlags; nFlags = nFlags >> 1) {
-		/*
-		if (nFlags & FS_GENERAL_REF) {
-			// add a delimter between must haves and general refs
-			//Q_strcat(info, sizeof(info), "@ ");
-			info[strlen(info)+1] = '\0';
-			info[strlen(info)+2] = '\0';
-			info[strlen(info)] = '@';
-			info[strlen(info)] = ' ';
+	// Changed in OPM
+	// Send all loaded paks, not just referenced ones, so the server can validate
+	// the client's entire pk3 set during the purity check.
+	// Skip duplicate paks that appear when multiple search paths resolve to the
+	// same directory (e.g. launcher sets fs_homepath to the same dir as fs_basepath).
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
+		if ( !search->pack ) {
+			continue;
 		}
-		*/
-		for ( search = fs_searchpaths ; search ; search = search->next ) {
-			// is the element a pak file and has it been referenced based on flag?
-			if ( search->pack && (search->pack->referenced & nFlags)) {
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
-				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
-					break;
-				}
-				checksum ^= search->pack->pure_checksum;
-				numPaks++;
+		// deduplicate by pure_checksum
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
 			}
 		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
+		}
+		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
+		checksum ^= search->pack->pure_checksum;
+		numPaks++;
 	}
-	// last checksum is the encoded number of referenced pk3s
+	// last checksum is the encoded number of pk3s
 	checksum ^= numPaks;
 	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
 
@@ -3910,35 +4024,52 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 =====================
 FS_ReferencedPakNonPureChecksums
 
-Returns a space separated string containing the feed-independent checksums of all
-referenced pk3 files, in the same order as FS_ReferencedPakPureChecksums().
-Used by the client to send a cp2 command so the server can validate unknown paks
-against a hardcoded whitelist of known-good checksums.
+// Changed in OPM
+// Returns a space separated string containing the feed-independent checksums of all
+// loaded pk3 files, in the same order as FS_ReferencedPakPureChecksums().
+// Used by the client to send a cp2 command so the server can validate unknown paks
+// against a hardcoded whitelist of known-good checksums.
 =====================
 */
 const char *FS_ReferencedPakNonPureChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t	*search;
-	int nFlags, numPaks, checksum;
+	int numPaks, checksum;
+	int seen[1024];
+	int nSeen = 0;
 
 	info[0] = 0;
 
 	checksum = fs_checksumFeed;
 	numPaks = 0;
-	for (nFlags = FS_GENERAL_REF; nFlags; nFlags = nFlags >> 1) {
-		for ( search = fs_searchpaths ; search ; search = search->next ) {
-			// is the element a pak file and has it been referenced based on flag?
-			if ( search->pack && (search->pack->referenced & nFlags)) {
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
-				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
-					break;
-				}
-				checksum ^= search->pack->checksum;
-				numPaks++;
+	// Changed in OPM
+	// Send all loaded paks, not just referenced ones, matching the change
+	// in FS_ReferencedPakPureChecksums() so positions stay aligned.
+	// Skip duplicates from overlapping search paths.
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		int i;
+		if ( !search->pack ) {
+			continue;
+		}
+		// Changed in OPM
+		// Deduplicate by pure_checksum (same key as FS_ReferencedPakPureChecksums)
+		// so both functions skip exactly the same paks, keeping positions aligned.
+		for ( i = 0; i < nSeen; i++ ) {
+			if ( seen[i] == search->pack->pure_checksum ) {
+				break;
 			}
 		}
+		if ( i < nSeen ) {
+			continue;
+		}
+		if ( nSeen < 1024 ) {
+			seen[nSeen++] = search->pack->pure_checksum;
+		}
+		Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
+		checksum ^= search->pack->checksum;
+		numPaks++;
 	}
-	// last checksum is the encoded number of referenced pk3s
+	// last checksum is the encoded number of pk3s
 	checksum ^= numPaks;
 	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
 
