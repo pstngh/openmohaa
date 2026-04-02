@@ -53,3 +53,7 @@ add_compile_definitions(_CRT_NONSTDC_NO_DEPRECATE)
 
 # Treat no return type as error
 add_compile_options(/we4715)
+
+# Added in OPM
+#  Use static CRT (/MT) to avoid requiring MSVCP140.dll on end-user machines
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
