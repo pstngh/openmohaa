@@ -736,12 +736,13 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
-    m_iCuriousTime  = 0;
-    m_iAttackTime   = 0;
-    m_vOldEnemyPos  = vec_zero;
-    m_vLastEnemyPos = vec_zero;
-    m_pEnemy        = NULL;
-    m_iEnemyEyesTag = -1;
+    m_iCuriousTime    = 0;
+    m_iAttackTime     = 0;
+    m_vLastCuriousPos = vec_zero;
+    m_vOldEnemyPos    = vec_zero;
+    m_vLastEnemyPos   = vec_zero;
+    m_pEnemy          = NULL;
+    m_iEnemyEyesTag   = -1;
 }
 
 /*

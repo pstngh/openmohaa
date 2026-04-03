@@ -8921,10 +8921,9 @@ void Player::EquipWeapons()
     }
 
     // Added in OPM
-    //  Override bot primary weapon via cvar, defaulting to sniper
+    //  Original bots (SVF_BOT) always use SMG
     if (edict->r.svFlags & SVF_BOT) {
-        const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
-        Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+        Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
     }
 
     // Fixed in OPM
@@ -9231,10 +9230,9 @@ void Player::EquipWeapons_ver8()
         Event *ev = new Event("use");
 
         // Added in OPM
-        //  Override bot primary weapon via cvar, defaulting to sniper
+        //  Original bots (SVF_BOT) always use SMG
         if (edict->r.svFlags & SVF_BOT) {
-            const char *botWeapon = g_bot_primary_weapon->string[0] ? g_bot_primary_weapon->string : "sniper";
-            Q_strncpyz(client->pers.dm_primary, botWeapon, sizeof(client->pers.dm_primary));
+            Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
         }
 
         if (!Q_stricmp(client->pers.dm_primary, "rifle")) {
