@@ -120,15 +120,6 @@ private:
     int    m_iJumpCheckTime;
     Vector m_vJumpLocation;
 
-    ///
-    /// Aggressive movement (strafe + lean)
-    ///
-
-    int m_iStrafeDirection;       // -1 = left, 0 = none, 1 = right
-    int m_iNextStrafeChangeTime;  // When to switch strafe direction
-
-    void  UpdateAggressiveMovement(usercmd_t& botcmd);
-    float CalculateLateralClearance(int direction);
 };
 
 class BotRotation

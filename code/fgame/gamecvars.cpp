@@ -291,11 +291,6 @@ cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
-cvar_t *g_bot_aggressive_movement;
-cvar_t *g_bot_strafe_intensity;
-cvar_t *g_bot_strafe_min_interval;
-cvar_t *g_bot_strafe_max_interval;
-cvar_t *g_bot_lean_coupling;
 cvar_t *g_bot_use_dmspreadmult;
 cvar_t *g_bot_cap_firespreadmult;
 cvar_t *g_bot_firespreadmult_scale;
@@ -729,11 +724,6 @@ void CVAR_Init(void)
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
 
-    g_bot_aggressive_movement  = gi.Cvar_Get("g_bot_aggressive_movement", "1", 0);
-    g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.5", 0);
-    g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "200", 0);
-    g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "700", 0);
-    g_bot_lean_coupling        = gi.Cvar_Get("g_bot_lean_coupling", "0.9", 0);
     g_bot_use_dmspreadmult     = gi.Cvar_Get("g_bot_use_dmspreadmult", "1", 0);
     g_bot_cap_firespreadmult   = gi.Cvar_Get("g_bot_cap_firespreadmult", "1", 0);
     g_bot_firespreadmult_scale = gi.Cvar_Get("g_bot_firespreadmult_scale", "-1", 0);
