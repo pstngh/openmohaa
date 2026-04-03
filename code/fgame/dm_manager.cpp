@@ -2006,7 +2006,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "BOT" : va("%d", pTeamPlayer->client->ps.ping)
+                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
             );
         } else {
             Com_sprintf(
@@ -2017,7 +2017,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "BOT" : va("%d", pTeamPlayer->client->ps.ping)
+                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
             );
         }
 
