@@ -137,6 +137,34 @@ static void basic_callback(char *outbuf, int maxlen, void *userdata)
     }
 }
 
+/*
+==================
+SV_NumVisibleClients
+
+Count clients visible to the master server — excludes original bots
+(SVF_BOT flag set) so only real players and bash bots are counted.
+==================
+*/
+static int SV_NumVisibleClients(void)
+{
+    int i;
+    int count = 0;
+
+    for (i = 0; i < svs.iNumClients; i++) {
+        client_t *cl = &svs.clients[i];
+        if (cl->state <= CS_FREE) {
+            continue;
+        }
+        // Skip original bots (have SVF_BOT flag)
+        if (cl->gentity && (cl->gentity->r.svFlags & SVF_BOT)) {
+            continue;
+        }
+        count++;
+    }
+
+    return count;
+}
+
 static void info_callback(char *outbuf, int maxlen, void *userdata)
 {
     char         infostring[1024];
@@ -147,7 +175,7 @@ static void info_callback(char *outbuf, int maxlen, void *userdata)
     Info_SetValueForKey(infostring, "hostport", Cvar_Get("net_port", "12203", CVAR_LATCH)->string);
     Info_SetValueForKey(infostring, "mapname", svs.mapName);
     Info_SetValueForKey(infostring, "gametype", g_gametypestring->string);
-    Info_SetValueForKey(infostring, "numplayers", va("%i", SV_NumClients()));
+    Info_SetValueForKey(infostring, "numplayers", va("%i", SV_NumVisibleClients()));
     Info_SetValueForKey(infostring, "maxplayers", va("%i", svs.iNumClients - sv_privateClients->integer));
     Info_SetValueForKey(infostring, "minplayers", "0");
     Info_SetValueForKey(infostring, "gamemode", gamemode);
@@ -217,6 +245,12 @@ static void players_callback(char *outbuf, int maxlen, void *userdata)
 
         if (cl->state == CS_FREE) {
             // ignore inactive clients
+            continue;
+        }
+
+        // Skip original bots (SVF_BOT) — only bash bots and real players
+        // should appear in the master server player list
+        if (cl->gentity && (cl->gentity->r.svFlags & SVF_BOT)) {
             continue;
         }
 

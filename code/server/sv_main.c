@@ -895,28 +895,40 @@ static void SV_CalcPings( void ) {
 		}
 
 		// Added in OPM
-		//  Synthesize a realistic fake ping for bots using a weighted value pool (98/100 favored)
+		//  Bots with SVF_BOT flag (original bots) show as regular bots with 0 ping.
+		//  Bots without SVF_BOT (bash bots) get a fake realistic ping to appear human.
 		if ( cl->netchan.remoteAddress.type == NA_BOT ) {
-			static int botPingTimers[MAX_CLIENTS] = {0};
-			static int botPingValues[MAX_CLIENTS] = {0};
-			static const int botPingPool[] = {98, 100, 98, 100, 98, 100, 96, 101, 103, 105, 106, 107, 108, 109, 110};
-			int clientNum = (int)(cl - svs.clients);
-
-			if (svs.time > botPingTimers[clientNum]) {
-				botPingValues[clientNum] = botPingPool[rand() % ARRAY_LEN(botPingPool)];
-				botPingTimers[clientNum] = svs.time + 2000 + (rand() % 3001);
+			if ( cl->gentity->r.svFlags & SVF_BOT ) {
+				// Original bot — show 0 ping like a standard bot
+				cl->ping = 0;
+				ps = SV_GameClientNum( i );
+				ps->ping = cl->ping;
+				continue;
 			}
 
-			cl->ping = botPingValues[clientNum];
+			// Bash bot — synthesize a realistic fake ping
+			{
+				static int botPingTimers[MAX_CLIENTS] = {0};
+				static int botPingValues[MAX_CLIENTS] = {0};
+				static const int botPingPool[] = {98, 100, 98, 100, 98, 100, 96, 101, 103, 105, 106, 107, 108, 109, 110};
+				int clientNum = (int)(cl - svs.clients);
 
-			// Never show 99 for bots; bump to 100 if it ever appears.
-			if (cl->ping == 99) {
-				cl->ping = 100;
+				if (svs.time > botPingTimers[clientNum]) {
+					botPingValues[clientNum] = botPingPool[rand() % ARRAY_LEN(botPingPool)];
+					botPingTimers[clientNum] = svs.time + 2000 + (rand() % 3001);
+				}
+
+				cl->ping = botPingValues[clientNum];
+
+				// Never show 99 for bots; bump to 100 if it ever appears.
+				if (cl->ping == 99) {
+					cl->ping = 100;
+				}
+
+				ps = SV_GameClientNum( i );
+				ps->ping = cl->ping;
+				continue;
 			}
-
-			ps = SV_GameClientNum( i );
-			ps->ping = cl->ping;
-			continue;
 		}
 
 		total = 0;

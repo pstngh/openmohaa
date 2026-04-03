@@ -375,7 +375,7 @@ gentity_t *G_AddBot(const bot_info_t *info)
     // increase the unique ID
     botId++;
 
-    if (info && info->name) {
+    if (info && info->name.length()) {
         Q_strncpyz(botName, info->name, sizeof(botName));
         gi.DPrintf("BOT: using custom name '%s'\n", botName);
     } else {
