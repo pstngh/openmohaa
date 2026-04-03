@@ -1895,6 +1895,10 @@ void DM_Manager::BuildTeamInfo_ver6(DM_Team *dmTeam)
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
 
+        if (pTeamPlayer->edict->r.svFlags & SVF_BOT) {
+            continue;
+        }
+
         iNumPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
     }
@@ -1935,6 +1939,10 @@ void DM_Manager::BuildTeamInfo_ver15(DM_Team *dmTeam)
 
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
+
+        if (pTeamPlayer->edict->r.svFlags & SVF_BOT) {
+            continue;
+        }
 
         iNumPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
