@@ -4519,19 +4519,24 @@ void Player::ClientThink(void)
         client->cmd_angles[1] = SHORT2ANGLE(current_ucmd->angles[1]);
         client->cmd_angles[2] = SHORT2ANGLE(current_ucmd->angles[2]);
 
-        if (g_gametype->integer != GT_SINGLE_PLAYER
-            && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
-            VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
-            edict->s.pos.trTime = client->ps.commandTime;
+        {
+            // Bash bots (no SVF_BOT) need smooth movement to look like real players
+            bool isBashBot = G_IsBot(edict) && !(edict->r.svFlags & SVF_BOT);
 
-            if (edict->r.svFlags & SVF_BOT) {
-                // Bots typically have commandTime == serverTime; offset by one frame
-                // so clients can extrapolate bot trajectories between snapshots.
-                edict->s.pos.trTime -= level.intframetime;
+            if (g_gametype->integer != GT_SINGLE_PLAYER
+                && (g_smoothClients->integer || isBashBot)) {
+                VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
+                edict->s.pos.trTime = client->ps.commandTime;
+
+                if (isBashBot) {
+                    // Bots typically have commandTime == serverTime; offset by one frame
+                    // so clients can extrapolate bot trajectories between snapshots.
+                    edict->s.pos.trTime -= level.intframetime;
+                }
+            } else {
+                VectorClear(edict->s.pos.trDelta);
+                edict->s.pos.trTime = 0;
             }
-        } else {
-            VectorClear(edict->s.pos.trDelta);
-            edict->s.pos.trTime = 0;
         }
 
         ClientInactivityTimer();
@@ -7144,19 +7149,24 @@ void Player::FinishMove(void)
     DamageFeedback();
     CalcBlend();
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER
-        && (g_smoothClients->integer || (edict->r.svFlags & SVF_BOT))) {
-        VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
-        edict->s.pos.trTime = client->ps.commandTime;
+    {
+        // Bash bots (no SVF_BOT) need smooth movement to look like real players
+        bool isBashBot = G_IsBot(edict) && !(edict->r.svFlags & SVF_BOT);
 
-        if (edict->r.svFlags & SVF_BOT) {
-            // Bots typically have commandTime == serverTime; offset by one frame
-            // so clients can extrapolate bot trajectories between snapshots.
-            edict->s.pos.trTime -= level.intframetime;
+        if (g_gametype->integer != GT_SINGLE_PLAYER
+            && (g_smoothClients->integer || isBashBot)) {
+            VectorCopy(client->ps.velocity, edict->s.pos.trDelta);
+            edict->s.pos.trTime = client->ps.commandTime;
+
+            if (isBashBot) {
+                // Bots typically have commandTime == serverTime; offset by one frame
+                // so clients can extrapolate bot trajectories between snapshots.
+                edict->s.pos.trTime -= level.intframetime;
+            }
+        } else {
+            VectorClear(edict->s.pos.trDelta);
+            edict->s.pos.trTime = 0;
         }
-    } else {
-        VectorClear(edict->s.pos.trDelta);
-        edict->s.pos.trTime = 0;
     }
 }
 

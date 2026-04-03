@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 #include "entity.h"
 #include "game.h"
+#include "g_bot.h"
 
 // FIXME: OLD Q3 CODE
 #if 0
@@ -370,7 +371,8 @@ void ClientThink_real( gentity_t *ent ) {
 #endif
 
 	// save results of pmove
-	if (g_smoothClients.integer || (ent->r.svFlags & SVF_BOT)) {
+	// Bash bots (no SVF_BOT) need extrapolation to look like real players
+	if (g_smoothClients.integer || G_IsBot(ent)) {
 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
 	}
 	else {
@@ -529,7 +531,7 @@ void ClientEndFrame( gentity_t *ent ) {
 	G_SetClientSound (ent);
 
 	// set the latest infor
-	if (g_smoothClients.integer || (ent->r.svFlags & SVF_BOT)) {
+	if (g_smoothClients.integer || G_IsBot(ent)) {
 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
 	}
 	else {
