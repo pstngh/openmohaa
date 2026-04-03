@@ -1000,7 +1000,6 @@ void BotController::State_EndAttack(void)
 
 void BotController::State_Attack(void)
 {
-    bool    bMelee              = false;
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
     bool    bFiring             = false;
