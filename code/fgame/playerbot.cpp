@@ -1133,7 +1133,10 @@ void BotController::State_Attack(void)
             m_iLastFireTime = level.inttime;
 
             if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE) {
-                if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
+                // Disable bot weapon melee in Spearhead and Breakthrough
+                if (m_botType == BOT_TYPE_ORIGINAL && g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
+                    bMelee = false;
+                } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                     && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
                     bMelee = true;
                 } else if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
