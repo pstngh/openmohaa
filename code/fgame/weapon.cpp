@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "vehicleturret.h"
 #include "debuglines.h"
 #include "g_spawn.h"
+#include "g_bot.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1389,26 +1390,48 @@ void Weapon::Shoot(Event *ev)
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
         if (m_fFireSpreadMultAmount[mode] != 0.0f) {
-            float fTime = level.time - m_fFireSpreadMultTime[mode];
+            bool isBot     = owner && owner->client && G_IsBot(owner->edict);
+            bool skipDecay = false;
 
-            if (fTime <= m_fFireSpreadMultTimeCap[mode]) {
-                float fDecay = fTime * m_fFireSpreadMultFalloff[mode];
+            // Check if spread is at the clip-based cap and nodecay_at_cap is enabled
+            if (owner && owner->client) {
+                bool nodecayAtCap = isBot
+                    ? g_bot_firespreadmult_nodecay_at_cap->integer
+                    : g_firespreadmult_nodecay_at_cap->integer;
 
-                if (m_fFireSpreadMult[mode] <= 0.0f) {
-                    m_fFireSpreadMult[mode] -= fDecay;
+                if (nodecayAtCap) {
+                    int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                    float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
 
-                    if (m_fFireSpreadMult[mode] > 0.0f) {
-                        m_fFireSpreadMult[mode] = 0.0f;
-                    }
-                } else {
-                    m_fFireSpreadMult[mode] -= fDecay;
-
-                    if (m_fFireSpreadMult[mode] < 0.0f) {
-                        m_fFireSpreadMult[mode] = 0.0f;
+                    if ((maxFromClip > 0 && m_fFireSpreadMult[mode] >= maxFromClip)
+                     || (maxFromClip < 0 && m_fFireSpreadMult[mode] <= maxFromClip)) {
+                        skipDecay = true;
                     }
                 }
-            } else {
-                m_fFireSpreadMult[mode] = 0.0f;
+            }
+
+            if (!skipDecay) {
+                float fTime = level.time - m_fFireSpreadMultTime[mode];
+
+                if (fTime <= m_fFireSpreadMultTimeCap[mode]) {
+                    float fDecay = fTime * m_fFireSpreadMultFalloff[mode];
+
+                    if (m_fFireSpreadMult[mode] <= 0.0f) {
+                        m_fFireSpreadMult[mode] -= fDecay;
+
+                        if (m_fFireSpreadMult[mode] > 0.0f) {
+                            m_fFireSpreadMult[mode] = 0.0f;
+                        }
+                    } else {
+                        m_fFireSpreadMult[mode] -= fDecay;
+
+                        if (m_fFireSpreadMult[mode] < 0.0f) {
+                            m_fFireSpreadMult[mode] = 0.0f;
+                        }
+                    }
+                } else {
+                    m_fFireSpreadMult[mode] = 0.0f;
+                }
             }
 
             m_fFireSpreadMultTime[mode] = level.time;
@@ -1434,17 +1457,24 @@ void Weapon::Shoot(Event *ev)
                 if (owner) {
                     if (owner->client) {
                         Player *player = (Player *)owner.Pointer();
+                        bool    isBot  = G_IsBot(player->edict);
 
                         fSpreadFactor = GetSpreadFactor(mode);
 
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Apply fire spread mult (skip for bots if cvar disabled)
+                        if (!isBot || g_bot_use_dmspreadmult->integer) {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
-                                vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                if (!isBot || g_bot_use_dmspreadmult->integer) {
+                                    vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                }
                             }
                         }
                     }
@@ -1504,6 +1534,7 @@ void Weapon::Shoot(Event *ev)
                 if (owner) {
                     if (owner->client) {
                         Player *player = (Player *)owner.Pointer();
+                        bool    isBot  = G_IsBot(player->edict);
 
                         fSpreadFactor = player->velocity.length() / sv_runspeed->integer;
 
@@ -1514,11 +1545,17 @@ void Weapon::Shoot(Event *ev)
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Apply fire spread mult (skip for bots if cvar disabled)
+                        if (!isBot || g_bot_use_dmspreadmult->integer) {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
-                                vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                if (!isBot || g_bot_use_dmspreadmult->integer) {
+                                    vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
+                                }
                             }
                         }
                     }
@@ -1644,6 +1681,33 @@ void Weapon::Shoot(Event *ev)
                     m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
                 } else if (m_fFireSpreadMult[mode] > 0) {
                     m_fFireSpreadMult[mode] = 0;
+                }
+            }
+
+            // Handle spread for bots and clients
+            if (owner && owner->client) {
+                bool  isBot       = G_IsBot(owner->edict);
+                int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+
+                // Check for fixed scale override (takes priority over cap)
+                float scale = isBot ? g_bot_firespreadmult_scale->value : g_firespreadmult_scale->value;
+
+                if (scale >= 0) {
+                    // Fixed spread: override with scale * full_mag_spread
+                    m_fFireSpreadMult[mode] = maxFromClip * scale;
+                } else {
+                    // Normal accumulation - apply cap if enabled
+                    bool shouldCap = (isBot && g_bot_cap_firespreadmult->integer)
+                                  || (!isBot && g_cap_firespreadmult->integer);
+
+                    if (shouldCap) {
+                        if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
+                            m_fFireSpreadMult[mode] = maxFromClip;
+                        } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
+                            m_fFireSpreadMult[mode] = maxFromClip;
+                        }
+                    }
                 }
             }
         }

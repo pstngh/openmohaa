@@ -183,10 +183,8 @@ private:
     int    m_iCuriousTime;
     int    m_iAttackTime;
     int    m_iAttackStopAimTime;
-    int    m_iLastBurstTime;
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
-    int    m_iContinuousFireTime;
 
     // Original bot fields (used only when m_botType == BOT_TYPE_ORIGINAL)
     Vector m_vAimOffset;
@@ -209,18 +207,25 @@ private:
     unsigned int      m_StateFlags;
     ScriptThreadLabel m_RunLabel;
 
-    // Taunts
     int m_iNextTauntTime;
     int m_iLastFireTime;
     int m_iNextMeleeTime;
 
-    // Roomba movement (all states)
+    // Roomba movement (bash bots only)
     int    m_iRoombaTurnDir;            // -1 = left, 1 = right (fixed at spawn)
     float  m_fRoombaYaw;                // accumulated yaw angle
     float  m_fRoombaTurnSpeed;          // turn speed (degrees/frame)
     bool   m_bAimOverride;             // true = attack is aiming, skip roomba yaw this frame
     int    m_iStrafeDir;                // -1 = left, 1 = right
     int    m_iNextStrafeSwitchTime;     // when to flip strafe direction
+
+    // Strafe and lean (original bots)
+    int   m_iStrafeDirection;       // -1 (left) or 1 (right), never 0
+    int   m_iLeanDirection;         // -1 (left) or 1 (right), never 0
+    float m_fNextStrafeChangeTime;
+    int   m_iShootMoveMode;         // 0=forward, 1=forward/back, 2=strafe only
+    float m_fNextShootMoveTime;
+    int   m_iShootMoveDirection;    // 1=forward, -1=backward
 
     // Jump detection
     bool   m_bJump;
@@ -291,6 +296,8 @@ public:
     void GetUsercmd(usercmd_t *ucmd);
 
     void UpdateBotStates(void);
+    void UpdateStrafeAndLean(void);
+    void ApplyStrafeAndLean(void);
     void CheckReload(void);
 
     void AimAtAimNode(void);

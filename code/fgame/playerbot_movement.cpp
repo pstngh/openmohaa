@@ -1145,15 +1145,12 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     // Update strafe direction when timer expires
     if (level.inttime >= m_iNextStrafeChangeTime) {
         // Flip direction - always strafing, no pauses
-        m_iStrafeDirection      = (m_iStrafeDirection <= 0) ? 1 : -1;
+        m_iStrafeDirection = (m_iStrafeDirection <= 0) ? 1 : -1;
 
-        // Next direction change time (single cvar controls cadence)
-        int switchInterval = g_bot_strafe_switch_interval->integer;
-        if (switchInterval < 100) {
-            switchInterval = 100;
-        }
-
-        m_iNextStrafeChangeTime = level.inttime + switchInterval;
+        // Random interval until next direction change
+        int minMs = g_bot_strafe_min_interval->integer;
+        int maxMs = g_bot_strafe_max_interval->integer;
+        m_iNextStrafeChangeTime = level.inttime + minMs + (int)G_Random(maxMs - minMs);
     }
 
     // Calculate safe amplitude based on lateral clearance

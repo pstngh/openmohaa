@@ -66,13 +66,11 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime        = 0;
-    m_iAttackTime         = 0;
-    m_iEnemyEyesTag       = -1;
-    m_iContinuousFireTime = 0;
-    m_iLastSeenTime       = 0;
-    m_iLastUnseenTime     = 0;
-    m_iLastBurstTime      = 0;
+    m_iCuriousTime    = 0;
+    m_iAttackTime     = 0;
+    m_iEnemyEyesTag   = -1;
+    m_iLastSeenTime   = 0;
+    m_iLastUnseenTime = 0;
 
     m_iNextTauntTime = 0;
     m_iNextMeleeTime = 0;
@@ -93,6 +91,14 @@ BotController::BotController()
     m_bAimOverride          = false;
     m_iStrafeDir            = (rand() % 2) ? 1 : -1;
     m_iNextStrafeSwitchTime = 0;
+
+    // Strafe and lean (original bots)
+    m_iStrafeDirection      = (rand() % 2) ? 1 : -1;
+    m_iLeanDirection        = m_iStrafeDirection;
+    m_fNextStrafeChangeTime = 0;
+    m_iShootMoveMode        = 0;
+    m_fNextShootMoveTime    = 0;
+    m_iShootMoveDirection   = 1;
 
     m_bJump          = false;
     m_iJumpCheckTime = 0;
@@ -625,24 +631,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    switch (iType) {
-    case AI_EVENT_MISC:
-    case AI_EVENT_MISC_LOUD:
-        break;
-    case AI_EVENT_WEAPON_FIRE:
-    case AI_EVENT_WEAPON_IMPACT:
-    case AI_EVENT_EXPLOSION:
-    case AI_EVENT_AMERICAN_VOICE:
-    case AI_EVENT_GERMAN_VOICE:
-    case AI_EVENT_AMERICAN_URGENT:
-    case AI_EVENT_GERMAN_URGENT:
-    case AI_EVENT_FOOTSTEP:
-    case AI_EVENT_GRENADE:
-    default:
-        m_iCuriousTime   = level.inttime + 20000;
-        m_vNewCuriousPos = vPos;
-        break;
-    }
+    // React to all sound events
+    m_iCuriousTime   = level.inttime + 20000;
+    m_vNewCuriousPos = vPos;
 }
 
 /*
@@ -937,10 +928,13 @@ bool BotController::IsValidEnemy(Sentient *sent) const
 
 bool BotController::CheckCondition_Attack(void)
 {
-    float maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
-    int   fov        = (m_botType == BOT_TYPE_BASH) ? 360 : 80;
+    float maxDistance;
+    int   fov;
 
     if (m_botType == BOT_TYPE_BASH) {
+        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+        fov        = 360;
+
         // Bash bots: keep current target if still valid and visible — prevents oscillation
         if (m_pEnemy && IsValidEnemy(m_pEnemy)
             && controlledEnt->CanSee(m_pEnemy, fov, maxDistance, false)) {
@@ -948,6 +942,10 @@ bool BotController::CheckCondition_Attack(void)
             m_iAttackTime   = level.inttime + 1000;
             return true;
         }
+    } else {
+        // Original bots: 360° FOV, fixed max distance (ignore fog)
+        maxDistance = 4096.0f;
+        fov        = 360;
     }
 
     // Scan for enemies (closest first)
@@ -1010,7 +1008,16 @@ void BotController::State_Attack(void)
     float   fMinDistance         = 128;
     float   fMinDistanceSquared  = fMinDistance * fMinDistance;
     Weapon *pWeap   = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
-    int     fov     = (m_botType == BOT_TYPE_BASH) ? 360 : 20;
+
+    float maxDistance;
+    int   fov;
+    if (m_botType == BOT_TYPE_BASH) {
+        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
+        fov        = 360;
+    } else {
+        maxDistance = 4096.0f;
+        fov        = 360;
+    }
 
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
@@ -1021,8 +1028,7 @@ void BotController::State_Attack(void)
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
-    bCanSee =
-        controlledEnt->CanSee(m_pEnemy, fov, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+    bCanSee = controlledEnt->CanSee(m_pEnemy, fov, maxDistance, false);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -1031,7 +1037,7 @@ void BotController::State_Attack(void)
 
         bCanAttack = true;
 
-        // Original bots have reaction delay before attacking
+        // Reaction delay before attacking
         if (m_botType == BOT_TYPE_ORIGINAL && m_iLastUnseenTime) {
             const float reactionTime = Q_min(1000 * Q_min(1, fDistanceSquared / Square(2048)), 1000);
             const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
@@ -1042,28 +1048,20 @@ void BotController::State_Attack(void)
                 m_iLastUnseenTime = 0;
             }
         } else if (m_botType == BOT_TYPE_BASH) {
-            // Bash bots attack instantly
             m_iLastUnseenTime = 0;
         }
 
         if (bCanAttack) {
-            float fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
-            float fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
+            float fPrimaryBulletRange        = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
+            float fPrimaryBulletRangeSquared = fPrimaryBulletRange * fPrimaryBulletRange;
             float fSecondaryBulletRange        = pWeap->GetBulletRange(FIRE_SECONDARY);
             float fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
 
-            const int fireDelay = pWeap->FireDelay(FIRE_PRIMARY) * 1000;
-            const int maxcontinuousFireTime = fireDelay + g_bot_attack_continuousfire_min_firetime->value * 1000
-                                           + G_Random(g_bot_attack_continuousfire_random_firetime->value * 1000);
-            const int maxBurstTime = fireDelay + g_bot_attack_burst_min_time->value * 1000
-                                   + G_Random(g_bot_attack_burst_random_delay->value * 1000);
-
-            // Original bots: check fire movement speed
+            // Check fire movement speed
             if (m_botType == BOT_TYPE_ORIGINAL && pWeap->GetMaxFireMovement() < 1 && pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
                 float length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
-                    movement.ClearMove();
                 }
             }
 
@@ -1101,7 +1099,6 @@ void BotController::State_Attack(void)
                         }
                     } else if (m_botType == BOT_TYPE_ORIGINAL) {
                         bNoMove = true;
-                        movement.ClearMove();
                     }
                 } else {
                     bFiring = true;
@@ -1109,40 +1106,8 @@ void BotController::State_Attack(void)
                 }
             }
 
-            // Burst fire
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
-
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
-                }
-            }
-
+            // Continuous fire for original bots (no burst fire)
             m_iLastFireTime = level.inttime;
-
-            if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE) {
-                // Disable bot weapon melee in Spearhead and Breakthrough
-                if (m_botType == BOT_TYPE_ORIGINAL && g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-                    bMelee = false;
-                } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
-                    && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
-                    bMelee = true;
-                } else if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    bMelee = true;
-                }
-            }
 
             if (m_botType == BOT_TYPE_BASH) {
                 // Bash bots: force melee-only, never shoot
@@ -1154,16 +1119,6 @@ void BotController::State_Attack(void)
                     m_iNextMeleeTime = level.inttime + 1000;
                 } else {
                     m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                }
-            } else {
-                // Original bots: use melee as fallback
-                if (bMelee) {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                    if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                        m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
-                    } else {
-                        m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                    }
                 }
             }
 
@@ -1186,37 +1141,40 @@ void BotController::State_Attack(void)
 
     // Aiming
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vTarget;
-        orientation_t eyes_or;
-
-        if (m_iEnemyEyesTag == -1) {
-            m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
-        }
-
-        if (m_iEnemyEyesTag != -1) {
-            m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
-            vTarget = eyes_or.origin;
-        } else {
-            vTarget = m_pEnemy->origin;
-        }
+        Vector vTarget;
 
         if (m_botType == BOT_TYPE_BASH) {
-            // Bash bots: instant lock aim
+            // Bash bots: instant lock aim at eyes/origin
+            orientation_t eyes_or;
+
+            if (m_iEnemyEyesTag == -1) {
+                m_iEnemyEyesTag = gi.Tag_NumForName(m_pEnemy->edict->tiki, "eyes bone");
+            }
+
+            if (m_iEnemyEyesTag != -1) {
+                m_pEnemy->GetTag(m_iEnemyEyesTag, &eyes_or);
+                vTarget = eyes_or.origin;
+            } else {
+                vTarget = m_pEnemy->origin;
+            }
+
             rotation.AimAt(vTarget);
             m_bAimOverride = true;
             m_fRoombaYaw = controlledEnt->angles[YAW];
         } else {
-            // Original bots: aim with offset/spread
+            // Original bots: aim at body using cvar-controlled height range
+            float maxHeight  = m_pEnemy->viewheight * g_bot_aim_height_max->value;
+            float minHeight  = m_pEnemy->viewheight * g_bot_aim_height_min->value;
+            float spreadDown = maxHeight - minHeight;
+
+            vTarget = m_pEnemy->origin;
+            vTarget[2] += maxHeight;
+
             if (level.inttime >= m_iLastAimTime + 100) {
-                if (m_iEnemyEyesTag != -1) {
-                    m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                    m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                    m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-                } else {
-                    m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                    m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                    m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-                }
+                // Spread only goes left/right or DOWN (never up toward head)
+                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
+                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
+                m_vAimOffset[2] = -G_Random(spreadDown);
                 m_iLastAimTime = level.inttime;
             }
 
@@ -1240,21 +1198,17 @@ void BotController::State_Attack(void)
         if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
             || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone())
             || fEnemyDistanceSquared < fMinDistanceSquared) {
-            if (!bMelee || !bCanSee) {
-                if (fEnemyDistanceSquared < fMinDistanceSquared) {
-                    Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
-                    VectorNormalizeFast(vDir);
-                    movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
-                } else {
-                    movement.MoveTo(m_vLastEnemyPos);
-                }
-
-                if (!bCanSee && movement.MoveDone()) {
-                    ClearEnemy();
-                    return;
-                }
+            if (fEnemyDistanceSquared < fMinDistanceSquared) {
+                Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
+                VectorNormalizeFast(vDir);
+                movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
             } else {
                 movement.MoveTo(m_vLastEnemyPos);
+            }
+
+            if (!bCanSee && movement.MoveDone()) {
+                ClearEnemy();
+                return;
             }
         }
 
@@ -1454,6 +1408,99 @@ void BotController::Spawned(void)
     // Original bots: m_vLastDeathPos preserved across spawns (set in Killed)
 }
 
+void BotController::UpdateStrafeAndLean(void)
+{
+    if (m_botType != BOT_TYPE_ORIGINAL) {
+        return;
+    }
+
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // Check if it's time to change strafe direction
+    if (level.time >= m_fNextStrafeChangeTime) {
+        // Flip strafe direction (always -1 or 1, never 0)
+        m_iStrafeDirection = -m_iStrafeDirection;
+
+        // Lean matches strafe most of the time
+        if (rand() % 100 < g_bot_lean_match_chance->integer) {
+            m_iLeanDirection = m_iStrafeDirection;
+        } else {
+            m_iLeanDirection = -m_iStrafeDirection;
+        }
+
+        // Calculate next change time
+        float minTime = g_bot_strafe_min_time->value;
+        float maxTime = g_bot_strafe_max_time->value;
+        m_fNextStrafeChangeTime = level.time + minTime + G_Random(maxTime - minTime);
+    }
+
+    // Update shooting movement mode (varies between forward, forward/back, strafe-only)
+    bool isAttacking = (m_StateFlags & 1);  // Attack is state 0
+    if (isAttacking && level.time >= m_fNextShootMoveTime) {
+        if (g_bot_shoot_bobbing->integer) {
+            m_iShootMoveMode = rand() % 3;
+        } else {
+            m_iShootMoveMode = (rand() % 2) * 2;
+        }
+
+        if (m_iShootMoveMode == 1) {
+            m_iShootMoveDirection = (rand() % 2) ? 1 : -1;
+        }
+
+        m_fNextShootMoveTime = level.time + 0.2f + G_Random(0.3f);
+    }
+}
+
+void BotController::ApplyStrafeAndLean(void)
+{
+    if (m_botType != BOT_TYPE_ORIGINAL) {
+        return;
+    }
+
+    if (!controlledEnt) {
+        return;
+    }
+
+    if (controlledEnt->GetLadder()) {
+        return;
+    }
+
+    if (!g_bot_strafe->integer) {
+        return;
+    }
+
+    // ADD strafe to pathfinding movement (don't overwrite it)
+    int strafeAmount = m_iStrafeDirection * 64;
+    int newRightMove = (int)m_botCmd.rightmove + strafeAmount;
+    m_botCmd.rightmove = (signed char)Q_clamp(newRightMove, -127, 127);
+
+    // Apply lean
+    m_botCmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+    if (m_iLeanDirection > 0) {
+        m_botCmd.buttons |= BUTTON_LEAN_RIGHT;
+    } else {
+        m_botCmd.buttons |= BUTTON_LEAN_LEFT;
+    }
+
+    // Handle forward/backward movement when shooting
+    bool isAttacking = (m_StateFlags & 1);
+    if (isAttacking) {
+        switch (m_iShootMoveMode) {
+        case 0:
+            break;
+        case 1:
+            m_botCmd.forwardmove = (signed char)(m_iShootMoveDirection * 127);
+            m_iShootMoveDirection = -m_iShootMoveDirection;
+            break;
+        case 2:
+            m_botCmd.forwardmove = 0;
+            break;
+        }
+    }
+}
+
 void BotController::Think()
 {
     if (!controlledEnt) {
@@ -1463,6 +1510,7 @@ void BotController::Think()
     usercmd_t  ucmd;
     usereyes_t eyeinfo;
 
+    UpdateStrafeAndLean();
     UpdateBotStates();
 
     // The entity may have been invalidated during UpdateBotStates
@@ -1470,6 +1518,7 @@ void BotController::Think()
         return;
     }
 
+    ApplyStrafeAndLean();
     GetUsercmd(&ucmd);
     GetEyeInfo(&eyeinfo);
 
