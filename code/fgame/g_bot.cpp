@@ -375,15 +375,27 @@ gentity_t *G_AddBot(const bot_info_t *info)
     // increase the unique ID
     botId++;
 
+    BotType type = (info && info->type == BOT_TYPE_BASH) ? BOT_TYPE_BASH : BOT_TYPE_ORIGINAL;
+
     if (info && info->name.length()) {
         Q_strncpyz(botName, info->name, sizeof(botName));
         gi.DPrintf("BOT: using custom name '%s'\n", botName);
+    } else if (type == BOT_TYPE_BASH) {
+        // Bash bots use hardcoded names
+        static const char *bashNames[] = {
+            "bashinator",
+            "bashington",
+            "bashathon",
+            "bashminton",
+            "bashketball"
+        };
+        static const int numBashNames = sizeof(bashNames) / sizeof(bashNames[0]);
+
+        unsigned int bashCount = G_GetNumBotsByType(BOT_TYPE_BASH);
+        Q_strncpyz(botName, bashNames[bashCount % numBashNames], sizeof(botName));
+        gi.DPrintf("BOT: using bash name '%s'\n", botName);
     } else {
-        // Use a sequential index for the cvar lookup so that bots always
-        // pick up g_bot0_name, g_bot1_name, ... regardless of which slot
-        // they land in.  With sv_sharedbots the slot numbers are not
-        // sequential (human players occupy slots in between), so using
-        // the slot number would skip over configured names.
+        // Original bots use g_bot%d_name cvars or fallback
         const unsigned int num = sv_sharedbots->integer
             ? botManager.getControllerManager().getControllers().NumObjects()
             : clientNum - maxclients->integer;
@@ -410,9 +422,6 @@ gentity_t *G_AddBot(const bot_info_t *info)
     Info_SetValueForKey(userinfo, "ip", "localhost");
 
     // Connect the bot for the first time
-    // setup user info and stuff
-    BotType type = (info && info->type == BOT_TYPE_BASH) ? BOT_TYPE_BASH : BOT_TYPE_ORIGINAL;
-
     G_BotConnect(clientNum, qtrue, userinfo);
 
     // Bash bots appear as real players — clear the SVF_BOT flag
