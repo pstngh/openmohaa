@@ -5266,12 +5266,12 @@ void CL_InitializeUI(void)
     ui_RightLegShots       = Cvar_Get("ui_RightLegShots", "0", 0);
     ui_LeftLegShots        = Cvar_Get("ui_LeftLegShots", "0", 0);
     ui_TorsoShots          = Cvar_Get("ui_TorsoShots", "0", 0);
-    ui_HeadShots           = Cvar_Get("ui_HeadShots", "0", 0);
+    ui_HeadShots           = Cvar_Get("ui_HeadShots", "0", CVAR_CHEAT);
     ui_NumEnemysKilled     = Cvar_Get("ui_NumEnemysKilled", "0", 0);
     ui_NumObjectsDestroyed = Cvar_Get("ui_NumObjectsDestroyed", "0", 0);
     ui_NumHitsTaken        = Cvar_Get("ui_NumHitsTaken", "0", 0);
     ui_PreferredWeapon     = Cvar_Get("ui_PreferredWeapon", "none", 0);
-    ui_Accuracy            = Cvar_Get("ui_Accuracy", "0", 0);
+    ui_Accuracy            = Cvar_Get("ui_Accuracy", "0", CVAR_CHEAT);
     ui_NumObjectives       = Cvar_Get("ui_NumObjectives", "0", 0);
     ui_NumComplete         = Cvar_Get("ui_NumComplete", "0", 0);
     ui_NumHits             = Cvar_Get("ui_NumHits", "0", 0);

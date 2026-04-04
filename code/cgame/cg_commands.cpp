@@ -5455,7 +5455,7 @@ void CG_ClientCommands(refEntity_t *ent, centity_t *cent, int slot)
 //===============
 void CG_InitializeCommandManager(void)
 {
-    cg_showemitters = cgi.Cvar_Get("cg_showemitters", "0", 0);
+    cg_showemitters = cgi.Cvar_Get("cg_showemitters", "0", CVAR_CHEAT);
     commandManager.InitializeTempModelCvars();
     commandManager.InitializeVSSCvars();
     commandManager.InitializeTempModels();

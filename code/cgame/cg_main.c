@@ -127,7 +127,7 @@ void CG_RegisterCvars(void)
 {
     cvar_t *temp;
 
-    cgi.Cvar_Get("g_subtitle", "0", CVAR_ARCHIVE);
+    cgi.Cvar_Get("g_subtitle", "0", CVAR_ARCHIVE | CVAR_CHEAT);
     cg_viewsize                   = cgi.Cvar_Get("viewsize", "100", CVAR_ARCHIVE);
     cg_addMarks                   = cgi.Cvar_Get("cg_marks_add", "1", CVAR_ARCHIVE);
     cg_maxMarks                   = cgi.Cvar_Get("cg_marks_max", "256", CVAR_ARCHIVE | CVAR_LATCH);
@@ -135,29 +135,29 @@ void CG_RegisterCvars(void)
     cg_debugAnim                  = cgi.Cvar_Get("cg_debuganim", "0", CVAR_CHEAT);
     cg_debugAnimWatch             = cgi.Cvar_Get("cg_debuganimwatch", "0", CVAR_CHEAT);
     cg_errorDecay                 = cgi.Cvar_Get("cg_errordecay", "100", 0);
-    cg_nopredict                  = cgi.Cvar_Get("cg_nopredict", "0", 0);
-    cg_showmiss                   = cgi.Cvar_Get("cg_showmiss", "0", 0);
+    cg_nopredict                  = cgi.Cvar_Get("cg_nopredict", "0", CVAR_CHEAT);
+    cg_showmiss                   = cgi.Cvar_Get("cg_showmiss", "0", CVAR_CHEAT);
     cg_stats                      = cgi.Cvar_Get("cg_stats", "0", 0);
-    cg_hidetempmodels             = cgi.Cvar_Get("cg_hidetempmodels", "0", 0);
+    cg_hidetempmodels             = cgi.Cvar_Get("cg_hidetempmodels", "0", CVAR_CHEAT);
     cg_synchronousClients         = cgi.Cvar_Get("g_synchronousClients", "0", 0);
     cg_stereoSeparation           = cgi.Cvar_Get("cg_stereosep", "0.4", CVAR_ARCHIVE);
     cg_lagometer                  = cgi.Cvar_Get("cg_lagometer", "0", 0);
     paused                        = cgi.Cvar_Get("paused", "0", 0);
-    r_lerpmodels                  = cgi.Cvar_Get("r_lerpmodels", "1", 0);
+    r_lerpmodels                  = cgi.Cvar_Get("r_lerpmodels", "1", CVAR_CHEAT);
     cg_3rd_person                 = cgi.Cvar_Get("cg_3rd_person", "0", CVAR_CHEAT);
     cg_drawviewmodel              = cgi.Cvar_Get("cg_drawviewmodel", "2", CVAR_ARCHIVE);
     cg_cameraheight               = cgi.Cvar_Get("cg_cameraheight", "18", CVAR_ARCHIVE);
     cg_cameradist                 = cgi.Cvar_Get("cg_cameradist", "120", CVAR_ARCHIVE);
-    cg_cameraverticaldisplacement = cgi.Cvar_Get("cg_cameraverticaldisplacement", "-2", CVAR_ARCHIVE);
+    cg_cameraverticaldisplacement = cgi.Cvar_Get("cg_cameraverticaldisplacement", "-2", CVAR_ARCHIVE | CVAR_CHEAT);
     cg_camerascale                = cgi.Cvar_Get("cg_camerascale", "0.3", CVAR_ARCHIVE);
     cg_traceinfo                  = cgi.Cvar_Get("cg_traceinfo", "0", CVAR_ARCHIVE);
     cg_debugFootsteps             = cgi.Cvar_Get("cg_debugfootsteps", "0", CVAR_CHEAT);
-    cg_smoothClients              = cgi.Cvar_Get("cg_smoothClients", "1", CVAR_ARCHIVE);
-    cg_smoothClientsTime          = cgi.Cvar_Get("cg_smoothClientsTime", "100", CVAR_ARCHIVE);
+    cg_smoothClients              = cgi.Cvar_Get("cg_smoothClients", "1", CVAR_ARCHIVE | CVAR_CHEAT);
+    cg_smoothClientsTime          = cgi.Cvar_Get("cg_smoothClientsTime", "100", CVAR_ARCHIVE | CVAR_CHEAT);
     pmove_fixed                   = cgi.Cvar_Get("pmove_fixed", "0", 0);
     pmove_msec                    = cgi.Cvar_Get("pmove_msec", "8", 0);
     cg_pmove_msec                 = cgi.Cvar_Get("cg_pmove_msec", "8", 0);
-    cg_shadows                    = cgi.Cvar_Get("cg_shadows", "0", CVAR_ARCHIVE);
+    cg_shadows                    = cgi.Cvar_Get("cg_shadows", "0", CVAR_ARCHIVE | CVAR_CHEAT);
     cg_shadowscount               = cgi.Cvar_Get("cg_shadowscount", "8", 0);
     cg_shadowdebug                = cgi.Cvar_Get("cg_shadowdebug", "0", 0);
     developer                     = cgi.Cvar_Get("developer", "0", 0);

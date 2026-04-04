@@ -588,7 +588,7 @@ qboolean S_OPENAL_Init()
     s_openaldevice           = Cvar_Get("s_openaldevice", "", CVAR_SOUND_LATCH);
     s_reverb                 = Cvar_Get("s_reverb", "0", CVAR_SOUND_LATCH | CVAR_ARCHIVE);
     s_show_cpu               = Cvar_Get("s_show_cpu", "0", 0);
-    s_show_num_active_sounds = Cvar_Get("s_show_num_active_sounds", "0", 0);
+    s_show_num_active_sounds = Cvar_Get("s_show_num_active_sounds", "0", CVAR_CHEAT);
     s_show_sounds            = Cvar_Get("s_show_sounds", "0", 0);
     s_speaker_type           = Cvar_Get("s_speaker_type", "0", CVAR_ARCHIVE);
     s_obstruction_cal_time   = Cvar_Get("s_obstruction_cal_time", "500", CVAR_ARCHIVE);

@@ -3596,6 +3596,7 @@ void CL_Init( void ) {
 
 	cl_master = Cvar_Get ("cl_master", MASTER_SERVER_NAME, CVAR_ARCHIVE);
 	cl_timeNudge = Cvar_Get ("cl_timeNudge", "0", CVAR_TEMP );
+	Cvar_CheckRange( cl_timeNudge, 0, 20, qfalse );
 	cl_shownet = Cvar_Get ("cl_shownet", "0", CVAR_TEMP );
 	cl_netprofile = Cvar_Get("cl_netprofile", "0", CVAR_TEMP);
 	cl_netprofileoverlay = Cvar_Get("cl_netprofileoverlay", "0", CVAR_TEMP);
@@ -3616,10 +3617,11 @@ void CL_Init( void ) {
 	rconAddress = Cvar_Get ("rconAddress", "", 0);
 
 	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", CVAR_ARCHIVE);
-	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "140", CVAR_ARCHIVE);
+	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "70", CVAR_ARCHIVE | CVAR_CHEAT);
 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0);
 
 	cl_maxpackets = Cvar_Get ("cl_maxpackets", "125", CVAR_ARCHIVE );
+	Cvar_CheckRange( cl_maxpackets, 30, 125, qtrue );
 	cl_packetdup = Cvar_Get ("cl_packetdup", "1", CVAR_ARCHIVE );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE );
