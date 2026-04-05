@@ -575,6 +575,8 @@ void CG_RefreshHudDrawElements()
     }
 }
 
+#define HUDDRAW_PURE_STATUS 255
+
 void CG_HudDrawElements()
 {
     int    i;
@@ -590,6 +592,11 @@ void CG_HudDrawElements()
     virtualScale[1] = cgs.glconfig.vidHeight / 480.0;
 
     for (i = 0; i < MAX_HUDDRAW_ELEMENTS; i++) {
+        // Skip pure status element - rendered by CG_DrawAntiCheatHUD
+        if (i == HUDDRAW_PURE_STATUS) {
+            continue;
+        }
+
         if ((!cgi.HudDrawElements[i].hShader && !cgi.HudDrawElements[i].string[0])
             || !cgi.HudDrawElements[i].vColor[3]) {
             // skip invisible elements
@@ -1388,46 +1395,102 @@ void CG_DrawVote()
 
 /*
 ==============
-CG_DrawPureStatusDot
+CG_DrawAntiCheatText
 
 Added in OPM
-Draws a small colored dot next to the pure status HUD text.
-The dot color is derived from the HUD element's current color.
+Draws text with optional shadow and background box (Volute-style).
 ==============
 */
-#define HUDDRAW_PURE_STATUS 255
-#define PURE_DOT_SIZE       6.0f
+static const vec4_t acColourClean = {0.00f, 0.40f, 0.00f, 1.00f};
+static const vec4_t acColourMajor = {0.40f, 0.00f, 0.00f, 1.00f};
 
-static void CG_DrawPureStatusDot(void)
+static void CG_DrawAntiCheatText(
+    fontheader_t *font,
+    float         x,
+    float         y,
+    qboolean      centerX,
+    const vec4_t  colour,
+    qboolean      drawShadow,
+    qboolean      drawBoxBg,
+    const char   *string
+)
+{
+    int stringLengthPx = cgi.UI_FontStringWidth(font, string, -1);
+    int stringHeightPx = (int)font->sgl[0]->height;
+
+    if (centerX) {
+        x -= (stringLengthPx / 2);
+    }
+
+    // 1. Shadow: black text offset 1px right and 1px down
+    if (drawShadow) {
+        vec4_t shadowColour = {0, 0, 0, colour[3]};
+        cgi.R_SetColor(shadowColour);
+        cgi.R_DrawString(font, string, x + 1, y + 1, -1, NULL);
+    }
+
+    // 2. Background box: dark grey 25% opacity, 2px padding
+    if (drawBoxBg) {
+        vec4_t bgColour = {0.25f, 0.25f, 0.25f, 0.25f};
+        cgi.R_SetColor(bgColour);
+        cgi.R_DrawBox(x - 2, y - 2, stringLengthPx + 4, stringHeightPx + 4);
+    }
+
+    // 3. Text
+    cgi.R_SetColor(colour);
+    cgi.R_DrawString(font, string, x, y, -1, NULL);
+}
+
+/*
+==============
+CG_DrawAntiCheatHUD
+
+Added in OPM
+Draws the anticheat status at the bottom-right of the screen.
+Uses the pure status data sent by the server via HudDrawElements[255].
+==============
+*/
+static void CG_DrawAntiCheatHUD(void)
 {
     hdelement_t *elem = &cgi.HudDrawElements[HUDDRAW_PURE_STATUS];
 
-    // Only draw if the HUD element has visible content
+    // Only draw if the element has visible content
     if (!elem->string[0] || elem->vColor[3] == 0.0f) {
         return;
     }
 
-    // Calculate text width to place dot after the text
-    float textWidth = 0.0f;
-    fontheader_t *pFont = elem->pFont;
-    if (!pFont) {
-        pFont = cgs.media.hudDrawFont;
-    }
-    if (pFont) {
-        textWidth = (float)cgi.UI_FontStringWidth(pFont, elem->string, -1);
+    fontheader_t *font = cgs.media.hudDrawFont;
+    if (!font || !font->sgl[0]) {
+        return;
     }
 
-    // Position the dot to the right of the text, in virtual 640x480 coords
-    // The HUD text is right-aligned at (640 + iX, 480 + iY)
-    float dotX = 640.0f + elem->iX + textWidth + 3.0f;
-    float dotY = 480.0f + elem->iY + 4.0f;
-    float dotW = PURE_DOT_SIZE;
-    float dotH = PURE_DOT_SIZE;
+    // Determine color based on the element's color (green = clean, red = unclean)
+    const float *colour;
+    if (elem->vColor[1] > elem->vColor[0]) {
+        colour = acColourClean;
+    } else {
+        colour = acColourMajor;
+    }
 
-    CG_AdjustFrom640(&dotX, &dotY, &dotW, &dotH);
+    int screenWidth  = cgs.glconfig.vidWidth;
+    int screenHeight = cgs.glconfig.vidHeight;
 
-    cgi.R_SetColor(elem->vColor);
-    cgi.R_DrawBox(dotX, dotY, dotW, dotH);
+    float fontHeight  = font->sgl[0]->height;
+    int   textWidth   = cgi.UI_FontStringWidth(font, elem->string, -1);
+    float dotSize     = fontHeight * 0.5f;
+    float dotGap      = 4.0f;
+    float totalWidth  = dotSize + dotGap + textWidth;
+
+    float x = screenWidth - totalWidth - 5;
+    float y = screenHeight - fontHeight;
+
+    // Draw text
+    CG_DrawAntiCheatText(font, x, y, qfalse, colour, qtrue, qtrue, elem->string);
+
+    // Draw status indicator square to the right of text (vertically centered)
+    cgi.R_SetColor(colour);
+    cgi.R_DrawBox(x + textWidth + dotGap, y + (fontHeight - dotSize) * 0.5f, dotSize, dotSize);
+
     cgi.R_SetColor(NULL);
 }
 
@@ -1442,7 +1505,7 @@ void CG_Draw2D(void)
     CG_DrawZoomOverlay();
     CG_DrawLagometer();
     CG_HudDrawElements();
-    CG_DrawPureStatusDot();
+    CG_DrawAntiCheatHUD();
     CG_DrawObjectives();
     CG_DrawIcons();
     CG_DrawStopwatch();
