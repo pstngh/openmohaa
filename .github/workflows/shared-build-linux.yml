@@ -261,14 +261,14 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-linux-${{matrix.architecture.name}}-client
+        name: client-linux-${{matrix.architecture.name}}
         if-no-files-found: error
         compression-level: 9
         path: ${{github.workspace}}/package/client
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-linux-${{matrix.architecture.name}}-server
+        name: server-linux-${{matrix.architecture.name}}
         if-no-files-found: error
         compression-level: 9
         path: ${{github.workspace}}/package/server

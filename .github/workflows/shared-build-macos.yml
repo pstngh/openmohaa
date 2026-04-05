@@ -250,7 +250,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-macos-${{matrix.architecture.name}}
+        name: client-macos-${{matrix.architecture.name}}
         if-no-files-found: error
         compression-level: 9
         path:

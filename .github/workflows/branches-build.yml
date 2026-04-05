@@ -40,11 +40,11 @@ jobs:
     strategy:
       matrix:
         target_os: [
-          'linux-amd64-client',
-          'linux-amd64-server',
-          'macos-multiarch-arm64-x86_64',
-          'windows-x64-client',
-          'windows-x64-server',
+          'client-linux-amd64',
+          'server-linux-amd64',
+          'client-macos-multiarch-arm64-x86_64',
+          'client-windows-x64',
+          'server-windows-x64',
         ]
 
     runs-on: ubuntu-24.04
@@ -57,7 +57,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: 'out-${{matrix.target_os}}'
+        name: '${{matrix.target_os}}'
         path: ${{github.workspace}}/${{matrix.target_os}}
 
     - name: Zip

@@ -280,7 +280,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-windows-${{matrix.architecture.name}}-client
+        name: client-windows-${{matrix.architecture.name}}
         if-no-files-found: error
         compression-level: 9
         path: |
@@ -288,7 +288,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-windows-${{matrix.architecture.name}}-server
+        name: server-windows-${{matrix.architecture.name}}
         if-no-files-found: error
         compression-level: 9
         path: |

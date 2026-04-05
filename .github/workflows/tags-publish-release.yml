@@ -36,29 +36,29 @@ jobs:
     strategy:
       matrix:
         target_os: [
-          'linux-amd64-client',
-          'linux-amd64-server',
-          'linux-i686-client',
-          'linux-i686-server',
-          'linux-arm64-client',
-          'linux-arm64-server',
-          'linux-armhf-client',
-          'linux-armhf-server',
-          'linux-powerpc-client',
-          'linux-powerpc-server',
-          'linux-ppc64-client',
-          'linux-ppc64-server',
-          'linux-ppc64el-client',
-          'linux-ppc64el-server',
-          'windows-x64-client',
-          'windows-x64-server',
-          'windows-x86-client',
-          'windows-x86-server',
-          'windows-arm64-client',
-          'windows-arm64-server',
-          #'macos-x86_64',
-          #'macos-arm64',
-          'macos-multiarch-arm64-x86_64',
+          'client-linux-amd64',
+          'server-linux-amd64',
+          'client-linux-i686',
+          'server-linux-i686',
+          'client-linux-arm64',
+          'server-linux-arm64',
+          'client-linux-armhf',
+          'server-linux-armhf',
+          'client-linux-powerpc',
+          'server-linux-powerpc',
+          'client-linux-ppc64',
+          'server-linux-ppc64',
+          'client-linux-ppc64el',
+          'server-linux-ppc64el',
+          'client-windows-x64',
+          'server-windows-x64',
+          'client-windows-x86',
+          'server-windows-x86',
+          'client-windows-arm64',
+          'server-windows-arm64',
+          #'client-macos-x86_64',
+          #'client-macos-arm64',
+          'client-macos-multiarch-arm64-x86_64',
         ]
 
     runs-on: ubuntu-24.04
@@ -71,7 +71,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: 'out-${{matrix.target_os}}'
+        name: '${{matrix.target_os}}'
         path: ${{github.workspace}}/${{matrix.target_os}}
 
     - name: Zip
@@ -102,7 +102,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: 'out-${{matrix.target_os}}-installer'
+        name: 'installer-${{matrix.target_os}}'
         path: ${{github.workspace}}/${{matrix.target_os}}
 
     - name: Setup
