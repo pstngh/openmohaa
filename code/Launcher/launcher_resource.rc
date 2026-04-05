@@ -2,5 +2,13 @@
 
 #include <winresrc.h>
 
-// Icon
+// Icons
 1 ICON "../../misc/windows/openmohaa-launcher.ico"
+
+// Game icons for segmented control
+10 ICON "../../misc/windows/openmohaa.ico"
+11 ICON "../../misc/windows/openmohaas.ico"
+12 ICON "../../misc/windows/openmohaab.ico"
+
+// Discord icon
+13 ICON "../../misc/windows/discord.ico"

@@ -131,6 +131,11 @@ LauncherSettings LoadSettings()
                     settings.bookmarks[i].password = value;
                 } else if (key == "bookmark_rcon" + s) {
                     settings.bookmarks[i].rconPassword = value;
+                } else if (key == "bookmark_game" + s) {
+                    int g = atoi(value.c_str());
+                    if (g >= 0 && g <= 2) {
+                        settings.bookmarks[i].gameType = g;
+                    }
                 }
             }
         }
@@ -162,6 +167,7 @@ void SaveSettings(const LauncherSettings& settings)
             file << "bookmark_ip_" << i << "=" << settings.bookmarks[i].ip << "\n";
             file << "bookmark_pass_" << i << "=" << settings.bookmarks[i].password << "\n";
             file << "bookmark_rcon_" << i << "=" << settings.bookmarks[i].rconPassword << "\n";
+            file << "bookmark_game_" << i << "=" << settings.bookmarks[i].gameType << "\n";
         }
     }
 }

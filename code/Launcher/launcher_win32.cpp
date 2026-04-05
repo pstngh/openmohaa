@@ -53,6 +53,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define CLR_SEPARATOR     RGB(50, 50, 50)
 #    define CLR_CONNECT       RGB(123, 79, 191)
 #    define CLR_CONNECT_HOVER RGB(143, 99, 211)
+#    define CLR_DISCORD        RGB(88, 101, 242)
+#    define CLR_DISCORD_HOVER  RGB(108, 121, 255)
+#    define CLR_DISCORD_PRESS  RGB(68, 81, 222)
 
 // Control IDs
 #    define ID_EDIT_IP       101
@@ -69,6 +72,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    define ID_EDIT_CUSTOM_H   128
 #    define ID_BTN_SUPPORT    129
 #    define ID_BTN_RES_BACK   161
+
+// Resource IDs for game icons (must match launcher_resource.rc)
+#    define IDI_GAME_AA  10
+#    define IDI_GAME_SH  11
+#    define IDI_GAME_BT  12
+#    define IDI_DISCORD   13
 #    define ID_BTN_BM_0      130
 #    define ID_BTN_BMSAVE    140
 #    define ID_BTN_BMDEL     150
@@ -95,6 +104,9 @@ static HBRUSH           hBrushBg;
 static HBRUSH           hBrushEdit;
 static HWND             hHoverBtn;
 static int              selectedGame;
+static HICON            hGameIcons[3];
+static HICON            hDiscordIcon;
+static HICON            hLauncherIcon;
 
 static void DrawDarkButton(DRAWITEMSTRUCT *dis)
 {
@@ -125,6 +137,50 @@ static void DrawDarkButton(DRAWITEMSTRUCT *dis)
     DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
+static void DrawDiscordButton(DRAWITEMSTRUCT *dis)
+{
+    HDC  hdc     = dis->hDC;
+    RECT rc      = dis->rcItem;
+    BOOL pressed = (dis->itemState & ODS_SELECTED);
+    BOOL hover   = (dis->hwndItem == hHoverBtn);
+
+    COLORREF bgColor = pressed ? CLR_DISCORD_PRESS : (hover ? CLR_DISCORD_HOVER : CLR_DISCORD);
+    HBRUSH   hBr     = CreateSolidBrush(bgColor);
+    FillRect(hdc, &rc, hBr);
+    DeleteObject(hBr);
+
+    HPEN hPen = CreatePen(PS_SOLID, 1, pressed ? CLR_BORDER : CLR_DISCORD);
+    HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, 6, 6);
+    SelectObject(hdc, hOld);
+    DeleteObject(hPen);
+
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(255, 255, 255));
+
+    char text[128];
+    GetWindowTextA(dis->hwndItem, text, sizeof(text));
+
+    // Measure text to center icon + text together
+    SIZE textSize;
+    GetTextExtentPoint32A(hdc, text, (int)strlen(text), &textSize);
+    int iconSize = 16;
+    int iconGap  = 6;
+    int totalW   = iconSize + iconGap + textSize.cx;
+    int startX   = rc.left + (rc.right - rc.left - totalW) / 2;
+    int iconY    = rc.top + (rc.bottom - rc.top - iconSize) / 2;
+
+    // Draw Discord icon from resource
+    if (hDiscordIcon) {
+        DrawIconEx(hdc, startX, iconY, hDiscordIcon, iconSize, iconSize, 0, NULL, DI_NORMAL);
+    }
+
+    // Draw text
+    RECT textRc = {startX + iconSize + iconGap, rc.top, rc.right, rc.bottom};
+    DrawTextA(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+}
+
 static void DrawConnectButton(DRAWITEMSTRUCT *dis)
 {
     HDC     hdc     = dis->hDC;
@@ -146,9 +202,25 @@ static void DrawConnectButton(DRAWITEMSTRUCT *dis)
 
     SetBkMode(hdc, TRANSPARENT);
     SetTextColor(hdc, RGB(255, 255, 255));
+
     char text[128];
     GetWindowTextA(dis->hwndItem, text, sizeof(text));
-    DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    SIZE textSize;
+    GetTextExtentPoint32A(hdc, text, (int)strlen(text), &textSize);
+    int iconSize = 16;
+    int iconGap  = 6;
+
+    if (hLauncherIcon) {
+        int totalW = iconSize + iconGap + textSize.cx;
+        int startX = rc.left + (rc.right - rc.left - totalW) / 2;
+        int iconY  = rc.top + (rc.bottom - rc.top - iconSize) / 2;
+        DrawIconEx(hdc, startX, iconY, hLauncherIcon, iconSize, iconSize, 0, NULL, DI_NORMAL);
+        RECT textRc = {startX + iconSize + iconGap, rc.top, rc.right, rc.bottom};
+        DrawTextA(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    } else {
+        DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
 }
 
 static void DrawSegmentedButton(DRAWITEMSTRUCT *dis)
@@ -220,7 +292,24 @@ static void DrawSegmentedButton(DRAWITEMSTRUCT *dis)
 
     char text[64];
     GetWindowTextA(dis->hwndItem, text, sizeof(text));
-    DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // Draw game icon + text centered together
+    int iconSize = 16;
+    int iconGap  = 4;
+    SIZE textSize;
+    GetTextExtentPoint32A(hdc, text, (int)strlen(text), &textSize);
+    HICON hIco = hGameIcons[btnGame];
+
+    if (hIco) {
+        int totalW = iconSize + iconGap + textSize.cx;
+        int startX = rc.left + (rc.right - rc.left - totalW) / 2;
+        int iconY  = rc.top + (rc.bottom - rc.top - iconSize) / 2;
+        DrawIconEx(hdc, startX, iconY, hIco, iconSize, iconSize, 0, NULL, DI_NORMAL);
+        RECT textRc = {startX + iconSize + iconGap, rc.top, rc.right, rc.bottom};
+        DrawTextA(hdc, text, -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    } else {
+        DrawTextA(hdc, text, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
 }
 
 static void DrawBookmarkDeleteButton(DRAWITEMSTRUCT *dis)
@@ -378,6 +467,7 @@ static void LoadBookmark(int index)
     SetWindowTextA(hEditIP, bm.ip.c_str());
     SetWindowTextA(hEditPass, bm.password.c_str());
     SetWindowTextA(hEditRcon, bm.rconPassword.c_str());
+    SetSelectedGame(bm.gameType);
     // Nickname is NOT changed by loading a bookmark - it's persistent
 }
 
@@ -388,6 +478,7 @@ static void AutoSaveBookmark()
         if (!currentSettings.bookmarks[i].name.empty() && currentSettings.bookmarks[i].ip == currentSettings.ip) {
             currentSettings.bookmarks[i].password     = currentSettings.password;
             currentSettings.bookmarks[i].rconPassword = currentSettings.rconPassword;
+            currentSettings.bookmarks[i].gameType     = GetSelectedGame();
             UpdateBookmarkButton(i);
             break;
         }
@@ -613,6 +704,7 @@ static void SaveBookmark(int index, HWND hwnd)
     currentSettings.bookmarks[index].ip           = currentSettings.ip;
     currentSettings.bookmarks[index].password     = currentSettings.password;
     currentSettings.bookmarks[index].rconPassword = currentSettings.rconPassword;
+    currentSettings.bookmarks[index].gameType     = GetSelectedGame();
 
     UpdateBookmarkButton(index);
     SaveSettings(currentSettings);
@@ -692,6 +784,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 DrawSegmentedButton(dis);
             } else if (dis->CtlID == ID_BTN_CONNECT) {
                 DrawConnectButton(dis);
+            } else if (dis->CtlID == ID_BTN_SUPPORT) {
+                DrawDiscordButton(dis);
             } else if (dis->CtlID >= ID_BTN_BMDEL && dis->CtlID < ID_BTN_BMDEL + MAX_BOOKMARKS) {
                 DrawBookmarkDeleteButton(dis);
             } else {
@@ -780,6 +874,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Create dark theme brushes
     hBrushBg   = CreateSolidBrush(CLR_BG);
     hBrushEdit = CreateSolidBrush(CLR_BG_EDIT);
+
+    // Load game icons for segmented control (16x16)
+    hGameIcons[0] = (HICON)LoadImageA(hInstance, MAKEINTRESOURCEA(IDI_GAME_AA), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    hGameIcons[1] = (HICON)LoadImageA(hInstance, MAKEINTRESOURCEA(IDI_GAME_SH), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    hGameIcons[2] = (HICON)LoadImageA(hInstance, MAKEINTRESOURCEA(IDI_GAME_BT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    hDiscordIcon  = (HICON)LoadImageA(hInstance, MAKEINTRESOURCEA(IDI_DISCORD), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    hLauncherIcon = (HICON)LoadImageA(hInstance, MAKEINTRESOURCEA(1), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 
     // Use the system default GUI font
     NONCLIENTMETRICSA ncm = {};

@@ -33,6 +33,7 @@ struct Bookmark {
     std::string ip;
     std::string password;
     std::string rconPassword;
+    int         gameType = 0; // 0=AA, 1=SH, 2=BT
 };
 
 struct ResolutionEntry {
