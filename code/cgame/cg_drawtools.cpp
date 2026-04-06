@@ -1170,7 +1170,7 @@ void CG_DrawSpectatorView_ver_15()
         color[3] = 1.0;
 
         fX = (float)(cgs.glconfig.vidWidth
-                     - (cgi.UI_FontStringWidth(cgs.media.attackerFont, pszString, -1) - 16) * cgs.uiHiResScale[0])
+                     - (cgi.UI_FontStringWidth(cgs.media.attackerFont, buf, -1) - 16) * cgs.uiHiResScale[0])
            * 0.5;
         fY = (float)cgs.glconfig.vidHeight - 80.0 * cgs.uiHiResScale[1];
         cgi.R_SetColor(color);
