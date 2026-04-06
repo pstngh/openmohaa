@@ -689,11 +689,22 @@ static void CL_WalkDemoExt(char *arg, char *name, int *demofile)
 		if (*demofile)
 		{
 			Com_Printf("Demo file: %s\n", name);
-			break;
+			return;
 		}
 		else
 			Com_Printf("Not found: %s\n", name);
 		i++;
+	}
+
+	// AA legacy: try .dm3 (original MoHAA demo format)
+	if (com_target_game->integer == TG_MOH) {
+		Com_sprintf(name, MAX_OSPATH, "demos/%s.dm3", arg);
+		FS_FOpenFileRead(name, demofile, qtrue, qtrue);
+		if (*demofile) {
+			Com_Printf("Demo file: %s\n", name);
+			return;
+		}
+		Com_Printf("Not found: %s\n", name);
 	}
 }
 
