@@ -327,6 +327,24 @@ void CL_StopRecord_f( void ) {
 
 /*
 ==================
+CL_DemoExtension
+
+Returns the demo file extension for the current game type.
+==================
+*/
+static const char *CL_DemoExtension( void ) {
+	switch ( com_target_game->integer ) {
+	case TG_MOHTA:
+		return "demo_sh";
+	case TG_MOHTT:
+		return "demo_bt";
+	default:
+		return "demo_aa";
+	}
+}
+
+/*
+==================
 CL_DemoFilename
 ==================
 */
@@ -393,14 +411,14 @@ void CL_Record_f( void ) {
 	if ( Cmd_Argc() == 2 ) {
 		s = Cmd_Argv(1);
 		Q_strncpyz( demoName, s, sizeof( demoName ) );
-		Com_sprintf (name, sizeof(name), "demos/%s.dm_%d", demoName, com_protocol->integer );
+		Com_sprintf (name, sizeof(name), "demos/%s.%s", demoName, CL_DemoExtension() );
 	} else {
 		int		number;
 
 		// scan for a free demo name
 		for ( number = 0 ; number <= 9999 ; number++ ) {
 			CL_DemoFilename( number, demoName );
-			Com_sprintf (name, sizeof(name), "demos/%s.dm_%d", demoName, com_protocol->integer );
+			Com_sprintf (name, sizeof(name), "demos/%s.%s", demoName, CL_DemoExtension() );
 
 			if (!FS_FileExists_HomeData(name))
 				break;	// file doesn't exist
@@ -653,6 +671,17 @@ static void CL_WalkDemoExt(char *arg, char *name, int *demofile)
 {
 	int i = 0;
 	*demofile = 0;
+
+	// Try new extension first (.demo_aa, .demo_sh, .demo_bt)
+	Com_sprintf(name, MAX_OSPATH, "demos/%s.%s", arg, CL_DemoExtension());
+	FS_FOpenFileRead(name, demofile, qtrue, qtrue);
+	if (*demofile) {
+		Com_Printf("Demo file: %s\n", name);
+		return;
+	}
+	Com_Printf("Not found: %s\n", name);
+
+	// Fall back to legacy extension (.dm_N)
 	while(demo_protocols[i])
 	{
 		Com_sprintf (name, MAX_OSPATH, "demos/%s.dm_%d", arg, demo_protocols[i]);
@@ -679,7 +708,6 @@ demo <demoname>
 void CL_PlayDemo_f( void ) {
 	char		name[MAX_OSPATH];
 	char		*arg, *ext_test;
-	int			protocol, i;
 	char		retry[MAX_OSPATH];
 
 	if (Cmd_Argc() != 2) {
@@ -696,30 +724,21 @@ void CL_PlayDemo_f( void ) {
 	// open the demo file
 	arg = Cmd_Argv(1);
 
-	// check for an extension .dm_?? (?? is protocol)
-	ext_test = arg + strlen(arg) - 6;
-	if ((strlen(arg) > 6) && (ext_test[0] == '.') && ((ext_test[1] == 'd') || (ext_test[1] == 'D')) && ((ext_test[2] == 'm') || (ext_test[2] == 'M')) && (ext_test[3] == '_'))
-	{
-		protocol = atoi(ext_test+4);
-		i=0;
-		while(demo_protocols[i])
-		{
-			if (demo_protocols[i] == protocol)
-				break;
-			i++;
-		}
-		if (demo_protocols[i])
-		{
-			Com_sprintf (name, sizeof(name), "demos/%s", arg);
-			FS_FOpenFileRead( name, &clc.demofile, qtrue, qtrue );
-		} else {
-			Com_Printf("Protocol %d not supported for demos\n", protocol);
+	// Check if the argument already has a known extension
+	ext_test = strrchr(arg, '.');
+	if (ext_test) {
+		// Try opening with the explicit extension as-is
+		Com_sprintf(name, sizeof(name), "demos/%s", arg);
+		FS_FOpenFileRead(name, &clc.demofile, qtrue, qtrue);
+
+		if (!clc.demofile) {
+			// Extension given but file not found — strip it and walk extensions
 			Q_strncpyz(retry, arg, sizeof(retry));
-			retry[strlen(retry)-6] = 0;
-			CL_WalkDemoExt( retry, name, &clc.demofile );
+			retry[ext_test - arg] = 0;
+			CL_WalkDemoExt(retry, name, &clc.demofile);
 		}
 	} else {
-		CL_WalkDemoExt( arg, name, &clc.demofile );
+		CL_WalkDemoExt(arg, name, &clc.demofile);
 	}
 
 	if (!clc.demofile) {
