@@ -6139,18 +6139,22 @@ void Player::ProcessPmoveEvents(int event)
             }
         } else if (event == EV_FALL_FAR) {
             if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-                damage = 25;
+                damage = 24;
             } else {
                 damage = 20;
             }
         } else if (event == EV_FALL_MEDIUM) {
             if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-                damage = 15;
+                damage = 14;
             } else {
                 damage = 10;
             }
         } else {
-            damage = 5;
+            if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
+                damage = 4;
+            } else {
+                damage = 5;
+            }
         }
 
         if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
