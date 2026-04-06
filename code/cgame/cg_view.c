@@ -867,10 +867,10 @@ void CG_DrawActiveFrame(int serverTime, int frameTime, stereoFrame_t stereoView,
     //
     // Added in OPM
     //  Clamp the fov to avoid artifacts
-    if (cg_fov->value < 65) {
-        cgi.Cvar_Set("cg_fov", "65");
-    } else if (cg_fov->value > 101) {
-        cgi.Cvar_Set("cg_fov", "101");
+    if (cg_fov->value < 80) {
+        cgi.Cvar_Set("cg_fov", "80");
+    } else if (cg_fov->value > 96.418343f) {
+        cgi.Cvar_Set("cg_fov", "96.418343");
     }
 
     // update cg.predicted_player_state
