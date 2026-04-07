@@ -42,7 +42,7 @@ jobs:
         target_os: [
           'client-linux-amd64',
           'server-linux-amd64',
-          'client-macos-multiarch-arm64-x86_64',
+          'client-macos-arm64',
           'client-windows-x64',
           'server-windows-x64',
         ]

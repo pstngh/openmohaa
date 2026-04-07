@@ -24,12 +24,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          #{name: 'x86_64',   triple: 'x86_64-apple-macos10.8'},
-          #{name: 'arm64',    triple: 'arm64-apple-macos11'}
-          #{name: 'x86_64',    build_name: 'x86_64'},
-          #{name: 'arm64',     build_name: 'arm64'},
-          # Compile into an universal binary
-          {name: 'multiarch-arm64-x86_64', build_name: 'arm64;x86_64' }
+          {name: 'arm64', build_name: 'arm64' }
         ]
 
     name: "Building for platform macos-${{matrix.architecture.name}}"
@@ -216,6 +211,7 @@ jobs:
         -DOPENAL_INCLUDE_DIR='${{github.workspace}}/thirdparties/soft-oal/install/include/AL' \
         -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
+        -DBUILD_SERVER=OFF \
         -DBUILD_RENDERER_GL2=OFF \
         -DBUILD_MACOS_APP=OFF \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
@@ -243,6 +239,22 @@ jobs:
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/mohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/mohaa/. '${{github.workspace}}/package'; fi
+        # Ad-hoc codesign all binaries and dylibs to avoid Gatekeeper "damaged" errors
+        find '${{github.workspace}}/package' -type f \( -perm +111 -o -name '*.dylib' \) -exec codesign --force --sign - {} \;
+
+    - name: Build macOS Launcher
+      working-directory: ${{github.workspace}}/source/code/LauncherMac
+      run: |
+        swift build -c release
+        APP="${{github.workspace}}/package/Launcher.app/Contents"
+        mkdir -p "$APP/MacOS" "$APP/Resources"
+        cp .build/release/Launcher "$APP/MacOS/"
+        cp "${{github.workspace}}/source/code/LauncherMac/Resources/Info.plist" "$APP/"
+        if [ -f "${{github.workspace}}/source/code/LauncherMac/Resources/AppIcon.icns" ]; then
+          cp "${{github.workspace}}/source/code/LauncherMac/Resources/AppIcon.icns" "$APP/Resources/"
+        fi
+        codesign --force --deep --sign - "${{github.workspace}}/package/Launcher.app"
+        cp "${{github.workspace}}/source/code/LauncherMac/install.command" "${{github.workspace}}/package/"
 
     ###
     # Artifacts
