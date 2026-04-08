@@ -63,6 +63,7 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 5)
+                        .contentShape(Rectangle())
                         .foregroundColor(settings.gameType == i ? .white : .secondary)
                         .background(settings.gameType == i ? purple.opacity(0.8) : Color.clear)
                     }
@@ -91,6 +92,7 @@ struct ContentView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .background(purple)
