@@ -1418,6 +1418,7 @@ static const int sv_pureChecksumWhitelist[] = {
      -434856894, // zzz-stockthinlinescope1024x1024.pk3
     -1714111710, // zzz-stockthinlinescope512x512.pk3
      1153308349, // z_M0NST3R_WAR_MENU.pk3
+     1082015212, // BAMF mappack
       751767784, // Chernobyl_version-Final.pk3
     -1788130937, // obj_finalv2.pk3
     -1608042595, // z_default-aa.pk3.zip
