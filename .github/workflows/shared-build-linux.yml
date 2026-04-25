@@ -246,6 +246,7 @@ jobs:
           [ -f "$install_dir/cgame.so" ] && cp -l "$install_dir/cgame.so" '${{github.workspace}}/package/client/'
           [ -f "$install_dir/game.so" ] && cp -l "$install_dir/game.so" '${{github.workspace}}/package/client/'
         done
+        cp '${{github.workspace}}/source/code/LauncherLinux/launcher.py' '${{github.workspace}}/package/client/'
         # Server package: moh_server, game, cURL only (no SDL2, no OpenAL, no cgame)
         mkdir -p ${{github.workspace}}/package/server
         cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/server/'
