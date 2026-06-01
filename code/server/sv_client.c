@@ -579,22 +579,8 @@ void SV_DirectConnect( netadr_t from ) {
 
 	if ( !newcl ) {
 		if ( NET_IsLocalAddress( from ) ) {
-			count = 0;
-			for ( i = startIndex; i < sv_maxclients->integer ; i++ ) {
-				cl = &svs.clients[i];
-				if (cl->netchan.remoteAddress.type == NA_BOT) {
-					count++;
-				}
-			}
-			// if they're all bots
-			if (count >= sv_maxclients->integer - startIndex) {
-				SV_DropClient(&svs.clients[sv_maxclients->integer - 1], "only bots on server");
-				newcl = &svs.clients[sv_maxclients->integer - 1];
-			}
-			else {
-				Com_Error( ERR_FATAL, "server is full on local connect\n" );
-				return;
-			}
+			Com_Error( ERR_FATAL, "server is full on local connect\n" );
+			return;
 		}
 		else {
 			SV_NET_OutOfBandPrint( &svs.netprofile, from, "droperror\nServer is full\n" );
@@ -725,6 +711,15 @@ void SV_FreeClient(client_t *client)
 	SV_CloseDownload(client);
 }
 
+// When set, SV_DropClient() suppresses the server-wide broadcast of the drop reason.
+// The "silent" kick/ban commands set this only for the duration of the drop, so the
+// other players don't see that someone was removed.
+static qboolean sv_silentDrop = qfalse;
+
+void SV_SetSilentDrop( qboolean silent ) {
+	sv_silentDrop = silent;
+}
+
 /*
 =====================
 SV_DropClient
@@ -742,6 +737,9 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	if ( drop->state == CS_ZOMBIE ) {
 		return;		// already dropped
 	}
+
+	// Clean up admin session state
+	SV_AdminOnClientDisconnect(drop);
 
 	if ( !isBot ) {
 		// see if we already have a challenge for this ip
@@ -770,8 +768,10 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	// will receive many server commands during the drop
 	drop->gamestateMessageNum = -1;
 
-	// tell everyone why they got dropped
-	SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	// tell everyone why they got dropped (humans only, unless this is a silent removal)
+	if ( !isBot && !sv_silentDrop ) {
+		SV_SendServerCommand( NULL, "print \"%s %s\n\"", drop->name, reason );
+	}
 
 	// call the prog function for removing a client
 	// this will remove the body, among other things
@@ -1719,8 +1719,14 @@ Also called by bot code
 void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	ucmd_t	*u;
 	qboolean bProcessed = qfalse;
-	
+
 	Cmd_TokenizeString( s );
+
+	// Added in OPM
+	//  Check if chat/taunt should be blocked by admin
+	if (SV_AdminShouldBlockClientCommand(cl, Cmd_Argv(0))) {
+		return;
+	}
 
 	// see if it is a server level command
 	for (u=ucmds ; u->name ; u++) {
@@ -1731,14 +1737,11 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 		}
 	}
 
-	// Removed in OPM
-	//  Message printing is now handled by fgame
-    //// Added in 1.11 MAC server
-    ////  Display chat messages
-    ////  NOTE: this should be handled by fgame, not server
-    ////if (!Q_stricmp(Cmd_Argv(0), "dmmessage")) {
-    ////	Com_Printf("%s (%zu): %s", cl->name, (size_t)(cl - svs.clients), s);
-    ////}
+	// Added in OPM
+	//  Admin command dispatch (after ucmd, before game DLL)
+	if (!bProcessed && SV_AdminHandleClientCommand(cl)) {
+		return;
+	}
 
 	if (clientOK) {
 		// pass unknown strings to the game
@@ -2206,8 +2209,12 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 //	}
 }
 
-void SV_KickClientForReason(client_t *cl, const char *reason)
+void SV_KickClientForReason(client_t *cl, const char *reason, qboolean silent)
 {
+    // A silent kick still notifies the kicked player, but suppresses the server-wide
+    // announcement (both the "was kicked" line below and the broadcast in SV_DropClient).
+    SV_SetSilentDrop(silent);
+
     if (reason) {
         // Send the kick message to the client
         SV_NET_OutOfBandPrint(
@@ -2215,7 +2222,9 @@ void SV_KickClientForReason(client_t *cl, const char *reason)
         );
 
         // Print the kick to all clients
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "%s was kicked for %s\n\"", cl->name, reason);
+        if (!silent) {
+            SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "%s was kicked for %s\n\"", cl->name, reason);
+        }
 
         SV_DropClient(cl, va("was kicked for %s", reason));
     } else {
@@ -2223,10 +2232,14 @@ void SV_KickClientForReason(client_t *cl, const char *reason)
         SV_NET_OutOfBandPrint(&svs.netprofile, cl->netchan.remoteAddress, "droperror\nKicked from server");
 
         // Print the kick to all clients
-        SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "%s was kicked\n\"", cl->name);
+        if (!silent) {
+            SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "%s was kicked\n\"", cl->name);
+        }
 
         SV_DropClient(cl, "was kicked");
     }
+
+    SV_SetSilentDrop(qfalse);
 }
 
 unsigned int SV_Client_GetNumPendingCommands(client_t *cl)

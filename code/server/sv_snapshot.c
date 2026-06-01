@@ -1217,6 +1217,11 @@ void SV_SendClientSnapshot( client_t *client ) {
 	byte		msg_buf[MAX_MSGLEN];
 	msg_t		msg;
 
+	// bots do not have a network channel and should never receive snapshots
+	if ( client->netchan.remoteAddress.type == NA_BOT ) {
+		return;
+	}
+
 	// build the snapshot
 	SV_BuildClientSnapshot( client );
 
@@ -1287,6 +1292,9 @@ void SV_SendClientMessages(void)
 		
 		if(!c->state)
 			continue;		// not connected
+
+		if (c->netchan.remoteAddress.type == NA_BOT)
+			continue;		// bots are simulated locally and have no netchan traffic
 
 		if(svs.time - c->lastSnapshotTime < c->snapshotMsec * com_timescale->value)
 			continue;		// It's not time yet
