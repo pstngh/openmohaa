@@ -868,9 +868,10 @@ int DM_Manager::compareScores(const void *elem1, const void *elem2)
         }
 
         // sort by death if they have the same number of kills
-        if (p1->GetNumDeaths() > p2->GetNumDeaths()) {
+        // fewer deaths should rank higher
+        if (p1->GetNumDeaths() < p2->GetNumDeaths()) {
             return -1;
-        } else if (p1->GetNumDeaths() < p2->GetNumDeaths()) {
+        } else if (p1->GetNumDeaths() > p2->GetNumDeaths()) {
             return 1;
         }
 
@@ -1894,10 +1895,6 @@ void DM_Manager::BuildTeamInfo_ver6(DM_Team *dmTeam)
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
 
-        if (pTeamPlayer->edict->r.svFlags & SVF_BOT) {
-            continue;
-        }
-
         iNumPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
     }
@@ -1938,10 +1935,6 @@ void DM_Manager::BuildTeamInfo_ver15(DM_Team *dmTeam)
 
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
-
-        if (pTeamPlayer->edict->r.svFlags & SVF_BOT) {
-            continue;
-        }
 
         iNumPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
@@ -2013,7 +2006,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
+                va("%d", pTeamPlayer->client->ps.ping)
             );
         } else {
             Com_sprintf(
@@ -2024,7 +2017,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
+                va("%d", pTeamPlayer->client->ps.ping)
             );
         }
 

@@ -55,53 +55,21 @@ float AngleDifference(float ang1, float ang2)
 
 void BotRotation::TurnThink(usercmd_t& botcmd, usereyes_t& eyeinfo)
 {
-    float diff;
-    float deltaDiff;
-    float factor;
-    float maxChange;
-    float maxChangeDelta;
-    float minChange;
-    float changeSpeed;
-    float speed;
-    int   i;
-
-    factor      = 1.0;
-    maxChange   = Q_max(360, g_bot_turn_speed->integer);
-    minChange   = 20;
-    changeSpeed = g_bot_turn_speed->integer;
-
+    // Instant snap to target angles (aimbot behavior)
     if (m_vTargetAng[PITCH] > 180) {
         m_vTargetAng[PITCH] -= 360;
     }
 
-    for (i = 0; i < 2; i++) {
-        m_vCurrentAng[i] = AngleMod(m_vCurrentAng[i]);
-        m_vTargetAng[i]  = AngleMod(m_vTargetAng[i]);
-
-        diff      = AngleDifference(m_vCurrentAng[i], m_vTargetAng[i]);
-        deltaDiff = fabs(diff);
-
-        maxChangeDelta = maxChange * level.frametime;
-        if (maxChangeDelta > deltaDiff) {
-            maxChangeDelta = deltaDiff;
-        }
-
-        if (deltaDiff >= minChange) {
-            m_vAngSpeed[i] = Q_min(1.0, m_vAngSpeed[i] + changeSpeed * level.frametime);
-            maxChangeDelta *= m_vAngSpeed[i];
-        } else {
-            m_vAngSpeed[i] = Q_max(0.0, m_vAngSpeed[i] - changeSpeed * level.frametime);
-        }
-
-        speed = diff * level.frametime * 10 * factor;
-
-        m_vAngDelta[i]   = Q_clamp_float(speed, -maxChangeDelta, maxChangeDelta);
-        m_vCurrentAng[i] = AngleMod(m_vCurrentAng[i] - m_vAngDelta[i]);
+    for (int i = 0; i < 2; i++) {
+        m_vCurrentAng[i] = AngleMod(m_vTargetAng[i]);
     }
 
     if (m_vCurrentAng[PITCH] > 180) {
         m_vCurrentAng[PITCH] -= 360;
     }
+
+    m_vAngDelta = vec_zero;
+    m_vAngSpeed = vec_zero;
 
     eyeinfo.angles[0] = m_vCurrentAng[0];
     eyeinfo.angles[1] = m_vCurrentAng[1];

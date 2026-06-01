@@ -501,6 +501,8 @@ typedef struct gameImport_s {
     unsigned int (*Client_NumPendingCommands)(int clientNum);
     unsigned int (*Client_MaxPendingCommands)(int clientNum);
 
+    void (*BotConnect)(int clientNum, const char *userinfo);
+
     cvar_t *fsDebug;
 
 } game_import_t;

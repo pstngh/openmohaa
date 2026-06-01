@@ -34,7 +34,6 @@ struct bot_info_t {
 
 void         G_BotBegin(gentity_t *ent);
 void         G_BotThink(gentity_t *ent, int msec);
-void         G_BotShift(int clientNum);
 gentity_t   *G_GetFirstBot();
 unsigned int G_GetBotId(gentity_t *e);
 gentity_t   *G_AddBot(const bot_info_t *info = NULL);

@@ -805,6 +805,7 @@ void Level::Init(void)
     m_fade_time_start = 0.0f;
     m_fade_time       = -1.0f;
     m_fade_color      = vec_zero;
+    m_fade_type       = fadein;
     m_fade_style      = additive;
 
     m_fade_alpha = 0;

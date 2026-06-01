@@ -508,6 +508,7 @@ void G_RunFrame(int levelTime, int frameTime)
 
         if (level.intermissiontime || level.died_already) {
             L_ProcessPendingEvents();
+            level.m_fade_time -= level.frametime;
             G_ClientDoBlends();
 
             if (g_gametype->integer != GT_SINGLE_PLAYER && g_maxintermission->value != 0.0f) {
@@ -1718,6 +1719,11 @@ void G_ClientEndServerFrames(void)
 {
     int        i;
     gentity_t *ent;
+
+    // Decrement fade time once per frame, not per player.
+    // CalcBlend (called from EndFrame) used to decrement this,
+    // causing fades to run N times faster with N clients.
+    level.m_fade_time -= level.frametime;
 
     // calc the player views now that all pushing
     // and damage has been added

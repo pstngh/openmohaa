@@ -156,7 +156,6 @@ extern cvar_t *g_spawnai;
 
 extern cvar_t *g_patherror;
 extern cvar_t *g_droppeditemlife;
-extern cvar_t *g_dropclips;
 extern cvar_t *g_animdump;
 extern cvar_t *g_showdamage;
 extern cvar_t *g_ai_notifyradius;
@@ -323,9 +322,12 @@ extern cvar_t *g_bot_initial_spawn_delay;
 
 /**
  * @brief When enabled, the game no longer controls bots.
- * 
  */
 extern cvar_t *g_bot_manualmove;
+
+extern cvar_t *g_bot_allied_skin;
+extern cvar_t *g_bot_axis_skin;
+extern cvar_t *g_bot_primary_weapon;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
