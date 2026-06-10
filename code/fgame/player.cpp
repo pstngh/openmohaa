@@ -10883,6 +10883,12 @@ void Player::EventDMMessage(Event *ev)
         m_iInstantMessageTime = level.inttime;
     } else {
         iMode = ev->GetInteger(1);
+        // Added in OPM: redirect team chat to all chat. A negative iMode is a team
+        // message; remap it to 0 (public) so team messages reach everyone and behave
+        // exactly like normal all-chat (same recipients, no "(team)" restriction).
+        if (iMode < 0) {
+            iMode = 0;
+        }
         if (g_textChatTime->value > 0) {
             m_fTalkTime = g_textChatTime->value + level.time;
         }
