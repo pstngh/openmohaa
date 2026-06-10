@@ -1,13 +1,14 @@
 ##########################
 #
-# Linux (server-only)
+# Linux (server-only, amd64)
 # Ubuntu 22.04
-#
-# Using this version instead of 24.04 to use a lower GLIBC version (2.34).
-# Built on an ARM runner and cross-compiled to x86_64.
 #
 # Server-only fork: only the dedicated server binary and the native game
 # modules are built (no client, renderers, SDL2, OpenAL, cURL or QVMs).
+#
+# Built natively on an x86_64 runner. We do NOT cross-compile: the previous
+# setup ran on an ARM runner and relied on clang --target, which silently fell
+# back to the host arch and produced ARM binaries labelled "amd64".
 ##########################
 name: "Linux Builds"
 
@@ -28,7 +29,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'amd64',   os: "ubuntu-22.04-arm", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'},
+          {name: 'amd64', os: "ubuntu-22.04", arch_option: 'linux-x86_64'},
         ]
 
     name: "Building for platform linux-${{matrix.architecture.name}}"
@@ -49,23 +50,9 @@ jobs:
     - name: Settings
       working-directory: ${{github.workspace}}
       run: |
-        echo "HOST_TRIPLE=$(gcc -dumpmachine)" >> $GITHUB_ENV
-
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      name: Install required cross-platform packages (${{ matrix.architecture.package }})
-      if: env.HOST_TRIPLE != matrix.architecture.triple
-      with:
-        packages: gcc-12-${{ matrix.architecture.package }} g++-12-${{ matrix.architecture.package }}
-        version: "${{ runner.os }}-${{ runner.arch }}-v1"
-
-    - name: Settings
-      working-directory: ${{github.workspace}}
-      run: |
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "CFLAGS='--target=${{ matrix.architecture.triple }}'" >> $GITHUB_ENV
-        echo "CXXFLAGS='--target=${{ matrix.architecture.triple }}'" >> $GITHUB_ENV
 
     ###
     # Project (server only)
