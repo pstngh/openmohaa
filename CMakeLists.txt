@@ -11,18 +11,20 @@ include(identity)
 
 project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
+# Server-only fork: the client, its renderers, the game QVMs and HTTP/cURL are
+# all off by default. Re-enable any of them with e.g. -DBUILD_CLIENT=ON.
 option(BUILD_SERVER "Build dedicated server" ON)
-option(BUILD_CLIENT "Build client" ON)
+option(BUILD_CLIENT "Build client" OFF)
 option(BUILD_RENDERER_GL1 "Build GL1 renderer" ON)
 option(BUILD_RENDERER_GL2 "Build GL2 renderer" OFF)
 option(BUILD_GAME_LIBRARIES "Build game module libraries" ON)
-option(BUILD_GAME_QVMS "Build game module qvms" ON)
+option(BUILD_GAME_QVMS "Build game module qvms" OFF)
 option(BUILD_STANDALONE "Build binaries for standalone games" OFF)
 
 option(USE_RENDERER_DLOPEN "Dynamically load the renderer(s)" ON)
 option(USE_OPENAL "OpenAL audio" ON)
 option(USE_OPENAL_DLOPEN "Dynamically load OpenAL" ON)
-option(USE_HTTP "HTTP download support" ON)
+option(USE_HTTP "HTTP download support" OFF)
 option(USE_CODEC_VORBIS "Ogg Vorbis support" ON)
 option(USE_CODEC_OPUS "Ogg Opus support" ON)
 option(USE_CODEC_MAD "MP3 support" ON)
