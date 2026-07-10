@@ -839,6 +839,7 @@ bool BotController::CheckCondition_Attack(void)
 void BotController::State_EndAttack(void)
 {
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+    movement.m_fEnemyDistanceSq = 0;
     controlledEnt->ZoomOff();
     m_iAimAcquireTime = 0;
 }
@@ -856,10 +857,15 @@ void BotController::State_Attack(void)
 
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
-        m_iAttackTime = 0;
+        m_iAttackTime               = 0;
+        movement.m_fEnemyDistanceSq = 0;
         return;
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
+
+    // Feed the aggressive-movement layer so peek/retreat can
+    // engage during close-range combat
+    movement.m_fEnemyDistanceSq = fDistanceSquared;
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
