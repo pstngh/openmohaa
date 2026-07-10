@@ -345,7 +345,12 @@ void CVAR_Init(void)
     sv_privatePassword = gi.Cvar_Get("sv_privatePassword", "", CVAR_TEMP);
     filterban          = gi.Cvar_Get("filterban", "1", 0);
 
-    dmflags           = gi.Cvar_Get("dmflags", "0", CVAR_SERVERINFO);
+    if (g_target_game >= target_game_e::TG_MOHTA) {
+        // SH/BT: add DF_OLD_SNIPER to force classic AA sniper rifles
+        dmflags = gi.Cvar_Get("dmflags", "336084992", CVAR_SERVERINFO);
+    } else {
+        dmflags = gi.Cvar_Get("dmflags", "335560704", CVAR_SERVERINFO);
+    }
     fraglimit         = gi.Cvar_Get("fraglimit", "0", CVAR_SERVERINFO);
     timelimit         = gi.Cvar_Get("timelimit", "0", CVAR_SERVERINFO);
     roundlimit        = gi.Cvar_Get("roundlimit", "0", CVAR_SERVERINFO);

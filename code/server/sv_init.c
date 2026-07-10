@@ -1040,8 +1040,8 @@ void SV_Init (void)
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	Cvar_Get ("dmflags", "0", CVAR_SERVERINFO);
-	Cvar_Get ("fraglimit", "20", CVAR_SERVERINFO);
+	Cvar_Get ("dmflags", "335560704", CVAR_SERVERINFO);
+	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("sv_keywords", "", CVAR_SERVERINFO);
 	// Changed in OPM
