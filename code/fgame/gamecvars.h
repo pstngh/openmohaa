@@ -387,6 +387,11 @@ extern cvar_t *g_textmsg_minDelay;
 
 extern cvar_t *g_teambalance;
 
+/**
+ * @brief Force AA-style behavior in BT. 0 = default BT behavior, 1 = AA-style leans/pain anims.
+ */
+extern cvar_t *g_aastyle;
+
 extern cvar_t *g_navigation_legacy;
 
 extern cvar_t *g_door_reopen_blocked;
