@@ -244,10 +244,6 @@ void UIMapListBox::PopulateMapList()
                     continue;
                 }
 
-                if (!Q_stricmp(mapName, "obj_team2") || !Q_stricmp(mapName, "obj_team4")) {
-                    continue;
-                }
-
                 AddItem(mapName, NULL);
             }
         }
