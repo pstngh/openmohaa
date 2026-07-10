@@ -1,5 +1,5 @@
 
-if(NOT BUILD_SERVER)
+if(NOT BUILD_SERVER OR (APPLE AND BUILD_MACOS_BUNDLE))
     return()
 endif()
 

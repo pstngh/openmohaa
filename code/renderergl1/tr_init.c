@@ -1199,6 +1199,9 @@ void BuildGfxInfo(char* dest, size_t destsize) {
 
 		// default is to use triangles if compiled vertex arrays are present
 		PrintAndAppendString( dest, destsize, "rendering primitives: " );
+#ifdef __APPLE__
+		primitives = 2;
+#else
 		primitives = r_primitives->integer;
 		if ( primitives == 0 ) {
 			if ( qglLockArraysEXT ) {
@@ -1207,6 +1210,7 @@ void BuildGfxInfo(char* dest, size_t destsize) {
 				primitives = 1;
 			}
 		}
+#endif
 		if ( primitives == -1 ) {
 			PrintAndAppendString( dest, destsize, "none\n" );
 		} else if ( primitives == 2 ) {
@@ -1409,7 +1413,11 @@ void R_Register( void )
 	//	 Make archivable
 	r_drawstaticdecals = ri.Cvar_Get("r_drawstaticdecals", "1", CVAR_ARCHIVE );
 
+#ifdef __APPLE__
+	r_primitives = ri.Cvar_Get( "r_primitives", "2", CVAR_ROM );
+#else
 	r_primitives = ri.Cvar_Get( "r_primitives", "0", CVAR_ARCHIVE );
+#endif
 
 	r_ambientScale = ri.Cvar_Get( "r_ambientScale", "0.6", CVAR_CHEAT );
 	r_directedScale = ri.Cvar_Get( "r_directedScale", "1", CVAR_CHEAT );
@@ -1422,7 +1430,11 @@ void R_Register( void )
 	r_showImages = ri.Cvar_Get( "r_showImages", "0", CVAR_TEMP );
 	r_showlod = ri.Cvar_Get("r_showlod", "0", CVAR_TEMP);
 	r_showstaticlod = ri.Cvar_Get("r_showstaticlod", "0", CVAR_TEMP);
+#ifdef __APPLE__
+	r_uselod = ri.Cvar_Get("r_uselod", "0", CVAR_ROM);
+#else
 	r_uselod = ri.Cvar_Get("r_uselod", "1", CVAR_TEMP);
+#endif
 	lod_LOD = ri.Cvar_Get("lod_LOD", "0", CVAR_TEMP);
 	lod_minLOD = ri.Cvar_Get("lod_minLOD", "1.0", CVAR_TEMP);
 	lod_maxLOD = ri.Cvar_Get("lod_maxLOD", "0.3", CVAR_TEMP);
