@@ -4829,7 +4829,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     }
@@ -4854,7 +4854,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     } else if (g_gametype->integer >= GT_TEAM && GetTeam() > TEAM_FREEFORALL
@@ -6561,16 +6561,6 @@ void Player::DamageFeedback(void)
     //
     damage_blood = 0;
 
-    //
-    // Added in 2.0
-    //  Don't show damage when in god mode
-    //
-    if (flags & FL_GODMODE) {
-        damage_count  = 0;
-        damage_blood  = 0;
-        damage_alpha  = 0;
-        damage_angles = vec_zero;
-    }
 }
 
 void Player::GetPlayerView(Vector *pos, Vector *angle)

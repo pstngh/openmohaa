@@ -57,6 +57,7 @@ cvar_t *sv_gravity;
 cvar_t *sv_rollspeed;
 cvar_t *sv_rollangle;
 cvar_t *sv_cheats;
+cvar_t *g_godmode;
 cvar_t *sv_showbboxes;
 cvar_t *sv_showtags;
 
@@ -396,6 +397,7 @@ void CVAR_Init(void)
     sv_waterspeed    = gi.Cvar_Get("sv_waterspeed", "400", 0);
 
     sv_cheats    = gi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
+    g_godmode    = gi.Cvar_Get("g_godmode", "0", 0);
     sv_fps       = gi.Cvar_Get("sv_fps", "20", CVAR_SAVEGAME);
     sv_cinematic = gi.Cvar_Get("sv_cinematic", "0", CVAR_ROM);
 

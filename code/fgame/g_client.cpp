@@ -1012,6 +1012,21 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
             player = new Player;
         }
 
+        // Persistent god mode for the human player: enabled here on the
+        // client-begin path, which runs on connect, on every map change, and
+        // on restarts - but never on respawn. g_godmode is itself the
+        // deliberate switch (the launcher toggle, default 0), so it is NOT
+        // additionally gated on sv_cheats: a listen-server host runs with
+        // sv_cheats 0 even though the "dog" console cheat still works via host
+        // privilege, and gating on it here is exactly what kept god from
+        // applying. Bots are excluded so they stay killable. Once set it holds
+        // across respawns (nothing clears FL_GODMODE), so it is effectively set
+        // once per map and a manual toggle is respected until the next map.
+        // Turn it off with g_godmode 0.
+        if (player && g_godmode->integer && !G_IsBot(ent)) {
+            player->flags |= FL_GODMODE;
+        }
+
         // Fixed in OPM
         //  Initialize the enter time even when there is an intermission.
         //  This is so in the scoreboard it shows up properly

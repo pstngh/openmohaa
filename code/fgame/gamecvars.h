@@ -62,6 +62,12 @@ extern cvar_t *sv_gravity;
 extern cvar_t *sv_rollspeed;
 extern cvar_t *sv_rollangle;
 extern cvar_t *sv_cheats;
+/**
+ * @brief Persistent god mode for the human player. While set, god mode is
+ * re-applied on every (re)spawn so it survives death and map changes.
+ * Bots are excluded and it is cheat-gated. Default 0.
+ */
+extern cvar_t *g_godmode;
 extern cvar_t *sv_showbboxes;
 extern cvar_t *sv_showtags;
 
