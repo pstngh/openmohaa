@@ -323,6 +323,14 @@ extern cvar_t *g_bot_spread;
  * 1 = high (no bloom, base spread only), 2 = perfect (zero total spread).
  */
 extern cvar_t *g_accuracy;
+/**
+ * @brief Force bots to a specific team. Values: "auto" (default), "axis", "allies"
+ */
+extern cvar_t *g_bot_team;
+/**
+ * @brief Percentage of bots that get sniper rifles (rest get SMG, axis also 5% MG).
+ */
+extern cvar_t *g_bot_sniper;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

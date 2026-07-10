@@ -8792,6 +8792,29 @@ void Player::InitDeathmatch(void)
     }
 
     ChooseSpawnPoint();
+
+    // Assign random weapons to bots based on team
+    if (edict->r.svFlags & SVF_BOT) {
+        float roll = G_Random();
+        float sniperChance = g_bot_sniper->value / 100.0f;
+        if (GetTeam() == TEAM_ALLIES) {
+            if (roll < sniperChance) {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            }
+        } else if (GetTeam() == TEAM_AXIS) {
+            // Axis: sniper%, 5% MG, rest SMG
+            if (roll < sniperChance) {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else if (roll < sniperChance + 0.05f) {
+                Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            }
+        }
+    }
+
     EquipWeapons();
 
     if (current_team) {
@@ -9647,6 +9670,20 @@ void Player::Auto_Join_DM_Team(Event *ev)
     };
 
     Event event(EV_Player_JoinDMTeam, 1);
+
+    // Check if bot should be forced to a specific team
+    if (edict->r.svFlags & SVF_BOT) {
+        if (!Q_stricmp(g_bot_team->string, "axis")) {
+            event.AddString("axis");
+            ProcessEvent(event);
+            return;
+        } else if (!Q_stricmp(g_bot_team->string, "allies")) {
+            event.AddString("allies");
+            ProcessEvent(event);
+            return;
+        }
+        // Fall through for "auto"
+    }
 
     if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
         event.AddString("axis");
