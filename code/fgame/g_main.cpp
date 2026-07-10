@@ -295,7 +295,7 @@ void G_InitGame(int levelTime, int randomSeed)
     game.maxclients = maxclients->integer;
 
     if (g_gametype->integer != GT_SINGLE_PLAYER) {
-        game.maxclients += sv_maxbots->integer;
+        game.maxclients += sv_bots->integer;
     }
 
     L_InitEvents();

@@ -646,9 +646,9 @@ qboolean G_AddBotCommand(gentity_t *ent)
         return qfalse;
     }
 
-    totalnumbots = Q_min(numbots + sv_numbots->integer, sv_maxbots->integer);
+    totalnumbots = numbots + sv_bots->integer;
 
-    gi.cvar_set("sv_numbots", va("%d", totalnumbots));
+    gi.cvar_set("sv_bots", va("%d", totalnumbots));
     return qtrue;
 }
 
@@ -666,9 +666,9 @@ qboolean G_AddBotNamedCommand(gentity_t *ent)
 
     name = gi.Argv(1);
 
-    totalnumbots = Q_min(sv_numbots->integer + 1, sv_maxbots->integer);
+    totalnumbots = sv_bots->integer + 1;
 
-    gi.cvar_set("sv_numbots", va("%d", totalnumbots));
+    gi.cvar_set("sv_bots", va("%d", totalnumbots));
 
     bot_info_t botInfo;
     botInfo.name = name;
@@ -693,9 +693,9 @@ qboolean G_RemoveBotCommand(gentity_t *ent)
     }
 
     numbots      = atoi(gi.Argv(1));
-    totalnumbots = sv_numbots->integer - Q_min(numbots, sv_numbots->integer);
+    totalnumbots = sv_bots->integer - Q_min(numbots, sv_bots->integer);
 
-    gi.cvar_set("sv_numbots", va("%d", totalnumbots));
+    gi.cvar_set("sv_bots", va("%d", totalnumbots));
     return qtrue;
 }
 

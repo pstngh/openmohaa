@@ -471,11 +471,8 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     Info_SetValueForKey(userinfo, "name", botName);
 
-    //
-    // Choose a random model
-    //
-    Info_SetValueForKey(userinfo, "dm_playermodel", G_GetRandomAlliedPlayerModel());
-    Info_SetValueForKey(userinfo, "dm_playergermanmodel", G_GetRandomGermanPlayerModel());
+    Info_SetValueForKey(userinfo, "dm_playermodel", "allies_airborne");
+    Info_SetValueForKey(userinfo, "dm_playergermanmodel", "german_winter_1");
 
     Info_SetValueForKey(userinfo, "fov", "80");
     Info_SetValueForKey(userinfo, "ip", "localhost");
@@ -761,23 +758,7 @@ static unsigned int G_GetNumBotsToSpawn()
     //
     // Check the minimum bot count
     //
-    numClients = G_CountPlayingClients();
-    if (numClients < sv_minPlayers->integer) {
-        numBotsToSpawn = sv_minPlayers->integer - numClients + sv_numbots->integer;
-    } else {
-        numBotsToSpawn = sv_numbots->integer;
-    }
-
-    if (sv_sharedbots->integer) {
-        numClients = G_CountClients();
-
-        //
-        // Cap to the maximum number of possible clients
-        //
-        numBotsToSpawn = Q_min(numBotsToSpawn, maxclients->integer - numClients + sv_maxbots->integer);
-    } else {
-        numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
-    }
+    numBotsToSpawn = sv_bots->integer;
 
     return numBotsToSpawn;
 }
@@ -800,7 +781,7 @@ static void G_InitBotSessionData()
 
     gi.Cvar_Get("botsession", "", CVAR_ROM);
 
-    for (n = 0; n < sv_maxbots->integer; n++) {
+    for (n = 0; n < sv_bots->integer; n++) {
         gi.Cvar_Get(va("botsession%i", n), "", CVAR_ROM);
     }
 }
@@ -964,7 +945,7 @@ void G_SpawnBots()
         return;
     }
 
-    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_numbots->modified) {
+    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_bots->modified) {
         // Wait before spawning all bots
         return;
     }
@@ -980,6 +961,6 @@ void G_SpawnBots()
     } else if (numBotsToSpawn < numSpawnedBots) {
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
-        sv_numbots->modified = false;
+        sv_bots->modified = false;
     }
 }
