@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "vehicleturret.h"
 #include "debuglines.h"
 #include "g_spawn.h"
+#include "g_bot.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1030,6 +1031,11 @@ int Weapon::GetClipSize(firemode_t mode)
 //======================
 void Weapon::UseAmmo(int amount, firemode_t mode)
 {
+    // Bottomless clip mode - infinite ammo via dmflags
+    if (DM_FLAG(DF_INFINITE_AMMO)) {
+        return;
+    }
+
     mode = m_bShareClip ? FIRE_PRIMARY : mode;
 
     if (UnlimitedAmmo(mode) && (!owner || !owner->isClient())) {
@@ -1447,6 +1453,14 @@ void Weapon::Shoot(Event *ev)
                                 vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
                             }
                         }
+
+                        // Perfect accuracy (g_accuracy 2) zeroes the human
+                        // player's total bullet spread (base included) so shots
+                        // land dead on the crosshair even while moving or
+                        // spraying. Bots keep their own spread.
+                        if (g_accuracy->integer >= 2 && !G_IsBot(player->edict)) {
+                            vSpread = vec_zero;
+                        }
                     }
                 } else {
                     vSpread = (bulletspreadmax[mode] + bulletspread[mode]) * 0.5f;
@@ -1520,6 +1534,14 @@ void Weapon::Shoot(Event *ev)
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
                                 vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
                             }
+                        }
+
+                        // Perfect accuracy (g_accuracy 2) zeroes the human
+                        // player's total bullet spread (base included) so shots
+                        // land dead on the crosshair even while moving or
+                        // spraying. Bots keep their own spread.
+                        if (g_accuracy->integer >= 2 && !G_IsBot(player->edict)) {
+                            vSpread = vec_zero;
                         }
                     }
                 } else {
@@ -1644,6 +1666,38 @@ void Weapon::Shoot(Event *ev)
                     m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
                 } else if (m_fFireSpreadMult[mode] > 0) {
                     m_fFireSpreadMult[mode] = 0;
+                }
+            }
+
+            // Handle spread for bots and clients
+            if (owner && owner->client) {
+                bool  isBot       = G_IsBot(owner->edict);
+                int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+
+                if (isBot) {
+                    // Bots use a static spread: every shot spreads by exactly
+                    // g_bot_spread times the weapon's base spread, with no
+                    // per-shot bloom buildup. 1 = stock accuracy, higher = less
+                    // accurate, 0 = pinpoint.
+                    float scale = g_bot_spread->value;
+
+                    if (scale < 0) {
+                        scale = 0;
+                    }
+
+                    m_fFireSpreadMult[mode] = scale - 1.0f;
+                } else if (g_accuracy->integer >= 1) {
+                    // High / Perfect: no bloom (Perfect also zeroes the total
+                    // spread at fire time, above).
+                    m_fFireSpreadMult[mode] = 0;
+                } else {
+                    // Normal: natural accumulation clamped to the full-clip cap.
+                    if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    }
                 }
             }
         }

@@ -313,6 +313,17 @@ extern cvar_t *g_bot_initial_spawn_delay;
  */
 extern cvar_t *g_bot_manualmove;
 
+/**
+ * @brief Static bot bullet spread as a multiple of the weapon's base spread.
+ * 1 = stock accuracy, higher = less accurate, 0 = pinpoint. No bloom buildup.
+ */
+extern cvar_t *g_bot_spread;
+/**
+ * @brief Human player accuracy: 0 = normal (spread grows and caps),
+ * 1 = high (no bloom, base spread only), 2 = perfect (zero total spread).
+ */
+extern cvar_t *g_accuracy;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
