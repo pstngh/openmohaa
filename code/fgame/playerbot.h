@@ -174,13 +174,16 @@ private:
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
     int    m_iContinuousFireTime;
-    Vector m_vAimOffset;
+    float  m_fAimHeightOffset;
+    int    m_iAimAcquireTime;
+    Vector m_vAimError;
     int    m_iLastAimTime;
 
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
+    Vector            m_vLaggedEnemyPos; // Aim target under simulated latency
     Vector            m_vLastDeathPos;
     SafePtr<Sentient> m_pEnemy;
     int               m_iEnemyEyesTag;
@@ -235,6 +238,7 @@ private:
     void        State_EndAttack(void);
     void        State_Attack(void);
     bool        IsValidEnemy(Sentient *sent) const;
+    bool        IsEngagedByAnotherBot(Sentient *enemy) const;
 
     static void InitState_Grenade(botfunc_t *func);
     bool        CheckCondition_Grenade(void);
