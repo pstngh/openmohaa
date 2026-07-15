@@ -38,6 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "trigger.h"
 #include "debuglines.h"
 #include "smokegrenade.h"
+#include "g_bot.h"
 
 constexpr unsigned long MAX_TRAVEL_DIST = 16216;
 
@@ -2201,10 +2202,22 @@ float BulletAttack(
         weap = NULL;
     }
 
+    const bool isBot = owner && owner->client && G_IsBot(owner->edict);
+
     for (i = 0; i < count; i++) {
         trace_t tracethrough;
 
-        vTraceEnd = start + (dir * range) + (right * grandom() * spread.x) + (up * grandom() * spread.y);
+        const float horizontalSpread = grandom() * spread.x;
+        float       verticalSpread   = grandom() * spread.y;
+
+        // Keep bot misses away from the head without collapsing upward
+        // samples to zero. Mirroring them downward preserves the full spread
+        // magnitude and avoids concentrating shots on one horizontal line.
+        if (isBot) {
+            verticalSpread = -fabs(verticalSpread);
+        }
+
+        vTraceEnd = start + (dir * range) + (right * horizontalSpread) + (up * verticalSpread);
 
         vDir = vTraceEnd - start;
 
@@ -2652,8 +2665,17 @@ void FakeBulletAttack(
         bulletbits = 1;
     }
 
+    const bool isBot = owner && owner->client && G_IsBot(owner->edict);
+
     for (i = 0; i < count; i++) {
-        vTraceEnd = start + (dir * range) + (right * grandom() * spread.x) + (up * grandom() * spread.y);
+        const float horizontalSpread = grandom() * spread.x;
+        float       verticalSpread   = grandom() * spread.y;
+
+        if (isBot) {
+            verticalSpread = -fabs(verticalSpread);
+        }
+
+        vTraceEnd = start + (dir * range) + (right * horizontalSpread) + (up * verticalSpread);
 
         vDir = vTraceEnd - start;
         VectorNormalize(vDir);

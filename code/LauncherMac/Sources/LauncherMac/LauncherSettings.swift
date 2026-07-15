@@ -61,7 +61,7 @@ class LauncherSettings: ObservableObject {
     @Published var botAimSettle: String = "0.4"
     @Published var botAimLatency: String = "120"
     @Published var botAimHeightMin: String = "0.49"
-    @Published var botAimHeightMax: String = "0.65"
+    @Published var botAimHeightMax: String = "0.55"
     @Published var botFirespreadScale: String = "2"
     @Published var accuracy: Int = 0  // 0 normal, 1 high, 2 perfect
     @Published var aaLean: Bool = false
@@ -143,7 +143,16 @@ class LauncherSettings: ObservableObject {
             case "bot_aim_settle": botAimSettle = value
             case "bot_aim_latency": botAimLatency = value
             case "bot_aim_height_min": botAimHeightMin = value
-            case "bot_aim_height_max": botAimHeightMax = value
+            case "bot_aim_height_max":
+                // Version 5 moves the stock aim ceiling out of the neck. Only
+                // migrate the exact old default; preserve custom values.
+                if settingsVersion < 5,
+                   let oldMax = Double(value),
+                   abs(oldMax - 0.65) < 0.0001 {
+                    botAimHeightMax = "0.55"
+                } else {
+                    botAimHeightMax = value
+                }
             case "bot_firespread_scale": botFirespreadScale = value
             case "accuracy":
                 if let a = Int(value), a >= 0, a <= 2 { accuracy = a }
@@ -181,7 +190,7 @@ class LauncherSettings: ObservableObject {
     func save() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=4")
+        lines.append("settings_version=5")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -285,7 +294,7 @@ extension LauncherSettings {
     /// engine repeats these checks so direct console/config use is safe too.
     func effectiveAimHeights() -> (min: String, max: String) {
         let minValue = Double(Self.clampedNumber(botAimHeightMin, min: 0, max: 1, fallback: 0.49)) ?? 0.49
-        let maxValue = Double(Self.clampedNumber(botAimHeightMax, min: 0, max: 1, fallback: 0.65)) ?? 0.65
+        let maxValue = Double(Self.clampedNumber(botAimHeightMax, min: 0, max: 1, fallback: 0.55)) ?? 0.55
         return minValue <= maxValue
             ? (String(minValue), String(maxValue))
             : (String(maxValue), String(minValue))
