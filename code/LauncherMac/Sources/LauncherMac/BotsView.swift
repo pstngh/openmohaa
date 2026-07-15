@@ -109,7 +109,8 @@ struct BotsView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             advRow("React delay s", tunedBinding(\.botReactDelay, \.reactDelay), enabled: settings.botManualTuning)
-                            advRow("Turn speed", tunedBinding(\.botTurnSpeed, \.turnSpeed), enabled: settings.botManualTuning)
+                            advRow("Turn rate °/s", tunedBinding(\.botTurnSpeed, \.turnSpeed), enabled: settings.botManualTuning)
+                            advRow("Turn accel", tunedBinding(\.botTurnAccel, \.turnAccel), enabled: settings.botManualTuning)
                             advRow("Aim error", tunedBinding(\.botAimError, \.aimError), enabled: settings.botManualTuning)
                             advRow("Settle time s", tunedBinding(\.botAimSettle, \.aimSettle), enabled: settings.botManualTuning)
                             advRow("Aim latency ms", tunedBinding(\.botAimLatency, \.aimLatency), enabled: settings.botManualTuning)
@@ -191,6 +192,7 @@ struct BotsView: View {
                 let t = settings.derivedTuning()
                 settings.botReactDelay = t.reactDelay
                 settings.botTurnSpeed = t.turnSpeed
+                settings.botTurnAccel = t.turnAccel
                 settings.botAimError = t.aimError
                 settings.botAimSettle = t.aimSettle
                 settings.botAimLatency = t.aimLatency
@@ -201,6 +203,7 @@ struct BotsView: View {
         // Manual-tuning fields persist on edit like every other Bots field.
         .onChange(of: settings.botReactDelay) { _ in settings.save() }
         .onChange(of: settings.botTurnSpeed) { _ in settings.save() }
+        .onChange(of: settings.botTurnAccel) { _ in settings.save() }
         .onChange(of: settings.botAimError) { _ in settings.save() }
         .onChange(of: settings.botAimSettle) { _ in settings.save() }
         .onChange(of: settings.botAimLatency) { _ in settings.save() }
@@ -236,7 +239,7 @@ struct BotsView: View {
         let t = settings.effectiveTuning()
         let suffix = settings.botManualTuning ? " · manual" : ""
         let spread = "\(t.spreadScale)×"
-        return "react \(t.reactDelay)s · turn \(t.turnSpeed) · aim \(t.aimError)/\(t.aimSettle)s · lag \(t.aimLatency)ms · spread \(spread)\(suffix)"
+        return "react \(t.reactDelay)s · turn \(t.turnSpeed)°/s @ \(t.turnAccel) · aim \(t.aimError)/\(t.aimSettle)s · lag \(t.aimLatency)ms · spread \(spread)\(suffix)"
     }
 
     private func tunedBinding(

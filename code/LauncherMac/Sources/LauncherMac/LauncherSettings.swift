@@ -54,7 +54,8 @@ class LauncherSettings: ObservableObject {
     @Published var botDifficulty: Double = 50
     @Published var botManualTuning: Bool = false
     @Published var botReactDelay: String = "0.2"
-    @Published var botTurnSpeed: String = "5"
+    @Published var botTurnSpeed: String = "360"
+    @Published var botTurnAccel: String = "5"
     @Published var botAimError: String = "40"
     @Published var botAimSettle: String = "0.4"
     @Published var botAimLatency: String = "120"
@@ -90,7 +91,13 @@ class LauncherSettings: ObservableObject {
         defer { isLoading = false }
         guard let content = try? String(contentsOfFile: settingsPath, encoding: .utf8) else { return }
 
-        for line in content.components(separatedBy: "\n") {
+        let configLines = content.components(separatedBy: "\n")
+        let settingsVersion = configLines.compactMap { line -> Int? in
+            guard line.hasPrefix("settings_version=") else { return nil }
+            return Int(line.dropFirst("settings_version=".count))
+        }.first ?? 1
+
+        for line in configLines {
             guard let eqIndex = line.firstIndex(of: "=") else { continue }
             let key = String(line[line.startIndex..<eqIndex])
             let value = String(line[line.index(after: eqIndex)...])
@@ -121,7 +128,15 @@ class LauncherSettings: ObservableObject {
                 if let d = Double(value), d >= 0, d <= 100 { botDifficulty = d }
             case "bot_manual": botManualTuning = (Int(value) ?? 0) != 0
             case "bot_react_delay": botReactDelay = value
-            case "bot_turn_speed": botTurnSpeed = value
+            case "bot_turn_speed":
+                if settingsVersion >= 2 {
+                    botTurnSpeed = value
+                } else {
+                    // Version 1 mislabeled this value: it controlled angular
+                    // acceleration, while the maximum rate stayed at 360.
+                    botTurnAccel = value
+                }
+            case "bot_turn_accel": botTurnAccel = value
             case "bot_aim_error": botAimError = value
             case "bot_aim_settle": botAimSettle = value
             case "bot_aim_latency": botAimLatency = value
@@ -155,6 +170,7 @@ class LauncherSettings: ObservableObject {
     func save() {
         guard !isLoading else { return }
         var lines: [String] = []
+        lines.append("settings_version=2")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -173,6 +189,7 @@ class LauncherSettings: ObservableObject {
         lines.append("bot_manual=\(botManualTuning ? 1 : 0)")
         lines.append("bot_react_delay=\(botReactDelay)")
         lines.append("bot_turn_speed=\(botTurnSpeed)")
+        lines.append("bot_turn_accel=\(botTurnAccel)")
         lines.append("bot_aim_error=\(botAimError)")
         lines.append("bot_aim_settle=\(botAimSettle)")
         lines.append("bot_aim_latency=\(botAimLatency)")
@@ -199,6 +216,7 @@ class LauncherSettings: ObservableObject {
 struct BotTuning {
     var reactDelay: String
     var turnSpeed: String
+    var turnAccel: String
     var aimError: String
     var aimSettle: String
     var aimLatency: String
@@ -219,7 +237,8 @@ extension LauncherSettings {
         let t = botDifficulty
         return BotTuning(
             reactDelay: String(format: "%.2f", Self.lerp3(t, 0.35, 0.2, 0.1)),
-            turnSpeed: String(format: "%.0f", Self.lerp3(t, 3, 5, 10)),
+            turnSpeed: String(format: "%.0f", Self.lerp3(t, 240, 360, 540)),
+            turnAccel: String(format: "%.0f", Self.lerp3(t, 3, 5, 10)),
             aimError: String(format: "%.0f", Self.lerp3(t, 60, 40, 20)),
             aimSettle: String(format: "%.2f", Self.lerp3(t, 0.6, 0.4, 0.2)),
             aimLatency: String(format: "%.0f", Self.lerp3(t, 250, 120, 40)),
@@ -235,6 +254,7 @@ extension LauncherSettings {
             return BotTuning(
                 reactDelay: botReactDelay,
                 turnSpeed: botTurnSpeed,
+                turnAccel: botTurnAccel,
                 aimError: botAimError,
                 aimSettle: botAimSettle,
                 aimLatency: botAimLatency,
@@ -242,5 +262,34 @@ extension LauncherSettings {
             )
         }
         return derivedTuning()
+    }
+
+    private static func clampedNumber(_ text: String, min: Double, max: Double, fallback: Double) -> String {
+        guard let value = Double(text), value.isFinite else { return String(fallback) }
+        return String(Swift.min(Swift.max(value, min), max))
+    }
+
+    /// Validate manual aim-height input before passing it to the engine. The
+    /// engine repeats these checks so direct console/config use is safe too.
+    func effectiveAimHeights() -> (min: String, max: String) {
+        let minValue = Double(Self.clampedNumber(botAimHeightMin, min: 0, max: 1, fallback: 0.49)) ?? 0.49
+        let maxValue = Double(Self.clampedNumber(botAimHeightMax, min: 0, max: 1, fallback: 0.65)) ?? 0.65
+        return minValue <= maxValue
+            ? (String(minValue), String(maxValue))
+            : (String(maxValue), String(minValue))
+    }
+
+    /// Return launch-safe values while leaving the user's editable text intact.
+    func validatedTuning() -> BotTuning {
+        let tuning = effectiveTuning()
+        return BotTuning(
+            reactDelay: Self.clampedNumber(tuning.reactDelay, min: 0, max: 10, fallback: 0.2),
+            turnSpeed: Self.clampedNumber(tuning.turnSpeed, min: 1, max: 1080, fallback: 360),
+            turnAccel: Self.clampedNumber(tuning.turnAccel, min: 0.1, max: 100, fallback: 5),
+            aimError: Self.clampedNumber(tuning.aimError, min: 0, max: 1024, fallback: 40),
+            aimSettle: Self.clampedNumber(tuning.aimSettle, min: 0, max: 10, fallback: 0.4),
+            aimLatency: Self.clampedNumber(tuning.aimLatency, min: 0, max: 2000, fallback: 120),
+            spreadScale: Self.clampedNumber(tuning.spreadScale, min: 0, max: 10, fallback: 2)
+        )
     }
 }

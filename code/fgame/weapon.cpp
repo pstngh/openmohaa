@@ -1443,10 +1443,22 @@ void Weapon::Shoot(Event *ev)
 
                         fSpreadFactor = GetSpreadFactor(mode);
 
+                        const bool isBot = G_IsBot(player->edict);
+
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Bot spread is a direct, static multiple of the
+                        // current shot's base spread. Do not feed it through
+                        // the weapon bloom accumulator: that applies after the
+                        // shot and decays between shots, so it cannot provide a
+                        // stable value (and weapons without bloom skip it).
+                        if (isBot) {
+                            vSpread *= g_bot_spread->value;
+                        } else {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
@@ -1458,7 +1470,7 @@ void Weapon::Shoot(Event *ev)
                         // player's total bullet spread (base included) so shots
                         // land dead on the crosshair even while moving or
                         // spraying. Bots keep their own spread.
-                        if (g_accuracy->integer >= 2 && !G_IsBot(player->edict)) {
+                        if (g_accuracy->integer >= 2 && !isBot) {
                             vSpread = vec_zero;
                         }
                     }
@@ -1525,10 +1537,17 @@ void Weapon::Shoot(Event *ev)
                             fSpreadFactor = 1.0f;
                         }
 
+                        const bool isBot = G_IsBot(player->edict);
+
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        if (isBot) {
+                            vSpread *= g_bot_spread->value;
+                        } else {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
@@ -1540,7 +1559,7 @@ void Weapon::Shoot(Event *ev)
                         // player's total bullet spread (base included) so shots
                         // land dead on the crosshair even while moving or
                         // spraying. Bots keep their own spread.
-                        if (g_accuracy->integer >= 2 && !G_IsBot(player->edict)) {
+                        if (g_accuracy->integer >= 2 && !isBot) {
                             vSpread = vec_zero;
                         }
                     }
@@ -1653,41 +1672,36 @@ void Weapon::Shoot(Event *ev)
         }
 
         if (m_fFireSpreadMultAmount[mode]) {
-            m_fFireSpreadMult[mode] += m_fFireSpreadMultAmount[mode];
+            const bool isBot = owner && owner->client && G_IsBot(owner->edict);
 
-            if (m_fFireSpreadMultCap[mode] > 0) {
-                if (m_fFireSpreadMult[mode] > m_fFireSpreadMultCap[mode]) {
-                    m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
-                } else if (m_fFireSpreadMult[mode] < 0) {
-                    m_fFireSpreadMult[mode] = 0;
-                }
-            } else if (m_fFireSpreadMultCap[mode] < 0) {
-                if (m_fFireSpreadMult[mode] < m_fFireSpreadMultCap[mode]) {
-                    m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
-                } else if (m_fFireSpreadMult[mode] > 0) {
-                    m_fFireSpreadMult[mode] = 0;
+            // Bots apply g_bot_spread directly to each shot above and never
+            // accumulate weapon bloom.
+            if (isBot) {
+                m_fFireSpreadMult[mode] = 0;
+            } else {
+                m_fFireSpreadMult[mode] += m_fFireSpreadMultAmount[mode];
+
+                if (m_fFireSpreadMultCap[mode] > 0) {
+                    if (m_fFireSpreadMult[mode] > m_fFireSpreadMultCap[mode]) {
+                        m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
+                    } else if (m_fFireSpreadMult[mode] < 0) {
+                        m_fFireSpreadMult[mode] = 0;
+                    }
+                } else if (m_fFireSpreadMultCap[mode] < 0) {
+                    if (m_fFireSpreadMult[mode] < m_fFireSpreadMultCap[mode]) {
+                        m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
+                    } else if (m_fFireSpreadMult[mode] > 0) {
+                        m_fFireSpreadMult[mode] = 0;
+                    }
                 }
             }
 
-            // Handle spread for bots and clients
-            if (owner && owner->client) {
-                bool  isBot       = G_IsBot(owner->edict);
+            // Handle spread for human clients.
+            if (!isBot && owner && owner->client) {
                 int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
                 float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
 
-                if (isBot) {
-                    // Bots use a static spread: every shot spreads by exactly
-                    // g_bot_spread times the weapon's base spread, with no
-                    // per-shot bloom buildup. 1 = stock accuracy, higher = less
-                    // accurate, 0 = pinpoint.
-                    float scale = g_bot_spread->value;
-
-                    if (scale < 0) {
-                        scale = 0;
-                    }
-
-                    m_fFireSpreadMult[mode] = scale - 1.0f;
-                } else if (g_accuracy->integer >= 1) {
+                if (g_accuracy->integer >= 1) {
                     // High / Perfect: no bloom (Perfect also zeroes the total
                     // spread at fire time, above).
                     m_fFireSpreadMult[mode] = 0;

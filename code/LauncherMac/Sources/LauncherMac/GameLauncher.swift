@@ -74,18 +74,20 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "g_playerdmhealth", "\(settings.playerHealth)"])
 
         // Bot difficulty (slider-derived unless manual tuning is on)
-        let tuning = settings.effectiveTuning()
+        let tuning = settings.validatedTuning()
         args.append(contentsOf: ["+set", "g_bot_attack_react_min_delay", tuning.reactDelay])
         args.append(contentsOf: ["+set", "g_bot_turn_speed", tuning.turnSpeed])
+        args.append(contentsOf: ["+set", "g_bot_turn_accel", tuning.turnAccel])
         args.append(contentsOf: ["+set", "g_bot_aim_error", tuning.aimError])
         args.append(contentsOf: ["+set", "g_bot_aim_settle_time", tuning.aimSettle])
         args.append(contentsOf: ["+set", "g_bot_aim_latency", tuning.aimLatency])
         args.append(contentsOf: ["+set", "g_bot_spread", tuning.spreadScale])
-        args.append(contentsOf: ["+set", "g_bot_sniper", "\(settings.botSniper)"])
+        args.append(contentsOf: ["+set", "g_bot_sniper", "\(min(max(settings.botSniper, 0), 100))"])
 
         // Bot aim shape
-        args.append(contentsOf: ["+set", "g_bot_aim_height_min", settings.botAimHeightMin])
-        args.append(contentsOf: ["+set", "g_bot_aim_height_max", settings.botAimHeightMax])
+        let aimHeights = settings.effectiveAimHeights()
+        args.append(contentsOf: ["+set", "g_bot_aim_height_min", aimHeights.min])
+        args.append(contentsOf: ["+set", "g_bot_aim_height_max", aimHeights.max])
 
         // Player accuracy: 0 normal, 1 high, 2 perfect
         args.append(contentsOf: ["+set", "g_accuracy", "\(settings.accuracy)"])

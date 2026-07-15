@@ -304,9 +304,13 @@ extern cvar_t *g_bot_aim_settle_time;
  */
 extern cvar_t *g_bot_aim_latency;
 /**
- * @brief The degrees per seconds when the bot turns.
+ * @brief Maximum bot turn rate in degrees per second.
  */
 extern cvar_t *g_bot_turn_speed;
+/**
+ * @brief Rate at which the bot reaches its maximum turn rate.
+ */
+extern cvar_t *g_bot_turn_accel;
 
 /**
  * @brief The delay before spawning bots at the beginning of the map.

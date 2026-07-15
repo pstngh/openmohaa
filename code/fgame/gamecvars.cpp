@@ -287,6 +287,7 @@ cvar_t *g_bot_aim_error;
 cvar_t *g_bot_aim_settle_time;
 cvar_t *g_bot_aim_latency;
 cvar_t *g_bot_turn_speed;
+cvar_t *g_bot_turn_accel;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
 cvar_t *g_bot_strafe_intensity;
@@ -329,6 +330,19 @@ cvar_t *g_navigation_legacy;
 
 // Reopen door if blocked
 cvar_t *g_door_reopen_blocked;
+
+static void CVAR_OrderPair(const char *minName, cvar_t *minCvar, const char *maxName, cvar_t *maxCvar)
+{
+    if (minCvar->value <= maxCvar->value) {
+        return;
+    }
+
+    const float oldMin = minCvar->value;
+    const float oldMax = maxCvar->value;
+
+    gi.cvar_set(minName, va("%g", oldMax));
+    gi.cvar_set(maxName, va("%g", oldMin));
+}
 
 void CVAR_Init(void)
 {
@@ -699,13 +713,24 @@ void CVAR_Init(void)
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
-    g_bot_attack_react_min_delay    = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
-    g_bot_aim_height_max            = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
-    g_bot_aim_height_min            = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
-    g_bot_aim_error                 = gi.Cvar_Get("g_bot_aim_error", "40", 0);
-    g_bot_aim_settle_time           = gi.Cvar_Get("g_bot_aim_settle_time", "0.4", 0);
-    g_bot_aim_latency               = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
-    g_bot_turn_speed                = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
+    g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
+    g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
+    g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
+    g_bot_aim_error              = gi.Cvar_Get("g_bot_aim_error", "40", 0);
+    g_bot_aim_settle_time        = gi.Cvar_Get("g_bot_aim_settle_time", "0.4", 0);
+    g_bot_aim_latency            = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
+    g_bot_turn_speed             = gi.Cvar_Get("g_bot_turn_speed", "360", 0);
+    g_bot_turn_accel             = gi.Cvar_Get("g_bot_turn_accel", "15", 0);
+
+    gi.Cvar_CheckRange(g_bot_attack_react_min_delay, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_height_min, 0, 1, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_height_max, 0, 1, qfalse);
+    CVAR_OrderPair("g_bot_aim_height_min", g_bot_aim_height_min, "g_bot_aim_height_max", g_bot_aim_height_max);
+    gi.Cvar_CheckRange(g_bot_aim_error, 0, 1024, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_settle_time, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_latency, 0, 2000, qtrue);
+    gi.Cvar_CheckRange(g_bot_turn_speed, 1, 1080, qfalse);
+    gi.Cvar_CheckRange(g_bot_turn_accel, 0.1f, 100, qfalse);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
@@ -736,11 +761,33 @@ void CVAR_Init(void)
     g_bot_peek_min_interval    = gi.Cvar_Get("g_bot_peek_min_interval", "600", 0);
     g_bot_peek_max_interval    = gi.Cvar_Get("g_bot_peek_max_interval", "1200", 0);
     g_bot_peek_distance        = gi.Cvar_Get("g_bot_peek_distance", "384", 0);
-    g_bot_spread = gi.Cvar_Get("g_bot_spread", "1", 0);
+    g_bot_spread               = gi.Cvar_Get("g_bot_spread", "1", 0);
     g_accuracy                 = gi.Cvar_Get("g_accuracy", "0", 0);
+
+    gi.Cvar_CheckRange(g_bot_strafe_intensity, 0, 1, qfalse);
+    gi.Cvar_CheckRange(g_bot_strafe_min_interval, 50, 10000, qtrue);
+    gi.Cvar_CheckRange(g_bot_strafe_max_interval, 50, 10000, qtrue);
+    CVAR_OrderPair(
+        "g_bot_strafe_min_interval",
+        g_bot_strafe_min_interval,
+        "g_bot_strafe_max_interval",
+        g_bot_strafe_max_interval
+    );
+    gi.Cvar_CheckRange(g_bot_peek_min_interval, 50, 10000, qtrue);
+    gi.Cvar_CheckRange(g_bot_peek_max_interval, 50, 10000, qtrue);
+    CVAR_OrderPair(
+        "g_bot_peek_min_interval",
+        g_bot_peek_min_interval,
+        "g_bot_peek_max_interval",
+        g_bot_peek_max_interval
+    );
+    gi.Cvar_CheckRange(g_bot_peek_distance, 0, 4096, qfalse);
+    gi.Cvar_CheckRange(g_bot_spread, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_accuracy, 0, 2, qtrue);
 
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
+    gi.Cvar_CheckRange(g_bot_sniper, 0, 100, qfalse);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

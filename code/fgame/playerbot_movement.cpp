@@ -1172,8 +1172,9 @@ float BotMovement::CalculateRearClearance()
 // Pick a random dwell time from a min/max interval cvar pair (milliseconds).
 static int RandomInterval(cvar_t *lo, cvar_t *hi)
 {
-    int span = (hi->integer > lo->integer) ? (hi->integer - lo->integer) : 0;
-    return lo->integer + (int)G_Random(span);
+    const int lower = Q_min(lo->integer, hi->integer);
+    const int upper = Q_max(lo->integer, hi->integer);
+    return lower + (int)G_Random(upper - lower);
 }
 
 /*

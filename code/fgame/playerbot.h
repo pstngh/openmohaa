@@ -189,16 +189,23 @@ private:
     int    m_iAttackStopAimTime;
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
-    float  m_fAimHeightOffset;
+    float  m_fAimHeightFraction;
     int    m_iAimAcquireTime;
-    Vector m_vAimError;
-    int    m_iLastAimTime;
+    Vector m_vAimErrorDirection;
+
+    enum { MAX_AIM_HISTORY_SAMPLES = 256 };
+    struct aim_sample_t {
+        int    time;
+        Vector position;
+    };
+    aim_sample_t m_AimHistory[MAX_AIM_HISTORY_SAMPLES];
+    int          m_iAimHistoryHead;
+    int          m_iAimHistoryCount;
 
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
-    Vector            m_vLaggedEnemyPos; // Aim target under simulated latency
     Vector            m_vLastDeathPos;
     SafePtr<Sentient> m_pEnemy;
     int               m_iEnemyEyesTag;
@@ -254,6 +261,8 @@ private:
     void        State_Attack(void);
     bool        IsValidEnemy(Sentient *sent) const;
     bool        IsEngagedByAnotherBot(Sentient *enemy) const;
+    void        BeginAimAcquisition(void);
+    Vector      GetDelayedAimTarget(const Vector& currentTarget);
 
     static void InitState_Grenade(botfunc_t *func);
     bool        CheckCondition_Grenade(void);

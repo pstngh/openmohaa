@@ -1036,11 +1036,16 @@ Only called at main exe startup, not for each game
 void SV_Init (void)
 {
 	int index;
+	const char *defaultDmflags;
 
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	Cvar_Get ("dmflags", "335560704", CVAR_SERVERINFO);
+	// Spearhead and Breakthrough use the AA-style sniper flag in addition
+	// to the shared bot-training defaults. Register the target-specific
+	// value here, before the game module requests the same cvar.
+	defaultDmflags = com_target_game->integer >= TG_MOHTA ? "336084992" : "335560704";
+	Cvar_Get ("dmflags", defaultDmflags, CVAR_SERVERINFO);
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("sv_keywords", "", CVAR_SERVERINFO);

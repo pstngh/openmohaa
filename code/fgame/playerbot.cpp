@@ -66,13 +66,16 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime    = 0;
-    m_iAttackTime      = 0;
-    m_iEnemyEyesTag    = -1;
-    m_iLastSeenTime    = 0;
-    m_iLastUnseenTime  = 0;
-    m_iAimAcquireTime  = 0;
-    m_fAimHeightOffset = 0;
+    m_iCuriousTime       = 0;
+    m_iAttackTime        = 0;
+    m_iEnemyEyesTag      = -1;
+    m_iLastSeenTime      = 0;
+    m_iLastUnseenTime    = 0;
+    m_iAimAcquireTime    = -1;
+    m_fAimHeightFraction = 0.57f;
+    m_vAimErrorDirection = vec_zero;
+    m_iAimHistoryHead    = 0;
+    m_iAimHistoryCount   = 0;
 
     m_StateFlags = 0;
 }
@@ -457,11 +460,15 @@ Clear the bot's enemy
 */
 void BotController::ClearEnemy(void)
 {
-    m_iAttackTime   = 0;
-    m_pEnemy        = NULL;
-    m_iEnemyEyesTag = -1;
-    m_vOldEnemyPos  = vec_zero;
-    m_vLastEnemyPos = vec_zero;
+    m_iAttackTime        = 0;
+    m_iAimAcquireTime    = -1;
+    m_iAimHistoryHead    = 0;
+    m_iAimHistoryCount   = 0;
+    m_vAimErrorDirection = vec_zero;
+    m_pEnemy             = NULL;
+    m_iEnemyEyesTag      = -1;
+    m_vOldEnemyPos       = vec_zero;
+    m_vLastEnemyPos      = vec_zero;
 }
 
 /*
@@ -539,14 +546,18 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
-    m_iCuriousTime    = 0;
-    m_iAttackTime     = 0;
-    m_vLastCuriousPos = vec_zero;
-    m_vOldEnemyPos    = vec_zero;
-    m_vLastEnemyPos   = vec_zero;
-    m_vLastDeathPos   = vec_zero;
-    m_pEnemy          = NULL;
-    m_iEnemyEyesTag   = -1;
+    m_iCuriousTime       = 0;
+    m_iAttackTime        = 0;
+    m_iAimAcquireTime    = -1;
+    m_iAimHistoryHead    = 0;
+    m_iAimHistoryCount   = 0;
+    m_vAimErrorDirection = vec_zero;
+    m_vLastCuriousPos    = vec_zero;
+    m_vOldEnemyPos       = vec_zero;
+    m_vLastEnemyPos      = vec_zero;
+    m_vLastDeathPos      = vec_zero;
+    m_pEnemy             = NULL;
+    m_iEnemyEyesTag      = -1;
 }
 
 /*
@@ -747,6 +758,76 @@ bool BotController::IsEngagedByAnotherBot(Sentient *enemy) const
     return false;
 }
 
+void BotController::BeginAimAcquisition(void)
+{
+    m_iAimAcquireTime = level.inttime;
+
+    // Keep live console edits safe even when the two cvars are changed in
+    // reverse order after CVAR_Init has already run.
+    const float minHeight = Q_min(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
+    const float maxHeight = Q_max(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
+    m_fAimHeightFraction  = minHeight + G_Random(maxHeight - minHeight);
+
+    Vector errorDirection(G_CRandom(1), G_CRandom(1), G_CRandom(1));
+    if (errorDirection.length() < 0.01f) {
+        errorDirection = Vector(0, 0, 1);
+    }
+    errorDirection.normalize();
+    m_vAimErrorDirection = errorDirection;
+
+    m_iAimHistoryHead  = 0;
+    m_iAimHistoryCount = 0;
+}
+
+Vector BotController::GetDelayedAimTarget(const Vector& currentTarget)
+{
+    if (g_bot_aim_latency->integer <= 0) {
+        m_iAimHistoryHead  = 0;
+        m_iAimHistoryCount = 0;
+        return currentTarget;
+    }
+
+    const int newestIndex = (m_iAimHistoryHead + MAX_AIM_HISTORY_SAMPLES - 1) % MAX_AIM_HISTORY_SAMPLES;
+    if (m_iAimHistoryCount && m_AimHistory[newestIndex].time == level.inttime) {
+        m_AimHistory[newestIndex].position = currentTarget;
+    } else {
+        m_AimHistory[m_iAimHistoryHead].time     = level.inttime;
+        m_AimHistory[m_iAimHistoryHead].position = currentTarget;
+        m_iAimHistoryHead = (m_iAimHistoryHead + 1) % MAX_AIM_HISTORY_SAMPLES;
+        if (m_iAimHistoryCount < MAX_AIM_HISTORY_SAMPLES) {
+            m_iAimHistoryCount++;
+        }
+    }
+
+    const int targetTime  = level.inttime - g_bot_aim_latency->integer;
+    const int oldestIndex =
+        (m_iAimHistoryHead + MAX_AIM_HISTORY_SAMPLES - m_iAimHistoryCount) % MAX_AIM_HISTORY_SAMPLES;
+    const aim_sample_t *previous = &m_AimHistory[oldestIndex];
+
+    if (targetTime <= previous->time) {
+        return previous->position;
+    }
+
+    for (int i = 1; i < m_iAimHistoryCount; i++) {
+        const int           index = (oldestIndex + i) % MAX_AIM_HISTORY_SAMPLES;
+        const aim_sample_t *next  = &m_AimHistory[index];
+
+        if (targetTime <= next->time) {
+            const int sampleDuration = next->time - previous->time;
+            if (sampleDuration <= 0) {
+                return next->position;
+            }
+
+            const float fraction = (float)(targetTime - previous->time) / sampleDuration;
+            return previous->position + (next->position - previous->position) * fraction;
+        }
+
+        previous = next;
+    }
+
+    return currentTarget;
+}
+
 bool BotController::CheckCondition_Attack(void)
 {
     bot_origin = controlledEnt->origin;
@@ -802,9 +883,8 @@ bool BotController::CheckCondition_Attack(void)
 
     if (pChosen) {
         if (m_pEnemy != pChosen) {
-            m_iEnemyEyesTag   = -1;
-            m_iAimAcquireTime = level.inttime;
-            m_vLaggedEnemyPos = pChosen->origin;
+            m_iEnemyEyesTag = -1;
+            BeginAimAcquisition();
         }
 
         if (!m_pEnemy) {
@@ -841,7 +921,10 @@ void BotController::State_EndAttack(void)
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
     movement.m_fEnemyDistanceSq = 0;
     controlledEnt->ZoomOff();
-    m_iAimAcquireTime = 0;
+    m_iAimAcquireTime    = -1;
+    m_iAimHistoryHead    = 0;
+    m_iAimHistoryCount   = 0;
+    m_vAimErrorDirection = vec_zero;
 }
 
 void BotController::State_Attack(void)
@@ -884,8 +967,9 @@ void BotController::State_Attack(void)
                 bCanAttack = false;
             } else {
                 m_iLastUnseenTime = 0;
-                // Fresh acquisition: the aim starts off-target and settles
-                m_iAimAcquireTime = level.inttime;
+                // Fresh acquisition: choose one error vector and settle it
+                // smoothly instead of picking a new direction every frame.
+                BeginAimAcquisition();
             }
         }
 
@@ -974,7 +1058,6 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
         Vector        vTarget;
         orientation_t eyes_or;
 
@@ -994,75 +1077,25 @@ void BotController::State_Attack(void)
             vTarget = m_pEnemy->origin;
         }
 
-        // Simulated latency: bots have 0 ping, so without this they track the
-        // target's exact live position. Aim instead where it was ~g_bot_aim_latency
-        // ms ago via a first-order lag. This trails a moving target and overshoots
-        // when it reverses (like a real player chasing a stale position), while a
-        // still target's lagged position converges to its real one so bots still
-        // hit people who hold still.
-        float fLatencySec = g_bot_aim_latency->value * 0.001f;
-        if (fLatencySec > 0.0f) {
-            float fLerp = level.frametime / fLatencySec;
-            if (fLerp > 1.0f) {
-                fLerp = 1.0f;
-            }
-            m_vLaggedEnemyPos += (vTarget - m_vLaggedEnemyPos) * fLerp;
-            vTarget = m_vLaggedEnemyPos;
-        } else {
-            m_vLaggedEnemyPos = vTarget;
+        if (m_iAimAcquireTime < 0) {
+            BeginAimAcquisition();
         }
 
-        if (level.inttime >= m_iLastAimTime + 100) {
-            float fMinHeight = g_bot_aim_height_min->value;
-            float fMaxHeight = g_bot_aim_height_max->value;
+        // Build the complete aim point before recording it so latency also
+        // delays vertical movement and stance changes. This makes 120 ms mean
+        // 120 ms, independent of frame rate.
+        vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * m_fAimHeightFraction;
+        vTarget   = GetDelayedAimTarget(vTarget);
 
-            if (fMaxHeight < fMinHeight) {
-                fMaxHeight = fMinHeight;
-            }
-
-            // Aim at a random point between the min and max fraction of the
-            // enemy's bounding-box height (crouch-aware)
-            m_fAimHeightOffset = m_pEnemy->origin.z + m_pEnemy->maxs.z * (fMinHeight + G_Random(fMaxHeight - fMinHeight))
-                               - vTarget.z;
-
-            // Aim acquisition error: a freshly acquired target is aimed at
-            // with up to g_bot_aim_error units of error that settles to zero
-            // over g_bot_aim_settle_time seconds of continuous tracking, so
-            // fire walks onto the target instead of starting on it.
-            // g_bot_aim_error 0 restores the instant lock.
-            if (!m_iAimAcquireTime) {
-                m_iAimAcquireTime = level.inttime;
-            }
-
-            float fSettleMs = g_bot_aim_settle_time->value * 1000;
-            float fErrorMag = 0;
-
-            if (fSettleMs > 0) {
-                float fErrorFrac = 1.0f - (level.inttime - m_iAimAcquireTime) / fSettleMs;
-
-                if (fErrorFrac > 0) {
-                    fErrorMag = g_bot_aim_error->value * fErrorFrac;
-                }
-            }
-
-            if (fErrorMag > 0) {
-                Vector vErrorDir(G_CRandom(1), G_CRandom(1), G_CRandom(1));
-
-                if (vErrorDir.length() < 0.01f) {
-                    vErrorDir = Vector(0, 0, 1);
-                }
-                vErrorDir.normalize();
-                m_vAimError = vErrorDir * fErrorMag;
-            } else {
-                m_vAimError = vec_zero;
-            }
-
-            m_iLastAimTime = level.inttime;
+        float errorFraction = 0;
+        const float settleMs = g_bot_aim_settle_time->value * 1000;
+        if (settleMs > 0) {
+            errorFraction = 1.0f - (level.inttime - m_iAimAcquireTime) / settleMs;
+            errorFraction = Q_clamp_float(errorFraction, 0, 1);
         }
 
         Vector vAimPoint = vTarget;
-        vAimPoint.z += m_fAimHeightOffset;
-        vAimPoint += m_vAimError;
+        vAimPoint += m_vAimErrorDirection * (g_bot_aim_error->value * errorFraction);
 
         rotation.AimAt(vAimPoint);
     } else {
