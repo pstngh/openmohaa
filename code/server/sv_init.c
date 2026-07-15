@@ -1041,10 +1041,11 @@ void SV_Init (void)
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	// Spearhead and Breakthrough use the AA-style sniper flag in addition
-	// to the shared bot-training defaults. Register the target-specific
-	// value here, before the game module requests the same cvar.
-	defaultDmflags = com_target_game->integer >= TG_MOHTA ? "336084992" : "335560704";
+	// Spearhead and Breakthrough use the AA-style sniper and force the
+	// shotgun instead of the Gewehrgranate in addition to the shared
+	// bot-training defaults. Register the target-specific value here,
+	// before the game module requests the same cvar.
+	defaultDmflags = com_target_game->integer >= TG_MOHTA ? "337133568" : "335560704";
 	Cvar_Get ("dmflags", defaultDmflags, CVAR_SERVERINFO);
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
