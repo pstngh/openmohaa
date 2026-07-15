@@ -192,6 +192,8 @@ private:
     float  m_fAimHeightFraction;
     int    m_iAimAcquireTime;
     Vector m_vAimErrorDirection;
+    Vector m_vAimErrorTargetDirection;
+    int    m_iNextAimErrorChangeTime;
 
     enum { MAX_AIM_HISTORY_SAMPLES = 256 };
     struct aim_sample_t {
@@ -204,6 +206,7 @@ private:
 
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
+    int               m_iCuriousEventType;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
     Vector            m_vLastDeathPos;
@@ -262,6 +265,7 @@ private:
     bool        IsValidEnemy(Sentient *sent) const;
     bool        IsEngagedByAnotherBot(Sentient *enemy) const;
     void        BeginAimAcquisition(void);
+    void        UpdateAimErrorDirection(void);
     Vector      GetDelayedAimTarget(const Vector& currentTarget);
 
     static void InitState_Grenade(botfunc_t *func);

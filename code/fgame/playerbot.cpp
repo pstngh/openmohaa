@@ -43,6 +43,77 @@ CLASS_DECLARATION(Listener, BotController, NULL) {
 
 BotController::botfunc_t BotController::botfuncs[MAX_BOT_FUNCTIONS];
 
+static const float BOT_AIM_RESIDUAL_FRACTION = 0.25f;
+
+static int BotSoundPriority(int eventType)
+{
+    switch (eventType) {
+    case AI_EVENT_GRENADE:
+        return 8;
+    case AI_EVENT_WEAPON_FIRE:
+        return 7;
+    case AI_EVENT_EXPLOSION:
+        return 6;
+    case AI_EVENT_WEAPON_IMPACT:
+        return 5;
+    case AI_EVENT_AMERICAN_URGENT:
+    case AI_EVENT_GERMAN_URGENT:
+        return 4;
+    case AI_EVENT_AMERICAN_VOICE:
+    case AI_EVENT_GERMAN_VOICE:
+        return 3;
+    case AI_EVENT_MISC_LOUD:
+    case AI_EVENT_FOOTSTEP:
+        return 2;
+    case AI_EVENT_MISC:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int BotSoundInterestDuration(int eventType)
+{
+    switch (eventType) {
+    case AI_EVENT_GRENADE:
+        return 5000;
+    case AI_EVENT_WEAPON_FIRE:
+    case AI_EVENT_EXPLOSION:
+        return 10000;
+    case AI_EVENT_WEAPON_IMPACT:
+        return 7000;
+    case AI_EVENT_AMERICAN_URGENT:
+    case AI_EVENT_GERMAN_URGENT:
+        return 6000;
+    case AI_EVENT_AMERICAN_VOICE:
+    case AI_EVENT_GERMAN_VOICE:
+    case AI_EVENT_MISC_LOUD:
+    case AI_EVENT_FOOTSTEP:
+        return 4000;
+    default:
+        return 2500;
+    }
+}
+
+static Vector RandomBotAimErrorDirection()
+{
+    // Keep persistent error away from the head and neck: horizontal error is
+    // symmetric, while its smaller vertical component can only pull down.
+    Vector direction(G_CRandom(1.0f), G_CRandom(1.0f), 0);
+    if (direction.length() < 0.01f) {
+        direction = Vector(1, 0, 0);
+    }
+    direction.normalize();
+    direction.z = -G_Random(0.35f);
+    direction.normalize();
+    return direction;
+}
+
+static int RandomBotAimErrorInterval()
+{
+    return 1000 + (int)G_Random(1000);
+}
+
 BotController::BotController()
 {
     if (LoadingSavegame) {
@@ -66,16 +137,19 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime       = 0;
-    m_iAttackTime        = 0;
-    m_iEnemyEyesTag      = -1;
-    m_iLastSeenTime      = 0;
-    m_iLastUnseenTime    = 0;
-    m_iAimAcquireTime    = -1;
-    m_fAimHeightFraction = 0.57f;
-    m_vAimErrorDirection = vec_zero;
-    m_iAimHistoryHead    = 0;
-    m_iAimHistoryCount   = 0;
+    m_iCuriousTime              = 0;
+    m_iAttackTime               = 0;
+    m_iEnemyEyesTag             = -1;
+    m_iLastSeenTime             = 0;
+    m_iLastUnseenTime           = 0;
+    m_iAimAcquireTime           = -1;
+    m_fAimHeightFraction        = 0.57f;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_iCuriousEventType         = AI_EVENT_NONE;
 
     m_StateFlags = 0;
 }
@@ -397,10 +471,17 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
     float     fRangeFactor;
     Vector    delta1, delta2;
 
-    if (m_iCuriousTime) {
+    if (m_iCuriousTime > level.inttime) {
         delta1 = vPos - controlledEnt->origin;
         delta2 = m_vNewCuriousPos - controlledEnt->origin;
-        if (delta1.lengthSquared() < delta2.lengthSquared()) {
+
+        const int newPriority     = BotSoundPriority(iType);
+        const int currentPriority = BotSoundPriority(m_iCuriousEventType);
+
+        // A more important sound always wins. At equal priority, keep the
+        // closer one instead of abandoning it for a farther event.
+        if (newPriority < currentPriority
+            || (newPriority == currentPriority && delta1.lengthSquared() >= delta2.lengthSquared())) {
             return;
         }
     }
@@ -446,9 +527,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    // React to all sound events
-    m_iCuriousTime   = level.inttime + 20000;
-    m_vNewCuriousPos = vPos;
+    m_iCuriousEventType = iType;
+    m_iCuriousTime      = level.inttime + BotSoundInterestDuration(iType);
+    m_vNewCuriousPos    = vPos;
 }
 
 /*
@@ -460,15 +541,17 @@ Clear the bot's enemy
 */
 void BotController::ClearEnemy(void)
 {
-    m_iAttackTime        = 0;
-    m_iAimAcquireTime    = -1;
-    m_iAimHistoryHead    = 0;
-    m_iAimHistoryCount   = 0;
-    m_vAimErrorDirection = vec_zero;
-    m_pEnemy             = NULL;
-    m_iEnemyEyesTag      = -1;
-    m_vOldEnemyPos       = vec_zero;
-    m_vLastEnemyPos      = vec_zero;
+    m_iAttackTime               = 0;
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_pEnemy                    = NULL;
+    m_iEnemyEyesTag             = -1;
+    m_vOldEnemyPos              = vec_zero;
+    m_vLastEnemyPos             = vec_zero;
 }
 
 /*
@@ -546,18 +629,21 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
-    m_iCuriousTime       = 0;
-    m_iAttackTime        = 0;
-    m_iAimAcquireTime    = -1;
-    m_iAimHistoryHead    = 0;
-    m_iAimHistoryCount   = 0;
-    m_vAimErrorDirection = vec_zero;
-    m_vLastCuriousPos    = vec_zero;
-    m_vOldEnemyPos       = vec_zero;
-    m_vLastEnemyPos      = vec_zero;
-    m_vLastDeathPos      = vec_zero;
-    m_pEnemy             = NULL;
-    m_iEnemyEyesTag      = -1;
+    m_iCuriousTime              = 0;
+    m_iAttackTime               = 0;
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_vLastCuriousPos           = vec_zero;
+    m_iCuriousEventType         = AI_EVENT_NONE;
+    m_vOldEnemyPos              = vec_zero;
+    m_vLastEnemyPos             = vec_zero;
+    m_vLastDeathPos             = vec_zero;
+    m_pEnemy                    = NULL;
+    m_iEnemyEyesTag             = -1;
 }
 
 /*
@@ -633,14 +719,16 @@ void BotController::InitState_Curious(botfunc_t *func)
 bool BotController::CheckCondition_Curious(void)
 {
     if (m_iAttackTime) {
-        m_iCuriousTime = 0;
+        m_iCuriousTime      = 0;
+        m_iCuriousEventType = AI_EVENT_NONE;
         return false;
     }
 
     if (level.inttime > m_iCuriousTime) {
         if (m_iCuriousTime) {
             movement.ClearMove();
-            m_iCuriousTime = 0;
+            m_iCuriousTime      = 0;
+            m_iCuriousEventType = AI_EVENT_NONE;
         }
 
         return false;
@@ -666,7 +754,8 @@ void BotController::State_Curious(void)
     }
 
     if (movement.MoveDone()) {
-        m_iCuriousTime = 0;
+        m_iCuriousTime      = 0;
+        m_iCuriousEventType = AI_EVENT_NONE;
     }
 }
 
@@ -768,15 +857,25 @@ void BotController::BeginAimAcquisition(void)
     const float maxHeight = Q_max(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
     m_fAimHeightFraction  = minHeight + G_Random(maxHeight - minHeight);
 
-    Vector errorDirection(G_CRandom(1), G_CRandom(1), G_CRandom(1));
-    if (errorDirection.length() < 0.01f) {
-        errorDirection = Vector(0, 0, 1);
-    }
-    errorDirection.normalize();
-    m_vAimErrorDirection = errorDirection;
+    m_vAimErrorDirection       = RandomBotAimErrorDirection();
+    m_vAimErrorTargetDirection = m_vAimErrorDirection;
+    m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
 
     m_iAimHistoryHead  = 0;
     m_iAimHistoryCount = 0;
+}
+
+void BotController::UpdateAimErrorDirection(void)
+{
+    if (level.inttime >= m_iNextAimErrorChangeTime) {
+        m_vAimErrorTargetDirection = RandomBotAimErrorDirection();
+        m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
+    }
+
+    // Exponential-style smoothing keeps the miss direction moving without
+    // per-frame jitter and makes the behavior independent of server FPS.
+    const float blend = Q_clamp_float(level.frametime * 1.5f, 0, 1);
+    m_vAimErrorDirection += (m_vAimErrorTargetDirection - m_vAimErrorDirection) * blend;
 }
 
 Vector BotController::GetDelayedAimTarget(const Vector& currentTarget)
@@ -921,10 +1020,12 @@ void BotController::State_EndAttack(void)
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
     movement.m_fEnemyDistanceSq = 0;
     controlledEnt->ZoomOff();
-    m_iAimAcquireTime    = -1;
-    m_iAimHistoryHead    = 0;
-    m_iAimHistoryCount   = 0;
-    m_vAimErrorDirection = vec_zero;
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
 }
 
 void BotController::State_Attack(void)
@@ -1087,12 +1188,19 @@ void BotController::State_Attack(void)
         vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * m_fAimHeightFraction;
         vTarget   = GetDelayedAimTarget(vTarget);
 
-        float errorFraction = 0;
+        // Acquisition error settles into a small, drifting floor instead of
+        // reaching perfect tracking. The existing aim-error value still
+        // controls both the initial miss and the residual, so no extra tuning
+        // control is needed.
+        float       errorFraction = BOT_AIM_RESIDUAL_FRACTION;
         const float settleMs = g_bot_aim_settle_time->value * 1000;
         if (settleMs > 0) {
-            errorFraction = 1.0f - (level.inttime - m_iAimAcquireTime) / settleMs;
-            errorFraction = Q_clamp_float(errorFraction, 0, 1);
+            const float acquisitionFraction =
+                Q_clamp_float(1.0f - (level.inttime - m_iAimAcquireTime) / settleMs, 0, 1);
+            errorFraction += (1.0f - BOT_AIM_RESIDUAL_FRACTION) * acquisitionFraction;
         }
+
+        UpdateAimErrorDirection();
 
         Vector vAimPoint = vTarget;
         vAimPoint += m_vAimErrorDirection * (g_bot_aim_error->value * errorFraction);
@@ -1242,8 +1350,9 @@ void BotController::UseWeaponWithAmmo()
 void BotController::Spawned(void)
 {
     ClearEnemy();
-    m_iCuriousTime   = 0;
-    m_botCmd.buttons = 0;
+    m_iCuriousTime      = 0;
+    m_iCuriousEventType = AI_EVENT_NONE;
+    m_botCmd.buttons    = 0;
 }
 
 void BotController::Think()
@@ -1294,7 +1403,8 @@ void BotController::Killed(const Event& ev)
 void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
-    m_iCuriousTime = 0;
+    m_iCuriousTime      = 0;
+    m_iCuriousEventType = AI_EVENT_NONE;
 
     // Bot taunts disabled
 }

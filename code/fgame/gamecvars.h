@@ -290,11 +290,13 @@ extern cvar_t *g_bot_aim_height_max;
  */
 extern cvar_t *g_bot_aim_height_min;
 /**
- * @brief Initial aim error in units when a bot acquires a target. 0 = instant lock (old behavior).
+ * @brief Aim error in units when a bot acquires a target. After settling, a
+ * smaller portion persists and drifts smoothly. 0 disables both errors.
  */
 extern cvar_t *g_bot_aim_error;
 /**
- * @brief Seconds of continuous tracking for the acquisition error to settle to zero.
+ * @brief Seconds of continuous tracking for acquisition error to settle to
+ * its persistent floor.
  */
 extern cvar_t *g_bot_aim_settle_time;
 /**
