@@ -64,7 +64,8 @@ class LauncherSettings: ObservableObject {
     @Published var botAimHeightMax: String = "0.65"
     @Published var botFirespreadScale: String = "2"
     @Published var accuracy: Int = 0  // 0 normal, 1 high, 2 perfect
-    @Published var aaStyle: Bool = false
+    @Published var aaStyle: Bool = false  // AA lean/view behavior in SH/BT
+    @Published var shbtPainAnimations: Bool = true
     @Published var godMode: Bool = false
 
     private var isLoading = false
@@ -154,7 +155,14 @@ class LauncherSettings: ObservableObject {
                 case "perfect": accuracy = 2
                 default: break
                 }
-            case "aa_style": aaStyle = (Int(value) ?? 0) != 0
+            case "aa_style":
+                aaStyle = (Int(value) ?? 0) != 0
+                if settingsVersion < 3 {
+                    // The old checkbox coupled AA movement with disabling the
+                    // SH/BT pain animations. Preserve that combination.
+                    shbtPainAnimations = !aaStyle
+                }
+            case "shbt_pain_anims": shbtPainAnimations = (Int(value) ?? 0) != 0
             case "god_mode": godMode = (Int(value) ?? 0) != 0
             default:
                 for i in 0..<maxBookmarks {
@@ -171,7 +179,7 @@ class LauncherSettings: ObservableObject {
     func save() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=2")
+        lines.append("settings_version=3")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -199,6 +207,7 @@ class LauncherSettings: ObservableObject {
         lines.append("bot_firespread_scale=\(botFirespreadScale)")
         lines.append("accuracy=\(accuracy)")
         lines.append("aa_style=\(aaStyle ? 1 : 0)")
+        lines.append("shbt_pain_anims=\(shbtPainAnimations ? 1 : 0)")
         lines.append("god_mode=\(godMode ? 1 : 0)")
 
         for i in 0..<maxBookmarks {

@@ -322,8 +322,11 @@ cvar_t *g_textmsg_minDelay;
 // Whether or not to prevent teams from being unbalanced
 cvar_t *g_teambalance;
 
-// Force AA-style behavior in BT (leans + pain anims)
+// Use AA-style lean movement and camera behavior in SH/BT
 cvar_t *g_aastyle;
+
+// Enable SH/BT player hit-reaction pain animations
+cvar_t *g_shbt_pain_anims;
 
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
@@ -790,6 +793,10 @@ void CVAR_Init(void)
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
     g_aastyle = gi.Cvar_Get("g_aastyle", "0", 0);
+    gi.Cvar_CheckRange(g_aastyle, 0, 1, qtrue);
+
+    g_shbt_pain_anims = gi.Cvar_Get("g_shbt_pain_anims", "1", 0);
+    gi.Cvar_CheckRange(g_shbt_pain_anims, 0, 1, qtrue);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 

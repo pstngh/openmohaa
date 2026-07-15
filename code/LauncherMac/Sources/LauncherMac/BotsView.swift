@@ -160,11 +160,20 @@ struct BotsView: View {
                         .font(.system(size: 11))
                     }
 
-                    FormRow("Options") {
-                        Toggle("God mode", isOn: $settings.godMode)
+                    FormRow("Style") {
+                        Toggle("AA lean/view", isOn: $settings.aaStyle)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
-                        Toggle("AA style", isOn: $settings.aaStyle)
+                            .help("Use Allied Assault lean limits, speeds, recovery, and camera roll in Breakthrough.")
+                        Toggle("SH/BT pain", isOn: $settings.shbtPainAnimations)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Play Spearhead/Breakthrough hit-reaction animations when players are shot.")
+                        Spacer()
+                    }
+
+                    FormRow("Options") {
+                        Toggle("God mode", isOn: $settings.godMode)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                         Spacer()
@@ -193,6 +202,7 @@ struct BotsView: View {
         .onChange(of: settings.botDifficulty) { _ in settings.save() }
         .onChange(of: settings.accuracy) { _ in settings.save() }
         .onChange(of: settings.aaStyle) { _ in settings.save() }
+        .onChange(of: settings.shbtPainAnimations) { _ in settings.save() }
         .onChange(of: settings.godMode) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in
             if on {

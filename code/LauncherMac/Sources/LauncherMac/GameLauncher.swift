@@ -94,6 +94,10 @@ struct GameLauncher {
         // Player accuracy: 0 normal, 1 high, 2 perfect
         args.append(contentsOf: ["+set", "g_accuracy", "\(settings.accuracy)"])
         args.append(contentsOf: ["+set", "g_aastyle", settings.aaStyle ? "1" : "0"])
+        args.append(contentsOf: [
+            "+set", "g_shbt_pain_anims",
+            settings.shbtPainAnimations ? "1" : "0",
+        ])
         args.append(contentsOf: ["+set", "g_godmode", settings.godMode ? "1" : "0"])
 
         appendCommonArgs(&args)

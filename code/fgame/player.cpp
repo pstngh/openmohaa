@@ -6396,7 +6396,7 @@ void Player::DamageFeedback(void)
         damage_blend += (damage_blood / realcount) * bcolor;
     }
 
-    if (g_target_game >= target_game_e::TG_MOHTA && !g_aastyle->integer) {
+    if (g_target_game >= target_game_e::TG_MOHTA && g_shbt_pain_anims->integer) {
         //
         // Added in 2.0
         //  try to find and play pain animation
@@ -6485,7 +6485,8 @@ void Player::DamageFeedback(void)
 
         painAnim += "hit_";
 
-        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID || HITLOC_TORSO_LOWER) {
+        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID
+            || pain_location == HITLOC_TORSO_LOWER) {
             painAnim += "back";
         } else {
             switch (pain_location) {

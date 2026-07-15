@@ -392,9 +392,14 @@ extern cvar_t *g_textmsg_minDelay;
 extern cvar_t *g_teambalance;
 
 /**
- * @brief Force AA-style behavior in BT. 0 = default BT behavior, 1 = AA-style leans/pain anims.
+ * @brief Use AA lean limits, speeds, recovery, and camera roll in SH/BT.
  */
 extern cvar_t *g_aastyle;
+
+/**
+ * @brief Enable SH/BT player hit-reaction pain animations.
+ */
+extern cvar_t *g_shbt_pain_anims;
 
 extern cvar_t *g_navigation_legacy;
 
