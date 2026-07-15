@@ -58,6 +58,11 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "fs_homepath", "."])
         args.append(contentsOf: ["+set", "com_target_game", "\(settings.gameType)"])
         args.append(contentsOf: ["+set", "g_gametype", "\(settings.botGameType)"])
+        if settings.botGameType == 2 {
+            // Spearhead and Breakthrough default team games to 15-second
+            // spawn waves. Bot TDM should use immediate AA-style respawning.
+            args.append(contentsOf: ["+set", "sv_team_spawn_interval", "0"])
+        }
         let botCount = settings.validatedBotCount()
         settings.botCount = botCount
         args.append(contentsOf: ["+set", "sv_bots", "\(botCount)"])
