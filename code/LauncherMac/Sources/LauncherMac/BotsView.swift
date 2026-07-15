@@ -129,7 +129,7 @@ struct BotsView: View {
                             )
                             advSliderRow(
                                 "Aim error", tunedBinding(\.botAimError, \.aimError),
-                                in: 0...1024, fractionDigits: 0, enabled: settings.botManualTuning
+                                in: 0...400, fractionDigits: 0, enabled: settings.botManualTuning
                             )
                             advSliderRow(
                                 "Settle time s", tunedBinding(\.botAimSettle, \.aimSettle),

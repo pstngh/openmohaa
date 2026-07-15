@@ -74,7 +74,7 @@ ascending order.
 | `g_bot_attack_react_min_delay` | `0.2` | `0`-`10` seconds | Delay before a bot starts shooting a newly seen enemy. |
 | `g_bot_aim_height_min` | `0.49` | `0`-`1` | Lowest aim height as a fraction of the enemy bounding box. |
 | `g_bot_aim_height_max` | `0.55` | `0`-`1` | Highest aim height as a fraction of the enemy bounding box. The default keeps the selected aim point in the torso. |
-| `g_bot_aim_error` | `40` | `0`-`1024` units | Off-target error on acquisition; after settling, 25% persists as a smooth horizontal/downward drift. |
+| `g_bot_aim_error` | `40` | `0`-`400` units | Off-target error on acquisition; after settling, 25% persists as a smooth horizontal/downward drift. |
 | `g_bot_aim_settle_time` | `0.4` | `0`-`10` seconds | Time for acquisition error to decay smoothly to its persistent floor. |
 | `g_bot_aim_latency` | `0` | `0`-`2000` ms | Makes the bot aim at a timestamped past target position. |
 
@@ -86,6 +86,14 @@ ascending order.
 | `g_bot_turn_accel` | `15` | `0.1`-`100` | Rate at which the bot ramps up to its maximum turn rate. |
 | `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. Horizontal spread remains symmetric; vertical bot spread is mirrored downward at full magnitude to avoid accidental head/neck shots without concentrating bullets at zero deviation. The launcher presets use `6` at casual, `3.5` at default, and `2` at esports. |
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
+
+### Player health and high-damage weapons
+
+In multiplayer, sniper rifles, the Mauser KAR98 rifle, and the shotgun scale
+their bullet damage with `g_playerdmhealth`, using 100 health as the baseline.
+For example, `g_playerdmhealth 200` gives those weapons twice their normal
+damage. Other weapons, melee attacks, knockback, and single-player damage are
+unchanged.
 
 ### Aggressive movement
 

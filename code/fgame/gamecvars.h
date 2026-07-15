@@ -152,6 +152,11 @@ extern cvar_t *g_realismmode;
 extern cvar_t *g_teamdamage;
 extern cvar_t *g_healthdrop;
 extern cvar_t *g_healrate;
+/**
+ * @brief Multiplayer player health. Selected high-damage weapons scale their
+ * bullet damage relative to the 100-health baseline.
+ */
+extern cvar_t *g_playerdmhealth;
 
 extern cvar_t *g_allowvote;
 extern cvar_t *g_monitor;
@@ -290,8 +295,8 @@ extern cvar_t *g_bot_aim_height_max;
  */
 extern cvar_t *g_bot_aim_height_min;
 /**
- * @brief Aim error in units when a bot acquires a target. After settling, a
- * smaller portion persists and drifts smoothly. 0 disables both errors.
+ * @brief Aim error in units (0-400) when a bot acquires a target. After
+ * settling, a smaller portion persists and drifts smoothly. 0 disables both.
  */
 extern cvar_t *g_bot_aim_error;
 /**

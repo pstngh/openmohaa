@@ -307,7 +307,7 @@ extension LauncherSettings {
             reactDelay: Self.clampedNumber(tuning.reactDelay, min: 0, max: 10, fallback: 0.2),
             turnSpeed: Self.clampedNumber(tuning.turnSpeed, min: 1, max: 1080, fallback: 360),
             turnAccel: Self.clampedNumber(tuning.turnAccel, min: 0.1, max: 100, fallback: 5),
-            aimError: Self.clampedNumber(tuning.aimError, min: 0, max: 1024, fallback: 40),
+            aimError: Self.clampedNumber(tuning.aimError, min: 0, max: 400, fallback: 40),
             aimSettle: Self.clampedNumber(tuning.aimSettle, min: 0, max: 10, fallback: 0.4),
             aimLatency: Self.clampedNumber(tuning.aimLatency, min: 0, max: 2000, fallback: 120),
             spreadScale: Self.clampedNumber(tuning.spreadScale, min: 0, max: 10, fallback: 2)

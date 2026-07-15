@@ -142,6 +142,7 @@ cvar_t *g_realismmode;
 cvar_t *g_teamdamage;
 cvar_t *g_healthdrop;
 cvar_t *g_healrate;
+cvar_t *g_playerdmhealth;
 
 cvar_t *g_allowvote;
 cvar_t *g_monitor;
@@ -363,8 +364,8 @@ void CVAR_Init(void)
     filterban          = gi.Cvar_Get("filterban", "1", 0);
 
     if (g_target_game >= target_game_e::TG_MOHTA) {
-        // SH/BT: add DF_OLD_SNIPER to force classic AA sniper rifles
-        dmflags = gi.Cvar_Get("dmflags", "336084992", CVAR_SERVERINFO);
+        // SH/BT: force classic AA snipers and the shotgun over Gewehrgranate.
+        dmflags = gi.Cvar_Get("dmflags", "337133568", CVAR_SERVERINFO);
     } else {
         dmflags = gi.Cvar_Get("dmflags", "335560704", CVAR_SERVERINFO);
     }
@@ -521,7 +522,8 @@ void CVAR_Init(void)
     g_healthdrop = gi.Cvar_Get("g_healthdrop", "1", 0);
     // Zero applies health pickups immediately. Positive values retain the
     // optional gradual healing behavior for servers that explicitly want it.
-    g_healrate = gi.Cvar_Get("g_healrate", "0", 0);
+    g_healrate       = gi.Cvar_Get("g_healrate", "0", 0);
+    g_playerdmhealth = gi.Cvar_Get("g_playerdmhealth", "100", 0);
     g_allowvote          = gi.Cvar_Get("g_allowvote", "1", CVAR_SERVERINFO);
     g_maprotation_filter = gi.Cvar_Get("g_maprotation_filter", "ffa", 0);
     g_warmup             = gi.Cvar_Get("g_warmup", "20", CVAR_ARCHIVE);
@@ -724,7 +726,7 @@ void CVAR_Init(void)
     gi.Cvar_CheckRange(g_bot_aim_height_min, 0, 1, qfalse);
     gi.Cvar_CheckRange(g_bot_aim_height_max, 0, 1, qfalse);
     CVAR_OrderPair("g_bot_aim_height_min", g_bot_aim_height_min, "g_bot_aim_height_max", g_bot_aim_height_max);
-    gi.Cvar_CheckRange(g_bot_aim_error, 0, 1024, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_error, 0, 400, qfalse);
     gi.Cvar_CheckRange(g_bot_aim_settle_time, 0, 10, qfalse);
     gi.Cvar_CheckRange(g_bot_aim_latency, 0, 2000, qtrue);
     gi.Cvar_CheckRange(g_bot_turn_speed, 1, 1080, qfalse);

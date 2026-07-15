@@ -2436,7 +2436,6 @@ void Player::InitState(void)
 void Player::InitHealth(void)
 {
     static cvar_t *pMaxHealth = gi.Cvar_Get("g_maxplayerhealth", "250", 0);
-    static cvar_t *pDMHealth  = gi.Cvar_Get("g_playerdmhealth", "100", 0);
 
     // Don't do anything if we're loading a server game.
     // This is either a loadgame or a restart
@@ -2446,8 +2445,8 @@ void Player::InitHealth(void)
 
     if (g_gametype->integer == GT_SINGLE_PLAYER && !g_realismmode->integer) {
         max_health = pMaxHealth->integer;
-    } else if (g_gametype->integer != GT_SINGLE_PLAYER && pDMHealth->integer > 0) {
-        max_health = pDMHealth->integer;
+    } else if (g_gametype->integer != GT_SINGLE_PLAYER && g_playerdmhealth->integer > 0) {
+        max_health = g_playerdmhealth->integer;
     } else {
         // reset the health values
         max_health = 100;
