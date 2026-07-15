@@ -69,6 +69,7 @@ class LauncherSettings: ObservableObject {
     @Published var godMode: Bool = false
 
     private var isLoading = false
+    private var hasLoaded = false
 
     private var settingsPath: String {
         let dir = LauncherSettings.gameDirectory
@@ -88,7 +89,13 @@ class LauncherSettings: ObservableObject {
         return Bundle.main.bundlePath.contains("/AppTranslocation/")
     }
 
+    init() {
+        load()
+    }
+
     func load() {
+        guard !hasLoaded else { return }
+        hasLoaded = true
         isLoading = true
         defer { isLoading = false }
         guard let content = try? String(contentsOfFile: settingsPath, encoding: .utf8) else { return }
@@ -230,7 +237,15 @@ class LauncherSettings: ObservableObject {
             }
         }
 
-        try? lines.joined(separator: "\n").write(toFile: settingsPath, atomically: true, encoding: .utf8)
+        do {
+            try lines.joined(separator: "\n").write(
+                toFile: settingsPath,
+                atomically: true,
+                encoding: .utf8
+            )
+        } catch {
+            NSLog("Launcher settings could not be saved to %@: %@", settingsPath, error.localizedDescription)
+        }
     }
 }
 

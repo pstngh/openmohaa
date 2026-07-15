@@ -202,7 +202,6 @@ struct BotsView: View {
             }
             .padding(Theme.pagePadding)
         }
-        .onAppear { settings.load() }
         .onChange(of: settings.botCount) { _ in settings.save() }
         .onChange(of: settings.botGameType) { _ in settings.save() }
         .onChange(of: settings.botMap) { _ in settings.save() }

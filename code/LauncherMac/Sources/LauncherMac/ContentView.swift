@@ -13,9 +13,6 @@ struct ContentView: View {
                 .tabItem { Label("Bots", systemImage: "person.3.fill") }
         }
         .frame(width: 360, height: 325)
-        .onAppear {
-            settings.load()
-        }
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
