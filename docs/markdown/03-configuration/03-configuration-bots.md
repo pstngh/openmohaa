@@ -84,7 +84,7 @@ ascending order.
 | --- | ---: | ---: | --- |
 | `g_bot_turn_speed` | `360` | `1`-`1080` degrees/second | Maximum turn rate. |
 | `g_bot_turn_accel` | `15` | `0.1`-`100` | Rate at which the bot ramps up to its maximum turn rate. |
-| `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. |
+| `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's normal horizontal and vertical base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. The launcher presets use `6` at casual, `3.5` at default, and `2` at esports. |
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
 
 ### Aggressive movement

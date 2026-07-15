@@ -98,7 +98,7 @@ struct BotsView: View {
                             .frame(width: 44)
                     }
 
-                    Slider(value: $settings.botDifficulty, in: 0...100, step: 1)
+                    Slider(value: $settings.botDifficulty, in: 0...100)
                         .disabled(settings.botManualTuning)
                         .opacity(settings.botManualTuning ? 0.5 : 1)
 

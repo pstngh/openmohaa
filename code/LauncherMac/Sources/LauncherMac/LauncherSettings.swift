@@ -254,9 +254,9 @@ extension LauncherSettings {
             aimError: String(format: "%.0f", Self.lerp3(t, 60, 40, 20)),
             aimSettle: String(format: "%.2f", Self.lerp3(t, 0.6, 0.4, 0.2)),
             aimLatency: String(format: "%.0f", Self.lerp3(t, 250, 120, 40)),
-            // Static bullet spread as a multiple of the weapon's base spread
-            // (no bloom buildup): 1 = stock accuracy, casual bots spray wide.
-            spreadScale: String(format: "%.1f", Self.lerp3(t, 4.0, 2.0, 1.0))
+            // Bots do not accumulate weapon bloom, so even the hardest preset
+            // needs more than stock base spread to avoid aimbot-like accuracy.
+            spreadScale: String(format: "%.1f", Self.lerp3(t, 6.0, 3.5, 2.0))
         )
     }
 

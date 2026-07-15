@@ -38,7 +38,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "trigger.h"
 #include "debuglines.h"
 #include "smokegrenade.h"
-#include "g_bot.h"
 
 constexpr unsigned long MAX_TRAVEL_DIST = 16216;
 
@@ -2202,25 +2201,10 @@ float BulletAttack(
         weap = NULL;
     }
 
-    // Check if owner is a bot for modified spread behavior
-    bool isBot = owner && owner->client && G_IsBot(owner->edict);
-
     for (i = 0; i < count; i++) {
         trace_t tracethrough;
 
-        float hSpread = grandom() * spread.x;
-        float vSpread = grandom() * spread.y;
-
-        // For bots: disable upward spread, halve downward spread
-        if (isBot) {
-            if (vSpread > 0) {
-                vSpread = 0;  // No upward spread
-            } else {
-                vSpread *= 0.5f;  // Halve downward spread
-            }
-        }
-
-        vTraceEnd = start + (dir * range) + (right * hSpread) + (up * vSpread);
+        vTraceEnd = start + (dir * range) + (right * grandom() * spread.x) + (up * grandom() * spread.y);
 
         vDir = vTraceEnd - start;
 
@@ -2668,23 +2652,8 @@ void FakeBulletAttack(
         bulletbits = 1;
     }
 
-    // Check if owner is a bot for modified spread behavior
-    bool isBot = owner && owner->client && G_IsBot(owner->edict);
-
     for (i = 0; i < count; i++) {
-        float hSpread = grandom() * spread.x;
-        float vSpread = grandom() * spread.y;
-
-        // For bots: disable upward spread, halve downward spread
-        if (isBot) {
-            if (vSpread > 0) {
-                vSpread = 0;  // No upward spread
-            } else {
-                vSpread *= 0.5f;  // Halve downward spread
-            }
-        }
-
-        vTraceEnd = start + (dir * range) + (right * hSpread) + (up * vSpread);
+        vTraceEnd = start + (dir * range) + (right * grandom() * spread.x) + (up * grandom() * spread.y);
 
         vDir = vTraceEnd - start;
         VectorNormalize(vDir);
