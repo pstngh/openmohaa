@@ -713,6 +713,11 @@ void CVAR_Init(void)
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
+    // Bots use game-side client records in addition to the real server
+    // clients. Validate before game.maxclients is calculated and keep future
+    // live cvar edits within the engine's absolute client limit.
+    gi.Cvar_CheckRange(sv_bots, 0, Q_max(0, MAX_CLIENTS - maxclients->integer), qtrue);
+
     g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.65", 0);
     g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
@@ -737,13 +742,6 @@ void CVAR_Init(void)
 
     g_playeranim_legs_continous = gi.Cvar_Get("g_playeranim_legs_continous", "1", 0);
     g_playerStacking            = gi.Cvar_Get("g_playerStacking", "0", 0);
-
-    if (sv_bots->integer > (int)(MAX_CLIENTS - maxclients->integer)) {
-        unsigned int lowered = MAX_CLIENTS - maxclients->integer;
-
-        gi.cvar_set("sv_bots", va("%d", lowered));
-        gi.Printf("sv_bots reached max clients, lowering the value to %u\n", lowered);
-    }
 
     g_instamsg_allowed  = gi.Cvar_Get("g_instamsg_allowed", "1", 0);
     g_instamsg_minDelay = gi.Cvar_Get("g_instamsg_minDelay", "1000", 0);

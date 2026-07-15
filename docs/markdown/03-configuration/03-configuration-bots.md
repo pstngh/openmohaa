@@ -2,6 +2,19 @@
 
 ## Global settings
 
+### `sv_bots`
+
+- **Default**: 3
+- **Type**: integer
+
+The engine clamps this value to `0` through `MAX_CLIENTS - sv_maxclients`
+before allocating game clients. The macOS launcher keeps `sv_maxclients` at
+`2` and therefore accepts `1` through `62` bots.
+
+With the default `sv_sharedbots 0`, bot capacity is allocated when the map
+starts. Bots can be removed and added back live, but increasing `sv_bots`
+beyond that map's startup capacity requires a map restart.
+
 ### `g_bot_initial_spawn_delay`
 
 - **Default**: 0
@@ -48,13 +61,18 @@ ascending order.
 | `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. |
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
 
-### Combat movement
+### Aggressive movement
+
+This movement is intentionally part of the default bot behavior and has no
+master enable/disable cvar. Strafing and matching lean are applied generally;
+peek/retreat oscillation engages only while an enemy is within
+`g_bot_peek_distance`.
 
 | Cvar | Default | Valid range | Description |
 | --- | ---: | ---: | --- |
 | `g_bot_strafe_intensity` | `0.7` | `0`-`1` | Sideways movement intensity. |
 | `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum time before changing strafe direction. |
-| `g_bot_strafe_max_interval` | `800` | `50`-`10000` ms | Maximum time before changing strafe direction. |
+| `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum time before changing strafe direction. |
 | `g_bot_peek_min_interval` | `600` | `50`-`10000` ms | Minimum time before changing peek/retreat direction. |
 | `g_bot_peek_max_interval` | `1200` | `50`-`10000` ms | Maximum time before changing peek/retreat direction. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots start peeking and retreating. |

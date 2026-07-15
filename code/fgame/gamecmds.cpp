@@ -631,7 +631,9 @@ qboolean G_CompileScript(gentity_t *ent)
 
 qboolean G_AddBotCommand(gentity_t *ent)
 {
-    unsigned int numbots;
+    int          requested;
+    unsigned int available;
+    unsigned int current;
     unsigned int totalnumbots;
 
     if (gi.Argc() <= 1) {
@@ -639,22 +641,29 @@ qboolean G_AddBotCommand(gentity_t *ent)
         return qfalse;
     }
 
-    numbots = atoi(gi.Argv(1));
+    requested = atoi(gi.Argv(1));
+    current   = G_GetNumBotsToSpawn();
+    available = G_GetBotCapacity() - current;
 
-    if (numbots > game.maxclients) {
-        gi.Printf("addbot must be between 1-%d\n", game.maxclients);
+    if (!available) {
+        gi.Printf("No free bot slots for this map\n");
         return qfalse;
     }
 
-    totalnumbots = numbots + sv_bots->integer;
+    if (requested <= 0 || (unsigned int)requested > available) {
+        gi.Printf("addbot must be between 1-%u for this map\n", available);
+        return qfalse;
+    }
 
-    gi.cvar_set("sv_bots", va("%d", totalnumbots));
+    totalnumbots = current + requested;
+
+    gi.cvar_set("sv_bots", va("%u", totalnumbots));
     return qtrue;
 }
 
 qboolean G_AddBotNamedCommand(gentity_t *ent)
 {
-    unsigned int numbots;
+    unsigned int current;
     unsigned int totalnumbots;
     const char* name;
     gentity_t *e;
@@ -666,25 +675,35 @@ qboolean G_AddBotNamedCommand(gentity_t *ent)
 
     name = gi.Argv(1);
 
-    totalnumbots = sv_bots->integer + 1;
+    current = G_GetNumBotsToSpawn();
+    if (current >= G_GetBotCapacity()) {
+        gi.Printf("No free bot slots for this map\n");
+        return qfalse;
+    }
 
-    gi.cvar_set("sv_bots", va("%d", totalnumbots));
+    totalnumbots = current + 1;
+
+    gi.cvar_set("sv_bots", va("%u", totalnumbots));
 
     bot_info_t botInfo;
     botInfo.name = name;
 
     e = G_AddBot(&botInfo);
-    if (e) {
-        const unsigned int id = G_GetBotId(e);
-        gi.cvar_set(va("g_bot%d_name", id), e->client->pers.netname);
+    if (!e) {
+        gi.cvar_set("sv_bots", va("%u", current));
+        return qfalse;
     }
+
+    const unsigned int id = G_GetBotId(e);
+    gi.cvar_set(va("g_bot%d_name", id), e->client->pers.netname);
 
     return qtrue;
 }
 
 qboolean G_RemoveBotCommand(gentity_t *ent)
 {
-    unsigned int numbots;
+    int          requested;
+    unsigned int current;
     unsigned int totalnumbots;
 
     if (gi.Argc() <= 1) {
@@ -692,10 +711,16 @@ qboolean G_RemoveBotCommand(gentity_t *ent)
         return qfalse;
     }
 
-    numbots      = atoi(gi.Argv(1));
-    totalnumbots = sv_bots->integer - Q_min(numbots, sv_bots->integer);
+    requested = atoi(gi.Argv(1));
+    if (requested <= 0) {
+        gi.Printf("removebot must be at least 1\n");
+        return qfalse;
+    }
 
-    gi.cvar_set("sv_bots", va("%d", totalnumbots));
+    current      = G_GetNumBotsToSpawn();
+    totalnumbots = current - Q_min((unsigned int)requested, current);
+
+    gi.cvar_set("sv_bots", va("%u", totalnumbots));
     return qtrue;
 }
 

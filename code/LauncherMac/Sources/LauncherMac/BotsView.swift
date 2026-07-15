@@ -4,6 +4,13 @@ struct BotsView: View {
     @ObservedObject var settings: LauncherSettings
     @State private var showAdvanced = false
 
+    private var botCount: Binding<Int> {
+        Binding(
+            get: { settings.botCount },
+            set: { settings.botCount = LauncherSettings.clampedBotCount($0) }
+        )
+    }
+
     // Spearhead is intentionally omitted: Breakthrough is mechanically identical
     // and a content superset (mounting mainta), so it covers everything Spearhead
     // does. The value is com_target_game, so Breakthrough stays 2 (not 1).
@@ -72,7 +79,7 @@ struct BotsView: View {
                     }
 
                     FormRow("Bots / Team") {
-                        TextField("", value: $settings.botCount, format: .number)
+                        TextField("", value: botCount, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 12))
                             .frame(width: 44)

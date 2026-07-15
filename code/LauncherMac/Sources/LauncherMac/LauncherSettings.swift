@@ -33,6 +33,7 @@ let resolutionList: [ResolutionEntry] = [
 ]
 
 let maxBookmarks = 3
+let maxLauncherBots = 62  // MAX_CLIENTS (64) minus the two real-client slots
 
 class LauncherSettings: ObservableObject {
     // Connect tab
@@ -115,7 +116,7 @@ class LauncherSettings: ObservableObject {
                 if let r = Int(value), r >= 0, r < resolutionList.count { resolutionIndex = r }
             // Bots tab
             case "bot_count":
-                if let n = Int(value), n >= 1, n <= 63 { botCount = n }
+                if let n = Int(value) { botCount = Self.clampedBotCount(n) }
             case "bot_game_type":
                 if let g = Int(value), (g == 1 || g == 2 || g == 4) { botGameType = g }
             case "bot_map": botMap = value
@@ -291,5 +292,13 @@ extension LauncherSettings {
             aimLatency: Self.clampedNumber(tuning.aimLatency, min: 0, max: 2000, fallback: 120),
             spreadScale: Self.clampedNumber(tuning.spreadScale, min: 0, max: 10, fallback: 2)
         )
+    }
+
+    static func clampedBotCount(_ value: Int) -> Int {
+        return min(max(value, 1), maxLauncherBots)
+    }
+
+    func validatedBotCount() -> Int {
+        return Self.clampedBotCount(botCount)
     }
 }

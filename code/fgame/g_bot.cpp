@@ -39,7 +39,6 @@ saved_bot_t::saved_bot_t()
 {}
 
 static void G_ReadBotSessionData();
-static unsigned int G_GetNumBotsToSpawn();
 
 /*
 ===========
@@ -517,16 +516,21 @@ gentity_t *G_RestoreBot(const saved_bot_t& saved)
 ===========
 G_AddBots
 
-Add the specified number of bots
+Add up to the specified number of bots and return how many were added.
 ============
 */
-void G_AddBots(unsigned int num)
+unsigned int G_AddBots(unsigned int num)
 {
-    int n;
+    unsigned int added = 0;
 
-    for (n = 0; n < num; n++) {
-        G_AddBot();
+    while (added < num) {
+        if (!G_AddBot()) {
+            break;
+        }
+        added++;
     }
+
+    return added;
 }
 
 /*
@@ -614,6 +618,21 @@ G_GetNumBots
 unsigned int G_GetNumBots()
 {
     return botManager.getControllerManager().getControllers().NumObjects();
+}
+
+/*
+===========
+G_GetBotCapacity
+
+Return the number of bot-capable client records allocated for this map.
+The allocation is fixed at game initialization, so live bot changes must
+stay within this capacity.
+============
+*/
+unsigned int G_GetBotCapacity()
+{
+    const int firstBotSlot = sv_sharedbots->integer ? 0 : maxclients->integer;
+    return game.maxclients > firstBotSlot ? (unsigned int)(game.maxclients - firstBotSlot) : 0;
 }
 
 /*
@@ -754,17 +773,20 @@ int G_CountClients()
     return count;
 }
 
-static unsigned int G_GetNumBotsToSpawn()
+/*
+===========
+G_GetNumBotsToSpawn
+
+Return the validated target bot count for the current map allocation.
+============
+*/
+unsigned int G_GetNumBotsToSpawn()
 {
-    unsigned int numClients;
-    unsigned int numBotsToSpawn;
+    if (sv_bots->integer <= 0) {
+        return 0;
+    }
 
-    //
-    // Check the minimum bot count
-    //
-    numBotsToSpawn = sv_bots->integer;
-
-    return numBotsToSpawn;
+    return Q_min((unsigned int)sv_bots->integer, G_GetBotCapacity());
 }
 
 /*
@@ -940,7 +962,6 @@ Called each frame to manage bot spawning
 */
 void G_SpawnBots()
 {
-    unsigned int numClients;
     unsigned int numBotsToSpawn;
     unsigned int numSpawnedBots;
 
@@ -954,6 +975,15 @@ void G_SpawnBots()
         return;
     }
 
+    const unsigned int botCapacity = G_GetBotCapacity();
+    if (sv_bots->integer > (int)botCapacity) {
+        gi.Printf(
+            "sv_bots exceeds this map's allocated bot capacity, lowering the value to %u\n",
+            botCapacity
+        );
+        gi.cvar_set("sv_bots", va("%u", botCapacity));
+    }
+
     numBotsToSpawn = G_GetNumBotsToSpawn();
     numSpawnedBots = botManager.getControllerManager().getControllers().NumObjects();
 
@@ -961,7 +991,14 @@ void G_SpawnBots()
     // Spawn bots
     //
     if (numBotsToSpawn > numSpawnedBots) {
-        G_AddBots(numBotsToSpawn - numSpawnedBots);
+        const unsigned int requested = numBotsToSpawn - numSpawnedBots;
+        const unsigned int added     = G_AddBots(requested);
+
+        if (added < requested) {
+            const unsigned int actual = numSpawnedBots + added;
+            gi.Printf("Unable to allocate all requested bots, lowering sv_bots to %u\n", actual);
+            gi.cvar_set("sv_bots", va("%u", actual));
+        }
     } else if (numBotsToSpawn < numSpawnedBots) {
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {

@@ -58,7 +58,9 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "fs_homepath", "."])
         args.append(contentsOf: ["+set", "com_target_game", "\(settings.gameType)"])
         args.append(contentsOf: ["+set", "g_gametype", "\(settings.botGameType)"])
-        args.append(contentsOf: ["+set", "sv_bots", "\(settings.botCount)"])
+        let botCount = settings.validatedBotCount()
+        settings.botCount = botCount
+        args.append(contentsOf: ["+set", "sv_bots", "\(botCount)"])
         // A listen server with sv_maxclients <= 1 makes the loading screen stop
         // on a "Continue" button before entering the map. Bots are added on top
         // of sv_maxclients, so a value > 1 skips that prompt and drops us
