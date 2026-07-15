@@ -64,7 +64,6 @@ struct BotsView: View {
                         Picker("", selection: $settings.botGameType) {
                             Text("FFA").tag(1)
                             Text("TDM").tag(2)
-                            Text("OBJ").tag(4)
                         }
                         .labelsHidden()
                         .font(.system(size: 12))

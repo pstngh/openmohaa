@@ -119,7 +119,7 @@ class LauncherSettings: ObservableObject {
             case "bot_count":
                 if let n = Int(value) { botCount = Self.clampedBotCount(n) }
             case "bot_game_type":
-                if let g = Int(value), (g == 1 || g == 2 || g == 4) { botGameType = g }
+                if let g = Int(value), (g == 1 || g == 2) { botGameType = g }
             case "bot_map": botMap = value
             case "bot_team": botTeam = value
             case "player_health":

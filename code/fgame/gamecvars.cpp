@@ -270,10 +270,6 @@ cvar_t *sv_scriptfiles;
 
 // Total number of bots to maintain
 cvar_t *sv_bots;
-// The minimum number of players that should be present in-game.
-//  If the number of real players is below this number,
-//  the game will automatically add bots to fill the gap
-cvar_t *sv_minPlayers;
 // Whether or not the bots use a shared player slots
 //  NOTE: Setting this cvar is not recommended
 //  because when a client connects and the slot is used by a bot
@@ -714,7 +710,6 @@ void CVAR_Init(void)
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
     sv_bots        = gi.Cvar_Get("sv_bots", "3", 0);
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
-    sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
     // Bots use game-side client records in addition to the real server
     // clients. Validate before game.maxclients is calculated and keep future

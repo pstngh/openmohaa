@@ -721,60 +721,6 @@ void G_RestoreBots()
 
 /*
 ===========
-G_CountPlayingClients
-
-Count the number of real clients that are playing
-============
-*/
-int G_CountPlayingClients()
-{
-    gentity_t   *other;
-    unsigned int n;
-    unsigned int count = 0;
-
-    for (n = 0; n < game.maxclients; n++) {
-        other = &g_entities[n];
-        if (G_IsPlayer(other)) {
-            Player *p = static_cast<Player *>(other->entity);
-            // Ignore spectators
-            if (p->GetTeam() != teamtype_t::TEAM_NONE && p->GetTeam() != teamtype_t::TEAM_SPECTATOR) {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-/*
-===========
-G_CountClients
-
-Count the number of real clients
-============
-*/
-int G_CountClients()
-{
-    gentity_t   *other;
-    unsigned int n;
-    unsigned int count = 0;
-
-    for (n = 0; n < game.maxclients; n++) {
-        other = &g_entities[n];
-        if (G_IsBot(other)) {
-            continue;
-        }
-
-        if (other->client && other->client->pers.userinfo[0]) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
-/*
-===========
 G_GetNumBotsToSpawn
 
 Return the validated target bot count for the current map allocation.

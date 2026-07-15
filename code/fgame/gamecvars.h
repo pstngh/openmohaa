@@ -275,7 +275,6 @@ extern cvar_t *g_obituarylocation;
 extern cvar_t *sv_scriptfiles;
 
 extern cvar_t *sv_bots;
-extern cvar_t *sv_minPlayers;
 extern cvar_t *sv_sharedbots;
 
 /**
