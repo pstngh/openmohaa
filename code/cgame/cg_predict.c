@@ -509,7 +509,7 @@ void CG_PredictPlayerState(void)
     // OPM: always allow leaning in all modes
     cg_pmove.alwaysAllowLean = qtrue;
 
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !g_aastyle->integer) {
+    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !g_aalean->integer) {
         cg_pmove.leanMax = 45.f;
         cg_pmove.leanAdd = 6.f;
         cg_pmove.leanRecoverSpeed = 8.5f;

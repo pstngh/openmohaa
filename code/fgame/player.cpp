@@ -3713,7 +3713,7 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
     // OPM: always allow leaning in all modes
     pm->alwaysAllowLean = qtrue;
 
-    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN && !g_aastyle->integer) {
+    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN && !g_aalean->integer) {
         pm->leanMax          = 45.f;
         pm->leanAdd          = 6.f;
         pm->leanRecoverSpeed = 8.5f;
@@ -6396,7 +6396,7 @@ void Player::DamageFeedback(void)
         damage_blend += (damage_blood / realcount) * bcolor;
     }
 
-    if (g_target_game >= target_game_e::TG_MOHTA && g_shbt_pain_anims->integer) {
+    if (g_target_game >= target_game_e::TG_MOHTA && g_painanims->integer) {
         //
         // Added in 2.0
         //  try to find and play pain animation

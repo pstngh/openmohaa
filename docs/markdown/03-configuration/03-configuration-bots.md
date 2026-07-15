@@ -15,7 +15,7 @@ With the default `sv_sharedbots 0`, bot capacity is allocated when the map
 starts. Bots can be removed and added back live, but increasing `sv_bots`
 beyond that map's startup capacity requires a map restart.
 
-### `g_aastyle`
+### `g_aalean`
 
 - **Default**: 0
 - **Type**: boolean
@@ -24,17 +24,17 @@ In Spearhead and Breakthrough, set this to `1` to use Allied Assault's lean
 limit, input speed, return-to-center speed, and first-person camera roll. It
 does not control pain animations.
 
-### `g_shbt_pain_anims`
+### `g_painanims`
 
 - **Default**: 1
 - **Type**: boolean
 
 Controls Spearhead/Breakthrough player hit-reaction animations independently
-of `g_aastyle`. Set it to `0` to suppress those animation overlays. The two
+of `g_aalean`. Set it to `0` to suppress those animation overlays. The two
 cvars provide all four combinations of AA or SH/BT lean behavior with pain
 animations enabled or disabled.
 
-| Behavior | `g_aastyle` | `g_shbt_pain_anims` |
+| Behavior | `g_aalean` | `g_painanims` |
 | --- | ---: | ---: |
 | SH/BT lean + SH/BT pain | 0 | 1 |
 | AA lean without SH/BT pain (previous AA style) | 1 | 0 |

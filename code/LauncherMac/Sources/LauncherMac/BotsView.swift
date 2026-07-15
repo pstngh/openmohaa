@@ -161,11 +161,11 @@ struct BotsView: View {
                     }
 
                     FormRow("Style") {
-                        Toggle("AA lean/view", isOn: $settings.aaStyle)
+                        Toggle("AA lean", isOn: $settings.aaLean)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Use Allied Assault lean limits, speeds, recovery, and camera roll in Breakthrough.")
-                        Toggle("SH/BT pain", isOn: $settings.shbtPainAnimations)
+                        Toggle("SH/BT pain", isOn: $settings.painAnimations)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Play Spearhead/Breakthrough hit-reaction animations when players are shot.")
@@ -201,8 +201,8 @@ struct BotsView: View {
         .onChange(of: settings.botSniper) { _ in settings.save() }
         .onChange(of: settings.botDifficulty) { _ in settings.save() }
         .onChange(of: settings.accuracy) { _ in settings.save() }
-        .onChange(of: settings.aaStyle) { _ in settings.save() }
-        .onChange(of: settings.shbtPainAnimations) { _ in settings.save() }
+        .onChange(of: settings.aaLean) { _ in settings.save() }
+        .onChange(of: settings.painAnimations) { _ in settings.save() }
         .onChange(of: settings.godMode) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in
             if on {
