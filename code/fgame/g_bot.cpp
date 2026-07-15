@@ -155,6 +155,45 @@ void InitModelList()
     gi.FS_FreeFileList(fileList);
 }
 
+static const char *G_GetRandomPlayerModel(const Container<str>& modelList, const char *currentModel)
+{
+    const unsigned int numModels = modelList.NumObjects();
+
+    if (!numModels) {
+        return "";
+    }
+
+    unsigned int index = rand() % numModels;
+
+    // A random choice may naturally repeat. When another model is available,
+    // deliberately choose a different one so each respawn visibly changes it.
+    if (currentModel && *currentModel && numModels > 1
+        && !Q_stricmp(modelList[index].c_str(), currentModel)) {
+        index = (index + 1 + rand() % (numModels - 1)) % numModels;
+    }
+
+    return modelList[index].c_str();
+}
+
+static void G_RandomizeBotUserinfoModels(char *userinfo)
+{
+    const char *model;
+
+    if (g_target_game < target_game_e::TG_MOHTA) {
+        return;
+    }
+
+    model = G_GetRandomPlayerModel(alliedModelList, Info_ValueForKey(userinfo, "dm_playermodel"));
+    if (*model) {
+        Info_SetValueForKey(userinfo, "dm_playermodel", model);
+    }
+
+    model = G_GetRandomPlayerModel(germanModelList, Info_ValueForKey(userinfo, "dm_playergermanmodel"));
+    if (*model) {
+        Info_SetValueForKey(userinfo, "dm_playergermanmodel", model);
+    }
+}
+
 /*
 ===========
 G_BotBegin
@@ -400,12 +439,7 @@ G_GetRandomAlliedPlayerModel
 */
 const char *G_GetRandomAlliedPlayerModel()
 {
-    if (!alliedModelList.NumObjects()) {
-        return "";
-    }
-
-    const unsigned int index = rand() % alliedModelList.NumObjects();
-    return alliedModelList[index];
+    return G_GetRandomPlayerModel(alliedModelList, NULL);
 }
 
 /*
@@ -415,12 +449,31 @@ G_GetRandomGermanPlayerModel
 */
 const char *G_GetRandomGermanPlayerModel()
 {
-    if (!germanModelList.NumObjects()) {
-        return "";
+    return G_GetRandomPlayerModel(germanModelList, NULL);
+}
+
+/*
+===========
+G_RandomizeBotPlayerModels
+
+Choose new SH/BT models before a bot is initialized for its next life.
+============
+*/
+void G_RandomizeBotPlayerModels(gentity_t *ent)
+{
+    const char *model;
+
+    if (g_target_game < target_game_e::TG_MOHTA || !ent || !ent->client || !G_IsBot(ent)) {
+        return;
     }
 
-    const unsigned int index = rand() % germanModelList.NumObjects();
-    return germanModelList[index];
+    G_RandomizeBotUserinfoModels(ent->client->pers.userinfo);
+
+    model = Info_ValueForKey(ent->client->pers.userinfo, "dm_playermodel");
+    Q_strncpyz(ent->client->pers.dm_playermodel, model, sizeof(ent->client->pers.dm_playermodel));
+
+    model = Info_ValueForKey(ent->client->pers.userinfo, "dm_playergermanmodel");
+    Q_strncpyz(ent->client->pers.dm_playergermanmodel, model, sizeof(ent->client->pers.dm_playergermanmodel));
 }
 
 /*
@@ -476,6 +529,7 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     Info_SetValueForKey(userinfo, "dm_playermodel", "allies_airborne");
     Info_SetValueForKey(userinfo, "dm_playergermanmodel", "german_winter_1");
+    G_RandomizeBotUserinfoModels(userinfo);
 
     Info_SetValueForKey(userinfo, "fov", "80");
     Info_SetValueForKey(userinfo, "ip", "localhost");
@@ -506,7 +560,10 @@ gentity_t *G_RestoreBot(const saved_bot_t& saved)
         return NULL;
     }
 
-    G_BotConnect(e - g_entities, qfalse, saved.userinfo);
+    Q_strncpyz(userinfo, saved.userinfo, sizeof(userinfo));
+    G_RandomizeBotUserinfoModels(userinfo);
+
+    G_BotConnect(e - g_entities, qfalse, userinfo);
     G_BotBegin(e);
 
     return e;
