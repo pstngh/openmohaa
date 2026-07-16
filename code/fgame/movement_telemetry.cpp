@@ -30,19 +30,22 @@ does not mutate game state and never calls a random-number function.
 
 namespace
 {
-constexpr int    MOVELOG_SCHEMA          = 1;
-constexpr int    MOVELOG_SAMPLE_MSEC     = 50;
-constexpr int    MOVELOG_FLUSH_MSEC      = 1000;
-constexpr size_t MOVELOG_BUFFER_LIMIT    = 64 * 1024;
-constexpr float  MOVELOG_CLEARANCE_RANGE = 128.0f;
-constexpr float  MOVELOG_AIM_RANGE       = 8192.0f;
-constexpr float  RAD_TO_DEG              = 57.29577951308232f;
+constexpr int         MOVELOG_SCHEMA          = 2;
+constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
+constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
+constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
+constexpr float       MOVELOG_CLEARANCE_RANGE = 128.0f;
+constexpr float       MOVELOG_AIM_RANGE       = 8192.0f;
+constexpr float       RAD_TO_DEG              = 57.29577951308232f;
+constexpr const char *MOVELOG_FRAMES_PATH = "telemetry/movement_frames.csv";
+constexpr const char *MOVELOG_EVENTS_PATH = "telemetry/movement_events.csv";
+constexpr const char *MOVELOG_META_PATH   = "telemetry/movement_meta.txt";
 
 fileHandle_t framesFile = 0;
 fileHandle_t eventsFile = 0;
 std::string  framesBuffer;
 std::string  eventsBuffer;
-std::string  sessionBase;
+std::string  sessionId;
 int          sessionStartMsec = 0;
 int          nextSampleMsec   = 0;
 int          nextFlushMsec    = 0;
@@ -192,8 +195,8 @@ static void AppendEventRow(
 
     std::ostringstream row;
     row << std::fixed << std::setprecision(3)
-        << MOVELOG_SCHEMA << ',' << SessionMsec() << ',' << level.inttime << ',' << level.framenum << ','
-        << CsvQuote(eventName) << ','
+        << MOVELOG_SCHEMA << ',' << CsvQuote(sessionId.c_str()) << ',' << SessionMsec() << ',' << level.inttime << ','
+        << level.framenum << ',' << CsvQuote(eventName) << ','
         << (actor ? actor->entnum : -1) << ',' << CsvQuote(PlayerName(actor)) << ',' << (PlayerIsBot(actor) ? 1 : 0)
         << ',' << (target ? target->entnum : -1) << ',' << CsvQuote(PlayerName(target)) << ','
         << (PlayerIsBot(target) ? 1 : 0) << ',' << CsvQuote(weaponName) << ',' << fireMode << ',' << damage << ','
@@ -354,14 +357,17 @@ static bool EnsureOpen()
         return true;
     }
 
-    const std::string mapName = SanitizeFilename(level.current_map);
-    std::ostringstream base;
-    base << "telemetry/movement_" << mapName << '_' << static_cast<long long>(std::time(NULL)) << '_'
-         << gi.Milliseconds();
-    sessionBase = base.str();
+    const bool framesNeedHeader = gi.FS_ReadFile(MOVELOG_FRAMES_PATH, NULL, qtrue) <= 0;
+    const bool eventsNeedHeader = gi.FS_ReadFile(MOVELOG_EVENTS_PATH, NULL, qtrue) <= 0;
+    const bool metaNeedsHeader   = gi.FS_ReadFile(MOVELOG_META_PATH, NULL, qtrue) <= 0;
 
-    framesFile = gi.FS_FOpenFileWrite((sessionBase + "_frames.csv").c_str());
-    eventsFile = gi.FS_FOpenFileWrite((sessionBase + "_events.csv").c_str());
+    const std::string mapName = SanitizeFilename(level.current_map);
+    std::ostringstream id;
+    id << mapName << '_' << static_cast<long long>(std::time(NULL)) << '_' << gi.Milliseconds();
+    sessionId = id.str();
+
+    framesFile = gi.FS_FOpenFileAppend(MOVELOG_FRAMES_PATH);
+    eventsFile = gi.FS_FOpenFileAppend(MOVELOG_EVENTS_PATH);
     if (!framesFile || !eventsFile) {
         if (framesFile) {
             gi.FS_FCloseFile(framesFile);
@@ -379,27 +385,39 @@ static bool EnsureOpen()
     nextSampleMsec   = level.inttime;
     nextFlushMsec    = level.inttime + MOVELOG_FLUSH_MSEC;
 
-    framesBuffer =
-        "schema,session_ms,server_ms,frame,frame_ms,map,client_id,name,model,is_bot,team,alive,spectator,ping,"
-        "health,max_health,origin_x,origin_y,origin_z,eye_x,eye_y,eye_z,velocity_x,velocity_y,velocity_z,"
-        "speed_xy,speed_xyz,view_pitch,view_yaw,view_roll,cmd_server_ms,cmd_msec,cmd_angle_pitch,cmd_angle_yaw,"
-        "cmd_angle_roll,cmd_forward,cmd_right,cmd_up,buttons,attack_primary,attack_secondary,run,use,lean_left,"
-        "lean_right,pm_flags,move_result,on_ground,on_ladder,zoomed,bbox_min_x,bbox_min_y,bbox_min_z,bbox_max_x,"
-        "bbox_max_y,bbox_max_z,weapon,weapon_state,clip_ammo,clip_size,reserve_ammo,fire_spread_mult,opponent_id,"
-        "opponent_name,opponent_bot,opponent_origin_x,opponent_origin_y,opponent_origin_z,opponent_eye_x,"
-        "opponent_eye_y,opponent_eye_z,opponent_velocity_x,opponent_velocity_y,opponent_velocity_z,distance_xy,"
-        "distance_xyz,body_gap_xy,body_contact,height_delta,relative_bearing,self_approach_speed,self_tangential_speed,"
-        "opponent_approach_speed,closing_speed,aim_pitch_error,aim_yaw_error,aim_total_error,aim_dot,aim_closest_miss,"
-        "aim_height_fraction,line_of_sight,crosshair_entity,crosshair_distance,crosshair_on_opponent,clear_front,"
-        "clear_back,clear_left,clear_right,clear_front_left,clear_front_right,clear_back_left,clear_back_right\n";
-    eventsBuffer =
-        "schema,session_ms,server_ms,frame,event,actor_id,actor_name,actor_bot,target_id,target_name,target_bot,weapon,"
-        "fire_mode,damage,health_before,health_after,means_of_death,hit_location,position_x,position_y,position_z,"
-        "direction_x,direction_y,direction_z,view_pitch,view_yaw,view_roll,aim_target_id,aim_pitch_error,aim_yaw_error,"
-        "aim_total_error,line_of_sight,crosshair_entity,crosshair_on_target\n";
+    framesBuffer.clear();
+    eventsBuffer.clear();
+    if (framesNeedHeader) {
+        framesBuffer =
+            "schema,session_id,session_ms,server_ms,frame,frame_ms,map,client_id,name,model,is_bot,team,alive,spectator,"
+            "ping,health,max_health,origin_x,origin_y,origin_z,eye_x,eye_y,eye_z,velocity_x,velocity_y,velocity_z,"
+            "speed_xy,speed_xyz,view_pitch,view_yaw,view_roll,cmd_server_ms,cmd_msec,cmd_angle_pitch,cmd_angle_yaw,"
+            "cmd_angle_roll,cmd_forward,cmd_right,cmd_up,buttons,attack_primary,attack_secondary,run,use,lean_left,"
+            "lean_right,pm_flags,move_result,on_ground,on_ladder,zoomed,bbox_min_x,bbox_min_y,bbox_min_z,bbox_max_x,"
+            "bbox_max_y,bbox_max_z,weapon,weapon_state,clip_ammo,clip_size,reserve_ammo,fire_spread_mult,opponent_id,"
+            "opponent_name,opponent_bot,opponent_origin_x,opponent_origin_y,opponent_origin_z,opponent_eye_x,"
+            "opponent_eye_y,opponent_eye_z,opponent_velocity_x,opponent_velocity_y,opponent_velocity_z,distance_xy,"
+            "distance_xyz,body_gap_xy,body_contact,height_delta,relative_bearing,self_approach_speed,"
+            "self_tangential_speed,opponent_approach_speed,closing_speed,aim_pitch_error,aim_yaw_error,aim_total_error,"
+            "aim_dot,aim_closest_miss,aim_height_fraction,line_of_sight,crosshair_entity,crosshair_distance,"
+            "crosshair_on_opponent,clear_front,clear_back,clear_left,clear_right,clear_front_left,clear_front_right,"
+            "clear_back_left,clear_back_right\n";
+    }
+    if (eventsNeedHeader) {
+        eventsBuffer =
+            "schema,session_id,session_ms,server_ms,frame,event,actor_id,actor_name,actor_bot,target_id,target_name,"
+            "target_bot,weapon,fire_mode,damage,health_before,health_after,means_of_death,hit_location,position_x,"
+            "position_y,position_z,direction_x,direction_y,direction_z,view_pitch,view_yaw,view_roll,aim_target_id,"
+            "aim_pitch_error,aim_yaw_error,aim_total_error,line_of_sight,crosshair_entity,crosshair_on_target\n";
+    }
 
     std::ostringstream meta;
-    meta << "schema=" << MOVELOG_SCHEMA << '\n'
+    if (metaNeedsHeader) {
+        meta << "# OpenMoHAA movement and aim telemetry sessions\n\n";
+    }
+    meta << "[session " << sessionId << "]\n"
+         << "schema=" << MOVELOG_SCHEMA << '\n'
+         << "session_id=" << sessionId << '\n'
          << "created_epoch=" << static_cast<long long>(std::time(NULL)) << '\n'
          << "map=" << (level.current_map ? level.current_map : "") << '\n'
          << "game_dir=" << (gi.GameDir() ? gi.GameDir() : "") << '\n'
@@ -422,16 +440,27 @@ static bool EnsureOpen()
          << CvarLine("g_bot_attack_spreadmult", g_bot_attack_spreadmult)
          << CvarLine("g_bot_turn_speed", g_bot_turn_speed)
          << CvarLine("g_bot_instamsg_chance", g_bot_instamsg_chance)
-         << CvarLine("g_bot_instamsg_delay", g_bot_instamsg_delay);
+         << CvarLine("g_bot_instamsg_delay", g_bot_instamsg_delay)
+         << '\n';
     const std::string metadata = meta.str();
-    gi.FS_WriteFile((sessionBase + "_meta.txt").c_str(), metadata.data(), static_cast<int>(metadata.size()));
+    fileHandle_t metaFile = gi.FS_FOpenFileAppend(MOVELOG_META_PATH);
+    if (!metaFile) {
+        gi.FS_FCloseFile(framesFile);
+        gi.FS_FCloseFile(eventsFile);
+        framesFile = eventsFile = 0;
+        gi.Printf("g_movelog: could not open telemetry metadata file\n");
+        gi.cvar_set("g_movelog", "0");
+        return false;
+    }
+    gi.FS_Write(metadata.data(), metadata.size(), metaFile);
+    gi.FS_FCloseFile(metaFile);
 
     const Vector zero(0.0f, 0.0f, 0.0f);
     AppendEventRow("session_start", NULL, NULL, "", -1, 0.0f, 0.0f, 0.0f, -1, -1, zero, zero, zero, NULL);
     FlushBuffers(true);
     gi.Printf(
-        "g_movelog: recording 20 Hz movement and aim telemetry to %s_[frames.csv|events.csv|meta.txt]\n",
-        sessionBase.c_str()
+        "g_movelog: recording session %s to telemetry/movement_[frames.csv|events.csv|meta.txt]\n",
+        sessionId.c_str()
     );
     return true;
 }
@@ -508,8 +537,8 @@ static void AppendFrame(Player *player)
 
     std::ostringstream row;
     row << std::fixed << std::setprecision(3)
-        << MOVELOG_SCHEMA << ',' << SessionMsec() << ',' << level.inttime << ',' << level.framenum << ','
-        << level.intframetime << ',' << CsvQuote(level.current_map) << ',' << player->entnum << ','
+        << MOVELOG_SCHEMA << ',' << CsvQuote(sessionId.c_str()) << ',' << SessionMsec() << ',' << level.inttime << ','
+        << level.framenum << ',' << level.intframetime << ',' << CsvQuote(level.current_map) << ',' << player->entnum << ','
         << CsvQuote(PlayerName(player)) << ',' << CsvQuote(player->client->pers.dm_playermodel) << ','
         << (PlayerIsBot(player) ? 1 : 0) << ',' << static_cast<int>(player->GetTeam()) << ','
         << (player->deadflag == DEAD_NO && player->health > 0 ? 1 : 0) << ',' << (player->IsSpectator() ? 1 : 0)
@@ -595,12 +624,12 @@ void G_MoveLogShutdown()
     if (eventsFile) {
         gi.FS_FCloseFile(eventsFile);
     }
-    gi.Printf("g_movelog: stopped recording %s\n", sessionBase.c_str());
+    gi.Printf("g_movelog: stopped recording session %s\n", sessionId.c_str());
 
     framesFile = eventsFile = 0;
     framesBuffer.clear();
     eventsBuffer.clear();
-    sessionBase.clear();
+    sessionId.clear();
 }
 
 void G_MoveLogShot(Sentient *owner, Weapon *weapon, int mode, const Vector& position, const Vector& forward)

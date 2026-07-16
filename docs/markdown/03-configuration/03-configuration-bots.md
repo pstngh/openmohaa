@@ -154,18 +154,19 @@ of the session, close the files cleanly with:
 set g_movelog 0
 ```
 
-Each session creates three files under `telemetry` in the active game
+The recorder keeps three persistent files under `telemetry` in the active game
 directory (`main`, `mainta`, or `maintt`):
 
-- `movement_<map>_<id>_frames.csv`: synchronized 20 Hz movement and aim rows.
-- `movement_<map>_<id>_events.csv`: exact combat and lifecycle events.
-- `movement_<map>_<id>_meta.txt`: map, game, movement, health, accuracy, and
-  bot-tuning settings needed to reproduce the session.
+- `movement_frames.csv`: synchronized 20 Hz movement and aim rows.
+- `movement_events.csv`: exact combat and lifecycle events.
+- `movement_meta.txt`: map, game, movement, health, accuracy, and bot-tuning
+  settings needed to reproduce each session.
 
-The session ID is unique, so a new recording never overwrites an earlier one.
-All activity between enabling and disabling `g_movelog` is appended to one
-frames file and one events file. Disabling and re-enabling recording, changing
-the map, or restarting the server starts a new three-file set.
+Nothing is overwritten: new recordings append to these same three files.
+Every period between enabling and disabling `g_movelog` has a unique
+`session_id`, as does a recording continued after a map change or server
+restart. The CSV rows and metadata blocks carry that ID so individual matches
+can still be separated during analysis.
 
 For bot tuning, record several rounds of human versus human play and several
 rounds against bots on the same maps and settings. A normal client demo
