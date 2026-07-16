@@ -9010,28 +9010,41 @@ void Player::EquipWeapons()
             break;
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "smg") && !(dmflags->integer & DF_WEAPON_NO_SMG)) {
-        switch (nationality) {
-        case NA_BRITISH:
-            giveItem("weapons/sten.tik");
-            event->AddString("Sten Mark II");
-            break;
-        case NA_RUSSIAN:
-            giveItem("weapons/ppsh_smg.tik");
-            event->AddString("PPSH SMG");
-            break;
-        case NA_GERMAN:
-            giveItem("weapons/mp40.tik");
-            event->AddString("MP40");
-            break;
-        case NA_ITALIAN:
-            giveItem("weapons/it_w_moschetto.tik");
-            event->AddString("Moschetto");
-            break;
-        case NA_AMERICAN:
-        default:
-            giveItem("weapons/thompsonsmg.tik");
-            event->AddString("Thompson");
-            break;
+        // Keep bot SMGs consistent across randomized skins: MP40 for Axis,
+        // Thompson for Allies (and the non-team FFA fallback). Human loadouts
+        // remain nationality-specific.
+        if (edict->r.svFlags & SVF_BOT) {
+            if (GetTeam() == TEAM_AXIS) {
+                giveItem("weapons/mp40.tik");
+                event->AddString("MP40");
+            } else {
+                giveItem("weapons/thompsonsmg.tik");
+                event->AddString("Thompson");
+            }
+        } else {
+            switch (nationality) {
+            case NA_BRITISH:
+                giveItem("weapons/sten.tik");
+                event->AddString("Sten Mark II");
+                break;
+            case NA_RUSSIAN:
+                giveItem("weapons/ppsh_smg.tik");
+                event->AddString("PPSH SMG");
+                break;
+            case NA_GERMAN:
+                giveItem("weapons/mp40.tik");
+                event->AddString("MP40");
+                break;
+            case NA_ITALIAN:
+                giveItem("weapons/it_w_moschetto.tik");
+                event->AddString("Moschetto");
+                break;
+            case NA_AMERICAN:
+            default:
+                giveItem("weapons/thompsonsmg.tik");
+                event->AddString("Thompson");
+                break;
+            }
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(dmflags->integer & DF_WEAPON_NO_MG)) {
         // g_bot_stg is weapon-specific: an Axis bot selected for this slot

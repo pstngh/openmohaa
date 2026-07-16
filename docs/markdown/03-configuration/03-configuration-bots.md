@@ -88,6 +88,9 @@ ascending order.
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
 | `g_bot_stg` | `5` | `0`-`100` percent | Chance that an Axis bot receives an STG. Snipers take priority, so the effective STG percentage is capped by the remaining non-sniper percentage. |
 
+Bot SMG loadouts are team-based rather than skin-based: Allied bots receive a
+Thompson and Axis bots receive an MP40. Human loadouts remain nationality-based.
+
 ### Player health and high-damage weapons
 
 In multiplayer, sniper rifles, the Mauser KAR98 rifle, and the shotgun scale
