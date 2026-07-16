@@ -79,6 +79,10 @@ struct GameLauncher {
 
         args.append(contentsOf: ["+set", "g_bot_team", settings.botTeam])
         args.append(contentsOf: ["+set", "g_playerdmhealth", "\(settings.playerHealth)"])
+        args.append(contentsOf: [
+            "+set", "sv_runspeed",
+            "\(Int(LauncherSettings.clampedRunSpeed(settings.runSpeed)))",
+        ])
 
         // Bot difficulty (slider-derived unless manual tuning is on)
         let tuning = settings.validatedTuning()

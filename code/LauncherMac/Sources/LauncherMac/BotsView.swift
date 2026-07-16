@@ -12,6 +12,13 @@ struct BotsView: View {
         )
     }
 
+    private var runSpeed: Binding<Double> {
+        Binding(
+            get: { settings.runSpeed },
+            set: { settings.runSpeed = LauncherSettings.clampedRunSpeed($0) }
+        )
+    }
+
     // Spearhead is intentionally omitted: Breakthrough is mechanically identical
     // and a content superset (mounting mainta), so it covers everything Spearhead
     // does. The value is com_target_game, so Breakthrough stays 2 (not 1).
@@ -165,6 +172,21 @@ struct BotsView: View {
                             .font(.system(size: 12))
                     }
 
+                    FormRow("Run speed") {
+                        // No step parameter: macOS otherwise draws a notch for
+                        // every discrete speed value.
+                        Slider(
+                            value: runSpeed,
+                            in: LauncherSettings.minRunSpeed...LauncherSettings.maxRunSpeed
+                        )
+                        .controlSize(.small)
+                        Text("\(Int(settings.runSpeed))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 32, alignment: .trailing)
+                    }
+                    .help("AA default: 250 · SH/BT default: 287")
+
                     FormRow("Accuracy") {
                         Picker("", selection: $settings.accuracy) {
                             Text("Normal").tag(0)
@@ -207,7 +229,13 @@ struct BotsView: View {
         .onChange(of: settings.botMap) { _ in settings.save() }
         .onChange(of: settings.botTeam) { _ in settings.save() }
         .onChange(of: settings.playerHealth) { _ in settings.save() }
+        .onChange(of: settings.runSpeed) { _ in settings.save() }
         .onChange(of: settings.gameType) { g in
+            if g == 2 && settings.runSpeed == LauncherSettings.aaDefaultRunSpeed {
+                settings.runSpeed = LauncherSettings.expansionDefaultRunSpeed
+            } else if g == 0 && settings.runSpeed == LauncherSettings.expansionDefaultRunSpeed {
+                settings.runSpeed = LauncherSettings.aaDefaultRunSpeed
+            }
             if !maps(for: g).contains(settings.botMap) {
                 settings.botMap = maps(for: g).first ?? ""
             }

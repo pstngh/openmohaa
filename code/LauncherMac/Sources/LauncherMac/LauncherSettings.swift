@@ -36,6 +36,10 @@ let maxBookmarks = 3
 let maxLauncherBots = 62  // MAX_CLIENTS (64) minus the two real-client slots
 
 class LauncherSettings: ObservableObject {
+    static let aaDefaultRunSpeed = 250.0
+    static let expansionDefaultRunSpeed = 287.0
+    static let minRunSpeed = 100.0
+    static let maxRunSpeed = 500.0
     static let defaultCrosshairLength = 9.0
     static let defaultCrosshairGap = 4.0
     static let defaultCrosshairThickness = 2.0
@@ -56,6 +60,7 @@ class LauncherSettings: ObservableObject {
     @Published var botMap: String = "dm/downladder"
     @Published var botTeam: String = "axis"
     @Published var playerHealth: Int = 175
+    @Published var runSpeed: Double = LauncherSettings.aaDefaultRunSpeed
     @Published var botSniper: Int = 0
     @Published var botDifficulty: Double = 50
     @Published var botManualTuning: Bool = false
@@ -117,6 +122,7 @@ class LauncherSettings: ObservableObject {
             guard line.hasPrefix("settings_version=") else { return nil }
             return Int(line.dropFirst("settings_version=".count))
         }.first ?? 1
+        var loadedRunSpeed = false
 
         for line in configLines {
             guard let eqIndex = line.firstIndex(of: "=") else { continue }
@@ -143,6 +149,11 @@ class LauncherSettings: ObservableObject {
             case "bot_team": botTeam = value
             case "player_health":
                 if let h = Int(value), h > 0 { playerHealth = h }
+            case "run_speed":
+                if let speed = Double(value), speed.isFinite {
+                    runSpeed = Self.clampedRunSpeed(speed)
+                    loadedRunSpeed = true
+                }
             case "bot_sniper":
                 if let s = Int(value), s >= 0 { botSniper = s }
             case "bot_difficulty":
@@ -213,6 +224,10 @@ class LauncherSettings: ObservableObject {
                 }
             }
         }
+
+        if !loadedRunSpeed {
+            runSpeed = gameType == 0 ? Self.aaDefaultRunSpeed : Self.expansionDefaultRunSpeed
+        }
     }
 
     func save() {
@@ -232,6 +247,7 @@ class LauncherSettings: ObservableObject {
         lines.append("bot_map=\(botMap)")
         lines.append("bot_team=\(botTeam)")
         lines.append("player_health=\(playerHealth)")
+        lines.append("run_speed=\(Int(Self.clampedRunSpeed(runSpeed)))")
         lines.append("bot_sniper=\(botSniper)")
         lines.append("bot_difficulty=\(Int(botDifficulty))")
         lines.append("bot_manual=\(botManualTuning ? 1 : 0)")
@@ -283,6 +299,10 @@ class LauncherSettings: ObservableObject {
             return defaultCrosshairColor
         }
         return hex.uppercased()
+    }
+
+    static func clampedRunSpeed(_ value: Double) -> Double {
+        min(max(value.rounded(), minRunSpeed), maxRunSpeed)
     }
 
     func resetCrosshair() {
