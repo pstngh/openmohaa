@@ -108,7 +108,8 @@ current screen height:
 - `set cg_crosshair_color FFFFFF`: Six-digit RGB color.
 
 The macOS launcher exposes these settings, previews the scaled result, and
-automatically disables the stock crosshair while the custom overlay is enabled.
+relies on the engine to suppress the stock crosshair while the custom overlay is
+enabled.
 The overlay is hidden while zoomed, dead, viewing a camera, or when the HUD is
 otherwise unavailable.
 

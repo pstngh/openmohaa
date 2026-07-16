@@ -123,11 +123,13 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "r_primitives", "2"])
         args.append(contentsOf: ["+set", "r_uselod", "0"])
 
-        // The engine overlay is independent from weapon crosshair state. Turn
-        // the stock crosshair off while it is active, and restore it when the
-        // launcher overlay is disabled so archived cvars cannot leave both off.
+        // The engine suppresses the stock crosshair whenever its overlay is
+        // active. Restore ui_crosshair only when disabling the overlay, which
+        // also repairs settings archived by older launcher versions.
         args.append(contentsOf: ["+set", "cg_crosshair_overlay", settings.crosshairEnabled ? "1" : "0"])
-        args.append(contentsOf: ["+set", "ui_crosshair", settings.crosshairEnabled ? "0" : "1"])
+        if !settings.crosshairEnabled {
+            args.append(contentsOf: ["+set", "ui_crosshair", "1"])
+        }
         args.append(contentsOf: ["+set", "cg_crosshair_length", "\(Int(settings.crosshairLength))"])
         args.append(contentsOf: ["+set", "cg_crosshair_gap", "\(Int(settings.crosshairGap))"])
         args.append(contentsOf: ["+set", "cg_crosshair_thickness", "\(Int(settings.crosshairThickness))"])
