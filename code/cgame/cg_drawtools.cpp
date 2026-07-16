@@ -1509,19 +1509,19 @@ void CG_DrawCrosshairOverlay()
 
     cgi.R_SetColor(color);
     cgi.R_DrawStretchPic(
-        centerX - gap - length, centerY - thickness * 0.5f, length, thickness, 0, 0, 1, 1,
+        centerX - gap - length, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
         cgs.media.crosshairOverlayShader
     );
     cgi.R_DrawStretchPic(
-        centerX + gap, centerY - thickness * 0.5f, length, thickness, 0, 0, 1, 1,
+        centerX + gap, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
         cgs.media.crosshairOverlayShader
     );
     cgi.R_DrawStretchPic(
-        centerX - thickness * 0.5f, centerY - gap - length, thickness, length, 0, 0, 1, 1,
+        centerX - thickness * 0.5f, centerY - gap - length, thickness, length, 0, 0, 0, 0,
         cgs.media.crosshairOverlayShader
     );
     cgi.R_DrawStretchPic(
-        centerX - thickness * 0.5f, centerY + gap, thickness, length, 0, 0, 1, 1,
+        centerX - thickness * 0.5f, centerY + gap, thickness, length, 0, 0, 0, 0,
         cgs.media.crosshairOverlayShader
     );
     cgi.R_SetColor(NULL);
