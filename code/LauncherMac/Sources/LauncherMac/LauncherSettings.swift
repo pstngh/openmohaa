@@ -38,8 +38,8 @@ let maxLauncherBots = 62  // MAX_CLIENTS (64) minus the two real-client slots
 class LauncherSettings: ObservableObject {
     static let aaDefaultRunSpeed = 250.0
     static let expansionDefaultRunSpeed = 287.0
-    static let minRunSpeed = 100.0
-    static let maxRunSpeed = 500.0
+    static let minRunSpeed = aaDefaultRunSpeed
+    static let maxRunSpeed = expansionDefaultRunSpeed
     static let defaultCrosshairLength = 9.0
     static let defaultCrosshairGap = 4.0
     static let defaultCrosshairThickness = 2.0
