@@ -716,7 +716,7 @@ void CVAR_Init(void)
 
     g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.55", 0);
-    g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.49", 0);
+    g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.32", 0);
     g_bot_aim_error              = gi.Cvar_Get("g_bot_aim_error", "40", 0);
     g_bot_aim_settle_time        = gi.Cvar_Get("g_bot_aim_settle_time", "0.4", 0);
     g_bot_aim_latency            = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
@@ -752,8 +752,8 @@ void CVAR_Init(void)
     g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.7", 0);
     g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "400", 0);
     g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "900", 0);
-    g_bot_peek_min_interval    = gi.Cvar_Get("g_bot_peek_min_interval", "600", 0);
-    g_bot_peek_max_interval    = gi.Cvar_Get("g_bot_peek_max_interval", "1200", 0);
+    g_bot_peek_min_interval    = gi.Cvar_Get("g_bot_peek_min_interval", "1600", 0);
+    g_bot_peek_max_interval    = gi.Cvar_Get("g_bot_peek_max_interval", "3200", 0);
     g_bot_peek_distance        = gi.Cvar_Get("g_bot_peek_distance", "384", 0);
     g_bot_spread               = gi.Cvar_Get("g_bot_spread", "1", 0);
     g_accuracy                 = gi.Cvar_Get("g_accuracy", "0", 0);

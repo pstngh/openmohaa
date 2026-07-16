@@ -43,6 +43,8 @@ public:
     ~BotMovement();
 
     void SetControlledEntity(Player *newEntity);
+    void SetCombatTarget(const Vector& target);
+    void ClearCombatTarget();
 
     void MoveThink(usercmd_t& botcmd);
 
@@ -68,6 +70,8 @@ public:
 private:
     Vector CalculateDir(const Vector& delta) const;
     Vector CalculateRelativeWishDirection(const Vector& dir) const;
+    Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
+    void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
     void   CheckJump(usercmd_t& botcmd);
@@ -120,21 +124,23 @@ private:
     Vector m_vJumpLocation;
 
     ///
-    /// Aggressive movement (strafe + lean + peek-retreat)
+    /// Aggressive movement (strafe + lean + enemy-relative radial movement)
     ///
 
     int  m_iStrafeDirection;       // -1 = left, 1 = right
     int  m_iNextStrafeChangeTime;  // When to flip strafe direction
-    int  m_iPeekDirection;         // -1 = retreat, 1 = advance
-    int  m_iNextPeekChangeTime;    // When to flip peek direction
+    int  m_iRadialDirection;       // -1 = retreat, 1 = advance
+    int  m_iNextRadialChangeTime;  // When to flip radial direction
     bool m_bIsLeaning;             // Hysteresis: currently strafing
+    bool m_bHasCombatTarget;
 
-    void  UpdateAggressiveMovement(usercmd_t& botcmd);
-    float CalculateLateralClearance(int direction);
-    float CalculateRearClearance();
+    void   UpdateAggressiveMovement(usercmd_t& botcmd);
+    void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
+    void   PreventImminentBodyContact(usercmd_t& botcmd);
+    float  CalculateLateralClearance(int direction);
+    int    RadialPhaseDuration(float distance) const;
 
-public:
-    float m_fEnemyDistanceSq;       // Cached enemy distance squared (0 if no enemy)
+    Vector m_vCombatTarget;
 };
 
 class BotRotation

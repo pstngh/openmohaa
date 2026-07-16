@@ -296,7 +296,7 @@ extern cvar_t *g_bot_aim_height_max;
 extern cvar_t *g_bot_aim_height_min;
 /**
  * @brief Aim error in units (0-400) when a bot acquires a target. After
- * settling, a smaller portion persists and drifts smoothly. 0 disables both.
+ * settling, 60% persists and drifts smoothly. 0 disables both.
  */
 extern cvar_t *g_bot_aim_error;
 /**

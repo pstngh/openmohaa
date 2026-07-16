@@ -71,7 +71,7 @@ class LauncherSettings: ObservableObject {
     @Published var botAimError: String = "40"
     @Published var botAimSettle: String = "0.4"
     @Published var botAimLatency: String = "120"
-    @Published var botAimHeightMin: String = "0.49"
+    @Published var botAimHeightMin: String = "0.32"
     @Published var botAimHeightMax: String = "0.55"
     @Published var botFirespreadScale: String = "2"
     @Published var accuracy: Int = 0  // 0 normal, 1 high, 2 perfect
@@ -179,7 +179,16 @@ class LauncherSettings: ObservableObject {
             case "bot_aim_error": botAimError = value
             case "bot_aim_settle": botAimSettle = value
             case "bot_aim_latency": botAimLatency = value
-            case "bot_aim_height_min": botAimHeightMin = value
+            case "bot_aim_height_min":
+                // Version 7 broadens the stock target range downward to match
+                // human shot placement. Preserve non-default custom values.
+                if settingsVersion < 7,
+                   let oldMin = Double(value),
+                   abs(oldMin - 0.49) < 0.0001 {
+                    botAimHeightMin = "0.32"
+                } else {
+                    botAimHeightMin = value
+                }
             case "bot_aim_height_max":
                 // Version 5 moves the stock aim ceiling out of the neck. Only
                 // migrate the exact old default; preserve custom values.
@@ -272,7 +281,7 @@ class LauncherSettings: ObservableObject {
     private func writeSettings() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=6")
+        lines.append("settings_version=7")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -424,7 +433,7 @@ extension LauncherSettings {
     /// Validate manual aim-height input before passing it to the engine. The
     /// engine repeats these checks so direct console/config use is safe too.
     func effectiveAimHeights() -> (min: String, max: String) {
-        let minValue = Double(Self.clampedNumber(botAimHeightMin, min: 0, max: 1, fallback: 0.49)) ?? 0.49
+        let minValue = Double(Self.clampedNumber(botAimHeightMin, min: 0, max: 1, fallback: 0.32)) ?? 0.32
         let maxValue = Double(Self.clampedNumber(botAimHeightMax, min: 0, max: 1, fallback: 0.55)) ?? 0.55
         return minValue <= maxValue
             ? (String(minValue), String(maxValue))
