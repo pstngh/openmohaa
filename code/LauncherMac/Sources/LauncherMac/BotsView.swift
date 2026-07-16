@@ -125,6 +125,17 @@ struct BotsView: View {
                         }
                         .labelsHidden()
                         .font(.system(size: 12))
+                        .frame(width: 110)
+
+                        Spacer(minLength: 0)
+
+                        Text("Health")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        TextField("", value: $settings.playerHealth, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12))
+                            .frame(width: 58)
                     }
 
                     HStack(spacing: 14) {
@@ -133,15 +144,9 @@ struct BotsView: View {
                             help: "Percentage of bot spawns that receive a sniper rifle."
                         )
                         percentageSlider(
-                            "Axis STG %", value: botStg,
+                            "STG", value: botStg,
                             help: "Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%."
                         )
-                    }
-
-                    FormRow("Health") {
-                        TextField("", value: $settings.playerHealth, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 12))
                     }
 
                     FormRow("Run speed") {
@@ -288,14 +293,18 @@ struct BotsView: View {
         help: String
     ) -> some View {
         VStack(spacing: 2) {
-            HStack(spacing: 4) {
+            ZStack {
                 Text(label)
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
-                Spacer(minLength: 4)
-                Text("\(Int(value.wrappedValue.rounded()))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                HStack {
+                    Spacer()
+                    Text("\(Int(value.wrappedValue.rounded()))")
+                        .font(.system(size: 9, design: .monospaced))
+                        .monospacedDigit()
+                }
             }
 
             Slider(value: value, in: 0...100)
