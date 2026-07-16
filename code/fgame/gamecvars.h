@@ -157,6 +157,11 @@ extern cvar_t *g_healrate;
  * bullet damage relative to the 100-health baseline.
  */
 extern cvar_t *g_playerdmhealth;
+/**
+ * @brief Opt-in server-side movement, aiming, and combat telemetry. Output is
+ * written below the active game directory. Disabled by default.
+ */
+extern cvar_t *g_movelog;
 
 extern cvar_t *g_allowvote;
 extern cvar_t *g_monitor;

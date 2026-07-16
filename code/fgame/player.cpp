@@ -55,6 +55,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "fixedturret.h"
 #include "clientvote.h"
 #include "g_bot.h"
+#include "movement_telemetry.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -3136,6 +3137,8 @@ void Player::Killed(Event *ev)
     inflictor    = ev->GetEntity(3);
     meansofdeath = ev->GetInteger(9);
     location     = ev->GetInteger(10);
+
+    G_MoveLogDeath(this, attacker, meansofdeath, location);
 
     if (attacker && inflictor) {
         Obituary(attacker, inflictor, meansofdeath, location);
@@ -12312,6 +12315,8 @@ bool Player::IsReady(void) const
 
 void Player::Spawned(void)
 {
+    G_MoveLogSpawn(this);
+
     delegate_spawned.Execute();
 
     Event *ev = new Event;

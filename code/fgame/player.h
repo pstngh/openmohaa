@@ -777,6 +777,7 @@ public:
     void VelocityModified(void) override;
     int  GetKnockback(int original_knockback, qboolean blocked);
     int  GetMoveResult(void);
+    const usercmd_t& GetLastUsercmd(void) const { return last_ucmd; }
     void ReceivedItem(Item *item) override;
     void RemovedItem(Item *item) override;
     void AmmoAmountChanged(Ammo *ammo, int inclip = 0) override;
