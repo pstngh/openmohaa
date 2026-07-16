@@ -19,6 +19,13 @@ struct BotsView: View {
         )
     }
 
+    private var botStg: Binding<Double> {
+        Binding(
+            get: { settings.botStg },
+            set: { settings.botStg = min(max($0.rounded(), 0), 100) }
+        )
+    }
+
     // Spearhead is intentionally omitted: Breakthrough is mechanically identical
     // and a content superset (mounting mainta), so it covers everything Spearhead
     // does. The value is com_target_game, so Breakthrough stays 2 (not 1).
@@ -172,6 +179,16 @@ struct BotsView: View {
                             .font(.system(size: 12))
                     }
 
+                    FormRow("Axis STG %") {
+                        Slider(value: botStg, in: 0...100)
+                            .controlSize(.small)
+                        Text("\(Int(settings.botStg))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 24, alignment: .trailing)
+                    }
+                    .help("Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%.")
+
                     FormRow("Run speed") {
                         // No step parameter: macOS otherwise draws a notch for
                         // every discrete speed value.
@@ -242,6 +259,7 @@ struct BotsView: View {
             settings.save()
         }
         .onChange(of: settings.botSniper) { _ in settings.save() }
+        .onChange(of: settings.botStg) { _ in settings.save() }
         .onChange(of: settings.botDifficulty) { _ in settings.save() }
         .onChange(of: settings.accuracy) { _ in settings.save() }
         .onChange(of: settings.aaLean) { _ in settings.save() }

@@ -94,6 +94,7 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "g_bot_aim_latency", tuning.aimLatency])
         args.append(contentsOf: ["+set", "g_bot_spread", tuning.spreadScale])
         args.append(contentsOf: ["+set", "g_bot_sniper", "\(min(max(settings.botSniper, 0), 100))"])
+        args.append(contentsOf: ["+set", "g_bot_stg", "\(Int(min(max(settings.botStg, 0), 100)))"])
 
         // Bot aim shape
         let aimHeights = settings.effectiveAimHeights()

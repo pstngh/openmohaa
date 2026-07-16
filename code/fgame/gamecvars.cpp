@@ -297,6 +297,7 @@ cvar_t *g_bot_spread;
 cvar_t *g_accuracy;
 cvar_t *g_bot_team;
 cvar_t *g_bot_sniper;
+cvar_t *g_bot_stg;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -781,6 +782,8 @@ void CVAR_Init(void)
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
     gi.Cvar_CheckRange(g_bot_sniper, 0, 100, qfalse);
+    g_bot_stg = gi.Cvar_Get("g_bot_stg", "5", 0);
+    gi.Cvar_CheckRange(g_bot_stg, 0, 100, qfalse);
 
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 

@@ -369,9 +369,13 @@ extern cvar_t *g_accuracy;
  */
 extern cvar_t *g_bot_team;
 /**
- * @brief Percentage of bots that get sniper rifles (rest get SMG, axis also 5% MG).
+ * @brief Percentage of bots that get sniper rifles.
  */
 extern cvar_t *g_bot_sniper;
+/**
+ * @brief Percentage of Axis bots that get an StG instead of an SMG.
+ */
+extern cvar_t *g_bot_stg;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

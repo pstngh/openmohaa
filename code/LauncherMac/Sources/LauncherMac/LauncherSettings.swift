@@ -62,6 +62,7 @@ class LauncherSettings: ObservableObject {
     @Published var playerHealth: Int = 175
     @Published var runSpeed: Double = LauncherSettings.aaDefaultRunSpeed
     @Published var botSniper: Int = 0
+    @Published var botStg: Double = 5
     @Published var botDifficulty: Double = 50
     @Published var botManualTuning: Bool = false
     @Published var botReactDelay: String = "0.2"
@@ -156,6 +157,10 @@ class LauncherSettings: ObservableObject {
                 }
             case "bot_sniper":
                 if let s = Int(value), s >= 0 { botSniper = s }
+            case "bot_stg":
+                if let percent = Double(value), percent.isFinite {
+                    botStg = min(max(percent.rounded(), 0), 100)
+                }
             case "bot_difficulty":
                 if let d = Double(value), d >= 0, d <= 100 { botDifficulty = d }
             case "bot_manual": botManualTuning = (Int(value) ?? 0) != 0
@@ -249,6 +254,7 @@ class LauncherSettings: ObservableObject {
         lines.append("player_health=\(playerHealth)")
         lines.append("run_speed=\(Int(Self.clampedRunSpeed(runSpeed)))")
         lines.append("bot_sniper=\(botSniper)")
+        lines.append("bot_stg=\(Int(botStg))")
         lines.append("bot_difficulty=\(Int(botDifficulty))")
         lines.append("bot_manual=\(botManualTuning ? 1 : 0)")
         lines.append("bot_react_delay=\(botReactDelay)")

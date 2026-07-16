@@ -8773,8 +8773,9 @@ void Player::InitDeathmatch(void)
 
     // Assign random weapons to bots based on team
     if (edict->r.svFlags & SVF_BOT) {
-        float roll = G_Random();
+        float roll          = G_Random();
         float sniperChance = g_bot_sniper->value / 100.0f;
+        float stgChance     = g_bot_stg->value / 100.0f;
         if (GetTeam() == TEAM_ALLIES) {
             if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
@@ -8782,10 +8783,11 @@ void Player::InitDeathmatch(void)
                 Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
             }
         } else if (GetTeam() == TEAM_AXIS) {
-            // Axis: sniper%, 5% MG, rest SMG
+            // Snipers take priority if the configured percentages overlap.
+            // The StG share is therefore capped by the non-sniper remainder.
             if (roll < sniperChance) {
                 Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
-            } else if (roll < sniperChance + 0.05f) {
+            } else if (roll < sniperChance + stgChance) {
                 Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
             } else {
                 Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
@@ -9032,30 +9034,37 @@ void Player::EquipWeapons()
             break;
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(dmflags->integer & DF_WEAPON_NO_MG)) {
-        switch (nationality) {
-        case NA_BRITISH:
-            if (g_target_game < target_game_e::TG_MOHTT) {
+        // g_bot_stg is weapon-specific: an Axis bot selected for this slot
+        // gets the StG even when its randomized BT skin is Italian.
+        if ((edict->r.svFlags & SVF_BOT) && GetTeam() == TEAM_AXIS) {
+            giveItem("weapons/mp44.tik");
+            event->AddString("StG 44");
+        } else {
+            switch (nationality) {
+            case NA_BRITISH:
+                if (g_target_game < target_game_e::TG_MOHTT) {
+                    giveItem("weapons/bar.tik");
+                    event->AddString("BAR");
+                    break;
+                } else {
+                    giveItem("weapons/Uk_W_Vickers.tik");
+                    event->AddString("Vickers-Berthier");
+                }
+                break;
+            case NA_GERMAN:
+                giveItem("weapons/mp44.tik");
+                event->AddString("StG 44");
+                break;
+            case NA_ITALIAN:
+                giveItem("weapons/It_W_Breda.tik");
+                event->AddString("Breda");
+                break;
+            case NA_AMERICAN:
+            default:
                 giveItem("weapons/bar.tik");
                 event->AddString("BAR");
                 break;
-            } else {
-                giveItem("weapons/Uk_W_Vickers.tik");
-                event->AddString("Vickers-Berthier");
             }
-            break;
-        case NA_GERMAN:
-            giveItem("weapons/mp44.tik");
-            event->AddString("StG 44");
-            break;
-        case NA_ITALIAN:
-            giveItem("weapons/It_W_Breda.tik");
-            event->AddString("Breda");
-            break;
-        case NA_AMERICAN:
-        default:
-            giveItem("weapons/bar.tik");
-            event->AddString("BAR");
-            break;
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "heavy") && !(dmflags->integer & DF_WEAPON_NO_ROCKET)) {
         switch (nationality) {
