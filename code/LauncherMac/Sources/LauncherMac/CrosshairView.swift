@@ -34,55 +34,52 @@ struct CrosshairView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Theme.sectionGap) {
-                Card("Preview") {
-                    CrosshairPreview(
-                        color: previewColor,
-                        length: settings.crosshairLength,
-                        gap: settings.crosshairGap,
-                        thickness: settings.crosshairThickness,
-                        resolutionHeight: resolution.height ?? 1080
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 112)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.black.opacity(0.82))
-                    )
+        VStack(spacing: Theme.sectionGap) {
+            Card("Crosshair Preview") {
+                CrosshairPreview(
+                    color: previewColor,
+                    length: settings.crosshairLength,
+                    gap: settings.crosshairGap,
+                    thickness: settings.crosshairThickness,
+                    resolutionHeight: resolution.height ?? 1080
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 96)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.black.opacity(0.82))
+                )
 
-                    Text("\(resolution.label) · dimensions scale from 1080p")
-                        .font(.system(size: 10))
+                Text("\(resolution.label) · dimensions scale from 1080p")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+
+            Card("Custom Crosshair") {
+                Toggle("Enable custom crosshair", isOn: $settings.crosshairEnabled)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+
+                FormRow("Color") {
+                    ColorPicker("", selection: colorBinding, supportsOpacity: false)
+                        .labelsHidden()
+                    Text("#\(LauncherSettings.validatedCrosshairColor(settings.crosshairColor))")
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    Spacer()
                 }
 
-                Card("Crosshair") {
-                    Toggle("Enable custom crosshair", isOn: $settings.crosshairEnabled)
-                        .toggleStyle(.checkbox)
-                        .font(.system(size: 12))
+                sliderRow("Arm length", value: $settings.crosshairLength, range: 2...32)
+                sliderRow("Center gap", value: $settings.crosshairGap, range: 1...20)
+                sliderRow("Thickness", value: $settings.crosshairThickness, range: 1...8)
 
-                    FormRow("Color") {
-                        ColorPicker("", selection: colorBinding, supportsOpacity: false)
-                            .labelsHidden()
-                        Text("#\(LauncherSettings.validatedCrosshairColor(settings.crosshairColor))")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-
-                    sliderRow("Arm length", value: $settings.crosshairLength, range: 2...32)
-                    sliderRow("Center gap", value: $settings.crosshairGap, range: 1...20)
-                    sliderRow("Thickness", value: $settings.crosshairThickness, range: 1...8)
-
-                    HStack {
-                        Spacer()
-                        Button("Reset") { settings.resetCrosshair() }
-                            .font(.system(size: 11))
-                    }
+                HStack {
+                    Spacer()
+                    Button("Reset") { settings.resetCrosshair() }
+                        .font(.system(size: 11))
                 }
             }
-            .padding(Theme.pagePadding)
         }
         .onChange(of: settings.crosshairEnabled) { _ in settings.save() }
         .onChange(of: settings.crosshairLength) { _ in settings.save() }

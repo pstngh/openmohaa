@@ -6,15 +6,27 @@ struct ContentView: View {
     @State private var showBookmarkNaming: Int? = nil
 
     var body: some View {
-        TabView {
-            connectTab
-                .tabItem { Label("Connect", systemImage: "network") }
-            BotsView(settings: settings)
-                .tabItem { Label("Bots", systemImage: "person.3.fill") }
-            CrosshairView(settings: settings)
-                .tabItem { Label("Crosshair", systemImage: "scope") }
+        VStack(spacing: 0) {
+            dashboardHeader
+
+            Divider()
+
+            ScrollView {
+                HStack(alignment: .top, spacing: Theme.sectionGap) {
+                    VStack(spacing: Theme.sectionGap) {
+                        connectPanel
+                        CrosshairView(settings: settings)
+                    }
+                    .frame(width: 330)
+
+                    BotsView(settings: settings)
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(Theme.pagePadding)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
         }
-        .frame(width: 360, height: 325)
+        .frame(width: 1200, height: 800)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
@@ -22,25 +34,51 @@ struct ContentView: View {
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
     }
 
-    private var connectTab: some View {
-        ScrollView {
-            VStack(spacing: Theme.sectionGap) {
-                Card {
-                    LabeledField("Nickname", text: $settings.nickname)
-                    LabeledField("Server IP", text: $settings.ip)
-                    LabeledField("Password", text: $settings.password, secure: true)
-                    LabeledField("RCON", text: $settings.rconPassword, secure: true)
-                    resolutionRow
-                    ForEach(0..<maxBookmarks, id: \.self) { i in
-                        bookmarkRow(index: i)
-                    }
-                }
+    private var dashboardHeader: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("OpenMoHAA")
+                    .font(.system(size: 17, weight: .semibold))
+                Text("Launcher")
+                    .font(.system(size: 10, weight: .medium))
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+                    .foregroundColor(.secondary)
+            }
 
-                LaunchButton(title: "Connect", systemImage: "bolt.fill") {
-                    GameLauncher.launch(settings: settings)
+            Spacer()
+
+            resolutionRow
+                .frame(width: 230)
+
+            VerifyButton()
+        }
+        .padding(.horizontal, Theme.pagePadding)
+        .padding(.vertical, 10)
+    }
+
+    private var connectPanel: some View {
+        VStack(spacing: Theme.sectionGap) {
+            Card("Join Server") {
+                LabeledField("Nickname", text: $settings.nickname)
+                LabeledField("Server IP", text: $settings.ip)
+                LabeledField("Password", text: $settings.password, secure: true)
+                LabeledField("RCON", text: $settings.rconPassword, secure: true)
+
+                Text("BOOKMARKS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.7)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
+
+                ForEach(0..<maxBookmarks, id: \.self) { i in
+                    bookmarkRow(index: i)
                 }
             }
-            .padding(Theme.pagePadding)
+
+            LaunchButton(title: "Connect", systemImage: "bolt.fill") {
+                GameLauncher.launch(settings: settings)
+            }
         }
     }
 

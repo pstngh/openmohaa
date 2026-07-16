@@ -3,7 +3,6 @@ import SwiftUI
 
 struct BotsView: View {
     @ObservedObject var settings: LauncherSettings
-    @State private var showAdvanced = false
 
     private var botCount: Binding<Int> {
         Binding(
@@ -40,7 +39,6 @@ struct BotsView: View {
         (0, "AA", "star.fill"),
         (2, "BT", "bolt.fill"),
     ]
-    private let labelW: CGFloat = Theme.labelWidth
     private let alliedMaps = [
         "dm/downladder", "dm/brownffa", "dm/vents", "dm/flag", "dm/main",
         "dm/alpha", "dm/crnodoors", "dm/mohdm1", "dm/mohdm6", "dm/mohdm7",
@@ -74,13 +72,9 @@ struct BotsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Theme.sectionGap) {
-                Card(spacing: 6) {
-                    HStack(spacing: 8) {
-                        gameSelector
-                        VerifyButton()
-                    }
+        VStack(spacing: Theme.sectionGap) {
+            Card("Bot Match", spacing: 6) {
+                    gameSelector
 
                     FormRow("Map") {
                         Picker("", selection: $settings.botGameType) {
@@ -198,68 +192,12 @@ struct BotsView: View {
                     }
                     .opacity(settings.botManualTuning ? 0.5 : 1)
 
-                    DisclosureGroup(isExpanded: $showAdvanced) {
-                        VStack(spacing: 6) {
-                            Text(tuningSummary)
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Toggle("Manual tuning (ignores the slider)", isOn: $settings.botManualTuning)
-                                .toggleStyle(.checkbox)
-                                .font(.system(size: 11))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            advSliderRow(
-                                "React delay s", tunedBinding(\.botReactDelay, \.reactDelay),
-                                in: 0...10, fractionDigits: 2, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Turn rate °/s", tunedBinding(\.botTurnSpeed, \.turnSpeed),
-                                in: 1...1080, fractionDigits: 0, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Turn accel", tunedBinding(\.botTurnAccel, \.turnAccel),
-                                in: 0.1...100, fractionDigits: 1, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Aim error", tunedBinding(\.botAimError, \.aimError),
-                                in: 0...400, fractionDigits: 0, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Settle time s", tunedBinding(\.botAimSettle, \.aimSettle),
-                                in: 0...10, fractionDigits: 2, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Aim latency ms", tunedBinding(\.botAimLatency, \.aimLatency),
-                                in: 0...2000, fractionDigits: 0, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Spread", tunedBinding(\.botFirespreadScale, \.spreadScale),
-                                in: 0...10, fractionDigits: 2, enabled: settings.botManualTuning
-                            )
-                            advSliderRow(
-                                "Aim height min", $settings.botAimHeightMin,
-                                in: 0...1, fractionDigits: 2, enabled: true
-                            )
-                            advSliderRow(
-                                "Aim height max", $settings.botAimHeightMax,
-                                in: 0...1, fractionDigits: 2, enabled: true
-                            )
-                        }
-                        .padding(.top, 4)
-                    } label: {
-                        Text("Advanced")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                LaunchButton(title: "Play", systemImage: "play.fill") {
-                    GameLauncher.launchBots(settings: settings)
-                }
+                    advancedTuningControls
             }
-            .padding(Theme.pagePadding)
+
+            LaunchButton(title: "Play Bot Match", systemImage: "play.fill") {
+                GameLauncher.launchBots(settings: settings)
+            }
         }
         .onChange(of: settings.botCount) { _ in settings.save() }
         .onChange(of: settings.botGameType) { _ in settings.save() }
@@ -340,6 +278,86 @@ struct BotsView: View {
         return "react \(t.reactDelay)s · turn \(t.turnSpeed)°/s @ \(t.turnAccel) · aim \(t.aimError)/\(t.aimSettle)s · lag \(t.aimLatency)ms · spread \(spread)\(suffix)"
     }
 
+    private var advancedTuningControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("ADVANCED TUNING")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.7)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Toggle("Manual", isOn: $settings.botManualTuning)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 11))
+            }
+
+            Text(tuningSummary)
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            HStack(alignment: .top, spacing: 14) {
+                VStack(spacing: 8) {
+                    compactSlider(
+                        "React delay", tunedBinding(\.botReactDelay, \.reactDelay),
+                        in: 0...10, fractionDigits: 2, suffix: "s",
+                        enabled: settings.botManualTuning
+                    )
+                    compactSlider(
+                        "Turn rate", tunedBinding(\.botTurnSpeed, \.turnSpeed),
+                        in: 1...1080, fractionDigits: 0, suffix: "°/s",
+                        enabled: settings.botManualTuning
+                    )
+                    compactSlider(
+                        "Turn accel", tunedBinding(\.botTurnAccel, \.turnAccel),
+                        in: 0.1...100, fractionDigits: 1,
+                        enabled: settings.botManualTuning
+                    )
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 8) {
+                    compactSlider(
+                        "Aim error", tunedBinding(\.botAimError, \.aimError),
+                        in: 0...400, fractionDigits: 0,
+                        enabled: settings.botManualTuning
+                    )
+                    compactSlider(
+                        "Settle time", tunedBinding(\.botAimSettle, \.aimSettle),
+                        in: 0...10, fractionDigits: 2, suffix: "s",
+                        enabled: settings.botManualTuning
+                    )
+                    compactSlider(
+                        "Aim latency", tunedBinding(\.botAimLatency, \.aimLatency),
+                        in: 0...2000, fractionDigits: 0, suffix: "ms",
+                        enabled: settings.botManualTuning
+                    )
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 8) {
+                    compactSlider(
+                        "Spread", tunedBinding(\.botFirespreadScale, \.spreadScale),
+                        in: 0...10, fractionDigits: 2,
+                        enabled: settings.botManualTuning
+                    )
+                    compactSlider(
+                        "Aim height min", $settings.botAimHeightMin,
+                        in: 0...1, fractionDigits: 2, enabled: true
+                    )
+                    compactSlider(
+                        "Aim height max", $settings.botAimHeightMax,
+                        in: 0...1, fractionDigits: 2, enabled: true
+                    )
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, 2)
+    }
+
     private func tunedBinding(
         _ storage: ReferenceWritableKeyPath<LauncherSettings, String>,
         _ derived: KeyPath<BotTuning, String>
@@ -377,32 +395,31 @@ struct BotsView: View {
         String(format: "%.\(fractionDigits)f", value)
     }
 
-    private func advSliderRow(
+    private func compactSlider(
         _ label: String,
         _ text: Binding<String>,
         in range: ClosedRange<Double>,
         fractionDigits: Int,
+        suffix: String = "",
         enabled: Bool
     ) -> some View {
         let value = numericBinding(text, in: range, fractionDigits: fractionDigits)
 
-        return HStack(spacing: 8) {
-            Text(label)
-                .font(.system(size: 11))
-                .frame(width: labelW, alignment: .trailing)
-                .foregroundColor(.secondary)
+        return VStack(spacing: 2) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Spacer(minLength: 4)
+                Text("\(sliderValue(value.wrappedValue, fractionDigits: fractionDigits))\(suffix)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .monospacedDigit()
+            }
 
-            // Omitting `step` prevents macOS from drawing a tick for every
-            // discrete value. The formatted binding supplies useful precision.
             Slider(value: value, in: range)
                 .controlSize(.small)
                 .disabled(!enabled)
                 .accessibilityLabel(Text(label))
-
-            Text(sliderValue(value.wrappedValue, fractionDigits: fractionDigits))
-                .font(.system(size: 10, design: .monospaced))
-                .monospacedDigit()
-                .frame(width: 52, alignment: .trailing)
         }
         .opacity(enabled ? 1 : 0.6)
         .help("Accepted range: \(sliderValue(range.lowerBound, fractionDigits: fractionDigits))–\(sliderValue(range.upperBound, fractionDigits: fractionDigits))")
