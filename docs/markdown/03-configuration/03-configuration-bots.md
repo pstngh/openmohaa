@@ -99,14 +99,16 @@ unchanged.
 
 This movement is intentionally part of the default bot behavior and has no
 master enable/disable cvar. Strafing and matching lean are applied generally;
-peek/retreat oscillation engages only while an enemy is within
-`g_bot_peek_distance`.
+distance-aware inward/outward movement blends with strafing while an enemy is
+within `g_bot_peek_distance`, producing irregular orbiting arcs. Final movement
+uses a short full-body collision sweep that removes only motion into an
+imminent wall or player while retaining motion along it and preserving lean.
 
 | Cvar | Default | Valid range | Description |
 | --- | ---: | ---: | --- |
 | `g_bot_strafe_intensity` | `0.7` | `0`-`1` | Sideways movement intensity. |
 | `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum time before changing strafe direction. |
 | `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum time before changing strafe direction. |
-| `g_bot_peek_min_interval` | `600` | `50`-`10000` ms | Minimum time before changing peek/retreat direction. |
-| `g_bot_peek_max_interval` | `1200` | `50`-`10000` ms | Maximum time before changing peek/retreat direction. |
-| `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots start peeking and retreating. |
+| `g_bot_peek_min_interval` | `600` | `50`-`10000` ms | Minimum time before changing inward/outward orbit direction. |
+| `g_bot_peek_max_interval` | `1200` | `50`-`10000` ms | Maximum time before changing inward/outward orbit direction. |
+| `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots blend radial orbit movement with strafing. |

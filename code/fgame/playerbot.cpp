@@ -629,6 +629,7 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
+    movement.ClearCombatTarget();
     m_iCuriousTime              = 0;
     m_iAttackTime               = 0;
     m_iAimAcquireTime           = -1;
@@ -1018,7 +1019,7 @@ bool BotController::CheckCondition_Attack(void)
 void BotController::State_EndAttack(void)
 {
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
-    movement.m_fEnemyDistanceSq = 0;
+    movement.ClearCombatTarget();
     controlledEnt->ZoomOff();
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
@@ -1041,15 +1042,11 @@ void BotController::State_Attack(void)
 
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
-        m_iAttackTime               = 0;
-        movement.m_fEnemyDistanceSq = 0;
+        m_iAttackTime = 0;
+        movement.ClearCombatTarget();
         return;
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
-
-    // Feed the aggressive-movement layer so peek/retreat can
-    // engage during close-range combat
-    movement.m_fEnemyDistanceSq = fDistanceSquared;
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
@@ -1058,6 +1055,7 @@ void BotController::State_Attack(void)
 
     if (bCanSee) {
         if (!pWeap) {
+            movement.ClearCombatTarget();
             return;
         }
 
@@ -1158,6 +1156,10 @@ void BotController::State_Attack(void)
         }
     }
 
+    // Combat movement uses the live enemy-relative direction rather than
+    // assuming that path-forward always means advancing toward the enemy.
+    movement.SetCombatTarget(m_pEnemy->origin, fMinDistance);
+
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
         Vector        vTarget;
         orientation_t eyes_or;
@@ -1211,6 +1213,7 @@ void BotController::State_Attack(void)
     }
 
     if (bNoMove) {
+        movement.ClearCombatTarget();
         return;
     }
 
