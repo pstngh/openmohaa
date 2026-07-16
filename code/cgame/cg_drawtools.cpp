@@ -1507,23 +1507,13 @@ void CG_DrawCrosshairOverlay()
     centerX = cgs.glconfig.vidWidth * 0.5f;
     centerY = cgs.glconfig.vidHeight * 0.5f;
 
+    // DrawBox uses the renderer's white image directly. The blank HUD shader's
+    // rgbGen vertex stage would apply overbright compensation a second time.
     cgi.R_SetColor(color);
-    cgi.R_DrawStretchPic(
-        centerX - gap - length, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
-        cgs.media.crosshairOverlayShader
-    );
-    cgi.R_DrawStretchPic(
-        centerX + gap, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
-        cgs.media.crosshairOverlayShader
-    );
-    cgi.R_DrawStretchPic(
-        centerX - thickness * 0.5f, centerY - gap - length, thickness, length, 0, 0, 0, 0,
-        cgs.media.crosshairOverlayShader
-    );
-    cgi.R_DrawStretchPic(
-        centerX - thickness * 0.5f, centerY + gap, thickness, length, 0, 0, 0, 0,
-        cgs.media.crosshairOverlayShader
-    );
+    cgi.R_DrawBox(centerX - gap - length, centerY - thickness * 0.5f, length, thickness);
+    cgi.R_DrawBox(centerX + gap, centerY - thickness * 0.5f, length, thickness);
+    cgi.R_DrawBox(centerX - thickness * 0.5f, centerY - gap - length, thickness, length);
+    cgi.R_DrawBox(centerX - thickness * 0.5f, centerY + gap, thickness, length);
     cgi.R_SetColor(NULL);
 }
 

@@ -355,7 +355,6 @@ extern "C" {
     typedef struct {
         qhandle_t     backTileShader;
         qhandle_t     lagometerShader;
-        qhandle_t     crosshairOverlayShader;
         qhandle_t     shadowMarkShader;
         qhandle_t     footShadowMarkShader;
         qhandle_t     wakeMarkShader;

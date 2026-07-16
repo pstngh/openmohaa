@@ -582,7 +582,6 @@ void CG_PrepRefresh(void)
     cgs.media.footShadowMarkShader     = cgi.R_RegisterShader("footShadow");
     cgs.media.wakeMarkShader           = cgi.R_RegisterShader("ripple.spr");
     cgs.media.lagometerShader          = cgi.R_RegisterShaderNoMip("gfx/2d/blank");
-    cgs.media.crosshairOverlayShader   = cgi.R_RegisterShaderNoMip("gfx/2d/blank");
     cgs.media.levelExitShader          = cgi.R_RegisterShaderNoMip("textures/menu/exit");
     cgs.media.pausedShader             = cgi.R_RegisterShaderNoMip("textures/menu/paused");
     cgs.media.backTileShader           = cgi.R_RegisterShader("gfx/2d/backtile");
