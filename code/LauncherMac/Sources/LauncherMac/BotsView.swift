@@ -72,8 +72,8 @@ struct BotsView: View {
     }
 
     var body: some View {
-        VStack(spacing: Theme.sectionGap) {
-            Card("Bot Match", spacing: 6) {
+        VStack(spacing: 8) {
+            Card("Bot Match", spacing: 5) {
                     HStack(spacing: 8) {
                         gameSelector
                             .frame(width: 116)
@@ -206,7 +206,7 @@ struct BotsView: View {
                     advancedTuningControls
             }
 
-            LaunchButton(title: "Play Bot Match", systemImage: "play.fill") {
+            LaunchButton(title: "Play", systemImage: "play.fill") {
                 GameLauncher.launchBots(settings: settings)
             }
         }

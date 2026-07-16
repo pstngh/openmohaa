@@ -6,20 +6,17 @@ struct ContentView: View {
     @State private var showBookmarkNaming: Int? = nil
 
     var body: some View {
-        ScrollView {
-            HStack(alignment: .top, spacing: Theme.sectionGap) {
-                VStack(spacing: Theme.sectionGap) {
-                    connectPanel
-                    CrosshairView(settings: settings)
-                }
-                .frame(width: 270)
-
-                BotsView(settings: settings)
-                    .frame(maxWidth: .infinity)
+        HStack(alignment: .top, spacing: Theme.sectionGap) {
+            VStack(spacing: Theme.sectionGap) {
+                connectPanel
+                CrosshairView(settings: settings)
             }
-            .padding(Theme.pagePadding)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(width: 270)
+
+            BotsView(settings: settings)
+                .frame(maxWidth: .infinity)
         }
+        .padding(Theme.pagePadding)
         .frame(width: 800, height: 540)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }

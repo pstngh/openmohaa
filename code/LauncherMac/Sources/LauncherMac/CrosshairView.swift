@@ -34,33 +34,27 @@ struct CrosshairView: View {
     }
 
     var body: some View {
-        Card("Custom Crosshair") {
+        Card("Custom Crosshair", accessory: {
+            Toggle("Enable", isOn: $settings.crosshairEnabled)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+                .fixedSize()
+        }) {
             HStack(alignment: .top, spacing: 10) {
-                VStack(spacing: 4) {
-                    CrosshairPreview(
-                        color: previewColor,
-                        length: settings.crosshairLength,
-                        gap: settings.crosshairGap,
-                        thickness: settings.crosshairThickness,
-                        resolutionHeight: resolution.height ?? 1080
-                    )
-                    .frame(width: 112, height: 82)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.black.opacity(0.82))
-                    )
+                CrosshairPreview(
+                    color: previewColor,
+                    length: settings.crosshairLength,
+                    gap: settings.crosshairGap,
+                    thickness: settings.crosshairThickness,
+                    resolutionHeight: resolution.height ?? 1080
+                )
+                .frame(width: 100, height: 72)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.black.opacity(0.82))
+                )
 
-                    Text(resolution.label)
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Enable", isOn: $settings.crosshairEnabled)
-                        .toggleStyle(.checkbox)
-                        .font(.system(size: 12))
-
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Text("Color")
                             .font(.system(size: 11))
@@ -70,14 +64,21 @@ struct CrosshairView: View {
                         Text("#\(LauncherSettings.validatedCrosshairColor(settings.crosshairColor))")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(.secondary)
+                            .fixedSize()
                     }
 
-                    Spacer(minLength: 0)
+                    Text(resolution.label)
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
 
-                    Button("Reset") { settings.resetCrosshair() }
-                        .font(.system(size: 11))
+                    HStack {
+                        Spacer()
+                        Button("Reset") { settings.resetCrosshair() }
+                            .font(.system(size: 10))
+                    }
                 }
-                .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
             }
 
             sliderRow("Arm length", value: $settings.crosshairLength, range: 2...32)
@@ -92,11 +93,24 @@ struct CrosshairView: View {
     }
 
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
-        FormRow(label) {
-            Slider(value: value, in: range, step: 1)
-            Text("\(Int(value.wrappedValue))")
-                .font(.system(size: 11, design: .monospaced))
-                .frame(width: 24, alignment: .trailing)
+        let integerValue = Binding<Double>(
+            get: { value.wrappedValue },
+            set: { value.wrappedValue = min(max($0.rounded(), range.lowerBound), range.upperBound) }
+        )
+
+        return HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+                .frame(width: 62, alignment: .trailing)
+
+            Slider(value: integerValue, in: range)
+                .controlSize(.small)
+
+            Text("\(Int(integerValue.wrappedValue))")
+                .font(.system(size: 10, design: .monospaced))
+                .monospacedDigit()
+                .frame(width: 18, alignment: .trailing)
         }
     }
 }
