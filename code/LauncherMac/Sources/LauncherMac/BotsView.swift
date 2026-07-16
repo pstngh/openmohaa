@@ -144,7 +144,7 @@ struct BotsView: View {
                             help: "Percentage of bot spawns that receive a sniper rifle."
                         )
                         percentageSlider(
-                            "STG", value: botStg,
+                            "STG %", value: botStg,
                             help: "Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%."
                         )
                     }
