@@ -1359,7 +1359,7 @@ void CG_DrawCrosshair()
 
     shader = (qhandle_t)0;
 
-    if (!cg_hud->integer || !ui_crosshair->integer) {
+    if (!cg_hud->integer || !ui_crosshair->integer || cg_crosshair_overlay->integer) {
         return;
     }
 
@@ -1440,6 +1440,91 @@ void CG_DrawCrosshair()
         cgi.R_SetColor(NULL);
         cgi.R_DrawStretchPic(x, y, width, height, 0, 0, 1, 1, shader);
     }
+}
+
+/*
+====================
+CG_DrawCrosshairOverlay
+
+Draw a weapon-independent, four-arm crosshair at the exact framebuffer
+center. Dimensions are specified at 1080p and scale uniformly with screen
+height so the shape is not distorted by widescreen aspect ratios.
+====================
+*/
+void CG_DrawCrosshairOverlay()
+{
+    unsigned int rgb;
+    const char  *colorString;
+    vec4_t       color;
+    float        scale;
+    float        centerX, centerY;
+    float        length, gap, thickness;
+
+    if (!cg_crosshair_overlay->integer || !cg_hud->integer || !cg.snap) {
+        return;
+    }
+
+    if ((cg.snap->ps.pm_flags & (PMF_NO_HUD | PMF_INTERMISSION | PMF_CAMERA_VIEW))
+        || cg.snap->ps.stats[STAT_INZOOM] || cg.snap->ps.stats[STAT_HEALTH] <= 0) {
+        return;
+    }
+
+    scale     = (float)cgs.glconfig.vidHeight / 1080.0f;
+    length    = (float)(int)(Q_clamp_float(cg_crosshair_length->value, 1.0f, 128.0f) * scale + 0.5f);
+    gap       = (float)(int)(Q_clamp_float(cg_crosshair_gap->value, 1.0f, 64.0f) * scale + 0.5f);
+    thickness = (float)(int)(Q_clamp_float(cg_crosshair_thickness->value, 1.0f, 16.0f) * scale + 0.5f);
+
+    // Preserve a visible center gap and usable arms at low resolutions.
+    if (length < 1.0f) {
+        length = 1.0f;
+    }
+    if (gap < 1.0f) {
+        gap = 1.0f;
+    }
+    if (thickness < 1.0f) {
+        thickness = 1.0f;
+    }
+    // Keep thick arms from touching each other around the empty center.
+    if (gap < thickness * 0.5f + 0.5f) {
+        gap = thickness * 0.5f + 0.5f;
+    }
+
+    rgb         = 0xFFFFFF;
+    colorString = cg_crosshair_color->string;
+    if (colorString[0] == '#') {
+        colorString++;
+    }
+    if (sscanf(colorString, "%x", &rgb) != 1) {
+        rgb = 0xFFFFFF;
+    }
+    rgb &= 0xFFFFFF;
+
+    color[0] = ((rgb >> 16) & 0xFF) / 255.0f;
+    color[1] = ((rgb >> 8) & 0xFF) / 255.0f;
+    color[2] = (rgb & 0xFF) / 255.0f;
+    color[3] = 1.0f;
+
+    centerX = cgs.glconfig.vidWidth * 0.5f;
+    centerY = cgs.glconfig.vidHeight * 0.5f;
+
+    cgi.R_SetColor(color);
+    cgi.R_DrawStretchPic(
+        centerX - gap - length, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
+        cgs.media.crosshairOverlayShader
+    );
+    cgi.R_DrawStretchPic(
+        centerX + gap, centerY - thickness * 0.5f, length, thickness, 0, 0, 0, 0,
+        cgs.media.crosshairOverlayShader
+    );
+    cgi.R_DrawStretchPic(
+        centerX - thickness * 0.5f, centerY - gap - length, thickness, length, 0, 0, 0, 0,
+        cgs.media.crosshairOverlayShader
+    );
+    cgi.R_DrawStretchPic(
+        centerX - thickness * 0.5f, centerY + gap, thickness, length, 0, 0, 0, 0,
+        cgs.media.crosshairOverlayShader
+    );
+    cgi.R_SetColor(NULL);
 }
 
 void CG_DrawVote()
@@ -1540,4 +1625,5 @@ void CG_Draw2D(void)
     CG_DrawVote();
     CG_DrawInstantMessageMenu();
     CG_DrawCrosshair();
+    CG_DrawCrosshairOverlay();
 }

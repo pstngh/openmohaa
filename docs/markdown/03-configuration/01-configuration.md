@@ -94,6 +94,24 @@ To calculate IP subnets, search for `IP subnet calculator` on Internet.
 
 ## Game settings
 
+### Custom crosshair overlay
+
+OpenMoHAA can draw a four-arm crosshair independently of the weapon-provided
+crosshair. Its measurements are defined at 1080p and scale uniformly with the
+current screen height:
+
+- `set cg_crosshair_overlay 1`: Enable the custom crosshair overlay and suppress
+  the stock weapon crosshair.
+- `set cg_crosshair_length 9`: Length of each arm.
+- `set cg_crosshair_gap 4`: Distance from the center to each arm.
+- `set cg_crosshair_thickness 2`: Thickness of each arm.
+- `set cg_crosshair_color FFFFFF`: Six-digit RGB color.
+
+The macOS launcher exposes these settings, previews the scaled result, and
+automatically disables the stock crosshair while the custom overlay is enabled.
+The overlay is hidden while zoomed, dead, viewing a camera, or when the HUD is
+otherwise unavailable.
+
 ### Chat
 
 Chat messages are logged to console and in the logfile by default, without requiring to set the `developer` variable.

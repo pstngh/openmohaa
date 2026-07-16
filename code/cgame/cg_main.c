@@ -83,6 +83,11 @@ cvar_t *cg_huddraw_force;
 cvar_t *cg_drawsvlag;
 cvar_t *cg_crosshair;
 cvar_t *cg_crosshair_friend;
+cvar_t *cg_crosshair_overlay;
+cvar_t *cg_crosshair_length;
+cvar_t *cg_crosshair_gap;
+cvar_t *cg_crosshair_thickness;
+cvar_t *cg_crosshair_color;
 cvar_t *ui_crosshair;
 cvar_t *vm_offset_max;
 cvar_t *vm_offset_speed;
@@ -176,6 +181,11 @@ void CG_RegisterCvars(void)
     // 1.11 and below will fallback to cg_crosshair if the texture doesn't exist
     // as it doesn't have crosshair_friend texture
     cg_crosshair_friend = cgi.Cvar_Get("cg_crosshair_friend", "textures/hud/crosshair_friend", CVAR_ARCHIVE);
+    cg_crosshair_overlay   = cgi.Cvar_Get("cg_crosshair_overlay", "0", CVAR_ARCHIVE);
+    cg_crosshair_length    = cgi.Cvar_Get("cg_crosshair_length", "9", CVAR_ARCHIVE);
+    cg_crosshair_gap       = cgi.Cvar_Get("cg_crosshair_gap", "4", CVAR_ARCHIVE);
+    cg_crosshair_thickness = cgi.Cvar_Get("cg_crosshair_thickness", "2", CVAR_ARCHIVE);
+    cg_crosshair_color     = cgi.Cvar_Get("cg_crosshair_color", "FFFFFF", CVAR_ARCHIVE);
     ui_crosshair                  = cgi.Cvar_Get("ui_crosshair", "1", CVAR_ARCHIVE);
     vm_offset_max                 = cgi.Cvar_Get("vm_offset_max", "8.0", 0);
     vm_offset_speed               = cgi.Cvar_Get("vm_offset_speed", "8.0", 0);
@@ -572,6 +582,7 @@ void CG_PrepRefresh(void)
     cgs.media.footShadowMarkShader     = cgi.R_RegisterShader("footShadow");
     cgs.media.wakeMarkShader           = cgi.R_RegisterShader("ripple.spr");
     cgs.media.lagometerShader          = cgi.R_RegisterShaderNoMip("gfx/2d/blank");
+    cgs.media.crosshairOverlayShader   = cgi.R_RegisterShaderNoMip("gfx/2d/blank");
     cgs.media.levelExitShader          = cgi.R_RegisterShaderNoMip("textures/menu/exit");
     cgs.media.pausedShader             = cgi.R_RegisterShaderNoMip("textures/menu/paused");
     cgs.media.backTileShader           = cgi.R_RegisterShader("gfx/2d/backtile");

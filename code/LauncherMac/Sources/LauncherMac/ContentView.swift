@@ -11,6 +11,8 @@ struct ContentView: View {
                 .tabItem { Label("Connect", systemImage: "network") }
             BotsView(settings: settings)
                 .tabItem { Label("Bots", systemImage: "person.3.fill") }
+            CrosshairView(settings: settings)
+                .tabItem { Label("Crosshair", systemImage: "scope") }
         }
         .frame(width: 360, height: 325)
         .onChange(of: settings.ip) { _ in settings.save() }

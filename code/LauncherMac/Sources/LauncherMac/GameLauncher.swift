@@ -29,7 +29,7 @@ struct GameLauncher {
             args.append(contentsOf: ["+set", "name", settings.nickname])
         }
 
-        appendCommonArgs(&args)
+        appendCommonArgs(&args, settings: settings)
         appendResolutionArgs(&args, settings: settings)
 
         // Auto-save bookmark if IP matches
@@ -105,7 +105,7 @@ struct GameLauncher {
         ])
         args.append(contentsOf: ["+set", "g_godmode", settings.godMode ? "1" : "0"])
 
-        appendCommonArgs(&args)
+        appendCommonArgs(&args, settings: settings)
         appendResolutionArgs(&args, settings: settings)
 
         // Map must be last
@@ -118,10 +118,23 @@ struct GameLauncher {
         run(executable: bundlePath, args: args, cwd: gameDir)
     }
 
-    private static func appendCommonArgs(_ args: inout [String]) {
+    private static func appendCommonArgs(_ args: inout [String], settings: LauncherSettings) {
         args.append(contentsOf: ["+set", "cl_playintro", "0"])
         args.append(contentsOf: ["+set", "r_primitives", "2"])
         args.append(contentsOf: ["+set", "r_uselod", "0"])
+
+        // The engine overlay is independent from weapon crosshair state. Turn
+        // the stock crosshair off while it is active, and restore it when the
+        // launcher overlay is disabled so archived cvars cannot leave both off.
+        args.append(contentsOf: ["+set", "cg_crosshair_overlay", settings.crosshairEnabled ? "1" : "0"])
+        args.append(contentsOf: ["+set", "ui_crosshair", settings.crosshairEnabled ? "0" : "1"])
+        args.append(contentsOf: ["+set", "cg_crosshair_length", "\(Int(settings.crosshairLength))"])
+        args.append(contentsOf: ["+set", "cg_crosshair_gap", "\(Int(settings.crosshairGap))"])
+        args.append(contentsOf: ["+set", "cg_crosshair_thickness", "\(Int(settings.crosshairThickness))"])
+        args.append(contentsOf: [
+            "+set", "cg_crosshair_color",
+            LauncherSettings.validatedCrosshairColor(settings.crosshairColor),
+        ])
     }
 
     private static func appendResolutionArgs(_ args: inout [String], settings: LauncherSettings) {

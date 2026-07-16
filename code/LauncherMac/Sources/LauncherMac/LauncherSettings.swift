@@ -22,13 +22,13 @@ struct ResolutionEntry {
 }
 
 let resolutionList: [ResolutionEntry] = [
-    ResolutionEntry(label: "800x600 (4:3)", rMode: 4),
-    ResolutionEntry(label: "960x720 (4:3)", rMode: 5),
-    ResolutionEntry(label: "1024x768 (4:3)", rMode: 6),
-    ResolutionEntry(label: "1152x864 (4:3)", rMode: 7),
+    ResolutionEntry(label: "800x600 (4:3)", rMode: 4, width: 800, height: 600),
+    ResolutionEntry(label: "960x720 (4:3)", rMode: 5, width: 960, height: 720),
+    ResolutionEntry(label: "1024x768 (4:3)", rMode: 6, width: 1024, height: 768),
+    ResolutionEntry(label: "1152x864 (4:3)", rMode: 7, width: 1152, height: 864),
     ResolutionEntry(label: "1280x720 (16:9)", rMode: -1, width: 1280, height: 720),
-    ResolutionEntry(label: "1280x1024 (5:4)", rMode: 8),
-    ResolutionEntry(label: "1600x1200 (4:3)", rMode: 9),
+    ResolutionEntry(label: "1280x1024 (5:4)", rMode: 8, width: 1280, height: 1024),
+    ResolutionEntry(label: "1600x1200 (4:3)", rMode: 9, width: 1600, height: 1200),
     ResolutionEntry(label: "1920x1080 (16:9)", rMode: -1, width: 1920, height: 1080),
 ]
 
@@ -36,6 +36,11 @@ let maxBookmarks = 3
 let maxLauncherBots = 62  // MAX_CLIENTS (64) minus the two real-client slots
 
 class LauncherSettings: ObservableObject {
+    static let defaultCrosshairLength = 9.0
+    static let defaultCrosshairGap = 4.0
+    static let defaultCrosshairThickness = 2.0
+    static let defaultCrosshairColor = "FFFFFF"
+
     // Connect tab
     @Published var ip: String = ""
     @Published var password: String = ""
@@ -67,6 +72,13 @@ class LauncherSettings: ObservableObject {
     @Published var aaLean: Bool = false
     @Published var painAnimations: Bool = true
     @Published var godMode: Bool = false
+
+    // Crosshair tab
+    @Published var crosshairEnabled: Bool = false
+    @Published var crosshairLength: Double = LauncherSettings.defaultCrosshairLength
+    @Published var crosshairGap: Double = LauncherSettings.defaultCrosshairGap
+    @Published var crosshairThickness: Double = LauncherSettings.defaultCrosshairThickness
+    @Published var crosshairColor: String = LauncherSettings.defaultCrosshairColor
 
     private var isLoading = false
     private var hasLoaded = false
@@ -182,6 +194,15 @@ class LauncherSettings: ObservableObject {
             case "aa_lean": aaLean = (Int(value) ?? 0) != 0
             case "pain_anims": painAnimations = (Int(value) ?? 0) != 0
             case "god_mode": godMode = (Int(value) ?? 0) != 0
+            // Crosshair tab
+            case "crosshair_enabled": crosshairEnabled = (Int(value) ?? 0) != 0
+            case "crosshair_length":
+                if let n = Double(value), n.isFinite { crosshairLength = min(max(n, 2), 32) }
+            case "crosshair_gap":
+                if let n = Double(value), n.isFinite { crosshairGap = min(max(n, 1), 20) }
+            case "crosshair_thickness":
+                if let n = Double(value), n.isFinite { crosshairThickness = min(max(n, 1), 8) }
+            case "crosshair_color": crosshairColor = Self.validatedCrosshairColor(value)
             default:
                 for i in 0..<maxBookmarks {
                     let suffix = "_\(i)"
@@ -197,7 +218,7 @@ class LauncherSettings: ObservableObject {
     func save() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=5")
+        lines.append("settings_version=6")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -228,6 +249,13 @@ class LauncherSettings: ObservableObject {
         lines.append("pain_anims=\(painAnimations ? 1 : 0)")
         lines.append("god_mode=\(godMode ? 1 : 0)")
 
+        // Crosshair tab
+        lines.append("crosshair_enabled=\(crosshairEnabled ? 1 : 0)")
+        lines.append("crosshair_length=\(Int(crosshairLength))")
+        lines.append("crosshair_gap=\(Int(crosshairGap))")
+        lines.append("crosshair_thickness=\(Int(crosshairThickness))")
+        lines.append("crosshair_color=\(Self.validatedCrosshairColor(crosshairColor))")
+
         for i in 0..<maxBookmarks {
             if !bookmarks[i].name.isEmpty {
                 lines.append("bookmark_name_\(i)=\(bookmarks[i].name)")
@@ -246,6 +274,22 @@ class LauncherSettings: ObservableObject {
         } catch {
             NSLog("Launcher settings could not be saved to %@: %@", settingsPath, error.localizedDescription)
         }
+    }
+
+    static func validatedCrosshairColor(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hex = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+        guard hex.count == 6, Int(hex, radix: 16) != nil else {
+            return defaultCrosshairColor
+        }
+        return hex.uppercased()
+    }
+
+    func resetCrosshair() {
+        crosshairLength = Self.defaultCrosshairLength
+        crosshairGap = Self.defaultCrosshairGap
+        crosshairThickness = Self.defaultCrosshairThickness
+        crosshairColor = Self.defaultCrosshairColor
     }
 }
 
