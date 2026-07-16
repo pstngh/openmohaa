@@ -6,27 +6,21 @@ struct ContentView: View {
     @State private var showBookmarkNaming: Int? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            dashboardHeader
-
-            Divider()
-
-            ScrollView {
-                HStack(alignment: .top, spacing: Theme.sectionGap) {
-                    VStack(spacing: Theme.sectionGap) {
-                        connectPanel
-                        CrosshairView(settings: settings)
-                    }
-                    .frame(width: 280)
-
-                    BotsView(settings: settings)
-                        .frame(maxWidth: .infinity)
+        ScrollView {
+            HStack(alignment: .top, spacing: Theme.sectionGap) {
+                VStack(spacing: Theme.sectionGap) {
+                    connectPanel
+                    CrosshairView(settings: settings)
                 }
-                .padding(Theme.pagePadding)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(width: 270)
+
+                BotsView(settings: settings)
+                    .frame(maxWidth: .infinity)
             }
+            .padding(Theme.pagePadding)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(width: 860, height: 620)
+        .frame(width: 800, height: 540)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
@@ -34,36 +28,18 @@ struct ContentView: View {
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
     }
 
-    private var dashboardHeader: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("OpenMoHAA")
-                    .font(.system(size: 17, weight: .semibold))
-                Text("Launcher")
-                    .font(.system(size: 10, weight: .medium))
-                    .textCase(.uppercase)
-                    .tracking(0.8)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            resolutionRow
-                .frame(width: 230)
-
-            VerifyButton()
-        }
-        .padding(.horizontal, Theme.pagePadding)
-        .padding(.vertical, 10)
-    }
-
     private var connectPanel: some View {
         VStack(spacing: Theme.sectionGap) {
             Card("Join Server") {
-                LabeledField("Nickname", text: $settings.nickname)
-                LabeledField("Server IP", text: $settings.ip)
-                LabeledField("Password", text: $settings.password, secure: true)
-                LabeledField("RCON", text: $settings.rconPassword, secure: true)
+                HStack(alignment: .top, spacing: 8) {
+                    compactField("Nickname", text: $settings.nickname)
+                    compactField("Server IP", text: $settings.ip)
+                }
+
+                HStack(alignment: .top, spacing: 8) {
+                    compactField("Password", text: $settings.password, secure: true)
+                    compactField("RCON", text: $settings.rconPassword, secure: true)
+                }
 
                 Text("BOOKMARKS")
                     .font(.system(size: 10, weight: .semibold))
@@ -82,21 +58,27 @@ struct ContentView: View {
         }
     }
 
-    // Resolution is always applied — pick one from the list.
-    private var resolutionRow: some View {
-        HStack(spacing: 8) {
-            Text("Resolution")
-                .font(.system(size: 12))
-                .frame(width: Theme.labelWidth, alignment: .trailing)
+    private func compactField(
+        _ label: String,
+        text: Binding<String>,
+        secure: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 10))
                 .foregroundColor(.secondary)
-            Picker("", selection: $settings.resolutionIndex) {
-                ForEach(0..<resolutionList.count, id: \.self) { i in
-                    Text(resolutionList[i].label).tag(i)
-                }
+
+            if secure {
+                SecureField("", text: text)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12))
+            } else {
+                TextField("", text: text)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12))
             }
-            .labelsHidden()
-            .font(.system(size: 11))
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -176,37 +158,5 @@ struct ContentView: View {
         settings.bookmarks[index].password = settings.password
         settings.bookmarks[index].rconPassword = settings.rconPassword
         settings.save()
-    }
-}
-
-struct LabeledField: View {
-    let label: String
-    @Binding var text: String
-    var secure: Bool = false
-    var labelWidth: CGFloat = Theme.labelWidth
-
-    init(_ label: String, text: Binding<String>, secure: Bool = false, labelWidth: CGFloat = Theme.labelWidth) {
-        self.label = label
-        self._text = text
-        self.secure = secure
-        self.labelWidth = labelWidth
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .font(.system(size: 12))
-                .frame(width: labelWidth, alignment: .trailing)
-                .foregroundColor(.secondary)
-            if secure {
-                SecureField("", text: $text)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12))
-            } else {
-                TextField("", text: $text)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12))
-            }
-        }
     }
 }

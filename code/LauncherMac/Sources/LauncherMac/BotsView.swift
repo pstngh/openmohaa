@@ -74,7 +74,27 @@ struct BotsView: View {
     var body: some View {
         VStack(spacing: Theme.sectionGap) {
             Card("Bot Match", spacing: 6) {
-                    gameSelector
+                    HStack(spacing: 8) {
+                        gameSelector
+                            .frame(width: 116)
+
+                        Spacer(minLength: 0)
+
+                        Text("Resolution")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+
+                        Picker("", selection: $settings.resolutionIndex) {
+                            ForEach(0..<resolutionList.count, id: \.self) { i in
+                                Text(resolutionList[i].label).tag(i)
+                            }
+                        }
+                        .labelsHidden()
+                        .font(.system(size: 10))
+                        .frame(width: 132)
+
+                        VerifyButton()
+                    }
 
                     FormRow("Map") {
                         Picker("", selection: $settings.botGameType) {
@@ -107,25 +127,16 @@ struct BotsView: View {
                         .font(.system(size: 12))
                     }
 
-                    FormRow("Sniper %") {
-                        Slider(value: botSniper, in: 0...100)
-                            .controlSize(.small)
-                        Text("\(settings.botSniper)")
-                            .font(.system(size: 10, design: .monospaced))
-                            .monospacedDigit()
-                            .frame(width: 24, alignment: .trailing)
+                    HStack(spacing: 14) {
+                        percentageSlider(
+                            "Sniper %", value: botSniper,
+                            help: "Percentage of bot spawns that receive a sniper rifle."
+                        )
+                        percentageSlider(
+                            "Axis STG %", value: botStg,
+                            help: "Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%."
+                        )
                     }
-                    .help("Percentage of bot spawns that receive a sniper rifle.")
-
-                    FormRow("Axis STG %") {
-                        Slider(value: botStg, in: 0...100)
-                            .controlSize(.small)
-                        Text("\(Int(settings.botStg))")
-                            .font(.system(size: 10, design: .monospaced))
-                            .monospacedDigit()
-                            .frame(width: 24, alignment: .trailing)
-                    }
-                    .help("Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%.")
 
                     FormRow("Health") {
                         TextField("", value: $settings.playerHealth, format: .number)
@@ -269,6 +280,30 @@ struct BotsView: View {
         }
         .background(Color.primary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func percentageSlider(
+        _ label: String,
+        value: Binding<Double>,
+        help: String
+    ) -> some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Spacer(minLength: 4)
+                Text("\(Int(value.wrappedValue.rounded()))")
+                    .font(.system(size: 9, design: .monospaced))
+                    .monospacedDigit()
+            }
+
+            Slider(value: value, in: 0...100)
+                .controlSize(.small)
+                .accessibilityLabel(Text(label))
+        }
+        .frame(maxWidth: .infinity)
+        .help(help)
     }
 
     private var tuningSummary: String {
