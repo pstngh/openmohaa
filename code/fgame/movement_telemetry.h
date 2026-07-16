@@ -36,3 +36,5 @@ void G_MoveLogDamage(
 );
 void G_MoveLogDeath(Player *victim, Entity *attacker, int meansOfDeath, int location);
 void G_MoveLogSpawn(Player *player);
+void G_MoveLogClientBegin(Player *player);
+void G_MoveLogClientDisconnect(Player *player);

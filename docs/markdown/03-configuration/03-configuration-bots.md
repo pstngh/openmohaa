@@ -136,9 +136,13 @@ The server samples every connected player's authoritative state at 20 Hz. It
 records raw movement/buttons, final position and velocity, view angles,
 weapon/ammunition state, nearest-opponent distance and relative motion,
 full-body wall clearance in eight directions, line of sight, angular aim
-error, target-relative aim height, and the entity beneath the crosshair.
-Shots, reloads, damage, deaths, and spawns are recorded separately at the
-exact frame in which they happen.
+error, target-relative aim height, and the entity beneath the crosshair. Schema
+3 additionally traces along and opposite the actual movement command, toward
+and away from the opponent, including the hit entity, surface normal, and
+start-solid state. Sight blockers, visibility transitions, crosshair impact
+distance, client entry/exit, and the BSP map checksum are also recorded. Shots,
+reloads, damage, deaths, and spawns are recorded separately at the exact frame
+in which they happen.
 
 To capture a reference match, enter these commands in the host console:
 
@@ -167,6 +171,11 @@ Every period between enabling and disabling `g_movelog` has a unique
 `session_id`, as does a recording continued after a map change or server
 restart. The CSV rows and metadata blocks carry that ID so individual matches
 can still be separated during analysis.
+
+All three files must use the same telemetry schema. Before the first recording
+with a schema 3 build, archive or delete schema 2 copies of all three files.
+The recorder refuses to mix schemas or append when only part of the triplet is
+present. Once fresh schema 3 files exist, subsequent sessions append normally.
 
 For bot tuning, record several rounds of human versus human play and several
 rounds against bots on the same maps and settings. A normal client demo

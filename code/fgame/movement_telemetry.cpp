@@ -23,6 +23,7 @@ does not mutate game state and never calls a random-number function.
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -30,7 +31,7 @@ does not mutate game state and never calls a random-number function.
 
 namespace
 {
-constexpr int         MOVELOG_SCHEMA          = 2;
+constexpr int         MOVELOG_SCHEMA          = 3;
 constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
 constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
 constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
@@ -50,6 +51,27 @@ int          sessionStartMsec = 0;
 int          nextSampleMsec   = 0;
 int          nextFlushMsec    = 0;
 
+struct VisibilityState
+{
+    int  targetEntity;
+    bool initialized;
+    bool visible;
+
+    VisibilityState() : targetEntity(ENTITYNUM_NONE), initialized(false), visible(false) {}
+};
+
+VisibilityState visibilityStates[MAX_CLIENTS];
+
+struct ClearanceMetrics
+{
+    float  distance;
+    int    entity;
+    Vector normal;
+    bool   startSolid;
+
+    ClearanceMetrics() : distance(-1.0f), entity(ENTITYNUM_NONE), normal(vec_zero), startSolid(false) {}
+};
+
 struct AimMetrics
 {
     Player *target;
@@ -62,7 +84,14 @@ struct AimMetrics
     bool    lineOfSight;
     int     crosshairEntity;
     float   crosshairDistance;
+    Vector  crosshairNormal;
+    str     crosshairClass;
     bool    crosshairOnTarget;
+    int     sightBlockerEntity;
+    float   sightFraction;
+    float   sightDistance;
+    Vector  sightNormal;
+    str     sightBlockerClass;
 
     AimMetrics()
         : target(NULL),
@@ -75,7 +104,12 @@ struct AimMetrics
           lineOfSight(false),
           crosshairEntity(ENTITYNUM_NONE),
           crosshairDistance(0.0f),
-          crosshairOnTarget(false)
+          crosshairNormal(vec_zero),
+          crosshairOnTarget(false),
+          sightBlockerEntity(ENTITYNUM_NONE),
+          sightFraction(1.0f),
+          sightDistance(0.0f),
+          sightNormal(vec_zero)
     {}
 };
 
@@ -106,6 +140,17 @@ static const char *PlayerName(Player *player)
 static bool PlayerIsBot(Player *player)
 {
     return IsRecordablePlayer(player) && G_IsBot(player->edict);
+}
+
+static const char *TraceEntityClass(const trace_t& trace)
+{
+    if (trace.fraction >= 1.0f && !trace.startsolid) {
+        return "";
+    }
+    if (trace.ent && trace.ent->entity) {
+        return trace.ent->entity->getClassname();
+    }
+    return trace.entityNum == ENTITYNUM_WORLD ? "world" : "";
 }
 
 static std::string CsvQuote(const char *value)
@@ -206,7 +251,13 @@ static void AppendEventRow(
         << (aim && aim->target ? aim->target->entnum : -1) << ',' << (aim ? aim->pitchError : 0.0f) << ','
         << (aim ? aim->yawError : 0.0f) << ',' << (aim ? aim->totalError : 0.0f) << ','
         << (aim && aim->lineOfSight ? 1 : 0) << ',' << (aim ? aim->crosshairEntity : ENTITYNUM_NONE) << ','
-        << (aim && aim->crosshairOnTarget ? 1 : 0) << '\n';
+        << (aim && aim->crosshairOnTarget ? 1 : 0) << ',' << (aim ? aim->crosshairDistance : -1.0f) << ','
+        << CsvQuote(aim ? aim->crosshairClass.c_str() : "") << ',' << (aim ? aim->crosshairNormal.x : 0.0f) << ','
+        << (aim ? aim->crosshairNormal.y : 0.0f) << ',' << (aim ? aim->crosshairNormal.z : 0.0f) << ','
+        << (aim ? aim->sightBlockerEntity : ENTITYNUM_NONE) << ','
+        << CsvQuote(aim ? aim->sightBlockerClass.c_str() : "") << ',' << (aim ? aim->sightFraction : 1.0f) << ','
+        << (aim ? aim->sightDistance : -1.0f) << ',' << (aim ? aim->sightNormal.x : 0.0f) << ','
+        << (aim ? aim->sightNormal.y : 0.0f) << ',' << (aim ? aim->sightNormal.z : 0.0f) << '\n';
 
     eventsBuffer += row.str();
     FlushBuffers(false);
@@ -214,7 +265,7 @@ static void AppendEventRow(
 
 static Player *FindNearestOpponent(Player *player)
 {
-    if (!IsRecordablePlayer(player)) {
+    if (!IsRecordablePlayer(player) || player->IsSpectator() || player->deadflag != DEAD_NO || player->health <= 0) {
         return NULL;
     }
 
@@ -263,6 +314,8 @@ static AimMetrics CalculateAimMetrics(Player *player, const Vector& start, const
     const trace_t crosshairTrace = G_Trace(start, zero, zero, traceEnd, player, shotMask, qfalse, "G_MoveLog aim");
     result.crosshairEntity   = crosshairTrace.entityNum;
     result.crosshairDistance = MOVELOG_AIM_RANGE * crosshairTrace.fraction;
+    result.crosshairNormal   = crosshairTrace.plane.normal;
+    result.crosshairClass    = TraceEntityClass(crosshairTrace);
 
     if (!result.target) {
         return result;
@@ -309,6 +362,13 @@ static AimMetrics CalculateAimMetrics(Player *player, const Vector& start, const
     );
     result.lineOfSight = sightTrace.fraction >= 0.999f || sightTrace.entityNum == result.target->entnum;
     result.crosshairOnTarget = crosshairTrace.entityNum == result.target->entnum;
+    result.sightFraction      = sightTrace.fraction;
+    result.sightDistance      = targetDistance * sightTrace.fraction;
+    if (!result.lineOfSight) {
+        result.sightBlockerEntity = sightTrace.entityNum;
+        result.sightNormal        = sightTrace.plane.normal;
+        result.sightBlockerClass  = TraceEntityClass(sightTrace);
+    }
     return result;
 }
 
@@ -330,6 +390,42 @@ static float TraceClearance(Player *player, const Vector& direction)
     return trace.startsolid ? 0.0f : trace.fraction * MOVELOG_CLEARANCE_RANGE;
 }
 
+static ClearanceMetrics TraceDirectionalClearance(Player *player, Vector direction)
+{
+    ClearanceMetrics result;
+    direction.z = 0.0f;
+    if (!player || direction.normalize() <= 0.0f) {
+        return result;
+    }
+
+    const Vector end = player->origin + direction * MOVELOG_CLEARANCE_RANGE;
+    const int collisionMask = MASK_PLAYERSOLID & ~CONTENTS_TRIGGER;
+    const trace_t trace = G_Trace(
+        player->origin,
+        player->mins,
+        player->maxs,
+        end,
+        player,
+        collisionMask,
+        qfalse,
+        "G_MoveLog directional clearance"
+    );
+
+    result.startSolid = trace.startsolid;
+    result.distance   = trace.startsolid ? 0.0f : trace.fraction * MOVELOG_CLEARANCE_RANGE;
+    if (trace.startsolid || trace.fraction < 1.0f) {
+        result.entity = trace.entityNum;
+        result.normal = trace.plane.normal;
+    }
+    return result;
+}
+
+static void AppendClearanceColumns(std::ostringstream& row, const ClearanceMetrics& clearance)
+{
+    row << ',' << clearance.distance << ',' << clearance.entity << ',' << clearance.normal.x << ','
+        << clearance.normal.y << ',' << clearance.normal.z << ',' << (clearance.startSolid ? 1 : 0);
+}
+
 static float AxisGap(float firstMin, float firstMax, float secondMin, float secondMax)
 {
     if (firstMax < secondMin) {
@@ -348,6 +444,24 @@ static std::string CvarLine(const char *name, cvar_t *cvar)
     return line.str();
 }
 
+static int LastMetadataSchema()
+{
+    char *buffer = NULL;
+    const long length = gi.FS_ReadFile(MOVELOG_META_PATH, reinterpret_cast<void **>(&buffer), qtrue);
+    if (length <= 0 || !buffer) {
+        return 0;
+    }
+
+    const std::string metadata(buffer, static_cast<size_t>(length));
+    gi.FS_FreeFile(buffer);
+
+    const size_t marker = metadata.rfind("schema=");
+    if (marker == std::string::npos) {
+        return 0;
+    }
+    return std::atoi(metadata.c_str() + marker + 7);
+}
+
 static bool EnsureOpen()
 {
     if (!g_movelog || !g_movelog->integer) {
@@ -360,6 +474,18 @@ static bool EnsureOpen()
     const bool framesNeedHeader = gi.FS_ReadFile(MOVELOG_FRAMES_PATH, NULL, qtrue) <= 0;
     const bool eventsNeedHeader = gi.FS_ReadFile(MOVELOG_EVENTS_PATH, NULL, qtrue) <= 0;
     const bool metaNeedsHeader   = gi.FS_ReadFile(MOVELOG_META_PATH, NULL, qtrue) <= 0;
+    const bool anyExistingLog   = !framesNeedHeader || !eventsNeedHeader || !metaNeedsHeader;
+    const bool allExistingLogs  = !framesNeedHeader && !eventsNeedHeader && !metaNeedsHeader;
+
+    if ((anyExistingLog && !allExistingLogs) || (allExistingLogs && LastMetadataSchema() != MOVELOG_SCHEMA)) {
+        gi.Printf(
+            "g_movelog: existing telemetry files do not use schema %d; archive/delete all three movement_* files "
+            "before recording\n",
+            MOVELOG_SCHEMA
+        );
+        gi.cvar_set("g_movelog", "0");
+        return false;
+    }
 
     const std::string mapName = SanitizeFilename(level.current_map);
     std::ostringstream id;
@@ -387,6 +513,9 @@ static bool EnsureOpen()
 
     framesBuffer.clear();
     eventsBuffer.clear();
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
+        visibilityStates[i] = VisibilityState();
+    }
     if (framesNeedHeader) {
         framesBuffer =
             "schema,session_id,session_ms,server_ms,frame,frame_ms,map,client_id,name,model,is_bot,team,alive,spectator,"
@@ -401,14 +530,24 @@ static bool EnsureOpen()
             "self_tangential_speed,opponent_approach_speed,closing_speed,aim_pitch_error,aim_yaw_error,aim_total_error,"
             "aim_dot,aim_closest_miss,aim_height_fraction,line_of_sight,crosshair_entity,crosshair_distance,"
             "crosshair_on_opponent,clear_front,clear_back,clear_left,clear_right,clear_front_left,clear_front_right,"
-            "clear_back_left,clear_back_right\n";
+            "clear_back_left,clear_back_right,sight_blocker_entity,sight_fraction,sight_distance,sight_normal_x,"
+            "sight_normal_y,sight_normal_z,clear_move,clear_move_entity,clear_move_normal_x,clear_move_normal_y,"
+            "clear_move_normal_z,clear_move_startsolid,clear_reverse,clear_reverse_entity,clear_reverse_normal_x,"
+            "clear_reverse_normal_y,clear_reverse_normal_z,clear_reverse_startsolid,clear_toward_opponent,"
+            "clear_toward_opponent_entity,clear_toward_opponent_normal_x,clear_toward_opponent_normal_y,"
+            "clear_toward_opponent_normal_z,clear_toward_opponent_startsolid,clear_away_opponent,"
+            "clear_away_opponent_entity,clear_away_opponent_normal_x,clear_away_opponent_normal_y,"
+            "clear_away_opponent_normal_z,clear_away_opponent_startsolid\n";
     }
     if (eventsNeedHeader) {
         eventsBuffer =
             "schema,session_id,session_ms,server_ms,frame,event,actor_id,actor_name,actor_bot,target_id,target_name,"
             "target_bot,weapon,fire_mode,damage,health_before,health_after,means_of_death,hit_location,position_x,"
             "position_y,position_z,direction_x,direction_y,direction_z,view_pitch,view_yaw,view_roll,aim_target_id,"
-            "aim_pitch_error,aim_yaw_error,aim_total_error,line_of_sight,crosshair_entity,crosshair_on_target\n";
+            "aim_pitch_error,aim_yaw_error,aim_total_error,line_of_sight,crosshair_entity,crosshair_on_target,"
+            "crosshair_distance,crosshair_hit_class,crosshair_normal_x,crosshair_normal_y,crosshair_normal_z,"
+            "sight_blocker_entity,sight_blocker_class,sight_fraction,sight_distance,sight_normal_x,sight_normal_y,"
+            "sight_normal_z\n";
     }
 
     std::ostringstream meta;
@@ -425,6 +564,7 @@ static bool EnsureOpen()
          << "protocol=" << g_protocol << '\n'
          << "sample_hz=" << (1000 / MOVELOG_SAMPLE_MSEC) << '\n'
          << "clearance_probe_units=" << MOVELOG_CLEARANCE_RANGE << '\n'
+         << CvarLine("sv_mapChecksum", gi.Cvar_Get("sv_mapChecksum", "", 0))
          << CvarLine("g_gametype", g_gametype)
          << CvarLine("sv_fps", sv_fps)
          << CvarLine("sv_runspeed", sv_runspeed)
@@ -465,6 +605,54 @@ static bool EnsureOpen()
     return true;
 }
 
+static void RecordVisibilityState(
+    Player *player, const AimMetrics& aim, const Vector& eye, const Vector& forward, const Vector& viewAngles
+)
+{
+    if (!player || player->entnum < 0 || player->entnum >= MAX_CLIENTS) {
+        return;
+    }
+
+    VisibilityState& state = visibilityStates[player->entnum];
+    if (!aim.target) {
+        state = VisibilityState();
+        return;
+    }
+
+    const bool newTarget = !state.initialized || state.targetEntity != aim.target->entnum;
+    const bool changed   = !newTarget && state.visible != aim.lineOfSight;
+    const char *eventName = NULL;
+
+    if (newTarget) {
+        eventName = aim.lineOfSight ? "los_initial_visible" : "los_initial_hidden";
+    } else if (changed) {
+        eventName = aim.lineOfSight ? "los_gain" : "los_loss";
+    }
+
+    state.initialized  = true;
+    state.targetEntity = aim.target->entnum;
+    state.visible      = aim.lineOfSight;
+
+    if (eventName) {
+        AppendEventRow(
+            eventName,
+            player,
+            aim.target,
+            "",
+            -1,
+            0.0f,
+            player->health,
+            player->health,
+            -1,
+            -1,
+            eye,
+            forward,
+            viewAngles,
+            &aim
+        );
+    }
+}
+
 static void AppendFrame(Player *player)
 {
     Vector eye;
@@ -475,6 +663,7 @@ static void AppendFrame(Player *player)
     viewAngles.AngleVectors(&forward, &right, NULL);
 
     const AimMetrics aim = CalculateAimMetrics(player, eye, forward);
+    RecordVisibilityState(player, aim, eye, forward, viewAngles);
     Player *opponent = aim.target;
     const usercmd_t& command = player->GetLastUsercmd();
     Weapon *weapon = player->GetActiveWeapon(WEAPON_MAIN);
@@ -528,6 +717,14 @@ static void AppendFrame(Player *player)
     backLeft.normalize();
     backRight.normalize();
 
+    Vector commandDirection = front * (float)command.forwardmove + side * (float)command.rightmove;
+    commandDirection.z      = 0.0f;
+
+    const ClearanceMetrics clearMove     = TraceDirectionalClearance(player, commandDirection);
+    const ClearanceMetrics clearReverse  = TraceDirectionalClearance(player, -commandDirection);
+    const ClearanceMetrics clearToward   = TraceDirectionalClearance(player, horizontalDirection);
+    const ClearanceMetrics clearAway     = TraceDirectionalClearance(player, -horizontalDirection);
+
     const char *weaponName = weapon && weapon->GetItemName() ? weapon->GetItemName() : "";
     const int weaponState  = weapon ? static_cast<int>(weapon->GetState()) : -1;
     const int clipAmmo     = weapon ? weapon->ClipAmmo(FIRE_PRIMARY) : -1;
@@ -571,7 +768,15 @@ static void AppendFrame(Player *player)
         << aim.crosshairDistance << ',' << (aim.crosshairOnTarget ? 1 : 0) << ',' << TraceClearance(player, front) << ','
         << TraceClearance(player, -front) << ',' << TraceClearance(player, -side) << ',' << TraceClearance(player, side)
         << ',' << TraceClearance(player, frontLeft) << ',' << TraceClearance(player, frontRight) << ','
-        << TraceClearance(player, backLeft) << ',' << TraceClearance(player, backRight) << '\n';
+        << TraceClearance(player, backLeft) << ',' << TraceClearance(player, backRight) << ','
+        << aim.sightBlockerEntity << ',' << aim.sightFraction << ',' << aim.sightDistance << ',' << aim.sightNormal.x
+        << ',' << aim.sightNormal.y << ',' << aim.sightNormal.z;
+
+    AppendClearanceColumns(row, clearMove);
+    AppendClearanceColumns(row, clearReverse);
+    AppendClearanceColumns(row, clearToward);
+    AppendClearanceColumns(row, clearAway);
+    row << '\n';
 
     framesBuffer += row.str();
 }
@@ -793,4 +998,49 @@ void G_MoveLogSpawn(Player *player)
         zero,
         NULL
     );
+}
+
+static void G_MoveLogClientMarker(const char *eventName, Player *player)
+{
+    if (!IsRecordablePlayer(player) || !EnsureOpen()) {
+        return;
+    }
+
+    Vector eye;
+    Vector viewAngles;
+    player->GetPlayerView(&eye, &viewAngles);
+    Vector forward;
+    viewAngles.AngleVectors(&forward, NULL, NULL);
+    const AimMetrics aim = CalculateAimMetrics(player, eye, forward);
+
+    AppendEventRow(
+        eventName,
+        player,
+        aim.target,
+        "",
+        -1,
+        0.0f,
+        player->health,
+        player->health,
+        -1,
+        -1,
+        player->origin,
+        forward,
+        viewAngles,
+        &aim
+    );
+    FlushBuffers(true);
+}
+
+void G_MoveLogClientBegin(Player *player)
+{
+    G_MoveLogClientMarker("client_begin", player);
+}
+
+void G_MoveLogClientDisconnect(Player *player)
+{
+    G_MoveLogClientMarker("client_disconnect", player);
+    if (player && player->entnum >= 0 && player->entnum < MAX_CLIENTS) {
+        visibilityStates[player->entnum] = VisibilityState();
+    }
 }
