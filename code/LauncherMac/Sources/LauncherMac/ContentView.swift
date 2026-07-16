@@ -17,7 +17,7 @@ struct ContentView: View {
                         connectPanel
                         CrosshairView(settings: settings)
                     }
-                    .frame(width: 330)
+                    .frame(width: 280)
 
                     BotsView(settings: settings)
                         .frame(maxWidth: .infinity)
@@ -26,7 +26,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
-        .frame(width: 1200, height: 800)
+        .frame(width: 860, height: 620)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }

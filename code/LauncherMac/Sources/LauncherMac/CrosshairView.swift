@@ -34,52 +34,55 @@ struct CrosshairView: View {
     }
 
     var body: some View {
-        VStack(spacing: Theme.sectionGap) {
-            Card("Crosshair Preview") {
-                CrosshairPreview(
-                    color: previewColor,
-                    length: settings.crosshairLength,
-                    gap: settings.crosshairGap,
-                    thickness: settings.crosshairThickness,
-                    resolutionHeight: resolution.height ?? 1080
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 96)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.black.opacity(0.82))
-                )
+        Card("Custom Crosshair") {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(spacing: 4) {
+                    CrosshairPreview(
+                        color: previewColor,
+                        length: settings.crosshairLength,
+                        gap: settings.crosshairGap,
+                        thickness: settings.crosshairThickness,
+                        resolutionHeight: resolution.height ?? 1080
+                    )
+                    .frame(width: 112, height: 82)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.black.opacity(0.82))
+                    )
 
-                Text("\(resolution.label) · dimensions scale from 1080p")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-
-            Card("Custom Crosshair") {
-                Toggle("Enable custom crosshair", isOn: $settings.crosshairEnabled)
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 12))
-
-                FormRow("Color") {
-                    ColorPicker("", selection: colorBinding, supportsOpacity: false)
-                        .labelsHidden()
-                    Text("#\(LauncherSettings.validatedCrosshairColor(settings.crosshairColor))")
-                        .font(.system(size: 11, design: .monospaced))
+                    Text(resolution.label)
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
-                    Spacer()
+                        .lineLimit(1)
                 }
 
-                sliderRow("Arm length", value: $settings.crosshairLength, range: 2...32)
-                sliderRow("Center gap", value: $settings.crosshairGap, range: 1...20)
-                sliderRow("Thickness", value: $settings.crosshairThickness, range: 1...8)
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Enable", isOn: $settings.crosshairEnabled)
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 12))
 
-                HStack {
-                    Spacer()
+                    HStack(spacing: 6) {
+                        Text("Color")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        ColorPicker("", selection: colorBinding, supportsOpacity: false)
+                            .labelsHidden()
+                        Text("#\(LauncherSettings.validatedCrosshairColor(settings.crosshairColor))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
                     Button("Reset") { settings.resetCrosshair() }
                         .font(.system(size: 11))
                 }
+                .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
             }
+
+            sliderRow("Arm length", value: $settings.crosshairLength, range: 2...32)
+            sliderRow("Center gap", value: $settings.crosshairGap, range: 1...20)
+            sliderRow("Thickness", value: $settings.crosshairThickness, range: 1...8)
         }
         .onChange(of: settings.crosshairEnabled) { _ in settings.save() }
         .onChange(of: settings.crosshairLength) { _ in settings.save() }
