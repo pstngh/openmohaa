@@ -40,7 +40,7 @@ struct GameLauncher {
                 break
             }
         }
-        settings.save()
+        settings.saveImmediately()
 
         run(executable: executable, args: args, cwd: gameDir)
     }
@@ -78,7 +78,9 @@ struct GameLauncher {
         }
 
         args.append(contentsOf: ["+set", "g_bot_team", settings.botTeam])
-        args.append(contentsOf: ["+set", "g_playerdmhealth", "\(settings.playerHealth)"])
+        let playerHealth = LauncherSettings.clampedPlayerHealth(settings.playerHealth)
+        settings.playerHealth = playerHealth
+        args.append(contentsOf: ["+set", "g_playerdmhealth", "\(playerHealth)"])
         args.append(contentsOf: [
             "+set", "sv_runspeed",
             "\(Int(LauncherSettings.clampedRunSpeed(settings.runSpeed)))",
@@ -93,8 +95,12 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "g_bot_aim_settle_time", tuning.aimSettle])
         args.append(contentsOf: ["+set", "g_bot_aim_latency", tuning.aimLatency])
         args.append(contentsOf: ["+set", "g_bot_spread", tuning.spreadScale])
-        args.append(contentsOf: ["+set", "g_bot_sniper", "\(min(max(settings.botSniper, 0), 100))"])
-        args.append(contentsOf: ["+set", "g_bot_stg", "\(Int(min(max(settings.botStg, 0), 100)))"])
+        let botSniper = LauncherSettings.clampedPercentage(settings.botSniper)
+        let botStg = LauncherSettings.clampedPercentage(settings.botStg)
+        settings.botSniper = botSniper
+        settings.botStg = botStg
+        args.append(contentsOf: ["+set", "g_bot_sniper", "\(botSniper)"])
+        args.append(contentsOf: ["+set", "g_bot_stg", "\(Int(botStg))"])
 
         // Bot aim shape
         let aimHeights = settings.effectiveAimHeights()
@@ -118,7 +124,7 @@ struct GameLauncher {
             args.append(contentsOf: ["+map", settings.botMap])
         }
 
-        settings.save()
+        settings.saveImmediately()
 
         run(executable: bundlePath, args: args, cwd: gameDir)
     }

@@ -20,15 +20,22 @@ struct BotsView: View {
 
     private var botStg: Binding<Double> {
         Binding(
-            get: { settings.botStg },
-            set: { settings.botStg = min(max($0.rounded(), 0), 100) }
+            get: { LauncherSettings.clampedPercentage(settings.botStg) },
+            set: { settings.botStg = LauncherSettings.clampedPercentage($0) }
         )
     }
 
     private var botSniper: Binding<Double> {
         Binding(
-            get: { Double(settings.botSniper) },
-            set: { settings.botSniper = Int(min(max($0.rounded(), 0), 100)) }
+            get: { Double(LauncherSettings.clampedPercentage(settings.botSniper)) },
+            set: { settings.botSniper = LauncherSettings.clampedPercentage(Int($0.rounded())) }
+        )
+    }
+
+    private var playerHealth: Binding<Int> {
+        Binding(
+            get: { LauncherSettings.clampedPlayerHealth(settings.playerHealth) },
+            set: { settings.playerHealth = LauncherSettings.clampedPlayerHealth($0) }
         )
     }
 
@@ -92,9 +99,8 @@ struct BotsView: View {
                         .labelsHidden()
                         .font(.system(size: 10))
                         .frame(width: 132)
-
-                        VerifyButton()
                     }
+                    .frame(height: 34)
 
                     FormRow("Map") {
                         Picker("", selection: $settings.botGameType) {
@@ -132,7 +138,7 @@ struct BotsView: View {
                         Text("Health")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
-                        TextField("", value: $settings.playerHealth, format: .number)
+                        TextField("", value: playerHealth, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 12))
                             .frame(width: 58)
@@ -164,7 +170,7 @@ struct BotsView: View {
                     }
                     .help("AA default: 250 · SH/BT default: 287")
 
-                    FormRow("Accuracy") {
+                    FormRow("Player accuracy") {
                         Picker("", selection: $settings.accuracy) {
                             Text("Normal").tag(0)
                             Text("High").tag(1)
@@ -332,9 +338,10 @@ struct BotsView: View {
 
                 Spacer()
 
-                Toggle("Manual", isOn: $settings.botManualTuning)
+                Toggle("Manual difficulty", isOn: $settings.botManualTuning)
                     .toggleStyle(.checkbox)
                     .font(.system(size: 11))
+                    .help("Override the difficulty slider values. Aim height remains independently adjustable.")
             }
 
             Text(tuningSummary)
@@ -389,11 +396,13 @@ struct BotsView: View {
                     )
                     compactSlider(
                         "Aim height min", $settings.botAimHeightMin,
-                        in: 0...1, fractionDigits: 2, enabled: true
+                        in: 0...1, fractionDigits: 2, enabled: true,
+                        help: "Independent of Manual difficulty. Sets the lowest vertical aim point."
                     )
                     compactSlider(
                         "Aim height max", $settings.botAimHeightMax,
-                        in: 0...1, fractionDigits: 2, enabled: true
+                        in: 0...1, fractionDigits: 2, enabled: true,
+                        help: "Independent of Manual difficulty. Sets the highest vertical aim point."
                     )
                 }
                 .frame(maxWidth: .infinity)
@@ -445,7 +454,8 @@ struct BotsView: View {
         in range: ClosedRange<Double>,
         fractionDigits: Int,
         suffix: String = "",
-        enabled: Bool
+        enabled: Bool,
+        help: String? = nil
     ) -> some View {
         let value = numericBinding(text, in: range, fractionDigits: fractionDigits)
 
@@ -466,6 +476,6 @@ struct BotsView: View {
                 .accessibilityLabel(Text(label))
         }
         .opacity(enabled ? 1 : 0.6)
-        .help("Accepted range: \(sliderValue(range.lowerBound, fractionDigits: fractionDigits))–\(sliderValue(range.upperBound, fractionDigits: fractionDigits))")
+        .help(help ?? "Accepted range: \(sliderValue(range.lowerBound, fractionDigits: fractionDigits))–\(sliderValue(range.upperBound, fractionDigits: fractionDigits))")
     }
 }

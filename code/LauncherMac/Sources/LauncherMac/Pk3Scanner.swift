@@ -157,12 +157,14 @@ struct VerifyButton: View {
     var body: some View {
         Button(action: { scanner.scan() }) {
             icon
-                .frame(width: 34, height: 34)
+                .frame(width: 28, height: 28)
                 .background(Circle().fill(Color.primary.opacity(0.06)))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .disabled(scanner.isScanning)
+        .accessibilityLabel("Verify game files")
+        .accessibilityValue(helpText)
         .help(helpText)
     }
 

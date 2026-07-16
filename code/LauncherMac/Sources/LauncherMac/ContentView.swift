@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var settings: LauncherSettings
     @State private var bookmarkNameInput: String = ""
     @State private var showBookmarkNaming: Int? = nil
@@ -18,11 +19,22 @@ struct ContentView: View {
         }
         .padding(Theme.pagePadding)
         .frame(width: 800, height: 540)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                VerifyButton()
+            }
+        }
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
         .onChange(of: settings.nickname) { _ in settings.save() }
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
+        .onChange(of: scenePhase) { phase in
+            if phase != .active {
+                settings.flushPendingSave()
+            }
+        }
+        .onDisappear { settings.flushPendingSave() }
     }
 
     private var connectPanel: some View {

@@ -88,6 +88,8 @@ class LauncherSettings: ObservableObject {
 
     private var isLoading = false
     private var hasLoaded = false
+    private var pendingSave: DispatchWorkItem?
+    private static let saveDebounce: TimeInterval = 0.25
 
     private var settingsPath: String {
         let dir = LauncherSettings.gameDirectory
@@ -149,17 +151,17 @@ class LauncherSettings: ObservableObject {
             case "bot_map": botMap = value
             case "bot_team": botTeam = value
             case "player_health":
-                if let h = Int(value), h > 0 { playerHealth = h }
+                if let h = Int(value) { playerHealth = Self.clampedPlayerHealth(h) }
             case "run_speed":
                 if let speed = Double(value), speed.isFinite {
                     runSpeed = Self.clampedRunSpeed(speed)
                     loadedRunSpeed = true
                 }
             case "bot_sniper":
-                if let s = Int(value), s >= 0 { botSniper = s }
+                if let s = Int(value) { botSniper = Self.clampedPercentage(s) }
             case "bot_stg":
                 if let percent = Double(value), percent.isFinite {
-                    botStg = min(max(percent.rounded(), 0), 100)
+                    botStg = Self.clampedPercentage(percent)
                 }
             case "bot_difficulty":
                 if let d = Double(value), d >= 0, d <= 100 { botDifficulty = d }
@@ -237,6 +239,38 @@ class LauncherSettings: ObservableObject {
 
     func save() {
         guard !isLoading else { return }
+        pendingSave?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingSave = nil
+            self.writeSettings()
+        }
+        pendingSave = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Self.saveDebounce,
+            execute: workItem
+        )
+    }
+
+    /// Persist any queued edits before the app becomes inactive or closes.
+    func flushPendingSave() {
+        guard !isLoading, pendingSave != nil else { return }
+        pendingSave?.cancel()
+        pendingSave = nil
+        writeSettings()
+    }
+
+    /// Bypass the debounce when launching, because the app terminates immediately.
+    func saveImmediately() {
+        guard !isLoading else { return }
+        pendingSave?.cancel()
+        pendingSave = nil
+        writeSettings()
+    }
+
+    private func writeSettings() {
+        guard !isLoading else { return }
         var lines: [String] = []
         lines.append("settings_version=6")
         lines.append("ip=\(ip)")
@@ -251,10 +285,10 @@ class LauncherSettings: ObservableObject {
         lines.append("bot_game_type=\(botGameType)")
         lines.append("bot_map=\(botMap)")
         lines.append("bot_team=\(botTeam)")
-        lines.append("player_health=\(playerHealth)")
+        lines.append("player_health=\(Self.clampedPlayerHealth(playerHealth))")
         lines.append("run_speed=\(Int(Self.clampedRunSpeed(runSpeed)))")
-        lines.append("bot_sniper=\(botSniper)")
-        lines.append("bot_stg=\(Int(botStg))")
+        lines.append("bot_sniper=\(Self.clampedPercentage(botSniper))")
+        lines.append("bot_stg=\(Int(Self.clampedPercentage(botStg)))")
         lines.append("bot_difficulty=\(Int(botDifficulty))")
         lines.append("bot_manual=\(botManualTuning ? 1 : 0)")
         lines.append("bot_react_delay=\(botReactDelay)")
@@ -309,6 +343,18 @@ class LauncherSettings: ObservableObject {
 
     static func clampedRunSpeed(_ value: Double) -> Double {
         min(max(value.rounded(), minRunSpeed), maxRunSpeed)
+    }
+
+    static func clampedPlayerHealth(_ value: Int) -> Int {
+        max(value, 1)
+    }
+
+    static func clampedPercentage(_ value: Int) -> Int {
+        min(max(value, 0), 100)
+    }
+
+    static func clampedPercentage(_ value: Double) -> Double {
+        min(max(value.rounded(), 0), 100)
     }
 
     func resetCrosshair() {
