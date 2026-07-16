@@ -26,6 +26,13 @@ struct BotsView: View {
         )
     }
 
+    private var botSniper: Binding<Double> {
+        Binding(
+            get: { Double(settings.botSniper) },
+            set: { settings.botSniper = Int(min(max($0.rounded(), 0), 100)) }
+        )
+    }
+
     // Spearhead is intentionally omitted: Breakthrough is mechanically identical
     // and a content superset (mounting mainta), so it covers everything Spearhead
     // does. The value is com_target_game, so Breakthrough stays 2 (not 1).
@@ -104,18 +111,92 @@ struct BotsView: View {
                         }
                         .labelsHidden()
                         .font(.system(size: 12))
-                        Text("Snipers")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                        TextField("", value: $settings.botSniper, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 12))
-                            .frame(width: 44)
                     }
 
-                    Slider(value: $settings.botDifficulty, in: 0...100)
-                        .disabled(settings.botManualTuning)
-                        .opacity(settings.botManualTuning ? 0.5 : 1)
+                    FormRow("Sniper %") {
+                        Slider(value: botSniper, in: 0...100)
+                            .controlSize(.small)
+                        Text("\(settings.botSniper)")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 24, alignment: .trailing)
+                    }
+                    .help("Percentage of bot spawns that receive a sniper rifle.")
+
+                    FormRow("Axis STG %") {
+                        Slider(value: botStg, in: 0...100)
+                            .controlSize(.small)
+                        Text("\(Int(settings.botStg))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 24, alignment: .trailing)
+                    }
+                    .help("Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%.")
+
+                    FormRow("Health") {
+                        TextField("", value: $settings.playerHealth, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12))
+                    }
+
+                    FormRow("Run speed") {
+                        // No step parameter: macOS otherwise draws a notch for
+                        // every discrete speed value.
+                        Slider(
+                            value: runSpeed,
+                            in: LauncherSettings.minRunSpeed...LauncherSettings.maxRunSpeed
+                        )
+                        .controlSize(.small)
+                        Text("\(Int(settings.runSpeed))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 32, alignment: .trailing)
+                    }
+                    .help("AA default: 250 · SH/BT default: 287")
+
+                    FormRow("Accuracy") {
+                        Picker("", selection: $settings.accuracy) {
+                            Text("Normal").tag(0)
+                            Text("High").tag(1)
+                            Text("Perfect").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .font(.system(size: 11))
+                    }
+
+                    FormRow("Style") {
+                        Toggle("AA lean", isOn: $settings.aaLean)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Use Allied Assault lean limits, speeds, recovery, and camera roll in Breakthrough.")
+                        Toggle("SH/BT pain", isOn: $settings.painAnimations)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Play Spearhead/Breakthrough hit-reaction animations when players are shot.")
+                        Spacer()
+                    }
+
+                    FormRow("Options") {
+                        Toggle("God mode", isOn: $settings.godMode)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                        Spacer()
+                    }
+
+                    Divider()
+                        .padding(.vertical, 2)
+
+                    FormRow("Difficulty") {
+                        Slider(value: $settings.botDifficulty, in: 0...100)
+                            .controlSize(.small)
+                            .disabled(settings.botManualTuning)
+                        Text("\(Int(settings.botDifficulty.rounded()))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .monospacedDigit()
+                            .frame(width: 24, alignment: .trailing)
+                    }
+                    .opacity(settings.botManualTuning ? 0.5 : 1)
 
                     DisclosureGroup(isExpanded: $showAdvanced) {
                         VStack(spacing: 6) {
@@ -171,67 +252,6 @@ struct BotsView: View {
                         Text("Advanced")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
-                    }
-
-                    FormRow("Health") {
-                        TextField("", value: $settings.playerHealth, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 12))
-                    }
-
-                    FormRow("Axis STG %") {
-                        Slider(value: botStg, in: 0...100)
-                            .controlSize(.small)
-                        Text("\(Int(settings.botStg))")
-                            .font(.system(size: 10, design: .monospaced))
-                            .monospacedDigit()
-                            .frame(width: 24, alignment: .trailing)
-                    }
-                    .help("Percentage of Axis bot spawns that receive an STG. Snipers take priority if the percentages exceed 100%.")
-
-                    FormRow("Run speed") {
-                        // No step parameter: macOS otherwise draws a notch for
-                        // every discrete speed value.
-                        Slider(
-                            value: runSpeed,
-                            in: LauncherSettings.minRunSpeed...LauncherSettings.maxRunSpeed
-                        )
-                        .controlSize(.small)
-                        Text("\(Int(settings.runSpeed))")
-                            .font(.system(size: 10, design: .monospaced))
-                            .monospacedDigit()
-                            .frame(width: 32, alignment: .trailing)
-                    }
-                    .help("AA default: 250 · SH/BT default: 287")
-
-                    FormRow("Accuracy") {
-                        Picker("", selection: $settings.accuracy) {
-                            Text("Normal").tag(0)
-                            Text("High").tag(1)
-                            Text("Perfect").tag(2)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .font(.system(size: 11))
-                    }
-
-                    FormRow("Style") {
-                        Toggle("AA lean", isOn: $settings.aaLean)
-                            .toggleStyle(.checkbox)
-                            .font(.system(size: 12))
-                            .help("Use Allied Assault lean limits, speeds, recovery, and camera roll in Breakthrough.")
-                        Toggle("SH/BT pain", isOn: $settings.painAnimations)
-                            .toggleStyle(.checkbox)
-                            .font(.system(size: 12))
-                            .help("Play Spearhead/Breakthrough hit-reaction animations when players are shot.")
-                        Spacer()
-                    }
-
-                    FormRow("Options") {
-                        Toggle("God mode", isOn: $settings.godMode)
-                            .toggleStyle(.checkbox)
-                            .font(.system(size: 12))
-                        Spacer()
                     }
                 }
 
