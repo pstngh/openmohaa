@@ -106,9 +106,11 @@ master enable/disable cvar. Strafing and matching lean are applied generally.
 Enemy-relative advance/retreat movement engages only while an enemy is within
 `g_bot_peek_distance`: advance phases last longer than retreats outside 96
 units, the phases become even near the opponent, and the bot always backs away
-inside body-contact range. Imminent player collisions and backward wall impacts
-remove only the entering movement component; they do not impose a wall buffer
-or disable leaning.
+inside body-contact range. The radial layer preserves running-speed tangential
+movement in clear space instead of reducing the complete command to walking
+speed; the doorway probe lowers that preservation as space closes. Imminent
+player collisions and backward wall impacts remove only the entering movement
+component; they do not impose a wall buffer or disable leaning.
 
 | Cvar | Default | Valid range | Description |
 | --- | ---: | ---: | --- |

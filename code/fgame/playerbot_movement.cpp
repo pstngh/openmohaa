@@ -1397,6 +1397,8 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
         m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration(distance);
     }
 
+    const float preRadialCommandMax =
+        Q_max(fabs((float)botcmd.forwardmove), fabs((float)botcmd.rightmove));
     Vector move = GetCommandMoveVector(botcmd);
     m_telemetry.radialActive = true;
 
@@ -1418,6 +1420,34 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     m_telemetry.radialDesiredMove = desiredRadialMove;
     m_telemetry.radialBeforeMove  = currentRadialMove;
     move += towardEnemy * (desiredRadialMove - currentRadialMove);
+
+    // Replacing a full path component with the deliberately small radial
+    // component above can collapse the complete command to walking speed. In
+    // a firing animation that looks like the bot is skating, even though the
+    // run button remains held. Preserve enough tangential movement to retain
+    // the pre-radial command magnitude wherever the diagonal strafe probe says
+    // there is room. A partially blocked probe lowers the target smoothly, and
+    // the collision guard still runs after this layer and removes unsafe
+    // movement components.
+    if (m_telemetry.strafeApplied && m_telemetry.strafeProbeFraction >= 0.0f) {
+        const float targetTangentialMove = preRadialCommandMax * m_telemetry.strafeProbeFraction;
+        Vector      tangentialMove       = move - towardEnemy * DotProduct(move, towardEnemy);
+        float       tangentialLength     = VectorNormalize2D(tangentialMove);
+
+        if (tangentialLength < targetTangentialMove) {
+            if (tangentialLength <= 0.0f && g_bot_strafe_intensity->value > 0.0f) {
+                // The bot is already aimed approximately at the enemy, so
+                // this is its intended right/left strafe side in world space.
+                tangentialMove = Vector(towardEnemy.y, -towardEnemy.x, 0) * (float)m_iStrafeDirection;
+                tangentialLength = 0.0f;
+            }
+
+            if (tangentialMove.lengthXYSquared() > 0.0f) {
+                move += tangentialMove * (targetTangentialMove - tangentialLength);
+            }
+        }
+    }
+
     SetCommandMoveVector(botcmd, move);
 }
 
