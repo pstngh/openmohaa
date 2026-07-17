@@ -26,6 +26,42 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static int maxFallHeight = 400;
 
+bot_movement_telemetry_t::bot_movement_telemetry_t()
+{
+    Reset();
+}
+
+void bot_movement_telemetry_t::Reset()
+{
+    hasCombatTarget        = false;
+    pathing                = false;
+    blockedRecovery        = false;
+    pathCollisionAvoidance = false;
+    movementSuppressed     = false;
+    strafeDirection        = 0;
+    strafeChangeMsec       = -1;
+    isLeaning              = false;
+    strafeApplied          = false;
+    strafeClearanceFlip    = false;
+    strafeClearance        = -1.0f;
+    strafeOtherClearance   = -1.0f;
+    strafeProbeFraction    = -1.0f;
+    strafeIntensity        = 0.0f;
+    radialDirection        = 0;
+    radialChangeMsec       = -1;
+    radialActive           = false;
+    radialForcedCloseRetreat = false;
+    radialDistance         = -1.0f;
+    radialDesiredMove      = 0.0f;
+    radialBeforeMove       = 0.0f;
+    guardTriggered         = false;
+    guardHitSentient       = false;
+    guardHitWorld          = false;
+    guardRemovedComponent = false;
+    guardFraction          = 1.0f;
+    guardEntity            = ENTITYNUM_NONE;
+}
+
 BotMovement::BotMovement()
 {
     controlledEntity = NULL;
@@ -85,6 +121,8 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     Vector vAngles;
     Vector vWishDir;
     Vector vDelta;
+
+    m_telemetry.Reset();
 
     botcmd.forwardmove = 0;
     botcmd.rightmove   = 0;
@@ -1139,6 +1177,26 @@ Vector BotMovement::GetCurrentPathDirection() const
     return m_pPath->GetCurrentDirection();
 }
 
+void BotMovement::ResetTelemetry()
+{
+    m_telemetry.Reset();
+}
+
+void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
+{
+    telemetry                        = m_telemetry;
+    telemetry.hasCombatTarget        = m_bHasCombatTarget;
+    telemetry.pathing                = m_bPathing;
+    telemetry.blockedRecovery        = m_iTempAwayState == 2;
+    telemetry.pathCollisionAvoidance = m_bAvoidCollision;
+    telemetry.strafeDirection        = m_iStrafeDirection;
+    telemetry.strafeChangeMsec       = Q_max(0, m_iNextStrafeChangeTime - level.inttime);
+    telemetry.isLeaning              = m_bIsLeaning;
+    telemetry.radialDirection        = m_iRadialDirection;
+    telemetry.radialChangeMsec  =
+        m_iNextRadialChangeTime ? Q_max(0, m_iNextRadialChangeTime - level.inttime) : -1;
+}
+
 /*
 ====================
 CalculateLateralClearance
@@ -1204,6 +1262,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     // obstruction, suppress the strafe/radial movement injection so its escape
     // vector isn't fought - but keep leaning; only movement steers
     const bool bSuppressMovement = (m_iTempAwayState == 2);
+    m_telemetry.movementSuppressed = bSuppressMovement;
 
     // --- Strafe oscillator: flip left/right on a short randomized timer ---
     if (level.inttime >= m_iNextStrafeChangeTime) {
@@ -1220,6 +1279,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     const float threshold      = m_bIsLeaning ? stopThreshold : startThreshold;
 
     float clearance = CalculateLateralClearance(m_iStrafeDirection);
+    m_telemetry.strafeClearance = clearance;
     if (clearance < threshold) {
         // Preferred side is blocked. Switch only if the other side is clearly
         // open, and commit the flip to the oscillator (with a fresh dwell
@@ -1227,10 +1287,13 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         // side per frame turns marginal clearance into frame-rate left/right
         // lean flapping against walls.
         float otherClearance = CalculateLateralClearance(-m_iStrafeDirection);
+        m_telemetry.strafeOtherClearance = otherClearance;
         if (otherClearance >= startThreshold) {
             m_iStrafeDirection      = -m_iStrafeDirection;
             m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
             clearance               = otherClearance;
+            m_telemetry.strafeClearanceFlip = true;
+            m_telemetry.strafeClearance     = clearance;
         }
     }
 
@@ -1269,6 +1332,9 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         );
 
         float intensity  = g_bot_strafe_intensity->value * probe.fraction;
+        m_telemetry.strafeApplied       = true;
+        m_telemetry.strafeProbeFraction = probe.fraction;
+        m_telemetry.strafeIntensity     = intensity;
         int   offset     = (int)(m_iStrafeDirection * intensity * 127.0f);
         int   newRight   = botcmd.rightmove + offset;
         botcmd.rightmove = (signed char)Q_clamp(newRight, -127, 127);
@@ -1314,6 +1380,7 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
 
     Vector      towardEnemy = m_vCombatTarget - controlledEntity->origin;
     const float distance    = VectorNormalize2D(towardEnemy);
+    m_telemetry.radialDistance = distance;
     if (distance <= 0 || distance >= maxDistance) {
         m_iRadialDirection      = 1;
         m_iNextRadialChangeTime = 0;
@@ -1331,6 +1398,7 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     }
 
     Vector move = GetCommandMoveVector(botcmd);
+    m_telemetry.radialActive = true;
 
     // Keep the radial component deliberately slower than the lateral strafe,
     // producing broad arcs instead of straight charges. At body-contact range
@@ -1339,6 +1407,7 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     float desiredRadialMove;
     if (distance < 56.0f) {
         desiredRadialMove = -48.0f;
+        m_telemetry.radialForcedCloseRetreat = true;
     } else if (m_iRadialDirection < 0) {
         desiredRadialMove = distance < 96.0f ? -40.0f : -28.0f;
     } else {
@@ -1346,6 +1415,8 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     }
 
     const float currentRadialMove = DotProduct(move, towardEnemy);
+    m_telemetry.radialDesiredMove = desiredRadialMove;
+    m_telemetry.radialBeforeMove  = currentRadialMove;
     move += towardEnemy * (desiredRadialMove - currentRadialMove);
     SetCommandMoveVector(botcmd, move);
 }
@@ -1393,6 +1464,11 @@ void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
     }
 
     const bool hitSentient = trace.ent && trace.ent->entity && trace.ent->entity->IsSubclassOfSentient();
+    m_telemetry.guardTriggered   = true;
+    m_telemetry.guardHitSentient = hitSentient;
+    m_telemetry.guardHitWorld    = trace.entityNum == ENTITYNUM_WORLD;
+    m_telemetry.guardFraction    = trace.fraction;
+    m_telemetry.guardEntity      = trace.entityNum;
 
     // Always prevent actual player/body contact. For world geometry, intervene
     // only while backing up; normal forward pathing already handles walls and
@@ -1417,5 +1493,6 @@ void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
         // and the lean buttons are deliberately preserved.
         move += collisionNormal * -intoObstacle;
         SetCommandMoveVector(botcmd, move);
+        m_telemetry.guardRemovedComponent = true;
     }
 }

@@ -144,6 +144,29 @@ distance, client entry/exit, and the BSP map checksum are also recorded. Shots,
 reloads, damage, deaths, and spawns are recorded separately at the exact frame
 in which they happen.
 
+The test-only schema 4 profile adds bot decision state to each frame without
+performing additional traces or consuming random numbers. It records the
+selected enemy, sight/attack/fire decisions, reaction time remaining, intended
+and error-adjusted aim points, aim acquisition state, path and blocked-recovery
+state, strafe clearance and doorway damping, radial phase and forced close
+retreat, plus the result of the existing imminent-contact guard. Human rows use
+neutral or sentinel values in these `bot_*` columns.
+
+`bot_fire_decision` values are:
+
+| Value | Meaning |
+| ---: | --- |
+| `0` | No attack decision this frame. |
+| `1` | No valid target. |
+| `2` | Target is out of sight. |
+| `3` | Waiting for the reaction delay. |
+| `4` | No active weapon. |
+| `5` | No ammunition. |
+| `6` | Target is outside weapon range. |
+| `7` | Semi-automatic weapon animation is busy. |
+| `8` | Waiting for semi-automatic spread to settle. |
+| `9` | Bot intends to fire. |
+
 To capture a reference match, enter these commands in the host console:
 
 ```text
@@ -173,9 +196,9 @@ restart. The CSV rows and metadata blocks carry that ID so individual matches
 can still be separated during analysis.
 
 All three files must use the same telemetry schema. Before the first recording
-with a schema 3 build, archive or delete schema 2 copies of all three files.
+with this schema 4 test build, archive or delete schema 3 copies of all three files.
 The recorder refuses to mix schemas or append when only part of the triplet is
-present. Once fresh schema 3 files exist, subsequent sessions append normally.
+present. Once fresh schema 4 files exist, subsequent sessions append normally.
 
 For bot tuning, record several rounds of human versus human play and several
 rounds against bots on the same maps and settings. A normal client demo

@@ -18,6 +18,7 @@ does not mutate game state and never calls a random-number function.
 #include "game.h"
 #include "gamecvars.h"
 #include "player.h"
+#include "playerbot.h"
 #include "sentient.h"
 #include "weapon.h"
 
@@ -31,7 +32,7 @@ does not mutate game state and never calls a random-number function.
 
 namespace
 {
-constexpr int         MOVELOG_SCHEMA          = 3;
+constexpr int         MOVELOG_SCHEMA          = 4;
 constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
 constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
 constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
@@ -426,6 +427,49 @@ static void AppendClearanceColumns(std::ostringstream& row, const ClearanceMetri
         << clearance.normal.y << ',' << clearance.normal.z << ',' << (clearance.startSolid ? 1 : 0);
 }
 
+static void AppendBotColumns(std::ostringstream& row, Player *player)
+{
+    bot_controller_telemetry_t controllerTelemetry;
+    bot_movement_telemetry_t   movementTelemetry;
+
+    if (PlayerIsBot(player)) {
+        BotController *controller = botManager.getControllerManager().findController(player);
+        if (controller) {
+            controller->GetTelemetry(controllerTelemetry);
+            controller->GetMovement().GetTelemetry(movementTelemetry);
+        }
+    }
+
+    row << ',' << controllerTelemetry.stateFlags << ',' << controllerTelemetry.enemyEntity << ','
+        << (controllerTelemetry.enemyVisible ? 1 : 0) << ',' << (controllerTelemetry.canAttack ? 1 : 0) << ','
+        << static_cast<int>(controllerTelemetry.fireDecision) << ',' << (controllerTelemetry.wantsFire ? 1 : 0) << ','
+        << (controllerTelemetry.noMove ? 1 : 0) << ',' << controllerTelemetry.reactionRemainingMsec << ','
+        << controllerTelemetry.enemyDistance << ',' << controllerTelemetry.aimAcquireMsec << ','
+        << controllerTelemetry.aimHeightFraction << ',' << controllerTelemetry.aimErrorFraction << ','
+        << controllerTelemetry.aimErrorUnits << ',' << controllerTelemetry.aimLatencyMsec << ','
+        << controllerTelemetry.aimTarget.x << ',' << controllerTelemetry.aimTarget.y << ','
+        << controllerTelemetry.aimTarget.z << ',' << controllerTelemetry.aimPoint.x << ','
+        << controllerTelemetry.aimPoint.y << ',' << controllerTelemetry.aimPoint.z << ','
+        << controllerTelemetry.aimErrorDirection.x << ',' << controllerTelemetry.aimErrorDirection.y << ','
+        << controllerTelemetry.aimErrorDirection.z << ',' << controllerTelemetry.targetAngles.x << ','
+        << controllerTelemetry.targetAngles.y << ',' << (movementTelemetry.hasCombatTarget ? 1 : 0) << ','
+        << (movementTelemetry.pathing ? 1 : 0) << ',' << (movementTelemetry.blockedRecovery ? 1 : 0) << ','
+        << (movementTelemetry.pathCollisionAvoidance ? 1 : 0) << ','
+        << (movementTelemetry.movementSuppressed ? 1 : 0) << ',' << movementTelemetry.strafeDirection << ','
+        << movementTelemetry.strafeChangeMsec << ',' << (movementTelemetry.isLeaning ? 1 : 0) << ','
+        << (movementTelemetry.strafeApplied ? 1 : 0) << ','
+        << (movementTelemetry.strafeClearanceFlip ? 1 : 0) << ',' << movementTelemetry.strafeClearance << ','
+        << movementTelemetry.strafeOtherClearance << ',' << movementTelemetry.strafeProbeFraction << ','
+        << movementTelemetry.strafeIntensity << ',' << movementTelemetry.radialDirection << ','
+        << movementTelemetry.radialChangeMsec << ',' << (movementTelemetry.radialActive ? 1 : 0) << ','
+        << (movementTelemetry.radialForcedCloseRetreat ? 1 : 0) << ',' << movementTelemetry.radialDistance << ','
+        << movementTelemetry.radialDesiredMove << ',' << movementTelemetry.radialBeforeMove << ','
+        << (movementTelemetry.guardTriggered ? 1 : 0) << ',' << (movementTelemetry.guardHitSentient ? 1 : 0) << ','
+        << (movementTelemetry.guardHitWorld ? 1 : 0) << ','
+        << (movementTelemetry.guardRemovedComponent ? 1 : 0) << ',' << movementTelemetry.guardFraction << ','
+        << movementTelemetry.guardEntity;
+}
+
 static float AxisGap(float firstMin, float firstMax, float secondMin, float secondMax)
 {
     if (firstMax < secondMin) {
@@ -537,7 +581,19 @@ static bool EnsureOpen()
             "clear_toward_opponent_entity,clear_toward_opponent_normal_x,clear_toward_opponent_normal_y,"
             "clear_toward_opponent_normal_z,clear_toward_opponent_startsolid,clear_away_opponent,"
             "clear_away_opponent_entity,clear_away_opponent_normal_x,clear_away_opponent_normal_y,"
-            "clear_away_opponent_normal_z,clear_away_opponent_startsolid\n";
+            "clear_away_opponent_normal_z,clear_away_opponent_startsolid,bot_state_flags,bot_enemy_id,"
+            "bot_enemy_visible,bot_can_attack,bot_fire_decision,bot_wants_fire,bot_no_move,"
+            "bot_reaction_remaining_ms,bot_enemy_distance,bot_aim_acquire_ms,bot_aim_height_fraction,"
+            "bot_aim_error_fraction,bot_aim_error_units,bot_aim_latency_ms,bot_aim_target_x,bot_aim_target_y,"
+            "bot_aim_target_z,bot_aim_point_x,bot_aim_point_y,bot_aim_point_z,bot_aim_error_dir_x,"
+            "bot_aim_error_dir_y,bot_aim_error_dir_z,bot_target_pitch,bot_target_yaw,bot_has_combat_target,"
+            "bot_pathing,bot_blocked_recovery,bot_path_collision_avoidance,bot_movement_suppressed,"
+            "bot_strafe_direction,bot_strafe_change_ms,bot_is_leaning,bot_strafe_applied,"
+            "bot_strafe_clearance_flip,bot_strafe_clearance,bot_strafe_other_clearance,"
+            "bot_strafe_probe_fraction,bot_strafe_intensity,bot_radial_direction,bot_radial_change_ms,"
+            "bot_radial_active,bot_radial_forced_close_retreat,bot_radial_distance,bot_radial_desired_move,"
+            "bot_radial_before_move,bot_guard_triggered,bot_guard_hit_sentient,bot_guard_hit_world,"
+            "bot_guard_removed_component,bot_guard_fraction,bot_guard_entity\n";
     }
     if (eventsNeedHeader) {
         eventsBuffer =
@@ -563,6 +619,7 @@ static bool EnsureOpen()
          << "target_game=" << static_cast<int>(g_target_game) << '\n'
          << "protocol=" << g_protocol << '\n'
          << "sample_hz=" << (1000 / MOVELOG_SAMPLE_MSEC) << '\n'
+         << "telemetry_profile=human_and_bot_decisions\n"
          << "clearance_probe_units=" << MOVELOG_CLEARANCE_RANGE << '\n'
          << CvarLine("sv_mapChecksum", gi.Cvar_Get("sv_mapChecksum", "", 0))
          << CvarLine("g_gametype", g_gametype)
@@ -570,17 +627,27 @@ static bool EnsureOpen()
          << CvarLine("sv_runspeed", sv_runspeed)
          << CvarLine("sv_dmspeedmult", sv_dmspeedmult)
          << CvarLine("sv_gravity", sv_gravity)
+         << CvarLine("sv_bots", sv_bots)
          << CvarLine("g_playerdmhealth", gi.Cvar_Get("g_playerdmhealth", "100", 0))
-         << CvarLine("g_bot_attack_burst_min_time", g_bot_attack_burst_min_time)
-         << CvarLine("g_bot_attack_burst_random_delay", g_bot_attack_burst_random_delay)
-         << CvarLine("g_bot_attack_continuousfire_min_firetime", g_bot_attack_continuousfire_min_firetime)
-         << CvarLine("g_bot_attack_continuousfire_random_firetime", g_bot_attack_continuousfire_random_firetime)
          << CvarLine("g_bot_attack_react_min_delay", g_bot_attack_react_min_delay)
-         << CvarLine("g_bot_attack_react_random_delay", g_bot_attack_react_random_delay)
-         << CvarLine("g_bot_attack_spreadmult", g_bot_attack_spreadmult)
+         << CvarLine("g_bot_aim_height_min", g_bot_aim_height_min)
+         << CvarLine("g_bot_aim_height_max", g_bot_aim_height_max)
+         << CvarLine("g_bot_aim_error", g_bot_aim_error)
+         << CvarLine("g_bot_aim_settle_time", g_bot_aim_settle_time)
+         << CvarLine("g_bot_aim_latency", g_bot_aim_latency)
          << CvarLine("g_bot_turn_speed", g_bot_turn_speed)
-         << CvarLine("g_bot_instamsg_chance", g_bot_instamsg_chance)
-         << CvarLine("g_bot_instamsg_delay", g_bot_instamsg_delay)
+         << CvarLine("g_bot_turn_accel", g_bot_turn_accel)
+         << CvarLine("g_bot_strafe_intensity", g_bot_strafe_intensity)
+         << CvarLine("g_bot_strafe_min_interval", g_bot_strafe_min_interval)
+         << CvarLine("g_bot_strafe_max_interval", g_bot_strafe_max_interval)
+         << CvarLine("g_bot_peek_min_interval", g_bot_peek_min_interval)
+         << CvarLine("g_bot_peek_max_interval", g_bot_peek_max_interval)
+         << CvarLine("g_bot_peek_distance", g_bot_peek_distance)
+         << CvarLine("g_bot_spread", g_bot_spread)
+         << CvarLine("g_bot_team", g_bot_team)
+         << CvarLine("g_bot_sniper", g_bot_sniper)
+         << CvarLine("g_bot_stg", g_bot_stg)
+         << CvarLine("g_accuracy", g_accuracy)
          << '\n';
     const std::string metadata = meta.str();
     fileHandle_t metaFile = gi.FS_FOpenFileAppend(MOVELOG_META_PATH);
@@ -776,6 +843,7 @@ static void AppendFrame(Player *player)
     AppendClearanceColumns(row, clearReverse);
     AppendClearanceColumns(row, clearToward);
     AppendClearanceColumns(row, clearAway);
+    AppendBotColumns(row, player);
     row << '\n';
 
     framesBuffer += row.str();
