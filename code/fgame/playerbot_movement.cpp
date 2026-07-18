@@ -1421,31 +1421,28 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     m_telemetry.radialBeforeMove  = currentRadialMove;
     move += towardEnemy * (desiredRadialMove - currentRadialMove);
 
-    // Replacing a full path component with the deliberately small radial
-    // component above can collapse the complete command to walking speed. In
-    // a firing animation that looks like the bot is skating, even though the
-    // run button remains held. Preserve enough tangential movement to retain
-    // the pre-radial command magnitude wherever the diagonal strafe probe says
-    // there is room. A partially blocked probe lowers the target smoothly, and
-    // the collision guard still runs after this layer and removes unsafe
-    // movement components.
-    if (m_telemetry.strafeApplied && m_telemetry.strafeProbeFraction >= 0.0f) {
-        const float targetTangentialMove = preRadialCommandMax * m_telemetry.strafeProbeFraction;
-        Vector      tangentialMove       = move - towardEnemy * DotProduct(move, towardEnemy);
-        float       tangentialLength     = VectorNormalize2D(tangentialMove);
+    // The radial values above bias direction; they are not a speed target.
+    // Replacing a large path component with the deliberately small radial
+    // component can collapse the whole command to walking speed, which reads
+    // as the bot skating while firing. PM_CmdScale keys speed off the largest
+    // command component, so scale the shaped move back up until its largest
+    // component regains the pre-radial command magnitude. The direction blend
+    // is preserved and no clearance gate is involved, so doorways and narrow
+    // spaces keep full run speed. Scale up only: with no path and no strafe
+    // room the radial component is the entire intended movement and keeps its
+    // deliberate slow pacing. The collision guard still runs after this layer
+    // and removes unsafe movement components.
+    Vector angles = controlledEntity->angles;
+    Vector forward, left, up;
 
-        if (tangentialLength < targetTangentialMove) {
-            if (tangentialLength <= 0.0f && g_bot_strafe_intensity->value > 0.0f) {
-                // The bot is already aimed approximately at the enemy, so
-                // this is its intended right/left strafe side in world space.
-                tangentialMove = Vector(towardEnemy.y, -towardEnemy.x, 0) * (float)m_iStrafeDirection;
-                tangentialLength = 0.0f;
-            }
+    angles.x = 0;
+    angles.z = 0;
+    angles.AngleVectorsLeft(&forward, &left, &up);
 
-            if (tangentialMove.lengthXYSquared() > 0.0f) {
-                move += tangentialMove * (targetTangentialMove - tangentialLength);
-            }
-        }
+    const float postRadialCommandMax =
+        Q_max(fabs(DotProduct(move, forward)), fabs(DotProduct(move, left)));
+    if (postRadialCommandMax > 0.0f && postRadialCommandMax < preRadialCommandMax) {
+        move *= preRadialCommandMax / postRadialCommandMax;
     }
 
     SetCommandMoveVector(botcmd, move);
