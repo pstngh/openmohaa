@@ -80,7 +80,7 @@ struct BotsView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Card("Bot Match", spacing: 5) {
+            Card(spacing: 5) {
                     HStack(spacing: 8) {
                         gameSelector
                             .frame(width: 116)
@@ -130,6 +130,9 @@ struct BotsView: View {
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 12))
                             .frame(width: 44)
+                        Stepper("", value: botCount, in: 1...maxLauncherBots)
+                            .labelsHidden()
+                            .controlSize(.small)
                         Picker("", selection: $settings.botTeam) {
                             Text("Auto").tag("auto")
                             Text("Allies").tag("allies")
@@ -148,6 +151,9 @@ struct BotsView: View {
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 12))
                             .frame(width: 58)
+                        Stepper("", value: playerHealth, in: 1...1000, step: 50)
+                            .labelsHidden()
+                            .controlSize(.small)
                     }
 
                     HStack(spacing: 14) {
@@ -163,12 +169,18 @@ struct BotsView: View {
 
                     FormRow("Run speed") {
                         // No step parameter: macOS otherwise draws a notch for
-                        // every discrete speed value.
-                        Slider(
-                            value: runSpeed,
-                            in: LauncherSettings.minRunSpeed...LauncherSettings.maxRunSpeed
-                        )
-                        .controlSize(.small)
+                        // every discrete speed value. The single center notch
+                        // is drawn behind the track instead.
+                        ZStack {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.55))
+                                .frame(width: 2, height: 8)
+                            Slider(
+                                value: runSpeed,
+                                in: LauncherSettings.minRunSpeed...LauncherSettings.maxRunSpeed
+                            )
+                            .controlSize(.small)
+                        }
                         Text("\(Int(settings.runSpeed))")
                             .font(.system(size: 10, design: .monospaced))
                             .monospacedDigit()

@@ -18,7 +18,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
         }
         .padding(Theme.pagePadding)
-        .frame(width: 800, height: 520)
+        .frame(width: 800, height: 500)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
@@ -34,7 +34,7 @@ struct ContentView: View {
 
     private var connectPanel: some View {
         VStack(spacing: Theme.sectionGap) {
-            Card("Join Server") {
+            Card {
                 HStack(alignment: .top, spacing: 8) {
                     compactField("Nickname", text: $settings.nickname)
                     compactField("Server IP", text: $settings.ip)

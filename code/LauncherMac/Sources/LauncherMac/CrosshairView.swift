@@ -34,12 +34,7 @@ struct CrosshairView: View {
     }
 
     var body: some View {
-        Card("Custom Crosshair", accessory: {
-            Toggle("Enable", isOn: $settings.crosshairEnabled)
-                .toggleStyle(.checkbox)
-                .font(.system(size: 11))
-                .fixedSize()
-        }) {
+        Card {
             HStack(alignment: .top, spacing: 10) {
                 CrosshairPreview(
                     color: previewColor,
@@ -73,6 +68,10 @@ struct CrosshairView: View {
                         .lineLimit(1)
 
                     HStack {
+                        Toggle("Enable", isOn: $settings.crosshairEnabled)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 11))
+                            .fixedSize()
                         Spacer()
                         Button("Reset") { settings.resetCrosshair() }
                             .font(.system(size: 10))

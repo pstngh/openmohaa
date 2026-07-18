@@ -5,7 +5,7 @@ struct LauncherMacApp: App {
     @StateObject private var settings = LauncherSettings()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("MoH") {
             ContentView(settings: settings)
         }
         .windowResizability(.contentSize)

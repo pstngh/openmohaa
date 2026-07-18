@@ -2271,7 +2271,7 @@ void Player::Init(void)
     InitHealth();
     InitStats();
 
-    // SH/BT bots rotate through the installed team skins on every spawn.
+    // Bots rotate through the installed team skins on every spawn.
     // Do this before the model and nationality-dependent loadout are chosen.
     G_RandomizeBotPlayerModels(edict);
 

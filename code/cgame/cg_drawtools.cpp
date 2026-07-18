@@ -1464,7 +1464,9 @@ void CG_DrawCrosshairOverlay()
         return;
     }
 
-    if ((cg.snap->ps.pm_flags & (PMF_NO_HUD | PMF_INTERMISSION | PMF_CAMERA_VIEW))
+    // PMF_SPECTATING covers free-floating spectate, which otherwise passes
+    // every other check here; following a player also sets PMF_CAMERA_VIEW.
+    if ((cg.snap->ps.pm_flags & (PMF_NO_HUD | PMF_INTERMISSION | PMF_CAMERA_VIEW | PMF_SPECTATING))
         || cg.snap->ps.stats[STAT_INZOOM] || cg.snap->ps.stats[STAT_HEALTH] <= 0) {
         return;
     }

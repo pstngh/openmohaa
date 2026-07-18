@@ -179,10 +179,6 @@ static void G_RandomizeBotUserinfoModels(char *userinfo)
 {
     const char *model;
 
-    if (g_target_game < target_game_e::TG_MOHTA) {
-        return;
-    }
-
     model = G_GetRandomPlayerModel(alliedModelList, Info_ValueForKey(userinfo, "dm_playermodel"));
     if (*model) {
         Info_SetValueForKey(userinfo, "dm_playermodel", model);
@@ -456,14 +452,14 @@ const char *G_GetRandomGermanPlayerModel()
 ===========
 G_RandomizeBotPlayerModels
 
-Choose new SH/BT models before a bot is initialized for its next life.
+Choose new models before a bot is initialized for its next life.
 ============
 */
 void G_RandomizeBotPlayerModels(gentity_t *ent)
 {
     const char *model;
 
-    if (g_target_game < target_game_e::TG_MOHTA || !ent || !ent->client || !G_IsBot(ent)) {
+    if (!ent || !ent->client || !G_IsBot(ent)) {
         return;
     }
 
