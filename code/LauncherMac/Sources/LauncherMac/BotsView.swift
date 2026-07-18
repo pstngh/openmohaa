@@ -87,6 +87,12 @@ struct BotsView: View {
 
                         Spacer(minLength: 0)
 
+                        // Lives here instead of the window toolbar so the
+                        // title bar stays slim.
+                        VerifyButton()
+
+                        Spacer(minLength: 0)
+
                         Text("Resolution")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
@@ -98,7 +104,7 @@ struct BotsView: View {
                         }
                         .labelsHidden()
                         .font(.system(size: 10))
-                        .frame(width: 132)
+                        .frame(width: 150)
                     }
                     .frame(height: 34)
 
@@ -181,7 +187,7 @@ struct BotsView: View {
                         .font(.system(size: 11))
                     }
 
-                    FormRow("Style") {
+                    FormRow("Options") {
                         Toggle("AA lean", isOn: $settings.aaLean)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
@@ -190,10 +196,6 @@ struct BotsView: View {
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Play Spearhead/Breakthrough hit-reaction animations when players are shot.")
-                        Spacer()
-                    }
-
-                    FormRow("Options") {
                         Toggle("God mode", isOn: $settings.godMode)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
