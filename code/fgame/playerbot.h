@@ -344,6 +344,10 @@ private:
     void        State_Attack(void);
     bool        IsValidEnemy(Sentient *sent) const;
     bool        IsEngagedByAnotherBot(Sentient *enemy) const;
+    bool        CanSeeEnemyPoint(Sentient *enemy, const Vector& point);
+    bool        IsEnemyWithinVision(Sentient *enemy) const;
+    bool        IsEnemyPartVisible(Sentient *enemy);
+    bool        CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction);
     void        BeginAimAcquisition(void);
     void        UpdateAimErrorDirection(void);
     Vector      GetDelayedAimTarget(const Vector& currentTarget);

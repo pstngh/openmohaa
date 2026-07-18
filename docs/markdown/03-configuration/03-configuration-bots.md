@@ -78,6 +78,13 @@ ascending order.
 | `g_bot_aim_settle_time` | `0.4` | `0`-`10` seconds | Time for acquisition error to decay smoothly to its persistent floor. |
 | `g_bot_aim_latency` | `0` | `0`-`2000` ms | Makes the bot aim at a timestamped past target position. |
 
+Enemy visibility is checked at several heights of the body, not only eye to
+eye, so an enemy peeking over cover or partially hidden behind a railing or
+ramp edge is still detected and engaged. The humanized aim height is kept
+while the body around it is visible; when it falls behind cover, the aim
+snaps to the closest visible part of the body - for an enemy firing over a
+wall, the lowest visible point above the cover.
+
 ### Turning and weapon accuracy
 
 | Cvar | Default | Valid range | Description |

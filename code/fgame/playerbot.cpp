@@ -48,6 +48,18 @@ BotController::botfunc_t BotController::botfuncs[MAX_BOT_FUNCTIONS];
 // settling into near-perfect lock while preserving the difficulty presets.
 static const float BOT_AIM_RESIDUAL_FRACTION = 0.60f;
 
+static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
+
+// Body heights sampled when checking whether an enemy is partially visible,
+// as fractions of the bounding-box height, ordered top-down. A single
+// eye-to-eye trace declares an enemy invisible whenever anything clips that
+// one line - a railing bar, a ramp edge, the top of a cover wall - even
+// though most of the body is exposed and shootable. Cover hides the low
+// samples first; railings and ramp edges typically leave gaps around the
+// middle ones.
+static const float BOT_VISIBILITY_SAMPLES[]    = {0.9f, 0.7f, 0.5f, 0.3f, 0.1f};
+static const int   BOT_NUM_VISIBILITY_SAMPLES  = ARRAY_LEN(BOT_VISIBILITY_SAMPLES);
+
 bot_controller_telemetry_t::bot_controller_telemetry_t()
 {
     Reset();
@@ -892,6 +904,152 @@ bool BotController::IsEngagedByAnotherBot(Sentient *enemy) const
     return false;
 }
 
+bool BotController::CanSeeEnemyPoint(Sentient *enemy, const Vector& point)
+{
+    return G_SightTrace(
+        controlledEnt->EyePosition(),
+        vec_zero,
+        vec_zero,
+        point,
+        controlledEnt,
+        enemy,
+        MASK_CANSEE,
+        qfalse,
+        "BotController::CanSeeEnemyPoint"
+    );
+}
+
+bool BotController::IsEnemyWithinVision(Sentient *enemy) const
+{
+    vec2_t delta;
+
+    VectorSub2D(enemy->centroid, controlledEnt->centroid, delta);
+    if (VectorLength2DSquared(delta) > Square(BOT_MAX_VISION_DISTANCE)) {
+        return false;
+    }
+
+    return controlledEnt->AreasConnected(enemy);
+}
+
+static float BotEnemyEyeFraction(Sentient *enemy)
+{
+    if (enemy->maxs.z <= 0) {
+        return 1.0f;
+    }
+
+    return Q_clamp_float((enemy->EyePosition().z - enemy->origin.z) / enemy->maxs.z, 0.0f, 1.0f);
+}
+
+//
+// Any-part visibility used for target acquisition. Unlike a single
+// eye-to-eye trace, an enemy peeking over cover or standing behind a railing
+// still counts as visible when any sampled body height can be seen.
+//
+bool BotController::IsEnemyPartVisible(Sentient *enemy)
+{
+    if (!IsEnemyWithinVision(enemy)) {
+        return false;
+    }
+
+    if (CanSeeEnemyPoint(enemy, enemy->EyePosition())) {
+        return true;
+    }
+
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES; i++) {
+        Vector point = enemy->origin;
+        point.z += enemy->maxs.z * BOT_VISIBILITY_SAMPLES[i];
+
+        if (CanSeeEnemyPoint(enemy, point)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//
+// Full visibility scan for the current combat target. Returns whether any
+// part of the enemy is visible and adjusts the aim height: the humanized
+// height is kept while the body around it is visible, otherwise the aim
+// falls back to the visible sampled height closest to it - for an enemy
+// firing over a wall that is the lowest visible point of the body, so the
+// bot shoots back instead of burying its aim in the cover.
+//
+bool BotController::CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction)
+{
+    struct {
+        float fraction;
+        bool  visible;
+    } samples[BOT_NUM_VISIBILITY_SAMPLES + 1];
+
+    aimFraction = desiredAimFraction;
+
+    if (!IsEnemyWithinVision(enemy)) {
+        return false;
+    }
+
+    samples[0].fraction = BotEnemyEyeFraction(enemy);
+    samples[0].visible  = CanSeeEnemyPoint(enemy, enemy->EyePosition());
+
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES; i++) {
+        Vector point = enemy->origin;
+        point.z += enemy->maxs.z * BOT_VISIBILITY_SAMPLES[i];
+
+        samples[i + 1].fraction = BOT_VISIBILITY_SAMPLES[i];
+        samples[i + 1].visible  = CanSeeEnemyPoint(enemy, point);
+    }
+
+    bool anyVisible = false;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (samples[i].visible) {
+            anyVisible = true;
+            break;
+        }
+    }
+
+    if (!anyVisible) {
+        return false;
+    }
+
+    // Keep the humanized height when the sampled heights bracketing it are
+    // both visible.
+    float belowFraction = -1.0f, aboveFraction = -1.0f;
+    bool  belowVisible = false, aboveVisible = false;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (samples[i].fraction <= desiredAimFraction
+            && (belowFraction < 0 || samples[i].fraction > belowFraction)) {
+            belowFraction = samples[i].fraction;
+            belowVisible  = samples[i].visible;
+        }
+        if (samples[i].fraction >= desiredAimFraction
+            && (aboveFraction < 0 || samples[i].fraction < aboveFraction)) {
+            aboveFraction = samples[i].fraction;
+            aboveVisible  = samples[i].visible;
+        }
+    }
+
+    if ((belowFraction < 0 || belowVisible) && (aboveFraction < 0 || aboveVisible)) {
+        return true;
+    }
+
+    // Fall back to the visible height nearest the desired one, preferring
+    // the lower point on ties.
+    float bestDistance = 2.0f;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (!samples[i].visible) {
+            continue;
+        }
+
+        const float distance = fabs(samples[i].fraction - desiredAimFraction);
+        if (distance < bestDistance || (distance == bestDistance && samples[i].fraction < aimFraction)) {
+            bestDistance = distance;
+            aimFraction  = samples[i].fraction;
+        }
+    }
+
+    return true;
+}
+
 void BotController::BeginAimAcquisition(void)
 {
     m_iAimAcquireTime = level.inttime;
@@ -982,9 +1140,7 @@ bool BotController::CheckCondition_Attack(void)
     // this target, fall through to reacquire and peel off onto a free enemy
     // (the acquisition below keeps us here anyway when there is none). Also
     // reacquire once the target dies, changes state, or breaks line of sight.
-    if (m_pEnemy && IsValidEnemy(m_pEnemy)
-        && controlledEnt->CanSee(m_pEnemy, 360, 4096.0f, false)
-        && !IsEngagedByAnotherBot(m_pEnemy)) {
+    if (m_pEnemy && IsValidEnemy(m_pEnemy) && IsEnemyPartVisible(m_pEnemy) && !IsEngagedByAnotherBot(m_pEnemy)) {
         m_vLastEnemyPos = m_pEnemy->origin;
         m_iAttackTime   = level.inttime + 1000;
         return true;
@@ -1007,7 +1163,7 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        if (!controlledEnt->CanSee(sent, 360, 4096.0f, false)) {
+        if (!IsEnemyPartVisible(sent)) {
             continue;
         }
 
@@ -1077,6 +1233,7 @@ void BotController::State_Attack(void)
 {
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
+    float   fAimHeightFraction  = m_fAimHeightFraction;
     float   fMinDistance        = 128;
     float   fMinDistanceSquared = fMinDistance * fMinDistance;
     float   fEnemyDistanceSquared;
@@ -1101,8 +1258,7 @@ void BotController::State_Attack(void)
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
-    bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 360, 4096.0f, false);
+    bCanSee = CheckEnemyVisibility(m_pEnemy, m_fAimHeightFraction, fAimHeightFraction);
     m_telemetry.enemyVisible = bCanSee;
 
     if (bCanSee) {
@@ -1253,7 +1409,7 @@ void BotController::State_Attack(void)
         // Build the complete aim point before recording it so latency also
         // delays vertical movement and stance changes. This makes 120 ms mean
         // 120 ms, independent of frame rate.
-        vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * m_fAimHeightFraction;
+        vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * fAimHeightFraction;
         vTarget   = GetDelayedAimTarget(vTarget);
         m_telemetry.aimTarget = vTarget;
 
