@@ -78,6 +78,8 @@ class LauncherSettings: ObservableObject {
     @Published var aaLean: Bool = false
     @Published var painAnimations: Bool = true
     @Published var godMode: Bool = false
+    @Published var forceModels: Bool = false
+    @Published var moveLog: Bool = false
 
     // Crosshair tab
     @Published var crosshairEnabled: Bool = false
@@ -221,6 +223,8 @@ class LauncherSettings: ObservableObject {
             case "aa_lean": aaLean = (Int(value) ?? 0) != 0
             case "pain_anims": painAnimations = (Int(value) ?? 0) != 0
             case "god_mode": godMode = (Int(value) ?? 0) != 0
+            case "force_models": forceModels = (Int(value) ?? 0) != 0
+            case "move_log": moveLog = (Int(value) ?? 0) != 0
             // Crosshair tab
             case "crosshair_enabled": crosshairEnabled = (Int(value) ?? 0) != 0
             case "crosshair_length":
@@ -313,6 +317,8 @@ class LauncherSettings: ObservableObject {
         lines.append("aa_lean=\(aaLean ? 1 : 0)")
         lines.append("pain_anims=\(painAnimations ? 1 : 0)")
         lines.append("god_mode=\(godMode ? 1 : 0)")
+        lines.append("force_models=\(forceModels ? 1 : 0)")
+        lines.append("move_log=\(moveLog ? 1 : 0)")
 
         // Crosshair tab
         lines.append("crosshair_enabled=\(crosshairEnabled ? 1 : 0)")

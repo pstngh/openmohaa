@@ -115,6 +115,8 @@ struct GameLauncher {
             settings.painAnimations ? "1" : "0",
         ])
         args.append(contentsOf: ["+set", "g_godmode", settings.godMode ? "1" : "0"])
+        // Server-side telemetry recorder; only meaningful when hosting.
+        args.append(contentsOf: ["+set", "g_movelog", settings.moveLog ? "1" : "0"])
 
         appendCommonArgs(&args, settings: settings)
         appendResolutionArgs(&args, settings: settings)
@@ -133,6 +135,7 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "cl_playintro", "0"])
         args.append(contentsOf: ["+set", "r_primitives", "2"])
         args.append(contentsOf: ["+set", "r_uselod", "0"])
+        args.append(contentsOf: ["+set", "cg_forceModel", settings.forceModels ? "1" : "0"])
 
         // The engine suppresses the stock crosshair whenever its overlay is
         // active. Restore ui_crosshair only when disabling the overlay, which

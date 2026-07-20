@@ -214,6 +214,18 @@ struct BotsView: View {
                         Spacer()
                     }
 
+                    FormRow("") {
+                        Toggle("Force models", isOn: $settings.forceModels)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Render every player with your selected Allied/Axis models (cg_forceModel).")
+                        Toggle("Move log", isOn: $settings.moveLog)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Record server-side movement and aim telemetry to CSV files in telemetry/ (g_movelog).")
+                        Spacer()
+                    }
+
                     Divider()
                         .padding(.vertical, 2)
 
@@ -259,6 +271,8 @@ struct BotsView: View {
         .onChange(of: settings.aaLean) { _ in settings.save() }
         .onChange(of: settings.painAnimations) { _ in settings.save() }
         .onChange(of: settings.godMode) { _ in settings.save() }
+        .onChange(of: settings.forceModels) { _ in settings.save() }
+        .onChange(of: settings.moveLog) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in
             if on {
                 let t = settings.derivedTuning()

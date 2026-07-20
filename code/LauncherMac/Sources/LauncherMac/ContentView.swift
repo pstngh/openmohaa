@@ -18,7 +18,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
         }
         .padding(Theme.pagePadding)
-        .frame(width: 800, height: 500)
+        .frame(width: 800, height: 520)
         .onChange(of: settings.ip) { _ in settings.save() }
         .onChange(of: settings.password) { _ in settings.save() }
         .onChange(of: settings.rconPassword) { _ in settings.save() }
