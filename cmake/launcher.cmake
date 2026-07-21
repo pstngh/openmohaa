@@ -1,3 +1,8 @@
+if(APPLE AND BUILD_MACOS_BUNDLE)
+    # The Swift launcher and unified mohbots.app replace the legacy stubs.
+    return()
+endif()
+
 set(LAUNCHER_SOURCES "${SOURCE_DIR}/Launcher/launch_main.cpp")
 
 if (WIN32)

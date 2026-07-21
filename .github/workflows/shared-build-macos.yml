@@ -24,12 +24,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          #{name: 'x86_64',   triple: 'x86_64-apple-macos10.8'},
-          #{name: 'arm64',    triple: 'arm64-apple-macos11'}
-          #{name: 'x86_64',    build_name: 'x86_64'},
-          #{name: 'arm64',     build_name: 'arm64'},
-          # Compile into an universal binary
-          {name: 'multiarch-arm64-x86_64', build_name: 'arm64;x86_64' }
+          {name: 'arm64', build_name: 'arm64'}
         ]
 
     name: "Building for platform macos-${{matrix.architecture.name}}"
@@ -47,7 +42,7 @@ jobs:
 
     - name: Install required packages
       run: |
-        brew install flex bison llvm
+        brew install flex bison llvm librsvg
     # Those packages are already installed  
     #brew install git ninja cmake perl
 
@@ -57,7 +52,7 @@ jobs:
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
     ###
     # SDL
@@ -217,7 +212,10 @@ jobs:
         -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
         -DBUILD_RENDERER_GL2=OFF \
-        -DBUILD_MACOS_APP=OFF \
+        -DBUILD_SERVER=OFF \
+        -DBUILD_GAME_QVMS=OFF \
+        -DBUILD_MACOS_APP=ON \
+        -DBUILD_MACOS_BUNDLE=ON \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
         -DPRODUCT_VERSION_STAGE='${{ env.RELEASE_STAGE }}'" >> $GITHUB_ENV
 
@@ -236,13 +234,57 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Create hard-link and copy symbolic links
+        # Assemble package
         mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+        # Bundle all required files into each .app so they are self-contained
+        # (macOS App Translocation prevents loading from outside the bundle)
+        DYLIBS=(
+          "${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib"
+          "${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib"
+        )
+        # curl uses lib or lib64 depending on the platform
+        DYLIBS+=(${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib)
+        LIBDIR='${{github.workspace}}/install/lib/openmohaa'
+        for app in '${{github.workspace}}/package'/*.app; do
+          if [ -d "$app" ]; then
+            MACOSDIR="$app/Contents/MacOS"
+            # Copy third-party shared libraries
+            for lib in "${DYLIBS[@]}"; do
+              cp "$lib" "$MACOSDIR/"
+            done
+            # Copy game module libraries (game.dylib, cgame.dylib, etc.)
+            if [ -d "$LIBDIR" ]; then
+              find "$LIBDIR" -name '*.dylib' -not -path '*.app/*' -not -path '*/.*' | while read -r mod; do
+                # Preserve subdirectory structure (e.g. missionpack/)
+                relpath="${mod#$LIBDIR/}"
+                mkdir -p "$MACOSDIR/$(dirname "$relpath")"
+                cp "$mod" "$MACOSDIR/$relpath"
+              done
+            fi
+            # Ad-hoc sign the complete bundle after all contents are in place
+            codesign --force --deep \
+              --entitlements '${{github.workspace}}/source/cmake/entitlements.plist' \
+              --sign - "$app"
+          fi
+        done
+
+    - name: Build Launcher
+      working-directory: ${{github.workspace}}/source/code/LauncherMac
+      run: |
+        swift build -c release --arch arm64
+        BIN="$(swift build -c release --arch arm64 --show-bin-path)/launcher"
+        # Create launcher.app bundle
+        LAUNCHER_APP='${{github.workspace}}/package/launcher.app'
+        mkdir -p "$LAUNCHER_APP/Contents/MacOS"
+        mkdir -p "$LAUNCHER_APP/Contents/Resources"
+        cp "$BIN" "$LAUNCHER_APP/Contents/MacOS/launcher"
+        cp Resources/Info.plist "$LAUNCHER_APP/Contents/"
+        cp Resources/AppIcon.icns "$LAUNCHER_APP/Contents/Resources/"
+        codesign --force --deep \
+          --entitlements '${{github.workspace}}/source/cmake/entitlements.plist' \
+          --sign - "$LAUNCHER_APP"
 
     ###
     # Artifacts

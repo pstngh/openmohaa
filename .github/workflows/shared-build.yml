@@ -8,16 +8,6 @@ on:
         type: string
 
 jobs:
-  build-platform-linux:
-    uses: ./.github/workflows/shared-build-linux.yml
-    with:
-      environment: ${{inputs.environment}}
-
-  build-platform-windows:
-    uses: ./.github/workflows/shared-build-windows.yml
-    with:
-      environment: ${{inputs.environment}}
-
   build-platform-macos:
     uses: ./.github/workflows/shared-build-macos.yml
     with:
