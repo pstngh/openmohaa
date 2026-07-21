@@ -385,6 +385,12 @@ void SV_DirectConnect( netadr_t from ) {
 
 	Q_strncpyz( userinfo, Cmd_Argv(1), sizeof(userinfo) );
 	Com_DPrintf ("SVC_DirectConnect ()\n>>>%s<<<\n", userinfo);
+
+	if (sv_lanOnly->integer && !Sys_IsLANAddress(from)) {
+		SV_NET_OutOfBandPrint(&svs.netprofile, from, "droperror\nThis server accepts LAN connections only.\n");
+		Com_DPrintf("    rejected non-LAN connection from %s\n", NET_AdrToString(from));
+		return;
+	}
 	
 	// Check whether this client is banned.
 	if(SV_IsBanned(&from, qfalse, banReason, sizeof(banReason)))

@@ -1125,6 +1125,7 @@ void SV_Init (void)
     g_netoptimize = Cvar_Get("g_netoptimize", "1", 0);
 	sv_chatter = Cvar_Get( "sv_chatter", "0", 0 );
 	sv_lanForceRate = Cvar_Get ("sv_lanForceRate", "1", CVAR_ARCHIVE );
+	sv_lanOnly = Cvar_Get ("sv_lanOnly", "0", CVAR_TEMP );
 #ifndef STANDALONE
 	sv_strictAuth = Cvar_Get ("sv_strictAuth", "1", CVAR_ARCHIVE );
 #endif

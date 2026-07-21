@@ -835,6 +835,9 @@ public:
     void       SetPlayerSpectate(bool bNext);
     void       SetPlayerSpectateRandom(void); // Added in 2.0
     bool       IsValidSpectatePlayer(Player *pPlayer);
+    bool       IsBotLanObserver(void) const;
+    bool       IsBotLanObserverTarget(Player *pPlayer) const;
+    void       SetBotLanObserverTarget(void);
     void       GetSpectateFollowOrientation(Player *pPlayer, Vector& vPos, Vector& vAng);
     void       UpdateStatus(const char *s);
     void       SetDM_Team(DM_Team *team);

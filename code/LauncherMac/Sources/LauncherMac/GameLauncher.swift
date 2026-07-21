@@ -78,6 +78,12 @@ struct GameLauncher {
         // of sv_maxclients, so a value > 1 skips that prompt and drops us
         // straight into the match without losing any bot slots.
         args.append(contentsOf: ["+set", "sv_maxclients", "2"])
+        // Bot matches are private LAN sessions. The second real-client slot is
+        // reserved for one chase spectator; bots use their own slots.
+        args.append(contentsOf: ["+set", "sv_gamespy", "0"])
+        args.append(contentsOf: ["+set", "sv_lanOnly", "1"])
+        args.append(contentsOf: ["+set", "g_bot_lan_observer", "1"])
+        args.append(contentsOf: ["+set", "g_spectatefollow_firstperson", "0"])
         args.append(contentsOf: ["+set", "rconpassword", "bot"])
 
         if !settings.nickname.isEmpty {
