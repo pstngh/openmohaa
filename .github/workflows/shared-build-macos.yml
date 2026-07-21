@@ -24,12 +24,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          #{name: 'x86_64',   triple: 'x86_64-apple-macos10.8'},
-          #{name: 'arm64',    triple: 'arm64-apple-macos11'}
-          #{name: 'x86_64',    build_name: 'x86_64'},
-          #{name: 'arm64',     build_name: 'arm64'},
-          # Compile into an universal binary
-          {name: 'multiarch-arm64-x86_64', build_name: 'arm64;x86_64' }
+          {name: 'arm64', build_name: 'arm64'}
         ]
 
     name: "Building for platform macos-${{matrix.architecture.name}}"
@@ -57,7 +52,7 @@ jobs:
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
     ###
     # SDL
@@ -276,10 +271,8 @@ jobs:
     - name: Build Launcher
       working-directory: ${{github.workspace}}/source/code/LauncherMac
       run: |
-        swift build -c release --arch arm64 --arch x86_64
-        # Universal (multi-arch) builds output to .build/apple/Products/Release
-        BIN='.build/apple/Products/Release/launcher'
-        if [ ! -f "$BIN" ]; then BIN='.build/release/launcher'; fi
+        swift build -c release --arch arm64
+        BIN="$(swift build -c release --arch arm64 --show-bin-path)/launcher"
         # Create launcher.app bundle
         LAUNCHER_APP='${{github.workspace}}/package/launcher.app'
         mkdir -p "$LAUNCHER_APP/Contents/MacOS"
