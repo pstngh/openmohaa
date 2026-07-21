@@ -269,51 +269,43 @@ extern cvar_t *g_obituarylocation;
 extern cvar_t *sv_scriptfiles;
 
 extern cvar_t *sv_bots;
-extern cvar_t *sv_minPlayers;
 extern cvar_t *sv_sharedbots;
 
-/**
- * @brief Minimum time to pause (bursting).
- */
-extern cvar_t *g_bot_attack_burst_min_time;
-/**
- * @brief Random time added to pause (bursting).
- */
-extern cvar_t *g_bot_attack_burst_random_delay;
-/**
- * @brief Minimum duration of continuous firing.
- */
-extern cvar_t *g_bot_attack_continuousfire_min_firetime;
-/**
- * @brief Random time added to the continuous firing duration.
- */
-extern cvar_t *g_bot_attack_continuousfire_random_firetime;
 /**
  * @brief The minimum time before the bot starts reacting.
  */
 extern cvar_t *g_bot_attack_react_min_delay;
 /**
- * @brief A random value added with the reaction delay.
+ * @brief Max aim height as fraction of viewheight (0.0-1.0).
  */
-extern cvar_t *g_bot_attack_react_random_delay;
+extern cvar_t *g_bot_aim_height_max;
 /**
- * @brief The accuracy.
+ * @brief Min aim height as fraction of viewheight (0.0-1.0).
  */
-extern cvar_t *g_bot_attack_spreadmult;
+extern cvar_t *g_bot_aim_height_min;
 /**
- * @brief The degrees per seconds when the bot turns.
+ * @brief Aim error in units (0-400) when a bot acquires a target. After
+ * settling, 60% persists and drifts smoothly. 0 disables both.
+ */
+extern cvar_t *g_bot_aim_error;
+/**
+ * @brief Seconds of continuous tracking for acquisition error to settle to
+ * its persistent floor.
+ */
+extern cvar_t *g_bot_aim_settle_time;
+/**
+ * @brief Simulated aim latency in ms: bots aim where the target was this long
+ * ago, not where it is now. 0 = perfect tracking (old behavior).
+ */
+extern cvar_t *g_bot_aim_latency;
+/**
+ * @brief Maximum bot turn rate in degrees per second.
  */
 extern cvar_t *g_bot_turn_speed;
 /**
- * @brief A value that determines the chance of the bot sending an instant message on kill.
- * 0 = disable
- * The higher the value, the lower the frequency of instant messages.
+ * @brief Rate at which the bot reaches its maximum turn rate.
  */
-extern cvar_t *g_bot_instamsg_chance;
-/**
- * @brief The delay at which the bot can send an instant message again.
- */
-extern cvar_t *g_bot_instamsg_delay;
+extern cvar_t *g_bot_turn_accel;
 
 /**
  * @brief The delay before spawning bots at the beginning of the map.
@@ -322,10 +314,20 @@ extern cvar_t *g_bot_initial_spawn_delay;
 
 /**
  * @brief When enabled, the game no longer controls bots.
- * 
+ *
  */
 extern cvar_t *g_bot_manualmove;
 
+/**
+ * @brief Static bot bullet spread as a multiple of the weapon's base spread.
+ * 1 = stock accuracy, higher = less accurate, 0 = pinpoint. No bloom buildup.
+ */
+extern cvar_t *g_bot_spread;
+/**
+ * @brief Human player accuracy: 0 = normal (spread grows and caps),
+ * 1 = high (no bloom, base spread only), 2 = perfect (zero total spread).
+ */
+extern cvar_t *g_accuracy;
 /**
  * @brief Force bots to a specific team. Values: "auto" (default), "axis", "allies"
  */

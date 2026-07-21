@@ -173,12 +173,24 @@ private:
     int    m_iLastBurstTime;
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
-    int    m_iContinuousFireTime;
-    Vector m_vAimOffset;
-    int    m_iLastAimTime;
+    float  m_fAimHeightFraction;
+    int    m_iAimAcquireTime;
+    Vector m_vAimErrorDirection;
+    Vector m_vAimErrorTargetDirection;
+    int    m_iNextAimErrorChangeTime;
+
+    enum { MAX_AIM_HISTORY_SAMPLES = 256 };
+    struct aim_sample_t {
+        int    time;
+        Vector position;
+    };
+    aim_sample_t m_AimHistory[MAX_AIM_HISTORY_SAMPLES];
+    int          m_iAimHistoryHead;
+    int          m_iAimHistoryCount;
 
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
+    int               m_iCuriousEventType;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
     Vector            m_vLastDeathPos;
@@ -235,6 +247,14 @@ private:
     void        State_EndAttack(void);
     void        State_Attack(void);
     bool        IsValidEnemy(Sentient *sent) const;
+    bool        IsEngagedByAnotherBot(Sentient *enemy) const;
+    bool        CanSeeEnemyPoint(Sentient *enemy, const Vector& point);
+    bool        IsEnemyWithinVision(Sentient *enemy) const;
+    bool        IsEnemyPartVisible(Sentient *enemy);
+    bool        CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction);
+    void        BeginAimAcquisition(void);
+    void        UpdateAimErrorDirection(void);
+    Vector      GetDelayedAimTarget(const Vector& currentTarget);
 
     static void InitState_Grenade(botfunc_t *func);
     bool        CheckCondition_Grenade(void);

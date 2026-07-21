@@ -43,6 +43,91 @@ CLASS_DECLARATION(Listener, BotController, NULL) {
 
 BotController::botfunc_t BotController::botfuncs[MAX_BOT_FUNCTIONS];
 
+// Human reference shots retained substantial tracking error after target
+// acquisition. Keeping 60% of the configured error prevents the bot from
+// settling into near-perfect lock while preserving the difficulty presets.
+static const float BOT_AIM_RESIDUAL_FRACTION = 0.60f;
+
+static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
+
+// Body heights sampled when checking whether an enemy is partially visible,
+// as fractions of the bounding-box height, ordered top-down. A single
+// eye-to-eye trace declares an enemy invisible whenever anything clips that
+// one line - a railing bar, a ramp edge, the top of a cover wall - even
+// though most of the body is exposed and shootable. Cover hides the low
+// samples first; railings and ramp edges typically leave gaps around the
+// middle ones.
+static const float BOT_VISIBILITY_SAMPLES[]    = {0.9f, 0.7f, 0.5f, 0.3f, 0.1f};
+static const int   BOT_NUM_VISIBILITY_SAMPLES  = ARRAY_LEN(BOT_VISIBILITY_SAMPLES);
+static int BotSoundPriority(int eventType)
+{
+    switch (eventType) {
+    case AI_EVENT_GRENADE:
+        return 8;
+    case AI_EVENT_WEAPON_FIRE:
+        return 7;
+    case AI_EVENT_EXPLOSION:
+        return 6;
+    case AI_EVENT_WEAPON_IMPACT:
+        return 5;
+    case AI_EVENT_AMERICAN_URGENT:
+    case AI_EVENT_GERMAN_URGENT:
+        return 4;
+    case AI_EVENT_AMERICAN_VOICE:
+    case AI_EVENT_GERMAN_VOICE:
+        return 3;
+    case AI_EVENT_MISC_LOUD:
+    case AI_EVENT_FOOTSTEP:
+        return 2;
+    case AI_EVENT_MISC:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int BotSoundInterestDuration(int eventType)
+{
+    switch (eventType) {
+    case AI_EVENT_GRENADE:
+        return 5000;
+    case AI_EVENT_WEAPON_FIRE:
+    case AI_EVENT_EXPLOSION:
+        return 10000;
+    case AI_EVENT_WEAPON_IMPACT:
+        return 7000;
+    case AI_EVENT_AMERICAN_URGENT:
+    case AI_EVENT_GERMAN_URGENT:
+        return 6000;
+    case AI_EVENT_AMERICAN_VOICE:
+    case AI_EVENT_GERMAN_VOICE:
+    case AI_EVENT_MISC_LOUD:
+    case AI_EVENT_FOOTSTEP:
+        return 4000;
+    default:
+        return 2500;
+    }
+}
+
+static Vector RandomBotAimErrorDirection()
+{
+    // Keep persistent error away from the head and neck: horizontal error is
+    // symmetric, while its smaller vertical component can only pull down.
+    Vector direction(G_CRandom(1.0f), G_CRandom(1.0f), 0);
+    if (direction.length() < 0.01f) {
+        direction = Vector(1, 0, 0);
+    }
+    direction.normalize();
+    direction.z = -G_Random(0.35f);
+    direction.normalize();
+    return direction;
+}
+
+static int RandomBotAimErrorInterval()
+{
+    return 1000 + (int)G_Random(1000);
+}
+
 BotController::BotController()
 {
     if (LoadingSavegame) {
@@ -66,15 +151,19 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime        = 0;
-    m_iAttackTime         = 0;
-    m_iEnemyEyesTag       = -1;
-    m_iContinuousFireTime = 0;
-    m_iLastSeenTime       = 0;
-    m_iLastUnseenTime     = 0;
-    m_iLastBurstTime      = 0;
-
-    m_iNextTauntTime = 0;
+    m_iCuriousTime              = 0;
+    m_iAttackTime               = 0;
+    m_iEnemyEyesTag             = -1;
+    m_iLastSeenTime             = 0;
+    m_iLastUnseenTime           = 0;
+    m_iAimAcquireTime           = -1;
+    m_fAimHeightFraction        = 0.57f;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_iCuriousEventType         = AI_EVENT_NONE;
 
     m_StateFlags = 0;
 }
@@ -396,10 +485,17 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
     float     fRangeFactor;
     Vector    delta1, delta2;
 
-    if (m_iCuriousTime) {
+    if (m_iCuriousTime > level.inttime) {
         delta1 = vPos - controlledEnt->origin;
         delta2 = m_vNewCuriousPos - controlledEnt->origin;
-        if (delta1.lengthSquared() < delta2.lengthSquared()) {
+
+        const int newPriority     = BotSoundPriority(iType);
+        const int currentPriority = BotSoundPriority(m_iCuriousEventType);
+
+        // A more important sound always wins. At equal priority, keep the
+        // closer one instead of abandoning it for a farther event.
+        if (newPriority < currentPriority
+            || (newPriority == currentPriority && delta1.lengthSquared() >= delta2.lengthSquared())) {
             return;
         }
     }
@@ -445,24 +541,9 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
         }
     }
 
-    switch (iType) {
-    case AI_EVENT_MISC:
-    case AI_EVENT_MISC_LOUD:
-        break;
-    case AI_EVENT_WEAPON_FIRE:
-    case AI_EVENT_WEAPON_IMPACT:
-    case AI_EVENT_EXPLOSION:
-    case AI_EVENT_AMERICAN_VOICE:
-    case AI_EVENT_GERMAN_VOICE:
-    case AI_EVENT_AMERICAN_URGENT:
-    case AI_EVENT_GERMAN_URGENT:
-    case AI_EVENT_FOOTSTEP:
-    case AI_EVENT_GRENADE:
-    default:
-        m_iCuriousTime   = level.inttime + 20000;
-        m_vNewCuriousPos = vPos;
-        break;
-    }
+    m_iCuriousEventType = iType;
+    m_iCuriousTime      = level.inttime + BotSoundInterestDuration(iType);
+    m_vNewCuriousPos    = vPos;
 }
 
 /*
@@ -474,11 +555,17 @@ Clear the bot's enemy
 */
 void BotController::ClearEnemy(void)
 {
-    m_iAttackTime   = 0;
-    m_pEnemy        = NULL;
-    m_iEnemyEyesTag = -1;
-    m_vOldEnemyPos  = vec_zero;
-    m_vLastEnemyPos = vec_zero;
+    m_iAttackTime               = 0;
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_pEnemy                    = NULL;
+    m_iEnemyEyesTag             = -1;
+    m_vOldEnemyPos              = vec_zero;
+    m_vLastEnemyPos             = vec_zero;
 }
 
 /*
@@ -556,14 +643,21 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
-    m_iCuriousTime    = 0;
-    m_iAttackTime     = 0;
-    m_vLastCuriousPos = vec_zero;
-    m_vOldEnemyPos    = vec_zero;
-    m_vLastEnemyPos   = vec_zero;
-    m_vLastDeathPos   = vec_zero;
-    m_pEnemy          = NULL;
-    m_iEnemyEyesTag   = -1;
+    m_iCuriousTime              = 0;
+    m_iAttackTime               = 0;
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
+    m_vLastCuriousPos           = vec_zero;
+    m_iCuriousEventType         = AI_EVENT_NONE;
+    m_vOldEnemyPos              = vec_zero;
+    m_vLastEnemyPos             = vec_zero;
+    m_vLastDeathPos             = vec_zero;
+    m_pEnemy                    = NULL;
+    m_iEnemyEyesTag             = -1;
 }
 
 /*
@@ -639,14 +733,16 @@ void BotController::InitState_Curious(botfunc_t *func)
 bool BotController::CheckCondition_Curious(void)
 {
     if (m_iAttackTime) {
-        m_iCuriousTime = 0;
+        m_iCuriousTime      = 0;
+        m_iCuriousEventType = AI_EVENT_NONE;
         return false;
     }
 
     if (level.inttime > m_iCuriousTime) {
         if (m_iCuriousTime) {
             movement.ClearMove();
-            m_iCuriousTime = 0;
+            m_iCuriousTime      = 0;
+            m_iCuriousEventType = AI_EVENT_NONE;
         }
 
         return false;
@@ -672,7 +768,8 @@ void BotController::State_Curious(void)
     }
 
     if (movement.MoveDone()) {
-        m_iCuriousTime = 0;
+        m_iCuriousTime      = 0;
+        m_iCuriousEventType = AI_EVENT_NONE;
     }
 }
 
@@ -750,13 +847,271 @@ bool BotController::IsValidEnemy(Sentient *sent) const
     return true;
 }
 
+bool BotController::IsEngagedByAnotherBot(Sentient *enemy) const
+{
+    const Container<BotController *>& controllers = botManager.getControllerManager().getControllers();
+
+    for (int i = 1; i <= controllers.NumObjects(); i++) {
+        BotController *other = controllers.ObjectAt(i);
+        if (other != this && other->m_pEnemy == enemy) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool BotController::CanSeeEnemyPoint(Sentient *enemy, const Vector& point)
+{
+    return G_SightTrace(
+        controlledEnt->EyePosition(),
+        vec_zero,
+        vec_zero,
+        point,
+        controlledEnt,
+        enemy,
+        MASK_CANSEE,
+        qfalse,
+        "BotController::CanSeeEnemyPoint"
+    );
+}
+
+bool BotController::IsEnemyWithinVision(Sentient *enemy) const
+{
+    vec2_t delta;
+
+    VectorSub2D(enemy->centroid, controlledEnt->centroid, delta);
+    if (VectorLength2DSquared(delta) > Square(BOT_MAX_VISION_DISTANCE)) {
+        return false;
+    }
+
+    return controlledEnt->AreasConnected(enemy);
+}
+
+static float BotEnemyEyeFraction(Sentient *enemy)
+{
+    if (enemy->maxs.z <= 0) {
+        return 1.0f;
+    }
+
+    return Q_clamp_float((enemy->EyePosition().z - enemy->origin.z) / enemy->maxs.z, 0.0f, 1.0f);
+}
+
+//
+// Any-part visibility used for target acquisition. Unlike a single
+// eye-to-eye trace, an enemy peeking over cover or standing behind a railing
+// still counts as visible when any sampled body height can be seen.
+//
+bool BotController::IsEnemyPartVisible(Sentient *enemy)
+{
+    if (!IsEnemyWithinVision(enemy)) {
+        return false;
+    }
+
+    if (CanSeeEnemyPoint(enemy, enemy->EyePosition())) {
+        return true;
+    }
+
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES; i++) {
+        Vector point = enemy->origin;
+        point.z += enemy->maxs.z * BOT_VISIBILITY_SAMPLES[i];
+
+        if (CanSeeEnemyPoint(enemy, point)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//
+// Full visibility scan for the current combat target. Returns whether any
+// part of the enemy is visible and adjusts the aim height: the humanized
+// height is kept while the body around it is visible, otherwise the aim
+// falls back to the visible sampled height closest to it - for an enemy
+// firing over a wall that is the lowest visible point of the body, so the
+// bot shoots back instead of burying its aim in the cover.
+//
+bool BotController::CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction)
+{
+    struct {
+        float fraction;
+        bool  visible;
+    } samples[BOT_NUM_VISIBILITY_SAMPLES + 1];
+
+    aimFraction = desiredAimFraction;
+
+    if (!IsEnemyWithinVision(enemy)) {
+        return false;
+    }
+
+    samples[0].fraction = BotEnemyEyeFraction(enemy);
+    samples[0].visible  = CanSeeEnemyPoint(enemy, enemy->EyePosition());
+
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES; i++) {
+        Vector point = enemy->origin;
+        point.z += enemy->maxs.z * BOT_VISIBILITY_SAMPLES[i];
+
+        samples[i + 1].fraction = BOT_VISIBILITY_SAMPLES[i];
+        samples[i + 1].visible  = CanSeeEnemyPoint(enemy, point);
+    }
+
+    bool anyVisible = false;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (samples[i].visible) {
+            anyVisible = true;
+            break;
+        }
+    }
+
+    if (!anyVisible) {
+        return false;
+    }
+
+    // Keep the humanized height when the sampled heights bracketing it are
+    // both visible.
+    float belowFraction = -1.0f, aboveFraction = -1.0f;
+    bool  belowVisible = false, aboveVisible = false;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (samples[i].fraction <= desiredAimFraction
+            && (belowFraction < 0 || samples[i].fraction > belowFraction)) {
+            belowFraction = samples[i].fraction;
+            belowVisible  = samples[i].visible;
+        }
+        if (samples[i].fraction >= desiredAimFraction
+            && (aboveFraction < 0 || samples[i].fraction < aboveFraction)) {
+            aboveFraction = samples[i].fraction;
+            aboveVisible  = samples[i].visible;
+        }
+    }
+
+    if ((belowFraction < 0 || belowVisible) && (aboveFraction < 0 || aboveVisible)) {
+        return true;
+    }
+
+    // Fall back to the visible height nearest the desired one, preferring
+    // the lower point on ties.
+    float bestDistance = 2.0f;
+    for (int i = 0; i < BOT_NUM_VISIBILITY_SAMPLES + 1; i++) {
+        if (!samples[i].visible) {
+            continue;
+        }
+
+        const float distance = fabs(samples[i].fraction - desiredAimFraction);
+        if (distance < bestDistance || (distance == bestDistance && samples[i].fraction < aimFraction)) {
+            bestDistance = distance;
+            aimFraction  = samples[i].fraction;
+        }
+    }
+
+    return true;
+}
+
+void BotController::BeginAimAcquisition(void)
+{
+    m_iAimAcquireTime = level.inttime;
+
+    // Keep live console edits safe even when the two cvars are changed in
+    // reverse order after CVAR_Init has already run.
+    const float minHeight = Q_min(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
+    const float maxHeight = Q_max(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
+    m_fAimHeightFraction  = minHeight + G_Random(maxHeight - minHeight);
+
+    m_vAimErrorDirection       = RandomBotAimErrorDirection();
+    m_vAimErrorTargetDirection = m_vAimErrorDirection;
+    m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
+
+    m_iAimHistoryHead  = 0;
+    m_iAimHistoryCount = 0;
+}
+
+void BotController::UpdateAimErrorDirection(void)
+{
+    if (level.inttime >= m_iNextAimErrorChangeTime) {
+        m_vAimErrorTargetDirection = RandomBotAimErrorDirection();
+        m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
+    }
+
+    // Exponential-style smoothing keeps the miss direction moving without
+    // per-frame jitter and makes the behavior independent of server FPS.
+    const float blend = Q_clamp_float(level.frametime * 1.5f, 0, 1);
+    m_vAimErrorDirection += (m_vAimErrorTargetDirection - m_vAimErrorDirection) * blend;
+}
+
+Vector BotController::GetDelayedAimTarget(const Vector& currentTarget)
+{
+    if (g_bot_aim_latency->integer <= 0) {
+        m_iAimHistoryHead  = 0;
+        m_iAimHistoryCount = 0;
+        return currentTarget;
+    }
+
+    const int newestIndex = (m_iAimHistoryHead + MAX_AIM_HISTORY_SAMPLES - 1) % MAX_AIM_HISTORY_SAMPLES;
+    if (m_iAimHistoryCount && m_AimHistory[newestIndex].time == level.inttime) {
+        m_AimHistory[newestIndex].position = currentTarget;
+    } else {
+        m_AimHistory[m_iAimHistoryHead].time     = level.inttime;
+        m_AimHistory[m_iAimHistoryHead].position = currentTarget;
+        m_iAimHistoryHead = (m_iAimHistoryHead + 1) % MAX_AIM_HISTORY_SAMPLES;
+        if (m_iAimHistoryCount < MAX_AIM_HISTORY_SAMPLES) {
+            m_iAimHistoryCount++;
+        }
+    }
+
+    const int targetTime  = level.inttime - g_bot_aim_latency->integer;
+    const int oldestIndex =
+        (m_iAimHistoryHead + MAX_AIM_HISTORY_SAMPLES - m_iAimHistoryCount) % MAX_AIM_HISTORY_SAMPLES;
+    const aim_sample_t *previous = &m_AimHistory[oldestIndex];
+
+    if (targetTime <= previous->time) {
+        return previous->position;
+    }
+
+    for (int i = 1; i < m_iAimHistoryCount; i++) {
+        const int           index = (oldestIndex + i) % MAX_AIM_HISTORY_SAMPLES;
+        const aim_sample_t *next  = &m_AimHistory[index];
+
+        if (targetTime <= next->time) {
+            const int sampleDuration = next->time - previous->time;
+            if (sampleDuration <= 0) {
+                return next->position;
+            }
+
+            const float fraction = (float)(targetTime - previous->time) / sampleDuration;
+            return previous->position + (next->position - previous->position) * fraction;
+        }
+
+        previous = next;
+    }
+
+    return currentTarget;
+}
+
 bool BotController::CheckCondition_Attack(void)
 {
-    Container<Sentient *> sents       = SentientList;
-    float                 maxDistance = 0;
-
     bot_origin = controlledEnt->origin;
+
+    // Target focus: stay locked on the current enemy as long as it is a valid
+    // target and in sight, instead of re-picking the nearest one each think.
+    // The one exception is a dogpile: if another bot has also started engaging
+    // this target, fall through to reacquire and peel off onto a free enemy
+    // (the acquisition below keeps us here anyway when there is none). Also
+    // reacquire once the target dies, changes state, or breaks line of sight.
+    if (m_pEnemy && IsValidEnemy(m_pEnemy) && IsEnemyPartVisible(m_pEnemy) && !IsEngagedByAnotherBot(m_pEnemy)) {
+        m_vLastEnemyPos = m_pEnemy->origin;
+        m_iAttackTime   = level.inttime + 1000;
+        return true;
+    }
+
+    Container<Sentient *> sents = SentientList;
     sents.Sort(sentients_compare);
+
+    // Acquire a target. Prefer the nearest visible enemy that no other bot is
+    // already engaging, so bots spread their fire instead of all piling onto
+    // one target (for example the player). Only fall back to an already-engaged
+    // enemy when it is the only one in sight.
+    Sentient *pFallback = NULL; // nearest visible enemy, engaged by someone or not
+    Sentient *pChosen   = NULL; // nearest visible enemy no other bot is on
 
     for (int i = 1; i <= sents.NumObjects(); i++) {
         Sentient *sent = sents.ObjectAt(i);
@@ -765,25 +1120,44 @@ bool BotController::CheckCondition_Attack(void)
             continue;
         }
 
-        maxDistance = Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828);
-
-        if (controlledEnt->CanSee(sent, 80, maxDistance, false)) {
-            if (m_pEnemy != sent) {
-                m_iEnemyEyesTag = -1;
-            }
-
-            if (!m_pEnemy) {
-                m_iLastUnseenTime = level.inttime;
-            }
-
-            m_pEnemy        = sent;
-            m_vLastEnemyPos = m_pEnemy->origin;
+        if (!IsEnemyPartVisible(sent)) {
+            continue;
         }
 
-        if (m_pEnemy) {
-            m_iAttackTime = level.inttime + 1000;
-            return true;
+        if (!pFallback) {
+            pFallback = sent;
         }
+
+        if (!IsEngagedByAnotherBot(sent)) {
+            pChosen = sent;
+            break;
+        }
+    }
+
+    if (!pChosen) {
+        pChosen = pFallback;
+    }
+
+    if (pChosen) {
+        if (m_pEnemy != pChosen) {
+            m_iEnemyEyesTag = -1;
+            BeginAimAcquisition();
+        }
+
+        if (!m_pEnemy) {
+            m_iLastUnseenTime = level.inttime;
+        }
+
+        m_pEnemy        = pChosen;
+        m_vLastEnemyPos = m_pEnemy->origin;
+        m_iAttackTime   = level.inttime + 1000;
+        return true;
+    }
+
+    // Nothing new in sight: retain the current enemy only until the deadline
+    // established by the last visible observation.
+    if (m_pEnemy && IsValidEnemy(m_pEnemy) && level.inttime <= m_iAttackTime) {
+        return true;
     }
 
     if (level.inttime > m_iAttackTime) {
@@ -802,13 +1176,19 @@ void BotController::State_EndAttack(void)
 {
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
     controlledEnt->ZoomOff();
+    m_iAimAcquireTime           = -1;
+    m_iAimHistoryHead           = 0;
+    m_iAimHistoryCount          = 0;
+    m_vAimErrorDirection        = vec_zero;
+    m_vAimErrorTargetDirection = vec_zero;
+    m_iNextAimErrorChangeTime   = 0;
 }
 
 void BotController::State_Attack(void)
 {
-    bool    bMelee              = false;
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
+    float   fAimHeightFraction  = m_fAimHeightFraction;
     float   fMinDistance        = 128;
     float   fMinDistanceSquared = fMinDistance * fMinDistance;
     float   fEnemyDistanceSquared;
@@ -825,8 +1205,7 @@ void BotController::State_Attack(void)
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
-    bCanSee =
-        controlledEnt->CanSee(m_pEnemy, 20, Q_min(world->m_fAIVisionDistance, world->farplane_distance * 0.828), false);
+    bCanSee = CheckEnemyVisibility(m_pEnemy, m_fAimHeightFraction, fAimHeightFraction);
 
     if (bCanSee) {
         if (!pWeap) {
@@ -835,28 +1214,21 @@ void BotController::State_Attack(void)
 
         bCanAttack = true;
         if (m_iLastUnseenTime) {
-            const float reactionTime = Q_min(1000 * Q_min(1, fDistanceSquared / Square(2048)), 1000);
             const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
-            const unsigned int randomDelay = g_bot_attack_react_random_delay->value * 1000;
-            if (level.inttime <= m_iLastUnseenTime + minDelay + G_Random(randomDelay)) {
+            if (level.inttime <= m_iLastUnseenTime + minDelay) {
                 bCanAttack = false;
             } else {
                 m_iLastUnseenTime = 0;
+                // Fresh acquisition: choose one error vector and settle it
+                // smoothly instead of picking a new direction every frame.
+                BeginAimAcquisition();
             }
         }
 
         if (bCanAttack) {
-            const int fireDelay                    = pWeap->FireDelay(FIRE_PRIMARY) * 1000;
-            float     fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
-            float     fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
-            float     fSecondaryBulletRange        = pWeap->GetBulletRange(FIRE_SECONDARY);
-            float     fSecondaryBulletRangeSquared = fSecondaryBulletRange * fSecondaryBulletRange;
-            float     fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
-
-            const int maxcontinuousFireTime = fireDelay + g_bot_attack_continuousfire_min_firetime->value * 1000
-                                           + G_Random(g_bot_attack_continuousfire_random_firetime->value * 1000);
-            const int maxBurstTime = fireDelay + g_bot_attack_burst_min_time->value * 1000
-                                   + G_Random(g_bot_attack_burst_random_delay->value * 1000);
+            float fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
+            float fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
+            float fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
 
             //
             // check the fire movement speed if the weapon has a max fire movement
@@ -917,50 +1289,11 @@ void BotController::State_Attack(void)
                 }
             }
 
-            //
-            // Burst
-            //
-
-            if (m_iLastBurstTime) {
-                if (level.inttime > m_iLastBurstTime + maxBurstTime) {
-                    m_iLastBurstTime      = 0;
-                    m_iContinuousFireTime = 0;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                }
-            } else {
-                if (bFiring) {
-                    m_iContinuousFireTime += level.intframetime;
-                } else {
-                    m_iContinuousFireTime = 0;
-                }
-
-                if (!m_iLastBurstTime && m_iContinuousFireTime > maxcontinuousFireTime) {
-                    m_iLastBurstTime      = level.inttime;
-                    m_iContinuousFireTime = 0;
-                }
-            }
-
             m_iLastFireTime = level.inttime;
 
-            if (pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE) {
-                if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
-                    && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
-                    bMelee = true;
-                } else if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    bMelee = true;
-                }
-            }
-
-            if (bMelee) {
-                m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-
-                if (fDistanceSquared <= fSecondaryBulletRangeSquared) {
-                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
-                } else {
-                    m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
-                }
-            }
+            // Bots do not use the secondary-fire melee bash (Spearhead /
+            // Breakthrough): they keep firing their primary at point-blank
+            // range instead of lunging in to butt-strike an enemy.
 
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
@@ -977,7 +1310,6 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee || level.inttime < m_iAttackStopAimTime) {
-        Vector        vRandomOffset;
         Vector        vTarget;
         orientation_t eyes_or;
 
@@ -997,20 +1329,34 @@ void BotController::State_Attack(void)
             vTarget = m_pEnemy->origin;
         }
 
-        if (level.inttime >= m_iLastAimTime + 100) {
-            if (m_iEnemyEyesTag != -1) {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = -G_Random(m_pEnemy->maxs.z * 0.5);
-            } else {
-                m_vAimOffset[0] = G_CRandom((m_pEnemy->maxs.x - m_pEnemy->mins.x) * 0.5);
-                m_vAimOffset[1] = G_CRandom((m_pEnemy->maxs.y - m_pEnemy->mins.y) * 0.5);
-                m_vAimOffset[2] = 16 + G_Random(m_pEnemy->viewheight - 16);
-            }
-            m_iLastAimTime = level.inttime;
+        if (m_iAimAcquireTime < 0) {
+            BeginAimAcquisition();
         }
 
-        rotation.AimAt(vTarget + m_vAimOffset * g_bot_attack_spreadmult->value);
+        // Build the complete aim point before recording it so latency also
+        // delays vertical movement and stance changes. This makes 120 ms mean
+        // 120 ms, independent of frame rate.
+        vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * fAimHeightFraction;
+        vTarget   = GetDelayedAimTarget(vTarget);
+
+        // Acquisition error settles into a small, drifting floor instead of
+        // reaching perfect tracking. The existing aim-error value still
+        // controls both the initial miss and the residual, so no extra tuning
+        // control is needed.
+        float       errorFraction = BOT_AIM_RESIDUAL_FRACTION;
+        const float settleMs = g_bot_aim_settle_time->value * 1000;
+        if (settleMs > 0) {
+            const float acquisitionFraction =
+                Q_clamp_float(1.0f - (level.inttime - m_iAimAcquireTime) / settleMs, 0, 1);
+            errorFraction += (1.0f - BOT_AIM_RESIDUAL_FRACTION) * acquisitionFraction;
+        }
+
+        UpdateAimErrorDirection();
+
+        Vector vAimPoint = vTarget;
+        vAimPoint += m_vAimErrorDirection * (g_bot_aim_error->value * errorFraction);
+
+        rotation.AimAt(vAimPoint);
     } else {
         AimAtAimNode();
     }
@@ -1023,27 +1369,23 @@ void BotController::State_Attack(void)
 
     if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
         || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
-        if (!bMelee || !bCanSee) {
-            if (fEnemyDistanceSquared < fMinDistanceSquared) {
-                Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
-                VectorNormalizeFast(vDir);
+        if (fEnemyDistanceSquared < fMinDistanceSquared) {
+            Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
+            VectorNormalizeFast(vDir);
 
-                movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
-            } else {
-                movement.MoveTo(m_vLastEnemyPos);
-            }
-
-            if (!bCanSee && movement.MoveDone()) {
-                // Lost track of the enemy
-                ClearEnemy();
-                return;
-            }
+            movement.AvoidPath(m_vLastEnemyPos, fMinDistance, Vector(controlledEnt->orientation[1]) * 512);
         } else {
             movement.MoveTo(m_vLastEnemyPos);
         }
+
+        if (!bCanSee && movement.MoveDone()) {
+            // Lost track of the enemy
+            ClearEnemy();
+            return;
+        }
     }
 
-    if (movement.IsMoving()) {
+    if (bCanSee && movement.IsMoving()) {
         m_iAttackTime = level.inttime + 1000;
     }
 }
@@ -1145,53 +1487,9 @@ Weapon *BotController::FindWeaponWithAmmo()
     return bestweapon;
 }
 
-Weapon *BotController::FindMeleeWeapon()
-{
-    Weapon               *next;
-    int                   n;
-    int                   j;
-    int                   bestrank;
-    Weapon               *bestweapon;
-    const Container<int>& inventory = controlledEnt->getInventory();
-
-    n = inventory.NumObjects();
-
-    // Search until we find the best weapon with ammo
-    bestweapon = NULL;
-    bestrank   = -999999;
-
-    for (j = 1; j <= n; j++) {
-        next = (Weapon *)G_GetEntity(inventory.ObjectAt(j));
-
-        assert(next);
-        if (!next->IsSubclassOfWeapon() || next->IsSubclassOfInventoryItem()) {
-            continue;
-        }
-
-        if (next->GetRank() < bestrank) {
-            continue;
-        }
-
-        if (next->GetFireType(FIRE_SECONDARY) != FT_MELEE) {
-            continue;
-        }
-
-        bestweapon = (Weapon *)next;
-        bestrank   = bestweapon->GetRank();
-    }
-
-    return bestweapon;
-}
-
 void BotController::UseWeaponWithAmmo()
 {
     Weapon *bestWeapon = FindWeaponWithAmmo();
-    if (!bestWeapon) {
-        //
-        // If there is no weapon with ammo, fallback to a weapon that can melee
-        //
-        bestWeapon = FindMeleeWeapon();
-    }
 
     if (!bestWeapon || bestWeapon == controlledEnt->GetActiveWeapon(WEAPON_MAIN)) {
         return;
@@ -1203,8 +1501,9 @@ void BotController::UseWeaponWithAmmo()
 void BotController::Spawned(void)
 {
     ClearEnemy();
-    m_iCuriousTime   = 0;
-    m_botCmd.buttons = 0;
+    m_iCuriousTime      = 0;
+    m_iCuriousEventType = AI_EVENT_NONE;
+    m_botCmd.buttons    = 0;
 }
 
 void BotController::Think()
@@ -1255,26 +1554,10 @@ void BotController::Killed(const Event& ev)
 void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
-    m_iCuriousTime = 0;
+    m_iCuriousTime      = 0;
+    m_iCuriousEventType = AI_EVENT_NONE;
 
-    if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
-        //
-        // Randomly play a taunt
-        //
-        Event event("dmmessage");
-
-        event.AddInteger(0);
-
-        if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-            event.AddString("*5" + str(1 + (rand() % 8)));
-        } else {
-            event.AddString("*4" + str(1 + (rand() % 9)));
-        }
-
-        controlledEnt->ProcessEvent(event);
-
-        m_iNextTauntTime = level.inttime + g_bot_instamsg_delay->integer;
-    }
+    // Bot taunts disabled
 }
 
 void BotController::EventStuffText(const str& text)
@@ -1375,7 +1658,7 @@ void BotControllerManager::ThinkControllers()
                 i
             );
 
-            // Remove the controller, it will be recreated later to match `sv_numbots`
+            // Remove the controller, it will be recreated later to match `sv_bots`
             delete controller;
             controllers.RemoveObjectAt(i);
         }

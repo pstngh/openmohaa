@@ -269,28 +269,24 @@ cvar_t *sv_scriptfiles;
 
 // Total number of bots to maintain
 cvar_t *sv_bots;
-// The minimum number of players that should be present in-game.
-//  If the number of real players is below this number,
-//  the game will automatically add bots to fill the gap
-cvar_t *sv_minPlayers;
 // Whether or not the bots use a shared player slots
 //  NOTE: Setting this cvar is not recommended
 //  because when a client connects and the slot is used by a bot
 //  the bot will be relocated to a free entity slot
 cvar_t *sv_sharedbots;
 
-cvar_t *g_bot_attack_burst_min_time;
-cvar_t *g_bot_attack_burst_random_delay;
-cvar_t *g_bot_attack_continuousfire_min_firetime;
-cvar_t *g_bot_attack_continuousfire_random_firetime;
 cvar_t *g_bot_attack_react_min_delay;
-cvar_t *g_bot_attack_react_random_delay;
-cvar_t *g_bot_attack_spreadmult;
+cvar_t *g_bot_aim_height_max;
+cvar_t *g_bot_aim_height_min;
+cvar_t *g_bot_aim_error;
+cvar_t *g_bot_aim_settle_time;
+cvar_t *g_bot_aim_latency;
 cvar_t *g_bot_turn_speed;
-cvar_t *g_bot_instamsg_chance;
-cvar_t *g_bot_instamsg_delay;
+cvar_t *g_bot_turn_accel;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
+cvar_t *g_bot_spread;
+cvar_t *g_accuracy;
 cvar_t *g_bot_team;
 cvar_t *g_bot_sniper;
 cvar_t *g_bot_stg;
@@ -321,6 +317,19 @@ cvar_t *g_navigation_legacy;
 
 // Reopen door if blocked
 cvar_t *g_door_reopen_blocked;
+
+static void CVAR_OrderPair(const char *minName, cvar_t *minCvar, const char *maxName, cvar_t *maxCvar)
+{
+    if (minCvar->value <= maxCvar->value) {
+        return;
+    }
+
+    const float oldMin = minCvar->value;
+    const float oldMax = maxCvar->value;
+
+    gi.cvar_set(minName, va("%g", oldMax));
+    gi.cvar_set(maxName, va("%g", oldMin));
+}
 
 void CVAR_Init(void)
 {
@@ -683,23 +692,30 @@ void CVAR_Init(void)
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
     sv_bots        = gi.Cvar_Get("sv_bots", "0", 0);
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
-    sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
 
     // Bots use game-side client records in addition to the real server
     // clients. Validate before game.maxclients is calculated and keep future
     // live cvar edits within the engine's absolute client limit.
     gi.Cvar_CheckRange(sv_bots, 0, Q_max(0, MAX_CLIENTS - maxclients->integer), qtrue);
 
-    g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0.1", 0);
-    g_bot_attack_burst_random_delay            = gi.Cvar_Get("g_bot_attack_burst_random_delay", "0.5", 0);
-    g_bot_attack_continuousfire_min_firetime    = gi.Cvar_Get("g_bot_attack_continuousfire_min_firetime", "0.5", 0);
-    g_bot_attack_continuousfire_random_firetime = gi.Cvar_Get("g_bot_attack_continuousfire_random_firetime", "1.5", 0);
-    g_bot_attack_react_min_delay               = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
-    g_bot_attack_react_random_delay            = gi.Cvar_Get("g_bot_attack_react_random_delay", "1.2", 0);
-    g_bot_attack_spreadmult                    = gi.Cvar_Get("g_bot_attack_spreadmult", "1.0", 0);
-    g_bot_turn_speed                           = gi.Cvar_Get("g_bot_turn_speed", "15", 0);
-    g_bot_instamsg_chance                      = gi.Cvar_Get("g_bot_instamsg_chance", "5", 0);
-    g_bot_instamsg_delay                        = gi.Cvar_Get("g_bot_instamsg_delay", "5.0", 0);
+    g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
+    g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.55", 0);
+    g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.32", 0);
+    g_bot_aim_error              = gi.Cvar_Get("g_bot_aim_error", "40", 0);
+    g_bot_aim_settle_time        = gi.Cvar_Get("g_bot_aim_settle_time", "0.4", 0);
+    g_bot_aim_latency            = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
+    g_bot_turn_speed             = gi.Cvar_Get("g_bot_turn_speed", "360", 0);
+    g_bot_turn_accel             = gi.Cvar_Get("g_bot_turn_accel", "15", 0);
+
+    gi.Cvar_CheckRange(g_bot_attack_react_min_delay, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_height_min, 0, 1, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_height_max, 0, 1, qfalse);
+    CVAR_OrderPair("g_bot_aim_height_min", g_bot_aim_height_min, "g_bot_aim_height_max", g_bot_aim_height_max);
+    gi.Cvar_CheckRange(g_bot_aim_error, 0, 400, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_settle_time, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_bot_aim_latency, 0, 2000, qtrue);
+    gi.Cvar_CheckRange(g_bot_turn_speed, 1, 1080, qfalse);
+    gi.Cvar_CheckRange(g_bot_turn_accel, 0.1f, 100, qfalse);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
@@ -716,6 +732,12 @@ void CVAR_Init(void)
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
     g_bot_team       = gi.Cvar_Get("g_bot_team", "auto", 0);
+
+    g_bot_spread               = gi.Cvar_Get("g_bot_spread", "1", 0);
+    g_accuracy                 = gi.Cvar_Get("g_accuracy", "0", 0);
+
+    gi.Cvar_CheckRange(g_bot_spread, 0, 10, qfalse);
+    gi.Cvar_CheckRange(g_accuracy, 0, 2, qtrue);
 
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);

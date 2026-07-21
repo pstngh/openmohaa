@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "vehicleturret.h"
 #include "debuglines.h"
 #include "g_spawn.h"
+#include "g_bot.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1030,6 +1031,11 @@ int Weapon::GetClipSize(firemode_t mode)
 //======================
 void Weapon::UseAmmo(int amount, firemode_t mode)
 {
+    // Bottomless clip mode - infinite ammo via dmflags
+    if (DM_FLAG(DF_INFINITE_AMMO)) {
+        return;
+    }
+
     mode = m_bShareClip ? FIRE_PRIMARY : mode;
 
     if (UnlimitedAmmo(mode) && (!owner || !owner->isClient())) {
@@ -1437,15 +1443,35 @@ void Weapon::Shoot(Event *ev)
 
                         fSpreadFactor = GetSpreadFactor(mode);
 
+                        const bool isBot = G_IsBot(player->edict);
+
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        // Bot spread is a direct, static multiple of the
+                        // current shot's base spread. Do not feed it through
+                        // the weapon bloom accumulator: that applies after the
+                        // shot and decays between shots, so it cannot provide a
+                        // stable value (and weapons without bloom skip it).
+                        if (isBot) {
+                            vSpread *= g_bot_spread->value;
+                        } else {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
                                 vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
                             }
+                        }
+
+                        // Perfect accuracy (g_accuracy 2) zeroes the human
+                        // player's total bullet spread (base included) so shots
+                        // land dead on the crosshair even while moving or
+                        // spraying. Bots keep their own spread.
+                        if (g_accuracy->integer >= 2 && !isBot) {
+                            vSpread = vec_zero;
                         }
                     }
                 } else {
@@ -1511,15 +1537,30 @@ void Weapon::Shoot(Event *ev)
                             fSpreadFactor = 1.0f;
                         }
 
+                        const bool isBot = G_IsBot(player->edict);
+
                         vSpread       = bulletspreadmax[mode] * fSpreadFactor;
                         fSpreadFactor = 1.0f - fSpreadFactor;
                         vSpread += bulletspread[mode] * fSpreadFactor;
-                        vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+
+                        if (isBot) {
+                            vSpread *= g_bot_spread->value;
+                        } else {
+                            vSpread *= m_fFireSpreadMult[mode] + 1.0f;
+                        }
 
                         if (m_iZoom) {
                             if (player->IsSubclassOfPlayer() && player->IsZoomed()) {
                                 vSpread *= 1.0f + fSpreadFactor * (m_fZoomSpreadMult - 1.0f);
                             }
+                        }
+
+                        // Perfect accuracy (g_accuracy 2) zeroes the human
+                        // player's total bullet spread (base included) so shots
+                        // land dead on the crosshair even while moving or
+                        // spraying. Bots keep their own spread.
+                        if (g_accuracy->integer >= 2 && !isBot) {
+                            vSpread = vec_zero;
                         }
                     }
                 } else {
@@ -1631,19 +1672,46 @@ void Weapon::Shoot(Event *ev)
         }
 
         if (m_fFireSpreadMultAmount[mode]) {
-            m_fFireSpreadMult[mode] += m_fFireSpreadMultAmount[mode];
+            const bool isBot = owner && owner->client && G_IsBot(owner->edict);
 
-            if (m_fFireSpreadMultCap[mode] > 0) {
-                if (m_fFireSpreadMult[mode] > m_fFireSpreadMultCap[mode]) {
-                    m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
-                } else if (m_fFireSpreadMult[mode] < 0) {
-                    m_fFireSpreadMult[mode] = 0;
+            // Bots apply g_bot_spread directly to each shot above and never
+            // accumulate weapon bloom.
+            if (isBot) {
+                m_fFireSpreadMult[mode] = 0;
+            } else {
+                m_fFireSpreadMult[mode] += m_fFireSpreadMultAmount[mode];
+
+                if (m_fFireSpreadMultCap[mode] > 0) {
+                    if (m_fFireSpreadMult[mode] > m_fFireSpreadMultCap[mode]) {
+                        m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
+                    } else if (m_fFireSpreadMult[mode] < 0) {
+                        m_fFireSpreadMult[mode] = 0;
+                    }
+                } else if (m_fFireSpreadMultCap[mode] < 0) {
+                    if (m_fFireSpreadMult[mode] < m_fFireSpreadMultCap[mode]) {
+                        m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
+                    } else if (m_fFireSpreadMult[mode] > 0) {
+                        m_fFireSpreadMult[mode] = 0;
+                    }
                 }
-            } else if (m_fFireSpreadMultCap[mode] < 0) {
-                if (m_fFireSpreadMult[mode] < m_fFireSpreadMultCap[mode]) {
-                    m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
-                } else if (m_fFireSpreadMult[mode] > 0) {
+            }
+
+            // Handle spread for human clients.
+            if (!isBot && owner && owner->client) {
+                int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+
+                if (g_accuracy->integer >= 1) {
+                    // High / Perfect: no bloom (Perfect also zeroes the total
+                    // spread at fire time, above).
                     m_fFireSpreadMult[mode] = 0;
+                } else {
+                    // Normal: natural accumulation clamped to the full-clip cap.
+                    if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {
+                        m_fFireSpreadMult[mode] = maxFromClip;
+                    }
                 }
             }
         }
