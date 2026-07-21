@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 demoscan.py - Scan MoHAA .dm3 demo files for player names.
 
 Reads all .dm3 files in a folder (recursively) and outputs a text file
