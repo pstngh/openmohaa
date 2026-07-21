@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-// tr_sun_flare.cpp: Sun flares
+// tr_sun_flare.cpp: Lens flares for lights and dlights
 
 #include "tr_local.h"
 
@@ -41,15 +41,13 @@ public:
     static int max_flares;
 
     float dot_min;
-    float fullscale;
+    // Removed in OPM
+    //  fullscale, fullscreen, fullfade and the screen blend state,
+    //  only used by the removed sun flare
 
     // List of flares
     int     num_flares;
     flare_s flares[MAX_FLARES];
-
-    shader_t *fullscreen;
-    int       fullfade;
-    qboolean  blend_active;
 
     // Flare location
     vec3_t trace_v;
@@ -62,9 +60,6 @@ public:
     // Screen projection
     vec2_t screen;
     float  dot;
-
-    int   lasttime;
-    float lastbright;
 
     // Whether or not it's inside a portal sky
     bool inportalsky;
@@ -86,7 +81,6 @@ public:
     bool         ScreenCalc();
     virtual void Try();
     virtual void Init(const char *which);
-    void         ScreenBlend();
     void         InPortalSky();
     void         NotInPortalSky();
     void         SetVect(const float *vect);
@@ -113,17 +107,11 @@ public:
     }
 };
 
-class sun_flare_class : public lens_flare
-{
-public:
-    bool SunCheckRay();
-    void SunScreenCalc();
-    void SunTry();
-};
+// Removed in OPM
+//  The sun flare (sun_flare_class)
 
 lens_flare        torches;
 dlight_lens_flare dlights;
-sun_flare_class   sunFlare;
 int               lens_flare::max_flares;
 
 void lens_flare::SetVect(const float *vect)
@@ -259,9 +247,8 @@ void lens_flare::Try()
         RB_StreamEnd();
     }
 
-    lasttime     = backEnd.refdef.time;
-    blend_active = true;
-    lastbright   = Square(alpha) * Square(alpha) * this->fullscale;
+    // Removed in OPM
+    //  The fullscreen blend state, only the removed sun flare used it
 }
 
 void dlight_lens_flare::Try()
@@ -294,38 +281,6 @@ void dlight_lens_flare::Try()
     RB_Texcoord2f(1.0, 1.0);
 
     RB_Vertex2f(screen[0] + size, screen[1] - size);
-    RB_StreamEnd();
-}
-
-void lens_flare::ScreenBlend()
-{
-    float alpha;
-    int   timediff;
-
-    if (!fullscreen || !blend_active) {
-        return;
-    }
-
-    timediff = backEnd.refdef.time - lasttime;
-    if (timediff > fullfade) {
-        blend_active = false;
-        return;
-    }
-
-    alpha = (float)(fullfade - timediff) / fullfade * lastbright;
-    if (alpha <= 0.0001) {
-        blend_active = false;
-        return;
-    }
-
-    RB_Color4f(1.0, 1.0, 1.0, alpha);
-
-    RB_StreamBegin(fullscreen);
-    RB_Vertex2f(-1.0, -1.0);
-    RB_Vertex2f(1.0, -1.0);
-    RB_Vertex2f(-1.0, 1.0);
-    RB_Vertex2f(1.0, 1.0);
-
     RB_StreamEnd();
 }
 
@@ -395,13 +350,11 @@ void lens_flare::Init(const char *which)
         }
     }
 
-    dot_min      = 0.8f;
-    fullscale    = 0.7f;
-    num_flares   = 0;
-    fullscreen   = NULL;
-    initted      = true;
-    fullfade     = 0;
-    blend_active = false;
+    // Changed in OPM
+    //  fullscale, fullscreen, fullfade and the blend state are removed with the sun flare
+    dot_min    = 0.8f;
+    num_flares = 0;
+    initted    = true;
 
     while ((token = COM_ParseExt(&file, qtrue))) {
         if (!file) {
@@ -448,27 +401,10 @@ void lens_flare::Init(const char *which)
             }
 
             num_flares++;
-        } else if (!Q_stricmp(token, "fullscale")) {
-            token = COM_ParseExt(&file, qfalse);
-            if (!token[0]) {
-                ri.Printf(PRINT_WARNING, "WARNING: no arg for fullscale, assuming default (in lensflares)\n");
-                continue;
-            }
-            fullscale = atof(token);
-        } else if (!Q_stricmp(token, "fullscreen")) {
-            token = COM_ParseExt(&file, qfalse);
-            if (!token[0]) {
-                ri.Printf(PRINT_WARNING, "WARNING: no arg for fullsreen in lensflares\n");
-                continue;
-            }
-            fullscreen = R_FindShader(token, -1, qfalse, qfalse, qfalse, qfalse);
-        } else if (!Q_stricmp(token, "fullfade")) {
-            token = COM_ParseExt(&file, qfalse);
-            if (!token[0]) {
-                ri.Printf(PRINT_WARNING, "WARNING: no arg for fullfade in lensflares\n");
-                continue;
-            }
-            fullfade = atof(token);
+        } else if (!Q_stricmp(token, "fullscale") || !Q_stricmp(token, "fullscreen") || !Q_stricmp(token, "fullfade")) {
+            // Changed in OPM
+            //  Only the removed sun flare used these, skip their value
+            COM_ParseExt(&file, qfalse);
         } else if (!Q_stricmp(token, "end")) {
             break;
         }
@@ -477,48 +413,6 @@ void lens_flare::Init(const char *which)
     if (!num_flares) {
         ri.Printf(PRINT_WARNING, "WARNING: no lensflares defined!\n");
     }
-    lasttime = backEnd.refdef.time - fullfade;
-}
-
-static void R_DrawSunFlare()
-{
-    if (!s_sun.exists) {
-        return;
-    }
-    if (!sunFlare.initted) {
-        if (!s_sun.szFlareName[0]) {
-            return;
-        }
-        if (Q_stricmp(s_sun.szFlareName, "none")) {
-            sunFlare.Init(s_sun.szFlareName);
-        }
-    }
-
-    if (!sunFlare.initted) {
-        s_sun.szFlareName[0] = 0;
-        return;
-    }
-
-    if (!sunFlare.num_flares) {
-        return;
-    }
-
-    VectorMA(backEnd.viewParms.ori.origin, 16384, s_sun.flaredirection, sunFlare.trace_v);
-    VectorMA(backEnd.viewParms.ori.origin, 128, s_sun.flaredirection, sunFlare.v);
-
-    sunFlare.SunTry();
-}
-
-static void R_DrawSunFlareBlend()
-{
-    if (!s_sun.exists) {
-        return;
-    }
-    if (!sunFlare.initted) {
-        return;
-    }
-
-    sunFlare.ScreenBlend();
 }
 
 void R_DrawLensFlares()
@@ -535,7 +429,8 @@ void R_DrawLensFlares()
     qglOrtho(-1.0, 1.0, -1.0, 1.0, -99999.0, 99999.0);
 
     tess.no_global_fog = true;
-    R_DrawSunFlare();
+    // Removed in OPM
+    //  The sun flare and its fullscreen blend
 
     for (i = 0; i < backEnd.refdef.num_entities; i++) {
         if ((backEnd.viewParms.isPortalSky && !(backEnd.refdef.entities[i].e.renderfx & RF_SKYENTITY))
@@ -597,7 +492,6 @@ void R_DrawLensFlares()
         }
     }
 
-    R_DrawSunFlareBlend();
     tess.no_global_fog = qfalse;
 
     qglPopMatrix();
@@ -609,121 +503,4 @@ void R_InitLensFlare()
 {
     torches.Init("entity");
     dlights.Init("dlight");
-    sunFlare.initted = false;
-}
-
-bool sun_flare_class::SunCheckRay()
-{
-    mnode_t *pViewLeaf;
-    trace_t  trace;
-
-    pViewLeaf = R_PointInLeaf(tr.refdef.vieworg);
-
-    if (pViewLeaf->area == -1 || !tr.world->vis || tr.sSunLight.leaf != (mnode_s *)-1
-        || pViewLeaf->numlights && pViewLeaf->lights[0] == &tr.sSunLight) {
-        ri.CM_BoxTrace(
-            &trace, backEnd.viewParms.ori.origin, trace_v, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, qfalse
-        );
-
-        if (trace.surfaceFlags & SURF_SKY) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void sun_flare_class::SunScreenCalc()
-{
-    vec4_t eye;
-    vec4_t clip;
-    vec4_t point;
-    int    i, j;
-
-    VectorCopy(v, point);
-    point[3] = 1.0;
-
-    VectorClear4(eye);
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            eye[i] += point[j] * tr.ori.modelMatrix[i + j * 4];
-        }
-    }
-
-    VectorClear4(clip);
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            clip[i] += eye[j] * tr.viewParms.projectionMatrix[i + j * 4];
-        }
-    }
-
-    for (i = 0; i < 2; i++) {
-        screen[i] = clip[i] / clip[3];
-    }
-}
-
-void sun_flare_class::SunTry()
-{
-    vec2_t   diff;
-    vec2_t   point;
-    float    alpha;
-    int      i;
-    qboolean bDrawingFade = qfalse;
-
-    if (!CheckRange()) {
-        return;
-    }
-
-    if (SunCheckRay()) {
-        alpha = (dot - dot_min) / (1.0 - dot_min);
-    } else {
-        int timediff;
-
-        if (!fullscreen) {
-            return;
-        }
-        if (!blend_active) {
-            return;
-        }
-
-        timediff = backEnd.refdef.time - lasttime;
-        alpha    = (float)(fullfade - timediff) / fullfade * lastbright;
-
-        if (alpha <= 0.0001) {
-            return;
-        }
-
-        bDrawingFade = qtrue;
-    }
-
-    SunScreenCalc();
-    VectorScale2D(screen, -2.0, diff);
-
-    for (i = 0; i < num_flares; i++) {
-        flare_s *flare = &flares[i];
-
-        VectorMA2D(screen, flare->where, diff, point);
-
-        RB_Color4f(color[0], color[1], color[2], alpha * this->alpha * flare->alphascale);
-        RB_StreamBegin(flare->shader);
-        RB_Texcoord2f(0.0, 0.0);
-
-        RB_Vertex2f(point[0] - flare->size, point[1] + flare->size);
-        RB_Texcoord2f(1.0, 0.0);
-
-        RB_Vertex2f(point[0] + flare->size, point[1] + flare->size);
-        RB_Texcoord2f(0.0, 1.0);
-
-        RB_Vertex2f(point[0] - flare->size, point[1] - flare->size);
-        RB_Texcoord2f(1.0, 1.0);
-
-        RB_Vertex2f(point[0] + flare->size, point[1] - flare->size);
-        RB_StreamEnd();
-    }
-
-    if (!bDrawingFade) {
-        lasttime     = backEnd.refdef.time;
-        blend_active = true;
-        lastbright   = Square(alpha) * Square(alpha) * fullscale;
-    }
 }

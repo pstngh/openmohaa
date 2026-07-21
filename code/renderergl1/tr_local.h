@@ -2353,8 +2353,8 @@ RENDERER BACK END COMMAND QUEUE
 typedef struct suninfo_s {
 	vec3_t color;
 	vec3_t direction;
-	vec3_t flaredirection;
-	char szFlareName[64];
+	// Removed in OPM
+	//  flaredirection and szFlareName, the sun flare is removed
 	qboolean exists;
 } suninfo_t;
 

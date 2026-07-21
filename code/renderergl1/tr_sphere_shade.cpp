@@ -1172,17 +1172,14 @@ void R_Sphere_InitLights()
 {
     const char *ents;
     const char *ret;
-    qboolean    bFlareDirSet;
     qboolean    bIsWorld;
     qboolean    bWorldProcessed;
 
     ents            = ri.CM_EntityString();
-    bFlareDirSet    = qfalse;
     bIsWorld        = qfalse;
     bWorldProcessed = qfalse;
 
-    s_sun.szFlareName[0] = 0;
-    s_sun.exists         = qfalse;
+    s_sun.exists = qfalse;
 
     for (int i = 0; i < MAX_SPHERE_LIGHTS; i++) {
         backEnd.spheres[i].TessFunction = &RB_Light_Real;
@@ -1239,28 +1236,10 @@ void R_Sphere_InitLights()
             AngleVectorsLeft(dir, s_sun.direction, 0, 0);
 
             s_sun.exists = qtrue;
-            if (!bFlareDirSet) {
-                s_sun.flaredirection[0] = s_sun.direction[0];
-                s_sun.flaredirection[1] = s_sun.direction[1];
-                s_sun.flaredirection[2] = s_sun.direction[2];
-            }
-        } else if (!strcmp(ret, "sunflaredirection")) {
-            vec3_t dir;
-
-            if (bWorldProcessed) {
-                continue;
-            }
-
-            sscanf(COM_Parse((char **)&ents), "%f %f %f", &dir[0], &dir[1], &dir[2]);
-            AngleVectorsLeft(dir, s_sun.flaredirection, 0, 0);
-            bFlareDirSet = qtrue;
-        } else if (!strcmp(ret, "sunflarename")) {
-            if (bWorldProcessed) {
-                continue;
-            }
-
-            Q_strncpyz(s_sun.szFlareName, COM_Parse((char **)&ents), sizeof(s_sun.szFlareName));
-        } else if (!strcmp(ret, "ambientlight")) {
+        }
+        // Removed in OPM
+        //  sunflaredirection and sunflarename, the sun flare is removed
+        else if (!strcmp(ret, "ambientlight")) {
             if (bWorldProcessed) {
                 ri.Printf(PRINT_WARNING, "Multiple ambientlights defined in map\n");
                 continue;
@@ -1279,10 +1258,6 @@ void R_Sphere_InitLights()
         } else {
             COM_Parse((char **)&ents);
         }
-    }
-
-    if (s_sun.exists && !s_sun.szFlareName[0]) {
-        Q_strncpyz(s_sun.szFlareName, "sun", sizeof(s_sun.szFlareName));
     }
 }
 

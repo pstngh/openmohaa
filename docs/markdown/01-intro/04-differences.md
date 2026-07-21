@@ -408,6 +408,10 @@ Enable this feature with `set sv_netoptimize 2`.
 
 ### Changed
 
+#### Client-side
+
+- The sun lens flare and its fullscreen fade are no longer drawn in the GL1 renderer, light and dlight flares are unchanged
+
 #### Server-side
 
 - Allow rotating on noclip mode when dead
