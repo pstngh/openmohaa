@@ -94,6 +94,25 @@ To calculate IP subnets, search for `IP subnet calculator` on Internet.
 
 ## Game settings
 
+### Custom crosshair overlay
+
+OpenMoHAA can draw a four-arm crosshair independently of the weapon-provided
+crosshair. Its measurements are defined at 1080p and scale uniformly with the
+current screen height:
+
+- `set cg_crosshair_overlay 1`: Enable the custom crosshair overlay and suppress
+  the stock weapon crosshair.
+- `set cg_crosshair_length 9`: Length of each arm.
+- `set cg_crosshair_gap 4`: Distance from the center to each arm.
+- `set cg_crosshair_thickness 2`: Thickness of each arm.
+- `set cg_crosshair_color FFFFFF`: Six-digit RGB color.
+
+The macOS launcher exposes these settings, previews the scaled result, and
+relies on the engine to suppress the stock crosshair while the custom overlay is
+enabled.
+The overlay is hidden while zoomed, dead, viewing a camera, or when the HUD is
+otherwise unavailable.
+
 ### Chat
 
 Chat messages are logged to console and in the logfile by default, without requiring to set the `developer` variable.
@@ -127,9 +146,7 @@ OpenMoHAA introduced multiplayer bots which can be used for entertainment or for
 
 Configure bots with the following variables:
 
-- `set sv_maxbots x`: **Required**, max number of bots allowed. The game can only handle a total of 64 players (clients), it will be limited to 64 minus the number of real players (`sv_maxclients`). For example, if you set `sv_maxclients` to 48, the maximum number of bots (sv_maxbots) can be 16.
-- `set sv_numbots x`: Number of bots to spawn (capped at `sv_maxbots`).
-- `set sv_minPlayers x`: Configure the minimum number of players required. If the number of real players in a team is below the specified value, the game will automatically add bots to fill the gap. For example, if `sv_minPlayers` is set to 8 and only 5 real players are active, the game will spawn 3 bots to make sure there are always 8 players in the game.
+- `set sv_bots x`: Number of bots to allocate and maintain. The game supports at most 64 total real-client and bot slots, so the value is capped at `64 - sv_maxclients`.
 
 For more settings, see this [documentation](./03-configuration-bots.md).
 
@@ -142,16 +159,9 @@ set g_bot1_name "Fast beat" // The second bot spawned will be named Fast beat
 
 Bots will keep their name between restarts and new maps.
 
-Example with the requirement of 6 players:
-```cpp
-set sv_maxbots 16 // Reserve 16 slots for bots
-set sv_minPlayers 6 // Ensure each team has at least 6 players (bots are added if there are fewer players active)
-```
-
 Example with 4 bots playing:
 ```cpp
-set sv_maxbots 16 // Reserve 16 slots for bots
-set sv_numbots 4 // Spawn 4 bots
+set sv_bots 4
 ```
 
 > [!NOTE]
