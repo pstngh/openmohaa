@@ -63,6 +63,18 @@ Event EV_Weapon_SetAmmoClipSize(
 Event EV_Weapon_SetAmmoInClip(
     "ammo_in_clip", EV_DEFAULT, "i", "ammoInClip", "Set the amount of ammo in the clip", EV_NORMAL
 );
+
+static bool ScalesDamageWithPlayerDMHealth(Weapon *weapon)
+{
+    const char *prefix = GetItemPrefix(weapon->GetItemName());
+
+    // All nationality-specific sniper-slot weapons, the Mauser rifle, and
+    // the shotgun preserve their damage-to-health ratio in multiplayer.
+    return !Q_stricmp(prefix, "springfield") || !Q_stricmp(prefix, "kar98sniper") || !Q_stricmp(prefix, "svt")
+        || !Q_stricmp(prefix, "g43") || !Q_stricmp(prefix, "enfieldl42a1") || !Q_stricmp(prefix, "kar98")
+        || !Q_stricmp(prefix, "shotgun");
+}
+
 Event EV_Weapon_SetShareClip(
     "shareclip",
     EV_DEFAULT,
@@ -1394,6 +1406,13 @@ void Weapon::Shoot(Event *ev)
     ApplyFireKickback(forward, 1000.0);
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
+        float scaledBulletDamage = bulletdamage[mode];
+
+        if (g_gametype->integer != GT_SINGLE_PLAYER && owner && owner->client && g_playerdmhealth->value > 0
+            && ScalesDamageWithPlayerDMHealth(this)) {
+            scaledBulletDamage *= g_playerdmhealth->value / 100.0f;
+        }
+
         if (m_fFireSpreadMultAmount[mode] != 0.0f) {
             float fTime = level.time - m_fFireSpreadMultTime[mode];
 
@@ -1505,7 +1524,7 @@ void Weapon::Shoot(Event *ev)
                     right,
                     up,
                     bulletrange[mode],
-                    bulletdamage[mode],
+                    scaledBulletDamage,
                     bulletlarge[mode],
                     bulletknockback[mode],
                     0,
@@ -1574,7 +1593,7 @@ void Weapon::Shoot(Event *ev)
                     right,
                     up,
                     bulletrange[mode],
-                    bulletdamage[mode],
+                    scaledBulletDamage,
                     bulletlarge[mode],
                     vSpread,
                     bulletcount[mode],

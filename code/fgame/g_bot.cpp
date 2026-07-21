@@ -205,10 +205,14 @@ void G_BotBegin(gentity_t *ent)
     level.spawn_entnum = ent->s.number;
     player             = new Player;
 
-    G_ClientBegin(ent, NULL);
-
+    // Create the controller before G_ClientBegin: G_IsBot keys off the
+    // controller, so registering it first is what lets the g_godmode
+    // set-once in G_ClientBegin recognize this client as a bot and skip it,
+    // keeping bots killable. (Created afterward, it looks like a human there.)
     controller = botManager.getControllerManager().createController(player);
     //player->setController(controller);
+
+    G_ClientBegin(ent, NULL);
 }
 
 /*

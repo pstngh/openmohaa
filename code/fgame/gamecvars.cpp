@@ -57,6 +57,7 @@ cvar_t *sv_gravity;
 cvar_t *sv_rollspeed;
 cvar_t *sv_rollangle;
 cvar_t *sv_cheats;
+cvar_t *g_godmode;
 cvar_t *sv_showbboxes;
 cvar_t *sv_showtags;
 
@@ -141,6 +142,8 @@ cvar_t *g_realismmode;
 cvar_t *g_teamdamage;
 cvar_t *g_healthdrop;
 cvar_t *g_healrate;
+cvar_t *g_playerdmhealth;
+cvar_t *g_no_grenades;
 
 cvar_t *g_allowvote;
 cvar_t *g_monitor;
@@ -318,6 +321,9 @@ cvar_t *g_textmsg_minDelay;
 // Whether or not to prevent teams from being unbalanced
 cvar_t *g_teambalance;
 
+// Enable SH/BT player hit-reaction pain animations
+cvar_t *g_painanims;
+
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
@@ -402,6 +408,7 @@ void CVAR_Init(void)
     sv_waterspeed    = gi.Cvar_Get("sv_waterspeed", "400", 0);
 
     sv_cheats    = gi.Cvar_Get("cheats", "0", CVAR_USERINFO | CVAR_SERVERINFO | CVAR_LATCH);
+    g_godmode    = gi.Cvar_Get("g_godmode", "0", 0);
     sv_fps       = gi.Cvar_Get("sv_fps", "20", CVAR_SAVEGAME);
     sv_cinematic = gi.Cvar_Get("sv_cinematic", "0", CVAR_ROM);
 
@@ -507,14 +514,12 @@ void CVAR_Init(void)
 
     g_teamdamage = gi.Cvar_Get("g_teamdamage", "0", 0);
     g_healthdrop = gi.Cvar_Get("g_healthdrop", "1", 0);
-    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-        g_healrate = gi.Cvar_Get("g_healrate", "10", 0);
-    } else {
-        //
-        // By default, no healrate on 1.11 and below
-        //
-        g_healrate = gi.Cvar_Get("g_healrate", "0", 0);
-    }
+    // Zero applies health pickups immediately. Positive values retain the
+    // optional gradual healing behavior for servers that explicitly want it.
+    g_healrate       = gi.Cvar_Get("g_healrate", "0", 0);
+    g_playerdmhealth = gi.Cvar_Get("g_playerdmhealth", "100", 0);
+    g_no_grenades    = gi.Cvar_Get("g_no_grenades", "0", 0);
+    gi.Cvar_CheckRange(g_playerdmhealth, 1, 1000, qtrue);
     g_allowvote          = gi.Cvar_Get("g_allowvote", "1", CVAR_SERVERINFO);
     g_maprotation_filter = gi.Cvar_Get("g_maprotation_filter", "ffa", 0);
     g_warmup             = gi.Cvar_Get("g_warmup", "20", CVAR_ARCHIVE);
@@ -775,6 +780,9 @@ void CVAR_Init(void)
     g_bot_stg = gi.Cvar_Get("g_bot_stg", "5", 0);
     gi.Cvar_CheckRange(g_bot_stg, 0, 100, qfalse);
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
+
+    g_painanims = gi.Cvar_Get("g_painanims", "1", 0);
+    gi.Cvar_CheckRange(g_painanims, 0, 1, qtrue);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 

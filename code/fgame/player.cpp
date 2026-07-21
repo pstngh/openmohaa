@@ -2436,7 +2436,6 @@ void Player::InitState(void)
 void Player::InitHealth(void)
 {
     static cvar_t *pMaxHealth = gi.Cvar_Get("g_maxplayerhealth", "250", 0);
-    static cvar_t *pDMHealth  = gi.Cvar_Get("g_playerdmhealth", "100", 0);
 
     // Don't do anything if we're loading a server game.
     // This is either a loadgame or a restart
@@ -2446,8 +2445,8 @@ void Player::InitHealth(void)
 
     if (g_gametype->integer == GT_SINGLE_PLAYER && !g_realismmode->integer) {
         max_health = pMaxHealth->integer;
-    } else if (g_gametype->integer != GT_SINGLE_PLAYER && pDMHealth->integer > 0) {
-        max_health = pDMHealth->integer;
+    } else if (g_gametype->integer != GT_SINGLE_PLAYER && g_playerdmhealth->integer > 0) {
+        max_health = g_playerdmhealth->integer;
     } else {
         // reset the health values
         max_health = 100;
@@ -4835,7 +4834,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     }
@@ -4860,7 +4859,7 @@ void Player::Think(void)
                     if (!ent->inuse || !ent->entity) {
                         // Invalid spectate entity
                         SetPlayerSpectateRandom();
-                    } else if (ent->entity->deadflag >= DEAD_DEAD || static_cast<Player *>(ent->entity)->IsSpectator()
+                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
                                || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
                         SetPlayerSpectateRandom();
                     } else if (g_gametype->integer >= GT_TEAM && GetTeam() > TEAM_FREEFORALL
@@ -6420,7 +6419,7 @@ void Player::DamageFeedback(void)
         damage_blend += (damage_blood / realcount) * bcolor;
     }
 
-    if (g_target_game >= target_game_e::TG_MOHTA) {
+    if (g_target_game >= target_game_e::TG_MOHTA && g_painanims->integer) {
         //
         // Added in 2.0
         //  try to find and play pain animation
@@ -6509,7 +6508,8 @@ void Player::DamageFeedback(void)
 
         painAnim += "hit_";
 
-        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID || HITLOC_TORSO_LOWER) {
+        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID
+            || pain_location == HITLOC_TORSO_LOWER) {
             painAnim += "back";
         } else {
             switch (pain_location) {
@@ -6567,16 +6567,6 @@ void Player::DamageFeedback(void)
     //
     damage_blood = 0;
 
-    //
-    // Added in 2.0
-    //  Don't show damage when in god mode
-    //
-    if (flags & FL_GODMODE) {
-        damage_count  = 0;
-        damage_blood  = 0;
-        damage_alpha  = 0;
-        damage_angles = vec_zero;
-    }
 }
 
 void Player::GetPlayerView(Vector *pos, Vector *angle)
@@ -9248,41 +9238,51 @@ void Player::EquipWeapons()
     PostEvent(event, 0.3f);
 
     //
-    // Pistols and grenades
+    // Pistols and, unless this server opts out, grenades.
     //
     switch (nationality) {
     case NA_BRITISH:
-        giveItem("weapons/mills_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/M18_smoke_grenade.tik");
+        if (!g_no_grenades->integer) {
+            giveItem("weapons/mills_grenade.tik");
+            if (g_target_game >= target_game_e::TG_MOHTA) {
+                giveItem("weapons/M18_smoke_grenade.tik");
+            }
         }
         giveItem("weapons/Webley_Revolver.tik");
         break;
     case NA_RUSSIAN:
-        giveItem("weapons/Russian_F1_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/RDG-1_Smoke_grenade.tik");
+        if (!g_no_grenades->integer) {
+            giveItem("weapons/Russian_F1_grenade.tik");
+            if (g_target_game >= target_game_e::TG_MOHTA) {
+                giveItem("weapons/RDG-1_Smoke_grenade.tik");
+            }
         }
         giveItem("weapons/Nagant_revolver.tik");
         break;
     case NA_GERMAN:
-        giveItem("weapons/steilhandgranate.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/nebelhandgranate.tik");
+        if (!g_no_grenades->integer) {
+            giveItem("weapons/steilhandgranate.tik");
+            if (g_target_game >= target_game_e::TG_MOHTA) {
+                giveItem("weapons/nebelhandgranate.tik");
+            }
         }
         giveItem("weapons/p38.tik");
         break;
     case NA_ITALIAN:
-        giveItem("weapons/it_w_bomba.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/it_w_bombabreda.tik");
+        if (!g_no_grenades->integer) {
+            giveItem("weapons/it_w_bomba.tik");
+            if (g_target_game >= target_game_e::TG_MOHTA) {
+                giveItem("weapons/it_w_bombabreda.tik");
+            }
         }
         giveItem("weapons/it_w_beretta.tik");
         break;
     default:
-        giveItem("weapons/m2frag_grenade.tik");
-        if (g_target_game >= target_game_e::TG_MOHTA) {
-            giveItem("weapons/M18_smoke_grenade.tik");
+        if (!g_no_grenades->integer) {
+            giveItem("weapons/m2frag_grenade.tik");
+            if (g_target_game >= target_game_e::TG_MOHTA) {
+                giveItem("weapons/M18_smoke_grenade.tik");
+            }
         }
         giveItem("weapons/colt45.tik");
         break;
@@ -9348,10 +9348,14 @@ void Player::EquipWeapons_ver8()
 
         if (dm_team == TEAM_ALLIES) {
             giveItem("models/weapons/colt45.tik");
-            giveItem("models/weapons/m2frag_grenade.tik");
+            if (!g_no_grenades->integer) {
+                giveItem("models/weapons/m2frag_grenade.tik");
+            }
         } else {
             giveItem("models/weapons/p38.tik");
-            giveItem("models/weapons/steilhandgranate.tik");
+            if (!g_no_grenades->integer) {
+                giveItem("models/weapons/steilhandgranate.tik");
+            }
         }
 
         giveItem("models/items/binoculars.tik");
@@ -9852,9 +9856,23 @@ void Player::ArmorDamage(Event *ev)
         }
     }
 
-    m_iNumHitsTaken++;
+    // The launcher override is evaluated for every hit, so changing the cvar
+    // takes effect immediately and never mutates the player's manual `dog`
+    // cheat state. DAMAGE_NO_PROTECTION keeps explicit suicide/kill behavior.
+    const bool forceGodMode = g_godmode->integer && !(edict->r.svFlags & SVF_BOT)
+                           && !(ev->GetInteger(8) & DAMAGE_NO_PROTECTION);
+    const bool hadGodMode = (flags & FL_GODMODE) != 0;
 
+    if (forceGodMode) {
+        flags |= FL_GODMODE;
+    }
+
+    m_iNumHitsTaken++;
     Sentient::ArmorDamage(ev);
+
+    if (forceGodMode && !hadGodMode) {
+        flags &= ~FL_GODMODE;
+    }
 
     Event *event = new Event(0, 11);
 

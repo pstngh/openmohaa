@@ -5113,9 +5113,8 @@ qboolean Entity::CheckEventFlags(Event *event)
         return false;
     }
 
-    // don't allow console cheats unless the server says it's ok.
-
-    if ((flags & EV_CHEAT)) {
+    // Don't allow console cheats unless the server explicitly enables them.
+    if (flags & EV_CHEAT) {
         if (!monkeycheck) {
             thereisnomonkey = gi.Cvar_Get("thereisnomonkey", "0", CVAR_TEMP);
             monkeycheck     = true;
@@ -5127,15 +5126,13 @@ qboolean Entity::CheckEventFlags(Event *event)
 
         if (!sv_cheats->integer) {
             if (isSubclassOf(Entity)) {
-                Entity     *ent;
-                const char *szConv =
+                Entity     *ent    = (Entity *)this;
+                const char *notice =
                     gi.LV_ConvertString("You must run the server with '+set cheats 1' to enable this command.");
 
-                ent = (Entity *)this;
-                gi.SendServerCommand(ent->edict - g_entities, "print \"%s\n\"", szConv);
+                gi.SendServerCommand(ent->edict - g_entities, "print \"%s\n\"", notice);
             }
 
-            // don't process
             return false;
         }
     }
