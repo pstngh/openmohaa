@@ -477,9 +477,15 @@ extern "C" {
     extern cvar_t *cg_hud;
     extern cvar_t *cg_huddraw_force;
     extern cvar_t *cg_drawsvlag;
-    extern cvar_t *cg_crosshair;
-    extern cvar_t *cg_crosshair_friend;
-    extern cvar_t *ui_crosshair;
+    // Removed in OPM
+    //  cg_crosshair, cg_crosshair_friend and ui_crosshair, replaced by the configurable crosshair
+    // Added in OPM
+    //====
+    extern cvar_t *cg_crosshair_length;
+    extern cvar_t *cg_crosshair_gap;
+    extern cvar_t *cg_crosshair_thickness;
+    extern cvar_t *cg_crosshair_color;
+    //====
     extern cvar_t *vm_offset_max;
     extern cvar_t *vm_offset_speed;
     extern cvar_t *vm_sway_front;
@@ -632,6 +638,8 @@ extern "C" {
     void CG_HudDrawElements();
     void CG_InitializeObjectives();
     void CG_DrawObjectives();
+    // Added in OPM
+    void CG_UpdateCrosshair(void);
     void CG_Draw2D(void);
 
     //

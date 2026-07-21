@@ -94,6 +94,27 @@ To calculate IP subnets, search for `IP subnet calculator` on Internet.
 
 ## Game settings
 
+### Custom crosshair
+
+OpenMoHAA replaces the weapon-provided crosshair with a configurable four-arm
+crosshair. Its measurements are defined at 1080p and scale uniformly with the
+current screen height:
+
+- `set cg_crosshair_length 9`: Length of each arm.
+- `set cg_crosshair_gap 4`: Distance from the center to each arm.
+- `set cg_crosshair_thickness 2`: Thickness of each arm.
+- `set cg_crosshair_color FFFFFF`: Six-digit RGB color.
+
+These are only read when a map loads or the resolution changes, so the
+crosshair costs nothing to keep up to date. After changing them in the console,
+run `vid_restart` or load a map to apply them.
+
+The crosshair can't be turned off: it ignores the stock `ui_crosshair` and
+`cg_hud` toggles. It follows the game's normal weapon crosshair availability
+and is hidden while holstered, looking through a scope, dead, spectating,
+viewing a scripted camera, or when gameplay suppresses the HUD. It stays on
+mounted machine guns and in tanks.
+
 ### Chat
 
 Chat messages are logged to console and in the logfile by default, without requiring to set the `developer` variable.

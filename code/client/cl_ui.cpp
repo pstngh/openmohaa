@@ -58,7 +58,6 @@ static Menu                *hud_health;
 static Menu                *hud_ammo;
 static Menu                *hud_compass;
 static Menu                *hud_boss;
-static Menu                *crosshairhud;
 static Menu                *missionLog;
 qboolean                    server_loading;
 static qboolean             server_loading_waiting;
@@ -69,6 +68,8 @@ static int                  ui_weapHudTime;
 static int                  ui_itemHudTime;
 Menu                       *ui_pLoadingMenu;
 static Menu                *ui_pConnectingMenu;
+// Removed in OPM
+//  crosshairhud, as the crosshair is drawn by the cgame
 
 static_media_t ui_static_materials;
 cvar_t        *cl_greenfps;
@@ -109,7 +110,6 @@ cvar_t        *ui_consoleposition;
 cvar_t        *ui_inventoryfile;
 cvar_t        *ui_console;
 cvar_t        *ui_newvidmode;
-cvar_t        *ui_crosshair;
 cvar_t        *ui_compass;
 cvar_t        *ui_weaponsbar;
 cvar_t        *ui_weaponsbartime;
@@ -120,6 +120,8 @@ cvar_t        *ui_gmboxspam;
 cvar_t        *ui_debugload;
 cvar_t        *sound_overlay;
 cvar_t        *ui_compass_scale;
+// Removed in OPM
+//  ui_crosshair, as the crosshair is drawn by the cgame
 
 static intro_stage_t intro_stage;
 static char          server_mapname[64];
@@ -1971,9 +1973,6 @@ void UI_Update(void)
     // Hide the HUD when necessary
     if (!ui_hud || clc.state != CA_ACTIVE || view3d->LetterboxActive() || (currentMenu && currentMenu->isFullscreen())
         || server_loading || ((cl.snap.ps.pm_flags & PMF_NO_HUD) || (cl.snap.ps.pm_flags & PMF_INTERMISSION))) {
-        if (crosshairhud) {
-            crosshairhud->ForceHide();
-        }
         if (hud_weapons) {
             hud_weapons->ForceHide();
             ui_weapHudTime = 0;
@@ -1997,13 +1996,8 @@ void UI_Update(void)
 
         UI_HideHudList();
     } else {
-        if (crosshairhud) {
-            if (ui_crosshair->integer && cl.snap.ps.stats[STAT_CROSSHAIR]) {
-                crosshairhud->ForceShow();
-            } else {
-                crosshairhud->ForceHide();
-            }
-        }
+        // Removed in OPM
+        //  Showing and hiding the crosshair HUD, as the crosshair is drawn by the cgame
 
         //
         // show and highlight all weapons that the player holds
@@ -5184,9 +5178,8 @@ void CL_ShutdownUI(void)
     }
 
     // delete game hud
-    if (crosshairhud) {
-        crosshairhud = NULL;
-    }
+    // Removed in OPM
+    //  crosshairhud, as the crosshair is drawn by the cgame
     if (hud_weapons) {
         hud_weapons = NULL;
     }
@@ -5250,12 +5243,13 @@ void CL_InitializeUI(void)
     ui_gmbox           = Cvar_Get("ui_gmbox", "1", 1);
     ui_consoleposition = Cvar_Get("ui_consoleposition", "", 1);
     ui_console         = Cvar_Get("ui_console", "0", 1);
-    ui_crosshair       = Cvar_Get("ui_crosshair", "1", 1);
     ui_weaponsbar      = Cvar_Get("ui_weaponsbar", "1", 1);
     ui_weaponsbartime  = Cvar_Get("ui_weaponsbartime", "2500", 1);
     ui_itemsbar        = Cvar_Get("ui_itemsbar", "0", 1);
     sound_overlay      = Cvar_Get("soundoverlay", "0", 0);
     ui_debugload       = Cvar_Get("ui_debugload", "0", 0);
+    // Removed in OPM
+    //  ui_crosshair, as the crosshair is drawn by the cgame
     Cvar_Get("ui_signshader", "", 0);
     ui_compass             = Cvar_Get("ui_compass", "1", 0);
     ui_newvidmode          = Cvar_Get("ui_newvidmode", "-1", 0);
@@ -5461,9 +5455,8 @@ void CL_InitializeUI(void)
     // find the connection menu
     ui_pConnectingMenu = menuManager.FindMenu("connecting");
 
-    if (crosshairhud) {
-        crosshairhud->ShowMenu(NULL);
-    }
+    // Removed in OPM
+    //  Showing the crosshair HUD, as the crosshair is drawn by the cgame
     if (hud_health) {
         hud_health->ShowMenu(NULL);
     }

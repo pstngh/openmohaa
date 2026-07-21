@@ -1346,100 +1346,121 @@ void CG_DrawSpectatorView()
     }
 }
 
-void CG_DrawCrosshair()
+// Added in OPM
+//====
+// Arms and color of the crosshair, built when a resolution is loaded so a
+// frame just draws the four boxes
+static struct {
+    vec4_t color;
+    float  arms[4][4]; // x, y, width, height
+} crosshairLayout;
+
+static float CG_ScaledCrosshairDimension(float value, float fallback, float maximum, float scale)
 {
-    centity_t *friendEnt;
-    qhandle_t  shader;
-    vec3_t     forward;
-    vec3_t     end;
-    vec3_t     mins, maxs;
-    trace_t    trace;
-    float      x, y;
-    float      width, height;
-
-    shader = (qhandle_t)0;
-
-    if (!cg_hud->integer || !ui_crosshair->integer) {
-        return;
+    if (Q_isnan(value)) {
+        value = fallback;
     }
 
+    value = (float)(int)(Q_clamp_float(value, 1.0f, maximum) * scale + 0.5f);
+    return value < 1.0f ? 1.0f : value;
+}
+
+static unsigned int CG_ParseCrosshairColor(const char *colorString)
+{
+    unsigned int rgb;
+
+    if (colorString[0] == '#') {
+        colorString++;
+    }
+
+    if (strlen(colorString) != 6 || strspn(colorString, "0123456789abcdefABCDEF") != 6
+        || sscanf(colorString, "%x", &rgb) != 1) {
+        return 0xFFFFFF;
+    }
+
+    return rgb;
+}
+
+/*
+====================
+CG_UpdateCrosshair
+
+Lay out a four-arm crosshair at the exact framebuffer center. Dimensions are
+specified at 1080p and scale uniformly with screen height so the shape is not
+distorted by widescreen aspect ratios.
+
+Called when the cgame loads and on every resolution change; the cvars are only
+read here, so changing them takes effect on the next map load or vid_restart.
+====================
+*/
+void CG_UpdateCrosshair()
+{
+    unsigned int rgb;
+    float        scale;
+    float        centerX, centerY;
+    float        length, gap, thickness, half;
+
+    scale     = (float)cgs.glconfig.vidHeight / 1080.0f;
+    length    = CG_ScaledCrosshairDimension(cg_crosshair_length->value, 9.0f, 128.0f, scale);
+    gap       = CG_ScaledCrosshairDimension(cg_crosshair_gap->value, 4.0f, 64.0f, scale);
+    thickness = CG_ScaledCrosshairDimension(cg_crosshair_thickness->value, 2.0f, 16.0f, scale);
+    half      = thickness * 0.5f;
+
+    // Keep thick arms from touching each other around the empty center.
+    if (gap < half + 0.5f) {
+        gap = half + 0.5f;
+    }
+
+    rgb = CG_ParseCrosshairColor(cg_crosshair_color->string);
+
+    crosshairLayout.color[0] = ((rgb >> 16) & 0xFF) / 255.0f;
+    crosshairLayout.color[1] = ((rgb >> 8) & 0xFF) / 255.0f;
+    crosshairLayout.color[2] = (rgb & 0xFF) / 255.0f;
+    crosshairLayout.color[3] = 1.0f;
+
+    centerX = cgs.glconfig.vidWidth * 0.5f;
+    centerY = cgs.glconfig.vidHeight * 0.5f;
+
+    const float arms[4][4] = {
+        {centerX - gap - length, centerY - half,         length,    thickness},
+        {centerX + gap,          centerY - half,         length,    thickness},
+        {centerX - half,         centerY - gap - length, thickness, length   },
+        {centerX - half,         centerY + gap,          thickness, length   },
+    };
+    memcpy(crosshairLayout.arms, arms, sizeof(crosshairLayout.arms));
+}
+
+//====
+
+// Changed in OPM
+//  Draw the configurable crosshair in place of the stock texture
+void CG_DrawCrosshair()
+{
+    int i;
+
+    // There is no setting to hide the crosshair: it ignores ui_crosshair and
+    // cg_hud, and only gameplay state hides it.
     if (!cg.snap) {
         return;
     }
 
-    if ((cg.snap->ps.pm_flags & PMF_NO_HUD) || (cg.snap->ps.pm_flags & PMF_INTERMISSION)) {
+    // PMF_SPECTATING covers free-floating spectate, which otherwise passes
+    // every other check here. Scoped weapons clear STAT_CROSSHAIR. Turrets and
+    // tanks view through a camera with STAT_CROSSHAIR set and keep the crosshair.
+    if ((cg.snap->ps.pm_flags & (PMF_NO_HUD | PMF_INTERMISSION | PMF_SPECTATING))
+        || ((cg.snap->ps.pm_flags & PMF_CAMERA_VIEW) && !(cg.snap->ps.camera_flags & CF_CAMERA_ANGLES_TURRETMODE))
+        || !cg.snap->ps.stats[STAT_CROSSHAIR] || cg.snap->ps.stats[STAT_HEALTH] <= 0) {
         return;
     }
 
-    if (!cg.snap->ps.stats[STAT_CROSSHAIR]
-        && (!cg.snap->ps.stats[STAT_INZOOM] || cg.snap->ps.stats[STAT_INZOOM] > 30)) {
-        return;
+    // DrawBox draws an untextured quad. The blank HUD shader's rgbGen vertex
+    // stage would apply overbright compensation a second time.
+    cgi.R_SetColor(crosshairLayout.color);
+    for (i = 0; i < 4; i++) {
+        const float *arm = crosshairLayout.arms[i];
+        cgi.R_DrawBox(arm[0], arm[1], arm[2], arm[3]);
     }
-
-    // Fixed in OPM: R_RegisterShaderNoMip
-    //  Use R_RegisterShaderNoMip, as it's UI stuff
-
-    if (cgs.gametype != GT_FFA) {
-        AngleVectorsLeft(cg.refdefViewAngles, forward, NULL, NULL);
-
-        VectorMA(cg.refdef.vieworg, 8192, forward, end);
-        VectorClear(mins);
-        VectorClear(maxs);
-
-        CG_Trace(&trace, cg.refdef.vieworg, mins, maxs, end, 9999, MASK_SOLID, qfalse, qtrue, "CG_DrawCrosshair");
-
-        // ENTITYNUM_WORLD check added in OPM
-        if ((trace.entityNum != ENTITYNUM_NONE && trace.entityNum != ENTITYNUM_WORLD)
-            && trace.entityNum != cg.snap->ps.clientNum) {
-            int myFlags;
-
-            friendEnt = &cg_entities[trace.entityNum];
-            if (cgs.gametype != GT_SINGLE_PLAYER) {
-                myFlags = cg_entities[cg.snap->ps.clientNum].currentState.eFlags & EF_ANY_TEAM;
-            } else {
-                // the player will always be considered as an allied
-                // in single-player
-                myFlags = EF_ALLIES;
-            }
-
-            if (((myFlags & EF_ALLIES) && (friendEnt->currentState.eFlags & EF_ALLIES))
-                || ((myFlags & EF_AXIS) && (friendEnt->currentState.eFlags & EF_AXIS))) {
-                // friend
-                if (cg.snap->ps.stats[STAT_CROSSHAIR]) {
-                    shader = cgi.R_RegisterShaderNoMip(cg_crosshair_friend->string);
-                    if (!shader) {
-                        // Fixed in OPM
-                        //  Fallback to normal crosshair texture if it doesn't exist
-                        shader = cgi.R_RegisterShaderNoMip(cg_crosshair->string);
-                    }
-                }
-            } else {
-                // enemy
-                if (cg.snap->ps.stats[STAT_CROSSHAIR]) {
-                    shader = cgi.R_RegisterShaderNoMip(cg_crosshair->string);
-                }
-            }
-        } else {
-            if (cg.snap->ps.stats[STAT_CROSSHAIR]) {
-                shader = cgi.R_RegisterShaderNoMip(cg_crosshair->string);
-            }
-        }
-    } else {
-        // FFA
-        if (cg.snap->ps.stats[STAT_CROSSHAIR]) {
-            shader = cgi.R_RegisterShaderNoMip(cg_crosshair->string);
-        }
-    }
-
-    if (shader) {
-        width  = cgi.R_GetShaderWidth(shader) * cgs.uiHiResScale[0];
-        height = cgi.R_GetShaderHeight(shader) * cgs.uiHiResScale[1];
-        x      = (cgs.glconfig.vidWidth - width) * 0.5f;
-        y      = (cgs.glconfig.vidHeight - height) * 0.5f;
-
-        cgi.R_SetColor(NULL);
-        cgi.R_DrawStretchPic(x, y, width, height, 0, 0, 1, 1, shader);
-    }
+    cgi.R_SetColor(NULL);
 }
 
 void CG_DrawVote()

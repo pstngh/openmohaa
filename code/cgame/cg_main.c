@@ -81,9 +81,15 @@ cvar_t *cg_acidtrip;
 cvar_t *cg_hud;
 cvar_t *cg_huddraw_force;
 cvar_t *cg_drawsvlag;
-cvar_t *cg_crosshair;
-cvar_t *cg_crosshair_friend;
-cvar_t *ui_crosshair;
+// Removed in OPM
+//  cg_crosshair, cg_crosshair_friend and ui_crosshair, replaced by the configurable crosshair
+// Added in OPM
+//====
+cvar_t *cg_crosshair_length;
+cvar_t *cg_crosshair_gap;
+cvar_t *cg_crosshair_thickness;
+cvar_t *cg_crosshair_color;
+//====
 cvar_t *vm_offset_max;
 cvar_t *vm_offset_speed;
 cvar_t *vm_sway_front;
@@ -170,12 +176,10 @@ void CG_RegisterCvars(void)
     cg_hud                        = cgi.Cvar_Get("cg_hud", "0", 0);
     cg_huddraw_force              = cgi.Cvar_Get("cg_huddraw_force", "0", CVAR_SAVEGAME);
     cg_drawsvlag                  = cgi.Cvar_Get("cg_drawsvlag", "1", CVAR_ARCHIVE);
-    cg_crosshair                  = cgi.Cvar_Get("cg_crosshair", "textures/hud/crosshair", CVAR_ARCHIVE);
-
-    // 1.11 and below will fallback to cg_crosshair if the texture doesn't exist
-    // as it doesn't have crosshair_friend texture
-    cg_crosshair_friend = cgi.Cvar_Get("cg_crosshair_friend", "textures/hud/crosshair_friend", CVAR_ARCHIVE);
-    ui_crosshair                  = cgi.Cvar_Get("ui_crosshair", "1", CVAR_ARCHIVE);
+    cg_crosshair_length           = cgi.Cvar_Get("cg_crosshair_length", "9", CVAR_ARCHIVE);
+    cg_crosshair_gap              = cgi.Cvar_Get("cg_crosshair_gap", "4", CVAR_ARCHIVE);
+    cg_crosshair_thickness        = cgi.Cvar_Get("cg_crosshair_thickness", "2", CVAR_ARCHIVE);
+    cg_crosshair_color            = cgi.Cvar_Get("cg_crosshair_color", "FFFFFF", CVAR_ARCHIVE);
     vm_offset_max                 = cgi.Cvar_Get("vm_offset_max", "8.0", 0);
     vm_offset_speed               = cgi.Cvar_Get("vm_offset_speed", "8.0", 0);
     vm_sway_front                 = cgi.Cvar_Get("vm_sway_front", "0.1", 0);
@@ -614,6 +618,7 @@ void CG_GetRendererConfig(void)
     cgs.screenXScale = cgs.glconfig.vidWidth / 640.0;
     cgs.screenYScale = cgs.glconfig.vidHeight / 480.0;
     cgi.UI_GetHighResolutionScale(cgs.uiHiResScale);
+    CG_UpdateCrosshair();
 }
 
 /*

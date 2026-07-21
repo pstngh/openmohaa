@@ -309,6 +309,7 @@ OpenMoHAA includes all known fixes and features from the latest version of Spear
 ### Client-side
 
 - 4K support
+- Configurable crosshair: four arms set by `cg_crosshair_length`, `cg_crosshair_gap`, `cg_crosshair_thickness` and `cg_crosshair_color` replace the texture crosshair; `cg_crosshair`, `cg_crosshair_friend` and `ui_crosshair` are removed
 - Customizable FOV
 - Improved mouse support on windowed mode
 - OpenAL and SDL are used

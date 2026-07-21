@@ -1830,7 +1830,7 @@ void Com_Init( char *commandLine ) {
 		if ( com_firstConfig ) {
 			//
 			// Create an empty file to prevent expansions from inheriting the base file
-			// and inheriting from variables such as cg_crosshair_friend
+			// and its variables
 			//FS_WriteFile(va("configs/%s", configname), "", 0);
 		}
 
