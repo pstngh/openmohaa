@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "g_bot.h"
 #include "navigation_recast_load.h"
+#include "movement_telemetry.h"
 
 #include "../corepp/tiki.h"
 
@@ -348,6 +349,8 @@ void G_ShutdownGame()
 {
     gi.Printf("==== ShutdownGame ====\n");
 
+    G_MoveLogShutdown();
+
     // write all the client session data so we can get it back
     G_WriteSessionData();
 
@@ -637,6 +640,8 @@ void G_RunFrame(int levelTime, int frameTime)
 
         // Process any pending events that got posted during the script code
         L_ProcessPendingEvents();
+
+        G_MoveLogFrame();
 
         // show how many traces the game code is doing
         if (sv_traceinfo->integer) {
@@ -1236,6 +1241,8 @@ void G_WritePersistant(const char *name)
 void G_Cleanup(qboolean samemap)
 {
     gi.Printf("==== CleanupGame ====\n");
+
+    G_MoveLogShutdown();
 
     G_WriteSessionData();
 

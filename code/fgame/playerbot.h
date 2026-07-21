@@ -36,6 +36,76 @@ typedef struct nodeAttract_s {
 
 class BotController;
 
+enum bot_fire_decision_t {
+    BOT_FIRE_NONE,
+    BOT_FIRE_NO_TARGET,
+    BOT_FIRE_NO_SIGHT,
+    BOT_FIRE_REACTION_DELAY,
+    BOT_FIRE_NO_WEAPON,
+    BOT_FIRE_NO_AMMO,
+    BOT_FIRE_OUT_OF_RANGE,
+    BOT_FIRE_SEMIAUTO_BUSY,
+    BOT_FIRE_SEMIAUTO_SPREAD,
+    BOT_FIRE_FIRING
+};
+
+struct bot_movement_telemetry_t {
+    bool  hasCombatTarget;
+    bool  pathing;
+    bool  blockedRecovery;
+    bool  pathCollisionAvoidance;
+    bool  movementSuppressed;
+    int   strafeDirection;
+    int   strafeChangeMsec;
+    bool  isLeaning;
+    bool  strafeApplied;
+    bool  strafeClearanceFlip;
+    float strafeClearance;
+    float strafeOtherClearance;
+    float strafeProbeFraction;
+    float strafeIntensity;
+    int   radialDirection;
+    int   radialChangeMsec;
+    bool  radialActive;
+    bool  radialForcedCloseRetreat;
+    float radialDistance;
+    float radialDesiredMove;
+    float radialBeforeMove;
+    bool  guardTriggered;
+    bool  guardHitSentient;
+    bool  guardHitWorld;
+    bool  guardRemovedComponent;
+    float guardFraction;
+    int   guardEntity;
+
+    bot_movement_telemetry_t();
+    void Reset();
+};
+
+struct bot_controller_telemetry_t {
+    unsigned int        stateFlags;
+    int                 enemyEntity;
+    bool                enemyVisible;
+    bool                canAttack;
+    bool                wantsFire;
+    bool                noMove;
+    bot_fire_decision_t fireDecision;
+    int                 reactionRemainingMsec;
+    float               enemyDistance;
+    int                 aimAcquireMsec;
+    float               aimHeightFraction;
+    float               aimErrorFraction;
+    float               aimErrorUnits;
+    int                 aimLatencyMsec;
+    Vector              aimTarget;
+    Vector              aimPoint;
+    Vector              aimErrorDirection;
+    Vector              targetAngles;
+
+    bot_controller_telemetry_t();
+    void Reset();
+};
+
 class BotMovement
 {
 public:
@@ -66,6 +136,8 @@ public:
 
     Vector GetCurrentGoal() const;
     Vector GetCurrentPathDirection() const;
+    void   ResetTelemetry();
+    void   GetTelemetry(bot_movement_telemetry_t& telemetry) const;
 
 private:
     Vector CalculateDir(const Vector& delta) const;
@@ -132,6 +204,7 @@ private:
     int  m_iRadialDirection;       // -1 = retreat, 1 = advance
     int  m_iNextRadialChangeTime;  // When to flip radial direction
     bool m_bIsLeaning;             // Hysteresis: currently strafing
+    bool m_bLeanCommandActive;     // Current usercmd contains a lean input
     bool m_bHasCombatTarget;
 
     void   UpdateAggressiveMovement(usercmd_t& botcmd);
@@ -141,6 +214,7 @@ private:
     int    RadialPhaseDuration(float distance) const;
 
     Vector m_vCombatTarget;
+    bot_movement_telemetry_t m_telemetry;
 };
 
 class BotRotation
@@ -229,6 +303,9 @@ private:
     ScriptThreadLabel m_RunLabel;
 
     int m_iLastFireTime;
+
+    // Strafe and lean (controller-level, applied on top of movement-level strafe)
+    bot_controller_telemetry_t m_telemetry;
 
 private:
     DelegateHandle delegateHandle_gotKill;
@@ -319,6 +396,7 @@ public:
     void EventStuffText(const str& text);
 
     BotMovement& GetMovement();
+    void GetTelemetry(bot_controller_telemetry_t& telemetry) const;
 
 public:
     void    setControlledEntity(Player *player);

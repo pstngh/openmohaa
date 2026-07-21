@@ -159,6 +159,11 @@ extern cvar_t *g_healrate;
 extern cvar_t *g_playerdmhealth;
 /** Disable grenade spawn loadouts without changing ordinary server defaults. */
 extern cvar_t *g_no_grenades;
+/**
+ * @brief Opt-in server-side movement, aiming, and combat telemetry. Output is
+ * written below the active game directory. Disabled by default.
+ */
+extern cvar_t *g_movelog;
 
 extern cvar_t *g_allowvote;
 extern cvar_t *g_monitor;

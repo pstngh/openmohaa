@@ -59,6 +59,34 @@ static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 // middle ones.
 static const float BOT_VISIBILITY_SAMPLES[]    = {0.9f, 0.7f, 0.5f, 0.3f, 0.1f};
 static const int   BOT_NUM_VISIBILITY_SAMPLES  = ARRAY_LEN(BOT_VISIBILITY_SAMPLES);
+
+bot_controller_telemetry_t::bot_controller_telemetry_t()
+{
+    Reset();
+}
+
+void bot_controller_telemetry_t::Reset()
+{
+    stateFlags            = 0;
+    enemyEntity           = -1;
+    enemyVisible          = false;
+    canAttack             = false;
+    wantsFire             = false;
+    noMove                = false;
+    fireDecision          = BOT_FIRE_NONE;
+    reactionRemainingMsec = 0;
+    enemyDistance        = -1.0f;
+    aimAcquireMsec       = -1;
+    aimHeightFraction    = 0.0f;
+    aimErrorFraction     = 0.0f;
+    aimErrorUnits        = 0.0f;
+    aimLatencyMsec       = 0;
+    aimTarget            = vec_zero;
+    aimPoint             = vec_zero;
+    aimErrorDirection    = vec_zero;
+    targetAngles         = vec_zero;
+}
+
 static int BotSoundPriority(int eventType)
 {
     switch (eventType) {
@@ -183,6 +211,17 @@ BotMovement& BotController::GetMovement()
     return movement;
 }
 
+void BotController::GetTelemetry(bot_controller_telemetry_t& telemetry) const
+{
+    telemetry                   = m_telemetry;
+    telemetry.stateFlags        = m_StateFlags;
+    telemetry.enemyEntity       = m_pEnemy ? m_pEnemy->entnum : -1;
+    telemetry.aimAcquireMsec  = m_iAimAcquireTime >= 0 ? Q_max(0, level.inttime - m_iAimAcquireTime) : -1;
+    telemetry.aimHeightFraction = m_fAimHeightFraction;
+    telemetry.aimLatencyMsec    = g_bot_aim_latency ? g_bot_aim_latency->integer : 0;
+    telemetry.targetAngles      = rotation.GetTargetAngles();
+}
+
 void BotController::Init(void)
 {
     for (int i = 0; i < MAX_BOT_FUNCTIONS; i++) {
@@ -209,6 +248,8 @@ void BotController::GetEyeInfo(usereyes_t *eyeinfo)
 
 void BotController::UpdateBotStates(void)
 {
+    m_telemetry.Reset();
+    movement.ResetTelemetry();
     m_botCmd.serverTime = level.svsTime;
 
     if (g_bot_manualmove->integer) {
@@ -1201,11 +1242,13 @@ void BotController::State_Attack(void)
 
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
+        m_telemetry.fireDecision = BOT_FIRE_NO_TARGET;
         m_iAttackTime = 0;
         movement.ClearCombatTarget();
         return;
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
+    m_telemetry.enemyDistance = sqrt(fDistanceSquared);
 
     // Feed the aggressive-movement layer the enemy itself, not only a
     // distance. This lets forward/back phases remain enemy-relative while the
@@ -1215,9 +1258,11 @@ void BotController::State_Attack(void)
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee = CheckEnemyVisibility(m_pEnemy, m_fAimHeightFraction, fAimHeightFraction);
+    m_telemetry.enemyVisible = bCanSee;
 
     if (bCanSee) {
         if (!pWeap) {
+            m_telemetry.fireDecision = BOT_FIRE_NO_WEAPON;
             return;
         }
 
@@ -1226,6 +1271,9 @@ void BotController::State_Attack(void)
             const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
             if (level.inttime <= m_iLastUnseenTime + minDelay) {
                 bCanAttack = false;
+                m_telemetry.fireDecision = BOT_FIRE_REACTION_DELAY;
+                m_telemetry.reactionRemainingMsec =
+                    static_cast<int>(m_iLastUnseenTime + minDelay - level.inttime);
             } else {
                 m_iLastUnseenTime = 0;
                 // Fresh acquisition: choose one error vector and settle it
@@ -1235,6 +1283,7 @@ void BotController::State_Attack(void)
         }
 
         if (bCanAttack) {
+            m_telemetry.canAttack = true;
             float fPrimaryBulletRange          = pWeap->GetBulletRange(FIRE_PRIMARY) / 1.25f;
             float fPrimaryBulletRangeSquared   = fPrimaryBulletRange * fPrimaryBulletRange;
             float fSpreadFactor                = pWeap->GetSpreadFactor(FIRE_PRIMARY);
@@ -1248,6 +1297,7 @@ void BotController::State_Attack(void)
                 length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
+                    m_telemetry.noMove = true;
                     movement.ClearMove();
                 }
             }
@@ -1265,9 +1315,11 @@ void BotController::State_Attack(void)
 
             if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                 && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
+                m_telemetry.fireDecision = BOT_FIRE_NO_AMMO;
                 m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
                 controlledEnt->ZoomOff();
             } else if (fDistanceSquared > fPrimaryBulletRangeSquared) {
+                m_telemetry.fireDecision = BOT_FIRE_OUT_OF_RANGE;
                 m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
                 controlledEnt->ZoomOff();
             } else {
@@ -1279,10 +1331,13 @@ void BotController::State_Attack(void)
                     if (controlledEnt->client->ps.iViewModelAnim != VM_ANIM_IDLE
                         && (controlledEnt->client->ps.iViewModelAnim < VM_ANIM_IDLE_0
                             || controlledEnt->client->ps.iViewModelAnim > VM_ANIM_IDLE_2)) {
+                        m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_BUSY;
                         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
                         controlledEnt->ZoomOff();
                     } else if (fSpreadFactor < 0.25) {
                         bFiring = true;
+                        m_telemetry.fireDecision = BOT_FIRE_FIRING;
+                        m_telemetry.wantsFire    = true;
                         m_botCmd.buttons ^= BUTTON_ATTACKLEFT;
                         if (pWeap->GetZoom()) {
                             if (!controlledEnt->IsZoomed()) {
@@ -1293,10 +1348,14 @@ void BotController::State_Attack(void)
                         }
                     } else {
                         bNoMove = true;
+                        m_telemetry.noMove       = true;
+                        m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_SPREAD;
                         movement.ClearMove();
                     }
                 } else {
                     bFiring = true;
+                    m_telemetry.fireDecision = BOT_FIRE_FIRING;
+                    m_telemetry.wantsFire    = true;
                     m_botCmd.buttons |= BUTTON_ATTACKLEFT;
                 }
             }
@@ -1313,6 +1372,7 @@ void BotController::State_Attack(void)
             m_vLastEnemyPos      = m_pEnemy->origin;
         }
     } else {
+        m_telemetry.fireDecision = BOT_FIRE_NO_SIGHT;
         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
         fMinDistanceSquared = 0;
 
@@ -1350,6 +1410,7 @@ void BotController::State_Attack(void)
         // 120 ms, independent of frame rate.
         vTarget.z = m_pEnemy->origin.z + m_pEnemy->maxs.z * fAimHeightFraction;
         vTarget   = GetDelayedAimTarget(vTarget);
+        m_telemetry.aimTarget = vTarget;
 
         // Acquisition error settles into a small, drifting floor instead of
         // reaching perfect tracking. The existing aim-error value still
@@ -1368,12 +1429,18 @@ void BotController::State_Attack(void)
         Vector vAimPoint = vTarget;
         vAimPoint += m_vAimErrorDirection * (g_bot_aim_error->value * errorFraction);
 
+        m_telemetry.aimErrorFraction  = errorFraction;
+        m_telemetry.aimErrorUnits     = g_bot_aim_error->value * errorFraction;
+        m_telemetry.aimErrorDirection = m_vAimErrorDirection;
+        m_telemetry.aimPoint          = vAimPoint;
+
         rotation.AimAt(vAimPoint);
     } else {
         AimAtAimNode();
     }
 
     if (bNoMove) {
+        m_telemetry.noMove = true;
         return;
     }
 

@@ -144,3 +144,90 @@ component; they do not impose a wall buffer or disable leaning.
 | `g_bot_peek_min_interval` | `1600` | `50`-`10000` ms | Minimum base time before changing advance/retreat direction. Outside 96 units, advance phases use 2x and retreat phases use 0.4x this randomized base. |
 | `g_bot_peek_max_interval` | `3200` | `50`-`10000` ms | Maximum base time before changing advance/retreat direction. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots start peeking and retreating. |
+
+## Recording movement and aim reference sessions
+
+### `g_movelog`
+
+- **Default**: 0
+- **Type**: boolean
+
+`g_movelog 1` enables opt-in, server-side telemetry for comparing human and
+bot play. The host needs the instrumented OpenMoHAA build; remote human
+players can connect with an unmodified client. The recorder does not change
+movement, aiming, weapon damage, or random-number state, and it does not log
+IP addresses or passwords.
+
+The server samples every connected player's authoritative state at 20 Hz. It
+records raw movement/buttons, final position and velocity, view angles,
+weapon/ammunition state, nearest-opponent distance and relative motion,
+full-body wall clearance in eight directions, line of sight, angular aim
+error, target-relative aim height, and the entity beneath the crosshair. Schema
+3 additionally traces along and opposite the actual movement command, toward
+and away from the opponent, including the hit entity, surface normal, and
+start-solid state. Sight blockers, visibility transitions, crosshair impact
+distance, client entry/exit, and the BSP map checksum are also recorded. Shots,
+reloads, damage, deaths, and spawns are recorded separately at the exact frame
+in which they happen.
+
+The test-only schema 4 profile adds bot decision state to each frame without
+performing additional traces or consuming random numbers. It records the
+selected enemy, sight/attack/fire decisions, reaction time remaining, intended
+and error-adjusted aim points, aim acquisition state, path and blocked-recovery
+state, strafe clearance and doorway damping, radial phase and forced close
+retreat, plus the result of the existing imminent-contact guard. Human rows use
+neutral or sentinel values in these `bot_*` columns.
+
+`bot_fire_decision` values are:
+
+| Value | Meaning |
+| ---: | --- |
+| `0` | No attack decision this frame. |
+| `1` | No valid target. |
+| `2` | Target is out of sight. |
+| `3` | Waiting for the reaction delay. |
+| `4` | No active weapon. |
+| `5` | No ammunition. |
+| `6` | Target is outside weapon range. |
+| `7` | Semi-automatic weapon animation is busy. |
+| `8` | Waiting for semi-automatic spread to settle. |
+| `9` | Bot intends to fire. |
+
+To capture a reference match, enter these commands in the host console:
+
+```text
+set g_movelog 1
+map dm/mapname
+```
+
+The recorder can also be enabled after a map has already loaded. At the end
+of the session, close the files cleanly with:
+
+```text
+set g_movelog 0
+```
+
+The recorder keeps three persistent files under `telemetry` in the active game
+directory (`main`, `mainta`, or `maintt`):
+
+- `movement_frames.csv`: synchronized 20 Hz movement and aim rows.
+- `movement_events.csv`: exact combat and lifecycle events.
+- `movement_meta.txt`: map, game, movement, health, accuracy, and bot-tuning
+  settings needed to reproduce each session.
+
+Nothing is overwritten: new recordings append to these same three files.
+Every period between enabling and disabling `g_movelog` has a unique
+`session_id`, as does a recording continued after a map change or server
+restart. The CSV rows and metadata blocks carry that ID so individual matches
+can still be separated during analysis.
+
+All three files must use the same telemetry schema. Before the first recording
+with this schema 4 test build, archive or delete schema 3 copies of all three files.
+The recorder refuses to mix schemas or append when only part of the triplet is
+present. Once fresh schema 4 files exist, subsequent sessions append normally.
+
+For bot tuning, record several rounds of human versus human play and several
+rounds against bots on the same maps and settings. A normal client demo
+(`record <name>` / `stoprecord`) or video is useful visual context, but the
+three telemetry files contain the server-side data needed for quantitative
+movement and aim comparison.

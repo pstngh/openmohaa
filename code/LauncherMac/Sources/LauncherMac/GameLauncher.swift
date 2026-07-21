@@ -132,6 +132,9 @@ struct GameLauncher {
             settings.painAnimations ? "1" : "0",
         ])
         args.append(contentsOf: ["+set", "g_godmode", settings.godMode ? "1" : "0"])
+        // Server-side telemetry recorder; only meaningful when hosting.
+        args.append(contentsOf: ["+set", "g_movelog", settings.moveLog ? "1" : "0"])
+
         appendCommonArgs(&args, settings: settings)
         appendResolutionArgs(&args, settings: settings)
 

@@ -223,6 +223,10 @@ struct BotsView: View {
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Refill the current weapon instead of consuming reserve ammunition.")
+                        Toggle("Move log", isOn: $settings.moveLog)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Record server-side movement and aim telemetry to CSV files in telemetry/ (g_movelog).")
                         Spacer()
                     }
 
@@ -273,6 +277,7 @@ struct BotsView: View {
         .onChange(of: settings.godMode) { _ in settings.save() }
         .onChange(of: settings.infiniteAmmo) { _ in settings.save() }
         .onChange(of: settings.forceModels) { _ in settings.save() }
+        .onChange(of: settings.moveLog) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in
             if on {
                 let t = settings.derivedTuning()
