@@ -219,6 +219,10 @@ struct BotsView: View {
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Render every player with your selected Allied/Axis models (cg_forceModel).")
+                        Toggle("Infinite ammo", isOn: $settings.infiniteAmmo)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Refill the current weapon instead of consuming reserve ammunition.")
                         Toggle("Move log", isOn: $settings.moveLog)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
@@ -271,6 +275,7 @@ struct BotsView: View {
         .onChange(of: settings.aaLean) { _ in settings.save() }
         .onChange(of: settings.painAnimations) { _ in settings.save() }
         .onChange(of: settings.godMode) { _ in settings.save() }
+        .onChange(of: settings.infiniteAmmo) { _ in settings.save() }
         .onChange(of: settings.forceModels) { _ in settings.save() }
         .onChange(of: settings.moveLog) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in

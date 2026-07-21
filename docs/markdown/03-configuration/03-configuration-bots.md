@@ -15,6 +15,13 @@ With the default `sv_sharedbots 0`, bot capacity is allocated when the map
 starts. Bots can be removed and added back live, but increasing `sv_bots`
 beyond that map's startup capacity requires a map restart.
 
+### Launcher deathmatch rules
+
+The macOS launcher always disables rockets and landmines in bot matches. For
+Spearhead and Breakthrough it also enables classic Allied Assault sniper
+behavior and replaces the Kar98 mortar with the shotgun. The launcher's saved
+**Infinite ammo** option controls that flag independently and defaults to on.
+
 ### `g_aalean`
 
 - **Default**: 0

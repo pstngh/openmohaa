@@ -2,6 +2,12 @@ import Foundation
 import AppKit
 
 struct GameLauncher {
+    private static let dmFlagInfiniteAmmo = 1 << 14
+    private static let dmFlagOldSniper = 1 << 19
+    private static let dmFlagDisallowKar98Mortar = 1 << 20
+    private static let dmFlagNoRocket = 1 << 26
+    private static let dmFlagNoLandmine = 1 << 28
+
     static func launch(settings: LauncherSettings) {
         let gameDir = LauncherSettings.gameDirectory
         let executable = (gameDir as NSString).appendingPathComponent("openmohaa")
@@ -58,6 +64,7 @@ struct GameLauncher {
         args.append(contentsOf: ["+set", "fs_homepath", "."])
         args.append(contentsOf: ["+set", "com_target_game", "\(settings.gameType)"])
         args.append(contentsOf: ["+set", "g_gametype", "\(settings.botGameType)"])
+        args.append(contentsOf: ["+set", "dmflags", "\(botDmFlags(settings: settings))"])
         if settings.botGameType == 2 {
             // Spearhead and Breakthrough default team games to 15-second
             // spawn waves. Bot TDM should use immediate AA-style respawning.
@@ -129,6 +136,20 @@ struct GameLauncher {
         settings.saveImmediately()
 
         run(executable: bundlePath, args: args, cwd: gameDir)
+    }
+
+    private static func botDmFlags(settings: LauncherSettings) -> Int {
+        // Bot matches always exclude rockets and landmines. Expansion games
+        // additionally retain AA sniper behavior and replace the Kar98 mortar
+        // with the shotgun. Infinite ammo is the only optional preset flag.
+        var flags = dmFlagNoRocket | dmFlagNoLandmine
+        if settings.gameType != 0 {
+            flags |= dmFlagOldSniper | dmFlagDisallowKar98Mortar
+        }
+        if settings.infiniteAmmo {
+            flags |= dmFlagInfiniteAmmo
+        }
+        return flags
     }
 
     private static func appendCommonArgs(_ args: inout [String], settings: LauncherSettings) {
