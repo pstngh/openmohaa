@@ -1359,7 +1359,7 @@ void CG_DrawCrosshair()
 
     shader = (qhandle_t)0;
 
-    if (!cg_hud->integer || !ui_crosshair->integer) {
+    if (!cg_hud->integer || !ui_crosshair->integer || cg_crosshair_overlay->integer) {
         return;
     }
 
@@ -1440,6 +1440,91 @@ void CG_DrawCrosshair()
         cgi.R_SetColor(NULL);
         cgi.R_DrawStretchPic(x, y, width, height, 0, 0, 1, 1, shader);
     }
+}
+
+static float CG_ScaledCrosshairDimension(float value, float fallback, float maximum, float scale)
+{
+    if (Q_isnan(value)) {
+        value = fallback;
+    }
+
+    value = (float)(int)(Q_clamp_float(value, 1.0f, maximum) * scale + 0.5f);
+    return value < 1.0f ? 1.0f : value;
+}
+
+static unsigned int CG_ParseCrosshairColor(const char *colorString)
+{
+    unsigned int rgb;
+
+    if (colorString[0] == '#') {
+        colorString++;
+    }
+
+    if (strlen(colorString) != 6 || strspn(colorString, "0123456789abcdefABCDEF") != 6
+        || sscanf(colorString, "%x", &rgb) != 1) {
+        return 0xFFFFFF;
+    }
+
+    return rgb;
+}
+
+/*
+====================
+CG_DrawCrosshairOverlay
+
+Draw a configurable four-arm crosshair at the exact framebuffer
+center. Dimensions are specified at 1080p and scale uniformly with screen
+height so the shape is not distorted by widescreen aspect ratios.
+====================
+*/
+void CG_DrawCrosshairOverlay()
+{
+    unsigned int rgb;
+    vec4_t       color;
+    float        scale;
+    float        centerX, centerY;
+    float        length, gap, thickness;
+
+    if (!cg_crosshair_overlay->integer || !cg.snap) {
+        return;
+    }
+
+    // PMF_SPECTATING covers free-floating spectate, which otherwise passes
+    // every other check here; following a player also sets PMF_CAMERA_VIEW.
+    if ((cg.snap->ps.pm_flags & (PMF_NO_HUD | PMF_INTERMISSION | PMF_CAMERA_VIEW | PMF_SPECTATING))
+        || !cg.snap->ps.stats[STAT_CROSSHAIR] || cg.snap->ps.stats[STAT_INZOOM]
+        || cg.snap->ps.stats[STAT_HEALTH] <= 0) {
+        return;
+    }
+
+    scale     = (float)cgs.glconfig.vidHeight / 1080.0f;
+    length    = CG_ScaledCrosshairDimension(cg_crosshair_length->value, 9.0f, 128.0f, scale);
+    gap       = CG_ScaledCrosshairDimension(cg_crosshair_gap->value, 4.0f, 64.0f, scale);
+    thickness = CG_ScaledCrosshairDimension(cg_crosshair_thickness->value, 2.0f, 16.0f, scale);
+
+    // Keep thick arms from touching each other around the empty center.
+    if (gap < thickness * 0.5f + 0.5f) {
+        gap = thickness * 0.5f + 0.5f;
+    }
+
+    rgb = CG_ParseCrosshairColor(cg_crosshair_color->string);
+
+    color[0] = ((rgb >> 16) & 0xFF) / 255.0f;
+    color[1] = ((rgb >> 8) & 0xFF) / 255.0f;
+    color[2] = (rgb & 0xFF) / 255.0f;
+    color[3] = 1.0f;
+
+    centerX = cgs.glconfig.vidWidth * 0.5f;
+    centerY = cgs.glconfig.vidHeight * 0.5f;
+
+    // DrawBox uses the renderer's white image directly. The blank HUD shader's
+    // rgbGen vertex stage would apply overbright compensation a second time.
+    cgi.R_SetColor(color);
+    cgi.R_DrawBox(centerX - gap - length, centerY - thickness * 0.5f, length, thickness);
+    cgi.R_DrawBox(centerX + gap, centerY - thickness * 0.5f, length, thickness);
+    cgi.R_DrawBox(centerX - thickness * 0.5f, centerY - gap - length, thickness, length);
+    cgi.R_DrawBox(centerX - thickness * 0.5f, centerY + gap, thickness, length);
+    cgi.R_SetColor(NULL);
 }
 
 void CG_DrawVote()
@@ -1540,4 +1625,5 @@ void CG_Draw2D(void)
     CG_DrawVote();
     CG_DrawInstantMessageMenu();
     CG_DrawCrosshair();
+    CG_DrawCrosshairOverlay();
 }
