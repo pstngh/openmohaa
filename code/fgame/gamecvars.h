@@ -378,6 +378,7 @@ extern cvar_t *g_bot_sniper;
  * @brief Percentage of Axis bots that get an StG instead of an SMG.
  */
 extern cvar_t *g_bot_stg;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 /**
@@ -406,6 +407,11 @@ extern cvar_t *g_textmsg_allowed;
 extern cvar_t *g_textmsg_minDelay;
 
 extern cvar_t *g_teambalance;
+
+/**
+ * @brief Use AA lean limits, speeds, recovery, and camera roll in SH/BT.
+ */
+extern cvar_t *g_aalean;
 
 /**
  * @brief Enable SH/BT player hit-reaction pain animations.

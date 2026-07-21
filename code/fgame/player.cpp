@@ -3715,34 +3715,16 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
         pm->pmove_msec = 33;
     }
 
-    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-        if (g_gametype->integer != GT_SINGLE_PLAYER) {
-            //
-            // Added in 2.0
-            // In multiplayer mode, specify if the player can lean while moving
-            //
-            if (dmflags->integer & DF_ALLOW_LEAN_MOVEMENT) {
-                pm->alwaysAllowLean = qtrue;
-            } else {
-                pm->alwaysAllowLean = qfalse;
-            }
-        } else {
-            pm->alwaysAllowLean = qfalse;
-        }
+    // OPM: always allow leaning in all modes
+    pm->alwaysAllowLean = qtrue;
 
+    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN && !g_aalean->integer) {
         pm->leanMax          = 45.f;
         pm->leanAdd          = 6.f;
         pm->leanRecoverSpeed = 8.5f;
         pm->leanSpeed        = 2.f;
     } else {
-        pm->alwaysAllowLean = qtrue;
-        if (g_gametype->integer != GT_SINGLE_PLAYER) {
-            pm->leanMax = 40.f;
-        } else {
-            // Don't allow lean in single-player, like in the original game
-            pm->leanMax = 0;
-        }
-
+        pm->leanMax          = 40.f;
         pm->leanAdd          = 10.f;
         pm->leanRecoverSpeed = 15.f;
         pm->leanSpeed        = 4.f;

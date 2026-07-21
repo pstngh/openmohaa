@@ -322,6 +322,9 @@ cvar_t *g_textmsg_minDelay;
 // Whether or not to prevent teams from being unbalanced
 cvar_t *g_teambalance;
 
+// Use AA-style lean movement and camera behavior in SH/BT
+cvar_t *g_aalean;
+
 // Enable SH/BT player hit-reaction pain animations
 cvar_t *g_painanims;
 
@@ -781,7 +784,11 @@ void CVAR_Init(void)
     gi.Cvar_CheckRange(g_bot_sniper, 0, 100, qfalse);
     g_bot_stg = gi.Cvar_Get("g_bot_stg", "5", 0);
     gi.Cvar_CheckRange(g_bot_stg, 0, 100, qfalse);
+
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
+
+    g_aalean = gi.Cvar_Get("g_aalean", "0", 0);
+    gi.Cvar_CheckRange(g_aalean, 0, 1, qtrue);
 
     g_painanims = gi.Cvar_Get("g_painanims", "1", 0);
     gi.Cvar_CheckRange(g_painanims, 0, 1, qtrue);
