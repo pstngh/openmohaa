@@ -482,6 +482,9 @@ void lens_flare::Init(const char *which)
 
 static void R_DrawSunFlare()
 {
+    if (!r_drawSun->integer) {
+        return;
+    }
     if (!s_sun.exists) {
         return;
     }
@@ -511,6 +514,10 @@ static void R_DrawSunFlare()
 
 static void R_DrawSunFlareBlend()
 {
+    if (!r_drawSun->integer) {
+        return;
+    }
+
     if (!s_sun.exists) {
         return;
     }
