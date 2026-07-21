@@ -1012,6 +1012,13 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
             player = new Player;
         }
 
+        // Launcher bot matches reserve their second network-client slot for a
+        // LAN observer. Identify it by its remote connection, never a fixed
+        // client number, so bot slot ordering cannot affect this behavior.
+        if (player && player->IsBotLanObserver()) {
+            player->SetTeam(TEAM_SPECTATOR);
+        }
+
         // Fixed in OPM
         //  Initialize the enter time even when there is an intermission.
         //  This is so in the scoreboard it shows up properly

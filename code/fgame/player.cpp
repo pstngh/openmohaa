@@ -4759,7 +4759,8 @@ void Player::Think(void)
         }
 
         if (IsSpectator()) {
-            if (!m_bTempSpectator && level.time > respawn_time && (server_new_buttons & BUTTON_ATTACKLEFT)) {
+            if (!IsBotLanObserver() && !m_bTempSpectator && level.time > respawn_time
+                && (server_new_buttons & BUTTON_ATTACKLEFT)) {
                 if (current_team && dm_team != TEAM_SPECTATOR) {
                     if (client->pers.dm_primary[0]) {
                         if ((g_gametype->integer == GT_FFA
@@ -4800,71 +4801,76 @@ void Player::Think(void)
         }
 
         if (IsSpectator()) {
-            if (g_protocol >= PROTOCOL_MOHTA_MIN) {
-                if (m_iPlayerSpectating) {
-                    if (last_ucmd.upmove) {
-                        if (!m_bSpectatorSwitching) {
-                            m_bSpectatorSwitching = true;
+            if (IsBotLanObserver()) {
+                SetBotLanObserverTarget();
+            } else {
+                if (g_protocol >= PROTOCOL_MOHTA_MIN) {
+                    if (m_iPlayerSpectating) {
+                        if (last_ucmd.upmove) {
+                            if (!m_bSpectatorSwitching) {
+                                m_bSpectatorSwitching = true;
 
-                            if (last_ucmd.upmove > 0) {
-                                SetPlayerSpectate(true);
-                            } else {
-                                SetPlayerSpectate(false);
+                                if (last_ucmd.upmove > 0) {
+                                    SetPlayerSpectate(true);
+                                } else {
+                                    SetPlayerSpectate(false);
+                                }
                             }
+                        } else {
+                            m_bSpectatorSwitching = false;
+                        }
+                    } else if ((server_new_buttons & BUTTON_USE)) {
+                        SetPlayerSpectateRandom();
+                        server_new_buttons &= ~BUTTON_USE;
+                    }
+                } else {
+                    if ((server_new_buttons & BUTTON_USE)) {
+                        SetPlayerSpectate(true);
+                    }
+                }
+
+                if (g_gametype->integer >= GT_TEAM && g_forceteamspectate->integer
+                    && GetTeam() > TEAM_FREEFORALL) {
+                    if (!m_iPlayerSpectating) {
+                        SetPlayerSpectateRandom();
+                    } else {
+                        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
+
+                        if (!ent->inuse || !ent->entity) {
+                            // Invalid spectate entity
+                            SetPlayerSpectateRandom();
+                        } else if (static_cast<Player *>(ent->entity)->IsSpectator()
+                                   || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
+                            SetPlayerSpectateRandom();
+                        }
+                    }
+                } else {
+                    if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
+                        // Changed in 2.0
+                        //  Use = clear spectator
+                        if (m_iPlayerSpectating && (server_new_buttons & BUTTON_USE)) {
+                            m_iPlayerSpectating = 0;
                         }
                     } else {
-                        m_bSpectatorSwitching = false;
+                        // On 1.11 and below, up = clear spectator
+                        if (last_ucmd.upmove) {
+                            m_iPlayerSpectating = 0;
+                        }
                     }
-                } else if ((server_new_buttons & BUTTON_USE)) {
-                    SetPlayerSpectateRandom();
-                    server_new_buttons &= ~BUTTON_USE;
-                }
-            } else {
-                if ((server_new_buttons & BUTTON_USE)) {
-                    SetPlayerSpectate(true);
-                }
-            }
 
-            if (g_gametype->integer >= GT_TEAM && g_forceteamspectate->integer && GetTeam() > TEAM_FREEFORALL) {
-                if (!m_iPlayerSpectating) {
-                    SetPlayerSpectateRandom();
-                } else {
-                    gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
+                    if (m_iPlayerSpectating) {
+                        gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
 
-                    if (!ent->inuse || !ent->entity) {
-                        // Invalid spectate entity
-                        SetPlayerSpectateRandom();
-                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
-                               || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
-                        SetPlayerSpectateRandom();
-                    }
-                }
-            } else {
-                if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
-                    // Changed in 2.0
-                    //  Use = clear spectator
-                    if (m_iPlayerSpectating && (server_new_buttons & BUTTON_USE)) {
-                        m_iPlayerSpectating = 0;
-                    }
-                } else {
-                    // On 1.11 and below, up = clear spectator
-                    if (last_ucmd.upmove) {
-                        m_iPlayerSpectating = 0;
-                    }
-                }
-
-                if (m_iPlayerSpectating) {
-                    gentity_t *ent = g_entities + m_iPlayerSpectating - 1;
-
-                    if (!ent->inuse || !ent->entity) {
-                        // Invalid spectate entity
-                        SetPlayerSpectateRandom();
-                    } else if (static_cast<Player *>(ent->entity)->IsSpectator()
-                               || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
-                        SetPlayerSpectateRandom();
-                    } else if (g_gametype->integer >= GT_TEAM && GetTeam() > TEAM_FREEFORALL
-                               && static_cast<Player *>(ent->entity)->GetTeam() != GetTeam()) {
-                        SetPlayerSpectateRandom();
+                        if (!ent->inuse || !ent->entity) {
+                            // Invalid spectate entity
+                            SetPlayerSpectateRandom();
+                        } else if (static_cast<Player *>(ent->entity)->IsSpectator()
+                                   || !IsValidSpectatePlayer(static_cast<Player *>(ent->entity))) {
+                            SetPlayerSpectateRandom();
+                        } else if (g_gametype->integer >= GT_TEAM && GetTeam() > TEAM_FREEFORALL
+                                   && static_cast<Player *>(ent->entity)->GetTeam() != GetTeam()) {
+                            SetPlayerSpectateRandom();
+                        }
                     }
                 }
             }
@@ -9407,6 +9413,10 @@ void Player::Spectator(void)
 
 bool Player::IsValidSpectatePlayer(Player *pPlayer)
 {
+    if (IsBotLanObserver()) {
+        return IsBotLanObserverTarget(pPlayer);
+    }
+
     if (g_gametype->integer <= GT_FFA) {
         return true;
     }
@@ -9430,6 +9440,47 @@ bool Player::IsValidSpectatePlayer(Player *pPlayer)
     return true;
 }
 
+bool Player::IsBotLanObserver(void) const
+{
+    return g_bot_lan_observer->integer && edict && client && !(edict->r.svFlags & SVF_BOT)
+        && client->pers.ip[0] && Q_stricmp(client->pers.ip, "localhost");
+}
+
+bool Player::IsBotLanObserverTarget(Player *pPlayer) const
+{
+    return pPlayer && pPlayer != this && pPlayer->edict && pPlayer->client
+        && !(pPlayer->edict->r.svFlags & SVF_BOT) && !Q_stricmp(pPlayer->client->pers.ip, "localhost")
+        && !pPlayer->IsSpectator();
+}
+
+void Player::SetBotLanObserverTarget(void)
+{
+    int target = 0;
+
+    if (!IsBotLanObserver()) {
+        return;
+    }
+
+    for (int i = 0; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+
+        if (!ent->inuse || !ent->entity || !ent->entity->IsSubclassOfPlayer()) {
+            continue;
+        }
+
+        if (IsBotLanObserverTarget(static_cast<Player *>(ent->entity))) {
+            target = i + 1;
+            break;
+        }
+    }
+
+    if (m_iPlayerSpectating != target) {
+        m_iPlayerSpectating = target;
+        client->ps.camera_flags &= ~CF_CAMERA_CUT_BIT;
+        client->ps.camera_flags |= (client->ps.camera_flags & CF_CAMERA_CUT_BIT) ^ CF_CAMERA_CUT_BIT;
+    }
+}
+
 void Player::SetPlayerSpectate(bool bNext)
 {
     int        i;
@@ -9437,6 +9488,11 @@ void Player::SetPlayerSpectate(bool bNext)
     int        num;
     gentity_t *ent;
     Player    *pPlayer;
+
+    if (IsBotLanObserver()) {
+        SetBotLanObserverTarget();
+        return;
+    }
 
     if (bNext) {
         dir = 1;
@@ -9478,6 +9534,11 @@ void Player::SetPlayerSpectateRandom(void)
     int     i;
     int     numvalid;
     int     iRandom;
+
+    if (IsBotLanObserver()) {
+        SetBotLanObserverTarget();
+        return;
+    }
 
     numvalid = 0;
 
@@ -9600,6 +9661,11 @@ void Player::Join_DM_Team(Event *ev)
     str         teamname;
     const char *join_message;
     Entity     *ent;
+
+    if (IsBotLanObserver()) {
+        SetTeam(TEAM_SPECTATOR);
+        return;
+    }
 
     if (ev->isSubclassOf(ConsoleEvent) && disable_team_change) {
         // Added in OPM
@@ -9733,6 +9799,10 @@ teamtype_t Player::GetTeam() const
 
 void Player::SetTeam(teamtype_t team)
 {
+    if (IsBotLanObserver()) {
+        team = TEAM_SPECTATOR;
+    }
+
     dmManager.JoinTeam(this, team);
 
     if (dm_team == TEAM_SPECTATOR) {
@@ -11629,6 +11699,10 @@ void Player::BeginTempSpectator(void)
 
 void Player::EndSpectator(void)
 {
+    if (IsBotLanObserver()) {
+        return;
+    }
+
     m_bSpectator     = false;
     m_bTempSpectator = false;
 

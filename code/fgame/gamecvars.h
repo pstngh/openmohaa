@@ -380,6 +380,11 @@ extern cvar_t *g_bot_sniper;
 extern cvar_t *g_bot_stg;
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
+/**
+ * @brief Lock a remote human in spectator mode following the listen-server
+ * host. Used by launcher bot matches; bots and ordinary servers are unaffected.
+ */
+extern cvar_t *g_bot_lan_observer;
 
 /**
  * @brief When enabled, the legs animation continues from its current time between animations instead of restarting.

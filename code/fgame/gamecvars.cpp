@@ -302,6 +302,7 @@ cvar_t *g_bot_stg;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
+cvar_t *g_bot_lan_observer;
 
 cvar_t *g_playeranim_legs_continous;
 
@@ -730,6 +731,7 @@ void CVAR_Init(void)
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);
+    g_bot_lan_observer           = gi.Cvar_Get("g_bot_lan_observer", "0", 0);
 
     g_playeranim_legs_continous = gi.Cvar_Get("g_playeranim_legs_continous", "1", 0);
     g_playerStacking            = gi.Cvar_Get("g_playerStacking", "0", 0);
