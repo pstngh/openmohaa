@@ -319,6 +319,31 @@ extern cvar_t *g_bot_initial_spawn_delay;
 extern cvar_t *g_bot_manualmove;
 
 /**
+ * @brief Strafe intensity multiplier (0.0 to 1.0).
+ */
+extern cvar_t *g_bot_strafe_intensity;
+/**
+ * @brief Minimum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_min_interval;
+/**
+ * @brief Maximum interval in milliseconds before changing strafe direction.
+ */
+extern cvar_t *g_bot_strafe_max_interval;
+/**
+ * @brief Minimum interval in milliseconds before flipping peek/retreat direction.
+ */
+extern cvar_t *g_bot_peek_min_interval;
+/**
+ * @brief Maximum interval in milliseconds before flipping peek/retreat direction.
+ */
+extern cvar_t *g_bot_peek_max_interval;
+/**
+ * @brief Range within which bots peek/retreat (zig-zag). Farther out they run
+ * straight in toward the enemy; inside this distance they start the dance.
+ */
+extern cvar_t *g_bot_peek_distance;
+/**
  * @brief Static bot bullet spread as a multiple of the weapon's base spread.
  * 1 = stock accuracy, higher = less accurate, 0 = pinpoint. No bloom buildup.
  */

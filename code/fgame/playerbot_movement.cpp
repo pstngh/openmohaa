@@ -43,6 +43,17 @@ BotMovement::BotMovement()
 
     m_bAvoidCollision     = false;
     m_iCollisionCheckTime = 0;
+    m_bJump               = false;
+    m_iJumpCheckTime      = 0;
+
+    // Aggressive movement
+    m_iStrafeDirection      = 1;
+    m_iNextStrafeChangeTime = 0;
+    m_iRadialDirection      = 1;
+    m_iNextRadialChangeTime = 0;
+    m_bIsLeaning            = false;
+    m_bHasCombatTarget      = false;
+    m_vCombatTarget         = vec_zero;
 }
 
 BotMovement::~BotMovement()
@@ -55,6 +66,20 @@ void BotMovement::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
+void BotMovement::SetCombatTarget(const Vector& target)
+{
+    m_bHasCombatTarget = true;
+    m_vCombatTarget    = target;
+}
+
+void BotMovement::ClearCombatTarget()
+{
+    m_bHasCombatTarget      = false;
+    m_vCombatTarget         = vec_zero;
+    m_iRadialDirection      = 1;
+    m_iNextRadialChangeTime = 0;
+}
+
 void BotMovement::MoveThink(usercmd_t& botcmd)
 {
     Vector vAngles;
@@ -63,10 +88,16 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     botcmd.forwardmove = 0;
     botcmd.rightmove   = 0;
+    // The bot usercmd persists across frames: start each movement frame
+    // lean-neutral so a lean can't stay latched after strafing stops
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
 
     CheckAttractiveNodes();
 
     if (!IsMoving() || !m_pPath) {
+        // No path to follow, but the bot should still juke and lean in place
+        UpdateAggressiveMovement(botcmd);
+        PreventImminentBodyContact(botcmd);
         return;
     }
 
@@ -242,6 +273,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.rightmove   = (signed char)Q_clamp(y, -127, 127);
     botcmd.upmove      = 0;
 
+    // Apply aggressive evasive movement (strafe + lean)
+    UpdateAggressiveMovement(botcmd);
+    PreventImminentBodyContact(botcmd);
+
     CheckJump(botcmd);
 
     if (!m_bJump) {
@@ -269,6 +304,33 @@ Vector BotMovement::CalculateRelativeWishDirection(const Vector& dir) const
     angles.AngleVectorsLeft(&wishdir);
 
     return wishdir;
+}
+
+Vector BotMovement::GetCommandMoveVector(const usercmd_t& botcmd) const
+{
+    Vector angles = controlledEntity->angles;
+    Vector forward, left, up;
+
+    angles.x = 0;
+    angles.z = 0;
+    angles.AngleVectorsLeft(&forward, &left, &up);
+
+    Vector move = forward * (float)botcmd.forwardmove - left * (float)botcmd.rightmove;
+    move.z      = 0;
+    return move;
+}
+
+void BotMovement::SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const
+{
+    Vector angles = controlledEntity->angles;
+    Vector forward, left, up;
+
+    angles.x = 0;
+    angles.z = 0;
+    angles.AngleVectorsLeft(&forward, &left, &up);
+
+    botcmd.forwardmove = (signed char)Q_clamp_float(DotProduct(move, forward), -127, 127);
+    botcmd.rightmove   = (signed char)Q_clamp_float(-DotProduct(move, left), -127, 127);
 }
 
 void BotMovement::CheckAttractiveNodes()
@@ -1075,4 +1137,312 @@ Vector BotMovement::GetCurrentGoal() const
 Vector BotMovement::GetCurrentPathDirection() const
 {
     return m_pPath->GetCurrentDirection();
+}
+
+/*
+====================
+CalculateLateralClearance
+
+Trace laterally to determine how much space is available for strafing
+Returns distance in units (0 to maxCheckDist)
+====================
+*/
+float BotMovement::CalculateLateralClearance(int direction)
+{
+    const float maxCheckDist = 96.0f;
+
+    if (direction == 0 || !controlledEntity) {
+        return 0;
+    }
+
+    Vector forward, right, up;
+    controlledEntity->angles.AngleVectors(&forward, &right, &up);
+
+    Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    Vector end   = start + right * direction * maxCheckDist;
+
+    trace_t trace = G_Trace(
+        start,
+        controlledEntity->mins,
+        controlledEntity->maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID,
+        false,
+        "BotMovement::CalculateLateralClearance"
+    );
+
+    return trace.fraction * maxCheckDist;
+}
+
+// Pick a random dwell time from a min/max interval cvar pair (milliseconds).
+static int RandomInterval(cvar_t *lo, cvar_t *hi)
+{
+    const int lower = Q_min(lo->integer, hi->integer);
+    const int upper = Q_max(lo->integer, hi->integer);
+    return lower + (int)G_Random(upper - lower);
+}
+
+/*
+====================
+UpdateAggressiveMovement
+
+Combat movement layer, calibrated from human-versus-human telemetry:
+continuous side-to-side strafing with matching lean, plus slower movement
+toward and away from the enemy during close-range engagements. Jumps and
+crouches are intentionally not added here.
+====================
+*/
+void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
+{
+    // Ladders: leave pathing untouched
+    if (controlledEntity->GetLadder()) {
+        return;
+    }
+
+    // While the blocked-recovery logic is actively backing the bot out of an
+    // obstruction, suppress the strafe/radial movement injection so its escape
+    // vector isn't fought - but keep leaning; only movement steers
+    const bool bSuppressMovement = (m_iTempAwayState == 2);
+
+    // --- Strafe oscillator: flip left/right on a short randomized timer ---
+    if (level.inttime >= m_iNextStrafeChangeTime) {
+        m_iStrafeDirection      = -m_iStrafeDirection;
+        m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+    }
+
+    // Hysteresis: need 20 units to start strafing, but only drop out below 12.
+    // Kept low so bots strafe close to walls and use the full side-to-side
+    // room; the stop floor (~one frame of lateral travel) keeps the hull off
+    // the wall rather than grinding against it.
+    const float startThreshold = 20.0f;
+    const float stopThreshold  = 12.0f;
+    const float threshold      = m_bIsLeaning ? stopThreshold : startThreshold;
+
+    float clearance = CalculateLateralClearance(m_iStrafeDirection);
+    if (clearance < threshold) {
+        // Preferred side is blocked. Switch only if the other side is clearly
+        // open, and commit the flip to the oscillator (with a fresh dwell
+        // time) so the side can't bounce back next frame — recomputing the
+        // side per frame turns marginal clearance into frame-rate left/right
+        // lean flapping against walls.
+        float otherClearance = CalculateLateralClearance(-m_iStrafeDirection);
+        if (otherClearance >= startThreshold) {
+            m_iStrafeDirection      = -m_iStrafeDirection;
+            m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+            clearance               = otherClearance;
+        }
+    }
+
+    if (clearance >= threshold && !bSuppressMovement) {
+        m_bIsLeaning = true;
+
+        // Doorway / gap damping: probe forward along the side the strafe is
+        // about to push toward. If that diagonal is obstructed soon - a
+        // doorframe, corner, or cover edge - scale the lateral push down so the
+        // bot straightens and threads the gap instead of clipping its edge. The
+        // lateral clearance traces above only see straight out to the sides, so
+        // they cannot tell "sliding along an open wall" from "drifting into a
+        // doorframe"; this forward-biased probe is what distinguishes them. Open
+        // ground leaves the probe clear, so open-field strafing keeps full
+        // intensity and the aggressive feel is unchanged.
+        Vector fwd, rgt, up;
+        controlledEntity->angles.AngleVectors(&fwd, &rgt, &up);
+
+        Vector probeDir = fwd + rgt * (float)m_iStrafeDirection;
+        probeDir.z      = 0;
+        probeDir.normalize();
+
+        const float probeDist  = 56.0f;
+        Vector      probeStart = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+        Vector      probeEnd   = probeStart + probeDir * probeDist;
+
+        trace_t probe = G_Trace(
+            probeStart,
+            controlledEntity->mins,
+            controlledEntity->maxs,
+            probeEnd,
+            controlledEntity,
+            MASK_PLAYERSOLID,
+            false,
+            "BotMovement::StrafeProbe"
+        );
+
+        float intensity  = g_bot_strafe_intensity->value * probe.fraction;
+        int   offset     = (int)(m_iStrafeDirection * intensity * 127.0f);
+        int   newRight   = botcmd.rightmove + offset;
+        botcmd.rightmove = (signed char)Q_clamp(newRight, -127, 127);
+
+    } else {
+        m_bIsLeaning = false;
+    }
+
+    // Lean follows the intended strafe side even when a wall prevents the
+    // body from moving laterally. Lean itself is not wall-limited, and keeping
+    // it separate from clearance avoids making cramped bots look timid.
+    if (m_iStrafeDirection < 0) {
+        botcmd.buttons |= BUTTON_LEAN_LEFT;
+    } else {
+        botcmd.buttons |= BUTTON_LEAN_RIGHT;
+    }
+
+    UpdateCombatRadialMovement(botcmd, bSuppressMovement);
+}
+
+int BotMovement::RadialPhaseDuration(float distance) const
+{
+    float duration = (float)RandomInterval(g_bot_peek_min_interval, g_bot_peek_max_interval);
+
+    // From 96-384 units the recording strongly favored closing distance over
+    // retreating. Use long advances and short retreats there. Inside 96 units
+    // human advance/retreat timing was much closer to even.
+    if (distance >= 96.0f) {
+        duration *= m_iRadialDirection > 0 ? 2.0f : 0.4f;
+    }
+
+    return Q_max(50, (int)duration);
+}
+
+void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement)
+{
+    const float maxDistance = g_bot_peek_distance->value;
+    if (suppressMovement || !m_bHasCombatTarget || maxDistance <= 0) {
+        m_iRadialDirection      = 1;
+        m_iNextRadialChangeTime = 0;
+        return;
+    }
+
+    Vector      towardEnemy = m_vCombatTarget - controlledEntity->origin;
+    const float distance    = VectorNormalize2D(towardEnemy);
+    if (distance <= 0 || distance >= maxDistance) {
+        m_iRadialDirection      = 1;
+        m_iNextRadialChangeTime = 0;
+        return;
+    }
+
+    if (!m_iNextRadialChangeTime) {
+        // Do not immediately flip into retreat on first contact. Human combat
+        // movement opens with a clear forward bias.
+        m_iRadialDirection      = 1;
+        m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration(distance);
+    } else if (level.inttime >= m_iNextRadialChangeTime) {
+        m_iRadialDirection      = -m_iRadialDirection;
+        m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration(distance);
+    }
+
+    const float preRadialCommandMax =
+        Q_max(fabs((float)botcmd.forwardmove), fabs((float)botcmd.rightmove));
+    Vector move = GetCommandMoveVector(botcmd);
+
+    // Keep the radial component deliberately slower than the lateral strafe,
+    // producing broad arcs instead of straight charges. At body-contact range
+    // always move outward; otherwise alternate according to the distance-
+    // weighted phase above.
+    float desiredRadialMove;
+    if (distance < 56.0f) {
+        desiredRadialMove = -48.0f;
+    } else if (m_iRadialDirection < 0) {
+        desiredRadialMove = distance < 96.0f ? -40.0f : -28.0f;
+    } else {
+        desiredRadialMove = distance < 96.0f ? 32.0f : 36.0f;
+    }
+
+    const float currentRadialMove = DotProduct(move, towardEnemy);
+    move += towardEnemy * (desiredRadialMove - currentRadialMove);
+
+    // The radial values above bias direction; they are not a speed target.
+    // Replacing a large path component with the deliberately small radial
+    // component can collapse the whole command to walking speed, which reads
+    // as the bot skating while firing. PM_CmdScale keys speed off the largest
+    // command component, so scale the shaped move back up until its largest
+    // component regains the pre-radial command magnitude. The direction blend
+    // is preserved and no clearance gate is involved, so doorways and narrow
+    // spaces keep full run speed. Scale up only: with no path and no strafe
+    // room the radial component is the entire intended movement and keeps its
+    // deliberate slow pacing. The collision guard still runs after this layer
+    // and removes unsafe movement components.
+    Vector angles = controlledEntity->angles;
+    Vector forward, left, up;
+
+    angles.x = 0;
+    angles.z = 0;
+    angles.AngleVectorsLeft(&forward, &left, &up);
+
+    const float postRadialCommandMax =
+        Q_max(fabs(DotProduct(move, forward)), fabs(DotProduct(move, left)));
+    if (postRadialCommandMax > 0.0f && postRadialCommandMax < preRadialCommandMax) {
+        move *= preRadialCommandMax / postRadialCommandMax;
+    }
+
+    SetCommandMoveVector(botcmd, move);
+}
+
+void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
+{
+    if (!controlledEntity || controlledEntity->GetLadder() || m_bJump) {
+        return;
+    }
+
+    Vector move = GetCommandMoveVector(botcmd);
+    if (move.lengthXYSquared() <= 1.0f) {
+        return;
+    }
+
+    Vector direction = move;
+    VectorNormalize2D(direction);
+
+    const float commandFraction =
+        Q_max(fabs((float)botcmd.forwardmove), fabs((float)botcmd.rightmove)) / 127.0f;
+    const float lookAheadDistance = controlledEntity->GetRunSpeed() * commandFraction * level.frametime + 1.0f;
+    if (lookAheadDistance <= 1.0f) {
+        return;
+    }
+
+    Vector mins = controlledEntity->mins;
+    Vector maxs = controlledEntity->maxs;
+    maxs.z -= STEPSIZE;
+
+    const Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    const Vector end   = start + direction * lookAheadDistance;
+    trace_t trace      = G_Trace(
+        start,
+        mins,
+        maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
+        true,
+        "BotMovement::PreventImminentBodyContact"
+    );
+
+    if (!trace.startsolid && trace.fraction >= 1.0f) {
+        return;
+    }
+
+    const bool hitSentient = trace.ent && trace.ent->entity && trace.ent->entity->IsSubclassOfSentient();
+
+    // Always prevent actual player/body contact. For world geometry, intervene
+    // only while backing up; normal forward pathing already handles walls and
+    // should remain free to hug corners and doorways.
+    if (!hitSentient && botcmd.forwardmove >= 0) {
+        return;
+    }
+
+    Vector collisionNormal = trace.plane.normal;
+    collisionNormal.z      = 0;
+    if (collisionNormal.lengthXYSquared() < 0.01f && hitSentient) {
+        collisionNormal   = controlledEntity->origin - trace.ent->entity->origin;
+        collisionNormal.z = 0;
+    }
+    if (VectorNormalize2D(collisionNormal) <= 0) {
+        return;
+    }
+
+    const float intoObstacle = DotProduct(move, collisionNormal);
+    if (intoObstacle < 0) {
+        // Remove only the component entering the obstacle. Tangential strafe
+        // and the lean buttons are deliberately preserved.
+        move += collisionNormal * -intoObstacle;
+        SetCommandMoveVector(botcmd, move);
+    }
 }
