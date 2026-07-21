@@ -1250,15 +1250,6 @@ void BotController::Killed(const Event& ev)
     event.AddString("auto");
 
     controlledEnt->ProcessEvent(event);
-
-    //
-    // This is useful to change nationality in Spearhead and Breakthrough
-    // this allows the AI to use more weapons
-    //
-    Info_SetValueForKey(controlledEnt->client->pers.userinfo, "dm_playermodel", G_GetRandomAlliedPlayerModel());
-    Info_SetValueForKey(controlledEnt->client->pers.userinfo, "dm_playergermanmodel", G_GetRandomGermanPlayerModel());
-
-    G_ClientUserinfoChanged(controlledEnt->edict, controlledEnt->client->pers.userinfo);
 }
 
 void BotController::GotKill(const Event& ev)

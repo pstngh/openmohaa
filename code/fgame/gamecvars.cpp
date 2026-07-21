@@ -267,10 +267,8 @@ cvar_t *g_obituarylocation;
 
 cvar_t *sv_scriptfiles;
 
-// The maximum number of allocated bot clients
-cvar_t *sv_maxbots;
-// The number of bots that should be spawned
-cvar_t *sv_numbots;
+// Total number of bots to maintain
+cvar_t *sv_bots;
 // The minimum number of players that should be present in-game.
 //  If the number of real players is below this number,
 //  the game will automatically add bots to fill the gap
@@ -293,6 +291,9 @@ cvar_t *g_bot_instamsg_chance;
 cvar_t *g_bot_instamsg_delay;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
+cvar_t *g_bot_team;
+cvar_t *g_bot_sniper;
+cvar_t *g_bot_stg;
 
 cvar_t *g_rankedserver;
 cvar_t *g_spectatefollow_firstperson;
@@ -680,10 +681,14 @@ void CVAR_Init(void)
     }
 
     sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
-    sv_maxbots     = gi.Cvar_Get("sv_maxbots", "0", CVAR_LATCH);
+    sv_bots        = gi.Cvar_Get("sv_bots", "0", 0);
     sv_sharedbots  = gi.Cvar_Get("sv_sharedbots", "0", CVAR_LATCH);
-    sv_numbots     = gi.Cvar_Get("sv_numbots", "0", 0);
     sv_minPlayers  = gi.Cvar_Get("sv_minPlayers", "0", 0);
+
+    // Bots use game-side client records in addition to the real server
+    // clients. Validate before game.maxclients is calculated and keep future
+    // live cvar edits within the engine's absolute client limit.
+    gi.Cvar_CheckRange(sv_bots, 0, Q_max(0, MAX_CLIENTS - maxclients->integer), qtrue);
 
     g_bot_attack_burst_min_time                = gi.Cvar_Get("g_bot_attack_burst_min_time", "0.1", 0);
     g_bot_attack_burst_random_delay            = gi.Cvar_Get("g_bot_attack_burst_random_delay", "0.5", 0);
@@ -702,15 +707,6 @@ void CVAR_Init(void)
     g_playeranim_legs_continous = gi.Cvar_Get("g_playeranim_legs_continous", "1", 0);
     g_playerStacking            = gi.Cvar_Get("g_playerStacking", "0", 0);
 
-    if (maxclients->integer + sv_maxbots->integer > MAX_CLIENTS) {
-        unsigned int lowered;
-
-        lowered = MAX_CLIENTS - maxclients->integer;
-
-        gi.cvar_set("sv_maxbots", va("%d", lowered));
-        gi.Printf("sv_maxbots reached max clients, lowering the value to %u\n", lowered);
-    }
-
     g_instamsg_allowed  = gi.Cvar_Get("g_instamsg_allowed", "1", 0);
     g_instamsg_minDelay = gi.Cvar_Get("g_instamsg_minDelay", "1000", 0);
     g_textmsg_allowed   = gi.Cvar_Get("g_textmsg_allowed", "1", 0);
@@ -719,7 +715,13 @@ void CVAR_Init(void)
     g_bot_initial_spawn_delay = gi.Cvar_Get("g_bot_initial_spawn_delay", "", 0);
 
     g_bot_manualmove = gi.Cvar_Get("g_bot_manualmove", "0", 0);
+    g_bot_team       = gi.Cvar_Get("g_bot_team", "auto", 0);
 
+    // Bot weapon distribution
+    g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
+    gi.Cvar_CheckRange(g_bot_sniper, 0, 100, qfalse);
+    g_bot_stg = gi.Cvar_Get("g_bot_stg", "5", 0);
+    gi.Cvar_CheckRange(g_bot_stg, 0, 100, qfalse);
     g_teambalance = gi.Cvar_Get("g_teambalance", "0", 0);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);

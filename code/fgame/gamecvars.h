@@ -268,8 +268,7 @@ extern cvar_t *g_obituarylocation;
 
 extern cvar_t *sv_scriptfiles;
 
-extern cvar_t *sv_maxbots;
-extern cvar_t *sv_numbots;
+extern cvar_t *sv_bots;
 extern cvar_t *sv_minPlayers;
 extern cvar_t *sv_sharedbots;
 
@@ -327,6 +326,18 @@ extern cvar_t *g_bot_initial_spawn_delay;
  */
 extern cvar_t *g_bot_manualmove;
 
+/**
+ * @brief Force bots to a specific team. Values: "auto" (default), "axis", "allies"
+ */
+extern cvar_t *g_bot_team;
+/**
+ * @brief Percentage of bots that get sniper rifles.
+ */
+extern cvar_t *g_bot_sniper;
+/**
+ * @brief Percentage of Axis bots that get an StG instead of an SMG.
+ */
+extern cvar_t *g_bot_stg;
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 

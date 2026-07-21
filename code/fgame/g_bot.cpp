@@ -39,7 +39,6 @@ saved_bot_t::saved_bot_t()
 {}
 
 static void G_ReadBotSessionData();
-static unsigned int G_GetNumBotsToSpawn();
 
 /*
 ===========
@@ -154,6 +153,41 @@ void InitModelList()
     }
 
     gi.FS_FreeFileList(fileList);
+}
+
+static const char *G_GetRandomPlayerModel(const Container<str>& modelList, const char *currentModel)
+{
+    const unsigned int numModels = modelList.NumObjects();
+
+    if (!numModels) {
+        return "";
+    }
+
+    unsigned int index = rand() % numModels;
+
+    // A random choice may naturally repeat. When another model is available,
+    // deliberately choose a different one so each respawn visibly changes it.
+    if (currentModel && *currentModel && numModels > 1
+        && !Q_stricmp(modelList[index].c_str(), currentModel)) {
+        index = (index + 1 + rand() % (numModels - 1)) % numModels;
+    }
+
+    return modelList[index].c_str();
+}
+
+static void G_RandomizeBotUserinfoModels(char *userinfo)
+{
+    const char *model;
+
+    model = G_GetRandomPlayerModel(alliedModelList, Info_ValueForKey(userinfo, "dm_playermodel"));
+    if (*model) {
+        Info_SetValueForKey(userinfo, "dm_playermodel", model);
+    }
+
+    model = G_GetRandomPlayerModel(germanModelList, Info_ValueForKey(userinfo, "dm_playergermanmodel"));
+    if (*model) {
+        Info_SetValueForKey(userinfo, "dm_playergermanmodel", model);
+    }
 }
 
 /*
@@ -397,12 +431,7 @@ G_GetRandomAlliedPlayerModel
 */
 const char *G_GetRandomAlliedPlayerModel()
 {
-    if (!alliedModelList.NumObjects()) {
-        return "";
-    }
-
-    const unsigned int index = rand() % alliedModelList.NumObjects();
-    return alliedModelList[index];
+    return G_GetRandomPlayerModel(alliedModelList, NULL);
 }
 
 /*
@@ -412,12 +441,31 @@ G_GetRandomGermanPlayerModel
 */
 const char *G_GetRandomGermanPlayerModel()
 {
-    if (!germanModelList.NumObjects()) {
-        return "";
+    return G_GetRandomPlayerModel(germanModelList, NULL);
+}
+
+/*
+===========
+G_RandomizeBotPlayerModels
+
+Choose new models before a bot is initialized for its next life.
+============
+*/
+void G_RandomizeBotPlayerModels(gentity_t *ent)
+{
+    const char *model;
+
+    if (!ent || !ent->client || !G_IsBot(ent)) {
+        return;
     }
 
-    const unsigned int index = rand() % germanModelList.NumObjects();
-    return germanModelList[index];
+    G_RandomizeBotUserinfoModels(ent->client->pers.userinfo);
+
+    model = Info_ValueForKey(ent->client->pers.userinfo, "dm_playermodel");
+    Q_strncpyz(ent->client->pers.dm_playermodel, model, sizeof(ent->client->pers.dm_playermodel));
+
+    model = Info_ValueForKey(ent->client->pers.userinfo, "dm_playergermanmodel");
+    Q_strncpyz(ent->client->pers.dm_playergermanmodel, model, sizeof(ent->client->pers.dm_playergermanmodel));
 }
 
 /*
@@ -471,11 +519,9 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     Info_SetValueForKey(userinfo, "name", botName);
 
-    //
-    // Choose a random model
-    //
-    Info_SetValueForKey(userinfo, "dm_playermodel", G_GetRandomAlliedPlayerModel());
-    Info_SetValueForKey(userinfo, "dm_playergermanmodel", G_GetRandomGermanPlayerModel());
+    Info_SetValueForKey(userinfo, "dm_playermodel", "allies_airborne");
+    Info_SetValueForKey(userinfo, "dm_playergermanmodel", "german_winter_1");
+    G_RandomizeBotUserinfoModels(userinfo);
 
     Info_SetValueForKey(userinfo, "fov", "80");
     Info_SetValueForKey(userinfo, "ip", "localhost");
@@ -506,7 +552,10 @@ gentity_t *G_RestoreBot(const saved_bot_t& saved)
         return NULL;
     }
 
-    G_BotConnect(e - g_entities, qfalse, saved.userinfo);
+    Q_strncpyz(userinfo, saved.userinfo, sizeof(userinfo));
+    G_RandomizeBotUserinfoModels(userinfo);
+
+    G_BotConnect(e - g_entities, qfalse, userinfo);
     G_BotBegin(e);
 
     return e;
@@ -516,16 +565,21 @@ gentity_t *G_RestoreBot(const saved_bot_t& saved)
 ===========
 G_AddBots
 
-Add the specified number of bots
+Add up to the specified number of bots and return how many were added.
 ============
 */
-void G_AddBots(unsigned int num)
+unsigned int G_AddBots(unsigned int num)
 {
-    int n;
+    unsigned int added = 0;
 
-    for (n = 0; n < num; n++) {
-        G_AddBot();
+    while (added < num) {
+        if (!G_AddBot()) {
+            break;
+        }
+        added++;
     }
+
+    return added;
 }
 
 /*
@@ -613,6 +667,21 @@ G_GetNumBots
 unsigned int G_GetNumBots()
 {
     return botManager.getControllerManager().getControllers().NumObjects();
+}
+
+/*
+===========
+G_GetBotCapacity
+
+Return the number of bot-capable client records allocated for this map.
+The allocation is fixed at game initialization, so live bot changes must
+stay within this capacity.
+============
+*/
+unsigned int G_GetBotCapacity()
+{
+    const int firstBotSlot = sv_sharedbots->integer ? 0 : maxclients->integer;
+    return game.maxclients > firstBotSlot ? (unsigned int)(game.maxclients - firstBotSlot) : 0;
 }
 
 /*
@@ -753,33 +822,20 @@ int G_CountClients()
     return count;
 }
 
-static unsigned int G_GetNumBotsToSpawn()
+/*
+===========
+G_GetNumBotsToSpawn
+
+Return the validated target bot count for the current map allocation.
+============
+*/
+unsigned int G_GetNumBotsToSpawn()
 {
-    unsigned int numClients;
-    unsigned int numBotsToSpawn;
-
-    //
-    // Check the minimum bot count
-    //
-    numClients = G_CountPlayingClients();
-    if (numClients < sv_minPlayers->integer) {
-        numBotsToSpawn = sv_minPlayers->integer - numClients + sv_numbots->integer;
-    } else {
-        numBotsToSpawn = sv_numbots->integer;
+    if (sv_bots->integer <= 0) {
+        return 0;
     }
 
-    if (sv_sharedbots->integer) {
-        numClients = G_CountClients();
-
-        //
-        // Cap to the maximum number of possible clients
-        //
-        numBotsToSpawn = Q_min(numBotsToSpawn, maxclients->integer - numClients + sv_maxbots->integer);
-    } else {
-        numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
-    }
-
-    return numBotsToSpawn;
+    return Q_min((unsigned int)sv_bots->integer, G_GetBotCapacity());
 }
 
 /*
@@ -800,7 +856,7 @@ static void G_InitBotSessionData()
 
     gi.Cvar_Get("botsession", "", CVAR_ROM);
 
-    for (n = 0; n < sv_maxbots->integer; n++) {
+    for (n = 0; n < sv_bots->integer; n++) {
         gi.Cvar_Get(va("botsession%i", n), "", CVAR_ROM);
     }
 }
@@ -955,7 +1011,6 @@ Called each frame to manage bot spawning
 */
 void G_SpawnBots()
 {
-    unsigned int numClients;
     unsigned int numBotsToSpawn;
     unsigned int numSpawnedBots;
 
@@ -964,9 +1019,18 @@ void G_SpawnBots()
         return;
     }
 
-    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_numbots->modified) {
+    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_bots->modified) {
         // Wait before spawning all bots
         return;
+    }
+
+    const unsigned int botCapacity = G_GetBotCapacity();
+    if (sv_bots->integer > (int)botCapacity) {
+        gi.Printf(
+            "sv_bots exceeds this map's allocated bot capacity, lowering the value to %u\n",
+            botCapacity
+        );
+        gi.cvar_set("sv_bots", va("%u", botCapacity));
     }
 
     numBotsToSpawn = G_GetNumBotsToSpawn();
@@ -976,10 +1040,17 @@ void G_SpawnBots()
     // Spawn bots
     //
     if (numBotsToSpawn > numSpawnedBots) {
-        G_AddBots(numBotsToSpawn - numSpawnedBots);
+        const unsigned int requested = numBotsToSpawn - numSpawnedBots;
+        const unsigned int added     = G_AddBots(requested);
+
+        if (added < requested) {
+            const unsigned int actual = numSpawnedBots + added;
+            gi.Printf("Unable to allocate all requested bots, lowering sv_bots to %u\n", actual);
+            gi.cvar_set("sv_bots", va("%u", actual));
+        }
     } else if (numBotsToSpawn < numSpawnedBots) {
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
-        sv_numbots->modified = false;
+        sv_bots->modified = false;
     }
 }
