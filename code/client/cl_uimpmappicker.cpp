@@ -256,10 +256,6 @@ void MpMapPickerClass::SetupSecondaryFiles(const char *path, bool bTugOfWar, boo
                 }
             }
         } else {
-            if (!Q_stricmp(mapname, "obj_team2") || !Q_stricmp(mapname, "obj_team4")) {
-                continue;
-            }
-
             listbox->AddItem(new MpMapPickerItem(mapname, path));
         }
     }
