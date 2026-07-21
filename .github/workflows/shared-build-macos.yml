@@ -199,6 +199,10 @@ jobs:
       with:
         path: 'source'
 
+    - name: Test nullbind behavior
+      working-directory: ${{github.workspace}}/source
+      run: python3 code/client/tests/test_nullbind.py
+
     - name: CMake Settings
       run: |
         echo "CMAKE_PARAM=--log-level=VERBOSE \

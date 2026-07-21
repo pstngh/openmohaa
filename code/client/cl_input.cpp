@@ -64,6 +64,18 @@ kbutton_t	in_buttons[16];
 
 qboolean	in_mlooking;
 
+typedef struct {
+	kbutton_t	*button[2];
+	int		lastPressed;
+} nullbindPair_t;
+
+static cvar_t		*cl_nullbind;
+static nullbindPair_t	nullbindForward = { { &in_forward, &in_back }, -1 };
+static nullbindPair_t	nullbindStrafe = { { &in_moveleft, &in_moveright }, -1 };
+static nullbindPair_t	nullbindLean = {
+	{ &in_buttons[BUTTON_LEAN_LEFT_BITINDEX], &in_buttons[BUTTON_LEAN_RIGHT_BITINDEX] }, -1
+};
+
 void IN_ToggleMouse( void ) {
 	if( in_guimouse )
 	{
@@ -360,6 +372,148 @@ void CL_AdjustAngles( void ) {
 
 /*
 ================
+Nullbind handling
+
+The normal kbutton_t state already tracks physical holders separately from
+the effective active state. These helpers retain the most recent physical
+press for each opposing pair and only suppress the other effective state.
+================
+*/
+static qboolean CL_NullbindHeld( const kbutton_t *button ) {
+	return (qboolean)( button->down[0] || button->down[1] );
+}
+
+static qboolean CL_NullbindHasKey( const kbutton_t *button, int key ) {
+	return (qboolean)( button->down[0] == key || button->down[1] == key );
+}
+
+static int CL_NullbindCommandKey( void ) {
+	const char *value = Cmd_Argv( 1 );
+	return value[0] ? atoi( value ) : -1;
+}
+
+static unsigned CL_NullbindCommandTime( void ) {
+	return (unsigned)atoi( Cmd_Argv( 2 ) );
+}
+
+static qboolean CL_NullbindEnabled( void ) {
+	return (qboolean)( cl_nullbind && cl_nullbind->integer );
+}
+
+static void CL_NullbindSuppress( kbutton_t *button, unsigned time ) {
+	unsigned elapsed;
+
+	if ( !button->active ) {
+		return;
+	}
+
+	if ( !time || !button->downtime ) {
+		button->msec += frame_msec / 2;
+	} else {
+		// Unsigned subtraction handles timer wrap. A delta with the high bit
+		// set is an out-of-order timestamp, so credit no phantom movement.
+		elapsed = time - button->downtime;
+		if ( elapsed && elapsed < 0x80000000u ) {
+			button->msec += elapsed < frame_msec ? elapsed : frame_msec;
+		}
+	}
+
+	button->active = qfalse;
+}
+
+static void CL_NullbindEngage( kbutton_t *button, unsigned time ) {
+	if ( !button->active && CL_NullbindHeld( button ) ) {
+		button->downtime = time;
+		button->active = qtrue;
+	}
+}
+
+static int CL_NullbindPreferredSide( const nullbindPair_t *pair ) {
+	qboolean held[2] = { CL_NullbindHeld( pair->button[0] ), CL_NullbindHeld( pair->button[1] ) };
+
+	if ( pair->lastPressed >= 0 && held[pair->lastPressed] ) {
+		return pair->lastPressed;
+	}
+	if ( held[0] != held[1] ) {
+		return held[0] ? 0 : 1;
+	}
+	if ( held[0] ) {
+		// Recovery path for state created outside these wrappers: preserve an
+		// existing sole effective side before falling back deterministically.
+		if ( pair->button[0]->active != pair->button[1]->active ) {
+			return pair->button[0]->active ? 0 : 1;
+		}
+		return 0;
+	}
+	return -1;
+}
+
+static void CL_NullbindApply( nullbindPair_t *pair, unsigned time ) {
+	qboolean enabled = CL_NullbindEnabled();
+	int preferred = enabled ? CL_NullbindPreferredSide( pair ) : -1;
+
+	for ( int side = 0; side < 2; ++side ) {
+		qboolean shouldBeActive = enabled
+			? (qboolean)( side == preferred )
+			: CL_NullbindHeld( pair->button[side] );
+
+		if ( shouldBeActive ) {
+			CL_NullbindEngage( pair->button[side], time );
+		} else {
+			CL_NullbindSuppress( pair->button[side], time );
+		}
+	}
+}
+
+static void CL_NullbindKeyDown( nullbindPair_t *pair, int side, void ( *stockDown )( void ) ) {
+	int key = CL_NullbindCommandKey();
+	qboolean alreadyHeld = CL_NullbindHasKey( pair->button[side], key );
+
+	stockDown();
+	if ( alreadyHeld || !CL_NullbindHasKey( pair->button[side], key ) ) {
+		return;
+	}
+
+	pair->lastPressed = side;
+	CL_NullbindApply( pair, CL_NullbindCommandTime() );
+}
+
+static void CL_NullbindKeyUp( nullbindPair_t *pair, int side, void ( *stockUp )( void ) ) {
+	kbutton_t *button = pair->button[side];
+	const char *value = Cmd_Argv( 1 );
+	qboolean hadKey = value[0]
+		? CL_NullbindHasKey( button, atoi( value ) )
+		: CL_NullbindHeld( button );
+	qboolean suppressed = (qboolean)( !button->active && CL_NullbindHeld( button ) );
+	unsigned oldMsec = button->msec;
+
+	stockUp();
+	if ( !hadKey ) {
+		return;
+	}
+	if ( suppressed ) {
+		// IN_KeyUp calculates from a suppressed button's stale downtime when
+		// its final physical holder is released. Its time was settled earlier.
+		button->msec = oldMsec;
+	}
+	CL_NullbindApply( pair, CL_NullbindCommandTime() );
+}
+
+static void IN_NullbindForwardDown( void ) { CL_NullbindKeyDown( &nullbindForward, 0, IN_ForwardDown ); }
+static void IN_NullbindForwardUp( void ) { CL_NullbindKeyUp( &nullbindForward, 0, IN_ForwardUp ); }
+static void IN_NullbindBackDown( void ) { CL_NullbindKeyDown( &nullbindForward, 1, IN_BackDown ); }
+static void IN_NullbindBackUp( void ) { CL_NullbindKeyUp( &nullbindForward, 1, IN_BackUp ); }
+static void IN_NullbindMoveleftDown( void ) { CL_NullbindKeyDown( &nullbindStrafe, 0, IN_MoveleftDown ); }
+static void IN_NullbindMoveleftUp( void ) { CL_NullbindKeyUp( &nullbindStrafe, 0, IN_MoveleftUp ); }
+static void IN_NullbindMoverightDown( void ) { CL_NullbindKeyDown( &nullbindStrafe, 1, IN_MoverightDown ); }
+static void IN_NullbindMoverightUp( void ) { CL_NullbindKeyUp( &nullbindStrafe, 1, IN_MoverightUp ); }
+static void IN_NullbindLeanLeftDown( void ) { CL_NullbindKeyDown( &nullbindLean, 0, IN_LeanLeftDown ); }
+static void IN_NullbindLeanLeftUp( void ) { CL_NullbindKeyUp( &nullbindLean, 0, IN_LeanLeftUp ); }
+static void IN_NullbindLeanRightDown( void ) { CL_NullbindKeyDown( &nullbindLean, 1, IN_LeanRightDown ); }
+static void IN_NullbindLeanRightUp( void ) { CL_NullbindKeyUp( &nullbindLean, 1, IN_LeanRightUp ); }
+
+/*
+================
 CL_KeyMove
 
 Sets the usercmd_t based on key states
@@ -368,6 +522,9 @@ Sets the usercmd_t based on key states
 void CL_KeyMove( usercmd_t *cmd ) {
 	int		movespeed;
 	int		forward, side, up;
+
+	CL_NullbindApply( &nullbindForward, com_frameTime );
+	CL_NullbindApply( &nullbindStrafe, com_frameTime );
 
 	forward = 0;
 	side = 0;
@@ -653,6 +810,7 @@ CL_ClearButtons
 */
 void CL_ClearButtons( void ) {
 	memset( in_buttons, 0, sizeof( in_buttons ) );
+	nullbindLean.lastPressed = -1;
 }
 
 /*
@@ -662,17 +820,35 @@ CL_CmdButtons
 */
 void CL_CmdButtons( usercmd_t *cmd ) {
 	int		i;
+	int		preferredLean;
 	
 	//
 	// figure button bits
 	// send a button bit even if the key was pressed and released in
 	// less than a frame
 	//
+	CL_NullbindApply( &nullbindLean, com_frameTime );
+
 	for (i = 0 ; i < 15 ; i++) {
 		if ( in_buttons[i].active || in_buttons[i].wasPressed ) {
 			cmd->buttons |= 1 << i;
 		}
 		in_buttons[i].wasPressed = qfalse;
+	}
+
+	if ( CL_NullbindEnabled()
+		&& ( cmd->buttons & BUTTON_LEAN_LEFT ) && ( cmd->buttons & BUTTON_LEAN_RIGHT ) ) {
+		preferredLean = CL_NullbindPreferredSide( &nullbindLean );
+		if ( preferredLean < 0 ) {
+			preferredLean = nullbindLean.lastPressed;
+		}
+		if ( preferredLean == 0 ) {
+			cmd->buttons &= ~BUTTON_LEAN_RIGHT;
+		} else if ( preferredLean == 1 ) {
+			cmd->buttons &= ~BUTTON_LEAN_LEFT;
+		} else {
+			cmd->buttons &= ~( BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT );
+		}
 	}
 
 	if (UI_MenuActive() || UI_ConsoleIsOpen()) {
@@ -1142,20 +1318,20 @@ void CL_InitInput( void ) {
 	Cmd_AddCommand("-left", IN_LeftUp);
 	Cmd_AddCommand("+right", IN_RightDown);
 	Cmd_AddCommand("-right", IN_RightUp);
-	Cmd_AddCommand("+forward", IN_ForwardDown);
-	Cmd_AddCommand("-forward", IN_ForwardUp);
-	Cmd_AddCommand("+back", IN_BackDown);
-	Cmd_AddCommand("-back", IN_BackUp);
+	Cmd_AddCommand("+forward", IN_NullbindForwardDown);
+	Cmd_AddCommand("-forward", IN_NullbindForwardUp);
+	Cmd_AddCommand("+back", IN_NullbindBackDown);
+	Cmd_AddCommand("-back", IN_NullbindBackUp);
 	Cmd_AddCommand("+lookup", IN_LookupDown);
 	Cmd_AddCommand("-lookup", IN_LookupUp);
 	Cmd_AddCommand("+lookdown", IN_LookdownDown);
 	Cmd_AddCommand("-lookdown", IN_LookdownUp);
 	Cmd_AddCommand("+strafe", IN_StrafeDown);
 	Cmd_AddCommand("-strafe", IN_StrafeUp);
-	Cmd_AddCommand("+moveleft", IN_MoveleftDown);
-	Cmd_AddCommand("-moveleft", IN_MoveleftUp);
-	Cmd_AddCommand("+moveright", IN_MoverightDown);
-	Cmd_AddCommand("-moveright", IN_MoverightUp);
+	Cmd_AddCommand("+moveleft", IN_NullbindMoveleftDown);
+	Cmd_AddCommand("-moveleft", IN_NullbindMoveleftUp);
+	Cmd_AddCommand("+moveright", IN_NullbindMoverightDown);
+	Cmd_AddCommand("-moveright", IN_NullbindMoverightUp);
 	Cmd_AddCommand("+attack", IN_AttackPrimaryDown);
 	Cmd_AddCommand("-attack", IN_AttackPrimaryUp);
 	Cmd_AddCommand("+attackprimary", IN_AttackPrimaryDown);
@@ -1164,10 +1340,10 @@ void CL_InitInput( void ) {
 	Cmd_AddCommand("-attacksecondary", IN_AttackSecondaryUp);
 	Cmd_AddCommand("+use", IN_Button3Down);
 	Cmd_AddCommand("-use", IN_Button3Up);
-	Cmd_AddCommand("+leanleft", IN_LeanLeftDown);
-	Cmd_AddCommand("-leanleft", IN_LeanLeftUp);
-	Cmd_AddCommand("+leanright", IN_LeanRightDown);
-	Cmd_AddCommand("-leanright", IN_LeanRightUp);
+	Cmd_AddCommand("+leanleft", IN_NullbindLeanLeftDown);
+	Cmd_AddCommand("-leanleft", IN_NullbindLeanLeftUp);
+	Cmd_AddCommand("+leanright", IN_NullbindLeanRightDown);
+	Cmd_AddCommand("-leanright", IN_NullbindLeanRightUp);
 	Cmd_AddCommand("+speed", IN_SpeedDown);
 	Cmd_AddCommand("-speed", IN_SpeedUp);
 	Cmd_AddCommand("+button0", IN_Button0Down);
@@ -1178,10 +1354,10 @@ void CL_InitInput( void ) {
 	Cmd_AddCommand("-button2", IN_Button2Up);
 	Cmd_AddCommand("+button3", IN_Button3Down);
 	Cmd_AddCommand("-button3", IN_Button3Up);
-	Cmd_AddCommand("+button4", IN_Button4Down);
-	Cmd_AddCommand("-button4", IN_Button4Up);
-	Cmd_AddCommand("+button5", IN_Button5Down);
-	Cmd_AddCommand("-button5", IN_Button5Up);
+	Cmd_AddCommand("+button4", IN_NullbindLeanLeftDown);
+	Cmd_AddCommand("-button4", IN_NullbindLeanLeftUp);
+	Cmd_AddCommand("+button5", IN_NullbindLeanRightDown);
+	Cmd_AddCommand("-button5", IN_NullbindLeanRightUp);
 	Cmd_AddCommand("+button6", IN_Button6Down);
 	Cmd_AddCommand("-button6", IN_Button6Up);
 	Cmd_AddCommand("+button7", IN_Button7Down);
@@ -1210,6 +1386,11 @@ void CL_InitInput( void ) {
 
 	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0);
 	cl_debugMove = Cvar_Get ("cl_debugMove", "0", 0);
+	cl_nullbind = Cvar_Get ("cl_nullbind", "1", CVAR_ARCHIVE);
+
+	nullbindForward.lastPressed = -1;
+	nullbindStrafe.lastPressed = -1;
+	nullbindLean.lastPressed = -1;
 }
 
 /*
