@@ -164,6 +164,7 @@ struct GameLauncher {
 
     private static func appendCommonArgs(_ args: inout [String], settings: LauncherSettings) {
         args.append(contentsOf: ["+set", "cl_playintro", "0"])
+        args.append(contentsOf: ["+set", "cl_nullbind", settings.nullbinds ? "1" : "0"])
         args.append(contentsOf: ["+set", "r_primitives", "2"])
         args.append(contentsOf: ["+set", "r_uselod", "0"])
         args.append(contentsOf: ["+set", "cg_forceModel", settings.forceModels ? "1" : "0"])

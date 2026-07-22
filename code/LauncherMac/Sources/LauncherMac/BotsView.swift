@@ -223,6 +223,10 @@ struct BotsView: View {
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
                             .help("Refill the current weapon instead of consuming reserve ammunition.")
+                        Toggle("Nullbinds", isOn: $settings.nullbinds)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 12))
+                            .help("Use last-pressed-wins input for opposing movement and lean keys (cl_nullbind).")
                         Toggle("Move log", isOn: $settings.moveLog)
                             .toggleStyle(.checkbox)
                             .font(.system(size: 12))
@@ -276,6 +280,7 @@ struct BotsView: View {
         .onChange(of: settings.painAnimations) { _ in settings.save() }
         .onChange(of: settings.godMode) { _ in settings.save() }
         .onChange(of: settings.infiniteAmmo) { _ in settings.save() }
+        .onChange(of: settings.nullbinds) { _ in settings.save() }
         .onChange(of: settings.forceModels) { _ in settings.save() }
         .onChange(of: settings.moveLog) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in

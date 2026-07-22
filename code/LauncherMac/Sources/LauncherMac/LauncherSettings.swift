@@ -76,6 +76,7 @@ class LauncherSettings: ObservableObject {
     @Published var botFirespreadScale: String = "2"
     @Published var accuracy: Int = 0  // 0 normal, 1 high, 2 perfect
     @Published var aaLean: Bool = false
+    @Published var nullbinds: Bool = true
     @Published var painAnimations: Bool = true
     @Published var godMode: Bool = false
     @Published var infiniteAmmo: Bool = true
@@ -222,6 +223,7 @@ class LauncherSettings: ObservableObject {
                 }
             case "shbt_pain_anims": painAnimations = (Int(value) ?? 0) != 0
             case "aa_lean": aaLean = (Int(value) ?? 0) != 0
+            case "nullbinds": nullbinds = (Int(value) ?? 0) != 0
             case "pain_anims": painAnimations = (Int(value) ?? 0) != 0
             case "god_mode": godMode = (Int(value) ?? 0) != 0
             case "infinite_ammo": infiniteAmmo = (Int(value) ?? 0) != 0
@@ -287,7 +289,7 @@ class LauncherSettings: ObservableObject {
     private func writeSettings() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=7")
+        lines.append("settings_version=8")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -317,6 +319,7 @@ class LauncherSettings: ObservableObject {
         lines.append("bot_firespread_scale=\(botFirespreadScale)")
         lines.append("accuracy=\(accuracy)")
         lines.append("aa_lean=\(aaLean ? 1 : 0)")
+        lines.append("nullbinds=\(nullbinds ? 1 : 0)")
         lines.append("pain_anims=\(painAnimations ? 1 : 0)")
         lines.append("god_mode=\(godMode ? 1 : 0)")
         lines.append("infinite_ammo=\(infiniteAmmo ? 1 : 0)")
