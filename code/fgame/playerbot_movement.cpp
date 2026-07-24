@@ -85,7 +85,7 @@ BotMovement::BotMovement()
     // Aggressive movement
     m_iStrafeDirection      = 1;
     m_iNextStrafeChangeTime = 0;
-    m_iRadialDirection      = 1;
+    m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
     m_bIsLeaning            = false;
     m_bLeanCommandActive    = false;
@@ -113,7 +113,7 @@ void BotMovement::ClearCombatTarget()
 {
     m_bHasCombatTarget      = false;
     m_vCombatTarget         = vec_zero;
-    m_iRadialDirection      = 1;
+    m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
 }
 
@@ -1359,25 +1359,46 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     UpdateCombatRadialMovement(botcmd, bSuppressMovement);
 }
 
-int BotMovement::RadialPhaseDuration(float distance) const
+int BotMovement::ChooseRadialDirection(float distance) const
 {
-    float duration = (float)RandomInterval(g_bot_peek_min_interval, g_bot_peek_max_interval);
+    // SMG telemetry from two human matches showed three distinct radial
+    // states: closing, orbiting with no radial input, and retreating. Humans
+    // were balanced near each other and increasingly favored advance/orbit
+    // over retreat as distance grew.
+    int advanceChance;
+    int orbitChance;
 
-    // From 96-384 units the recording strongly favored closing distance over
-    // retreating. Use long advances and short retreats there. Inside 96 units
-    // human advance/retreat timing was much closer to even.
-    if (distance >= 96.0f) {
-        duration *= m_iRadialDirection > 0 ? 2.0f : 0.4f;
+    if (distance < 96.0f) {
+        advanceChance = 35;
+        orbitChance   = 30;
+    } else if (distance < 128.0f) {
+        advanceChance = 40;
+        orbitChance   = 40;
+    } else {
+        advanceChance = 40;
+        orbitChance   = 50;
     }
 
-    return Q_max(50, (int)duration);
+    const float roll = G_Random(100.0f);
+    if (roll < advanceChance) {
+        return 1;
+    }
+    if (roll < advanceChance + orbitChance) {
+        return 0;
+    }
+    return -1;
+}
+
+int BotMovement::RadialPhaseDuration() const
+{
+    return Q_max(50, RandomInterval(g_bot_peek_min_interval, g_bot_peek_max_interval));
 }
 
 void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement)
 {
     const float maxDistance = g_bot_peek_distance->value;
     if (suppressMovement || !m_bHasCombatTarget || maxDistance <= 0) {
-        m_iRadialDirection      = 1;
+        m_iRadialDirection      = 0;
         m_iNextRadialChangeTime = 0;
         return;
     }
@@ -1386,19 +1407,20 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     const float distance    = VectorNormalize2D(towardEnemy);
     m_telemetry.radialDistance = distance;
     if (distance <= 0 || distance >= maxDistance) {
-        m_iRadialDirection      = 1;
+        m_iRadialDirection      = 0;
         m_iNextRadialChangeTime = 0;
         return;
     }
 
-    if (!m_iNextRadialChangeTime) {
-        // Do not immediately flip into retreat on first contact. Human combat
-        // movement opens with a clear forward bias.
-        m_iRadialDirection      = 1;
-        m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration(distance);
-    } else if (level.inttime >= m_iNextRadialChangeTime) {
-        m_iRadialDirection      = -m_iRadialDirection;
-        m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration(distance);
+    if (distance < 56.0f) {
+        // Resolve unsafe spacing immediately rather than waiting for the
+        // current phase to expire. Leaving this range starts a fresh phase.
+        m_iRadialDirection      = -1;
+        m_iNextRadialChangeTime = 0;
+        m_telemetry.radialForcedCloseRetreat = true;
+    } else if (!m_iNextRadialChangeTime || level.inttime >= m_iNextRadialChangeTime) {
+        m_iRadialDirection      = ChooseRadialDirection(distance);
+        m_iNextRadialChangeTime = level.inttime + RadialPhaseDuration();
     }
 
     const float preRadialCommandMax =
@@ -1407,17 +1429,16 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     m_telemetry.radialActive = true;
 
     // Keep the radial component deliberately slower than the lateral strafe,
-    // producing broad arcs instead of straight charges. At body-contact range
-    // always move outward; otherwise alternate according to the distance-
-    // weighted phase above.
+    // producing broad arcs instead of straight charges.
     float desiredRadialMove;
     if (distance < 56.0f) {
         desiredRadialMove = -48.0f;
-        m_telemetry.radialForcedCloseRetreat = true;
     } else if (m_iRadialDirection < 0) {
         desiredRadialMove = distance < 96.0f ? -40.0f : -28.0f;
-    } else {
+    } else if (m_iRadialDirection > 0) {
         desiredRadialMove = distance < 96.0f ? 32.0f : 36.0f;
+    } else {
+        desiredRadialMove = 0.0f;
     }
 
     const float currentRadialMove = DotProduct(move, towardEnemy);

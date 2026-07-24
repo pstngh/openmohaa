@@ -127,12 +127,12 @@ unchanged. Values are clamped to `1` through `1000`.
 
 This movement is intentionally part of the default bot behavior and has no
 master enable/disable cvar. Strafing and matching lean are applied generally.
-Enemy-relative advance/retreat movement engages only while an enemy is within
-`g_bot_peek_distance`: advance phases last longer than retreats outside 96
-units, the phases become even near the opponent, and the bot always backs away
-inside body-contact range. The radial layer shapes direction only and preserves
-the full running-speed command while the bot is moving, including through
-doorways and narrow spaces. Imminent
+Enemy-relative radial movement engages only while an enemy is within
+`g_bot_peek_distance`. Short randomized phases choose between advancing,
+orbiting with no radial input, and retreating. Retreat becomes less likely with
+distance, while the bot always backs away inside body-contact range. The radial
+layer shapes direction only and preserves the full running-speed command while
+the bot is moving, including through doorways and narrow spaces. Imminent
 player collisions and backward wall impacts remove only the entering movement
 component; they do not impose a wall buffer or disable leaning.
 
@@ -141,9 +141,9 @@ component; they do not impose a wall buffer or disable leaning.
 | `g_bot_strafe_intensity` | `0.7` | `0`-`1` | Sideways movement intensity. |
 | `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum time before changing strafe direction. |
 | `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum time before changing strafe direction. |
-| `g_bot_peek_min_interval` | `1600` | `50`-`10000` ms | Minimum base time before changing advance/retreat direction. Outside 96 units, advance phases use 2x and retreat phases use 0.4x this randomized base. |
-| `g_bot_peek_max_interval` | `3200` | `50`-`10000` ms | Maximum base time before changing advance/retreat direction. |
-| `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots start peeking and retreating. |
+| `g_bot_peek_min_interval` | `400` | `50`-`10000` ms | Minimum time before choosing a new advance/orbit/retreat state. |
+| `g_bot_peek_max_interval` | `900` | `50`-`10000` ms | Maximum time before choosing a new advance/orbit/retreat state. |
+| `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots use enemy-relative radial movement. |
 
 ## Recording movement and aim reference sessions
 

@@ -754,8 +754,8 @@ void CVAR_Init(void)
     g_bot_strafe_intensity     = gi.Cvar_Get("g_bot_strafe_intensity", "0.7", 0);
     g_bot_strafe_min_interval  = gi.Cvar_Get("g_bot_strafe_min_interval", "400", 0);
     g_bot_strafe_max_interval  = gi.Cvar_Get("g_bot_strafe_max_interval", "900", 0);
-    g_bot_peek_min_interval    = gi.Cvar_Get("g_bot_peek_min_interval", "1600", 0);
-    g_bot_peek_max_interval    = gi.Cvar_Get("g_bot_peek_max_interval", "3200", 0);
+    g_bot_peek_min_interval    = gi.Cvar_Get("g_bot_peek_min_interval", "400", 0);
+    g_bot_peek_max_interval    = gi.Cvar_Get("g_bot_peek_max_interval", "900", 0);
     g_bot_peek_distance        = gi.Cvar_Get("g_bot_peek_distance", "384", 0);
     g_bot_spread               = gi.Cvar_Get("g_bot_spread", "1", 0);
     g_accuracy                 = gi.Cvar_Get("g_accuracy", "0", 0);

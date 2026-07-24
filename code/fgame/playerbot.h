@@ -201,8 +201,8 @@ private:
 
     int  m_iStrafeDirection;       // -1 = left, 1 = right
     int  m_iNextStrafeChangeTime;  // When to flip strafe direction
-    int  m_iRadialDirection;       // -1 = retreat, 1 = advance
-    int  m_iNextRadialChangeTime;  // When to flip radial direction
+    int  m_iRadialDirection;       // -1 = retreat, 0 = orbit, 1 = advance
+    int  m_iNextRadialChangeTime;  // When to choose a new radial state
     bool m_bIsLeaning;             // Hysteresis: currently strafing
     bool m_bLeanCommandActive;     // Current usercmd contains a lean input
     bool m_bHasCombatTarget;
@@ -211,7 +211,8 @@ private:
     void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
     void   PreventImminentBodyContact(usercmd_t& botcmd);
     float  CalculateLateralClearance(int direction);
-    int    RadialPhaseDuration(float distance) const;
+    int    ChooseRadialDirection(float distance) const;
+    int    RadialPhaseDuration() const;
 
     Vector m_vCombatTarget;
     bot_movement_telemetry_t m_telemetry;
