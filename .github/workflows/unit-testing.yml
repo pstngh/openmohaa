@@ -11,45 +11,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     name: "Running unit tests"
     runs-on: ubuntu-latest
     environment: "testing"
 
     steps:
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      name: Install required packages
-      with:
-        packages: flex bison ninja-build cmake clang libsdl2-dev libopenal-dev
-        version: "${{ runner.os }}-${{ runner.arch }}-unittest-v1"
-
     - uses: actions/checkout@v4
-      with:
-        path: 'source'
 
-    - name: Settings
-      working-directory: ${{github.workspace}}
-      run: |
-        echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
-        echo "CC=clang" >> $GITHUB_ENV
-        echo "CXX=clang++" >> $GITHUB_ENV
-        echo "CMAKE_PARAM=--log-level=VERBOSE \
-        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install'" \
-        -DUSE_RENDERER_DLOPEN=OFF \
-        -DBUILD_RENDERER_GL2=OFF >> $GITHUB_ENV
-
-    - name: Configure CMake
-      working-directory: ${{github.workspace}}
-      run: |
-        cmake -B ./build ${{ env.CMAKE_PARAM }} ./source
-
-    - name: Build
-      working-directory: ${{github.workspace}}
-      run: |
-        cmake --build ${{github.workspace}}/build --config Debug --parallel
-
+    # The runner image provides python3 and the c++ compiler the tests use
     - name: Test
-      working-directory: ${{github.workspace}}
+      # Every test file runs even after one fails, and finding none fails the job
       run: |
-        cd "${{github.workspace}}/build"
-        ctest -C Debug --output-on-failure
+        status=0
+        count=0
+        for test_file in $(find code -path '*/tests/test_*.py' | sort); do
+          count=$((count + 1))
+          python3 "$test_file" < /dev/null || status=1
+        done
+        if [ "$count" -eq 0 ]; then
+          echo "No tests found"
+          exit 1
+        fi
+        exit $status
