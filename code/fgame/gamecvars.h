@@ -290,6 +290,13 @@ extern cvar_t *sv_bots;
 extern cvar_t *sv_sharedbots;
 
 /**
+ * @brief Top-level bot difficulty preset. Values 0 through 100 interpolate
+ * between casual, normal, and hardest tuning. -1 preserves the individual
+ * tuning cvars.
+ */
+extern cvar_t *g_bot_difficulty;
+
+/**
  * @brief The minimum time before the bot starts reacting.
  */
 extern cvar_t *g_bot_attack_react_min_delay;
@@ -427,6 +434,7 @@ extern cvar_t *g_navigation_legacy;
 
 extern cvar_t *g_door_reopen_blocked;
 
+void CVAR_UpdateBotDifficulty(qboolean force);
 void CVAR_Init(void);
 
 #ifdef __cplusplus

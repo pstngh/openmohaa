@@ -79,10 +79,28 @@ This sets how long the game should wait before spawning bots after loading a new
 
 ## Tuning behavior
 
-The launcher derives these settings from its difficulty slider. They can also
-be set directly in a config or on the command line. Out-of-range values are
-clamped by the game, and reversed minimum/maximum pairs are interpreted in
-ascending order.
+### `g_bot_difficulty`
+
+- **Default**: `-1`
+- **Valid range**: `-1` through `100`
+
+This is the server-side equivalent of the launcher's difficulty slider. Values
+from `0` through `100` interpolate continuously between these anchors:
+
+| Value | Preset |
+| ---: | --- |
+| `0` | Casual |
+| `50` | Normal |
+| `100` | Hardest |
+
+Changing the cvar applies immediately and controls reaction delay, turn speed
+and acceleration, aim error and settling, aim latency, and weapon spread. Use
+`-1` to disable the preset and control those component cvars individually.
+
+The launcher derives the same component settings from its difficulty slider.
+They can also be set directly in a config or on the command line. Out-of-range
+values are clamped by the game, and reversed minimum/maximum pairs are
+interpreted in ascending order.
 
 ### Aim and reaction
 

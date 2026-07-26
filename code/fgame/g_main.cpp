@@ -508,6 +508,7 @@ void G_RunFrame(int levelTime, int frameTime)
 
         level.setFrametime(frameTime);
         level.setTime(levelTime);
+        CVAR_UpdateBotDifficulty(qfalse);
 
         if (level.intermissiontime || level.died_already) {
             L_ProcessPendingEvents();

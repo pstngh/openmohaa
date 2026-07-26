@@ -279,6 +279,7 @@ cvar_t *sv_bots;
 //  the bot will be relocated to a free entity slot
 cvar_t *sv_sharedbots;
 
+cvar_t *g_bot_difficulty;
 cvar_t *g_bot_attack_react_min_delay;
 cvar_t *g_bot_aim_height_max;
 cvar_t *g_bot_aim_height_min;
@@ -346,6 +347,57 @@ static void CVAR_OrderPair(const char *minName, cvar_t *minCvar, const char *max
 
     gi.cvar_set(minName, va("%g", oldMax));
     gi.cvar_set(maxName, va("%g", oldMin));
+}
+
+static float CVAR_BotDifficultyValue(float difficulty, float casual, float normal, float hardest)
+{
+    if (difficulty <= 50.0f) {
+        return casual + (normal - casual) * (difficulty / 50.0f);
+    }
+
+    return normal + (hardest - normal) * ((difficulty - 50.0f) / 50.0f);
+}
+
+void CVAR_UpdateBotDifficulty(qboolean force)
+{
+    if (!g_bot_difficulty || (!force && !g_bot_difficulty->modified)) {
+        return;
+    }
+
+    g_bot_difficulty->modified = qfalse;
+    if (g_bot_difficulty->integer < 0) {
+        return;
+    }
+
+    const float difficulty = g_bot_difficulty->integer;
+    gi.cvar_set(
+        "g_bot_attack_react_min_delay",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 0.35f, 0.2f, 0.1f))
+    );
+    gi.cvar_set(
+        "g_bot_turn_speed",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 240.0f, 360.0f, 540.0f))
+    );
+    gi.cvar_set(
+        "g_bot_turn_accel",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 3.0f, 5.0f, 10.0f))
+    );
+    gi.cvar_set(
+        "g_bot_aim_error",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 60.0f, 40.0f, 20.0f))
+    );
+    gi.cvar_set(
+        "g_bot_aim_settle_time",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 0.6f, 0.4f, 0.2f))
+    );
+    gi.cvar_set(
+        "g_bot_aim_latency",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 250.0f, 120.0f, 40.0f))
+    );
+    gi.cvar_set(
+        "g_bot_spread",
+        va("%g", CVAR_BotDifficultyValue(difficulty, 6.0f, 3.5f, 2.0f))
+    );
 }
 
 void CVAR_Init(void)
@@ -715,6 +767,7 @@ void CVAR_Init(void)
     // live cvar edits within the engine's absolute client limit.
     gi.Cvar_CheckRange(sv_bots, 0, Q_max(0, MAX_CLIENTS - maxclients->integer), qtrue);
 
+    g_bot_difficulty             = gi.Cvar_Get("g_bot_difficulty", "-1", CVAR_ARCHIVE);
     g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.55", 0);
     g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.32", 0);
@@ -724,6 +777,7 @@ void CVAR_Init(void)
     g_bot_turn_speed             = gi.Cvar_Get("g_bot_turn_speed", "360", 0);
     g_bot_turn_accel             = gi.Cvar_Get("g_bot_turn_accel", "15", 0);
 
+    gi.Cvar_CheckRange(g_bot_difficulty, -1, 100, qtrue);
     gi.Cvar_CheckRange(g_bot_attack_react_min_delay, 0, 10, qfalse);
     gi.Cvar_CheckRange(g_bot_aim_height_min, 0, 1, qfalse);
     gi.Cvar_CheckRange(g_bot_aim_height_max, 0, 1, qfalse);
@@ -780,6 +834,7 @@ void CVAR_Init(void)
     gi.Cvar_CheckRange(g_bot_peek_distance, 0, 4096, qfalse);
     gi.Cvar_CheckRange(g_bot_spread, 0, 10, qfalse);
     gi.Cvar_CheckRange(g_accuracy, 0, 2, qtrue);
+    CVAR_UpdateBotDifficulty(qtrue);
 
     // Bot weapon distribution
     g_bot_sniper = gi.Cvar_Get("g_bot_sniper", "25", 0);
