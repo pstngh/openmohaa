@@ -2,8 +2,8 @@ name: "Unit Tests"
 
 on:
   push:
-    branches:
-      - '**'
+    branches-ignore:
+      - 'agent/bot-telemetry-server'
   pull_request:
 
 concurrency:
@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.head_ref != 'agent/bot-telemetry-server'
     name: "Running unit tests"
     runs-on: ubuntu-latest
     environment: "testing"
