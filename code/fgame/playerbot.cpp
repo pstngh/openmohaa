@@ -110,6 +110,13 @@ void bot_controller_telemetry_t::Reset()
     contactAgeMsec       = -1;
     contactResponder     = false;
     contactPosition      = vec_zero;
+    objectiveState       = BOT_OBJECTIVE_NONE;
+    objectiveSite        = -1;
+    objectiveRound       = -1;
+    objectiveUsePhase    = BOT_OBJECTIVE_USE_AIM;
+    objectiveAttacker    = false;
+    objectiveCritical    = false;
+    objectivePosition    = vec_zero;
 }
 
 static int BotSoundPriority(int eventType)
@@ -225,12 +232,32 @@ BotController::BotController()
     m_iTeamContactExpireTime    = 0;
     m_iNextTeamSearchMoveTime   = 0;
     m_vTeamContactPos           = vec_zero;
+    m_iObjectiveState            = BOT_OBJECTIVE_NONE;
+    m_iObjectiveUsePhase         = BOT_OBJECTIVE_USE_AIM;
+    m_iObjectiveRound            = -1;
+    m_iObjectiveSite             = -1;
+    m_iObjectiveRouteVariant     = 0;
+    m_iObjectiveRouteStage       = 0;
+    m_iObjectiveUseStartTime     = 0;
+    m_iObjectiveNextMoveTime     = 0;
+    m_iObjectiveLastProgressTime = 0;
+    m_iObjectiveLastStallLogTime = 0;
+    m_bObjectiveAttacker         = false;
+    m_bObjectiveHasDestination   = false;
+    m_bObjectiveOwnsMovement     = false;
+    m_bObjectiveOwnsUse          = false;
+    m_bObjectiveCritical         = false;
+    m_vObjectiveStart            = vec_zero;
+    m_vObjectiveDestination      = vec_zero;
+    m_vObjectiveLastProgressPos  = vec_zero;
 
     m_StateFlags = 0;
 }
 
 BotController::~BotController()
 {
+    botManager.ReleaseObjectiveClaim(controlledEnt);
+
     if (controlledEnt) {
         controlledEnt->delegate_gotKill.Remove(delegateHandle_gotKill);
         controlledEnt->delegate_killed.Remove(delegateHandle_killed);
@@ -246,10 +273,10 @@ BotMovement& BotController::GetMovement()
 
 void BotController::GetTelemetry(bot_controller_telemetry_t& telemetry) const
 {
-    telemetry                   = m_telemetry;
-    telemetry.stateFlags        = m_StateFlags;
-    telemetry.enemyEntity       = m_pEnemy ? m_pEnemy->entnum : -1;
-    telemetry.aimAcquireMsec  = m_iAimAcquireTime >= 0 ? Q_max(0, level.inttime - m_iAimAcquireTime) : -1;
+    telemetry                  = m_telemetry;
+    telemetry.stateFlags       = m_StateFlags;
+    telemetry.enemyEntity      = m_pEnemy ? m_pEnemy->entnum : -1;
+    telemetry.aimAcquireMsec   = m_iAimAcquireTime >= 0 ? Q_max(0, level.inttime - m_iAimAcquireTime) : -1;
     telemetry.aimHeightFraction = m_fAimHeightFraction;
     telemetry.aimLatencyMsec    = g_bot_aim_latency ? g_bot_aim_latency->integer : 0;
     telemetry.targetAngles      = rotation.GetTargetAngles();
@@ -260,6 +287,13 @@ void BotController::GetTelemetry(bot_controller_telemetry_t& telemetry) const
         m_bTeamResponding ? Q_max(0, level.inttime - m_iTeamContactReportTime) : -1;
     telemetry.contactResponder = m_bTeamResponding;
     telemetry.contactPosition  = m_vTeamContactPos;
+    telemetry.objectiveState    = m_iObjectiveState;
+    telemetry.objectiveSite     = m_iObjectiveSite;
+    telemetry.objectiveRound    = m_iObjectiveRound;
+    telemetry.objectiveUsePhase = m_iObjectiveUsePhase;
+    telemetry.objectiveAttacker = m_bObjectiveAttacker;
+    telemetry.objectiveCritical = m_bObjectiveCritical;
+    telemetry.objectivePosition = m_vObjectiveDestination;
 }
 
 void BotController::Init(void)
@@ -343,8 +377,10 @@ void BotController::UpdateBotStates(void)
 
     UpdateTeamContact();
     CheckStates();
+    UpdateObjectiveBehavior();
 
     movement.MoveThink(m_botCmd);
+    FinalizeObjectiveCommand();
     rotation.TurnThink(m_botCmd, m_botEyes);
     CheckUse();
 
@@ -358,7 +394,7 @@ void BotController::CheckUse(void)
     Vector  end;
     trace_t trace;
 
-    if (controlledEnt->GetLadder()) {
+    if (m_bObjectiveOwnsUse || controlledEnt->GetLadder()) {
         return;
     }
 
@@ -689,7 +725,8 @@ void BotController::UpdateTeamContact(void)
 
 bool BotController::CanRespondToTeamContact(void) const
 {
-    return controlledEnt && !controlledEnt->IsDead() && !controlledEnt->IsSpectator() && !m_iAttackTime;
+    return controlledEnt && !controlledEnt->IsDead() && !controlledEnt->IsSpectator() && !m_iAttackTime
+        && !m_bObjectiveCritical && !m_bObjectiveOwnsUse;
 }
 
 bool BotController::IsRespondingToTeamContact(int enemyNum) const
@@ -812,6 +849,7 @@ void BotController::State_Reset(void)
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
     ClearTeamResponse();
+    ResetObjectiveBehavior();
 }
 
 /*
@@ -1721,6 +1759,7 @@ void BotController::Spawned(void)
     m_iCuriousEventType = AI_EVENT_NONE;
     m_botCmd.buttons    = 0;
     ClearTeamResponse();
+    ResetObjectiveBehavior();
 }
 
 void BotController::Think()
@@ -1740,6 +1779,7 @@ void BotController::Killed(const Event& ev)
     Entity *attacker;
 
     ClearTeamResponse();
+    ResetObjectiveBehavior();
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {

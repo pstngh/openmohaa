@@ -45,17 +45,24 @@ CLASS_DECLARATION(Listener, BotManager, NULL) {
 void BotManager::Init()
 {
     ClearTeamContacts();
+    ClearObjectiveSites();
+    objectiveRound        = 0;
+    objectiveSeed         = 0;
+    objectiveRoundActive  = false;
+    nextObjectiveScanTime = 0;
     botControllerManager.Init();
 }
 
 void BotManager::Cleanup()
 {
     ClearTeamContacts();
+    ClearObjectiveSites();
     botControllerManager.Cleanup();
 }
 
 void BotManager::Frame()
 {
+    UpdateObjectiveRound();
     botControllerManager.ThinkControllers();
 }
 

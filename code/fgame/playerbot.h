@@ -56,6 +56,29 @@ enum bot_contact_source_t {
     BOT_CONTACT_VISUAL
 };
 
+enum bot_objective_state_t {
+    BOT_OBJECTIVE_NONE,
+    BOT_OBJECTIVE_ROUTE,
+    BOT_OBJECTIVE_ADVANCE,
+    BOT_OBJECTIVE_HOLD,
+    BOT_OBJECTIVE_PATROL,
+    BOT_OBJECTIVE_COVER,
+    BOT_OBJECTIVE_PLANT,
+    BOT_OBJECTIVE_DEFUSE
+};
+
+enum bot_objective_use_phase_t {
+    BOT_OBJECTIVE_USE_AIM,
+    BOT_OBJECTIVE_USE_RELEASE,
+    BOT_OBJECTIVE_USE_HOLD
+};
+
+enum bot_objective_site_state_t {
+    BOT_OBJECTIVE_SITE_AVAILABLE,
+    BOT_OBJECTIVE_SITE_PLANTED,
+    BOT_OBJECTIVE_SITE_DESTROYED
+};
+
 struct bot_team_contact_t {
     bool            valid;
     bot_contact_source_t source;
@@ -129,9 +152,24 @@ struct bot_controller_telemetry_t {
     int                 contactAgeMsec;
     bool                contactResponder;
     Vector              contactPosition;
+    bot_objective_state_t     objectiveState;
+    int                       objectiveSite;
+    int                       objectiveRound;
+    bot_objective_use_phase_t objectiveUsePhase;
+    bool                      objectiveAttacker;
+    bool                      objectiveCritical;
+    Vector                    objectivePosition;
 
     bot_controller_telemetry_t();
     void Reset();
+};
+
+struct bot_objective_site_t {
+    SafePtr<Entity> explosive;
+    SafePtr<Entity> trigger;
+    SafePtr<Player> user;
+
+    void Clear();
 };
 
 class BotMovement
@@ -313,22 +351,40 @@ private:
     int          m_iAimHistoryHead;
     int          m_iAimHistoryCount;
 
-    Vector            m_vLastCuriousPos;
-    Vector            m_vNewCuriousPos;
-    int               m_iCuriousEventType;
-    bool              m_bTeamResponding;
-    bot_contact_source_t m_iTeamContactSource;
-    int               m_iTeamContactEnemy;
-    int               m_iTeamContactReporter;
-    int               m_iTeamContactReportTime;
-    int               m_iTeamContactExpireTime;
-    int               m_iNextTeamSearchMoveTime;
-    Vector            m_vTeamContactPos;
-    Vector            m_vOldEnemyPos;
-    Vector            m_vLastEnemyPos;
-    Vector            m_vLastDeathPos;
-    SafePtr<Sentient> m_pEnemy;
-    int               m_iEnemyEyesTag;
+    Vector                    m_vLastCuriousPos;
+    Vector                    m_vNewCuriousPos;
+    int                       m_iCuriousEventType;
+    bool                      m_bTeamResponding;
+    bot_contact_source_t      m_iTeamContactSource;
+    int                       m_iTeamContactEnemy;
+    int                       m_iTeamContactReporter;
+    int                       m_iTeamContactReportTime;
+    int                       m_iTeamContactExpireTime;
+    int                       m_iNextTeamSearchMoveTime;
+    Vector                    m_vTeamContactPos;
+    bot_objective_state_t     m_iObjectiveState;
+    bot_objective_use_phase_t m_iObjectiveUsePhase;
+    int                       m_iObjectiveRound;
+    int                       m_iObjectiveSite;
+    int                       m_iObjectiveRouteVariant;
+    int                       m_iObjectiveRouteStage;
+    int                       m_iObjectiveUseStartTime;
+    int                       m_iObjectiveNextMoveTime;
+    int                       m_iObjectiveLastProgressTime;
+    int                       m_iObjectiveLastStallLogTime;
+    bool                      m_bObjectiveAttacker;
+    bool                      m_bObjectiveHasDestination;
+    bool                      m_bObjectiveOwnsMovement;
+    bool                      m_bObjectiveOwnsUse;
+    bool                      m_bObjectiveCritical;
+    Vector                    m_vObjectiveStart;
+    Vector                    m_vObjectiveDestination;
+    Vector                    m_vObjectiveLastProgressPos;
+    Vector                    m_vOldEnemyPos;
+    Vector                    m_vLastEnemyPos;
+    Vector                    m_vLastDeathPos;
+    SafePtr<Sentient>         m_pEnemy;
+    int                       m_iEnemyEyesTag;
 
     // Input
     usercmd_t  m_botCmd;
@@ -359,6 +415,16 @@ private:
     void CheckValidWeapon(void);
     void UpdateTeamContact(void);
     void ClearTeamResponse(void);
+    void UpdateObjectiveBehavior(void);
+    void FinalizeObjectiveCommand(void);
+    void ResetObjectiveBehavior(void);
+    void BeginObjectivePlan(void);
+    void UpdateObjectiveUse(bool planting);
+    void SetObjectiveDestination(const Vector& destination, bot_objective_state_t state);
+    void UpdateObjectivePatrol(
+        const Vector& center, const Vector& toward, float radius, bot_objective_state_t state
+    );
+    void UpdateObjectiveProgress(void);
 
     void State_DefaultBegin(void);
     void State_DefaultEnd(void);
@@ -470,6 +536,8 @@ private:
 
 class BotManager : public Listener
 {
+    enum { MAX_BOT_OBJECTIVE_SITES = 16 };
+
 public:
     CLASS_PROTOTYPE(BotManager);
 
@@ -484,13 +552,36 @@ public:
         Player *reporter, Player *enemy, bot_contact_source_t source, const Vector& position, float uncertainty
     );
     bool FindTeamContact(BotController *controller, bot_team_contact_t& result) const;
+    bool ObjectiveModeActive() const;
+    int  GetObjectiveRound() const;
+    int  GetObjectiveSeed() const;
+    int  GetObjectiveBotRank(Player *player) const;
+    int  GetObjectiveDistanceRank(Player *player, const Vector& position) const;
+    int  GetObjectiveSiteCount();
+    bot_objective_site_state_t GetObjectiveSiteState(int site);
+    Vector                     GetObjectiveSitePosition(int site) const;
+    Entity                    *GetObjectiveSiteTrigger(int site) const;
+    bool                       ClaimObjectiveSite(int site, Player *player);
+    void                       ReleaseObjectiveClaim(Player *player);
+    teamtype_t                 GetObjectivePlantTeam() const;
+    Vector                     GetObjectiveEnemySpawnCenter(teamtype_t team) const;
 
 private:
     static int TeamContactIndex(teamtype_t team);
     void       ClearTeamContacts();
+    void       UpdateObjectiveRound();
+    void       ClearObjectiveSites();
+    void       DiscoverObjectiveSites();
 
     BotControllerManager botControllerManager;
     bot_team_contact_t    teamContacts[2][MAX_CLIENTS];
+    bot_objective_site_t  objectiveSites[MAX_BOT_OBJECTIVE_SITES];
+    int                   objectiveSiteCount;
+    int                   objectiveRound;
+    int                   objectiveSeed;
+    int                   nextObjectiveScanTime;
+    bool                  objectiveSitesScanned;
+    bool                  objectiveRoundActive;
 };
 
 extern BotManager botManager;

@@ -188,13 +188,19 @@ distance, client entry/exit, and the BSP map checksum are also recorded. Shots,
 reloads, damage, deaths, and spawns are recorded separately at the exact frame
 in which they happen.
 
-The test-only schema 4 profile adds bot decision state to each frame without
+The test-only schema 6 profile adds bot decision state to each frame without
 performing additional traces or consuming random numbers. It records the
 selected enemy, sight/attack/fire decisions, reaction time remaining, intended
 and error-adjusted aim points, aim acquisition state, path and blocked-recovery
 state, strafe clearance and doorway damping, radial phase and forced close
 retreat, plus the result of the existing imminent-contact guard. Human rows use
 neutral or sentinel values in these `bot_*` columns.
+
+Schema 6 also records shared-contact source, reporter, responder, age, and
+reported position, plus each bot's objective role, site, round, use phase,
+critical-task status, and destination. The event log includes contact reports
+and responses, objective plans and route choices, plant/defuse attempts and
+results, replans, timeouts, and objective-movement stalls.
 
 `bot_fire_decision` values are:
 
@@ -240,9 +246,9 @@ restart. The CSV rows and metadata blocks carry that ID so individual matches
 can still be separated during analysis.
 
 All three files must use the same telemetry schema. Before the first recording
-with this schema 4 test build, archive or delete schema 3 copies of all three files.
+with this schema 6 test build, archive or delete older copies of all three files.
 The recorder refuses to mix schemas or append when only part of the triplet is
-present. Once fresh schema 4 files exist, subsequent sessions append normally.
+present. Once fresh schema 6 files exist, subsequent sessions append normally.
 
 For bot tuning, record several rounds of human versus human play and several
 rounds against bots on the same maps and settings. A normal client demo
