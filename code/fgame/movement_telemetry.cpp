@@ -32,7 +32,7 @@ does not mutate game state and never calls a random-number function.
 
 namespace
 {
-constexpr int         MOVELOG_SCHEMA          = 4;
+constexpr int         MOVELOG_SCHEMA          = 5;
 constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
 constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
 constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
@@ -452,7 +452,11 @@ static void AppendBotColumns(std::ostringstream& row, Player *player)
         << controllerTelemetry.aimPoint.y << ',' << controllerTelemetry.aimPoint.z << ','
         << controllerTelemetry.aimErrorDirection.x << ',' << controllerTelemetry.aimErrorDirection.y << ','
         << controllerTelemetry.aimErrorDirection.z << ',' << controllerTelemetry.targetAngles.x << ','
-        << controllerTelemetry.targetAngles.y << ',' << (movementTelemetry.hasCombatTarget ? 1 : 0) << ','
+        << controllerTelemetry.targetAngles.y << ',' << static_cast<int>(controllerTelemetry.contactSource) << ','
+        << controllerTelemetry.contactEnemy << ',' << controllerTelemetry.contactReporter << ','
+        << controllerTelemetry.contactAgeMsec << ',' << (controllerTelemetry.contactResponder ? 1 : 0) << ','
+        << controllerTelemetry.contactPosition.x << ',' << controllerTelemetry.contactPosition.y << ','
+        << controllerTelemetry.contactPosition.z << ',' << (movementTelemetry.hasCombatTarget ? 1 : 0) << ','
         << (movementTelemetry.pathing ? 1 : 0) << ',' << (movementTelemetry.blockedRecovery ? 1 : 0) << ','
         << (movementTelemetry.pathCollisionAvoidance ? 1 : 0) << ','
         << (movementTelemetry.movementSuppressed ? 1 : 0) << ',' << movementTelemetry.strafeDirection << ','
@@ -586,7 +590,9 @@ static bool EnsureOpen()
             "bot_reaction_remaining_ms,bot_enemy_distance,bot_aim_acquire_ms,bot_aim_height_fraction,"
             "bot_aim_error_fraction,bot_aim_error_units,bot_aim_latency_ms,bot_aim_target_x,bot_aim_target_y,"
             "bot_aim_target_z,bot_aim_point_x,bot_aim_point_y,bot_aim_point_z,bot_aim_error_dir_x,"
-            "bot_aim_error_dir_y,bot_aim_error_dir_z,bot_target_pitch,bot_target_yaw,bot_has_combat_target,"
+            "bot_aim_error_dir_y,bot_aim_error_dir_z,bot_target_pitch,bot_target_yaw,bot_contact_source,"
+            "bot_contact_enemy_id,bot_contact_reporter_id,bot_contact_age_ms,bot_contact_responder,"
+            "bot_contact_x,bot_contact_y,bot_contact_z,bot_has_combat_target,"
             "bot_pathing,bot_blocked_recovery,bot_path_collision_avoidance,bot_movement_suppressed,"
             "bot_strafe_direction,bot_strafe_change_ms,bot_is_leaning,bot_strafe_applied,"
             "bot_strafe_clearance_flip,bot_strafe_clearance,bot_strafe_other_clearance,"
@@ -961,6 +967,33 @@ void G_MoveLogReload(Sentient *owner, Weapon *weapon)
         forward,
         viewAngles,
         &aim
+    );
+}
+
+void G_MoveLogBotEvent(
+    const char *eventName, Player *actor, Player *target, int detail, const Vector& position
+)
+{
+    if (!eventName || !EnsureOpen()) {
+        return;
+    }
+
+    const Vector zero(0.0f, 0.0f, 0.0f);
+    AppendEventRow(
+        eventName,
+        actor,
+        target,
+        "",
+        detail,
+        0.0f,
+        actor ? actor->health : 0.0f,
+        actor ? actor->health : 0.0f,
+        -1,
+        -1,
+        position,
+        zero,
+        zero,
+        NULL
     );
 }
 

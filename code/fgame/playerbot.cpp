@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "weaputils.h"
 #include "windows.h"
 #include "g_bot.h"
+#include "movement_telemetry.h"
 
 // We assume that we have limited access to the server-side
 // and that most logic come from the playerstate_s structure
@@ -60,6 +61,24 @@ static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 static const float BOT_VISIBILITY_SAMPLES[]    = {0.9f, 0.7f, 0.5f, 0.3f, 0.1f};
 static const int   BOT_NUM_VISIBILITY_SAMPLES  = ARRAY_LEN(BOT_VISIBILITY_SAMPLES);
 
+bot_team_contact_t::bot_team_contact_t()
+{
+    Clear();
+}
+
+void bot_team_contact_t::Clear()
+{
+    valid         = false;
+    source        = BOT_CONTACT_NONE;
+    reportTime    = 0;
+    availableTime = 0;
+    expireTime    = 0;
+    lastLogTime   = 0;
+    position      = vec_zero;
+    reporter      = NULL;
+    enemy         = NULL;
+}
+
 bot_controller_telemetry_t::bot_controller_telemetry_t()
 {
     Reset();
@@ -85,6 +104,12 @@ void bot_controller_telemetry_t::Reset()
     aimPoint             = vec_zero;
     aimErrorDirection    = vec_zero;
     targetAngles         = vec_zero;
+    contactSource        = BOT_CONTACT_NONE;
+    contactEnemy         = -1;
+    contactReporter      = -1;
+    contactAgeMsec       = -1;
+    contactResponder     = false;
+    contactPosition      = vec_zero;
 }
 
 static int BotSoundPriority(int eventType)
@@ -192,6 +217,14 @@ BotController::BotController()
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
     m_iCuriousEventType         = AI_EVENT_NONE;
+    m_bTeamResponding           = false;
+    m_iTeamContactSource        = BOT_CONTACT_NONE;
+    m_iTeamContactEnemy         = -1;
+    m_iTeamContactReporter      = -1;
+    m_iTeamContactReportTime    = 0;
+    m_iTeamContactExpireTime    = 0;
+    m_iNextTeamSearchMoveTime   = 0;
+    m_vTeamContactPos           = vec_zero;
 
     m_StateFlags = 0;
 }
@@ -220,6 +253,13 @@ void BotController::GetTelemetry(bot_controller_telemetry_t& telemetry) const
     telemetry.aimHeightFraction = m_fAimHeightFraction;
     telemetry.aimLatencyMsec    = g_bot_aim_latency ? g_bot_aim_latency->integer : 0;
     telemetry.targetAngles      = rotation.GetTargetAngles();
+    telemetry.contactSource     = m_iTeamContactSource;
+    telemetry.contactEnemy      = m_iTeamContactEnemy;
+    telemetry.contactReporter   = m_iTeamContactReporter;
+    telemetry.contactAgeMsec =
+        m_bTeamResponding ? Q_max(0, level.inttime - m_iTeamContactReportTime) : -1;
+    telemetry.contactResponder = m_bTeamResponding;
+    telemetry.contactPosition  = m_vTeamContactPos;
 }
 
 void BotController::Init(void)
@@ -301,6 +341,7 @@ void BotController::UpdateBotStates(void)
     m_botEyes.angles[0] = 0;
     m_botEyes.angles[1] = 0;
 
+    UpdateTeamContact();
     CheckStates();
 
     movement.MoveThink(m_botCmd);
@@ -522,9 +563,49 @@ Warn the bot of an event
 */
 void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDistanceSquared, float fRadiusSquared)
 {
-    Sentient *pSentOwner;
+    Sentient *pSentOwner = NULL;
     float     fRangeFactor;
     Vector    delta1, delta2;
+
+    if (pEnt->IsSubclassOfSentient()) {
+        pSentOwner = static_cast<Sentient *>(pEnt);
+    } else if (pEnt->IsSubclassOfVehicleTurretGun()) {
+        VehicleTurretGun *pVTG = static_cast<VehicleTurretGun *>(pEnt);
+        pSentOwner             = pVTG->GetSentientOwner();
+    } else if (pEnt->IsSubclassOfItem()) {
+        Item *pItem = static_cast<Item *>(pEnt);
+        pSentOwner  = pItem->GetOwner();
+    } else if (pEnt->IsSubclassOfProjectile()) {
+        Projectile *pProj = static_cast<Projectile *>(pEnt);
+        pSentOwner        = pProj->GetOwner();
+    }
+
+    if (pSentOwner) {
+        if (pSentOwner == controlledEnt) {
+            return;
+        }
+
+        if ((pSentOwner->flags & FL_NOTARGET) || pSentOwner->getSolidType() == SOLID_NOT) {
+            return;
+        }
+
+        if (pSentOwner->IsSubclassOfPlayer()) {
+            Player *player = static_cast<Player *>(pSentOwner);
+
+            if (g_gametype->integer >= GT_TEAM && player->GetTeam() == controlledEnt->GetTeam()) {
+                return;
+            }
+
+            if (g_gametype->integer >= GT_TEAM && iType == AI_EVENT_WEAPON_FIRE) {
+                fRangeFactor = Q_clamp_float(1.0f - (fDistanceSquared / fRadiusSquared), 0.0f, 1.0f);
+                const float uncertainty = 128.0f + (1.0f - fRangeFactor) * 256.0f;
+                botManager.ReportTeamContact(
+                    controlledEnt, player, BOT_CONTACT_SOUND, vPos, uncertainty
+                );
+                return;
+            }
+        }
+    }
 
     if (m_iCuriousTime > level.inttime) {
         delta1 = vPos - controlledEnt->origin;
@@ -543,48 +624,77 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
 
     fRangeFactor = 1.0 - (fDistanceSquared / fRadiusSquared);
 
-    if (fRangeFactor < random()) {
+    if (iType != AI_EVENT_WEAPON_FIRE && fRangeFactor < random()) {
         return;
-    }
-
-    if (pEnt->IsSubclassOfSentient()) {
-        pSentOwner = static_cast<Sentient *>(pEnt);
-    } else if (pEnt->IsSubclassOfVehicleTurretGun()) {
-        VehicleTurretGun *pVTG = static_cast<VehicleTurretGun *>(pEnt);
-        pSentOwner             = pVTG->GetSentientOwner();
-    } else if (pEnt->IsSubclassOfItem()) {
-        Item *pItem = static_cast<Item *>(pEnt);
-        pSentOwner  = pItem->GetOwner();
-    } else if (pEnt->IsSubclassOfProjectile()) {
-        Projectile *pProj = static_cast<Projectile *>(pEnt);
-        pSentOwner        = pProj->GetOwner();
-    } else {
-        pSentOwner = NULL;
-    }
-
-    if (pSentOwner) {
-        if (pSentOwner == controlledEnt) {
-            // Ignore self
-            return;
-        }
-
-        if ((pSentOwner->flags & FL_NOTARGET) || pSentOwner->getSolidType() == SOLID_NOT) {
-            return;
-        }
-
-        // Ignore teammates
-        if (pSentOwner->IsSubclassOfPlayer()) {
-            Player *p = static_cast<Player *>(pSentOwner);
-
-            if (g_gametype->integer >= GT_TEAM && p->GetTeam() == controlledEnt->GetTeam()) {
-                return;
-            }
-        }
     }
 
     m_iCuriousEventType = iType;
     m_iCuriousTime      = level.inttime + BotSoundInterestDuration(iType);
     m_vNewCuriousPos    = vPos;
+}
+
+void BotController::ClearTeamResponse(void)
+{
+    m_bTeamResponding         = false;
+    m_iTeamContactSource      = BOT_CONTACT_NONE;
+    m_iTeamContactEnemy       = -1;
+    m_iTeamContactReporter    = -1;
+    m_iTeamContactReportTime  = 0;
+    m_iTeamContactExpireTime  = 0;
+    m_iNextTeamSearchMoveTime = 0;
+    m_vTeamContactPos         = vec_zero;
+}
+
+void BotController::UpdateTeamContact(void)
+{
+    bot_team_contact_t contact;
+
+    if (g_gametype->integer < GT_TEAM || m_iAttackTime || !botManager.FindTeamContact(this, contact)) {
+        if (m_bTeamResponding) {
+            m_iCuriousTime      = 0;
+            m_iCuriousEventType = AI_EVENT_NONE;
+            movement.ClearMove();
+            ClearTeamResponse();
+        }
+        return;
+    }
+
+    const bool newResponse =
+        !m_bTeamResponding || m_iTeamContactEnemy != contact.enemy->entnum
+        || m_iTeamContactSource != contact.source;
+
+    m_bTeamResponding        = true;
+    m_iTeamContactSource     = contact.source;
+    m_iTeamContactEnemy      = contact.enemy->entnum;
+    m_iTeamContactReporter   = contact.reporter ? contact.reporter->entnum : -1;
+    m_iTeamContactReportTime = contact.reportTime;
+    m_iTeamContactExpireTime = contact.expireTime;
+    m_vTeamContactPos        = contact.position;
+
+    if (newResponse) {
+        m_iNextTeamSearchMoveTime = 0;
+        G_MoveLogBotEvent(
+            "bot_contact_response",
+            controlledEnt,
+            contact.enemy,
+            static_cast<int>(contact.source),
+            contact.position
+        );
+    }
+
+    m_iCuriousEventType = contact.source == BOT_CONTACT_SOUND ? AI_EVENT_WEAPON_FIRE : AI_EVENT_MISC_LOUD;
+    m_iCuriousTime      = contact.expireTime;
+    m_vNewCuriousPos    = contact.position;
+}
+
+bool BotController::CanRespondToTeamContact(void) const
+{
+    return controlledEnt && !controlledEnt->IsDead() && !controlledEnt->IsSpectator() && !m_iAttackTime;
+}
+
+bool BotController::IsRespondingToTeamContact(int enemyNum) const
+{
+    return m_bTeamResponding && m_iTeamContactEnemy == enemyNum;
 }
 
 /*
@@ -701,6 +811,7 @@ void BotController::State_Reset(void)
     m_pEnemy                    = NULL;
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
+    ClearTeamResponse();
 }
 
 /*
@@ -778,6 +889,7 @@ bool BotController::CheckCondition_Curious(void)
     if (m_iAttackTime) {
         m_iCuriousTime      = 0;
         m_iCuriousEventType = AI_EVENT_NONE;
+        ClearTeamResponse();
         return false;
     }
 
@@ -786,6 +898,7 @@ bool BotController::CheckCondition_Curious(void)
             movement.ClearMove();
             m_iCuriousTime      = 0;
             m_iCuriousEventType = AI_EVENT_NONE;
+            ClearTeamResponse();
         }
 
         return false;
@@ -810,9 +923,23 @@ void BotController::State_Curious(void)
         m_vLastCuriousPos = m_vNewCuriousPos;
     }
 
+    if (movement.MoveDone() && m_bTeamResponding && level.inttime < m_iTeamContactExpireTime) {
+        if (!m_iNextTeamSearchMoveTime) {
+            m_iNextTeamSearchMoveTime = level.inttime + 500 + (int)G_Random(1000);
+        } else if (level.inttime >= m_iNextTeamSearchMoveTime) {
+            Vector searchOffset(G_CRandom(192.0f), G_CRandom(192.0f), 0.0f);
+            m_vNewCuriousPos          = m_vTeamContactPos + searchOffset;
+            m_iNextTeamSearchMoveTime = level.inttime + 1000 + (int)G_Random(1500);
+            movement.MoveTo(m_vNewCuriousPos);
+            m_vLastCuriousPos = m_vNewCuriousPos;
+        }
+        return;
+    }
+
     if (movement.MoveDone()) {
         m_iCuriousTime      = 0;
         m_iCuriousEventType = AI_EVENT_NONE;
+        ClearTeamResponse();
     }
 }
 
@@ -1261,6 +1388,16 @@ void BotController::State_Attack(void)
     m_telemetry.enemyVisible = bCanSee;
 
     if (bCanSee) {
+        if (m_pEnemy->IsSubclassOfPlayer()) {
+            botManager.ReportTeamContact(
+                controlledEnt,
+                static_cast<Player *>(m_pEnemy.Pointer()),
+                BOT_CONTACT_VISUAL,
+                m_pEnemy->origin,
+                0.0f
+            );
+        }
+
         if (!pWeap) {
             m_telemetry.fireDecision = BOT_FIRE_NO_WEAPON;
             return;
@@ -1583,6 +1720,7 @@ void BotController::Spawned(void)
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
     m_botCmd.buttons    = 0;
+    ClearTeamResponse();
 }
 
 void BotController::Think()
@@ -1600,6 +1738,8 @@ void BotController::Think()
 void BotController::Killed(const Event& ev)
 {
     Entity *attacker;
+
+    ClearTeamResponse();
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {

@@ -49,6 +49,28 @@ enum bot_fire_decision_t {
     BOT_FIRE_FIRING
 };
 
+enum bot_contact_source_t {
+    BOT_CONTACT_NONE,
+    BOT_CONTACT_SOUND,
+    BOT_CONTACT_DAMAGE,
+    BOT_CONTACT_VISUAL
+};
+
+struct bot_team_contact_t {
+    bool            valid;
+    bot_contact_source_t source;
+    int             reportTime;
+    int             availableTime;
+    int             expireTime;
+    int             lastLogTime;
+    Vector          position;
+    SafePtr<Player> reporter;
+    SafePtr<Player> enemy;
+
+    bot_team_contact_t();
+    void Clear();
+};
+
 struct bot_movement_telemetry_t {
     bool  hasCombatTarget;
     bool  pathing;
@@ -101,6 +123,12 @@ struct bot_controller_telemetry_t {
     Vector              aimPoint;
     Vector              aimErrorDirection;
     Vector              targetAngles;
+    bot_contact_source_t contactSource;
+    int                 contactEnemy;
+    int                 contactReporter;
+    int                 contactAgeMsec;
+    bool                contactResponder;
+    Vector              contactPosition;
 
     bot_controller_telemetry_t();
     void Reset();
@@ -288,6 +316,14 @@ private:
     Vector            m_vLastCuriousPos;
     Vector            m_vNewCuriousPos;
     int               m_iCuriousEventType;
+    bool              m_bTeamResponding;
+    bot_contact_source_t m_iTeamContactSource;
+    int               m_iTeamContactEnemy;
+    int               m_iTeamContactReporter;
+    int               m_iTeamContactReportTime;
+    int               m_iTeamContactExpireTime;
+    int               m_iNextTeamSearchMoveTime;
+    Vector            m_vTeamContactPos;
     Vector            m_vOldEnemyPos;
     Vector            m_vLastEnemyPos;
     Vector            m_vLastDeathPos;
@@ -321,6 +357,8 @@ private:
     void CheckUse(void);
     bool CheckWindows(void);
     void CheckValidWeapon(void);
+    void UpdateTeamContact(void);
+    void ClearTeamResponse(void);
 
     void State_DefaultBegin(void);
     void State_DefaultEnd(void);
@@ -398,6 +436,8 @@ public:
 
     BotMovement& GetMovement();
     void GetTelemetry(bot_controller_telemetry_t& telemetry) const;
+    bool CanRespondToTeamContact(void) const;
+    bool IsRespondingToTeamContact(int enemyNum) const;
 
 public:
     void    setControlledEntity(Player *player);
@@ -440,9 +480,17 @@ public:
     void Cleanup();
     void Frame();
     void BroadcastEvent(Entity *originator, Vector origin, int iType, float radius);
+    void ReportTeamContact(
+        Player *reporter, Player *enemy, bot_contact_source_t source, const Vector& position, float uncertainty
+    );
+    bool FindTeamContact(BotController *controller, bot_team_contact_t& result) const;
 
 private:
+    static int TeamContactIndex(teamtype_t team);
+    void       ClearTeamContacts();
+
     BotControllerManager botControllerManager;
+    bot_team_contact_t    teamContacts[2][MAX_CLIENTS];
 };
 
 extern BotManager botManager;

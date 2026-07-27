@@ -38,3 +38,6 @@ void G_MoveLogDeath(Player *victim, Entity *attacker, int meansOfDeath, int loca
 void G_MoveLogSpawn(Player *player);
 void G_MoveLogClientBegin(Player *player);
 void G_MoveLogClientDisconnect(Player *player);
+void G_MoveLogBotEvent(
+    const char *eventName, Player *actor, Player *target, int detail, const Vector& position
+);

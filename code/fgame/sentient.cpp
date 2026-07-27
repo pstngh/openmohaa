@@ -43,6 +43,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../corepp/tiki.h"
 #include "weapturret.h"
 #include "movement_telemetry.h"
+#include "playerbot.h"
 
 Event EV_Sentient_ReloadWeapon
 (
@@ -1526,6 +1527,21 @@ void Sentient::ArmorDamage(Event *ev)
     }
 
     G_MoveLogDamage(this, attacker, damage, healthBefore, health, meansofdeath, location, position, direction);
+
+    if (g_gametype->integer >= GT_TEAM && attacker && attacker != this && this->IsSubclassOfPlayer()
+        && attacker->IsSubclassOfPlayer()) {
+        Player *victim = static_cast<Player *>(this);
+        Player *source = static_cast<Player *>(attacker);
+
+        if (!victim->IsSpectator() && !source->IsSpectator() && victim->GetTeam() != source->GetTeam()) {
+            botManager.ReportTeamContact(
+                victim, source, BOT_CONTACT_DAMAGE, source->origin, 96.0f
+            );
+            botManager.ReportTeamContact(
+                source, victim, BOT_CONTACT_DAMAGE, position, 32.0f
+            );
+        }
+    }
 
     // Set means of death
     means_of_death = meansofdeath;
