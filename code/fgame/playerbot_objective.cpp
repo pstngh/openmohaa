@@ -863,6 +863,7 @@ void BotController::UpdateObjectiveBehavior()
     }
 
     if (m_bObjectiveAttacker && siteState == BOT_OBJECTIVE_SITE_AVAILABLE
+        && level.inttime >= m_iObjectiveReapproachUntil
         && TryStartObjectiveUse(true, m_iObjectiveSite)) {
         UpdateObjectiveProgress();
         return;
@@ -962,7 +963,8 @@ void BotController::UpdateObjectiveBehavior()
                 ClearTeamResponse();
             }
 
-            if (TryStartObjectiveUse(false, plantedSite)) {
+            if (level.inttime >= m_iObjectiveReapproachUntil
+                && TryStartObjectiveUse(false, plantedSite)) {
                 UpdateObjectiveProgress();
                 return;
             }
