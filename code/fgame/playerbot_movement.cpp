@@ -165,7 +165,8 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (!IsMoving() || !m_pPath) {
-        // No path to follow, but the bot should still juke and lean in place
+        // No path to follow. Active combat can still juke in place; deliberate
+        // holds and genuine idle leave the movement command neutral.
         UpdateAggressiveMovement(botcmd);
         PreventImminentBodyContact(botcmd);
         return;
@@ -1470,6 +1471,14 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
 {
     // Ladders: leave pathing untouched
     if (controlledEntity->GetLadder()) {
+        return;
+    }
+
+    // Strafe and lean are an overlay for purposeful travel and combat, not a
+    // source of movement by themselves. In particular, a completed objective
+    // cover route must remain a real hold until its next route is assigned.
+    if (!IsMoving() && !m_bHasCombatTarget) {
+        m_bIsLeaning = false;
         return;
     }
 
