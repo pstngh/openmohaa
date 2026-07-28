@@ -594,9 +594,23 @@ void BotController::UpdateObjectivePatrol(
     const Vector& center, const Vector& toward, float radius, bot_objective_state_t state
 )
 {
+    const bool sameDestination =
+        m_iObjectiveState == state && m_bObjectiveHasDestination;
+    const bool moveFinished = sameDestination && movement.MoveDone();
+    const bool destinationReached =
+        moveFinished
+        && (m_vObjectiveDestination - controlledEnt->origin).lengthXYSquared()
+            <= Square(BOT_OBJECTIVE_PATROL_SEARCH_RADIUS);
+
+    if (destinationReached && !m_iObjectiveNextMoveTime) {
+        m_iObjectiveNextMoveTime =
+            level.inttime + 3000 + static_cast<int>(G_Random(3000.0f));
+    }
+
     const bool choosePoint =
         m_iObjectiveState != state || !m_bObjectiveHasDestination
-        || (movement.MoveDone() && level.inttime >= m_iObjectiveNextMoveTime);
+        || (moveFinished && !destinationReached)
+        || (destinationReached && level.inttime >= m_iObjectiveNextMoveTime);
 
     if (choosePoint) {
         if (m_iObjectiveState == state) {
@@ -604,13 +618,14 @@ void BotController::UpdateObjectivePatrol(
         }
         const Vector destination = BotObjectivePatrolPoint(center, toward, radius, m_iObjectiveRouteVariant);
         SetObjectiveDestination(destination, state, BOT_OBJECTIVE_PATROL_SEARCH_RADIUS);
-        m_iObjectiveNextMoveTime = level.inttime + 3000 + static_cast<int>(G_Random(3000.0f));
+        m_iObjectiveNextMoveTime = 0;
         return;
     }
 
-    if (movement.MoveDone()) {
+    if (destinationReached) {
         // Stay put until it is time to choose a genuinely new patrol point.
-        // Reissuing an already completed MoveNear path causes direction jitter.
+        // Start the dwell on arrival so travel time cannot consume it and
+        // cause an immediate U-turn at a doorway or corridor threshold.
         m_iObjectiveState            = state;
         m_bObjectiveOwnsMovement     = true;
         m_vObjectiveLastProgressPos  = controlledEnt->origin;

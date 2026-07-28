@@ -259,6 +259,8 @@ private:
     bool   m_bAvoidCollision;
     int    m_iCollisionCheckTime;
     Vector m_vTempCollisionAvoidance;
+    int    m_iCollisionProgressTime;
+    Vector m_vCollisionProgressOrigin;
 
     ///
     /// Jump detection
@@ -364,6 +366,8 @@ private:
     int          m_iAimHistoryCount;
     int          m_iPostKillAimUntil;
     Vector       m_vPostKillAimAngles;
+    int          m_iLadderAimUntil;
+    Vector       m_vLadderAimAngles;
 
     Vector                    m_vLastCuriousPos;
     Vector                    m_vNewCuriousPos;
@@ -535,6 +539,7 @@ public:
     bool CanRespondToTeamContact(void) const;
     bool CanRespondToTeamContact(const Vector& position) const;
     bool IsRespondingToTeamContact(int enemyNum) const;
+    bool CanInvestigatePosition(const Vector& position) const;
 
 public:
     void    setControlledEntity(Player *player);

@@ -58,6 +58,9 @@ static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
 static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
 static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
 static const int   BOT_POST_KILL_AIM_MSEC          = 150;
+static const int   BOT_LOS_AIM_HOLD_MSEC           = 300;
+static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
+static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -226,6 +229,7 @@ BotController::BotController()
 
     m_iCuriousTime              = 0;
     m_iAttackTime               = 0;
+    m_iAttackStopAimTime        = 0;
     m_iEnemyEyesTag             = -1;
     m_iLastSeenTime             = 0;
     m_iLastUnseenTime           = 0;
@@ -238,6 +242,8 @@ BotController::BotController()
     m_iAimHistoryCount          = 0;
     m_iPostKillAimUntil         = 0;
     m_vPostKillAimAngles        = vec_zero;
+    m_iLadderAimUntil           = 0;
+    m_vLadderAimAngles          = vec_zero;
     m_iCuriousEventType         = AI_EVENT_NONE;
     ResetGrenadeAvoidance();
     m_bReloadRetreating         = false;
@@ -583,29 +589,63 @@ Make the bot face toward the current path
 */
 void BotController::AimAtAimNode(void)
 {
-    Vector goal;
-
     if (!movement.IsMoving()) {
+        m_iLadderAimUntil = 0;
         return;
     }
 
-    //goal = movement.GetCurrentGoal();
-    //if (goal != controlledEnt->origin) {
-    //    rotation.AimAt(goal);
-    //}
-
     if (controlledEnt->GetLadder()) {
+        m_iLadderAimUntil = 0;
         Vector vAngles = movement.GetCurrentMoveDirection().toAngles();
         vAngles.x      = Q_clamp_float(vAngles.x, -80, 80);
 
         rotation.SetTargetAngles(vAngles);
         return;
-    } else {
-        Vector targetAngles;
-        targetAngles   = movement.GetCurrentMoveDirection().toAngles();
-        targetAngles.x = 0;
-        rotation.SetTargetAngles(targetAngles);
     }
+
+    // The path direction can change sharply while collision steering aligns a
+    // bot with a ladder entrance. Once the ladder is detected ahead, face its
+    // fixed surface point until attachment instead of following those
+    // short-lived steering corrections.
+    Vector moveDirection = movement.GetCurrentMoveDirection();
+    moveDirection.z      = 0.0f;
+    if (VectorNormalize2D(moveDirection) > 0.0f) {
+        const Vector start =
+            controlledEnt->origin + Vector(0, 0, controlledEnt->viewheight);
+        const Vector end = start + moveDirection * BOT_LADDER_AIM_DISTANCE;
+        trace_t trace     = G_Trace(
+            start,
+            vec_zero,
+            vec_zero,
+            end,
+            controlledEnt,
+            MASK_LADDER,
+            false,
+            "BotController::AimAtAimNode"
+        );
+
+        if (trace.ent && trace.ent->entity
+            && trace.ent->entity->isSubclassOf(FuncLadder)) {
+            Vector ladderDirection = trace.endpos - controlledEnt->origin;
+            ladderDirection.z      = 0.0f;
+            if (VectorNormalize2D(ladderDirection) > 0.0f) {
+                m_vLadderAimAngles   = ladderDirection.toAngles();
+                m_vLadderAimAngles.x = 0.0f;
+                m_iLadderAimUntil    =
+                    level.inttime + BOT_LADDER_AIM_HOLD_MSEC;
+            }
+        }
+    }
+
+    if (level.inttime < m_iLadderAimUntil) {
+        rotation.SetTargetAngles(m_vLadderAimAngles);
+        return;
+    }
+    m_iLadderAimUntil = 0;
+
+    Vector targetAngles = movement.GetCurrentMoveDirection().toAngles();
+    targetAngles.x      = 0;
+    rotation.SetTargetAngles(targetAngles);
 }
 
 /*
@@ -827,6 +867,11 @@ bool BotController::CanRespondToTeamContact(const Vector& position) const
         return false;
     }
 
+    return CanInvestigatePosition(position);
+}
+
+bool BotController::CanInvestigatePosition(const Vector& position) const
+{
     if (!botManager.ObjectiveModeActive() || !m_bObjectiveAttacker
         || m_iObjectiveState != BOT_OBJECTIVE_ADVANCE || !m_bObjectiveHasDestination) {
         return true;
@@ -838,11 +883,18 @@ bool BotController::CanRespondToTeamContact(const Vector& position) const
         return false;
     }
 
+    Vector investigationDelta = position - controlledEnt->origin;
+    investigationDelta.z      = 0.0f;
+    if (DotProduct(investigationDelta, objectiveDelta) <= 0.0f) {
+        return false;
+    }
+
     Vector contactDelta = m_vObjectiveDestination - position;
     contactDelta.z      = 0.0f;
 
     // Attackers still react to callouts that help clear the route, but they
-    // do not abandon forward progress to chase a report back toward spawn.
+    // do not surrender movement to a sound behind them or to a report that
+    // leaves them farther from the objective.
     return contactDelta.lengthSquared() <= objectiveDelta.lengthSquared();
 }
 
@@ -861,6 +913,9 @@ Clear the bot's enemy
 void BotController::ClearEnemy(void)
 {
     m_iAttackTime               = 0;
+    m_iAttackStopAimTime        = 0;
+    m_iLadderAimUntil           = 0;
+    m_vLadderAimAngles          = vec_zero;
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
@@ -951,11 +1006,14 @@ void BotController::State_Reset(void)
 {
     m_iCuriousTime              = 0;
     m_iAttackTime               = 0;
+    m_iAttackStopAimTime        = 0;
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
     m_iPostKillAimUntil         = 0;
     m_vPostKillAimAngles        = vec_zero;
+    m_iLadderAimUntil           = 0;
+    m_vLadderAimAngles          = vec_zero;
     m_vAimErrorDirection        = vec_zero;
     m_vAimErrorTargetDirection = vec_zero;
     m_iNextAimErrorChangeTime   = 0;
@@ -1099,6 +1157,14 @@ bool BotController::CheckCondition_Curious(void)
         m_iCuriousTime      = 0;
         m_iCuriousEventType = AI_EVENT_NONE;
         ClearTeamResponse();
+        return false;
+    }
+
+    if (m_iCuriousTime && !CanInvestigatePosition(m_vNewCuriousPos)) {
+        m_iCuriousTime      = 0;
+        m_iCuriousEventType = AI_EVENT_NONE;
+        ClearTeamResponse();
+        movement.ClearMove();
         return false;
     }
 
@@ -1567,6 +1633,7 @@ void BotController::State_EndAttack(void)
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
     movement.ClearCombatTarget();
     m_bReloadRetreating = false;
+    m_iAttackStopAimTime = 0;
     controlledEnt->ZoomOff();
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
@@ -1610,6 +1677,10 @@ void BotController::State_Attack(void)
     m_telemetry.enemyVisible = bCanSee;
 
     if (bCanSee) {
+        m_iAttackStopAimTime = Q_max(
+            m_iAttackStopAimTime,
+            level.inttime + BOT_LOS_AIM_HOLD_MSEC
+        );
         if (m_pEnemy->IsSubclassOfPlayer()) {
             botManager.ReportTeamContact(
                 controlledEnt,
@@ -2123,6 +2194,8 @@ void BotController::Spawned(void)
     m_pCombatPrimaryWeapon = NULL;
     m_iPostKillAimUntil    = 0;
     m_vPostKillAimAngles   = vec_zero;
+    m_iLadderAimUntil      = 0;
+    m_vLadderAimAngles     = vec_zero;
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
     m_vIdleProgressPos  = vec_zero;
@@ -2155,6 +2228,8 @@ void BotController::Killed(const Event& ev)
     m_pCombatPrimaryWeapon = NULL;
     m_iPostKillAimUntil    = 0;
     m_vPostKillAimAngles   = vec_zero;
+    m_iLadderAimUntil      = 0;
+    m_vLadderAimAngles     = vec_zero;
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {

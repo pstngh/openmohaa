@@ -25,7 +25,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "debuglines.h"
 
 static int       maxFallHeight                   = 400;
-static const int BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const int   BOT_COLLISION_STALL_MSEC        = 350;
+static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
 static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
 static const int BOT_JUMP_RETRY_MSEC              = 500;
@@ -83,8 +85,10 @@ BotMovement::BotMovement()
     m_iTempAwayTime  = 0;
     m_iNumBlocks     = 0;
 
-    m_bAvoidCollision     = false;
-    m_iCollisionCheckTime = 0;
+    m_bAvoidCollision          = false;
+    m_iCollisionCheckTime      = 0;
+    m_iCollisionProgressTime   = 0;
+    m_vCollisionProgressOrigin = vec_zero;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -1108,14 +1112,43 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     // Commit to a chosen side long enough to clear the obstacle. Recomputing
     // both sides every 250 ms made equally open routes alternate at walls.
     if (m_bAvoidCollision) {
+        if ((controlledEntity->origin - m_vCollisionProgressOrigin).lengthXYSquared()
+            >= Square(BOT_COLLISION_PROGRESS_UNITS)) {
+            m_vCollisionProgressOrigin = controlledEntity->origin;
+            m_iCollisionProgressTime   = level.inttime;
+        } else if (level.inttime
+                   >= m_iCollisionProgressTime + BOT_COLLISION_STALL_MSEC) {
+            // A committed detour that makes no physical progress is the wrong
+            // side or points into another brush. Rebuild the path immediately
+            // instead of spending the full blocked-recovery cycle pushing on
+            // the railing or wall.
+            m_bAvoidCollision        = false;
+            m_iCollisionCheckTime    = level.inttime;
+            m_iCollisionProgressTime = 0;
+
+            if (!m_bDirectMove && m_pPath && m_pPath->GetNodeCount()) {
+                PathSearchParameter parameters;
+                parameters.entity     = controlledEntity;
+                parameters.fallHeight = maxFallHeight;
+                m_pPath->FindPath(
+                    controlledEntity->origin,
+                    m_vTargetPos,
+                    parameters
+                );
+                m_iLastMoveTime = level.inttime;
+                return vec_zero;
+            }
+        }
+
         newDelta = m_vTempCollisionAvoidance - controlledEntity->origin;
-        if (!m_bJump
+        if (m_bAvoidCollision && !m_bJump
             && newDelta.lengthXYSquared() > Square(16)
             && level.inttime < m_iCollisionCheckTime + BOT_COLLISION_AVOID_COMMIT_MSEC) {
             return newDelta;
         }
 
-        m_bAvoidCollision = false;
+        m_bAvoidCollision        = false;
+        m_iCollisionProgressTime = 0;
     }
 
     if (level.inttime < m_iCollisionCheckTime + 250 || m_bJump) {
@@ -1199,7 +1232,9 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         }
 
         if (bestLeftFrac != 0 || bestRightFrac != 0) {
-            m_bAvoidCollision = true;
+            m_bAvoidCollision          = true;
+            m_iCollisionProgressTime   = level.inttime;
+            m_vCollisionProgressOrigin = controlledEntity->origin;
 
             //
             // By default use the one with higher fraction
@@ -1314,9 +1349,11 @@ void BotMovement::ClearMove(void)
 {
     m_bPathing          = false;
     m_bDirectMove       = false;
-    m_bAvoidCollision   = false;
-    m_iTempAwayState    = 0;
-    m_iNumBlocks        = 0;
+    m_bAvoidCollision          = false;
+    m_iCollisionProgressTime   = 0;
+    m_vCollisionProgressOrigin = vec_zero;
+    m_iTempAwayState           = 0;
+    m_iNumBlocks               = 0;
     m_bJump             = false;
     m_iJumpCommitTime   = -1;
     m_iJumpRetryTime    = 0;
