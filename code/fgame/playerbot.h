@@ -358,6 +358,12 @@ private:
     Vector                    m_vLastCuriousPos;
     Vector                    m_vNewCuriousPos;
     int                       m_iCuriousEventType;
+    SafePtr<Entity>           m_pAvoidGrenade;
+    Vector                    m_vAvoidGrenadePosition;
+    int                       m_iGrenadeReactTime;
+    int                       m_iGrenadeNextPathTime;
+    bool                      m_bGrenadeFleeing;
+    bool                      m_bGrenadePathFailed;
     bool                      m_bTeamResponding;
     bot_contact_source_t      m_iTeamContactSource;
     int                       m_iTeamContactEnemy;
@@ -419,6 +425,7 @@ private:
     void CheckValidWeapon(void);
     void UpdateTeamContact(void);
     void ClearTeamResponse(void);
+    void ResetGrenadeAvoidance(void);
     void UpdateObjectiveBehavior(void);
     void FinalizeObjectiveCommand(void);
     void ResetObjectiveBehavior(void);

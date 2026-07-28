@@ -817,6 +817,19 @@ void BotController::UpdateObjectiveBehavior()
     m_bObjectiveOwnsUse      = false;
     m_bObjectiveCritical     = false;
 
+    if (m_bGrenadeFleeing) {
+        // Survival temporarily owns movement. Preserve the objective plan, but
+        // restart an interrupted plant/defuse attempt after reaching safety.
+        if (m_iObjectiveState == BOT_OBJECTIVE_PLANT
+            || m_iObjectiveState == BOT_OBJECTIVE_DEFUSE) {
+            m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
+            m_iObjectiveUseStartTime = 0;
+            m_iObjectiveNextMoveTime = 0;
+        }
+        m_botCmd.buttons &= ~BUTTON_USE;
+        return;
+    }
+
     if (!botManager.ObjectiveModeActive()) {
         if (m_iObjectiveState != BOT_OBJECTIVE_NONE || m_iObjectiveRound >= 0) {
             ResetObjectiveBehavior();

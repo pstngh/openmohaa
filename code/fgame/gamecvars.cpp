@@ -288,6 +288,7 @@ cvar_t *g_bot_aim_settle_time;
 cvar_t *g_bot_aim_latency;
 cvar_t *g_bot_turn_speed;
 cvar_t *g_bot_turn_accel;
+cvar_t *g_bot_grenade_avoid;
 cvar_t *g_bot_initial_spawn_delay;
 cvar_t *g_bot_manualmove;
 cvar_t *g_bot_strafe_intensity;
@@ -776,6 +777,7 @@ void CVAR_Init(void)
     g_bot_aim_latency            = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
     g_bot_turn_speed             = gi.Cvar_Get("g_bot_turn_speed", "360", 0);
     g_bot_turn_accel             = gi.Cvar_Get("g_bot_turn_accel", "15", 0);
+    g_bot_grenade_avoid          = gi.Cvar_Get("g_bot_grenade_avoid", "1", 0);
 
     gi.Cvar_CheckRange(g_bot_difficulty, -1, 100, qtrue);
     gi.Cvar_CheckRange(g_bot_attack_react_min_delay, 0, 10, qfalse);
@@ -787,6 +789,7 @@ void CVAR_Init(void)
     gi.Cvar_CheckRange(g_bot_aim_latency, 0, 2000, qtrue);
     gi.Cvar_CheckRange(g_bot_turn_speed, 1, 1080, qfalse);
     gi.Cvar_CheckRange(g_bot_turn_accel, 0.1f, 100, qfalse);
+    gi.Cvar_CheckRange(g_bot_grenade_avoid, 0, 1, qtrue);
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);

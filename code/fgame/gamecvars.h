@@ -331,6 +331,10 @@ extern cvar_t *g_bot_turn_speed;
  * @brief Rate at which the bot reaches its maximum turn rate.
  */
 extern cvar_t *g_bot_turn_accel;
+/**
+ * @brief Whether bots flee from nearby live grenades.
+ */
+extern cvar_t *g_bot_grenade_avoid;
 
 /**
  * @brief The delay before spawning bots at the beginning of the map.

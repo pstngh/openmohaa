@@ -51,6 +51,10 @@ static const float BOT_AIM_RESIDUAL_FRACTION = 0.60f;
 
 static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 
+static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
+static const int   BOT_GRENADE_REPATH_MSEC        = 250;
+static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
+
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
 // eye-to-eye trace declares an enemy invisible whenever anything clips that
@@ -122,8 +126,6 @@ void bot_controller_telemetry_t::Reset()
 static int BotSoundPriority(int eventType)
 {
     switch (eventType) {
-    case AI_EVENT_GRENADE:
-        return 8;
     case AI_EVENT_WEAPON_FIRE:
         return 7;
     case AI_EVENT_EXPLOSION:
@@ -149,8 +151,6 @@ static int BotSoundPriority(int eventType)
 static int BotSoundInterestDuration(int eventType)
 {
     switch (eventType) {
-    case AI_EVENT_GRENADE:
-        return 5000;
     case AI_EVENT_WEAPON_FIRE:
     case AI_EVENT_EXPLOSION:
         return 10000;
@@ -186,6 +186,15 @@ static Vector RandomBotAimErrorDirection()
 static int RandomBotAimErrorInterval()
 {
     return 1000 + (int)G_Random(1000);
+}
+
+static int BotGrenadeReactionDelay()
+{
+    const float difficulty =
+        g_bot_difficulty && g_bot_difficulty->integer >= 0
+        ? Q_clamp_float(g_bot_difficulty->value, 0.0f, 100.0f)
+        : 50.0f;
+    return 350 - static_cast<int>(difficulty * 2.0f);
 }
 
 BotController::BotController()
@@ -224,6 +233,7 @@ BotController::BotController()
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
     m_iCuriousEventType         = AI_EVENT_NONE;
+    ResetGrenadeAvoidance();
     m_bTeamResponding           = false;
     m_iTeamContactSource        = BOT_CONTACT_NONE;
     m_iTeamContactEnemy         = -1;
@@ -603,6 +613,47 @@ void BotController::NoticeEvent(Vector vPos, int iType, Entity *pEnt, float fDis
     float     fRangeFactor;
     Vector    delta1, delta2;
 
+    if (iType == AI_EVENT_GRENADE) {
+        // Grenades are hazards, not curiosity targets. The broadcast already
+        // limits this to connected areas; retain a short human hearing range
+        // and track the live projectile after it is noticed.
+        if (!g_bot_grenade_avoid || !g_bot_grenade_avoid->integer || !pEnt
+            || !pEnt->IsSubclassOfProjectile()
+            || fDistanceSquared > Square(BOT_GRENADE_SAFE_DISTANCE)) {
+            return;
+        }
+
+        if (m_pAvoidGrenade == pEnt) {
+            m_vAvoidGrenadePosition = pEnt->origin;
+            return;
+        }
+
+        if (m_pAvoidGrenade) {
+            const float currentDistance =
+                (m_pAvoidGrenade->origin - controlledEnt->origin).lengthSquared();
+            if (currentDistance <= fDistanceSquared) {
+                return;
+            }
+        }
+
+        const bool alreadyFleeing = m_bGrenadeFleeing;
+        m_pAvoidGrenade           = pEnt;
+        m_vAvoidGrenadePosition   = pEnt->origin;
+        m_iGrenadeReactTime =
+            alreadyFleeing ? level.inttime : level.inttime + BotGrenadeReactionDelay();
+        m_iGrenadeNextPathTime = 0;
+        m_bGrenadePathFailed   = false;
+
+        G_MoveLogBotEvent(
+            "bot_grenade_notice",
+            controlledEnt,
+            NULL,
+            pEnt->entnum,
+            m_vAvoidGrenadePosition
+        );
+        return;
+    }
+
     if (pEnt->IsSubclassOfSentient()) {
         pSentOwner = static_cast<Sentient *>(pEnt);
     } else if (pEnt->IsSubclassOfVehicleTurretGun()) {
@@ -679,6 +730,16 @@ void BotController::ClearTeamResponse(void)
     m_iTeamContactExpireTime  = 0;
     m_iNextTeamSearchMoveTime = 0;
     m_vTeamContactPos         = vec_zero;
+}
+
+void BotController::ResetGrenadeAvoidance(void)
+{
+    m_pAvoidGrenade         = NULL;
+    m_vAvoidGrenadePosition = vec_zero;
+    m_iGrenadeReactTime     = 0;
+    m_iGrenadeNextPathTime  = 0;
+    m_bGrenadeFleeing       = false;
+    m_bGrenadePathFailed    = false;
 }
 
 void BotController::UpdateTeamContact(void)
@@ -870,6 +931,7 @@ void BotController::State_Reset(void)
     m_vOldEnemyPos              = vec_zero;
     m_vLastEnemyPos             = vec_zero;
     m_vLastDeathPos             = vec_zero;
+    ResetGrenadeAvoidance();
     m_pEnemy                    = NULL;
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
@@ -892,6 +954,10 @@ void BotController::InitState_Idle(botfunc_t *func)
 
 bool BotController::CheckCondition_Idle(void)
 {
+    if (m_bGrenadeFleeing) {
+        return false;
+    }
+
     if (m_iCuriousTime) {
         return false;
     }
@@ -1683,18 +1749,129 @@ Avoid any grenades
 void BotController::InitState_Grenade(botfunc_t *func)
 {
     func->CheckCondition = &BotController::CheckCondition_Grenade;
+    func->BeginState     = &BotController::State_BeginGrenade;
+    func->EndState       = &BotController::State_EndGrenade;
     func->ThinkState     = &BotController::State_Grenade;
 }
 
 bool BotController::CheckCondition_Grenade(void)
 {
-    // FIXME: TODO
-    return false;
+    if (!g_bot_grenade_avoid || !g_bot_grenade_avoid->integer) {
+        ResetGrenadeAvoidance();
+        return false;
+    }
+
+    if (!m_pAvoidGrenade) {
+        if (m_iGrenadeReactTime) {
+            G_MoveLogBotEvent(
+                "bot_grenade_gone",
+                controlledEnt,
+                NULL,
+                -1,
+                m_vAvoidGrenadePosition
+            );
+        }
+        m_iGrenadeReactTime    = 0;
+        m_iGrenadeNextPathTime = 0;
+        return false;
+    }
+
+    m_vAvoidGrenadePosition = m_pAvoidGrenade->origin;
+    if ((m_vAvoidGrenadePosition - controlledEnt->origin).lengthSquared()
+        >= Square(BOT_GRENADE_SAFE_DISTANCE)) {
+        G_MoveLogBotEvent(
+            "bot_grenade_safe",
+            controlledEnt,
+            NULL,
+            m_pAvoidGrenade->entnum,
+            m_vAvoidGrenadePosition
+        );
+        m_pAvoidGrenade         = NULL;
+        m_iGrenadeReactTime    = 0;
+        m_iGrenadeNextPathTime = 0;
+        return false;
+    }
+
+    return level.inttime >= m_iGrenadeReactTime;
+}
+
+void BotController::State_BeginGrenade(void)
+{
+    m_bGrenadeFleeing      = true;
+    m_iGrenadeNextPathTime = 0;
+    movement.ClearMove();
+    m_botCmd.buttons &= ~BUTTON_USE;
+
+    G_MoveLogBotEvent(
+        "bot_grenade_flee",
+        controlledEnt,
+        NULL,
+        m_pAvoidGrenade ? m_pAvoidGrenade->entnum : -1,
+        m_vAvoidGrenadePosition
+    );
+}
+
+void BotController::State_EndGrenade(void)
+{
+    m_bGrenadeFleeing      = false;
+    m_iGrenadeNextPathTime = 0;
+    movement.ClearMove();
 }
 
 void BotController::State_Grenade(void)
 {
-    // FIXME: TODO
+    if (!m_pAvoidGrenade) {
+        return;
+    }
+
+    m_vAvoidGrenadePosition = m_pAvoidGrenade->origin;
+
+    // Attack still owns aim and firing, but not movement while escaping.
+    movement.ClearCombatTarget();
+    m_botCmd.buttons &= ~BUTTON_USE;
+
+    if (level.inttime < m_iGrenadeNextPathTime && movement.IsMoving()
+        && !movement.MoveDone()) {
+        return;
+    }
+
+    Vector away = controlledEnt->origin - m_vAvoidGrenadePosition;
+    away.z      = 0.0f;
+    if (away.lengthXYSquared() < 1.0f) {
+        away = -Vector(controlledEnt->orientation[0]);
+        away.z = 0.0f;
+    }
+    away.normalize();
+
+    movement.AvoidPath(
+        m_vAvoidGrenadePosition,
+        BOT_GRENADE_SAFE_DISTANCE,
+        away * BOT_GRENADE_SAFE_DISTANCE
+    );
+    m_iGrenadeNextPathTime = level.inttime + BOT_GRENADE_REPATH_MSEC;
+
+    if (!movement.MoveDone()) {
+        m_bGrenadePathFailed = false;
+        return;
+    }
+
+    if (!m_bGrenadePathFailed) {
+        G_MoveLogBotEvent(
+            "bot_grenade_path_fail",
+            controlledEnt,
+            NULL,
+            m_pAvoidGrenade->entnum,
+            m_vAvoidGrenadePosition
+        );
+        m_bGrenadePathFailed = true;
+    }
+
+    // A missing nav path should not leave the bot standing on the grenade.
+    // Direct movement retains the normal collision and ledge guards.
+    movement.MoveDirect(
+        controlledEnt->origin + away * BOT_GRENADE_DIRECT_ESCAPE_STEP,
+        32.0f
+    );
 }
 
 /*
@@ -1784,9 +1961,11 @@ void BotController::UseWeaponWithAmmo()
 void BotController::Spawned(void)
 {
     ClearEnemy();
+    ResetGrenadeAvoidance();
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
     m_botCmd.buttons    = 0;
+    m_StateFlags        = 0;
     ClearTeamResponse();
     ResetObjectiveBehavior();
 }
@@ -1808,6 +1987,7 @@ void BotController::Killed(const Event& ev)
     Entity *attacker;
 
     ClearTeamResponse();
+    ResetGrenadeAvoidance();
     ResetObjectiveBehavior();
 
     // send the respawn buttons
