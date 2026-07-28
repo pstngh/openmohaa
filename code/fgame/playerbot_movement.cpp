@@ -93,6 +93,7 @@ BotMovement::BotMovement()
     m_bIsLeaning            = false;
     m_bLeanCommandActive    = false;
     m_bHasCombatTarget      = false;
+    m_bForceCombatRetreat   = false;
     m_vCombatTarget         = vec_zero;
 }
 
@@ -106,15 +107,17 @@ void BotMovement::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
-void BotMovement::SetCombatTarget(const Vector& target)
+void BotMovement::SetCombatTarget(const Vector& target, bool forceRetreat)
 {
-    m_bHasCombatTarget = true;
-    m_vCombatTarget    = target;
+    m_bHasCombatTarget    = true;
+    m_bForceCombatRetreat = forceRetreat;
+    m_vCombatTarget       = target;
 }
 
 void BotMovement::ClearCombatTarget()
 {
     m_bHasCombatTarget      = false;
+    m_bForceCombatRetreat   = false;
     m_vCombatTarget         = vec_zero;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
@@ -1480,7 +1483,8 @@ int BotMovement::RadialPhaseDuration() const
 void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement)
 {
     const float maxDistance = g_bot_peek_distance->value;
-    if (suppressMovement || !m_bHasCombatTarget || maxDistance <= 0) {
+    if ((suppressMovement && !m_bForceCombatRetreat) || !m_bHasCombatTarget
+        || (!m_bForceCombatRetreat && maxDistance <= 0)) {
         m_iRadialDirection      = 0;
         m_iNextRadialChangeTime = 0;
         return;
@@ -1489,13 +1493,17 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     Vector      towardEnemy = m_vCombatTarget - controlledEntity->origin;
     const float distance    = VectorNormalize2D(towardEnemy);
     m_telemetry.radialDistance = distance;
-    if (distance <= 0 || distance >= maxDistance) {
+    if (distance <= 0 || (!m_bForceCombatRetreat && distance >= maxDistance)) {
         m_iRadialDirection      = 0;
         m_iNextRadialChangeTime = 0;
         return;
     }
 
-    if (distance < 56.0f) {
+    if (m_bForceCombatRetreat) {
+        m_iRadialDirection      = -1;
+        m_iNextRadialChangeTime = 0;
+        m_telemetry.radialForcedCloseRetreat = true;
+    } else if (distance < 56.0f) {
         // Resolve unsafe spacing immediately rather than waiting for the
         // current phase to expire. Leaving this range starts a fresh phase.
         m_iRadialDirection      = -1;
@@ -1514,7 +1522,9 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     // Keep the radial component deliberately slower than the lateral strafe,
     // producing broad arcs instead of straight charges.
     float desiredRadialMove;
-    if (distance < 56.0f) {
+    if (m_bForceCombatRetreat) {
+        desiredRadialMove = -127.0f;
+    } else if (distance < 56.0f) {
         desiredRadialMove = -48.0f;
     } else if (m_iRadialDirection < 0) {
         desiredRadialMove = distance < 96.0f ? -40.0f : -28.0f;
@@ -1608,7 +1618,7 @@ void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
     // Always prevent actual player/body contact. For world geometry, intervene
     // only while backing up; normal forward pathing already handles walls and
     // should remain free to hug corners and doorways.
-    if (!hitSentient && botcmd.forwardmove >= 0) {
+    if (!hitSentient && botcmd.forwardmove >= 0 && !m_bForceCombatRetreat) {
         return;
     }
 

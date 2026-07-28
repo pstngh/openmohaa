@@ -335,6 +335,11 @@ extern cvar_t *g_bot_turn_accel;
  * @brief Whether bots flee from nearby live grenades.
  */
 extern cvar_t *g_bot_grenade_avoid;
+/**
+ * @brief Whether bots switch to an available pistol instead of finishing a
+ * primary-weapon reload while actively fighting.
+ */
+extern cvar_t *g_bot_reload_pistol;
 
 /**
  * @brief The delay before spawning bots at the beginning of the map.

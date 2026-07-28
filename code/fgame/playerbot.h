@@ -180,7 +180,7 @@ public:
     ~BotMovement();
 
     void SetControlledEntity(Player *newEntity);
-    void SetCombatTarget(const Vector& target);
+    void SetCombatTarget(const Vector& target, bool forceRetreat = false);
     void ClearCombatTarget();
 
     void MoveThink(usercmd_t& botcmd);
@@ -277,6 +277,7 @@ private:
     bool m_bIsLeaning;             // Hysteresis: currently strafing
     bool m_bLeanCommandActive;     // Current usercmd contains a lean input
     bool m_bHasCombatTarget;
+    bool m_bForceCombatRetreat;
 
     void   UpdateAggressiveMovement(usercmd_t& botcmd);
     void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
@@ -419,7 +420,8 @@ private:
     DelegateHandle delegateHandle_spawned;
 
 private:
-    Weapon *FindWeaponWithAmmo(void);
+    Weapon *FindWeaponWithAmmo(int requiredClass = 0);
+    bool    UseCombatPistol(void);
     void    UseWeaponWithAmmo(void);
 
     void CheckUse(void);

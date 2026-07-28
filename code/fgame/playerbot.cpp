@@ -54,8 +54,7 @@ static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
 static const int   BOT_GRENADE_REPATH_MSEC        = 250;
 static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
-static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
-static const float BOT_RELOAD_DIRECT_ESCAPE_STEP  = 192.0f;
+static const float BOT_RELOAD_SAFE_DISTANCE = 384.0f;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -1732,35 +1731,8 @@ void BotController::State_Attack(void)
 
     if (bReloading) {
         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
-        movement.ClearCombatTarget();
 
         if (!m_bReloadRetreating) {
-            Vector away = controlledEnt->origin - m_pEnemy->origin;
-            away.z      = 0.0f;
-            if (away.lengthXYSquared() < 1.0f) {
-                away = -Vector(controlledEnt->orientation[0]);
-                away.z = 0.0f;
-            }
-            away.normalize();
-
-            if (fDistanceSquared < Square(BOT_RELOAD_SAFE_DISTANCE)) {
-                movement.AvoidPath(
-                    m_pEnemy->origin,
-                    BOT_RELOAD_SAFE_DISTANCE,
-                    away * BOT_RELOAD_SAFE_DISTANCE
-                );
-                if (!movement.IsMoving() || movement.MoveDone()) {
-                    movement.MoveDirect(
-                        controlledEnt->origin + away * BOT_RELOAD_DIRECT_ESCAPE_STEP,
-                        32.0f
-                    );
-                }
-            } else {
-                // At a safe range, stop any old path toward the enemy. Normal
-                // lateral movement remains active while the reload finishes.
-                movement.ClearMove();
-            }
-
             m_bReloadRetreating = true;
             G_MoveLogBotEvent(
                 "bot_reload_retreat",
@@ -1769,6 +1741,20 @@ void BotController::State_Attack(void)
                 m_pEnemy->entnum,
                 m_pEnemy->origin
             );
+        }
+
+        if (g_bot_reload_pistol->integer) {
+            UseCombatPistol();
+        }
+
+        // A navigation path can begin by moving toward the threat or curve
+        // back as geometry changes. Remove that path and shape the final
+        // combat command away from the live enemy every frame instead.
+        movement.ClearMove();
+        if (fDistanceSquared < Square(BOT_RELOAD_SAFE_DISTANCE)) {
+            movement.SetCombatTarget(m_pEnemy->origin, true);
+        } else {
+            movement.ClearCombatTarget();
         }
         return;
     }
@@ -1970,7 +1956,7 @@ void BotController::State_BeginWeapon(void)
     SendCommand(va("use \"%s\"", weap->model.c_str()));
 }
 
-Weapon *BotController::FindWeaponWithAmmo()
+Weapon *BotController::FindWeaponWithAmmo(int requiredClass)
 {
     Weapon               *next;
     int                   n;
@@ -1997,6 +1983,10 @@ Weapon *BotController::FindWeaponWithAmmo()
             continue;
         }
 
+        if (requiredClass && !(next->GetWeaponClass() & requiredClass)) {
+            continue;
+        }
+
         if (next->GetRank() < bestrank) {
             continue;
         }
@@ -2010,6 +2000,34 @@ Weapon *BotController::FindWeaponWithAmmo()
     }
 
     return bestweapon;
+}
+
+bool BotController::UseCombatPistol()
+{
+    Weapon *active = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    if (active && (active->GetWeaponClass() & WEAPON_CLASS_PISTOL)) {
+        return false;
+    }
+
+    Weapon *pending = controlledEnt->GetNewActiveWeapon();
+    if (pending) {
+        return (pending->GetWeaponClass() & WEAPON_CLASS_PISTOL) != 0;
+    }
+
+    Weapon *pistol = FindWeaponWithAmmo(WEAPON_CLASS_PISTOL);
+    if (!pistol) {
+        return false;
+    }
+
+    controlledEnt->useWeapon(pistol, WEAPON_MAIN);
+    G_MoveLogBotEvent(
+        "bot_reload_pistol",
+        controlledEnt,
+        m_pEnemy && m_pEnemy->IsSubclassOfPlayer() ? static_cast<Player *>(m_pEnemy.Pointer()) : NULL,
+        pistol->entnum,
+        controlledEnt->origin
+    );
+    return true;
 }
 
 void BotController::UseWeaponWithAmmo()
