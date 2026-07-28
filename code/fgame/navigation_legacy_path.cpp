@@ -41,7 +41,7 @@ void LegacyPather::FindPathNear(
 )
 {
     path.SetFallHeight(parameters.fallHeight);
-    path.FindPathNear((float *)(Vector&)start, (float *)(Vector&)end, parameters.entity, 0, radius, NULL, 0);
+    path.FindPathNear((float *)(Vector&)start, (float *)(Vector&)end, parameters.entity, 0, Square(radius), NULL, 0);
 }
 
 void LegacyPather::FindPathAway(

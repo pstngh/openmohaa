@@ -223,6 +223,9 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
             || level.inttime < contact.availableTime || level.inttime >= contact.expireTime) {
             continue;
         }
+        if (!controller->CanRespondToTeamContact(contact.position)) {
+            continue;
+        }
 
         const float playerDistance = (player->origin - contact.position).length();
         const float playerRankDistance =
@@ -234,7 +237,7 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
             BotController *candidateController = controllers.ObjectAt(i);
             Player        *candidate           = candidateController->getControlledEntity();
             if (candidateController == controller || !candidate || candidate->GetTeam() != player->GetTeam()
-                || !candidateController->CanRespondToTeamContact()) {
+                || !candidateController->CanRespondToTeamContact(contact.position)) {
                 continue;
             }
 

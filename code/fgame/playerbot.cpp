@@ -237,8 +237,8 @@ BotController::BotController()
     m_iObjectiveRound            = -1;
     m_iObjectiveSite             = -1;
     m_iObjectiveRouteVariant     = 0;
-    m_iObjectiveRouteStage       = 0;
     m_iObjectiveUseStartTime     = 0;
+    m_iObjectiveReapproachUntil  = 0;
     m_iObjectiveNextMoveTime     = 0;
     m_iObjectiveLastProgressTime = 0;
     m_iObjectiveLastStallLogTime = 0;
@@ -247,7 +247,6 @@ BotController::BotController()
     m_bObjectiveOwnsMovement     = false;
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical         = false;
-    m_vObjectiveStart            = vec_zero;
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = vec_zero;
 
@@ -729,6 +728,31 @@ bool BotController::CanRespondToTeamContact(void) const
         && !m_bObjectiveCritical && !m_bObjectiveOwnsUse;
 }
 
+bool BotController::CanRespondToTeamContact(const Vector& position) const
+{
+    if (!CanRespondToTeamContact()) {
+        return false;
+    }
+
+    if (!botManager.ObjectiveModeActive() || !m_bObjectiveAttacker
+        || m_iObjectiveState != BOT_OBJECTIVE_ADVANCE || !m_bObjectiveHasDestination) {
+        return true;
+    }
+
+    Vector objectiveDelta = m_vObjectiveDestination - controlledEnt->origin;
+    objectiveDelta.z      = 0.0f;
+    if (objectiveDelta.lengthSquared() <= Square(512.0f)) {
+        return false;
+    }
+
+    Vector contactDelta = m_vObjectiveDestination - position;
+    contactDelta.z      = 0.0f;
+
+    // Attackers still react to callouts that help clear the route, but they
+    // do not abandon forward progress to chase a report back toward spawn.
+    return contactDelta.lengthSquared() <= objectiveDelta.lengthSquared();
+}
+
 bool BotController::IsRespondingToTeamContact(int enemyNum) const
 {
     return m_bTeamResponding && m_iTeamContactEnemy == enemyNum;
@@ -890,6 +914,10 @@ void BotController::State_Idle(void)
 
     AimAtAimNode();
 
+    if (m_bObjectiveOwnsMovement) {
+        return;
+    }
+
     if (!movement.MoveToBestAttractivePoint() && !movement.IsMoving()) {
         if (m_vLastDeathPos != vec_zero) {
             movement.MoveTo(m_vLastDeathPos);
@@ -903,7 +931,7 @@ void BotController::State_Idle(void)
             float  radius = 512 + G_Random(2048);
 
             preferredDir += Vector(controlledEnt->orientation[0]) * (rand() % 5 ? 1024 : -1024);
-            preferredDir += Vector(controlledEnt->orientation[2]) * (rand() % 5 ? 1024 : -1024);
+            preferredDir += Vector(controlledEnt->orientation[1]) * (rand() % 5 ? 1024 : -1024);
             movement.AvoidPath(controlledEnt->origin + randomDir, radius, preferredDir);
         }
     }

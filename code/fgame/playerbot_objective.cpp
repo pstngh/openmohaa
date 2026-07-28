@@ -19,8 +19,19 @@ variables, and interact through the same use command as a human player.
 #include "../script/scriptvariable.h"
 
 static const int   BOT_OBJECTIVE_USE_TIMEOUT_MSEC = 10000;
+static const int   BOT_OBJECTIVE_REAPPROACH_MSEC  = 2500;
 static const int   BOT_OBJECTIVE_STALL_MSEC       = 5000;
 static const float BOT_OBJECTIVE_PROGRESS_UNITS   = 64.0f;
+// Match the player's 64-unit use trace plus its 16-unit endpoint scan.
+static const float BOT_OBJECTIVE_USE_RANGE        = 80.0f;
+// Bomb models can occupy the center nav point, so stop at a reachable point nearby.
+static const float BOT_OBJECTIVE_APPROACH_RADIUS  = 64.0f;
+// After a rejected interaction, move close enough to clear nearby geometry.
+static const float BOT_OBJECTIVE_RETRY_APPROACH_RADIUS = 24.0f;
+static const float BOT_OBJECTIVE_DEFAULT_USE_FOV        = 30.0f;
+static const float BOT_OBJECTIVE_DEFAULT_USE_DISTANCE   = 128.0f;
+// Generated hold/patrol points are approximate; accept nearby navigation.
+static const float BOT_OBJECTIVE_PATROL_SEARCH_RADIUS = 128.0f;
 
 void bot_objective_site_t::Clear()
 {
@@ -37,6 +48,50 @@ static int BotObjectiveVariable(Entity *entity, const char *name)
 
     ScriptVariable *variable = entity->Vars()->GetVariable(name);
     return variable ? variable->intValue() : 0;
+}
+
+static float BotObjectiveLevelVariable(const char *name, float fallback)
+{
+    ScriptVariable *variable = level.vars->GetVariable(name);
+    return variable ? variable->floatValue() : fallback;
+}
+
+static float BotObjectiveUseFov()
+{
+    return BotObjectiveLevelVariable("bombusefov", BOT_OBJECTIVE_DEFAULT_USE_FOV);
+}
+
+static float BotObjectiveUseDistance()
+{
+    return BotObjectiveLevelVariable("bomb_use_distance", BOT_OBJECTIVE_DEFAULT_USE_DISTANCE);
+}
+
+static bool BotObjectiveCanSee(Player *player, Entity *explosive, float fov)
+{
+    return player && explosive
+        && player->CanSee(explosive, fov, BotObjectiveUseDistance(), false);
+}
+
+static bool BotObjectiveInUseRange(Player *player, Entity *trigger)
+{
+    if (!player || !trigger) {
+        return false;
+    }
+
+    const Vector eye             = player->EyePosition();
+    float        distanceSquared = 0.0f;
+
+    for (int axis = 0; axis < 3; ++axis) {
+        float distance = 0.0f;
+        if (eye[axis] < trigger->absmin[axis]) {
+            distance = trigger->absmin[axis] - eye[axis];
+        } else if (eye[axis] > trigger->absmax[axis]) {
+            distance = eye[axis] - trigger->absmax[axis];
+        }
+        distanceSquared += distance * distance;
+    }
+
+    return distanceSquared <= Square(BOT_OBJECTIVE_USE_RANGE);
 }
 
 bool BotManager::ObjectiveModeActive() const
@@ -180,6 +235,14 @@ Vector BotManager::GetObjectiveSitePosition(int site) const
     return explosive ? explosive->origin : vec_zero;
 }
 
+Entity *BotManager::GetObjectiveSiteExplosive(int site) const
+{
+    if (site < 0 || site >= objectiveSiteCount) {
+        return NULL;
+    }
+    return objectiveSites[site].explosive;
+}
+
 Entity *BotManager::GetObjectiveSiteTrigger(int site) const
 {
     if (site < 0 || site >= objectiveSiteCount) {
@@ -243,32 +306,6 @@ int BotManager::GetObjectiveBotRank(Player *player) const
     return rank;
 }
 
-int BotManager::GetObjectiveDistanceRank(Player *player, const Vector& position) const
-{
-    if (!player) {
-        return 0;
-    }
-
-    const float playerDistance = (player->origin - position).lengthSquared();
-    int         rank           = 0;
-    const Container<BotController *>& controllers = botControllerManager.getControllers();
-
-    for (int i = 1; i <= controllers.NumObjects(); ++i) {
-        Player *candidate = controllers.ObjectAt(i)->getControlledEntity();
-        if (!candidate || candidate == player || candidate->GetTeam() != player->GetTeam()
-            || candidate->IsDead() || candidate->IsSpectator()) {
-            continue;
-        }
-
-        const float candidateDistance = (candidate->origin - position).lengthSquared();
-        if (candidateDistance < playerDistance
-            || (candidateDistance == playerDistance && candidate->entnum < player->entnum)) {
-            ++rank;
-        }
-    }
-    return rank;
-}
-
 Vector BotManager::GetObjectiveEnemySpawnCenter(teamtype_t team) const
 {
     const teamtype_t enemyTeam = team == TEAM_ALLIES ? TEAM_AXIS : TEAM_ALLIES;
@@ -320,24 +357,6 @@ static Vector BotObjectiveNearestNode(const Vector& desired, const Vector& cente
     return best ? best->origin : desired;
 }
 
-static Vector BotObjectiveRouteAnchor(const Vector& start, const Vector& goal, int variant, int stage)
-{
-    static const float lanes[] = {-1.0f, 1.0f, -0.45f, 0.45f};
-
-    Vector forward = BotObjectiveDirection(start, goal);
-    Vector left(-forward.y, forward.x, 0.0f);
-    Vector delta   = goal - start;
-    delta.z        = 0.0f;
-
-    const float distance = Q_max(delta.length(), 1.0f);
-    const float fraction = stage == 0 ? 0.25f : 0.58f;
-    const float progress = Q_clamp_float(distance * fraction, 192.0f, Q_max(192.0f, distance - 192.0f));
-    const float  laneWidth = Q_clamp_float(distance * 0.18f, 128.0f, 512.0f);
-    const Vector desired   = start + forward * progress + left * (lanes[variant & 3] * laneWidth);
-
-    return BotObjectiveNearestNode(desired, desired, Q_max(384.0f, laneWidth * 1.5f));
-}
-
 static Vector BotObjectivePatrolPoint(const Vector& center, const Vector& toward, float radius, int variant)
 {
     static const float angles[] = {-1.10f, 1.10f, -0.45f, 0.45f};
@@ -385,8 +404,8 @@ void BotController::ResetObjectiveBehavior()
     m_iObjectiveRound            = -1;
     m_iObjectiveSite             = -1;
     m_iObjectiveRouteVariant     = 0;
-    m_iObjectiveRouteStage       = 0;
     m_iObjectiveUseStartTime     = 0;
+    m_iObjectiveReapproachUntil  = 0;
     m_iObjectiveNextMoveTime     = 0;
     m_iObjectiveLastProgressTime = 0;
     m_iObjectiveLastStallLogTime = 0;
@@ -395,7 +414,6 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveOwnsMovement     = false;
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical         = false;
-    m_vObjectiveStart            = vec_zero;
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = vec_zero;
 
@@ -416,10 +434,8 @@ void BotController::BeginObjectivePlan()
     m_bObjectiveAttacker         = controlledEnt->GetTeam() == botManager.GetObjectivePlantTeam();
     m_iObjectiveSite             = (rank + seed) % siteCount;
     m_iObjectiveRouteVariant     = (rank + seed / Q_max(siteCount, 1)) & 3;
-    m_iObjectiveRouteStage       = 0;
     m_iObjectiveState            = BOT_OBJECTIVE_NONE;
     m_bObjectiveHasDestination   = false;
-    m_vObjectiveStart            = controlledEnt->origin;
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = controlledEnt->origin;
     m_iObjectiveLastProgressTime = level.inttime;
@@ -433,7 +449,9 @@ void BotController::BeginObjectivePlan()
     );
 }
 
-void BotController::SetObjectiveDestination(const Vector& destination, bot_objective_state_t state)
+void BotController::SetObjectiveDestination(
+    const Vector& destination, bot_objective_state_t state, float radius
+)
 {
     const bool changed =
         !m_bObjectiveHasDestination || m_iObjectiveState != state
@@ -444,12 +462,30 @@ void BotController::SetObjectiveDestination(const Vector& destination, bot_objec
     m_vObjectiveDestination    = destination;
     m_bObjectiveOwnsMovement   = true;
 
-    if (changed || ((!movement.IsMoving() || movement.MoveDone()) && level.inttime >= m_iObjectiveNextMoveTime)) {
-        movement.MoveTo(destination);
-        m_iObjectiveNextMoveTime = level.inttime + 1000;
+    if (changed) {
+        m_vObjectiveLastProgressPos  = controlledEnt->origin;
+        m_iObjectiveLastProgressTime = level.inttime;
     }
 
-    AimAtAimNode();
+    if (changed || !movement.IsMoving() || movement.MoveDone()) {
+        if (radius > 0.0f) {
+            movement.MoveNear(destination, radius);
+        } else {
+            movement.MoveTo(destination);
+        }
+
+        // Do not claim an objective path that the navigation backend rejected.
+        // Patrol planning can then try another point, while the normal idle
+        // fallback keeps the bot active for this frame.
+        if (!movement.IsMoving()) {
+            m_bObjectiveHasDestination = false;
+            m_bObjectiveOwnsMovement   = false;
+        }
+    }
+
+    if (!m_iAttackTime) {
+        AimAtAimNode();
+    }
 }
 
 void BotController::UpdateObjectivePatrol(
@@ -465,15 +501,27 @@ void BotController::UpdateObjectivePatrol(
             m_iObjectiveRouteVariant = (m_iObjectiveRouteVariant + 1 + static_cast<int>(G_Random(3.0f))) & 3;
         }
         const Vector destination = BotObjectivePatrolPoint(center, toward, radius, m_iObjectiveRouteVariant);
-        SetObjectiveDestination(destination, state);
+        SetObjectiveDestination(destination, state, BOT_OBJECTIVE_PATROL_SEARCH_RADIUS);
         m_iObjectiveNextMoveTime = level.inttime + 3000 + static_cast<int>(G_Random(3000.0f));
-    } else {
-        SetObjectiveDestination(m_vObjectiveDestination, state);
-        if (movement.MoveDone()) {
-            m_vObjectiveLastProgressPos  = controlledEnt->origin;
-            m_iObjectiveLastProgressTime = level.inttime;
-        }
+        return;
     }
+
+    if (movement.MoveDone()) {
+        // Stay put until it is time to choose a genuinely new patrol point.
+        // Reissuing an already completed MoveNear path causes direction jitter.
+        m_iObjectiveState            = state;
+        m_bObjectiveOwnsMovement     = true;
+        m_vObjectiveLastProgressPos  = controlledEnt->origin;
+        m_iObjectiveLastProgressTime = level.inttime;
+        movement.ClearMove();
+        return;
+    }
+
+    SetObjectiveDestination(
+        m_vObjectiveDestination,
+        state,
+        BOT_OBJECTIVE_PATROL_SEARCH_RADIUS
+    );
 }
 
 void BotController::UpdateObjectiveUse(bool planting)
@@ -491,29 +539,35 @@ void BotController::UpdateObjectiveUse(bool planting)
             botManager.GetObjectiveSitePosition(m_iObjectiveSite)
         );
         botManager.ReleaseObjectiveClaim(controlledEnt);
-        m_iObjectiveState        = planting ? BOT_OBJECTIVE_COVER : BOT_OBJECTIVE_HOLD;
-        m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
-        m_iObjectiveUseStartTime = 0;
+        m_iObjectiveState           = planting ? BOT_OBJECTIVE_COVER : BOT_OBJECTIVE_HOLD;
+        m_iObjectiveUsePhase        = BOT_OBJECTIVE_USE_AIM;
+        m_iObjectiveUseStartTime    = 0;
+        m_iObjectiveReapproachUntil = 0;
         m_botCmd.buttons &= ~BUTTON_USE;
         return;
     }
 
     if (siteState == BOT_OBJECTIVE_SITE_DESTROYED) {
         botManager.ReleaseObjectiveClaim(controlledEnt);
-        m_iObjectiveState        = BOT_OBJECTIVE_NONE;
-        m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
-        m_iObjectiveUseStartTime = 0;
+        m_iObjectiveState           = BOT_OBJECTIVE_NONE;
+        m_iObjectiveUsePhase        = BOT_OBJECTIVE_USE_AIM;
+        m_iObjectiveUseStartTime    = 0;
+        m_iObjectiveReapproachUntil = 0;
         return;
     }
 
-    Entity *trigger = botManager.GetObjectiveSiteTrigger(m_iObjectiveSite);
-    if (!trigger || !controlledEnt->canUse(trigger, true)) {
+    Entity *explosive = botManager.GetObjectiveSiteExplosive(m_iObjectiveSite);
+    Entity *trigger   = botManager.GetObjectiveSiteTrigger(m_iObjectiveSite);
+    if (!explosive || !trigger
+        || (m_iObjectiveUsePhase != BOT_OBJECTIVE_USE_HOLD
+            && !BotObjectiveInUseRange(controlledEnt, trigger))) {
         botManager.ReleaseObjectiveClaim(controlledEnt);
         m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
         m_iObjectiveUseStartTime = 0;
         SetObjectiveDestination(
             botManager.GetObjectiveSitePosition(m_iObjectiveSite),
-            BOT_OBJECTIVE_ADVANCE
+            BOT_OBJECTIVE_ADVANCE,
+            BOT_OBJECTIVE_APPROACH_RADIUS
         );
         return;
     }
@@ -523,7 +577,17 @@ void BotController::UpdateObjectiveUse(bool planting)
     m_bObjectiveOwnsUse      = true;
     m_bObjectiveCritical     = true;
     movement.ClearMove();
-    rotation.AimAt(botManager.GetObjectiveSitePosition(m_iObjectiveSite));
+    rotation.AimAt(explosive->centroid);
+
+    // canUse follows the player's view, while the map script checks CanSee
+    // against the bomb model using body orientation.
+    Vector bodyAngles = controlledEnt->angles;
+    bodyAngles[YAW]    = rotation.GetTargetAngles()[YAW];
+    controlledEnt->setAngles(bodyAngles);
+
+    if (!m_iObjectiveUseStartTime) {
+        m_iObjectiveUseStartTime = level.inttime;
+    }
 
     if (m_bTeamResponding) {
         m_iCuriousTime      = 0;
@@ -532,9 +596,14 @@ void BotController::UpdateObjectiveUse(bool planting)
     }
 
     if (m_iObjectiveUsePhase == BOT_OBJECTIVE_USE_AIM) {
-        m_iObjectiveUsePhase = BOT_OBJECTIVE_USE_RELEASE;
+        if (controlledEnt->canUse(trigger, true)
+            && BotObjectiveCanSee(controlledEnt, explosive, BotObjectiveUseFov())) {
+            m_iObjectiveUsePhase = BOT_OBJECTIVE_USE_RELEASE;
+        }
     } else if (m_iObjectiveUsePhase == BOT_OBJECTIVE_USE_RELEASE) {
-        m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_HOLD;
+        m_iObjectiveUsePhase = BOT_OBJECTIVE_USE_HOLD;
+        // Give the script a full hold timeout; time spent turning toward the
+        // model must not consume the interaction window.
         m_iObjectiveUseStartTime = level.inttime;
         G_MoveLogBotEvent(
             planting ? "bot_objective_plant_start" : "bot_objective_defuse_start",
@@ -543,7 +612,9 @@ void BotController::UpdateObjectiveUse(bool planting)
             m_iObjectiveSite,
             botManager.GetObjectiveSitePosition(m_iObjectiveSite)
         );
-    } else if (level.inttime - m_iObjectiveUseStartTime >= BOT_OBJECTIVE_USE_TIMEOUT_MSEC) {
+    }
+
+    if (level.inttime - m_iObjectiveUseStartTime >= BOT_OBJECTIVE_USE_TIMEOUT_MSEC) {
         G_MoveLogBotEvent(
             planting ? "bot_objective_plant_timeout" : "bot_objective_defuse_timeout",
             controlledEnt,
@@ -552,13 +623,42 @@ void BotController::UpdateObjectiveUse(bool planting)
             botManager.GetObjectiveSitePosition(m_iObjectiveSite)
         );
         botManager.ReleaseObjectiveClaim(controlledEnt);
-        m_iObjectiveState        = BOT_OBJECTIVE_ADVANCE;
-        m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
-        m_iObjectiveUseStartTime = 0;
-        m_bObjectiveOwnsUse      = false;
-        m_bObjectiveCritical     = false;
-        m_iObjectiveNextMoveTime = 0;
+        m_iObjectiveState           = BOT_OBJECTIVE_ADVANCE;
+        m_iObjectiveUsePhase        = BOT_OBJECTIVE_USE_AIM;
+        m_iObjectiveUseStartTime    = 0;
+        m_bObjectiveOwnsUse         = false;
+        m_bObjectiveCritical        = false;
+        m_botCmd.buttons &= ~BUTTON_USE;
+        m_iObjectiveReapproachUntil = level.inttime + BOT_OBJECTIVE_REAPPROACH_MSEC;
+        m_bObjectiveHasDestination = false;
+        SetObjectiveDestination(
+            botManager.GetObjectiveSitePosition(m_iObjectiveSite),
+            BOT_OBJECTIVE_ADVANCE,
+            BOT_OBJECTIVE_RETRY_APPROACH_RADIUS
+        );
     }
+}
+
+bool BotController::TryStartObjectiveUse(bool planting, int site)
+{
+    Entity *explosive = botManager.GetObjectiveSiteExplosive(site);
+    Entity *trigger   = botManager.GetObjectiveSiteTrigger(site);
+    if (!explosive
+        || !BotObjectiveInUseRange(controlledEnt, trigger)
+        // Ignore facing here: UpdateObjectiveUse turns the bot before applying
+        // the map script's exact FOV check.
+        || !BotObjectiveCanSee(controlledEnt, explosive, 360.0f)
+        || !botManager.ClaimObjectiveSite(site, controlledEnt)) {
+        return false;
+    }
+
+    m_iObjectiveSite            = site;
+    m_iObjectiveState           = planting ? BOT_OBJECTIVE_PLANT : BOT_OBJECTIVE_DEFUSE;
+    m_iObjectiveUsePhase        = BOT_OBJECTIVE_USE_AIM;
+    m_iObjectiveUseStartTime    = 0;
+    m_iObjectiveReapproachUntil = 0;
+    UpdateObjectiveUse(planting);
+    return true;
 }
 
 void BotController::UpdateObjectiveProgress()
@@ -628,19 +728,25 @@ void BotController::UpdateObjectiveBehavior()
         return;
     }
 
-    if (m_iAttackTime) {
-        m_vObjectiveLastProgressPos  = controlledEnt->origin;
-        m_iObjectiveLastProgressTime = level.inttime;
-        return;
-    }
-
     bot_objective_site_state_t siteState = botManager.GetObjectiveSiteState(m_iObjectiveSite);
     Vector enemySpawn = botManager.GetObjectiveEnemySpawnCenter(controlledEnt->GetTeam());
     if (enemySpawn == vec_zero) {
         enemySpawn = controlledEnt->origin + Vector(controlledEnt->orientation[0]) * 1024.0f;
     }
 
+    if (m_bObjectiveAttacker && siteState == BOT_OBJECTIVE_SITE_AVAILABLE
+        && TryStartObjectiveUse(true, m_iObjectiveSite)) {
+        UpdateObjectiveProgress();
+        return;
+    }
+
     if (m_bObjectiveAttacker) {
+        if (m_iAttackTime) {
+            m_vObjectiveLastProgressPos  = controlledEnt->origin;
+            m_iObjectiveLastProgressTime = level.inttime;
+            return;
+        }
+
         if (m_bTeamResponding) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
@@ -656,10 +762,8 @@ void BotController::UpdateObjectiveBehavior()
             if (available >= 0) {
                 botManager.ReleaseObjectiveClaim(controlledEnt);
                 m_iObjectiveSite           = available;
-                m_iObjectiveRouteStage     = 0;
                 m_iObjectiveState          = BOT_OBJECTIVE_NONE;
                 m_bObjectiveHasDestination = false;
-                m_vObjectiveStart          = controlledEnt->origin;
                 m_vObjectiveDestination    = vec_zero;
                 siteState                  = BOT_OBJECTIVE_SITE_AVAILABLE;
                 G_MoveLogBotEvent(
@@ -690,126 +794,86 @@ void BotController::UpdateObjectiveBehavior()
             return;
         }
 
-        if ((sitePosition - m_vObjectiveStart).lengthXYSquared() < Square(512.0f)) {
-            m_iObjectiveRouteStage = 2;
+        Entity *explosive = botManager.GetObjectiveSiteExplosive(m_iObjectiveSite);
+        Entity *trigger   = botManager.GetObjectiveSiteTrigger(m_iObjectiveSite);
+        const bool inUseRange = BotObjectiveInUseRange(controlledEnt, trigger);
+        if (inUseRange
+            && (level.inttime < m_iObjectiveReapproachUntil
+                || !BotObjectiveCanSee(controlledEnt, explosive, 360.0f))) {
+            SetObjectiveDestination(
+                sitePosition,
+                BOT_OBJECTIVE_ADVANCE,
+                BOT_OBJECTIVE_RETRY_APPROACH_RADIUS
+            );
+        } else if (inUseRange) {
+            UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
+        } else {
+            SetObjectiveDestination(
+                sitePosition,
+                BOT_OBJECTIVE_ADVANCE,
+                BOT_OBJECTIVE_APPROACH_RADIUS
+            );
+        }
+    } else {
+        // Stay committed to the first live bomb. It has less time remaining,
+        // and selecting the nearest site every frame can continually replace
+        // the path when two planted bombs are a similar distance away.
+        int plantedSite = m_iObjectiveSite;
+        if (botManager.GetObjectiveSiteState(plantedSite) != BOT_OBJECTIVE_SITE_PLANTED) {
+            plantedSite = BotObjectiveFindSite(
+                BOT_OBJECTIVE_SITE_PLANTED,
+                m_iObjectiveSite,
+                controlledEnt->origin
+            );
         }
 
-        if (m_iObjectiveRouteStage < 2) {
-            if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE && movement.MoveDone()) {
-                ++m_iObjectiveRouteStage;
-                m_bObjectiveHasDestination = false;
+        if (plantedSite >= 0) {
+            m_iObjectiveSite          = plantedSite;
+            m_bObjectiveCritical      = true;
+            const Vector sitePosition = botManager.GetObjectiveSitePosition(plantedSite);
+
+            if (m_bTeamResponding) {
+                m_iCuriousTime      = 0;
+                m_iCuriousEventType = AI_EVENT_NONE;
+                ClearTeamResponse();
             }
 
-            if (m_iObjectiveRouteStage < 2) {
-                if (m_iObjectiveState != BOT_OBJECTIVE_ROUTE || !m_bObjectiveHasDestination) {
-                    const Vector anchor = BotObjectiveRouteAnchor(
-                        m_vObjectiveStart,
-                        sitePosition,
-                        m_iObjectiveRouteVariant,
-                        m_iObjectiveRouteStage
-                    );
-                    SetObjectiveDestination(anchor, BOT_OBJECTIVE_ROUTE);
-                    G_MoveLogBotEvent(
-                        "bot_objective_route",
-                        controlledEnt,
-                        NULL,
-                        m_iObjectiveRouteStage,
-                        anchor
-                    );
-                } else {
-                    SetObjectiveDestination(m_vObjectiveDestination, BOT_OBJECTIVE_ROUTE);
-                }
+            if (TryStartObjectiveUse(false, plantedSite)) {
                 UpdateObjectiveProgress();
                 return;
             }
-        }
 
-        Entity *trigger = botManager.GetObjectiveSiteTrigger(m_iObjectiveSite);
-        if (trigger && controlledEnt->canUse(trigger, true)) {
-            if (botManager.ClaimObjectiveSite(m_iObjectiveSite, controlledEnt)) {
-                m_iObjectiveState    = BOT_OBJECTIVE_PLANT;
-                m_iObjectiveUsePhase = BOT_OBJECTIVE_USE_AIM;
-                UpdateObjectiveUse(true);
-            } else {
-                UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
-            }
-        } else {
-            SetObjectiveDestination(sitePosition, BOT_OBJECTIVE_ADVANCE);
-        }
-    } else {
-        const int plantedSite = BotObjectiveFindSite(
-            BOT_OBJECTIVE_SITE_PLANTED,
-            m_iObjectiveSite,
-            controlledEnt->origin
-        );
-
-        if (plantedSite >= 0) {
-            m_iObjectiveSite = plantedSite;
-            const Vector sitePosition = botManager.GetObjectiveSitePosition(plantedSite);
-            const int responseRank = botManager.GetObjectiveDistanceRank(controlledEnt, sitePosition);
-
-            if (responseRank < 2) {
-                m_bObjectiveCritical = true;
-                if (m_bTeamResponding) {
-                    m_iCuriousTime      = 0;
-                    m_iCuriousEventType = AI_EVENT_NONE;
-                    ClearTeamResponse();
-                }
-
-                Entity *trigger = botManager.GetObjectiveSiteTrigger(plantedSite);
-                if (trigger && controlledEnt->canUse(trigger, true)) {
-                    if (botManager.ClaimObjectiveSite(plantedSite, controlledEnt)) {
-                        m_iObjectiveState    = BOT_OBJECTIVE_DEFUSE;
-                        m_iObjectiveUsePhase = BOT_OBJECTIVE_USE_AIM;
-                        UpdateObjectiveUse(false);
-                    } else {
-                        UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
-                    }
-                } else {
-                    SetObjectiveDestination(sitePosition, BOT_OBJECTIVE_ADVANCE);
-                    m_bObjectiveCritical = true;
-                }
-            } else {
-                if (m_bTeamResponding) {
-                    m_vObjectiveLastProgressPos  = controlledEnt->origin;
-                    m_iObjectiveLastProgressTime = level.inttime;
-                    return;
-                }
-                UpdateObjectivePatrol(sitePosition, enemySpawn, 320.0f, BOT_OBJECTIVE_HOLD);
-            }
-        } else {
-            if (m_bTeamResponding) {
-                m_vObjectiveLastProgressPos  = controlledEnt->origin;
-                m_iObjectiveLastProgressTime = level.inttime;
-                return;
-            }
-
-            if (botManager.GetObjectiveSiteState(m_iObjectiveSite)
-                == BOT_OBJECTIVE_SITE_DESTROYED) {
-                const int available = BotObjectiveFindSite(
-                    BOT_OBJECTIVE_SITE_AVAILABLE,
-                    m_iObjectiveSite + 1,
-                    controlledEnt->origin
+            Entity *explosive = botManager.GetObjectiveSiteExplosive(plantedSite);
+            Entity *trigger   = botManager.GetObjectiveSiteTrigger(plantedSite);
+            const bool inUseRange = BotObjectiveInUseRange(controlledEnt, trigger);
+            if (inUseRange
+                && (level.inttime < m_iObjectiveReapproachUntil
+                    || !BotObjectiveCanSee(controlledEnt, explosive, 360.0f))) {
+                SetObjectiveDestination(
+                    sitePosition,
+                    BOT_OBJECTIVE_ADVANCE,
+                    BOT_OBJECTIVE_RETRY_APPROACH_RADIUS
                 );
-                if (available >= 0) {
-                    m_iObjectiveSite = available;
-                }
-            }
-
-            const int    rank         = botManager.GetObjectiveBotRank(controlledEnt);
-            const int    siteCount    = Q_max(botManager.GetObjectiveSiteCount(), 1);
-            const Vector sitePosition = botManager.GetObjectiveSitePosition(m_iObjectiveSite);
-
-            if (((rank / siteCount) & 1) == 0) {
-                UpdateObjectivePatrol(sitePosition, enemySpawn, 320.0f, BOT_OBJECTIVE_HOLD);
+            } else if (inUseRange) {
+                UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
             } else {
-                Vector forward = BotObjectiveDirection(sitePosition, enemySpawn);
-                Vector delta   = enemySpawn - sitePosition;
-                delta.z        = 0.0f;
-                const float  distance     = Q_min(1024.0f, delta.length() * 0.45f);
-                const Vector patrolCenter = sitePosition + forward * distance;
-                UpdateObjectivePatrol(patrolCenter, enemySpawn, 384.0f, BOT_OBJECTIVE_PATROL);
+                SetObjectiveDestination(
+                    sitePosition,
+                    BOT_OBJECTIVE_ADVANCE,
+                    BOT_OBJECTIVE_APPROACH_RADIUS
+                );
             }
+        } else {
+            // Before a bomb is planted, defenders use the normal bot behavior.
+            // Release any destination left over from a previous planted bomb.
+            if (m_iObjectiveState != BOT_OBJECTIVE_NONE || m_bObjectiveHasDestination) {
+                botManager.ReleaseObjectiveClaim(controlledEnt);
+                m_iObjectiveState          = BOT_OBJECTIVE_NONE;
+                m_bObjectiveHasDestination = false;
+                m_vObjectiveDestination    = vec_zero;
+                movement.ClearMove();
+            }
+            return;
         }
     }
 

@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "debuglines.h"
 
-static int maxFallHeight = 400;
+static int       maxFallHeight                   = 400;
+static const int BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -236,6 +237,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
             m_iTempAwayState = 2;
             m_iTempAwayTime  = level.inttime;
             m_iNumBlocks++;
+            m_bAvoidCollision = false;
 
             // Try to backward a little
             if (m_pPath->GetNodeCount()) {
@@ -949,18 +951,27 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         return delta;
     }
 
-    if (level.inttime < m_iCollisionCheckTime + 250 || m_bJump) {
-        if (m_bAvoidCollision) {
-            newDelta = m_vTempCollisionAvoidance - controlledEntity->origin;
-            if (newDelta.lengthSquared() > Square(16)) {
-                // Not reached
-                return newDelta;
-            }
+    // Blocked recovery owns the escape direction. A stale collision detour
+    // must not keep steering against it.
+    if (m_iTempAwayState == 2) {
+        m_bAvoidCollision = false;
+        return delta;
+    }
 
-            // Path has been reached so clear the collision
-            m_bAvoidCollision = false;
+    // Commit to a chosen side long enough to clear the obstacle. Recomputing
+    // both sides every 250 ms made equally open routes alternate at walls.
+    if (m_bAvoidCollision) {
+        newDelta = m_vTempCollisionAvoidance - controlledEntity->origin;
+        if (!m_bJump
+            && newDelta.lengthXYSquared() > Square(16)
+            && level.inttime < m_iCollisionCheckTime + BOT_COLLISION_AVOID_COMMIT_MSEC) {
+            return newDelta;
         }
 
+        m_bAvoidCollision = false;
+    }
+
+    if (level.inttime < m_iCollisionCheckTime + 250 || m_bJump) {
         return delta;
     }
 
@@ -1112,6 +1123,10 @@ bool BotMovement::MoveDone()
         return false;
     }
 
+    if (!m_pPath) {
+        return true;
+    }
+
     if (!m_pPath->GetNodeCount()) {
         return true;
     }
@@ -1145,8 +1160,9 @@ Stop the bot from moving
 */
 void BotMovement::ClearMove(void)
 {
-    m_bPathing   = false;
-    m_iNumBlocks = 0;
+    m_bPathing        = false;
+    m_bAvoidCollision = false;
+    m_iNumBlocks      = 0;
 
     if (m_pPath) {
         m_pPath->Clear();
@@ -1162,7 +1178,7 @@ Return the current goal, usually the nearest node the player should look at
 */
 Vector BotMovement::GetCurrentGoal() const
 {
-    if (!m_pPath->GetNodeCount()) {
+    if (!m_pPath || !m_pPath->GetNodeCount()) {
         return m_vCurrentGoal;
     }
 
@@ -1176,6 +1192,9 @@ Vector BotMovement::GetCurrentGoal() const
 
 Vector BotMovement::GetCurrentPathDirection() const
 {
+    if (!m_pPath) {
+        return CalculateDir(m_vTargetPos - controlledEntity->origin);
+    }
     return m_pPath->GetCurrentDirection();
 }
 
@@ -1248,10 +1267,10 @@ static int RandomInterval(cvar_t *lo, cvar_t *hi)
 ====================
 UpdateAggressiveMovement
 
-Combat movement layer, calibrated from human-versus-human telemetry:
-continuous side-to-side strafing with matching lean, plus slower movement
-toward and away from the enemy during close-range engagements. Jumps and
-crouches are intentionally not added here.
+Movement layer calibrated from human-versus-human telemetry: continuous
+side-to-side strafing with matching lean, plus slower movement toward and away
+from nearby enemies. Lean follows actual lateral movement instead of running as
+an independent animation.
 ====================
 */
 void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
@@ -1261,17 +1280,16 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         return;
     }
 
-    // While the blocked-recovery logic is actively backing the bot out of an
-    // obstruction, suppress the strafe/radial movement injection so its escape
-    // vector isn't fought - but keep leaning; only movement steers
-    const bool bSuppressMovement = (m_iTempAwayState == 2);
-    m_telemetry.movementSuppressed = bSuppressMovement;
-
-    // --- Strafe oscillator: flip left/right on a short randomized timer ---
     if (level.inttime >= m_iNextStrafeChangeTime) {
         m_iStrafeDirection      = -m_iStrafeDirection;
-        m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+        m_iNextStrafeChangeTime =
+            level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
     }
+
+    // Recovery and collision detours own the movement vector; lateral
+    // injection here would fight their selected escape side.
+    const bool bSuppressMovement = m_iTempAwayState == 2 || m_bAvoidCollision;
+    m_telemetry.movementSuppressed = bSuppressMovement;
 
     // Hysteresis: need 20 units to start strafing, but only drop out below 12.
     // Kept low so bots strafe close to walls and use the full side-to-side
@@ -1346,17 +1364,19 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         m_bIsLeaning = false;
     }
 
-    // Lean follows the intended strafe side even when a wall prevents the
-    // body from moving laterally. Lean itself is not wall-limited, and keeping
-    // it separate from clearance avoids making cramped bots look timid.
-    if (m_iStrafeDirection < 0) {
-        botcmd.buttons |= BUTTON_LEAN_LEFT;
-    } else {
-        botcmd.buttons |= BUTTON_LEAN_RIGHT;
+    // Lean only when the corresponding body strafe was actually applied.
+    if (m_bIsLeaning) {
+        if (m_iStrafeDirection < 0) {
+            botcmd.buttons |= BUTTON_LEAN_LEFT;
+        } else {
+            botcmd.buttons |= BUTTON_LEAN_RIGHT;
+        }
+        m_bLeanCommandActive = true;
     }
-    m_bLeanCommandActive = true;
 
-    UpdateCombatRadialMovement(botcmd, bSuppressMovement);
+    if (m_bHasCombatTarget) {
+        UpdateCombatRadialMovement(botcmd, bSuppressMovement);
+    }
 }
 
 int BotMovement::ChooseRadialDirection(float distance) const

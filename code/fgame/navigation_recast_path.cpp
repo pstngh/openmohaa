@@ -53,8 +53,10 @@ public:
 };
 
 RecastPather::RecastPather()
-    : lastCheckTime(0)
+    : detourData(NULL)
     , moving(false)
+    , lastCheckTime(0)
+    , traversingOffMeshLink(false)
 {
     detourData = new DetourData();
     detourData->corridor.init(256);
@@ -118,6 +120,7 @@ void RecastPather::FindPathNear(
 {
     Vector               recastStart, recastEnd;
     dtPolyRef            startRef, endRef;
+    vec3_t               endExtent;
     vec3_t               startPt, endPt;
     const dtQueryFilter *filter = navigationMap.GetQueryFilter();
 
@@ -130,17 +133,13 @@ void RecastPather::FindPathNear(
     endRef   = 0;
     startRef = detourData->corridor.getFirstPoly();
     dtVcopy(startPt, detourData->corridor.getPos());
-    navigationMap.GetNavMeshQuery()->findNearestPoly(recastEnd, DETOUR_EXTENT, filter, &endRef, endPt);
+    VectorCopy(DETOUR_EXTENT, endExtent);
+    endExtent[0] = Q_max(endExtent[0], radius);
+    endExtent[1] = Q_max(endExtent[1], static_cast<float>(MAXS_Z));
+    endExtent[2] = Q_max(endExtent[2], radius);
+    navigationMap.GetNavMeshQuery()->findNearestPoly(recastEnd, endExtent, filter, &endRef, endPt);
 
-    if (!startRef || !endRef) {
-        return;
-    }
-
-    // Now find a point within this radius
-    if (navigationMap.GetNavMeshQuery()->findRandomPointAroundCircle(
-            endRef, endPt, radius, filter, &G_Random, &endRef, endPt
-        ) != DT_SUCCESS
-        || !endRef) {
+    if (!startRef || !endRef || dtVdist2DSqr(recastEnd, endPt) > Square(radius)) {
         return;
     }
 

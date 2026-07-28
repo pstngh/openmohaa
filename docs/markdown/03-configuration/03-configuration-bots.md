@@ -199,8 +199,8 @@ neutral or sentinel values in these `bot_*` columns.
 Schema 6 also records shared-contact source, reporter, responder, age, and
 reported position, plus each bot's objective role, site, round, use phase,
 critical-task status, and destination. The event log includes contact reports
-and responses, objective plans and route choices, plant/defuse attempts and
-results, replans, timeouts, and objective-movement stalls.
+and responses, objective plans, plant/defuse attempts and results, replans,
+timeouts, and objective-movement stalls.
 
 `bot_fire_decision` values are:
 

@@ -367,8 +367,8 @@ private:
     int                       m_iObjectiveRound;
     int                       m_iObjectiveSite;
     int                       m_iObjectiveRouteVariant;
-    int                       m_iObjectiveRouteStage;
     int                       m_iObjectiveUseStartTime;
+    int                       m_iObjectiveReapproachUntil;
     int                       m_iObjectiveNextMoveTime;
     int                       m_iObjectiveLastProgressTime;
     int                       m_iObjectiveLastStallLogTime;
@@ -377,7 +377,6 @@ private:
     bool                      m_bObjectiveOwnsMovement;
     bool                      m_bObjectiveOwnsUse;
     bool                      m_bObjectiveCritical;
-    Vector                    m_vObjectiveStart;
     Vector                    m_vObjectiveDestination;
     Vector                    m_vObjectiveLastProgressPos;
     Vector                    m_vOldEnemyPos;
@@ -420,7 +419,10 @@ private:
     void ResetObjectiveBehavior(void);
     void BeginObjectivePlan(void);
     void UpdateObjectiveUse(bool planting);
-    void SetObjectiveDestination(const Vector& destination, bot_objective_state_t state);
+    bool TryStartObjectiveUse(bool planting, int site);
+    void SetObjectiveDestination(
+        const Vector& destination, bot_objective_state_t state, float radius = 0.0f
+    );
     void UpdateObjectivePatrol(
         const Vector& center, const Vector& toward, float radius, bot_objective_state_t state
     );
@@ -503,6 +505,7 @@ public:
     BotMovement& GetMovement();
     void GetTelemetry(bot_controller_telemetry_t& telemetry) const;
     bool CanRespondToTeamContact(void) const;
+    bool CanRespondToTeamContact(const Vector& position) const;
     bool IsRespondingToTeamContact(int enemyNum) const;
 
 public:
@@ -556,10 +559,10 @@ public:
     int  GetObjectiveRound() const;
     int  GetObjectiveSeed() const;
     int  GetObjectiveBotRank(Player *player) const;
-    int  GetObjectiveDistanceRank(Player *player, const Vector& position) const;
     int  GetObjectiveSiteCount();
     bot_objective_site_state_t GetObjectiveSiteState(int site);
     Vector                     GetObjectiveSitePosition(int site) const;
+    Entity                    *GetObjectiveSiteExplosive(int site) const;
     Entity                    *GetObjectiveSiteTrigger(int site) const;
     bool                       ClaimObjectiveSite(int site, Player *player);
     void                       ReleaseObjectiveClaim(Player *player);
