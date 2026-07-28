@@ -38,6 +38,7 @@ public:
     CLASS_PROTOTYPE(Health);
 
     Health();
+    qboolean    Drop(void) override;
     virtual void PickupHealth(Event *ev);
 
     void        EventPostSpawn(Event *ev);

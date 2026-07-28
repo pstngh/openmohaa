@@ -69,6 +69,19 @@ Health::Health()
     PostEvent(EV_Health_PostSpawn, EV_POSTSPAWN);
 }
 
+qboolean Health::Drop(void)
+{
+    if (!Item::Drop()) {
+        return false;
+    }
+
+    CancelEventsOfType(EV_Remove);
+    if (g_droppedhealthlife->value > 0) {
+        PostEvent(EV_Remove, g_droppedhealthlife->value);
+    }
+    return true;
+}
+
 void Health::PickupHealth(Event *ev)
 {
     Player *player;
