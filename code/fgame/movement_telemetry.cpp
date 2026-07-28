@@ -32,7 +32,7 @@ does not mutate game state and never calls a random-number function.
 
 namespace
 {
-constexpr int         MOVELOG_SCHEMA          = 6;
+constexpr int         MOVELOG_SCHEMA          = 7;
 constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
 constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
 constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
@@ -232,7 +232,9 @@ static void AppendEventRow(
     const Vector& position,
     const Vector& direction,
     const Vector& viewAngles,
-    const AimMetrics *aim
+    const AimMetrics *aim,
+    const char       *chatMessage = "",
+    int               chatMode    = 0
 )
 {
     if (!eventsFile) {
@@ -242,7 +244,7 @@ static void AppendEventRow(
     std::ostringstream row;
     row << std::fixed << std::setprecision(3)
         << MOVELOG_SCHEMA << ',' << CsvQuote(sessionId.c_str()) << ',' << SessionMsec() << ',' << level.inttime << ','
-        << level.framenum << ',' << CsvQuote(eventName) << ','
+        << level.framenum << ',' << CsvQuote(eventName) << ',' << CsvQuote(chatMessage) << ',' << chatMode << ','
         << (actor ? actor->entnum : -1) << ',' << CsvQuote(PlayerName(actor)) << ',' << (PlayerIsBot(actor) ? 1 : 0)
         << ',' << (target ? target->entnum : -1) << ',' << CsvQuote(PlayerName(target)) << ','
         << (PlayerIsBot(target) ? 1 : 0) << ',' << CsvQuote(weaponName) << ',' << fireMode << ',' << damage << ','
@@ -611,8 +613,9 @@ static bool EnsureOpen()
     }
     if (eventsNeedHeader) {
         eventsBuffer =
-            "schema,session_id,session_ms,server_ms,frame,event,actor_id,actor_name,actor_bot,target_id,target_name,"
-            "target_bot,weapon,fire_mode,damage,health_before,health_after,means_of_death,hit_location,position_x,"
+            "schema,session_id,session_ms,server_ms,frame,event,chat_message,chat_mode,actor_id,actor_name,actor_bot,"
+            "target_id,target_name,target_bot,weapon,fire_mode,damage,health_before,health_after,means_of_death,"
+            "hit_location,position_x,"
             "position_y,position_z,direction_x,direction_y,direction_z,view_pitch,view_yaw,view_roll,aim_target_id,"
             "aim_pitch_error,aim_yaw_error,aim_total_error,line_of_sight,crosshair_entity,crosshair_on_target,"
             "crosshair_distance,crosshair_hit_class,crosshair_normal_x,crosshair_normal_y,crosshair_normal_z,"
@@ -1154,4 +1157,31 @@ void G_MoveLogClientDisconnect(Player *player)
     if (player && player->entnum >= 0 && player->entnum < MAX_CLIENTS) {
         visibilityStates[player->entnum] = VisibilityState();
     }
+}
+
+void G_MoveLogChat(Player *player, int mode, const char *message)
+{
+    if (!IsRecordablePlayer(player) || !message || !*message || !EnsureOpen()) {
+        return;
+    }
+
+    const Vector zero(0.0f, 0.0f, 0.0f);
+    AppendEventRow(
+        "chat",
+        player,
+        NULL,
+        "",
+        -1,
+        0.0f,
+        player->health,
+        player->health,
+        -1,
+        -1,
+        player->origin,
+        zero,
+        zero,
+        NULL,
+        message,
+        mode
+    );
 }

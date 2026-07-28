@@ -11168,6 +11168,10 @@ void Player::EventDMMessage(Event *ev)
             }
         }
 
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
+        }
+
         // Added in OPM
         if (bInstaMessage) {
             G_PrintfClient(edict, "shouts @all: %s\n", pStartMessage);
@@ -11244,6 +11248,10 @@ void Player::EventDMMessage(Event *ev)
             }
         }
 
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
+        }
+
         // Added in OPM
         if (bInstaMessage) {
             G_PrintfClient(edict, "shouts @team: %s\n", pStartMessage);
@@ -11308,6 +11316,10 @@ void Player::EventDMMessage(Event *ev)
                 reasonString.c_str()
             );
             return;
+        }
+
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
         }
 
         // Added in OPM
