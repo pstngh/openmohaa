@@ -46,7 +46,8 @@ enum bot_fire_decision_t {
     BOT_FIRE_OUT_OF_RANGE,
     BOT_FIRE_SEMIAUTO_BUSY,
     BOT_FIRE_SEMIAUTO_SPREAD,
-    BOT_FIRE_FIRING
+    BOT_FIRE_FIRING,
+    BOT_FIRE_RELOADING
 };
 
 enum bot_contact_source_t {
@@ -364,6 +365,7 @@ private:
     int                       m_iGrenadeNextPathTime;
     bool                      m_bGrenadeFleeing;
     bool                      m_bGrenadePathFailed;
+    bool                      m_bReloadRetreating;
     bool                      m_bTeamResponding;
     bot_contact_source_t      m_iTeamContactSource;
     int                       m_iTeamContactEnemy;

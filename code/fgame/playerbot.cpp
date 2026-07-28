@@ -54,6 +54,8 @@ static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
 static const int   BOT_GRENADE_REPATH_MSEC        = 250;
 static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
+static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
+static const float BOT_RELOAD_DIRECT_ESCAPE_STEP  = 192.0f;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -234,6 +236,7 @@ BotController::BotController()
     m_iAimHistoryCount          = 0;
     m_iCuriousEventType         = AI_EVENT_NONE;
     ResetGrenadeAvoidance();
+    m_bReloadRetreating         = false;
     m_bTeamResponding           = false;
     m_iTeamContactSource        = BOT_CONTACT_NONE;
     m_iTeamContactEnemy         = -1;
@@ -932,6 +935,7 @@ void BotController::State_Reset(void)
     m_vLastEnemyPos             = vec_zero;
     m_vLastDeathPos             = vec_zero;
     ResetGrenadeAvoidance();
+    m_bReloadRetreating         = false;
     m_pEnemy                    = NULL;
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
@@ -1490,6 +1494,7 @@ void BotController::State_EndAttack(void)
 {
     m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
     movement.ClearCombatTarget();
+    m_bReloadRetreating = false;
     controlledEnt->ZoomOff();
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
@@ -1520,6 +1525,7 @@ void BotController::State_Attack(void)
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
     m_telemetry.enemyDistance = sqrt(fDistanceSquared);
+    const bool bReloading = pWeap && pWeap->GetState() == WEAPON_RELOADING;
 
     // Feed the aggressive-movement layer the enemy itself, not only a
     // distance. This lets forward/back phases remain enemy-relative while the
@@ -1547,8 +1553,12 @@ void BotController::State_Attack(void)
             return;
         }
 
-        bCanAttack = true;
-        if (m_iLastUnseenTime) {
+        bCanAttack = !bReloading;
+        if (bReloading) {
+            m_telemetry.fireDecision = BOT_FIRE_RELOADING;
+            m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+            controlledEnt->ZoomOff();
+        } else if (m_iLastUnseenTime) {
             const unsigned int minDelay = g_bot_attack_react_min_delay->value * 1000;
             if (level.inttime <= m_iLastUnseenTime + minDelay) {
                 bCanAttack = false;
@@ -1653,7 +1663,7 @@ void BotController::State_Attack(void)
             m_vLastEnemyPos      = m_pEnemy->origin;
         }
     } else {
-        m_telemetry.fireDecision = BOT_FIRE_NO_SIGHT;
+        m_telemetry.fireDecision = bReloading ? BOT_FIRE_RELOADING : BOT_FIRE_NO_SIGHT;
         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
         fMinDistanceSquared = 0;
 
@@ -1719,6 +1729,50 @@ void BotController::State_Attack(void)
     } else {
         AimAtAimNode();
     }
+
+    if (bReloading) {
+        m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+        movement.ClearCombatTarget();
+
+        if (!m_bReloadRetreating) {
+            Vector away = controlledEnt->origin - m_pEnemy->origin;
+            away.z      = 0.0f;
+            if (away.lengthXYSquared() < 1.0f) {
+                away = -Vector(controlledEnt->orientation[0]);
+                away.z = 0.0f;
+            }
+            away.normalize();
+
+            if (fDistanceSquared < Square(BOT_RELOAD_SAFE_DISTANCE)) {
+                movement.AvoidPath(
+                    m_pEnemy->origin,
+                    BOT_RELOAD_SAFE_DISTANCE,
+                    away * BOT_RELOAD_SAFE_DISTANCE
+                );
+                if (!movement.IsMoving() || movement.MoveDone()) {
+                    movement.MoveDirect(
+                        controlledEnt->origin + away * BOT_RELOAD_DIRECT_ESCAPE_STEP,
+                        32.0f
+                    );
+                }
+            } else {
+                // At a safe range, stop any old path toward the enemy. Normal
+                // lateral movement remains active while the reload finishes.
+                movement.ClearMove();
+            }
+
+            m_bReloadRetreating = true;
+            G_MoveLogBotEvent(
+                "bot_reload_retreat",
+                controlledEnt,
+                NULL,
+                m_pEnemy->entnum,
+                m_pEnemy->origin
+            );
+        }
+        return;
+    }
+    m_bReloadRetreating = false;
 
     if (bNoMove) {
         m_telemetry.noMove = true;
@@ -1973,6 +2027,7 @@ void BotController::Spawned(void)
 {
     ClearEnemy();
     ResetGrenadeAvoidance();
+    m_bReloadRetreating = false;
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
     m_botCmd.buttons    = 0;

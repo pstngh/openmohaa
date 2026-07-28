@@ -817,7 +817,7 @@ void BotController::UpdateObjectiveBehavior()
     m_bObjectiveOwnsUse      = false;
     m_bObjectiveCritical     = false;
 
-    if (m_bGrenadeFleeing) {
+    if (m_bGrenadeFleeing || m_bReloadRetreating) {
         // Survival temporarily owns movement. Preserve the objective plan, but
         // restart an interrupted plant/defuse attempt after reaching safety.
         if (m_iObjectiveState == BOT_OBJECTIVE_PLANT
