@@ -486,12 +486,11 @@ bool BotController::CheckWindows(void)
 
 void BotController::CheckValidWeapon()
 {
-    Weapon *weapon = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
-    if (!weapon) {
-        // If holstered, use the best weapon available
-        UseWeaponWithAmmo();
-    } else if (!weapon->HasAmmo(FIRE_PRIMARY) && !controlledEnt->GetNewActiveWeapon()) {
-        // In case the current weapon has no ammo, use the best available weapon
+    Weapon *weapon  = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    Weapon *pending = controlledEnt->GetNewActiveWeapon();
+
+    // Do not replace a weapon switch while the current weapon is lowering.
+    if ((!weapon || !weapon->HasAmmo(FIRE_PRIMARY)) && !pending) {
         UseWeaponWithAmmo();
     }
 }
