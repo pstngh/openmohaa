@@ -197,19 +197,29 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         m_iCheckPathTime = level.inttime;
     }
 
+    if (m_pPath->GetNodeCount()) {
+        // Advance the corridor from the bot's current position before reading
+        // its steering direction. Reading first used the previous frame's
+        // corner and could alternate the command at walls and tight doorways.
+        m_pPath->UpdatePos(controlledEntity->origin);
+    }
+
+    if (!m_pPath->GetNodeCount()) {
+        ClearMove();
+        UpdateAggressiveMovement(botcmd);
+        PreventImminentBodyContact(botcmd);
+        return;
+    }
+
     vDelta = m_pPath->GetCurrentDelta();
     vDelta = FixDeltaFromCollision(vDelta);
 
-    if (m_pPath->GetNodeCount()) {
-        m_pPath->UpdatePos(controlledEntity->origin);
+    m_vCurrentGoal = controlledEntity->origin;
+    VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
 
-        m_vCurrentGoal = controlledEntity->origin;
-        VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
-
-        if (MoveDone()) {
-            // Clear the path
-            m_pPath->Clear();
-        }
+    if (MoveDone()) {
+        // Clear the path
+        m_pPath->Clear();
     }
 
     if (ai_debugpath->integer) {
@@ -828,6 +838,7 @@ void BotMovement::MoveDirect(Vector vPos, float fRadius)
 
     m_vTargetPos        = vPos;
     m_vCurrentGoal      = vPos;
+    m_vCurrentDir       = CalculateDir(vPos - controlledEntity->origin);
     m_bPathing          = true;
     m_bDirectMove       = true;
     m_fDirectMoveRadius = Q_max(0.0f, fRadius);
@@ -952,6 +963,13 @@ void BotMovement::NewMove()
     m_iNumBlocks        = 0;
     m_vLastCheckPos[0]  = controlledEntity->origin;
     m_vLastCheckPos[1]  = controlledEntity->origin;
+
+    if (m_pPath && m_pPath->GetNodeCount()) {
+        m_pPath->UpdatePos(controlledEntity->origin);
+        m_vCurrentDir = CalculateDir(m_pPath->GetCurrentDelta());
+    } else {
+        m_vCurrentDir = vec_zero;
+    }
 }
 
 void BotMovement::CalculateBestFrontAvoidance(
@@ -1287,6 +1305,7 @@ void BotMovement::ClearMove(void)
     m_iJumpCommitTime   = -1;
     m_iJumpRetryTime    = 0;
     m_bJumpWasAirborne  = false;
+    m_vCurrentDir       = vec_zero;
 
     if (m_pPath) {
         m_pPath->Clear();
@@ -1314,12 +1333,9 @@ Vector BotMovement::GetCurrentGoal() const
     return controlledEntity->origin;
 }
 
-Vector BotMovement::GetCurrentPathDirection() const
+Vector BotMovement::GetCurrentMoveDirection() const
 {
-    if (m_bDirectMove || !m_pPath) {
-        return CalculateDir(m_vTargetPos - controlledEntity->origin);
-    }
-    return m_pPath->GetCurrentDirection();
+    return m_vCurrentDir;
 }
 
 void BotMovement::ResetTelemetry()

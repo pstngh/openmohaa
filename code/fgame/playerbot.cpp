@@ -566,14 +566,14 @@ void BotController::AimAtAimNode(void)
     //}
 
     if (controlledEnt->GetLadder()) {
-        Vector vAngles = movement.GetCurrentPathDirection().toAngles();
+        Vector vAngles = movement.GetCurrentMoveDirection().toAngles();
         vAngles.x      = Q_clamp_float(vAngles.x, -80, 80);
 
         rotation.SetTargetAngles(vAngles);
         return;
     } else {
         Vector targetAngles;
-        targetAngles   = movement.GetCurrentPathDirection().toAngles();
+        targetAngles   = movement.GetCurrentMoveDirection().toAngles();
         targetAngles.x = 0;
         rotation.SetTargetAngles(targetAngles);
     }

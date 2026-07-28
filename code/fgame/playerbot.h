@@ -203,7 +203,7 @@ public:
     void ClearMove(void);
 
     Vector GetCurrentGoal() const;
-    Vector GetCurrentPathDirection() const;
+    Vector GetCurrentMoveDirection() const;
     void   ResetTelemetry();
     void   GetTelemetry(bot_movement_telemetry_t& telemetry) const;
 
