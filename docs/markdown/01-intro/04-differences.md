@@ -395,7 +395,6 @@ Enable this feature with `set sv_netoptimize 2`.
 - Grenades with 1 ammo can now be picked up
 - Large vote configurations will no longer cause clients to disconnect (the hard limit is 1MB)
 - Prevent crashing when the last weapon has no ammo and other weapons are inventory items
-- Prevent doors from getting blocked
 - Prevent empty weapons from being picked up by a sentient who already have the weapon
 - Prevent firing from below the terrain
 - Prevent players from choosing the `_fps` model and crashing the server

@@ -335,9 +335,6 @@ cvar_t *g_painanims;
 // Whether or not to use Legacy Navigation
 cvar_t *g_navigation_legacy;
 
-// Reopen door if blocked
-cvar_t *g_door_reopen_blocked;
-
 static void CVAR_OrderPair(const char *minName, cvar_t *minCvar, const char *maxName, cvar_t *maxCvar)
 {
     if (minCvar->value <= maxCvar->value) {
@@ -856,8 +853,6 @@ void CVAR_Init(void)
     gi.Cvar_CheckRange(g_painanims, 0, 1, qtrue);
 
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
-
-    g_door_reopen_blocked = gi.Cvar_Get("g_door_reopen_blocked", "1", 0);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

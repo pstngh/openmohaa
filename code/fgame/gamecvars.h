@@ -437,8 +437,6 @@ extern cvar_t *g_painanims;
 
 extern cvar_t *g_navigation_legacy;
 
-extern cvar_t *g_door_reopen_blocked;
-
 void CVAR_UpdateBotDifficulty(qboolean force);
 void CVAR_Init(void);
 
