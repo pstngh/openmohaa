@@ -32,6 +32,13 @@ static const float BOT_OBJECTIVE_DEFAULT_USE_FOV        = 30.0f;
 static const float BOT_OBJECTIVE_DEFAULT_USE_DISTANCE   = 128.0f;
 // Generated hold/patrol points are approximate; accept nearby navigation.
 static const float BOT_OBJECTIVE_PATROL_SEARCH_RADIUS = 128.0f;
+// obj_team4's Axis spawn has two exits. One bot uses the normal shortest
+// route; the rest pass through the left exit before resuming normal navigation.
+static const float BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS   = 128.0f;
+static const float BOT_OBJECTIVE_TEAM4_ROUTE_PASSED_Y = 2400.0f;
+// The bomb bridge is scripted and absent from the static navigation graph.
+static const float BOT_OBJECTIVE_TEAM4_DIRECT_MAX_DISTANCE = 384.0f;
+static const float BOT_OBJECTIVE_TEAM4_DIRECT_RADIUS       = 48.0f;
 
 void bot_objective_site_t::Clear()
 {
@@ -92,6 +99,16 @@ static bool BotObjectiveInUseRange(Player *player, Entity *trigger)
     }
 
     return distanceSquared <= Square(BOT_OBJECTIVE_USE_RANGE);
+}
+
+static bool BotObjectiveIsTeam4()
+{
+    return !Q_stricmp(level.mapname.c_str(), "obj/obj_team4");
+}
+
+static Vector BotObjectiveTeam4LeftRoutePoint()
+{
+    return Vector(-1320.0f, 2500.0f, 328.0f);
 }
 
 bool BotManager::ObjectiveModeActive() const
@@ -413,9 +430,10 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveHasDestination   = false;
     m_bObjectiveOwnsMovement     = false;
     m_bObjectiveOwnsUse          = false;
-    m_bObjectiveCritical         = false;
-    m_vObjectiveDestination      = vec_zero;
-    m_vObjectiveLastProgressPos  = vec_zero;
+    m_bObjectiveCritical             = false;
+    m_bObjectiveRouteActive          = false;
+    m_vObjectiveDestination          = vec_zero;
+    m_vObjectiveLastProgressPos      = vec_zero;
 
     m_botCmd.buttons &= ~BUTTON_USE;
     movement.ClearMove();
@@ -436,6 +454,8 @@ void BotController::BeginObjectivePlan()
     m_iObjectiveRouteVariant     = (rank + seed / Q_max(siteCount, 1)) & 3;
     m_iObjectiveState            = BOT_OBJECTIVE_NONE;
     m_bObjectiveHasDestination   = false;
+    m_bObjectiveRouteActive =
+        m_bObjectiveAttacker && BotObjectiveIsTeam4() && rank != 0;
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = controlledEnt->origin;
     m_iObjectiveLastProgressTime = level.inttime;
@@ -446,6 +466,88 @@ void BotController::BeginObjectivePlan()
         NULL,
         m_iObjectiveSite,
         botManager.GetObjectiveSitePosition(m_iObjectiveSite)
+    );
+}
+
+void BotController::UpdateObjectiveAdvance(const Vector& sitePosition)
+{
+    if (m_bObjectiveRouteActive) {
+        const Vector routePoint = BotObjectiveTeam4LeftRoutePoint();
+        const bool routeReached =
+            (routePoint - controlledEnt->origin).lengthXYSquared()
+                <= Square(BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS)
+            || controlledEnt->origin.y <= BOT_OBJECTIVE_TEAM4_ROUTE_PASSED_Y;
+
+        if (routeReached) {
+            m_bObjectiveRouteActive    = false;
+            m_bObjectiveHasDestination = false;
+            movement.ClearMove();
+        } else {
+            const bool startingRoute = m_iObjectiveState != BOT_OBJECTIVE_ROUTE;
+            SetObjectiveDestination(
+                routePoint,
+                BOT_OBJECTIVE_ROUTE,
+                BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS
+            );
+            if (m_bObjectiveHasDestination) {
+                if (startingRoute) {
+                    G_MoveLogBotEvent(
+                        "bot_objective_route",
+                        controlledEnt,
+                        NULL,
+                        1,
+                        routePoint
+                    );
+                }
+                return;
+            }
+
+            m_bObjectiveRouteActive = false;
+            G_MoveLogBotEvent(
+                "bot_objective_route_fallback",
+                controlledEnt,
+                NULL,
+                1,
+                controlledEnt->origin
+            );
+        }
+    }
+
+    const float siteDistance = (sitePosition - controlledEnt->origin).lengthXYSquared();
+    if (BotObjectiveIsTeam4()
+        && siteDistance <= Square(BOT_OBJECTIVE_TEAM4_DIRECT_MAX_DISTANCE)
+        && (!movement.IsMoving() || movement.MoveDone())) {
+        const bool changed =
+            !m_bObjectiveHasDestination || m_iObjectiveState != BOT_OBJECTIVE_ADVANCE
+            || m_vObjectiveDestination != sitePosition;
+
+        m_iObjectiveState          = BOT_OBJECTIVE_ADVANCE;
+        m_bObjectiveHasDestination = true;
+        m_vObjectiveDestination    = sitePosition;
+        m_bObjectiveOwnsMovement   = true;
+
+        if (changed) {
+            m_vObjectiveLastProgressPos  = controlledEnt->origin;
+            m_iObjectiveLastProgressTime = level.inttime;
+        }
+        movement.MoveDirect(sitePosition, BOT_OBJECTIVE_TEAM4_DIRECT_RADIUS);
+        G_MoveLogBotEvent(
+            "bot_objective_direct_approach",
+            controlledEnt,
+            NULL,
+            m_iObjectiveSite,
+            sitePosition
+        );
+        if (!m_iAttackTime) {
+            AimAtAimNode();
+        }
+        return;
+    }
+
+    SetObjectiveDestination(
+        sitePosition,
+        BOT_OBJECTIVE_ADVANCE,
+        BOT_OBJECTIVE_APPROACH_RADIUS
     );
 }
 
@@ -693,6 +795,19 @@ void BotController::UpdateObjectiveProgress()
         m_iObjectiveLastProgressTime = level.inttime;
         movement.ClearMove();
         m_iObjectiveNextMoveTime = 0;
+
+        if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
+            m_bObjectiveRouteActive    = false;
+            m_bObjectiveHasDestination = false;
+            m_iObjectiveState          = BOT_OBJECTIVE_NONE;
+            G_MoveLogBotEvent(
+                "bot_objective_route_fallback",
+                controlledEnt,
+                NULL,
+                1,
+                controlledEnt->origin
+            );
+        }
     }
 }
 
@@ -808,11 +923,7 @@ void BotController::UpdateObjectiveBehavior()
         } else if (inUseRange) {
             UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
         } else {
-            SetObjectiveDestination(
-                sitePosition,
-                BOT_OBJECTIVE_ADVANCE,
-                BOT_OBJECTIVE_APPROACH_RADIUS
-            );
+            UpdateObjectiveAdvance(sitePosition);
         }
     } else {
         // Stay committed to the first live bomb. It has less time remaining,

@@ -193,6 +193,7 @@ public:
     );
     void MoveNear(Vector vNear, float fRadius, float *vLeashHome = NULL, float fLeashRadius = 0.0f);
     void MoveTo(Vector vPos, float *vLeashHome = NULL, float fLeashRadius = 0.0f);
+    void MoveDirect(Vector vPos, float fRadius);
     bool MoveToBestAttractivePoint(int iMinPriority = 0);
 
     bool CanMoveTo(Vector vPos);
@@ -214,6 +215,7 @@ private:
     void   CheckEndPos(Entity *entity);
     void   CheckJump(usercmd_t& botcmd);
     void   CheckJumpOverEdge(usercmd_t& botcmd);
+    void   DirectMoveThink(usercmd_t& botcmd);
     void   NewMove();
     Vector FixDeltaFromCollision(const Vector& delta);
     void   CalculateBestFrontAvoidance(
@@ -244,6 +246,8 @@ private:
     int    m_iLastBlockTime;
     int    m_iTempAwayState;
     bool   m_bPathing;
+    bool   m_bDirectMove;
+    float  m_fDirectMoveRadius;
 
     ///
     /// Collision detection
@@ -377,6 +381,7 @@ private:
     bool                      m_bObjectiveOwnsMovement;
     bool                      m_bObjectiveOwnsUse;
     bool                      m_bObjectiveCritical;
+    bool                      m_bObjectiveRouteActive;
     Vector                    m_vObjectiveDestination;
     Vector                    m_vObjectiveLastProgressPos;
     Vector                    m_vOldEnemyPos;
@@ -418,6 +423,7 @@ private:
     void FinalizeObjectiveCommand(void);
     void ResetObjectiveBehavior(void);
     void BeginObjectivePlan(void);
+    void UpdateObjectiveAdvance(const Vector& sitePosition);
     void UpdateObjectiveUse(bool planting);
     bool TryStartObjectiveUse(bool planting, int site);
     void SetObjectiveDestination(

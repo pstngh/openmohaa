@@ -246,9 +246,10 @@ BotController::BotController()
     m_bObjectiveHasDestination   = false;
     m_bObjectiveOwnsMovement     = false;
     m_bObjectiveOwnsUse          = false;
-    m_bObjectiveCritical         = false;
-    m_vObjectiveDestination      = vec_zero;
-    m_vObjectiveLastProgressPos  = vec_zero;
+    m_bObjectiveCritical             = false;
+    m_bObjectiveRouteActive          = false;
+    m_vObjectiveDestination          = vec_zero;
+    m_vObjectiveLastProgressPos      = vec_zero;
 
     m_StateFlags = 0;
 }

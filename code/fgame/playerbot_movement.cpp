@@ -70,9 +70,11 @@ BotMovement::BotMovement()
     m_pPath         = NULL;
     m_iLastMoveTime = 0;
 
-    m_bPathing       = false;
-    m_iTempAwayState = 0;
-    m_fAttractTime   = 0;
+    m_bPathing          = false;
+    m_bDirectMove       = false;
+    m_fDirectMoveRadius = 0.0f;
+    m_iTempAwayState    = 0;
+    m_fAttractTime      = 0;
 
     m_iCheckPathTime = 0;
     m_iTempAwayTime  = 0;
@@ -134,6 +136,11 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
 
     CheckAttractiveNodes();
+
+    if (m_bDirectMove) {
+        DirectMoveThink(botcmd);
+        return;
+    }
 
     if (!IsMoving() || !m_pPath) {
         // No path to follow, but the bot should still juke and lean in place
@@ -727,6 +734,22 @@ void BotMovement::MoveTo(Vector vPos, float *vLeashHome, float fLeashRadius)
     CheckEndPos(controlledEntity);
 }
 
+void BotMovement::MoveDirect(Vector vPos, float fRadius)
+{
+    if (m_pPath) {
+        m_pPath->Clear();
+    }
+
+    m_vTargetPos        = vPos;
+    m_vCurrentGoal      = vPos;
+    m_bPathing          = true;
+    m_bDirectMove       = true;
+    m_fDirectMoveRadius = Q_max(0.0f, fRadius);
+    m_bAvoidCollision   = false;
+    m_iTempAwayState    = 0;
+    m_iNumBlocks        = 0;
+}
+
 /*
 ====================
 MoveToBestAttractivePoint
@@ -836,6 +859,7 @@ Called when there is a new move
 */
 void BotMovement::NewMove()
 {
+    m_bDirectMove       = false;
     m_bPathing         = true;
     m_vLastCheckPos[0] = controlledEntity->origin;
     m_vLastCheckPos[1] = controlledEntity->origin;
@@ -1123,6 +1147,11 @@ bool BotMovement::MoveDone()
         return false;
     }
 
+    if (m_bDirectMove) {
+        return (m_vTargetPos - controlledEntity->origin).lengthXYSquared()
+            <= Square(m_fDirectMoveRadius);
+    }
+
     if (!m_pPath) {
         return true;
     }
@@ -1161,6 +1190,7 @@ Stop the bot from moving
 void BotMovement::ClearMove(void)
 {
     m_bPathing        = false;
+    m_bDirectMove     = false;
     m_bAvoidCollision = false;
     m_iNumBlocks      = 0;
 
@@ -1178,7 +1208,7 @@ Return the current goal, usually the nearest node the player should look at
 */
 Vector BotMovement::GetCurrentGoal() const
 {
-    if (!m_pPath || !m_pPath->GetNodeCount()) {
+    if (m_bDirectMove || !m_pPath || !m_pPath->GetNodeCount()) {
         return m_vCurrentGoal;
     }
 
@@ -1192,7 +1222,7 @@ Vector BotMovement::GetCurrentGoal() const
 
 Vector BotMovement::GetCurrentPathDirection() const
 {
-    if (!m_pPath) {
+    if (m_bDirectMove || !m_pPath) {
         return CalculateDir(m_vTargetPos - controlledEntity->origin);
     }
     return m_pPath->GetCurrentDirection();
@@ -1376,6 +1406,35 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
 
     if (m_bHasCombatTarget) {
         UpdateCombatRadialMovement(botcmd, bSuppressMovement);
+    }
+}
+
+void BotMovement::DirectMoveThink(usercmd_t& botcmd)
+{
+    Vector delta = m_vTargetPos - controlledEntity->origin;
+    delta.z      = 0.0f;
+
+    if (delta.lengthXYSquared() <= Square(m_fDirectMoveRadius)) {
+        ClearMove();
+        UpdateAggressiveMovement(botcmd);
+        PreventImminentBodyContact(botcmd);
+        return;
+    }
+
+    delta          = FixDeltaFromCollision(delta);
+    m_vCurrentGoal = controlledEntity->origin + delta;
+    m_vCurrentDir  = CalculateDir(delta);
+
+    const Vector wishDirection = CalculateRelativeWishDirection(m_vCurrentDir);
+    botcmd.forwardmove = (signed char)Q_clamp_float(wishDirection.x * 127.0f, -127.0f, 127.0f);
+    botcmd.rightmove   = (signed char)Q_clamp_float(-wishDirection.y * 127.0f, -127.0f, 127.0f);
+    botcmd.upmove      = 0;
+
+    UpdateAggressiveMovement(botcmd);
+    PreventImminentBodyContact(botcmd);
+    CheckJump(botcmd);
+    if (!m_bJump) {
+        CheckJumpOverEdge(botcmd);
     }
 }
 
