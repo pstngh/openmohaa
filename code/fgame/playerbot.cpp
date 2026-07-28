@@ -272,7 +272,9 @@ BotController::BotController()
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical             = false;
     m_bObjectiveRouteActive          = false;
+    m_bObjectiveRecoveryActive       = false;
     m_vObjectiveDestination          = vec_zero;
+    m_vObjectiveRecoveryDestination  = vec_zero;
     m_vObjectiveLastProgressPos      = vec_zero;
     m_vIdleProgressPos               = vec_zero;
     m_iIdleProgressTime              = 0;

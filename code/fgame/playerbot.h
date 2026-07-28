@@ -404,7 +404,9 @@ private:
     bool                      m_bObjectiveOwnsUse;
     bool                      m_bObjectiveCritical;
     bool                      m_bObjectiveRouteActive;
+    bool                      m_bObjectiveRecoveryActive;
     Vector                    m_vObjectiveDestination;
+    Vector                    m_vObjectiveRecoveryDestination;
     Vector                    m_vObjectiveLastProgressPos;
     Vector                    m_vIdleProgressPos;
     int                       m_iIdleProgressTime;

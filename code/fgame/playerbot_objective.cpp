@@ -32,6 +32,8 @@ static const float BOT_OBJECTIVE_DEFAULT_USE_FOV        = 30.0f;
 static const float BOT_OBJECTIVE_DEFAULT_USE_DISTANCE   = 128.0f;
 // Generated hold/patrol points are approximate; accept nearby navigation.
 static const float BOT_OBJECTIVE_PATROL_SEARCH_RADIUS = 128.0f;
+static const float BOT_OBJECTIVE_RECOVERY_RADIUS      = 128.0f;
+static const float BOT_OBJECTIVE_RECOVERY_MOVE_RADIUS = 48.0f;
 // obj_team4's Axis spawn has two exits. One bot uses the normal shortest
 // route; the rest pass through the left exit before resuming normal navigation.
 static const float BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS   = 128.0f;
@@ -432,7 +434,9 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical             = false;
     m_bObjectiveRouteActive          = false;
+    m_bObjectiveRecoveryActive       = false;
     m_vObjectiveDestination          = vec_zero;
+    m_vObjectiveRecoveryDestination  = vec_zero;
     m_vObjectiveLastProgressPos      = vec_zero;
 
     m_botCmd.buttons &= ~BUTTON_USE;
@@ -454,6 +458,7 @@ void BotController::BeginObjectivePlan()
     m_iObjectiveRouteVariant     = (rank + seed / Q_max(siteCount, 1)) & 3;
     m_iObjectiveState            = BOT_OBJECTIVE_NONE;
     m_bObjectiveHasDestination   = false;
+    m_bObjectiveRecoveryActive   = false;
     m_bObjectiveRouteActive =
         m_bObjectiveAttacker && BotObjectiveIsTeam4() && rank != 0;
     m_vObjectiveDestination      = vec_zero;
@@ -514,7 +519,7 @@ void BotController::UpdateObjectiveAdvance(const Vector& sitePosition)
     }
 
     const float siteDistance = (sitePosition - controlledEnt->origin).lengthXYSquared();
-    if (BotObjectiveIsTeam4()
+    if (!m_bObjectiveRecoveryActive && BotObjectiveIsTeam4()
         && siteDistance <= Square(BOT_OBJECTIVE_TEAM4_DIRECT_MAX_DISTANCE)
         && (!movement.IsMoving() || movement.MoveDone())) {
         const bool changed =
@@ -555,13 +560,30 @@ void BotController::SetObjectiveDestination(
     const Vector& destination, bot_objective_state_t state, float radius
 )
 {
+    Vector moveDestination = destination;
+    float  moveRadius      = radius;
+    bool   usingRecovery   = false;
+
+    if (state == BOT_OBJECTIVE_ADVANCE && m_bObjectiveRecoveryActive) {
+        if ((m_vObjectiveRecoveryDestination - controlledEnt->origin).lengthXYSquared()
+            <= Square(BOT_OBJECTIVE_RECOVERY_MOVE_RADIUS)) {
+            m_bObjectiveRecoveryActive = false;
+            m_bObjectiveHasDestination = false;
+            movement.ClearMove();
+        } else {
+            moveDestination = m_vObjectiveRecoveryDestination;
+            moveRadius      = BOT_OBJECTIVE_RECOVERY_MOVE_RADIUS;
+            usingRecovery   = true;
+        }
+    }
+
     const bool changed =
         !m_bObjectiveHasDestination || m_iObjectiveState != state
-        || m_vObjectiveDestination != destination;
+        || m_vObjectiveDestination != moveDestination;
 
     m_iObjectiveState          = state;
     m_bObjectiveHasDestination = true;
-    m_vObjectiveDestination    = destination;
+    m_vObjectiveDestination    = moveDestination;
     m_bObjectiveOwnsMovement   = true;
 
     if (changed) {
@@ -570,10 +592,10 @@ void BotController::SetObjectiveDestination(
     }
 
     if (changed || !movement.IsMoving() || movement.MoveDone()) {
-        if (radius > 0.0f) {
-            movement.MoveNear(destination, radius);
+        if (moveRadius > 0.0f) {
+            movement.MoveNear(moveDestination, moveRadius);
         } else {
-            movement.MoveTo(destination);
+            movement.MoveTo(moveDestination);
         }
 
         // Do not claim an objective path that the navigation backend rejected.
@@ -582,6 +604,12 @@ void BotController::SetObjectiveDestination(
         if (!movement.IsMoving()) {
             m_bObjectiveHasDestination = false;
             m_bObjectiveOwnsMovement   = false;
+
+            if (usingRecovery) {
+                m_bObjectiveRecoveryActive = false;
+                SetObjectiveDestination(destination, state, radius);
+                return;
+            }
         }
     }
 
@@ -774,6 +802,7 @@ bool BotController::TryStartObjectiveUse(bool planting, int site)
     m_iObjectiveUsePhase        = BOT_OBJECTIVE_USE_AIM;
     m_iObjectiveUseStartTime    = 0;
     m_iObjectiveReapproachUntil = 0;
+    m_bObjectiveRecoveryActive  = false;
     UpdateObjectiveUse(planting);
     return true;
 }
@@ -811,7 +840,30 @@ void BotController::UpdateObjectiveProgress()
         movement.ClearMove();
         m_iObjectiveNextMoveTime = 0;
 
-        if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
+        if (m_iObjectiveState == BOT_OBJECTIVE_ADVANCE) {
+            m_iObjectiveRouteVariant = (m_iObjectiveRouteVariant + 1) & 3;
+            const Vector sitePosition =
+                botManager.GetObjectiveSitePosition(m_iObjectiveSite);
+            const Vector awayFromStall =
+                sitePosition * 2.0f - controlledEnt->origin;
+            m_vObjectiveRecoveryDestination = BotObjectivePatrolPoint(
+                sitePosition,
+                awayFromStall,
+                BOT_OBJECTIVE_RECOVERY_RADIUS,
+                m_iObjectiveRouteVariant
+            );
+            m_bObjectiveRecoveryActive   = true;
+            m_bObjectiveHasDestination   = false;
+            m_vObjectiveLastProgressPos  = controlledEnt->origin;
+
+            G_MoveLogBotEvent(
+                "bot_objective_stall_recovery",
+                controlledEnt,
+                NULL,
+                m_iObjectiveRouteVariant,
+                m_vObjectiveRecoveryDestination
+            );
+        } else if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
             m_bObjectiveRouteActive    = false;
             m_bObjectiveHasDestination = false;
             m_iObjectiveState          = BOT_OBJECTIVE_NONE;
@@ -908,6 +960,7 @@ void BotController::UpdateObjectiveBehavior()
                 m_iObjectiveSite           = available;
                 m_iObjectiveState          = BOT_OBJECTIVE_NONE;
                 m_bObjectiveHasDestination = false;
+                m_bObjectiveRecoveryActive = false;
                 m_vObjectiveDestination    = vec_zero;
                 siteState                  = BOT_OBJECTIVE_SITE_AVAILABLE;
                 G_MoveLogBotEvent(
@@ -968,6 +1021,10 @@ void BotController::UpdateObjectiveBehavior()
         }
 
         if (plantedSite >= 0) {
+            if (m_iObjectiveSite != plantedSite) {
+                m_bObjectiveRecoveryActive = false;
+                m_bObjectiveHasDestination = false;
+            }
             m_iObjectiveSite          = plantedSite;
             m_bObjectiveCritical      = true;
             const Vector sitePosition = botManager.GetObjectiveSitePosition(plantedSite);
