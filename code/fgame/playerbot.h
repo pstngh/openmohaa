@@ -362,6 +362,8 @@ private:
     aim_sample_t m_AimHistory[MAX_AIM_HISTORY_SAMPLES];
     int          m_iAimHistoryHead;
     int          m_iAimHistoryCount;
+    int          m_iPostKillAimUntil;
+    Vector       m_vPostKillAimAngles;
 
     Vector                    m_vLastCuriousPos;
     Vector                    m_vNewCuriousPos;
@@ -373,6 +375,7 @@ private:
     bool                      m_bGrenadeFleeing;
     bool                      m_bGrenadePathFailed;
     bool                      m_bReloadRetreating;
+    SafePtr<Weapon>           m_pCombatPrimaryWeapon;
     bool                      m_bTeamResponding;
     bot_contact_source_t      m_iTeamContactSource;
     int                       m_iTeamContactEnemy;

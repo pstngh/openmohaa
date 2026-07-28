@@ -57,6 +57,7 @@ static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
 static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
 static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
 static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
+static const int   BOT_POST_KILL_AIM_MSEC          = 150;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -235,9 +236,12 @@ BotController::BotController()
     m_iNextAimErrorChangeTime   = 0;
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
+    m_iPostKillAimUntil         = 0;
+    m_vPostKillAimAngles        = vec_zero;
     m_iCuriousEventType         = AI_EVENT_NONE;
     ResetGrenadeAvoidance();
     m_bReloadRetreating         = false;
+    m_pCombatPrimaryWeapon      = NULL;
     m_bTeamResponding           = false;
     m_iTeamContactSource        = BOT_CONTACT_NONE;
     m_iTeamContactEnemy         = -1;
@@ -397,6 +401,15 @@ void BotController::UpdateBotStates(void)
 
     movement.MoveThink(m_botCmd);
     FinalizeObjectiveCommand();
+
+    if (m_iPostKillAimUntil) {
+        if ((m_pEnemy && IsValidEnemy(m_pEnemy)) || level.inttime >= m_iPostKillAimUntil) {
+            m_iPostKillAimUntil = 0;
+        } else {
+            rotation.SetTargetAngles(m_vPostKillAimAngles);
+        }
+    }
+
     rotation.TurnThink(m_botCmd, m_botEyes);
     CheckUse();
 
@@ -488,6 +501,19 @@ void BotController::CheckValidWeapon()
 {
     Weapon *weapon  = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
     Weapon *pending = controlledEnt->GetNewActiveWeapon();
+
+    if (m_pCombatPrimaryWeapon) {
+        if (weapon == m_pCombatPrimaryWeapon) {
+            m_pCombatPrimaryWeapon = NULL;
+        } else if (!m_pCombatPrimaryWeapon->HasAmmo(FIRE_PRIMARY)) {
+            m_pCombatPrimaryWeapon = NULL;
+        } else if (!pending && (!m_pEnemy || !IsValidEnemy(m_pEnemy))) {
+            Weapon *primary = m_pCombatPrimaryWeapon;
+            controlledEnt->useWeapon(primary, WEAPON_MAIN);
+            G_MoveLogBotEvent("bot_reload_primary", controlledEnt, NULL, primary->entnum, controlledEnt->origin);
+            return;
+        }
+    }
 
     // Do not replace a weapon switch while the current weapon is lowering.
     if ((!weapon || !weapon->HasAmmo(FIRE_PRIMARY)) && !pending) {
@@ -928,6 +954,8 @@ void BotController::State_Reset(void)
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
+    m_iPostKillAimUntil         = 0;
+    m_vPostKillAimAngles        = vec_zero;
     m_vAimErrorDirection        = vec_zero;
     m_vAimErrorTargetDirection = vec_zero;
     m_iNextAimErrorChangeTime   = 0;
@@ -940,6 +968,7 @@ void BotController::State_Reset(void)
     m_iIdleProgressTime         = 0;
     ResetGrenadeAvoidance();
     m_bReloadRetreating         = false;
+    m_pCombatPrimaryWeapon      = NULL;
     m_pEnemy                    = NULL;
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
@@ -2063,6 +2092,7 @@ bool BotController::UseCombatPistol()
         return false;
     }
 
+    m_pCombatPrimaryWeapon = active;
     controlledEnt->useWeapon(pistol, WEAPON_MAIN);
     G_MoveLogBotEvent(
         "bot_reload_pistol",
@@ -2090,6 +2120,9 @@ void BotController::Spawned(void)
     ClearEnemy();
     ResetGrenadeAvoidance();
     m_bReloadRetreating = false;
+    m_pCombatPrimaryWeapon = NULL;
+    m_iPostKillAimUntil    = 0;
+    m_vPostKillAimAngles   = vec_zero;
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
     m_vIdleProgressPos  = vec_zero;
@@ -2119,6 +2152,9 @@ void BotController::Killed(const Event& ev)
     ClearTeamResponse();
     ResetGrenadeAvoidance();
     ResetObjectiveBehavior();
+    m_pCombatPrimaryWeapon = NULL;
+    m_iPostKillAimUntil    = 0;
+    m_vPostKillAimAngles   = vec_zero;
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {
@@ -2151,6 +2187,8 @@ void BotController::Killed(const Event& ev)
 
 void BotController::GotKill(const Event& ev)
 {
+    m_vPostKillAimAngles = rotation.GetTargetAngles();
+    m_iPostKillAimUntil  = level.inttime + BOT_POST_KILL_AIM_MSEC;
     ClearEnemy();
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
