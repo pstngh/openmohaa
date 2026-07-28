@@ -860,9 +860,12 @@ Called when there is a new move
 void BotMovement::NewMove()
 {
     m_bDirectMove       = false;
-    m_bPathing         = true;
-    m_vLastCheckPos[0] = controlledEntity->origin;
-    m_vLastCheckPos[1] = controlledEntity->origin;
+    m_bPathing          = true;
+    m_bAvoidCollision   = false;
+    m_iTempAwayState    = 0;
+    m_iNumBlocks        = 0;
+    m_vLastCheckPos[0]  = controlledEntity->origin;
+    m_vLastCheckPos[1]  = controlledEntity->origin;
 }
 
 void BotMovement::CalculateBestFrontAvoidance(
@@ -1192,6 +1195,7 @@ void BotMovement::ClearMove(void)
     m_bPathing        = false;
     m_bDirectMove     = false;
     m_bAvoidCollision = false;
+    m_iTempAwayState  = 0;
     m_iNumBlocks      = 0;
 
     if (m_pPath) {

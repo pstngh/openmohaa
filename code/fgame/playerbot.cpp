@@ -1054,6 +1054,17 @@ void BotController::State_Curious(void)
     if (!movement.MoveToBestAttractivePoint(3) && (!movement.IsMoving() || m_vLastCuriousPos != m_vNewCuriousPos)) {
         movement.MoveTo(m_vNewCuriousPos);
         m_vLastCuriousPos = m_vNewCuriousPos;
+
+        // A sound or team report can be connected acoustically while still
+        // being unreachable by the navigation mesh. Do not spend the rest of
+        // the report lifetime searching around a destination we cannot path
+        // to; resume normal roaming instead.
+        if (!movement.IsMoving()) {
+            m_iCuriousTime      = 0;
+            m_iCuriousEventType = AI_EVENT_NONE;
+            ClearTeamResponse();
+            return;
+        }
     }
 
     if (movement.MoveDone() && m_bTeamResponding && level.inttime < m_iTeamContactExpireTime) {
