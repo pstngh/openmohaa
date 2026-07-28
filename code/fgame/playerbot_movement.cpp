@@ -24,13 +24,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "debuglines.h"
 
-static int       maxFallHeight                   = 400;
-static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
-static const int   BOT_COLLISION_STALL_MSEC        = 350;
-static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
-static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
-static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
-static const int BOT_JUMP_RETRY_MSEC              = 500;
+static int         maxFallHeight                    = 400;
+static const int   BOT_COLLISION_AVOID_COMMIT_MSEC  = 750;
+static const int   BOT_COLLISION_CHECK_MSEC         = 100;
+static const int   BOT_COLLISION_STALL_MSEC         = 350;
+static const float BOT_COLLISION_PROGRESS_UNITS     = 24.0f;
+static const int   BOT_REDUCED_STANCE_RECOVERY_MSEC = 1500;
+static const int   BOT_JUMP_TAKEOFF_MSEC             = 250;
+static const int   BOT_JUMP_COMMIT_MAX_MSEC          = 1000;
+static const int   BOT_JUMP_RETRY_MSEC               = 500;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -89,6 +91,7 @@ BotMovement::BotMovement()
     m_iCollisionCheckTime      = 0;
     m_iCollisionProgressTime   = 0;
     m_vCollisionProgressOrigin = vec_zero;
+    m_iReducedStanceStartTime  = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -150,11 +153,18 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.forwardmove = 0;
     botcmd.rightmove   = 0;
     // The bot usercmd persists across frames: start each movement frame
-    // lean-neutral so a lean can't stay latched after strafing stops
+    // lean-neutral so a lean can't stay latched after strafing stops.
     botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    RecoverStandingStance();
 
     if (ContinueJump(botcmd)) {
         return;
+    }
+    // Preserve the ladder's deliberate alternating vertical command, but
+    // clear jump input as soon as its movement state is finished.
+    if (!controlledEntity->GetLadder()) {
+        botcmd.upmove = 0;
     }
 
     CheckAttractiveNodes();
@@ -446,6 +456,51 @@ void BotMovement::CheckEndPos(Entity *entity)
     if (trace.fraction < 0.95f) {
         m_vTargetPos = trace.endpos;
     }
+}
+
+void BotMovement::RecoverStandingStance()
+{
+    const bool onGround =
+        controlledEntity->groundentity || controlledEntity->client->ps.walking;
+    if (controlledEntity->maxs.z >= MAXS_Z || controlledEntity->GetLadder()
+        || m_iJumpCommitTime >= 0 || !onGround) {
+        m_iReducedStanceStartTime = 0;
+        return;
+    }
+
+    if (!m_iReducedStanceStartTime) {
+        m_iReducedStanceStartTime = level.inttime;
+        return;
+    }
+    if (level.inttime < m_iReducedStanceStartTime + BOT_REDUCED_STANCE_RECOVERY_MSEC) {
+        return;
+    }
+
+    Vector standMaxs = controlledEntity->maxs;
+    standMaxs.z      = MAXS_Z;
+    trace_t trace    = G_Trace(
+        controlledEntity->origin,
+        controlledEntity->mins,
+        standMaxs,
+        controlledEntity->origin,
+        controlledEntity,
+        MASK_PLAYERSOLID,
+        true,
+        "BotMovement::RecoverStandingStance"
+    );
+    if (trace.startsolid) {
+        return;
+    }
+
+    Event *height = new Event("modheight", 1);
+    height->AddString("stand");
+    controlledEntity->ProcessEvent(height);
+
+    Event *position = new Event("moveposflags", 1);
+    position->AddString("standing");
+    controlledEntity->ProcessEvent(position);
+
+    m_iReducedStanceStartTime = 0;
 }
 
 bool BotMovement::ContinueJump(usercmd_t& botcmd)
@@ -1111,7 +1166,7 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     }
 
     // Commit to a chosen side long enough to clear the obstacle. Recomputing
-    // both sides every 250 ms made equally open routes alternate at walls.
+    // both sides at every probe made equally open routes alternate at walls.
     if (m_bAvoidCollision) {
         if ((controlledEntity->origin - m_vCollisionProgressOrigin).lengthXYSquared()
             >= Square(BOT_COLLISION_PROGRESS_UNITS)) {
@@ -1152,7 +1207,7 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         m_iCollisionProgressTime = 0;
     }
 
-    if (level.inttime < m_iCollisionCheckTime + 250 || m_bJump) {
+    if (level.inttime < m_iCollisionCheckTime + BOT_COLLISION_CHECK_MSEC || m_bJump) {
         return delta;
     }
 

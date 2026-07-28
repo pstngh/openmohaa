@@ -215,6 +215,7 @@ private:
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
+    void   RecoverStandingStance();
     bool   ContinueJump(usercmd_t& botcmd);
     void   CheckJump(usercmd_t& botcmd);
     void   CheckJumpOverEdge(usercmd_t& botcmd);
@@ -261,6 +262,7 @@ private:
     Vector m_vTempCollisionAvoidance;
     int    m_iCollisionProgressTime;
     Vector m_vCollisionProgressOrigin;
+    int    m_iReducedStanceStartTime;
 
     ///
     /// Jump detection
