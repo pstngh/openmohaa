@@ -54,7 +54,9 @@ static const float BOT_MAX_VISION_DISTANCE = 4096.0f;
 static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
 static const int   BOT_GRENADE_REPATH_MSEC        = 250;
 static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
-static const float BOT_RELOAD_SAFE_DISTANCE = 384.0f;
+static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
+static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
+static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -262,6 +264,8 @@ BotController::BotController()
     m_bObjectiveRouteActive          = false;
     m_vObjectiveDestination          = vec_zero;
     m_vObjectiveLastProgressPos      = vec_zero;
+    m_vIdleProgressPos               = vec_zero;
+    m_iIdleProgressTime              = 0;
 
     m_StateFlags = 0;
 }
@@ -933,6 +937,8 @@ void BotController::State_Reset(void)
     m_vOldEnemyPos              = vec_zero;
     m_vLastEnemyPos             = vec_zero;
     m_vLastDeathPos             = vec_zero;
+    m_vIdleProgressPos          = vec_zero;
+    m_iIdleProgressTime         = 0;
     ResetGrenadeAvoidance();
     m_bReloadRetreating         = false;
     m_pEnemy                    = NULL;
@@ -952,6 +958,8 @@ Make the bot move to random directions
 void BotController::InitState_Idle(botfunc_t *func)
 {
     func->CheckCondition = &BotController::CheckCondition_Idle;
+    func->BeginState     = &BotController::State_BeginIdle;
+    func->EndState       = &BotController::State_EndIdle;
     func->ThinkState     = &BotController::State_Idle;
 }
 
@@ -972,6 +980,18 @@ bool BotController::CheckCondition_Idle(void)
     return true;
 }
 
+void BotController::State_BeginIdle(void)
+{
+    State_DefaultBegin();
+    m_vIdleProgressPos  = controlledEnt->origin;
+    m_iIdleProgressTime = level.inttime;
+}
+
+void BotController::State_EndIdle(void)
+{
+    m_iIdleProgressTime = 0;
+}
+
 void BotController::State_Idle(void)
 {
     if (CheckWindows()) {
@@ -985,7 +1005,29 @@ void BotController::State_Idle(void)
     AimAtAimNode();
 
     if (m_bObjectiveOwnsMovement) {
+        m_vIdleProgressPos  = controlledEnt->origin;
+        m_iIdleProgressTime = level.inttime;
         return;
+    }
+
+    // A valid path can still circle through the same room indefinitely, so
+    // physical "blocked" checks alone cannot recognize the failure. If an
+    // idle bot has not left a modest area in ten seconds, discard that roam
+    // and choose a new heading below. Objective movement has its own progress
+    // handling and is deliberately excluded above.
+    if (!m_iIdleProgressTime) {
+        m_vIdleProgressPos  = controlledEnt->origin;
+        m_iIdleProgressTime = level.inttime;
+    } else if (level.inttime >= m_iIdleProgressTime + BOT_IDLE_PROGRESS_MSEC) {
+        if ((controlledEnt->origin - m_vIdleProgressPos).lengthXYSquared()
+            < Square(BOT_IDLE_PROGRESS_UNITS)) {
+            movement.ClearMove();
+            movement.AbandonAttractivePoint();
+            m_vLastDeathPos = vec_zero;
+        }
+
+        m_vIdleProgressPos  = controlledEnt->origin;
+        m_iIdleProgressTime = level.inttime;
     }
 
     if (!movement.MoveToBestAttractivePoint() && !movement.IsMoving()) {
@@ -996,12 +1038,15 @@ void BotController::State_Idle(void)
                 m_vLastDeathPos = vec_zero;
             }
         } else {
-            Vector randomDir(G_CRandom(16), G_CRandom(16), G_CRandom(16));
-            Vector preferredDir;
+            Vector randomDir(G_CRandom(16), G_CRandom(16), 0);
+            Vector preferredDir(G_CRandom(1.0f), G_CRandom(1.0f), 0);
             float  radius = 512 + G_Random(2048);
 
-            preferredDir += Vector(controlledEnt->orientation[0]) * (rand() % 5 ? 1024 : -1024);
-            preferredDir += Vector(controlledEnt->orientation[1]) * (rand() % 5 ? 1024 : -1024);
+            if (VectorNormalize2D(preferredDir) <= 0) {
+                preferredDir = Vector(controlledEnt->orientation[0]);
+            }
+            preferredDir *= 1024.0f;
+
             movement.AvoidPath(controlledEnt->origin + randomDir, radius, preferredDir);
         }
     }
@@ -2048,6 +2093,8 @@ void BotController::Spawned(void)
     m_bReloadRetreating = false;
     m_iCuriousTime      = 0;
     m_iCuriousEventType = AI_EVENT_NONE;
+    m_vIdleProgressPos  = vec_zero;
+    m_iIdleProgressTime = 0;
     m_botCmd.buttons    = 0;
     m_StateFlags        = 0;
     ClearTeamResponse();

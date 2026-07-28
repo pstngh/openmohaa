@@ -196,6 +196,7 @@ public:
     void MoveTo(Vector vPos, float *vLeashHome = NULL, float fLeashRadius = 0.0f);
     void MoveDirect(Vector vPos, float fRadius);
     bool MoveToBestAttractivePoint(int iMinPriority = 0);
+    void AbandonAttractivePoint();
 
     bool CanMoveTo(Vector vPos);
     bool MoveDone();
@@ -398,6 +399,8 @@ private:
     bool                      m_bObjectiveRouteActive;
     Vector                    m_vObjectiveDestination;
     Vector                    m_vObjectiveLastProgressPos;
+    Vector                    m_vIdleProgressPos;
+    int                       m_iIdleProgressTime;
     Vector                    m_vOldEnemyPos;
     Vector                    m_vLastEnemyPos;
     Vector                    m_vLastDeathPos;

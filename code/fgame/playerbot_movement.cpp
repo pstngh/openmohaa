@@ -106,6 +106,11 @@ BotMovement::BotMovement()
 BotMovement::~BotMovement()
 {
     delete m_pPath;
+
+    for (int i = m_attractList.NumObjects(); i > 0; --i) {
+        delete m_attractList.ObjectAt(i);
+    }
+    m_attractList.ClearObjectList();
 }
 
 void BotMovement::SetControlledEntity(Player *newEntity)
@@ -866,18 +871,14 @@ bool BotMovement::MoveToBestAttractivePoint(int iMinPriority)
         MoveTo(m_pPrimaryAttract->origin);
 
         if (!IsMoving()) {
-            m_pPrimaryAttract = NULL;
+            AbandonAttractivePoint();
         } else {
             if (MoveDone()) {
                 if (!m_fAttractTime) {
                     m_fAttractTime = level.time + m_pPrimaryAttract->m_fMaxStayTime;
                 }
                 if (level.time > m_fAttractTime) {
-                    nodeAttract_t *a  = new nodeAttract_t;
-                    a->m_fRespawnTime = level.time + m_pPrimaryAttract->m_fRespawnTime;
-                    a->m_pNode        = m_pPrimaryAttract;
-
-                    m_pPrimaryAttract = NULL;
+                    AbandonAttractivePoint();
                 }
             }
 
@@ -945,6 +946,21 @@ bool BotMovement::MoveToBestAttractivePoint(int iMinPriority)
         // No attractive point found
         return false;
     }
+}
+
+void BotMovement::AbandonAttractivePoint()
+{
+    if (!m_pPrimaryAttract) {
+        return;
+    }
+
+    nodeAttract_t *attract  = new nodeAttract_t;
+    attract->m_fRespawnTime = level.time + m_pPrimaryAttract->m_fRespawnTime;
+    attract->m_pNode        = m_pPrimaryAttract;
+    m_attractList.AddObject(attract);
+
+    m_pPrimaryAttract = NULL;
+    m_fAttractTime    = 0;
 }
 
 /*
