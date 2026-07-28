@@ -76,10 +76,10 @@ The game mode to use. The following values are accepted:
 - `0`: Players don't drop an health pack when killed
 - `1` (the default): Players drop an health pack when killed
 
-### `g_droppedhealthlife`
+### `g_droppeditemlife`
 
-The number of seconds a dropped health pack remains in the world. Defaults to `60`; values at or below `0` keep it
-until it is picked up or the map ends.
+The number of seconds dropped items, including health packs and weapons,
+remain in the world. Defaults to `60`.
 
 ### `g_inactivekick`
 
