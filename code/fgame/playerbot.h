@@ -214,6 +214,7 @@ private:
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
+    bool   ContinueJump(usercmd_t& botcmd);
     void   CheckJump(usercmd_t& botcmd);
     void   CheckJumpOverEdge(usercmd_t& botcmd);
     void   DirectMoveThink(usercmd_t& botcmd);
@@ -264,7 +265,11 @@ private:
 
     bool   m_bJump;
     int    m_iJumpCheckTime;
+    int    m_iJumpCommitTime;
+    int    m_iJumpRetryTime;
+    bool   m_bJumpWasAirborne;
     Vector m_vJumpLocation;
+    Vector m_vJumpDirection;
 
     ///
     /// Aggressive movement (strafe + lean + enemy-relative radial movement)

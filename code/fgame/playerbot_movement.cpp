@@ -26,6 +26,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static int       maxFallHeight                   = 400;
 static const int BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
+static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
+static const int BOT_JUMP_RETRY_MSEC              = 500;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -84,6 +87,9 @@ BotMovement::BotMovement()
     m_iCollisionCheckTime = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
+    m_iJumpCommitTime     = -1;
+    m_iJumpRetryTime      = 0;
+    m_bJumpWasAirborne    = false;
 
     // Aggressive movement
     m_iStrafeDirection      = 1;
@@ -137,6 +143,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     // The bot usercmd persists across frames: start each movement frame
     // lean-neutral so a lean can't stay latched after strafing stops
     botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    if (ContinueJump(botcmd)) {
+        return;
+    }
 
     CheckAttractiveNodes();
 
@@ -418,6 +428,60 @@ void BotMovement::CheckEndPos(Entity *entity)
     }
 }
 
+bool BotMovement::ContinueJump(usercmd_t& botcmd)
+{
+    if (m_iJumpCommitTime < 0) {
+        return false;
+    }
+
+    const bool onGround =
+        controlledEntity->groundentity || controlledEntity->client->ps.walking;
+    const int elapsed = level.inttime - m_iJumpCommitTime;
+
+    if (!onGround) {
+        m_bJumpWasAirborne = true;
+    }
+
+    const bool landed   = m_bJumpWasAirborne && onGround;
+    const bool stalled  = !m_bJumpWasAirborne && elapsed >= BOT_JUMP_TAKEOFF_MSEC;
+    const bool timedOut = elapsed >= BOT_JUMP_COMMIT_MAX_MSEC;
+    if (landed || stalled || timedOut) {
+        const bool failed =
+            !m_bJumpWasAirborne
+            || (controlledEntity->origin - m_vJumpLocation).lengthXYSquared() < Square(32);
+
+        m_bJump            = false;
+        m_iJumpCommitTime  = -1;
+        m_iJumpRetryTime   = level.inttime + (failed ? BOT_JUMP_RETRY_MSEC : 0);
+        m_bJumpWasAirborne = false;
+
+        m_iCheckPathTime   = level.inttime;
+        m_vLastCheckPos[0] = controlledEntity->origin;
+        m_vLastCheckPos[1] = controlledEntity->origin;
+
+        if (failed && !m_bDirectMove && m_pPath && m_pPath->GetNodeCount()) {
+            PathSearchParameter parameters;
+            parameters.entity     = controlledEntity;
+            parameters.fallHeight = maxFallHeight;
+            m_pPath->FindPath(controlledEntity->origin, m_vTargetPos, parameters);
+            m_iLastMoveTime = level.inttime;
+        }
+
+        return false;
+    }
+
+    const Vector wishDirection = CalculateRelativeWishDirection(m_vJumpDirection);
+    botcmd.forwardmove = (signed char)Q_clamp_float(wishDirection.x * 127.0f, -127.0f, 127.0f);
+    botcmd.rightmove   = (signed char)Q_clamp_float(-wishDirection.y * 127.0f, -127.0f, 127.0f);
+    botcmd.upmove      = !m_bJumpWasAirborne ? 127 : 0;
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    m_bIsLeaning                  = false;
+    m_bLeanCommandActive          = false;
+    m_telemetry.movementSuppressed = true;
+    return true;
+}
+
 void BotMovement::CheckJump(usercmd_t& botcmd)
 {
     Vector  start;
@@ -433,6 +497,11 @@ void BotMovement::CheckJump(usercmd_t& botcmd)
             // If the bot is not moving, cancel it
             botcmd.upmove = botcmd.upmove ? 0 : 127;
         }
+        return;
+    }
+
+    if (level.inttime < m_iJumpRetryTime) {
+        m_bJump = false;
         return;
     }
 
@@ -525,7 +594,21 @@ void BotMovement::CheckJump(usercmd_t& botcmd)
 
         delta = m_vJumpLocation - controlledEntity->origin;
         if (delta.lengthSquared() < Square(32)) {
-            botcmd.upmove = 127;
+            m_bJump              = true;
+            m_iJumpCommitTime    = level.inttime;
+            m_bJumpWasAirborne   = false;
+            m_vJumpLocation      = controlledEntity->origin;
+            m_vJumpDirection     = dir;
+            m_vJumpDirection.z   = 0;
+            VectorNormalize2D(m_vJumpDirection);
+
+            // The jump now owns movement until takeoff and landing. Clear
+            // escape states that would otherwise steer sideways or backward.
+            m_bAvoidCollision = false;
+            m_iTempAwayState  = 0;
+            m_iNumBlocks      = 0;
+            m_iCheckPathTime  = level.inttime;
+            ContinueJump(botcmd);
         }
     }
 }
@@ -1195,11 +1278,15 @@ Stop the bot from moving
 */
 void BotMovement::ClearMove(void)
 {
-    m_bPathing        = false;
-    m_bDirectMove     = false;
-    m_bAvoidCollision = false;
-    m_iTempAwayState  = 0;
-    m_iNumBlocks      = 0;
+    m_bPathing          = false;
+    m_bDirectMove       = false;
+    m_bAvoidCollision   = false;
+    m_iTempAwayState    = 0;
+    m_iNumBlocks        = 0;
+    m_bJump             = false;
+    m_iJumpCommitTime   = -1;
+    m_iJumpRetryTime    = 0;
+    m_bJumpWasAirborne  = false;
 
     if (m_pPath) {
         m_pPath->Clear();
