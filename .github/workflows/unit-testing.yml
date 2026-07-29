@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - 'agent/bot-telemetry-server'
+      - 'agent/bot-demo-route-graphs'
   pull_request:
 
 concurrency:
@@ -12,7 +13,9 @@ concurrency:
 
 jobs:
   build:
-    if: github.head_ref != 'agent/bot-telemetry-server'
+    if: >-
+      github.head_ref != 'agent/bot-telemetry-server' &&
+      github.head_ref != 'agent/bot-demo-route-graphs'
     name: "Running unit tests"
     runs-on: ubuntu-latest
     environment: "testing"

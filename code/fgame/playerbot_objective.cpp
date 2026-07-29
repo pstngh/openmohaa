@@ -32,10 +32,6 @@ static const float BOT_OBJECTIVE_DEFAULT_USE_FOV        = 30.0f;
 static const float BOT_OBJECTIVE_DEFAULT_USE_DISTANCE   = 128.0f;
 // Generated hold/patrol points are approximate; accept nearby navigation.
 static const float BOT_OBJECTIVE_PATROL_SEARCH_RADIUS = 128.0f;
-// obj_team4's Axis spawn has two exits. One bot uses the normal shortest
-// route; the rest pass through the left exit before resuming normal navigation.
-static const float BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS   = 128.0f;
-static const float BOT_OBJECTIVE_TEAM4_ROUTE_PASSED_Y = 2400.0f;
 // The bomb bridge is scripted and absent from the static navigation graph.
 static const float BOT_OBJECTIVE_TEAM4_DIRECT_MAX_DISTANCE = 384.0f;
 static const float BOT_OBJECTIVE_TEAM4_DIRECT_RADIUS       = 48.0f;
@@ -104,11 +100,6 @@ static bool BotObjectiveInUseRange(Player *player, Entity *trigger)
 static bool BotObjectiveIsTeam4()
 {
     return !Q_stricmp(level.mapname.c_str(), "obj/obj_team4");
-}
-
-static Vector BotObjectiveTeam4LeftRoutePoint()
-{
-    return Vector(-1320.0f, 2500.0f, 328.0f);
 }
 
 bool BotManager::ObjectiveModeActive() const
@@ -416,13 +407,18 @@ void BotController::ResetObjectiveBehavior()
 {
     botManager.ReleaseObjectiveClaim(controlledEnt);
 
-    m_iObjectiveState            = BOT_OBJECTIVE_NONE;
-    m_iObjectiveUsePhase         = BOT_OBJECTIVE_USE_AIM;
-    m_iObjectiveRound            = -1;
-    m_iObjectiveSite             = -1;
-    m_iObjectiveRouteVariant     = 0;
-    m_iObjectiveUseStartTime     = 0;
-    m_iObjectiveReapproachUntil  = 0;
+    m_iObjectiveState             = BOT_OBJECTIVE_NONE;
+    m_iObjectiveUsePhase          = BOT_OBJECTIVE_USE_AIM;
+    m_iObjectiveRound             = -1;
+    m_iObjectiveSite              = -1;
+    m_iObjectiveRouteVariant          = 0;
+    m_iObjectiveRouteCurrentNode      = -1;
+    m_iObjectiveRoutePreviousNode     = -1;
+    m_iObjectiveRouteNextNode         = -1;
+    m_iObjectiveRouteGoalNode         = -1;
+    m_iObjectiveRouteHop              = 0;
+    m_iObjectiveUseStartTime      = 0;
+    m_iObjectiveReapproachUntil   = 0;
     m_iObjectiveNextMoveTime     = 0;
     m_iObjectiveLastProgressTime = 0;
     m_iObjectiveLastStallLogTime = 0;
@@ -430,10 +426,11 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveHasDestination   = false;
     m_bObjectiveOwnsMovement     = false;
     m_bObjectiveOwnsUse          = false;
-    m_bObjectiveCritical             = false;
-    m_bObjectiveRouteActive          = false;
-    m_vObjectiveDestination          = vec_zero;
-    m_vObjectiveLastProgressPos      = vec_zero;
+    m_bObjectiveCritical        = false;
+    m_bObjectiveRoutePostPlant  = false;
+    m_bObjectiveRouteDisabled   = false;
+    m_vObjectiveDestination     = vec_zero;
+    m_vObjectiveLastProgressPos = vec_zero;
 
     m_botCmd.buttons &= ~BUTTON_USE;
     movement.ClearMove();
@@ -454,8 +451,6 @@ void BotController::BeginObjectivePlan()
     m_iObjectiveRouteVariant     = (rank + seed / Q_max(siteCount, 1)) & 3;
     m_iObjectiveState            = BOT_OBJECTIVE_NONE;
     m_bObjectiveHasDestination   = false;
-    m_bObjectiveRouteActive =
-        m_bObjectiveAttacker && BotObjectiveIsTeam4() && rank != 0;
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = controlledEnt->origin;
     m_iObjectiveLastProgressTime = level.inttime;
@@ -471,46 +466,8 @@ void BotController::BeginObjectivePlan()
 
 void BotController::UpdateObjectiveAdvance(const Vector& sitePosition)
 {
-    if (m_bObjectiveRouteActive) {
-        const Vector routePoint = BotObjectiveTeam4LeftRoutePoint();
-        const bool routeReached =
-            (routePoint - controlledEnt->origin).lengthXYSquared()
-                <= Square(BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS)
-            || controlledEnt->origin.y <= BOT_OBJECTIVE_TEAM4_ROUTE_PASSED_Y;
-
-        if (routeReached) {
-            m_bObjectiveRouteActive    = false;
-            m_bObjectiveHasDestination = false;
-            movement.ClearMove();
-        } else {
-            const bool startingRoute = m_iObjectiveState != BOT_OBJECTIVE_ROUTE;
-            SetObjectiveDestination(
-                routePoint,
-                BOT_OBJECTIVE_ROUTE,
-                BOT_OBJECTIVE_TEAM4_ROUTE_RADIUS
-            );
-            if (m_bObjectiveHasDestination) {
-                if (startingRoute) {
-                    G_MoveLogBotEvent(
-                        "bot_objective_route",
-                        controlledEnt,
-                        NULL,
-                        1,
-                        routePoint
-                    );
-                }
-                return;
-            }
-
-            m_bObjectiveRouteActive = false;
-            G_MoveLogBotEvent(
-                "bot_objective_route_fallback",
-                controlledEnt,
-                NULL,
-                1,
-                controlledEnt->origin
-            );
-        }
+    if (UpdateObjectiveDemoRoute(sitePosition, false, false)) {
+        return;
     }
 
     const float siteDistance = (sitePosition - controlledEnt->origin).lengthXYSquared();
@@ -812,9 +769,7 @@ void BotController::UpdateObjectiveProgress()
         m_iObjectiveNextMoveTime = 0;
 
         if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
-            m_bObjectiveRouteActive    = false;
-            m_bObjectiveHasDestination = false;
-            m_iObjectiveState          = BOT_OBJECTIVE_NONE;
+            ResetObjectiveDemoRoute(true);
             G_MoveLogBotEvent(
                 "bot_objective_route_fallback",
                 controlledEnt,
@@ -828,6 +783,13 @@ void BotController::UpdateObjectiveProgress()
 
 void BotController::UpdateObjectiveBehavior()
 {
+    // Combat, team response, and survival movement can replace the active
+    // navigation path. Keep the strategic hop, but force it to be reissued
+    // once objective movement regains control.
+    if (!m_bObjectiveOwnsMovement && m_iObjectiveRouteNextNode >= 0) {
+        m_bObjectiveHasDestination = false;
+    }
+
     m_bObjectiveOwnsMovement = false;
     m_bObjectiveOwnsUse      = false;
     m_bObjectiveCritical     = false;
@@ -909,7 +871,8 @@ void BotController::UpdateObjectiveBehavior()
                 m_iObjectiveState          = BOT_OBJECTIVE_NONE;
                 m_bObjectiveHasDestination = false;
                 m_vObjectiveDestination    = vec_zero;
-                siteState                  = BOT_OBJECTIVE_SITE_AVAILABLE;
+                ResetObjectiveDemoRoute();
+                siteState = BOT_OBJECTIVE_SITE_AVAILABLE;
                 G_MoveLogBotEvent(
                     "bot_objective_replan",
                     controlledEnt,
@@ -933,7 +896,11 @@ void BotController::UpdateObjectiveBehavior()
 
         const Vector sitePosition = botManager.GetObjectiveSitePosition(m_iObjectiveSite);
         if (siteState == BOT_OBJECTIVE_SITE_PLANTED) {
-            UpdateObjectivePatrol(sitePosition, enemySpawn, 256.0f, BOT_OBJECTIVE_COVER);
+            if (!UpdateObjectiveDemoRoute(sitePosition, true, true)) {
+                UpdateObjectivePatrol(
+                    sitePosition, enemySpawn, 256.0f, BOT_OBJECTIVE_COVER
+                );
+            }
             UpdateObjectiveProgress();
             return;
         }
@@ -997,7 +964,9 @@ void BotController::UpdateObjectiveBehavior()
                 );
             } else if (inUseRange) {
                 UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
-            } else {
+            } else if (!UpdateObjectiveDemoRoute(
+                           sitePosition, true, false
+                       )) {
                 SetObjectiveDestination(
                     sitePosition,
                     BOT_OBJECTIVE_ADVANCE,
@@ -1005,9 +974,20 @@ void BotController::UpdateObjectiveBehavior()
                 );
             }
         } else {
-            // Before a bomb is planted, defenders use the normal bot behavior.
-            // Release any destination left over from a previous planted bomb.
-            if (m_iObjectiveState != BOT_OBJECTIVE_NONE || m_bObjectiveHasDestination) {
+            // Before a plant, defenders follow the human pre-plant graph.
+            // Combat and team callouts continue to own movement temporarily.
+            if (!m_iAttackTime && !m_bTeamResponding
+                && UpdateObjectiveDemoRoute(
+                    botManager.GetObjectiveSitePosition(m_iObjectiveSite),
+                    false,
+                    true
+                )) {
+                UpdateObjectiveProgress();
+                return;
+            }
+
+            if (m_iObjectiveState != BOT_OBJECTIVE_NONE
+                || m_bObjectiveHasDestination) {
                 botManager.ReleaseObjectiveClaim(controlledEnt);
                 m_iObjectiveState          = BOT_OBJECTIVE_NONE;
                 m_bObjectiveHasDestination = false;

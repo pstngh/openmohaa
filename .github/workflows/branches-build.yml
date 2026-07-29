@@ -17,7 +17,9 @@ jobs:
   build-bot-server-linux-x64:
     if: >-
       github.ref_name == 'agent/bot-telemetry-server' ||
-      github.head_ref == 'agent/bot-telemetry-server'
+      github.head_ref == 'agent/bot-telemetry-server' ||
+      github.ref_name == 'agent/bot-demo-route-graphs' ||
+      github.head_ref == 'agent/bot-demo-route-graphs'
     name: "Build Linux x64 dedicated server"
     runs-on: ubuntu-22.04
     permissions:
@@ -84,7 +86,9 @@ jobs:
   build-all:
     if: >-
       github.ref_name != 'agent/bot-telemetry-server' &&
-      github.head_ref != 'agent/bot-telemetry-server'
+      github.head_ref != 'agent/bot-telemetry-server' &&
+      github.ref_name != 'agent/bot-demo-route-graphs' &&
+      github.head_ref != 'agent/bot-demo-route-graphs'
     uses: ./.github/workflows/shared-build.yml
     with:
       environment: 'testing'

@@ -165,6 +165,25 @@ component; they do not impose a wall buffer or disable leaning.
 | `g_bot_peek_max_interval` | `900` | `50`-`10000` ms | Maximum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots use enemy-relative radial movement. |
 
+### Demo-derived objective routes
+
+On `obj/obj_team2` and `obj/obj_team4`, objective bots use compact route graphs
+learned from the processed human demo archive. The graphs are separated by map,
+attacker/defender role, and pre-plant/post-plant phase. They preserve observed
+route branches, merges, and rejoins rather than replaying a fixed trajectory.
+
+Every eligible demo trajectory contributes route geometry. Branch allocation
+prefers complete normal-mode SMG recorder lives, falls back to other complete
+normal-mode recorder lives when the SMG sample is sparse, and uses geometry
+counts only when neither behavior sample is reliable. Strategic graph points
+are fitted to nearby runtime path nodes; the normal navigation and collision
+steering still control movement between them.
+
+Combat, team callouts, grenade escape, and reload retreat temporarily override
+the route without discarding its objective plan. Planting and defusing keep
+their existing critical-task priority. Maps without generated graphs retain the
+normal objective behavior.
+
 ## Recording movement and aim reference sessions
 
 ### `g_movelog`
