@@ -259,6 +259,8 @@ private:
 
     bool   m_bAvoidCollision;
     int    m_iCollisionCheckTime;
+    int    m_iCollisionAvoidanceStartTime;
+    int    m_iCollisionAvoidanceCount;
     Vector m_vTempCollisionAvoidance;
     int    m_iCollisionProgressTime;
     Vector m_vCollisionProgressOrigin;
@@ -397,7 +399,6 @@ private:
     int                       m_iObjectiveRouteVariant;
     int                       m_iObjectiveUseStartTime;
     int                       m_iObjectiveReapproachUntil;
-    int                       m_iObjectiveNextMoveTime;
     int                       m_iObjectiveLastProgressTime;
     int                       m_iObjectiveLastStallLogTime;
     bool                      m_bObjectiveAttacker;

@@ -425,7 +425,6 @@ void BotController::ResetObjectiveBehavior()
     m_iObjectiveRouteVariant     = 0;
     m_iObjectiveUseStartTime     = 0;
     m_iObjectiveReapproachUntil  = 0;
-    m_iObjectiveNextMoveTime     = 0;
     m_iObjectiveLastProgressTime = 0;
     m_iObjectiveLastStallLogTime = 0;
     m_bObjectiveAttacker         = false;
@@ -622,23 +621,9 @@ void BotController::UpdateObjectivePatrol(
     const Vector& center, const Vector& toward, float radius, bot_objective_state_t state
 )
 {
-    const bool sameDestination =
-        m_iObjectiveState == state && m_bObjectiveHasDestination;
-    const bool moveFinished = sameDestination && movement.MoveDone();
-    const bool destinationReached =
-        moveFinished
-        && (m_vObjectiveDestination - controlledEnt->origin).lengthXYSquared()
-            <= Square(BOT_OBJECTIVE_PATROL_SEARCH_RADIUS);
-
-    if (destinationReached && !m_iObjectiveNextMoveTime) {
-        m_iObjectiveNextMoveTime =
-            level.inttime + 3000 + static_cast<int>(G_Random(3000.0f));
-    }
-
     const bool choosePoint =
         m_iObjectiveState != state || !m_bObjectiveHasDestination
-        || (moveFinished && !destinationReached)
-        || (destinationReached && level.inttime >= m_iObjectiveNextMoveTime);
+        || movement.MoveDone();
 
     if (choosePoint) {
         if (m_iObjectiveState == state) {
@@ -646,19 +631,6 @@ void BotController::UpdateObjectivePatrol(
         }
         const Vector destination = BotObjectivePatrolPoint(center, toward, radius, m_iObjectiveRouteVariant);
         SetObjectiveDestination(destination, state, BOT_OBJECTIVE_PATROL_SEARCH_RADIUS);
-        m_iObjectiveNextMoveTime = 0;
-        return;
-    }
-
-    if (destinationReached) {
-        // Stay put until it is time to choose a genuinely new patrol point.
-        // Start the dwell on arrival so travel time cannot consume it and
-        // cause an immediate U-turn at a doorway or corridor threshold.
-        m_iObjectiveState            = state;
-        m_bObjectiveOwnsMovement     = true;
-        m_vObjectiveLastProgressPos  = controlledEnt->origin;
-        m_iObjectiveLastProgressTime = level.inttime;
-        movement.ClearMove();
         return;
     }
 
@@ -838,7 +810,6 @@ void BotController::UpdateObjectiveProgress()
         m_iObjectiveLastStallLogTime = level.inttime;
         m_iObjectiveLastProgressTime = level.inttime;
         movement.ClearMove();
-        m_iObjectiveNextMoveTime = 0;
 
         if (m_iObjectiveState == BOT_OBJECTIVE_ADVANCE) {
             m_iObjectiveRouteVariant = (m_iObjectiveRouteVariant + 1) & 3;
@@ -891,7 +862,6 @@ void BotController::UpdateObjectiveBehavior()
             || m_iObjectiveState == BOT_OBJECTIVE_DEFUSE) {
             m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
             m_iObjectiveUseStartTime = 0;
-            m_iObjectiveNextMoveTime = 0;
         }
         m_botCmd.buttons &= ~BUTTON_USE;
         return;

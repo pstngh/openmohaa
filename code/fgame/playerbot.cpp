@@ -263,7 +263,6 @@ BotController::BotController()
     m_iObjectiveRouteVariant     = 0;
     m_iObjectiveUseStartTime     = 0;
     m_iObjectiveReapproachUntil  = 0;
-    m_iObjectiveNextMoveTime     = 0;
     m_iObjectiveLastProgressTime = 0;
     m_iObjectiveLastStallLogTime = 0;
     m_bObjectiveAttacker         = false;

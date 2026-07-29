@@ -27,8 +27,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 static int         maxFallHeight                    = 400;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC  = 750;
 static const int   BOT_COLLISION_CHECK_MSEC         = 100;
+static const int   BOT_COLLISION_REPATH_WINDOW_MSEC = 1500;
+static const int   BOT_COLLISION_REPATH_COUNT       = 2;
 static const int   BOT_COLLISION_STALL_MSEC         = 350;
 static const float BOT_COLLISION_PROGRESS_UNITS     = 24.0f;
+static const float BOT_COLLISION_LOOKAHEAD_UNITS    = 64.0f;
 static const int   BOT_REDUCED_STANCE_RECOVERY_MSEC = 1500;
 static const int   BOT_JUMP_TAKEOFF_MSEC             = 250;
 static const int   BOT_JUMP_COMMIT_MAX_MSEC          = 1000;
@@ -89,6 +92,8 @@ BotMovement::BotMovement()
 
     m_bAvoidCollision          = false;
     m_iCollisionCheckTime      = 0;
+    m_iCollisionAvoidanceStartTime = 0;
+    m_iCollisionAvoidanceCount     = 0;
     m_iCollisionProgressTime   = 0;
     m_vCollisionProgressOrigin = vec_zero;
     m_iReducedStanceStartTime  = 0;
@@ -908,6 +913,8 @@ void BotMovement::MoveDirect(Vector vPos, float fRadius)
     m_bDirectMove       = true;
     m_fDirectMoveRadius = Q_max(0.0f, fRadius);
     m_bAvoidCollision   = false;
+    m_iCollisionAvoidanceStartTime = 0;
+    m_iCollisionAvoidanceCount     = 0;
     m_iTempAwayState    = 0;
     m_iNumBlocks        = 0;
 }
@@ -1035,6 +1042,8 @@ void BotMovement::NewMove()
     m_bDirectMove       = false;
     m_bPathing          = true;
     m_bAvoidCollision   = false;
+    m_iCollisionAvoidanceStartTime = 0;
+    m_iCollisionAvoidanceCount     = 0;
     m_iTempAwayState    = 0;
     m_iNumBlocks        = 0;
     m_vLastCheckPos[0]  = controlledEntity->origin;
@@ -1224,7 +1233,10 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     maxs = controlledEntity->maxs;
     maxs.z -= STEPSIZE;
 
-    maxDist = Q_min(dist, 32);
+    // Look far enough ahead to round an obstruction before body contact.
+    // The committed correction below then behaves like one deliberate course
+    // change instead of a series of last-moment wall bounces.
+    maxDist = Q_min(dist, BOT_COLLISION_LOOKAHEAD_UNITS);
 
     stepOrg       = controlledEntity->origin + Vector(0, 0, STEPSIZE);
     target        = controlledEntity->origin + forward * maxDist;
@@ -1288,6 +1300,36 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         }
 
         if (bestLeftFrac != 0 || bestRightFrac != 0) {
+            if (!m_iCollisionAvoidanceStartTime
+                || level.inttime
+                    >= m_iCollisionAvoidanceStartTime + BOT_COLLISION_REPATH_WINDOW_MSEC) {
+                m_iCollisionAvoidanceStartTime = level.inttime;
+                m_iCollisionAvoidanceCount     = 0;
+            }
+            m_iCollisionAvoidanceCount++;
+
+            // A second correction in the same short interval means the route
+            // itself is repeatedly feeding the bot into nearby geometry.
+            // Humans abandon that line instead of alternating avoidance
+            // directions, so ask the navigation backend for a fresh route.
+            if (m_iCollisionAvoidanceCount >= BOT_COLLISION_REPATH_COUNT
+                && !m_bDirectMove && m_pPath && m_pPath->GetNodeCount()) {
+                PathSearchParameter parameters;
+                parameters.entity     = controlledEntity;
+                parameters.fallHeight = maxFallHeight;
+                m_pPath->FindPath(
+                    controlledEntity->origin,
+                    m_vTargetPos,
+                    parameters
+                );
+                m_iLastMoveTime                = level.inttime;
+                m_iCollisionCheckTime          = level.inttime;
+                m_iCollisionAvoidanceStartTime = 0;
+                m_iCollisionAvoidanceCount     = 0;
+                m_iCollisionProgressTime       = 0;
+                return vec_zero;
+            }
+
             m_bAvoidCollision          = true;
             m_iCollisionProgressTime   = level.inttime;
             m_vCollisionProgressOrigin = controlledEntity->origin;
@@ -1406,6 +1448,8 @@ void BotMovement::ClearMove(void)
     m_bPathing          = false;
     m_bDirectMove       = false;
     m_bAvoidCollision          = false;
+    m_iCollisionAvoidanceStartTime = 0;
+    m_iCollisionAvoidanceCount     = 0;
     m_iCollisionProgressTime   = 0;
     m_vCollisionProgressOrigin = vec_zero;
     m_iTempAwayState           = 0;
