@@ -55,6 +55,9 @@ static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
 static const int   BOT_GRENADE_REPATH_MSEC        = 250;
 static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
 static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
+static const int   BOT_EMPTY_RELOAD_DELAY_MSEC    = 2000;
+static const int   BOT_PARTIAL_RELOAD_SAFE_MSEC   = 4000;
+static const int   BOT_PARTIAL_RELOAD_PERCENT     = 25;
 static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
 static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
 static const int   BOT_POST_KILL_AIM_MSEC          = 150;
@@ -514,7 +517,7 @@ void BotController::CheckValidWeapon()
             m_pCombatPrimaryWeapon = NULL;
         } else if (!m_pCombatPrimaryWeapon->HasAmmo(FIRE_PRIMARY)) {
             m_pCombatPrimaryWeapon = NULL;
-        } else if (!pending && (!m_pEnemy || !IsValidEnemy(m_pEnemy))) {
+        } else if (!pending && !m_iAttackTime) {
             Weapon *primary = m_pCombatPrimaryWeapon;
             controlledEnt->useWeapon(primary, WEAPON_MAIN);
             G_MoveLogBotEvent("bot_reload_primary", controlledEnt, NULL, primary->entnum, controlledEnt->origin);
@@ -658,18 +661,31 @@ Make the bot reload if necessary
 */
 void BotController::CheckReload(void)
 {
-    Weapon *weap;
-
-    if (level.inttime < m_iLastFireTime + 2000) {
+    if (level.inttime < m_iLastFireTime + BOT_EMPTY_RELOAD_DELAY_MSEC) {
         // Don't reload while attacking
         return;
     }
 
-    weap = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
-
-    if (weap && weap->CheckReload(FIRE_PRIMARY)) {
-        SendCommand("reload");
+    Weapon *weap = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    if (!weap || !weap->CheckReload(FIRE_PRIMARY)) {
+        return;
     }
+
+    const int clipSize = weap->GetClipSize(FIRE_PRIMARY);
+    const int clipAmmo = weap->ClipAmmo(FIRE_PRIMARY);
+    if (clipSize > 0 && clipAmmo > 0) {
+        const bool lowAmmo =
+            clipAmmo * 100 <= clipSize * BOT_PARTIAL_RELOAD_PERCENT;
+        const int lastThreatTime = Q_max(m_iLastFireTime, m_iLastSeenTime);
+        const bool safe =
+            !m_bTeamResponding
+            && level.inttime >= lastThreatTime + BOT_PARTIAL_RELOAD_SAFE_MSEC;
+        if (!lowAmmo || !safe) {
+            return;
+        }
+    }
+
+    SendCommand("reload");
 }
 
 /*
