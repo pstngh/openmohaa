@@ -348,13 +348,13 @@ static void CVAR_OrderPair(const char *minName, cvar_t *minCvar, const char *max
     gi.cvar_set(maxName, va("%g", oldMin));
 }
 
-static float CVAR_BotDifficultyValue(float difficulty, float casual, float normal, float hardest)
+static float CVAR_BotDifficultyValue(float difficulty, float casual, float normal, float maximum)
 {
     if (difficulty <= 50.0f) {
         return casual + (normal - casual) * (difficulty / 50.0f);
     }
 
-    return normal + (hardest - normal) * ((difficulty - 50.0f) / 50.0f);
+    return normal + (maximum - normal) * ((difficulty - 50.0f) / 50.0f);
 }
 
 void CVAR_UpdateBotDifficulty(qboolean force)
@@ -371,31 +371,31 @@ void CVAR_UpdateBotDifficulty(qboolean force)
     const float difficulty = g_bot_difficulty->integer;
     gi.cvar_set(
         "g_bot_attack_react_min_delay",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 0.35f, 0.2f, 0.1f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 0.35f, 0.2f, 0.0f))
     );
     gi.cvar_set(
         "g_bot_turn_speed",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 240.0f, 360.0f, 540.0f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 240.0f, 360.0f, 1080.0f))
     );
     gi.cvar_set(
         "g_bot_turn_accel",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 3.0f, 5.0f, 10.0f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 3.0f, 5.0f, 100.0f))
     );
     gi.cvar_set(
         "g_bot_aim_error",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 60.0f, 40.0f, 20.0f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 60.0f, 40.0f, 0.0f))
     );
     gi.cvar_set(
         "g_bot_aim_settle_time",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 0.6f, 0.4f, 0.2f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 0.6f, 0.4f, 0.0f))
     );
     gi.cvar_set(
         "g_bot_aim_latency",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 250.0f, 120.0f, 40.0f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 250.0f, 120.0f, 0.0f))
     );
     gi.cvar_set(
         "g_bot_spread",
-        va("%g", CVAR_BotDifficultyValue(difficulty, 6.0f, 3.5f, 2.0f))
+        va("%g", CVAR_BotDifficultyValue(difficulty, 6.0f, 3.5f, 0.0f))
     );
 }
 

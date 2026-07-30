@@ -397,27 +397,25 @@ struct BotTuning {
 }
 
 extension LauncherSettings {
-    /// Piecewise-linear interpolation through the casual / default / esports anchors.
-    private static func lerp3(_ t: Double, _ casual: Double, _ mid: Double, _ pro: Double) -> Double {
+    /// Piecewise-linear interpolation through the casual / normal / maximum anchors.
+    private static func lerp3(_ t: Double, _ casual: Double, _ normal: Double, _ maximum: Double) -> Double {
         if t <= 50 {
-            return casual + (mid - casual) * (t / 50)
+            return casual + (normal - casual) * (t / 50)
         }
-        return mid + (pro - mid) * ((t - 50) / 50)
+        return normal + (maximum - normal) * ((t - 50) / 50)
     }
 
-    /// Bot tuning derived from the difficulty slider (0 = casual, 50 = default, 100 = esports).
+    /// Bot tuning derived from the difficulty slider (0 = casual, 50 = normal, 100 = maximum).
     func derivedTuning() -> BotTuning {
         let t = botDifficulty
         return BotTuning(
-            reactDelay: String(format: "%.2f", Self.lerp3(t, 0.35, 0.2, 0.1)),
-            turnSpeed: String(format: "%.0f", Self.lerp3(t, 240, 360, 540)),
-            turnAccel: String(format: "%.0f", Self.lerp3(t, 3, 5, 10)),
-            aimError: String(format: "%.0f", Self.lerp3(t, 60, 40, 20)),
-            aimSettle: String(format: "%.2f", Self.lerp3(t, 0.6, 0.4, 0.2)),
-            aimLatency: String(format: "%.0f", Self.lerp3(t, 250, 120, 40)),
-            // Bots do not accumulate weapon bloom, so even the hardest preset
-            // needs more than stock base spread to avoid aimbot-like accuracy.
-            spreadScale: String(format: "%.1f", Self.lerp3(t, 6.0, 3.5, 2.0))
+            reactDelay: String(format: "%.2f", Self.lerp3(t, 0.35, 0.2, 0.0)),
+            turnSpeed: String(format: "%.0f", Self.lerp3(t, 240, 360, 1080)),
+            turnAccel: String(format: "%.0f", Self.lerp3(t, 3, 5, 100)),
+            aimError: String(format: "%.0f", Self.lerp3(t, 60, 40, 0)),
+            aimSettle: String(format: "%.2f", Self.lerp3(t, 0.6, 0.4, 0.0)),
+            aimLatency: String(format: "%.0f", Self.lerp3(t, 250, 120, 0)),
+            spreadScale: String(format: "%.1f", Self.lerp3(t, 6.0, 3.5, 0.0))
         )
     }
 

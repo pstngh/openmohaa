@@ -91,11 +91,14 @@ from `0` through `100` interpolate continuously between these anchors:
 | ---: | --- |
 | `0` | Casual |
 | `50` | Normal |
-| `100` | Hardest |
+| `100` | Maximum |
 
 Changing the cvar applies immediately and controls reaction delay, turn speed
-and acceleration, aim error and settling, aim latency, and weapon spread. Use
-`-1` to disable the preset and control those component cvars individually.
+and acceleration, aim error and settling, aim latency, weapon spread, and
+grenade-reaction delay. At `100`, all artificial combat delays and inaccuracies
+are zero and turning uses the component cvars' maximum values. Navigation and
+strategic behavior are not difficulty-scaled. Use `-1` to disable the preset and
+control the component cvars individually.
 
 The launcher derives the same component settings from its difficulty slider.
 They can also be set directly in a config or on the command line. Out-of-range
@@ -128,7 +131,7 @@ wall, the lowest visible point above the cover.
 | `g_bot_turn_accel` | `15` | `0.1`-`100` | Rate at which the bot ramps up to its maximum turn rate. |
 | `g_bot_grenade_avoid` | `1` | `0` or `1` | Makes bots flee nearby live grenades. Bots keep aiming and firing while their movement is temporarily redirected. |
 | `g_bot_reload_pistol` | `1` | `0` or `1` | Makes a bot switch to an available handgun when its active weapon begins reloading during a fight. With no usable handgun, or when disabled, the bot retreats until reloading finishes. |
-| `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. Horizontal spread remains symmetric; vertical bot spread is mirrored downward at full magnitude to avoid accidental head/neck shots without concentrating bullets at zero deviation. The launcher presets use `6` at casual, `3.5` at default, and `2` at esports. |
+| `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. Horizontal spread remains symmetric; vertical bot spread is mirrored downward at full magnitude to avoid accidental head/neck shots without concentrating bullets at zero deviation. The difficulty presets use `6` at casual, `3.5` at normal, and `0` at maximum. |
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
 | `g_bot_stg` | `5` | `0`-`100` percent | Chance that an Axis bot receives an STG. Snipers take priority, so the effective STG percentage is capped by the remaining non-sniper percentage. |
 

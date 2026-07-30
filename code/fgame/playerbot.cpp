@@ -205,7 +205,11 @@ static int BotGrenadeReactionDelay()
         g_bot_difficulty && g_bot_difficulty->integer >= 0
         ? Q_clamp_float(g_bot_difficulty->value, 0.0f, 100.0f)
         : 50.0f;
-    return 350 - static_cast<int>(difficulty * 2.0f);
+    if (difficulty <= 50.0f) {
+        return 350 - static_cast<int>(difficulty * 2.0f);
+    }
+
+    return 250 - static_cast<int>((difficulty - 50.0f) * 5.0f);
 }
 
 BotController::BotController()
