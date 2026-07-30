@@ -388,6 +388,9 @@ private:
     int                       m_iTeamContactExpireTime;
     int                       m_iNextTeamSearchMoveTime;
     Vector                    m_vTeamContactPos;
+    bot_contact_source_t      m_iRejectedTeamContactSource;
+    int                       m_iRejectedTeamContactEnemy;
+    int                       m_iRejectedTeamContactUntil;
     bot_objective_state_t     m_iObjectiveState;
     bot_objective_use_phase_t m_iObjectiveUsePhase;
     int                       m_iObjectiveRound;
@@ -450,6 +453,8 @@ private:
     void CheckValidWeapon(void);
     void UpdateTeamContact(void);
     void ClearTeamResponse(void);
+    void RejectTeamContact(void);
+    void ResetTeamContactRejection(void);
     void ResetGrenadeAvoidance(void);
     void UpdateObjectiveBehavior(void);
     void FinalizeObjectiveCommand(void);
@@ -549,6 +554,7 @@ public:
     bool CanRespondToTeamContact(void) const;
     bool CanRespondToTeamContact(const Vector& position) const;
     bool IsRespondingToTeamContact(int enemyNum) const;
+    bool IsTeamContactRejected(int enemyNum, bot_contact_source_t source) const;
     bool CanInvestigatePosition(const Vector& position) const;
 
 public:

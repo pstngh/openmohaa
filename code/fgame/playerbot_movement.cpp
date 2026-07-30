@@ -228,8 +228,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
 
     if (MoveDone()) {
-        // Clear the path
-        m_pPath->Clear();
+        ClearMove();
+        UpdateAggressiveMovement(botcmd);
+        PreventImminentBodyContact(botcmd);
+        return;
     }
 
     if (ai_debugpath->integer) {
@@ -245,6 +247,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         if (m_iNumBlocks >= 5) {
             // Give up
             ClearMove();
+            UpdateAggressiveMovement(botcmd);
+            PreventImminentBodyContact(botcmd);
+            return;
         }
 
         if (!m_pPath->IsQuerying() && !controlledEntity->GetLadder()) {
@@ -331,11 +336,15 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     if (m_pPath->GetNodeCount() || m_iTempAwayState != 0) {
         if ((m_vTargetPos - controlledEntity->origin).lengthSquared() <= Square(16)) {
             ClearMove();
+            UpdateAggressiveMovement(botcmd);
+            PreventImminentBodyContact(botcmd);
+            return;
         }
     } else {
-        //if ((m_vTargetPos - controlledEntity->origin).lengthXYSquared() <= Square(16)) {
         ClearMove();
-        //}
+        UpdateAggressiveMovement(botcmd);
+        PreventImminentBodyContact(botcmd);
+        return;
     }
 
     // Rotate the dir
@@ -873,22 +882,26 @@ bool BotMovement::MoveToBestAttractivePoint(int iMinPriority)
     int                         bestPriority;
 
     if (m_pPrimaryAttract) {
-        MoveTo(m_pPrimaryAttract->origin);
+        if (m_fAttractTime) {
+            if (level.time > m_fAttractTime) {
+                AbandonAttractivePoint();
+            }
+            return true;
+        }
+
+        if (!IsMoving()) {
+            MoveTo(m_pPrimaryAttract->origin);
+        }
 
         if (!IsMoving()) {
             AbandonAttractivePoint();
-        } else {
-            if (MoveDone()) {
-                if (!m_fAttractTime) {
-                    m_fAttractTime = level.time + m_pPrimaryAttract->m_fMaxStayTime;
-                }
-                if (level.time > m_fAttractTime) {
-                    AbandonAttractivePoint();
-                }
-            }
-
-            return true;
+        } else if (MoveDone()) {
+            m_fAttractTime =
+                level.time + m_pPrimaryAttract->m_fMaxStayTime;
+            ClearMove();
         }
+
+        return true;
     }
 
     if (!attractiveNodes.NumObjects()) {
@@ -1119,26 +1132,12 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             m_iCollisionProgressTime   = level.inttime;
         } else if (level.inttime
                    >= m_iCollisionProgressTime + BOT_COLLISION_STALL_MSEC) {
-            // A committed detour that makes no physical progress is the wrong
-            // side or points into another brush. Rebuild the path immediately
-            // instead of spending the full blocked-recovery cycle pushing on
-            // the railing or wall.
+            // Re-evaluate the local obstacle instead of rebuilding the whole
+            // route. A strategic repath here could turn a bot completely
+            // around because one short collision detour stalled.
             m_bAvoidCollision        = false;
-            m_iCollisionCheckTime    = level.inttime;
+            m_iCollisionCheckTime    = 0;
             m_iCollisionProgressTime = 0;
-
-            if (!m_bDirectMove && m_pPath && m_pPath->GetNodeCount()) {
-                PathSearchParameter parameters;
-                parameters.entity     = controlledEntity;
-                parameters.fallHeight = maxFallHeight;
-                m_pPath->FindPath(
-                    controlledEntity->origin,
-                    m_vTargetPos,
-                    parameters
-                );
-                m_iLastMoveTime = level.inttime;
-                return vec_zero;
-            }
         }
 
         newDelta = m_vTempCollisionAvoidance - controlledEntity->origin;
@@ -1176,6 +1175,13 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     targetStepOrg = target + Vector(0, 0, STEPSIZE);
 
     trace = G_Trace(stepOrg, mins, maxs, targetStepOrg, controlledEntity, MASK_PLAYERSOLID, qtrue, "GetCurrentDelta");
+    if (trace.ent && trace.ent->entity
+        && trace.ent->entity->IsSubclassOfDoor()) {
+        // Keep approaching usable doors. Side-stepping them makes bots fight
+        // the frame instead of reaching the use trace that opens the door.
+        return delta;
+    }
+
     if (trace.fraction < 1.0) {
         //
         // Try to use a flat plane instead
@@ -1199,6 +1205,11 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             right   = rightXY;
             up      = upXY;
             target  = targetXY;
+        }
+
+        if (trace.ent && trace.ent->entity
+            && trace.ent->entity->IsSubclassOfDoor()) {
+            return delta;
         }
     }
 

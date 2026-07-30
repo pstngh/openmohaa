@@ -226,6 +226,9 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
         if (!controller->CanRespondToTeamContact(contact.position)) {
             continue;
         }
+        if (controller->IsTeamContactRejected(enemyNum, contact.source)) {
+            continue;
+        }
 
         const float playerDistance = (player->origin - contact.position).length();
         const float playerRankDistance =

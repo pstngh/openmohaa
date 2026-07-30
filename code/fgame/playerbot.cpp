@@ -61,6 +61,7 @@ static const int   BOT_POST_KILL_AIM_MSEC          = 150;
 static const int   BOT_LOS_AIM_HOLD_MSEC           = 300;
 static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
 static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
+static const int   BOT_TEAM_CONTACT_RETRY_MSEC      = 2000;
 
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
@@ -256,6 +257,7 @@ BotController::BotController()
     m_iTeamContactExpireTime    = 0;
     m_iNextTeamSearchMoveTime   = 0;
     m_vTeamContactPos           = vec_zero;
+    ResetTeamContactRejection();
     m_iObjectiveState             = BOT_OBJECTIVE_NONE;
     m_iObjectiveUsePhase          = BOT_OBJECTIVE_USE_AIM;
     m_iObjectiveRound             = -1;
@@ -519,7 +521,9 @@ void BotController::CheckValidWeapon()
             m_pCombatPrimaryWeapon = NULL;
         } else if (!m_pCombatPrimaryWeapon->HasAmmo(FIRE_PRIMARY)) {
             m_pCombatPrimaryWeapon = NULL;
-        } else if (!pending && (!m_pEnemy || !IsValidEnemy(m_pEnemy))) {
+        } else if (!pending
+                   && (m_pCombatPrimaryWeapon->HasAmmoInClip(FIRE_PRIMARY)
+                       || !m_pEnemy || !IsValidEnemy(m_pEnemy))) {
             Weapon *primary = m_pCombatPrimaryWeapon;
             controlledEnt->useWeapon(primary, WEAPON_MAIN);
             G_MoveLogBotEvent("bot_reload_primary", controlledEnt, NULL, primary->entnum, controlledEnt->origin);
@@ -809,6 +813,25 @@ void BotController::ClearTeamResponse(void)
     m_vTeamContactPos         = vec_zero;
 }
 
+void BotController::RejectTeamContact(void)
+{
+    if (!m_bTeamResponding) {
+        return;
+    }
+
+    m_iRejectedTeamContactSource = m_iTeamContactSource;
+    m_iRejectedTeamContactEnemy  = m_iTeamContactEnemy;
+    m_iRejectedTeamContactUntil  =
+        level.inttime + BOT_TEAM_CONTACT_RETRY_MSEC;
+}
+
+void BotController::ResetTeamContactRejection(void)
+{
+    m_iRejectedTeamContactSource = BOT_CONTACT_NONE;
+    m_iRejectedTeamContactEnemy  = -1;
+    m_iRejectedTeamContactUntil  = 0;
+}
+
 void BotController::ResetGrenadeAvoidance(void)
 {
     m_pAvoidGrenade         = NULL;
@@ -907,6 +930,18 @@ bool BotController::CanInvestigatePosition(const Vector& position) const
 bool BotController::IsRespondingToTeamContact(int enemyNum) const
 {
     return m_bTeamResponding && m_iTeamContactEnemy == enemyNum;
+}
+
+bool BotController::IsTeamContactRejected(
+    int enemyNum, bot_contact_source_t source
+) const
+{
+    if (level.inttime >= m_iRejectedTeamContactUntil
+        || enemyNum != m_iRejectedTeamContactEnemy
+        || source > m_iRejectedTeamContactSource) {
+        return false;
+    }
+    return true;
 }
 
 /*
@@ -1037,6 +1072,7 @@ void BotController::State_Reset(void)
     m_iEnemyEyesTag             = -1;
     movement.ClearCombatTarget();
     ClearTeamResponse();
+    ResetTeamContactRejection();
     ResetObjectiveBehavior();
 }
 
@@ -1210,6 +1246,7 @@ void BotController::State_Curious(void)
         if (!movement.IsMoving()) {
             m_iCuriousTime      = 0;
             m_iCuriousEventType = AI_EVENT_NONE;
+            RejectTeamContact();
             ClearTeamResponse();
             return;
         }
@@ -2209,6 +2246,7 @@ void BotController::Spawned(void)
     m_botCmd.buttons    = 0;
     m_StateFlags        = 0;
     ClearTeamResponse();
+    ResetTeamContactRejection();
     ResetObjectiveBehavior();
 }
 
@@ -2229,6 +2267,7 @@ void BotController::Killed(const Event& ev)
     Entity *attacker;
 
     ClearTeamResponse();
+    ResetTeamContactRejection();
     ResetGrenadeAvoidance();
     ResetObjectiveBehavior();
     m_pCombatPrimaryWeapon = NULL;
