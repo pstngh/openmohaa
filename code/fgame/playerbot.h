@@ -417,6 +417,7 @@ private:
     int                       m_iObjectiveRound;
     int                       m_iObjectiveSite;
     int                       m_iObjectiveRouteVariant;
+    int                       m_iObjectiveOpeningRole;
     bot_demo_route_cursor_t   m_ObjectiveDemoRoute;
     bot_demo_route_cursor_t   m_FreeForAllDemoRoute;
     int                       m_iObjectiveUseStartTime;
@@ -493,6 +494,7 @@ private:
         const Vector&                 destination,
         bool                          roam,
         float                         maxGoalCenterDistance,
+        float                         maxGoalCenterHeight,
         float                         minGoalOriginDistance,
         unsigned int                  seed
     );

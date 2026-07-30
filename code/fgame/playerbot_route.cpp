@@ -25,7 +25,30 @@ static const float BOT_DEMO_ROUTE_REACHED_RADIUS           = 192.0f;
 static const float BOT_DEMO_ROUTE_REACHED_HEIGHT           = 96.0f;
 static const float BOT_DEMO_ROUTE_ROAM_DISTANCE            = 1024.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS   = 2048.0f;
+static const float BOT_OBJECTIVE_OPENING_ROLE_HEIGHT       = 192.0f;
+static const float BOT_OBJECTIVE_OPENING_PATROL_DISTANCE   = 512.0f;
 static const int   BOT_DEMO_ROUTE_RETRY_MSEC               = 2000;
+
+struct bot_demo_opening_role_t {
+    float x;
+    float y;
+    float z;
+    float radius;
+};
+
+// Complete normal-mode SMG lives form four lower and four upper defender
+// opening areas on obj_team2. These centers only constrain goal selection;
+// the human route graph and navigation backend still choose every path.
+static const bot_demo_opening_role_t kObjTeam2DefenderOpeningRoles[] = {
+    {-6.0f, 2158.0f, -451.0f, 540.0f},
+    {286.0f, 1361.0f, -434.0f, 584.0f},
+    {1032.0f, 2386.0f, -453.0f, 542.0f},
+    {1907.0f, 1382.0f, -470.0f, 650.0f},
+    {333.0f, 324.0f, -108.0f, 497.0f},
+    {935.0f, 2183.0f, 9.0f, 590.0f},
+    {943.0f, 1043.0f, -18.0f, 650.0f},
+    {2538.0f, 2685.0f, -11.0f, 650.0f}
+};
 
 enum bot_demo_route_support_t {
     BOT_DEMO_ROUTE_GEOMETRY,
@@ -72,6 +95,84 @@ static float BotDemoRouteRandomFraction(unsigned int seed)
 {
     return static_cast<float>(BotDemoRouteHash(seed) & 0x00ffffffu)
         / static_cast<float>(0x01000000u);
+}
+
+static Vector BotDemoRouteOpeningRolePosition(int role)
+{
+    if (role < 0
+        || static_cast<unsigned int>(role)
+            >= sizeof(kObjTeam2DefenderOpeningRoles)
+                / sizeof(kObjTeam2DefenderOpeningRoles[0])) {
+        return vec_zero;
+    }
+
+    const bot_demo_opening_role_t& openingRole =
+        kObjTeam2DefenderOpeningRoles[role];
+    return Vector(openingRole.x, openingRole.y, openingRole.z);
+}
+
+static int BotDemoRouteChooseOpeningRole(Player *player)
+{
+    if (!player) {
+        return -1;
+    }
+
+    static const unsigned int roleCount =
+        sizeof(kObjTeam2DefenderOpeningRoles)
+        / sizeof(kObjTeam2DefenderOpeningRoles[0]);
+    int roleUseCount[roleCount] = {};
+
+    // Simulate one deterministic team assignment in entity-number order. A
+    // bot takes its closest unused area, so up to eight defenders spread out
+    // while still favoring the area nearest their actual round spawn.
+    const Container<BotController *>& controllers =
+        botManager.getControllerManager().getControllers();
+    for (int entityNumber = 0; entityNumber < MAX_CLIENTS; ++entityNumber) {
+        Player *candidate = NULL;
+        for (int i = 1; i <= controllers.NumObjects(); ++i) {
+            Player *controllerPlayer =
+                controllers.ObjectAt(i)->getControlledEntity();
+            if (controllerPlayer
+                && controllerPlayer->entnum == entityNumber
+                && controllerPlayer->GetTeam() == player->GetTeam()) {
+                candidate = controllerPlayer;
+                break;
+            }
+        }
+        if (!candidate) {
+            continue;
+        }
+
+        int   bestRole  = -1;
+        float bestScore = 0.0f;
+        for (unsigned int role = 0; role < roleCount; ++role) {
+            const unsigned int jitterSeed =
+                static_cast<unsigned int>(botManager.GetObjectiveSeed())
+                ^ static_cast<unsigned int>(entityNumber * 0x9e3779b9u)
+                ^ static_cast<unsigned int>(role * 0x85ebca6bu);
+            const float score =
+                (BotDemoRouteOpeningRolePosition(role) - candidate->origin)
+                    .lengthSquared()
+                + roleUseCount[role] * Square(8192.0f)
+                + BotDemoRouteRandomFraction(jitterSeed) * Square(64.0f);
+            if (bestRole < 0 || score < bestScore) {
+                bestRole  = static_cast<int>(role);
+                bestScore = score;
+            }
+        }
+
+        if (bestRole < 0) {
+            continue;
+        }
+        ++roleUseCount[bestRole];
+        if (candidate == player) {
+            return bestRole;
+        }
+    }
+
+    return (botManager.GetObjectiveBotRank(player)
+            + botManager.GetObjectiveSeed())
+        % static_cast<int>(roleCount);
 }
 
 static bool BotDemoRouteValidNode(
@@ -207,6 +308,7 @@ static bot_demo_route_support_t BotDemoRouteNodeEndSupport(
     const Vector&                 origin,
     const Vector&                 center,
     float                         maxCenterDistance,
+    float                         maxCenterHeight,
     float                         minOriginDistance,
     const bool                   *reachable
 )
@@ -222,6 +324,10 @@ static bot_demo_route_support_t BotDemoRouteNodeEndSupport(
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
                 > Square(maxCenterDistance)) {
+            continue;
+        }
+        if (maxCenterHeight > 0.0f
+            && fabs(position.z - center.z) > maxCenterHeight) {
             continue;
         }
         if (minOriginDistance > 0.0f
@@ -262,6 +368,7 @@ static int BotDemoRouteChooseGoal(
     const Vector&                 origin,
     const Vector&                 center,
     float                         maxCenterDistance,
+    float                         maxCenterHeight,
     float                         minOriginDistance,
     unsigned int                  seed
 )
@@ -278,6 +385,7 @@ static int BotDemoRouteChooseGoal(
             origin,
             center,
             maxCenterDistance,
+            maxCenterHeight,
             minOriginDistance,
             reachable
         );
@@ -291,6 +399,10 @@ static int BotDemoRouteChooseGoal(
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
                 > Square(maxCenterDistance)) {
+            continue;
+        }
+        if (maxCenterHeight > 0.0f
+            && fabs(position.z - center.z) > maxCenterHeight) {
             continue;
         }
         if (minOriginDistance > 0.0f
@@ -315,6 +427,10 @@ static int BotDemoRouteChooseGoal(
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
                 > Square(maxCenterDistance)) {
+            continue;
+        }
+        if (maxCenterHeight > 0.0f
+            && fabs(position.z - center.z) > maxCenterHeight) {
             continue;
         }
         if (minOriginDistance > 0.0f
@@ -600,6 +716,37 @@ bool BotController::UpdateObjectiveDemoRoute(
     const Vector& destination, bool postPlant, bool roam
 )
 {
+    Vector goalCenter = destination;
+    float  maxGoalCenterDistance =
+        postPlant ? BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS : 0.0f;
+    float maxGoalCenterHeight   = 0.0f;
+    float minGoalOriginDistance = BOT_DEMO_ROUTE_ROAM_DISTANCE;
+
+    const bool usesOpeningRole =
+        !postPlant && !m_bObjectiveAttacker
+        && !Q_stricmp(level.mapname.c_str(), "obj/obj_team2");
+    if (usesOpeningRole && m_iObjectiveOpeningRole < 0) {
+        m_iObjectiveOpeningRole =
+            BotDemoRouteChooseOpeningRole(controlledEnt);
+        G_MoveLogBotEvent(
+            "bot_objective_opening_role",
+            controlledEnt,
+            NULL,
+            m_iObjectiveOpeningRole,
+            BotDemoRouteOpeningRolePosition(m_iObjectiveOpeningRole)
+        );
+    }
+
+    const Vector openingRolePosition =
+        BotDemoRouteOpeningRolePosition(m_iObjectiveOpeningRole);
+    if (usesOpeningRole && openingRolePosition != vec_zero) {
+        const bot_demo_opening_role_t& openingRole =
+            kObjTeam2DefenderOpeningRoles[m_iObjectiveOpeningRole];
+        goalCenter             = openingRolePosition;
+        maxGoalCenterDistance  = openingRole.radius;
+        maxGoalCenterHeight    = BOT_OBJECTIVE_OPENING_ROLE_HEIGHT;
+        minGoalOriginDistance  = BOT_OBJECTIVE_OPENING_PATROL_DISTANCE;
+    }
     if (m_bObjectiveRoutePostPlant != postPlant) {
         ResetObjectiveDemoRoute();
         m_bObjectiveRoutePostPlant = postPlant;
@@ -615,14 +762,17 @@ bool BotController::UpdateObjectiveDemoRoute(
         static_cast<unsigned int>(botManager.GetObjectiveSeed())
         ^ static_cast<unsigned int>(
             controlledEnt->entnum * 0x9e3779b9u
+        ) ^ static_cast<unsigned int>(
+            (m_iObjectiveOpeningRole + 1) * 0x85ebca6bu
         );
     return UpdateDemoRoute(
         graph,
         m_ObjectiveDemoRoute,
-        destination,
+        goalCenter,
         roam,
-        postPlant ? BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS : 0.0f,
-        BOT_DEMO_ROUTE_ROAM_DISTANCE,
+        maxGoalCenterDistance,
+        maxGoalCenterHeight,
+        minGoalOriginDistance,
         seed
     );
 }
@@ -650,6 +800,7 @@ bool BotController::UpdateFreeForAllDemoRoute()
         vec_zero,
         true,
         0.0f,
+        0.0f,
         BOT_DEMO_ROUTE_ROAM_DISTANCE,
         seed
     );
@@ -661,6 +812,7 @@ bool BotController::UpdateDemoRoute(
     const Vector&                 destination,
     bool                          roam,
     float                         maxGoalCenterDistance,
+    float                         maxGoalCenterHeight,
     float                         minGoalOriginDistance,
     unsigned int                  seed
 )
@@ -771,6 +923,7 @@ bool BotController::UpdateDemoRoute(
             controlledEnt->origin,
             destination,
             maxGoalCenterDistance,
+            maxGoalCenterHeight,
             minGoalOriginDistance,
             seed
         );

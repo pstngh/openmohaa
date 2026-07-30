@@ -269,7 +269,8 @@ BotController::BotController()
     m_iObjectiveUsePhase          = BOT_OBJECTIVE_USE_AIM;
     m_iObjectiveRound             = -1;
     m_iObjectiveSite              = -1;
-    m_iObjectiveRouteVariant          = 0;
+    m_iObjectiveRouteVariant       = 0;
+    m_iObjectiveOpeningRole        = -1;
     ResetDemoRoute(m_ObjectiveDemoRoute);
     ResetDemoRoute(m_FreeForAllDemoRoute);
     m_iObjectiveUseStartTime      = 0;
