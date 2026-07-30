@@ -31,9 +31,10 @@ static const int   BOT_COLLISION_STALL_MSEC        = 350;
 static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
 static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
+static const int BOT_JUMP_LANDING_COMMIT_MSEC      = 250;
+static const int BOT_JUMP_RETRY_MSEC              = 500;
 static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
 static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
-static const int BOT_JUMP_RETRY_MSEC              = 500;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -95,6 +96,7 @@ BotMovement::BotMovement()
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
+    m_iJumpLandingTime    = 0;
     m_iJumpRetryTime      = 0;
     m_bJumpWasAirborne    = false;
 
@@ -485,16 +487,32 @@ bool BotMovement::ContinueJump(usercmd_t& botcmd)
         m_bJumpWasAirborne = true;
     }
 
-    const bool landed   = m_bJumpWasAirborne && onGround;
-    const bool stalled  = !m_bJumpWasAirborne && elapsed >= BOT_JUMP_TAKEOFF_MSEC;
-    const bool timedOut = elapsed >= BOT_JUMP_COMMIT_MAX_MSEC;
-    if (landed || stalled || timedOut) {
+    const Vector displacement = controlledEntity->origin - m_vJumpLocation;
+    const bool landed = m_bJumpWasAirborne && onGround;
+
+    if (landed && !m_iJumpLandingTime
+        && displacement.z >= STEPSIZE
+        && displacement.lengthXYSquared() < Square(32)) {
+        // Keep moving across a newly reached ledge instead of handing control
+        // back on its first narrow grounded frame and stepping off again.
+        m_iJumpLandingTime = level.inttime;
+    }
+
+    const bool landingCommit =
+        m_iJumpLandingTime
+        && level.inttime < m_iJumpLandingTime + BOT_JUMP_LANDING_COMMIT_MSEC
+        && displacement.lengthXYSquared() < Square(32);
+    const bool landingComplete = m_iJumpLandingTime && !landingCommit;
+    const bool stalled = !m_bJumpWasAirborne && elapsed >= BOT_JUMP_TAKEOFF_MSEC;
+    const bool timedOut = !m_iJumpLandingTime && elapsed >= BOT_JUMP_COMMIT_MAX_MSEC;
+    if ((landed && !m_iJumpLandingTime) || landingComplete || stalled || timedOut) {
         const bool failed =
             !m_bJumpWasAirborne
-            || (controlledEntity->origin - m_vJumpLocation).lengthXYSquared() < Square(32);
+            || (displacement.lengthXYSquared() < Square(32) && displacement.z < STEPSIZE);
 
         m_bJump            = false;
         m_iJumpCommitTime  = -1;
+        m_iJumpLandingTime = 0;
         m_iJumpRetryTime   = level.inttime + (failed ? BOT_JUMP_RETRY_MSEC : 0);
         m_bJumpWasAirborne = false;
 
@@ -640,6 +658,7 @@ void BotMovement::CheckJump(usercmd_t& botcmd)
             m_bJump              = true;
             m_iJumpCommitTime    = level.inttime;
             m_bJumpWasAirborne   = false;
+            m_iJumpLandingTime   = 0;
             m_vJumpLocation      = controlledEntity->origin;
             m_vJumpDirection     = dir;
             m_vJumpDirection.z   = 0;
@@ -1395,6 +1414,7 @@ void BotMovement::ClearMove(void)
     m_iNumBlocks               = 0;
     m_bJump             = false;
     m_iJumpCommitTime   = -1;
+    m_iJumpLandingTime  = 0;
     m_iJumpRetryTime    = 0;
     m_bJumpWasAirborne  = false;
     m_vCurrentDir       = vec_zero;

@@ -275,6 +275,7 @@ private:
     bool   m_bJump;
     int    m_iJumpCheckTime;
     int    m_iJumpCommitTime;
+    int    m_iJumpLandingTime;
     int    m_iJumpRetryTime;
     bool   m_bJumpWasAirborne;
     Vector m_vJumpLocation;
