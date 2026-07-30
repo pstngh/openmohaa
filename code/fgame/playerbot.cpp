@@ -61,7 +61,7 @@ static const int   BOT_PARTIAL_RELOAD_PERCENT     = 25;
 static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
 static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
 static const int   BOT_POST_KILL_AIM_MSEC          = 150;
-static const int   BOT_LOS_AIM_HOLD_MSEC           = 300;
+static const int   BOT_ENEMY_MEMORY_MSEC            = 1000;
 static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
 static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
 static const int   BOT_TEAM_CONTACT_RETRY_MSEC      = 2000;
@@ -1616,7 +1616,7 @@ bool BotController::CheckCondition_Attack(void)
     // reacquire once the target dies, changes state, or breaks line of sight.
     if (m_pEnemy && IsValidEnemy(m_pEnemy) && IsEnemyPartVisible(m_pEnemy) && !IsEngagedByAnotherBot(m_pEnemy)) {
         m_vLastEnemyPos = m_pEnemy->origin;
-        m_iAttackTime   = level.inttime + 1000;
+        m_iAttackTime   = level.inttime + BOT_ENEMY_MEMORY_MSEC;
         return true;
     }
 
@@ -1667,7 +1667,7 @@ bool BotController::CheckCondition_Attack(void)
 
         m_pEnemy        = pChosen;
         m_vLastEnemyPos = m_pEnemy->origin;
-        m_iAttackTime   = level.inttime + 1000;
+        m_iAttackTime   = level.inttime + BOT_ENEMY_MEMORY_MSEC;
         return true;
     }
 
@@ -1752,7 +1752,7 @@ void BotController::State_Attack(void)
     if (bCanSee) {
         m_iAttackStopAimTime = Q_max(
             m_iAttackStopAimTime,
-            level.inttime + BOT_LOS_AIM_HOLD_MSEC
+            level.inttime + BOT_ENEMY_MEMORY_MSEC
         );
         if (m_pEnemy->IsSubclassOfPlayer()) {
             botManager.ReportTeamContact(
@@ -1896,7 +1896,7 @@ void BotController::State_Attack(void)
 
             m_iLastFireTime = level.inttime;
 
-            m_iAttackTime        = level.inttime + 1000;
+            m_iAttackTime        = level.inttime + BOT_ENEMY_MEMORY_MSEC;
             m_iAttackStopAimTime = level.inttime + 3000;
             m_iLastSeenTime      = level.inttime;
             m_vLastEnemyPos      = m_pEnemy->origin;
@@ -2042,7 +2042,7 @@ void BotController::State_Attack(void)
     }
 
     if (bCanSee && movement.IsMoving()) {
-        m_iAttackTime = level.inttime + 1000;
+        m_iAttackTime = level.inttime + BOT_ENEMY_MEMORY_MSEC;
     }
 }
 
