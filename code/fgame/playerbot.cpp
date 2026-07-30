@@ -457,8 +457,8 @@ void BotController::CheckUse(void)
 
     if (trace.ent->entity->IsSubclassOfDoor()) {
         Door *door = static_cast<Door *>(trace.ent->entity);
-        if (door->isOpen()) {
-            // Don't use an open door
+        if (!door->isCompletelyClosed() || !door->CanBeOpenedBy(controlledEnt)) {
+            // Don't toggle a moving, open, or locked door.
             m_botCmd.buttons &= ~BUTTON_USE;
             return;
         }

@@ -222,18 +222,23 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         m_pPath->UpdatePos(controlledEntity->origin);
     }
 
-    if (!m_pPath->GetNodeCount()) {
+    if (!m_pPath->GetNodeCount() && m_iTempAwayState != 2) {
         ClearMove();
         UpdateAggressiveMovement(botcmd);
         PreventImminentBodyContact(botcmd);
         return;
     }
 
-    vDelta = m_pPath->GetCurrentDelta();
-    vDelta = FixDeltaFromCollision(vDelta);
+    if (m_pPath->GetNodeCount()) {
+        vDelta = m_pPath->GetCurrentDelta();
+        vDelta = FixDeltaFromCollision(vDelta);
 
-    m_vCurrentGoal = controlledEntity->origin;
-    VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
+        m_vCurrentGoal = controlledEntity->origin;
+        VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
+    } else {
+        // Blocked recovery deliberately clears the path while it backs away.
+        vDelta = m_vCurrentGoal - controlledEntity->origin;
+    }
 
     if (MoveDone()) {
         ClearMove();
@@ -1186,9 +1191,11 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     trace = G_Trace(stepOrg, mins, maxs, targetStepOrg, controlledEntity, MASK_PLAYERSOLID, qtrue, "GetCurrentDelta");
     if (trace.ent && trace.ent->entity
         && trace.ent->entity->IsSubclassOfDoor()) {
-        // Keep approaching usable doors. Side-stepping them makes bots fight
-        // the frame instead of reaching the use trace that opens the door.
-        return delta;
+        Door *door = static_cast<Door *>(trace.ent->entity);
+        if (door->isCompletelyClosed() && door->CanBeOpenedBy(controlledEntity)) {
+            // Approach a usable closed door directly so it reaches the use trace.
+            return delta;
+        }
     }
 
     if (trace.fraction < 1.0) {
@@ -1218,7 +1225,10 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
 
         if (trace.ent && trace.ent->entity
             && trace.ent->entity->IsSubclassOfDoor()) {
-            return delta;
+            Door *door = static_cast<Door *>(trace.ent->entity);
+            if (door->isCompletelyClosed() && door->CanBeOpenedBy(controlledEntity)) {
+                return delta;
+            }
         }
     }
 
