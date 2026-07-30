@@ -180,7 +180,11 @@ public:
     ~BotMovement();
 
     void SetControlledEntity(Player *newEntity);
-    void SetCombatTarget(const Vector& target, bool forceRetreat = false);
+    void SetCombatTarget(
+        const Vector& target,
+        bool forceRetreat = false,
+        bool forceAdvance = false
+    );
     void ClearCombatTarget();
 
     void MoveThink(usercmd_t& botcmd);
@@ -201,6 +205,7 @@ public:
     bool CanMoveTo(Vector vPos);
     bool MoveDone();
     bool IsMoving(void);
+    bool IsMovingTo(const Vector& position, float tolerance = 64.0f) const;
     void ClearMove(void);
 
     Vector GetCurrentGoal() const;
@@ -221,6 +226,7 @@ private:
     void   DirectMoveThink(usercmd_t& botcmd);
     void   NewMove();
     Vector FixDeltaFromCollision(const Vector& delta);
+    void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
           float         maxDist,
@@ -286,6 +292,7 @@ private:
     bool m_bLeanCommandActive;     // Current usercmd contains a lean input
     bool m_bHasCombatTarget;
     bool m_bForceCombatRetreat;
+    bool m_bForceCombatAdvance;
 
     void   UpdateAggressiveMovement(usercmd_t& botcmd);
     void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);

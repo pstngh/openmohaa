@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "playerbot.h"
 #include "debuglines.h"
+#include "health.h"
 
 static int       maxFallHeight                   = 400;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
@@ -30,6 +31,8 @@ static const int   BOT_COLLISION_STALL_MSEC        = 350;
 static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
 static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
+static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
+static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int BOT_JUMP_RETRY_MSEC              = 500;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
@@ -104,6 +107,7 @@ BotMovement::BotMovement()
     m_bLeanCommandActive    = false;
     m_bHasCombatTarget      = false;
     m_bForceCombatRetreat   = false;
+    m_bForceCombatAdvance   = false;
     m_vCombatTarget         = vec_zero;
 }
 
@@ -122,10 +126,13 @@ void BotMovement::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
-void BotMovement::SetCombatTarget(const Vector& target, bool forceRetreat)
+void BotMovement::SetCombatTarget(
+    const Vector& target, bool forceRetreat, bool forceAdvance
+)
 {
     m_bHasCombatTarget    = true;
     m_bForceCombatRetreat = forceRetreat;
+    m_bForceCombatAdvance = forceAdvance && !forceRetreat;
     m_vCombatTarget       = target;
 }
 
@@ -133,6 +140,7 @@ void BotMovement::ClearCombatTarget()
 {
     m_bHasCombatTarget      = false;
     m_bForceCombatRetreat   = false;
+    m_bForceCombatAdvance   = false;
     m_vCombatTarget         = vec_zero;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
@@ -353,6 +361,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     } else {
         m_vCurrentDir = CalculateDir(m_vCurrentGoal - controlledEntity->origin);
     }
+    SteerTowardPathHealth(m_vCurrentDir);
 
     vWishDir = CalculateRelativeWishDirection(m_vCurrentDir);
 
@@ -1350,6 +1359,14 @@ bool BotMovement::IsMoving(void)
     return m_bPathing;
 }
 
+bool BotMovement::IsMovingTo(const Vector& position, float tolerance) const
+{
+    if (!m_bPathing) {
+        return false;
+    }
+    return (m_vTargetPos - position).lengthSquared() <= Square(tolerance);
+}
+
 /*
 ====================
 ClearMove
@@ -1607,6 +1624,7 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
     delta          = FixDeltaFromCollision(delta);
     m_vCurrentGoal = controlledEntity->origin + delta;
     m_vCurrentDir  = CalculateDir(delta);
+    SteerTowardPathHealth(m_vCurrentDir);
 
     const Vector wishDirection = CalculateRelativeWishDirection(m_vCurrentDir);
     botcmd.forwardmove = (signed char)Q_clamp_float(wishDirection.x * 127.0f, -127.0f, 127.0f);
@@ -1618,6 +1636,80 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
     CheckJump(botcmd);
     if (!m_bJump) {
         CheckJumpOverEdge(botcmd);
+    }
+}
+
+void BotMovement::SteerTowardPathHealth(Vector& direction) const
+{
+    if (!controlledEntity
+        || controlledEntity->health + controlledEntity->m_fHealRate
+            >= controlledEntity->max_health) {
+        return;
+    }
+
+    Vector pathDirection = direction;
+    pathDirection.z      = 0.0f;
+    if (VectorNormalize2D(pathDirection) <= 0.0f) {
+        return;
+    }
+
+    Entity *bestHealth  = NULL;
+    float   bestForward = BOT_HEALTH_PATH_LOOKAHEAD + 1.0f;
+
+    for (Entity *entity = findradius(
+             NULL, controlledEntity->origin, BOT_HEALTH_PATH_LOOKAHEAD
+         );
+         entity;
+         entity = findradius(
+             entity, controlledEntity->origin, BOT_HEALTH_PATH_LOOKAHEAD
+         )) {
+        if (!entity->isSubclassOf(Health) || entity->hidden()
+            || entity->getSolidType() == SOLID_NOT) {
+            continue;
+        }
+
+        Vector offset = entity->origin - controlledEntity->origin;
+        if (fabs(offset.z) > STEPSIZE * 2.0f) {
+            continue;
+        }
+        offset.z = 0.0f;
+
+        const float forward = DotProduct(offset, pathDirection);
+        if (forward <= 0.0f || forward >= bestForward) {
+            continue;
+        }
+
+        const Vector lateral = offset - pathDirection * forward;
+        if (lateral.lengthXYSquared() > Square(BOT_HEALTH_PATH_CORRIDOR)) {
+            continue;
+        }
+
+        Vector mins = controlledEntity->mins;
+        Vector maxs = controlledEntity->maxs;
+        maxs.z -= STEPSIZE;
+        const Vector start =
+            controlledEntity->origin + Vector(0, 0, STEPSIZE);
+        const Vector end = entity->origin + Vector(0, 0, STEPSIZE);
+        const trace_t trace = G_Trace(
+            start,
+            mins,
+            maxs,
+            end,
+            controlledEntity,
+            MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
+            true,
+            "BotMovement::SteerTowardPathHealth"
+        );
+        if (trace.startsolid || trace.fraction < 1.0f) {
+            continue;
+        }
+
+        bestHealth  = entity;
+        bestForward = forward;
+    }
+
+    if (bestHealth) {
+        direction = CalculateDir(bestHealth->origin - controlledEntity->origin);
     }
 }
 
@@ -1679,6 +1771,9 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
         m_iRadialDirection      = -1;
         m_iNextRadialChangeTime = 0;
         m_telemetry.radialForcedCloseRetreat = true;
+    } else if (m_bForceCombatAdvance) {
+        m_iRadialDirection      = 1;
+        m_iNextRadialChangeTime = 0;
     } else if (distance < 56.0f) {
         // Resolve unsafe spacing immediately rather than waiting for the
         // current phase to expire. Leaving this range starts a fresh phase.
@@ -1700,6 +1795,8 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     float desiredRadialMove;
     if (m_bForceCombatRetreat) {
         desiredRadialMove = -127.0f;
+    } else if (m_bForceCombatAdvance) {
+        desiredRadialMove = 127.0f;
     } else if (distance < 56.0f) {
         desiredRadialMove = -48.0f;
     } else if (m_iRadialDirection < 0) {

@@ -1691,10 +1691,14 @@ void BotController::State_Attack(void)
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
     float   fAimHeightFraction  = m_fAimHeightFraction;
-    float   fMinDistance        = 128;
-    float   fMinDistanceSquared = fMinDistance * fMinDistance;
     float   fEnemyDistanceSquared;
     Weapon *pWeap   = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    const bool bPistol =
+        pWeap && (pWeap->GetWeaponClass() & WEAPON_CLASS_PISTOL);
+    const bool bPistolBash =
+        bPistol && pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE;
+    float   fMinDistance        = bPistol ? 0.0f : 128.0f;
+    float   fMinDistanceSquared = fMinDistance * fMinDistance;
     bool    bNoMove = false;
     bool    bFiring = false;
 
@@ -1709,15 +1713,19 @@ void BotController::State_Attack(void)
     m_telemetry.enemyDistance = sqrt(fDistanceSquared);
     const bool bReloading = pWeap && pWeap->GetState() == WEAPON_RELOADING;
 
-    // Feed the aggressive-movement layer the enemy itself, not only a
-    // distance. This lets forward/back phases remain enemy-relative while the
-    // bot turns and follows a path around a cramped room.
-    movement.SetCombatTarget(m_pEnemy->origin);
-
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee = CheckEnemyVisibility(m_pEnemy, m_fAimHeightFraction, fAimHeightFraction);
     m_telemetry.enemyVisible = bCanSee;
+
+    // Feed the aggressive-movement layer the enemy itself, not only a
+    // distance. Pistol pursuit is forced only while the enemy is visible;
+    // otherwise the bot follows the ordinary path to the last seen position.
+    movement.SetCombatTarget(
+        bCanSee ? m_pEnemy->origin : m_vLastEnemyPos,
+        false,
+        bPistol && bCanSee
+    );
 
     if (bCanSee) {
         m_iAttackStopAimTime = Q_max(
@@ -1781,6 +1789,11 @@ void BotController::State_Attack(void)
 
             fMinDistance = fPrimaryBulletRange;
 
+            if (bPistol) {
+                // Pistols can close into secondary-fire bash range.
+                fMinDistance = 0.0f;
+            }
+
             // Human players did not try to maintain a broad 256-unit buffer.
             // Retreat behavior rose sharply only at body-contact range; the
             // radial movement layer handles the wider 64-384 unit rhythm.
@@ -1790,7 +1803,23 @@ void BotController::State_Attack(void)
 
             fMinDistanceSquared = fMinDistance * fMinDistance;
 
-            if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
+            const float bashRange =
+                bPistolBash ? pWeap->GetBulletRange(FIRE_SECONDARY) : 0.0f;
+            const bool bash =
+                bashRange > 0.0f
+                && fDistanceSquared <= Square(bashRange)
+                && pWeap->HasAmmoInClip(FIRE_SECONDARY);
+            if (bPistolBash) {
+                m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
+            }
+
+            if (bash) {
+                bFiring = true;
+                m_telemetry.fireDecision = BOT_FIRE_FIRING;
+                m_telemetry.wantsFire    = true;
+                m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+                m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
+            } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                 && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
                 m_telemetry.fireDecision = BOT_FIRE_NO_AMMO;
                 m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
@@ -1838,10 +1867,6 @@ void BotController::State_Attack(void)
             }
 
             m_iLastFireTime = level.inttime;
-
-            // Bots do not use the secondary-fire melee bash (Spearhead /
-            // Breakthrough): they keep firing their primary at point-blank
-            // range instead of lunging in to butt-strike an enemy.
 
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
@@ -1954,8 +1979,23 @@ void BotController::State_Attack(void)
 
     fEnemyDistanceSquared = (controlledEnt->origin - m_vLastEnemyPos).lengthSquared();
 
+    if (bPistol) {
+        movement.AbandonAttractivePoint();
+
+        if (fEnemyDistanceSquared > Square(32.0f)
+            && !movement.IsMovingTo(m_vLastEnemyPos)) {
+            movement.MoveTo(m_vLastEnemyPos);
+        }
+
+        if (!bCanSee && movement.MoveDone()) {
+            ClearEnemy();
+        }
+        return;
+    }
+
     if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
-        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
+        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone())
+        || fEnemyDistanceSquared < fMinDistanceSquared) {
         if (fEnemyDistanceSquared < fMinDistanceSquared) {
             Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
             VectorNormalizeFast(vDir);
