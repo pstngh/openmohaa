@@ -104,6 +104,10 @@ struct GameLauncher {
         ])
 
         // Bot difficulty (slider-derived unless manual tuning is on)
+        let difficulty = settings.botManualTuning
+            ? "-1"
+            : String(Int(settings.botDifficulty.rounded()))
+        args.append(contentsOf: ["+set", "g_bot_difficulty", difficulty])
         let tuning = settings.validatedTuning()
         args.append(contentsOf: ["+set", "g_bot_attack_react_min_delay", tuning.reactDelay])
         args.append(contentsOf: ["+set", "g_bot_turn_speed", tuning.turnSpeed])
