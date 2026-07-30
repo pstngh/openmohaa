@@ -24,8 +24,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "debuglines.h"
 #include "health.h"
+#include "misc.h"
 
 static int       maxFallHeight                   = 400;
+static const int   BOT_LADDER_EXIT_MAX_MSEC        = 1000;
+static const float BOT_LADDER_EXIT_DISTANCE        = 64.0f;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
 static const int   BOT_COLLISION_SIDE_COMMIT_MSEC  = 1200;
 static const int   BOT_COLLISION_STALL_MSEC        = 350;
@@ -85,6 +88,11 @@ BotMovement::BotMovement()
 
     m_bPathing          = false;
     m_bDirectMove       = false;
+    m_bWasOnLadder      = false;
+    m_fLadderTop        = 0.0f;
+    m_iLadderExitUntil  = 0;
+    m_vLadderExitOrigin = vec_zero;
+    m_vLadderExitDirection = vec_zero;
     m_fDirectMoveRadius = 0.0f;
     m_iTempAwayState    = 0;
     m_fAttractTime      = 0;
@@ -169,6 +177,49 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     // The bot usercmd persists across frames: start each movement frame
     // lean-neutral so a lean can't stay latched after strafing stops
     botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    Entity *ladder = controlledEntity->GetLadder();
+    if (ladder) {
+        m_bWasOnLadder     = true;
+        m_iLadderExitUntil = 0;
+
+        if (ladder->isSubclassOf(FuncLadder)) {
+            const FuncLadder *funcLadder =
+                static_cast<const FuncLadder *>(ladder);
+            m_fLadderTop           = ladder->absmax.z;
+            m_vLadderExitDirection = funcLadder->getFacingDir();
+            m_vLadderExitDirection.z = 0.0f;
+            VectorNormalize2D(m_vLadderExitDirection);
+        } else {
+            m_vLadderExitDirection = vec_zero;
+        }
+    } else if (m_bWasOnLadder) {
+        m_bWasOnLadder = false;
+
+        if (controlledEntity->origin.z >= m_fLadderTop
+            && m_vLadderExitDirection.lengthXYSquared() > 0.0f) {
+            // The top-off animation only clears the ladder lip. Keep moving
+            // in its prescribed forward direction before returning control to
+            // the path, or a newly projected route can turn back into the
+            // opening and attach to the same ladder again.
+            m_vLadderExitOrigin = controlledEntity->origin;
+            m_iLadderExitUntil =
+                level.inttime + BOT_LADDER_EXIT_MAX_MSEC;
+            m_vCurrentDir = m_vLadderExitDirection;
+
+            m_bJump            = false;
+            m_iJumpCommitTime  = -1;
+            m_iJumpLandingTime = 0;
+            m_bJumpWasAirborne = false;
+            m_bAvoidCollision  = false;
+            m_iTempAwayState   = 0;
+            m_iNumBlocks       = 0;
+        }
+    }
+
+    if (ContinueLadderExit(botcmd)) {
+        return;
+    }
 
     if (ContinueJump(botcmd)) {
         return;
@@ -445,6 +496,54 @@ void BotMovement::SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) co
 
     botcmd.forwardmove = (signed char)Q_clamp_float(DotProduct(move, forward), -127, 127);
     botcmd.rightmove   = (signed char)Q_clamp_float(-DotProduct(move, left), -127, 127);
+}
+
+bool BotMovement::ContinueLadderExit(usercmd_t& botcmd)
+{
+    if (!m_iLadderExitUntil) {
+        return false;
+    }
+
+    Vector displacement = controlledEntity->origin - m_vLadderExitOrigin;
+    displacement.z      = 0.0f;
+
+    const bool onGround =
+        controlledEntity->groundentity || controlledEntity->client->ps.walking;
+    const bool clearOfLadder =
+        DotProduct(displacement, m_vLadderExitDirection)
+        >= BOT_LADDER_EXIT_DISTANCE;
+    if ((onGround && clearOfLadder)
+        || level.inttime >= m_iLadderExitUntil) {
+        m_iLadderExitUntil = 0;
+
+        if (m_bPathing && !m_bDirectMove && m_pPath) {
+            PathSearchParameter parameters;
+            parameters.entity     = controlledEntity;
+            parameters.fallHeight = maxFallHeight;
+            m_pPath->FindPath(
+                controlledEntity->origin, m_vTargetPos, parameters
+            );
+        }
+
+        m_iLastMoveTime   = level.inttime;
+        m_iCheckPathTime  = level.inttime;
+        m_iTempAwayState  = 0;
+        m_iNumBlocks      = 0;
+        m_bAvoidCollision = false;
+        return false;
+    }
+
+    m_vCurrentDir = m_vLadderExitDirection;
+    SetCommandMoveVector(
+        botcmd, m_vLadderExitDirection * 127.0f
+    );
+    botcmd.upmove = 0;
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    m_bIsLeaning                   = false;
+    m_bLeanCommandActive           = false;
+    m_telemetry.movementSuppressed = true;
+    return true;
 }
 
 void BotMovement::CheckAttractiveNodes()
@@ -1446,6 +1545,14 @@ void BotMovement::ClearMove(void)
 {
     m_bPathing          = false;
     m_bDirectMove       = false;
+    if (!controlledEntity || controlledEntity->IsDead()
+        || (!controlledEntity->GetLadder() && !m_iLadderExitUntil)) {
+        m_bWasOnLadder         = false;
+        m_fLadderTop           = 0.0f;
+        m_iLadderExitUntil     = 0;
+        m_vLadderExitOrigin    = vec_zero;
+        m_vLadderExitDirection = vec_zero;
+    }
     m_bAvoidCollision               = false;
     m_iCollisionProgressTime        = 0;
     m_vCollisionProgressOrigin      = vec_zero;
