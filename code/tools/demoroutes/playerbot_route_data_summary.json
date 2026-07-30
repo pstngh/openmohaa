@@ -1,13 +1,55 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "xy_cell_units": 512.0,
   "z_cell_units": 192.0,
   "evidence_policy": {
-    "geometry": "all eligible routes",
-    "normal_behavior": "complete non-realism recorder behavior candidates",
+    "geometry": "eligible demo routes plus human FFA/team-match telemetry",
+    "normal_behavior": "complete normal-mode FFA recorder lives and human FFA lives",
     "smg_behavior": "normal behavior candidates with dominant SMG weapon"
   },
   "graphs": [
+    {
+      "map": "dm/crnodoors",
+      "mode": "free_for_all",
+      "role": "roamer",
+      "team": 0,
+      "phase": "roam",
+      "nodes": 26,
+      "edges": 44,
+      "geometry_routes": 663,
+      "normal_routes": 481,
+      "smg_routes": 458,
+      "demo_routes": 261,
+      "telemetry_routes": 402
+    },
+    {
+      "map": "dm/downladder",
+      "mode": "free_for_all",
+      "role": "roamer",
+      "team": 0,
+      "phase": "roam",
+      "nodes": 10,
+      "edges": 23,
+      "geometry_routes": 441,
+      "normal_routes": 311,
+      "smg_routes": 284,
+      "demo_routes": 157,
+      "telemetry_routes": 284
+    },
+    {
+      "map": "dm/main",
+      "mode": "free_for_all",
+      "role": "roamer",
+      "team": 0,
+      "phase": "roam",
+      "nodes": 12,
+      "edges": 38,
+      "geometry_routes": 420,
+      "normal_routes": 277,
+      "smg_routes": 238,
+      "demo_routes": 182,
+      "telemetry_routes": 238
+    },
     {
       "map": "dm/mohdm6",
       "mode": "free_for_all",
@@ -18,7 +60,23 @@
       "edges": 609,
       "geometry_routes": 40996,
       "normal_routes": 7189,
-      "smg_routes": 3012
+      "smg_routes": 3012,
+      "demo_routes": 40996,
+      "telemetry_routes": 0
+    },
+    {
+      "map": "dm/vents",
+      "mode": "free_for_all",
+      "role": "roamer",
+      "team": 0,
+      "phase": "roam",
+      "nodes": 15,
+      "edges": 41,
+      "geometry_routes": 230,
+      "normal_routes": 27,
+      "smg_routes": 24,
+      "demo_routes": 62,
+      "telemetry_routes": 168
     },
     {
       "map": "obj/obj_team2",
@@ -30,7 +88,9 @@
       "edges": 556,
       "geometry_routes": 3003,
       "normal_routes": 212,
-      "smg_routes": 153
+      "smg_routes": 153,
+      "demo_routes": 3003,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team2",
@@ -42,7 +102,9 @@
       "edges": 963,
       "geometry_routes": 41125,
       "normal_routes": 3387,
-      "smg_routes": 2523
+      "smg_routes": 2523,
+      "demo_routes": 41125,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team2",
@@ -54,7 +116,9 @@
       "edges": 461,
       "geometry_routes": 1995,
       "normal_routes": 175,
-      "smg_routes": 90
+      "smg_routes": 90,
+      "demo_routes": 1995,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team2",
@@ -66,7 +130,9 @@
       "edges": 955,
       "geometry_routes": 35273,
       "normal_routes": 3569,
-      "smg_routes": 1461
+      "smg_routes": 1461,
+      "demo_routes": 35273,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team4",
@@ -78,7 +144,9 @@
       "edges": 439,
       "geometry_routes": 1180,
       "normal_routes": 79,
-      "smg_routes": 19
+      "smg_routes": 19,
+      "demo_routes": 1180,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team4",
@@ -90,7 +158,9 @@
       "edges": 1690,
       "geometry_routes": 42085,
       "normal_routes": 2528,
-      "smg_routes": 421
+      "smg_routes": 421,
+      "demo_routes": 42085,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team4",
@@ -102,7 +172,9 @@
       "edges": 377,
       "geometry_routes": 646,
       "normal_routes": 43,
-      "smg_routes": 16
+      "smg_routes": 16,
+      "demo_routes": 646,
+      "telemetry_routes": 0
     },
     {
       "map": "obj/obj_team4",
@@ -114,7 +186,9 @@
       "edges": 1490,
       "geometry_routes": 44383,
       "normal_routes": 2806,
-      "smg_routes": 1332
+      "smg_routes": 1332,
+      "demo_routes": 44383,
+      "telemetry_routes": 0
     }
   ]
 }

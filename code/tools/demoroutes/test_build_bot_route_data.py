@@ -4,11 +4,13 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import zipfile
 import zlib
 from pathlib import Path
 
 from build_bot_route_data import (
     GraphStats,
+    add_telemetry_routes,
     build_graphs,
     collapse_route,
     render_cpp,
@@ -140,20 +142,22 @@ class BotRouteDataTests(unittest.TestCase):
                     [[0, 0, 0, 0], [100, 600, 0, 0]]
                 ).encode("utf-8")
             )
-            for route_id, mode, team in (
-                ("ffa-allies", "free_for_all", 3),
-                ("ffa-axis", "free_for_all", 4),
-                ("tdm", "team_deathmatch", 3),
+            for route_id, map_name, mode, team in (
+                ("ffa-allies", "dm/mohdm6", "free_for_all", 3),
+                ("ffa-axis", "dm/mohdm6", "free_for_all", 4),
+                ("tdm", "dm/mohdm6", "team_deathmatch", 3),
+                ("practice-ffa", "dm/vents", "free_for_all", 3),
+                ("practice-tdm", "dm/vents", "team_deathmatch", 4),
             ):
                 connection.execute(
                     """
                     INSERT INTO routes VALUES (
-                        ?, 'demo', 'dm/mohdm6', ?, 'not_objective', ?,
+                        ?, 'demo', ?, ?, 'not_objective', ?,
                         NULL, 'recorder_life', 'behavior_candidate',
                         'smg', 'zlib-json-v1', ?, 1
                     )
                     """,
-                    (route_id, mode, team, points),
+                    (route_id, map_name, mode, team, points),
                 )
             connection.commit()
             connection.close()
@@ -174,6 +178,68 @@ class BotRouteDataTests(unittest.TestCase):
         self.assertEqual(graph.geometry_routes, 2)
         self.assertEqual(graph.normal_routes, 2)
         self.assertEqual(graph.smg_routes, 2)
+
+        practice = next(
+            graph
+            for graph in graphs
+            if graph.map_name == "dm/vents"
+        )
+        self.assertEqual(practice.geometry_routes, 2)
+        self.assertEqual(practice.normal_routes, 1)
+        self.assertEqual(practice.smg_routes, 1)
+
+    def test_telemetry_splits_lives_and_uses_tdm_as_geometry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            archive_path = Path(directory) / "movement.zip"
+            metadata = "\n".join(
+                (
+                    "[session ffa]",
+                    "session_id=ffa",
+                    "map=dm/main",
+                    "g_gametype=1",
+                    "",
+                    "[session tdm]",
+                    "session_id=tdm",
+                    "map=dm/main",
+                    "g_gametype=2",
+                    "",
+                )
+            )
+            header = (
+                "session_id,session_ms,map,client_id,name,is_bot,"
+                "spectator,alive,origin_x,origin_y,origin_z,weapon"
+            )
+            frames = "\n".join(
+                (
+                    header,
+                    "ffa,0,dm/main,0,human,0,0,1,0,0,0,mp40",
+                    "ffa,50,dm/main,0,human,0,0,1,600,0,0,mp40",
+                    "ffa,100,dm/main,0,human,0,0,0,600,0,0,mp40",
+                    "ffa,0,dm/main,1,bot,1,0,1,0,0,0,mp40",
+                    "ffa,50,dm/main,1,bot,1,0,1,600,0,0,mp40",
+                    "tdm,0,dm/main,0,human,0,0,1,0,0,0,bar",
+                    "tdm,50,dm/main,0,human,0,0,1,600,0,0,bar",
+                    "tdm,100,dm/main,0,human,0,0,0,600,0,0,bar",
+                    "",
+                )
+            )
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                archive.writestr("movement_meta.txt", metadata)
+                archive.writestr("movement_frames.csv", frames)
+
+            key = ("dm/main", "free_for_all", "roamer", 0, "roam")
+            graph = GraphStats(*key)
+            add_telemetry_routes(
+                {key: graph}, [archive_path], 512.0, 192.0
+            )
+
+        self.assertEqual(graph.geometry_routes, 2)
+        self.assertEqual(graph.normal_routes, 1)
+        self.assertEqual(graph.smg_routes, 1)
+        self.assertEqual(graph.demo_routes, 0)
+        self.assertEqual(graph.telemetry_routes, 2)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Build compact runtime bot-route graphs from the indexed demo archive."""
+"""Build compact runtime bot-route graphs from indexed human movement."""
 
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import math
 import sqlite3
 import zlib
+import zipfile
+from collections import Counter
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator, TextIO
 
 
 OBJECTIVE_MAP_TEAMS = {
@@ -18,7 +23,13 @@ OBJECTIVE_MAP_TEAMS = {
     "obj/obj_team4": {"attacker": 4, "defender": 3},
 }
 OBJECTIVE_PHASES = ("preplant", "postplant")
-FREE_FOR_ALL_MAPS = ("dm/mohdm6",)
+PRACTICE_FREE_FOR_ALL_MAPS = (
+    "dm/crnodoors",
+    "dm/downladder",
+    "dm/main",
+    "dm/vents",
+)
+FREE_FOR_ALL_MAPS = ("dm/mohdm6", *PRACTICE_FREE_FOR_ALL_MAPS)
 CPP_ROUTE_MODES = {
     "objective": "BOT_DEMO_ROUTE_OBJECTIVE",
     "free_for_all": "BOT_DEMO_ROUTE_FREE_FOR_ALL",
@@ -59,6 +70,8 @@ class GraphStats:
     geometry_routes: int = 0
     normal_routes: int = 0
     smg_routes: int = 0
+    demo_routes: int = 0
+    telemetry_routes: int = 0
 
     def add(
         self,
@@ -67,6 +80,7 @@ class GraphStats:
         ],
         normal_behavior: bool,
         smg_behavior: bool,
+        source: str = "demo",
     ) -> None:
         if len(collapsed) < 2:
             return
@@ -74,6 +88,12 @@ class GraphStats:
         self.geometry_routes += 1
         self.normal_routes += int(normal_behavior)
         self.smg_routes += int(smg_behavior)
+        if source == "demo":
+            self.demo_routes += 1
+        elif source == "telemetry":
+            self.telemetry_routes += 1
+        else:
+            raise ValueError(f"unsupported route source: {source!r}")
 
         for key, position in collapsed:
             node = self.nodes.setdefault(key, NodeStats())
@@ -105,9 +125,202 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("database", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--summary", type=Path)
+    parser.add_argument(
+        "--telemetry",
+        action="append",
+        default=[],
+        type=Path,
+        help=(
+            "movement telemetry directory or ZIP; may be repeated. "
+            "FFA sessions affect behavior weights while team-match sessions "
+            "contribute geometry only."
+        ),
+    )
     parser.add_argument("--xy-cell", type=float, default=512.0)
     parser.add_argument("--z-cell", type=float, default=192.0)
     return parser.parse_args()
+
+
+@dataclass
+class TelemetryLife:
+    map_name: str
+    game_type: int
+    points: list[list[Any]] = field(default_factory=list)
+    weapon_counts: Counter[str] = field(default_factory=Counter)
+
+
+@contextmanager
+def open_telemetry_member(
+    source: Path, member: str
+) -> Iterator[TextIO]:
+    if source.is_dir():
+        path = source / member
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            yield stream
+        return
+
+    if not source.is_file():
+        raise FileNotFoundError(f"telemetry source not found: {source}")
+
+    with zipfile.ZipFile(source) as archive:
+        try:
+            raw = archive.open(member)
+        except KeyError as error:
+            raise ValueError(
+                f"{source} does not contain {member}"
+            ) from error
+        with raw:
+            with io.TextIOWrapper(
+                raw, encoding="utf-8-sig", newline=""
+            ) as stream:
+                yield stream
+
+
+def telemetry_sessions(source: Path) -> dict[str, tuple[str, int]]:
+    sessions: dict[str, tuple[str, int]] = {}
+    section: dict[str, str] = {}
+
+    def store_section() -> None:
+        session_id = section.get("session_id")
+        map_name = section.get("map")
+        game_type = section.get("g_gametype")
+        if not session_id or not map_name or game_type is None:
+            return
+        try:
+            sessions[session_id] = (map_name, int(game_type))
+        except ValueError:
+            return
+
+    with open_telemetry_member(source, "movement_meta.txt") as stream:
+        for raw_line in stream:
+            line = raw_line.strip()
+            if line.startswith("[session ") and line.endswith("]"):
+                store_section()
+                section = {
+                    "session_id": line[len("[session ") : -1]
+                }
+            elif "=" in line:
+                key, value = line.split("=", 1)
+                section[key.strip()] = value.strip()
+    store_section()
+    return sessions
+
+
+def dominant_weapon_is_smg(weapon_counts: Counter[str]) -> bool:
+    total = sum(weapon_counts.values())
+    if not total:
+        return False
+    smg_frames = sum(
+        count
+        for weapon, count in weapon_counts.items()
+        if any(
+            marker in weapon
+            for marker in ("mp40", "thompson", "sten")
+        )
+    )
+    return smg_frames * 2 >= total
+
+
+def add_telemetry_routes(
+    graphs: dict[tuple[str, str, str, int, str], GraphStats],
+    sources: list[Path],
+    xy_cell: float,
+    z_cell: float,
+) -> None:
+    for source in sources:
+        sessions = telemetry_sessions(source)
+        active: dict[tuple[str, str], TelemetryLife] = {}
+        current_session = ""
+
+        def flush(key: tuple[str, str]) -> None:
+            life = active.pop(key, None)
+            if not life:
+                return
+            graph = graphs.get(
+                (
+                    life.map_name,
+                    "free_for_all",
+                    "roamer",
+                    0,
+                    "roam",
+                )
+            )
+            if not graph:
+                return
+            normal_behavior = life.game_type == 1
+            graph.add(
+                collapse_route(life.points, xy_cell, z_cell),
+                normal_behavior,
+                normal_behavior
+                and dominant_weapon_is_smg(life.weapon_counts),
+                source="telemetry",
+            )
+
+        with open_telemetry_member(
+            source, "movement_frames.csv"
+        ) as stream:
+            for row in csv.DictReader(stream):
+                session_id = row.get("session_id", "")
+                session = sessions.get(session_id)
+                if (
+                    not session
+                    or session[0] not in PRACTICE_FREE_FOR_ALL_MAPS
+                    or session[1] not in (1, 2)
+                ):
+                    continue
+
+                if current_session and current_session != session_id:
+                    for key in list(active):
+                        flush(key)
+                current_session = session_id
+
+                client_id = row.get("client_id", "")
+                key = (session_id, client_id)
+                if (
+                    row.get("is_bot") != "0"
+                    or row.get("alive") != "1"
+                    or row.get("spectator") != "0"
+                ):
+                    flush(key)
+                    continue
+
+                try:
+                    point = [
+                        int(row.get("session_ms") or 0),
+                        float(row["origin_x"]),
+                        float(row["origin_y"]),
+                        float(row["origin_z"]),
+                    ]
+                except (KeyError, TypeError, ValueError):
+                    flush(key)
+                    continue
+
+                life = active.get(key)
+                if life and life.points:
+                    previous = life.points[-1]
+                    time_gap = point[0] - previous[0]
+                    distance_squared = sum(
+                        (point[axis] - previous[axis]) ** 2
+                        for axis in range(1, 4)
+                    )
+                    if (
+                        time_gap < 0
+                        or time_gap > 1000
+                        or distance_squared > 1024.0**2
+                    ):
+                        flush(key)
+                        life = None
+
+                if not life:
+                    life = TelemetryLife(session[0], session[1])
+                    active[key] = life
+                life.points.append(point)
+                weapon = row.get("weapon", "").strip().lower()
+                if weapon:
+                    life.weapon_counts[weapon] += 1
+
+        for key in list(active):
+            flush(key)
 
 
 def decode_points(blob: bytes, codec: str) -> list[list[Any]]:
@@ -206,7 +419,10 @@ def route_phases(
 
 
 def build_graphs(
-    database: Path, xy_cell: float, z_cell: float
+    database: Path,
+    xy_cell: float,
+    z_cell: float,
+    telemetry_sources: list[Path] | None = None,
 ) -> list[GraphStats]:
     connection = sqlite3.connect(
         f"file:{database.resolve()}?mode=ro", uri=True
@@ -268,7 +484,20 @@ def build_graphs(
                     (r.mode = 'objective'
                      AND r.map_name IN ('obj/obj_team2', 'obj/obj_team4'))
                  OR (r.mode = 'free_for_all'
-                     AND r.map_name = 'dm/mohdm6')
+                     AND r.map_name IN (
+                         'dm/mohdm6',
+                         'dm/crnodoors',
+                         'dm/downladder',
+                         'dm/main',
+                         'dm/vents'
+                     ))
+                 OR (r.mode = 'team_deathmatch'
+                     AND r.map_name IN (
+                         'dm/crnodoors',
+                         'dm/downladder',
+                         'dm/main',
+                         'dm/vents'
+                     ))
               )
             ORDER BY r.route_id
             """
@@ -276,7 +505,8 @@ def build_graphs(
 
         for row in rows:
             normal_behavior = (
-                row["demo_status"] == "complete"
+                row["mode"] in ("objective", "free_for_all")
+                and row["demo_status"] == "complete"
                 and row["route_scope"] == "recorder_life"
                 and row["analysis_usage"] == "behavior_candidate"
             )
@@ -319,6 +549,10 @@ def build_graphs(
     finally:
         connection.close()
 
+    add_telemetry_routes(
+        graphs, telemetry_sources or [], xy_cell, z_cell
+    )
+
     return [
         graphs[key]
         for key in sorted(graphs)
@@ -346,8 +580,9 @@ def render_cpp(
         "Generated by code/tools/demoroutes/build_bot_route_data.py.",
         "Do not edit by hand.",
         f"Grid: {xy_cell:g} XY units, {z_cell:g} Z units.",
-        "Geometry uses every eligible demo route. Normal and SMG counts use",
-        "complete non-realism recorder lives marked as behavior candidates.",
+        "Geometry uses eligible demos and human telemetry. FFA behavior",
+        "weights use complete normal-mode FFA lives; team-match practice-map",
+        "movement contributes connectivity only.",
         "===========================================================================",
         "*/",
         "",
@@ -428,13 +663,15 @@ def graph_summary(
     graphs: list[GraphStats], xy_cell: float, z_cell: float
 ) -> dict[str, Any]:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "xy_cell_units": xy_cell,
         "z_cell_units": z_cell,
         "evidence_policy": {
-            "geometry": "all eligible routes",
+            "geometry": (
+                "eligible demo routes plus human FFA/team-match telemetry"
+            ),
             "normal_behavior": (
-                "complete non-realism recorder behavior candidates"
+                "complete normal-mode FFA recorder lives and human FFA lives"
             ),
             "smg_behavior": (
                 "normal behavior candidates with dominant SMG weapon"
@@ -452,6 +689,8 @@ def graph_summary(
                 "geometry_routes": graph.geometry_routes,
                 "normal_routes": graph.normal_routes,
                 "smg_routes": graph.smg_routes,
+                "demo_routes": graph.demo_routes,
+                "telemetry_routes": graph.telemetry_routes,
             }
             for graph in graphs
         ],
@@ -463,7 +702,12 @@ def main() -> int:
     if args.xy_cell <= 0 or args.z_cell <= 0:
         raise SystemExit("cell sizes must be positive")
 
-    graphs = build_graphs(args.database, args.xy_cell, args.z_cell)
+    graphs = build_graphs(
+        args.database,
+        args.xy_cell,
+        args.z_cell,
+        args.telemetry,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         render_cpp(graphs, args.xy_cell, args.z_cell), encoding="utf-8"

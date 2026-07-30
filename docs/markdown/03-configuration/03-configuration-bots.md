@@ -181,9 +181,13 @@ attacker/defender role, and pre-plant/post-plant phase. They preserve observed
 route branches, merges, and rejoins rather than replaying a fixed trajectory.
 
 On `dm/mohdm6`, free-for-all bots use a separate graph built only from FFA
-rounds. It selects human-observed roaming destinations and route branches
-without attacker, defender, bomb-site, or plant-phase behavior. Team deathmatch
-samples from the same map are not mixed into the FFA graph.
+rounds. The `obj_team2` practice maps `dm/main`, `dm/crnodoors`,
+`dm/downladder`, and `dm/vents` each have their own compact arena graph built
+only from trajectories recorded under that map name. This keeps roaming inside
+the human-used 1v1 area instead of importing the full `obj_team2` objective
+graph. FFA lives determine destinations and branch weights; team-match samples
+on the practice maps can fill physical connectivity but are not counted as
+FFA behavior evidence.
 
 Every eligible demo trajectory contributes route geometry. Branch allocation
 prefers complete normal-mode SMG recorder lives, falls back to other complete
