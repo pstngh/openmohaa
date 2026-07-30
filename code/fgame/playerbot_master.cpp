@@ -214,8 +214,10 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
         return false;
     }
 
-    bool  found     = false;
-    float bestScore = 0.0f;
+    bool               found             = false;
+    bool               hasCurrentContact = false;
+    float              bestScore         = 0.0f;
+    bot_team_contact_t currentContact;
 
     for (int enemyNum = 0; enemyNum < MAX_CLIENTS; ++enemyNum) {
         const bot_team_contact_t& contact = teamContacts[teamIndex][enemyNum];
@@ -228,6 +230,11 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
         }
         if (controller->IsTeamContactRejected(enemyNum, contact.source)) {
             continue;
+        }
+
+        if (controller->IsRespondingToTeamContact(enemyNum)) {
+            currentContact    = contact;
+            hasCurrentContact = true;
         }
 
         const float playerDistance = (player->origin - contact.position).length();
@@ -266,6 +273,14 @@ bool BotManager::FindTeamContact(BotController *controller, bot_team_contact_t& 
             bestScore = score;
             result    = contact;
         }
+    }
+
+    // Keep a valid assignment stable. Re-running the team-wide distance
+    // ranking every frame can otherwise make responders exchange equally
+    // urgent contacts indefinitely. A stronger report may still preempt it.
+    if (hasCurrentContact && (!found || result.source <= currentContact.source)) {
+        result = currentContact;
+        found  = true;
     }
 
     return found;
