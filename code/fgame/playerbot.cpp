@@ -517,9 +517,9 @@ void BotController::CheckValidWeapon()
     Weapon *pending = controlledEnt->GetNewActiveWeapon();
 
     if (m_pCombatPrimaryWeapon) {
-        if (weapon == m_pCombatPrimaryWeapon) {
+        if (!m_pCombatPrimaryWeapon->HasAmmo(FIRE_PRIMARY)) {
             m_pCombatPrimaryWeapon = NULL;
-        } else if (!m_pCombatPrimaryWeapon->HasAmmo(FIRE_PRIMARY)) {
+        } else if (weapon == m_pCombatPrimaryWeapon && !pending) {
             m_pCombatPrimaryWeapon = NULL;
         } else if (!pending
                    && (m_pCombatPrimaryWeapon->HasAmmoInClip(FIRE_PRIMARY)
