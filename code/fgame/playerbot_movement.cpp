@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "playerbot.h"
 #include "debuglines.h"
+#include "health.h"
 #include "misc.h"
 
 static int       maxFallHeight                   = 400;
@@ -37,6 +38,8 @@ static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
 static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
 static const int BOT_JUMP_LANDING_COMMIT_MSEC      = 250;
 static const int BOT_JUMP_RETRY_MSEC              = 500;
+static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
+static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const float BOT_CORNER_PROBE_BLOCKED_FRACTION = 0.75f;
 static const float BOT_CORNER_PROBE_ADVANTAGE        = 0.25f;
@@ -427,6 +430,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     } else {
         m_vCurrentDir = CalculateDir(m_vCurrentGoal - controlledEntity->origin);
     }
+    SteerTowardPathHealth(m_vCurrentDir);
 
     vWishDir = CalculateRelativeWishDirection(m_vCurrentDir);
 
@@ -1895,6 +1899,7 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
     delta          = FixDeltaFromCollision(delta);
     m_vCurrentGoal = controlledEntity->origin + delta;
     m_vCurrentDir  = CalculateDir(delta);
+    SteerTowardPathHealth(m_vCurrentDir);
 
     const Vector wishDirection = CalculateRelativeWishDirection(m_vCurrentDir);
     botcmd.forwardmove = (signed char)Q_clamp_float(wishDirection.x * 127.0f, -127.0f, 127.0f);
@@ -1906,6 +1911,80 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
     CheckJump(botcmd);
     if (!m_bJump) {
         CheckJumpOverEdge(botcmd);
+    }
+}
+
+void BotMovement::SteerTowardPathHealth(Vector& direction) const
+{
+    if (!controlledEntity
+        || controlledEntity->health + controlledEntity->m_fHealRate
+            >= controlledEntity->max_health) {
+        return;
+    }
+
+    Vector pathDirection = direction;
+    pathDirection.z      = 0.0f;
+    if (VectorNormalize2D(pathDirection) <= 0.0f) {
+        return;
+    }
+
+    Entity *bestHealth  = NULL;
+    float   bestForward = BOT_HEALTH_PATH_LOOKAHEAD + 1.0f;
+
+    for (Entity *entity = findradius(
+             NULL, controlledEntity->origin, BOT_HEALTH_PATH_LOOKAHEAD
+         );
+         entity;
+         entity = findradius(
+             entity, controlledEntity->origin, BOT_HEALTH_PATH_LOOKAHEAD
+         )) {
+        if (!entity->isSubclassOf(Health) || entity->hidden()
+            || entity->getSolidType() == SOLID_NOT) {
+            continue;
+        }
+
+        Vector offset = entity->origin - controlledEntity->origin;
+        if (fabs(offset.z) > STEPSIZE * 2.0f) {
+            continue;
+        }
+        offset.z = 0.0f;
+
+        const float forward = DotProduct(offset, pathDirection);
+        if (forward <= 0.0f || forward >= bestForward) {
+            continue;
+        }
+
+        const Vector lateral = offset - pathDirection * forward;
+        if (lateral.lengthXYSquared() > Square(BOT_HEALTH_PATH_CORRIDOR)) {
+            continue;
+        }
+
+        Vector mins = controlledEntity->mins;
+        Vector maxs = controlledEntity->maxs;
+        maxs.z -= STEPSIZE;
+        const Vector start =
+            controlledEntity->origin + Vector(0, 0, STEPSIZE);
+        const Vector end = entity->origin + Vector(0, 0, STEPSIZE);
+        const trace_t trace = G_Trace(
+            start,
+            mins,
+            maxs,
+            end,
+            controlledEntity,
+            MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
+            true,
+            "BotMovement::SteerTowardPathHealth"
+        );
+        if (trace.startsolid || trace.fraction < 1.0f) {
+            continue;
+        }
+
+        bestHealth  = entity;
+        bestForward = forward;
+    }
+
+    if (bestHealth) {
+        direction = CalculateDir(bestHealth->origin - controlledEntity->origin);
     }
 }
 

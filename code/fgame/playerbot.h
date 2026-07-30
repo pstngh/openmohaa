@@ -223,6 +223,7 @@ private:
     void   DirectMoveThink(usercmd_t& botcmd);
     void   NewMove();
     Vector FixDeltaFromCollision(const Vector& delta);
+    void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
           float         maxDist,
