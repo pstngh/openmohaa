@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 
+import json
+import sqlite3
+import tempfile
 import unittest
+import zlib
+from pathlib import Path
 
 from build_bot_route_data import (
     GraphStats,
+    build_graphs,
     collapse_route,
     render_cpp,
     route_phases,
@@ -35,7 +41,7 @@ class BotRouteDataTests(unittest.TestCase):
 
     def test_graph_counts_each_edge_once_per_route(self) -> None:
         graph = GraphStats(
-            "obj/obj_team2", "attacker", 3, "preplant"
+            "obj/obj_team2", "objective", "attacker", 3, "preplant"
         )
         first = ((0, 0, 0), (0.0, 0.0, 0.0))
         second = ((1, 0, 0), (128.0, 0.0, 0.0))
@@ -49,7 +55,7 @@ class BotRouteDataTests(unittest.TestCase):
 
     def test_rendered_data_records_all_evidence_tiers(self) -> None:
         graph = GraphStats(
-            "obj/obj_team4", "defender", 3, "postplant"
+            "obj/obj_team4", "objective", "defender", 3, "postplant"
         )
         graph.add(
             [
@@ -64,7 +70,110 @@ class BotRouteDataTests(unittest.TestCase):
 
         self.assertIn('"obj/obj_team4"', output)
         self.assertIn("false, true", output)
+        self.assertIn("BOT_DEMO_ROUTE_OBJECTIVE", output)
         self.assertIn("1u, 1u, 0u", output)
+
+    def test_rendered_ffa_graph_has_explicit_mode(self) -> None:
+        graph = GraphStats(
+            "dm/mohdm6", "free_for_all", "roamer", 0, "roam"
+        )
+        graph.add(
+            [
+                ((0, 0, 0), (0.0, 0.0, 0.0)),
+                ((1, 0, 0), (512.0, 0.0, 0.0)),
+            ],
+            True,
+            True,
+        )
+
+        output = render_cpp([graph], 512.0, 192.0)
+
+        self.assertIn('"dm/mohdm6"', output)
+        self.assertIn("BOT_DEMO_ROUTE_FREE_FOR_ALL", output)
+        self.assertIn("false, false", output)
+
+    def test_ffa_graph_combines_teams_but_excludes_team_deathmatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "routes.sqlite3"
+            connection = sqlite3.connect(database)
+            connection.executescript(
+                """
+                CREATE TABLE meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+                CREATE TABLE demos (
+                    demo_id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL
+                );
+                CREATE TABLE rounds (
+                    round_id TEXT PRIMARY KEY,
+                    first_plant_time INTEGER
+                );
+                CREATE TABLE routes (
+                    route_id TEXT PRIMARY KEY,
+                    demo_id TEXT NOT NULL,
+                    map_name TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    team INTEGER,
+                    round_id TEXT,
+                    route_scope TEXT NOT NULL,
+                    analysis_usage TEXT NOT NULL,
+                    weapon_category TEXT NOT NULL,
+                    points_codec TEXT NOT NULL,
+                    points_blob BLOB NOT NULL,
+                    eligible_route INTEGER NOT NULL
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO meta VALUES ('schema_version', '3')"
+            )
+            connection.execute(
+                "INSERT INTO demos VALUES ('demo', 'complete')"
+            )
+            points = zlib.compress(
+                json.dumps(
+                    [[0, 0, 0, 0], [100, 600, 0, 0]]
+                ).encode("utf-8")
+            )
+            for route_id, mode, team in (
+                ("ffa-allies", "free_for_all", 3),
+                ("ffa-axis", "free_for_all", 4),
+                ("tdm", "team_deathmatch", 3),
+            ):
+                connection.execute(
+                    """
+                    INSERT INTO routes VALUES (
+                        ?, 'demo', 'dm/mohdm6', ?, 'not_objective', ?,
+                        NULL, 'recorder_life', 'behavior_candidate',
+                        'smg', 'zlib-json-v1', ?, 1
+                    )
+                    """,
+                    (route_id, mode, team, points),
+                )
+            connection.commit()
+            connection.close()
+
+            graphs = build_graphs(database, 512.0, 192.0)
+
+        ffa_graphs = [
+            graph
+            for graph in graphs
+            if graph.map_name == "dm/mohdm6"
+        ]
+        self.assertEqual(len(ffa_graphs), 1)
+        graph = ffa_graphs[0]
+        self.assertEqual(graph.mode, "free_for_all")
+        self.assertEqual(graph.role, "roamer")
+        self.assertEqual(graph.team, 0)
+        self.assertEqual(graph.phase, "roam")
+        self.assertEqual(graph.geometry_routes, 2)
+        self.assertEqual(graph.normal_routes, 2)
+        self.assertEqual(graph.smg_routes, 2)
 
 
 if __name__ == "__main__":

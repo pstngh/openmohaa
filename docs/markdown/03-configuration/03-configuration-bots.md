@@ -173,12 +173,17 @@ component; they do not impose a wall buffer or disable leaning.
 | `g_bot_peek_max_interval` | `900` | `50`-`10000` ms | Maximum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots use enemy-relative radial movement. |
 
-### Demo-derived objective routes
+### Demo-derived routes
 
 On `obj/obj_team2` and `obj/obj_team4`, objective bots use compact route graphs
 learned from the processed human demo archive. The graphs are separated by map,
 attacker/defender role, and pre-plant/post-plant phase. They preserve observed
 route branches, merges, and rejoins rather than replaying a fixed trajectory.
+
+On `dm/mohdm6`, free-for-all bots use a separate graph built only from FFA
+rounds. It selects human-observed roaming destinations and route branches
+without attacker, defender, bomb-site, or plant-phase behavior. Team deathmatch
+samples from the same map are not mixed into the FFA graph.
 
 Every eligible demo trajectory contributes route geometry. Branch allocation
 prefers complete normal-mode SMG recorder lives, falls back to other complete
@@ -187,10 +192,12 @@ counts only when neither behavior sample is reliable. Strategic graph points
 are fitted to nearby runtime path nodes; the normal navigation and collision
 steering still control movement between them.
 
-Combat, team callouts, grenade escape, and reload retreat temporarily override
-the route without discarding its objective plan. Planting and defusing keep
-their existing critical-task priority. Maps without generated graphs retain the
-normal objective behavior.
+On objective maps, combat, team callouts, grenade escape, and reload retreat
+temporarily override the route without discarding its plan. Planting and
+defusing keep their existing critical-task priority. Maps without graphs retain
+normal behavior. In FFA, combat, sound investigation, health pickups, grenade
+escape, reload retreat, and the existing chance to revisit a killer's last
+position take priority over demo-derived roaming.
 
 ## Recording movement and aim reference sessions
 
@@ -228,9 +235,10 @@ neutral or sentinel values in these `bot_*` columns.
 Schema 7 also records shared-contact source, reporter, responder, age, and
 reported position, plus each bot's objective role, site, round, use phase,
 critical-task status, and destination. The event log includes contact reports
-and responses, objective plans, plant/defuse attempts and results, replans,
-timeouts, objective-movement stalls, and grenade notice/escape outcomes.
-Delivered text chat is recorded as a `chat` event with the message and mode:
+and responses, objective plans, FFA route plans/waypoints/fallbacks,
+plant/defuse attempts and results, replans, timeouts, objective-movement
+stalls, and grenade notice/escape outcomes. Delivered text chat is recorded as
+a `chat` event with the message and mode:
 `0` for global chat, a negative value for team chat, and a positive
 one-based client number for private chat.
 

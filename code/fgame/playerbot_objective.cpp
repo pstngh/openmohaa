@@ -412,13 +412,7 @@ void BotController::ResetObjectiveBehavior()
     m_iObjectiveRound             = -1;
     m_iObjectiveSite              = -1;
     m_iObjectiveRouteVariant          = 0;
-    m_iObjectiveRouteCurrentNode      = -1;
-    m_iObjectiveRoutePreviousNode     = -1;
-    m_iObjectiveRouteNextNode         = -1;
-    m_iObjectiveRouteGoalNode         = -1;
-    m_iObjectiveRouteHop              = 0;
-    m_iObjectiveRouteRetryTime        = 0;
-    m_iObjectiveRouteRetryAttempt     = 0;
+    ResetDemoRoute(m_ObjectiveDemoRoute);
     m_iObjectiveUseStartTime      = 0;
     m_iObjectiveReapproachUntil   = 0;
     m_iObjectiveNextMoveTime     = 0;
@@ -802,7 +796,8 @@ void BotController::UpdateObjectiveBehavior()
     // Combat, team response, and survival movement can replace the active
     // navigation path. Keep the strategic hop, but force it to be reissued
     // once objective movement regains control.
-    if (!m_bObjectiveOwnsMovement && m_iObjectiveRouteNextNode >= 0) {
+    if (!m_bObjectiveOwnsMovement
+        && m_ObjectiveDemoRoute.nextNode >= 0) {
         m_bObjectiveHasDestination = false;
     }
 

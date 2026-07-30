@@ -19,13 +19,13 @@ static const unsigned int BOT_DEMO_ROUTE_MIN_SMG_SUPPORT = 3;
 static const unsigned int BOT_DEMO_ROUTE_MIN_NORMAL_SUPPORT = 5;
 static const float        BOT_DEMO_ROUTE_DETOUR_ALLOWANCE = 768.0f;
 static const float        BOT_DEMO_ROUTE_INFINITY = 1.0e30f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_SEARCH_RADIUS  = 1024.0f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_FIT_RADIUS     = 384.0f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_REACHED_RADIUS = 192.0f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_REACHED_HEIGHT = 96.0f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_ROAM_DISTANCE  = 1024.0f;
+static const float BOT_DEMO_ROUTE_SEARCH_RADIUS            = 1024.0f;
+static const float BOT_DEMO_ROUTE_FIT_RADIUS               = 384.0f;
+static const float BOT_DEMO_ROUTE_REACHED_RADIUS           = 192.0f;
+static const float BOT_DEMO_ROUTE_REACHED_HEIGHT           = 96.0f;
+static const float BOT_DEMO_ROUTE_ROAM_DISTANCE            = 1024.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS   = 2048.0f;
-static const int   BOT_OBJECTIVE_DEMO_ROUTE_RETRY_MSEC     = 2000;
+static const int   BOT_DEMO_ROUTE_RETRY_MSEC               = 2000;
 
 enum bot_demo_route_support_t {
     BOT_DEMO_ROUTE_GEOMETRY,
@@ -83,7 +83,10 @@ static bool BotDemoRouteValidNode(
 }
 
 static const bot_demo_route_graph_t *BotDemoRouteFindGraph(
-    const char *mapName, bool attacker, bool postPlant
+    const char            *mapName,
+    bot_demo_route_mode_t  mode,
+    bool                   attacker,
+    bool                   postPlant
 )
 {
     if (!mapName) {
@@ -92,7 +95,8 @@ static const bot_demo_route_graph_t *BotDemoRouteFindGraph(
 
     for (unsigned int i = 0; i < g_botDemoRouteGraphCount; ++i) {
         const bot_demo_route_graph_t& graph = g_botDemoRouteGraphs[i];
-        if (graph.attacker == attacker && graph.postPlant == postPlant
+        if (graph.mode == mode && graph.attacker == attacker
+            && graph.postPlant == postPlant
             && !Q_stricmp(graph.mapName, mapName)) {
             return &graph;
         }
@@ -122,10 +126,23 @@ static float BotDemoRouteDistance(
     ).length();
 }
 
+static bool BotDemoRouteNodeHasOutgoingEdge(
+    const bot_demo_route_graph_t *graph, int node
+)
+{
+    for (unsigned int i = 0; i < graph->edgeCount; ++i) {
+        if (graph->edges[i].from == static_cast<unsigned int>(node)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static int BotDemoRouteFindNearestNode(
     const bot_demo_route_graph_t *graph,
     const Vector&                 position,
-    float                         maxDistance
+    float                         maxDistance,
+    bool                          requireOutgoing = false
 )
 {
     if (!graph || !graph->nodeCount) {
@@ -135,6 +152,10 @@ static int BotDemoRouteFindNearestNode(
     int   nearest = -1;
     float bestDistanceSquared = 0.0f;
     for (unsigned int i = 0; i < graph->nodeCount; ++i) {
+        if (requireOutgoing
+            && !BotDemoRouteNodeHasOutgoingEdge(graph, i)) {
+            continue;
+        }
         const float distanceSquared =
             (BotDemoRouteNodePosition(graph, i) - position).lengthSquared();
         if ((maxDistance <= 0.0f
@@ -147,18 +168,56 @@ static int BotDemoRouteFindNearestNode(
     return nearest;
 }
 
+static void BotDemoRouteReachableNodes(
+    const bot_demo_route_graph_t *graph,
+    int                           start,
+    bool                         *reachable
+)
+{
+    int queue[BOT_DEMO_ROUTE_MAX_NODES];
+    int first = 0;
+    int last  = 0;
+
+    for (unsigned int i = 0; i < graph->nodeCount; ++i) {
+        reachable[i] = false;
+    }
+    if (!BotDemoRouteValidNode(graph, start)) {
+        return;
+    }
+
+    reachable[start] = true;
+    queue[last++]     = start;
+    while (first < last) {
+        const int node = queue[first++];
+        for (unsigned int i = 0; i < graph->edgeCount; ++i) {
+            const bot_demo_route_edge_t& edge = graph->edges[i];
+            if (edge.from != static_cast<unsigned int>(node)
+                || edge.to >= graph->nodeCount
+                || reachable[edge.to]) {
+                continue;
+            }
+            reachable[edge.to] = true;
+            queue[last++]       = static_cast<int>(edge.to);
+        }
+    }
+}
+
 static bot_demo_route_support_t BotDemoRouteNodeEndSupport(
     const bot_demo_route_graph_t *graph,
     const Vector&                 origin,
     const Vector&                 center,
     float                         maxCenterDistance,
-    float                         minOriginDistance
+    float                         minOriginDistance,
+    const bool                   *reachable
 )
 {
     unsigned int smgSupport = 0;
     unsigned int normalSupport = 0;
 
     for (unsigned int i = 0; i < graph->nodeCount; ++i) {
+        if (!reachable[i]) {
+            continue;
+        }
         const Vector position = BotDemoRouteNodePosition(graph, i);
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
@@ -199,6 +258,7 @@ static unsigned int BotDemoRouteNodeEndWeight(
 
 static int BotDemoRouteChooseGoal(
     const bot_demo_route_graph_t *graph,
+    int                           currentNode,
     const Vector&                 origin,
     const Vector&                 center,
     float                         maxCenterDistance,
@@ -210,17 +270,23 @@ static int BotDemoRouteChooseGoal(
         return -1;
     }
 
+    bool reachable[BOT_DEMO_ROUTE_MAX_NODES];
+    BotDemoRouteReachableNodes(graph, currentNode, reachable);
     const bot_demo_route_support_t support =
         BotDemoRouteNodeEndSupport(
             graph,
             origin,
             center,
             maxCenterDistance,
-            minOriginDistance
+            minOriginDistance,
+            reachable
         );
     unsigned int totalWeight = 0;
 
     for (unsigned int i = 0; i < graph->nodeCount; ++i) {
+        if (!reachable[i]) {
+            continue;
+        }
         const Vector position = BotDemoRouteNodePosition(graph, i);
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
@@ -242,6 +308,9 @@ static int BotDemoRouteChooseGoal(
 
     float choice = BotDemoRouteRandomFraction(seed) * totalWeight;
     for (unsigned int i = 0; i < graph->nodeCount; ++i) {
+        if (!reachable[i]) {
+            continue;
+        }
         const Vector position = BotDemoRouteNodePosition(graph, i);
         if (maxCenterDistance > 0.0f
             && (position - center).lengthXYSquared()
@@ -486,32 +555,45 @@ static bool BotDemoRoutePointReached(
 {
     const Vector delta = destination - origin;
     return delta.lengthXYSquared()
-            <= Square(BOT_OBJECTIVE_DEMO_ROUTE_REACHED_RADIUS)
-        && fabs(delta.z) <= BOT_OBJECTIVE_DEMO_ROUTE_REACHED_HEIGHT;
+            <= Square(BOT_DEMO_ROUTE_REACHED_RADIUS)
+        && fabs(delta.z) <= BOT_DEMO_ROUTE_REACHED_HEIGHT;
 }
 
-void BotController::ResetObjectiveDemoRoute(bool retry)
+void BotController::ResetDemoRoute(
+    bot_demo_route_cursor_t& route, bool retry
+)
 {
-    m_iObjectiveRouteCurrentNode      = -1;
-    m_iObjectiveRoutePreviousNode     = -1;
-    m_iObjectiveRouteNextNode         = -1;
-    m_iObjectiveRouteGoalNode         = -1;
-    m_iObjectiveRouteHop              = 0;
+    route.currentNode  = -1;
+    route.previousNode = -1;
+    route.nextNode     = -1;
+    route.goalNode     = -1;
+    route.hop          = 0;
+
     if (retry) {
-        m_iObjectiveRouteRetryTime =
-            level.inttime + BOT_OBJECTIVE_DEMO_ROUTE_RETRY_MSEC;
-        ++m_iObjectiveRouteRetryAttempt;
+        route.retryTime = level.inttime + BOT_DEMO_ROUTE_RETRY_MSEC;
+        ++route.retryAttempt;
     } else {
-        m_iObjectiveRouteRetryTime    = 0;
-        m_iObjectiveRouteRetryAttempt = 0;
+        route.retryTime    = 0;
+        route.retryAttempt = 0;
     }
 
-    if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
+    if (&route == &m_ObjectiveDemoRoute
+        && m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
         m_iObjectiveState          = BOT_OBJECTIVE_NONE;
         m_bObjectiveHasDestination = false;
         m_bObjectiveOwnsMovement   = false;
         m_vObjectiveDestination    = vec_zero;
     }
+}
+
+void BotController::ResetObjectiveDemoRoute(bool retry)
+{
+    ResetDemoRoute(m_ObjectiveDemoRoute, retry);
+}
+
+void BotController::ResetFreeForAllDemoRoute(bool retry)
+{
+    ResetDemoRoute(m_FreeForAllDemoRoute, retry);
 }
 
 bool BotController::UpdateObjectiveDemoRoute(
@@ -522,201 +604,266 @@ bool BotController::UpdateObjectiveDemoRoute(
         ResetObjectiveDemoRoute();
         m_bObjectiveRoutePostPlant = postPlant;
     }
-    if (level.inttime < m_iObjectiveRouteRetryTime) {
+
+    const bot_demo_route_graph_t *graph = BotDemoRouteFindGraph(
+        level.mapname.c_str(),
+        BOT_DEMO_ROUTE_OBJECTIVE,
+        m_bObjectiveAttacker,
+        postPlant
+    );
+    const unsigned int seed =
+        static_cast<unsigned int>(botManager.GetObjectiveSeed())
+        ^ static_cast<unsigned int>(
+            controlledEnt->entnum * 0x9e3779b9u
+        );
+    return UpdateDemoRoute(
+        graph,
+        m_ObjectiveDemoRoute,
+        destination,
+        roam,
+        postPlant ? BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS : 0.0f,
+        BOT_DEMO_ROUTE_ROAM_DISTANCE,
+        seed
+    );
+}
+
+bool BotController::UpdateFreeForAllDemoRoute()
+{
+    if (g_gametype->integer != GT_FFA) {
         return false;
     }
 
     const bot_demo_route_graph_t *graph = BotDemoRouteFindGraph(
-        level.mapname.c_str(), m_bObjectiveAttacker, postPlant
+        level.mapname.c_str(),
+        BOT_DEMO_ROUTE_FREE_FOR_ALL,
+        false,
+        false
     );
-    if (!graph) {
+    const unsigned int seed =
+        static_cast<unsigned int>(level.inttime)
+        ^ static_cast<unsigned int>(
+            controlledEnt->entnum * 0x9e3779b9u
+        );
+    return UpdateDemoRoute(
+        graph,
+        m_FreeForAllDemoRoute,
+        vec_zero,
+        true,
+        0.0f,
+        BOT_DEMO_ROUTE_ROAM_DISTANCE,
+        seed
+    );
+}
+
+bool BotController::UpdateDemoRoute(
+    const bot_demo_route_graph_t *graph,
+    bot_demo_route_cursor_t&      route,
+    const Vector&                 destination,
+    bool                          roam,
+    float                         maxGoalCenterDistance,
+    float                         minGoalOriginDistance,
+    unsigned int                  seed
+)
+{
+    if (!graph || level.inttime < route.retryTime) {
         return false;
     }
 
-    if (m_iObjectiveRouteCurrentNode < 0) {
-        m_iObjectiveRouteCurrentNode = BotDemoRouteFindNearestNode(
+    if (graph->nodeCount > BOT_DEMO_ROUTE_MAX_NODES) {
+        ResetDemoRoute(route, true);
+        return false;
+    }
+
+    const bool objective = graph->mode == BOT_DEMO_ROUTE_OBJECTIVE;
+    const char *planEvent = objective
+        ? "bot_objective_route_plan" : "bot_ffa_route_plan";
+    const char *waypointEvent = objective
+        ? "bot_objective_route_waypoint" : "bot_ffa_route_waypoint";
+    const char *fallbackEvent = objective
+        ? "bot_objective_route_fallback" : "bot_ffa_route_fallback";
+
+    if (route.currentNode < 0) {
+        route.currentNode = BotDemoRouteFindNearestNode(
             graph,
             controlledEnt->origin,
-            BOT_OBJECTIVE_DEMO_ROUTE_SEARCH_RADIUS
+            BOT_DEMO_ROUTE_SEARCH_RADIUS,
+            roam
         );
-        if (m_iObjectiveRouteCurrentNode < 0) {
-            ResetObjectiveDemoRoute(true);
+        if (route.currentNode < 0) {
+            ResetDemoRoute(route, true);
             return false;
         }
 
         G_MoveLogBotEvent(
-            "bot_objective_route_plan",
+            planEvent,
             controlledEnt,
             NULL,
-            postPlant ? 2 : 1,
-            BotDemoRouteNodePosition(
-                graph, m_iObjectiveRouteCurrentNode
-            )
+            objective ? (m_bObjectiveRoutePostPlant ? 2 : 1) : 0,
+            BotDemoRouteNodePosition(graph, route.currentNode)
         );
     }
 
-    if (m_iObjectiveRouteNextNode >= 0) {
+    if (route.nextNode >= 0) {
         const Vector routePoint = BotDemoRouteNodePosition(
-            graph, m_iObjectiveRouteNextNode
+            graph, route.nextNode
         );
         const Vector routeDestination = BotDemoRouteNearestPathNode(
-            routePoint, BOT_OBJECTIVE_DEMO_ROUTE_FIT_RADIUS
+            routePoint, BOT_DEMO_ROUTE_FIT_RADIUS
         );
         if (BotDemoRoutePointReached(
                 controlledEnt->origin, routeDestination
             )) {
-            m_iObjectiveRoutePreviousNode =
-                m_iObjectiveRouteCurrentNode;
-            m_iObjectiveRouteCurrentNode = m_iObjectiveRouteNextNode;
-            m_iObjectiveRouteNextNode     = -1;
-            m_bObjectiveHasDestination    = false;
+            route.previousNode = route.currentNode;
+            route.currentNode  = route.nextNode;
+            route.nextNode     = -1;
+            if (objective) {
+                m_bObjectiveHasDestination = false;
+            }
             movement.ClearMove();
         } else {
-            SetObjectiveDestination(
-                routeDestination, BOT_OBJECTIVE_ROUTE
-            );
-            if (m_bObjectiveHasDestination) {
+            if (objective) {
+                SetObjectiveDestination(
+                    routeDestination, BOT_OBJECTIVE_ROUTE
+                );
+            } else if (!movement.IsMoving() || movement.MoveDone()) {
+                movement.MoveTo(routeDestination);
+            }
+
+            if (objective
+                    ? m_bObjectiveHasDestination
+                    : movement.IsMoving()) {
                 return true;
             }
 
             // Let normal navigation keep the bot active briefly, then rebuild
             // the strategic route from its new position with a different seed.
             G_MoveLogBotEvent(
-                "bot_objective_route_fallback",
+                fallbackEvent,
                 controlledEnt,
                 NULL,
-                m_iObjectiveRouteNextNode,
+                route.nextNode,
                 routePoint
             );
-            ResetObjectiveDemoRoute(true);
+            ResetDemoRoute(route, true);
             return false;
         }
     }
 
-    const unsigned int seed =
-        static_cast<unsigned int>(botManager.GetObjectiveSeed())
-        ^ static_cast<unsigned int>(controlledEnt->entnum * 0x9e3779b9u)
-        ^ static_cast<unsigned int>(m_iObjectiveRouteHop * 0x85ebca6bu)
+    seed ^= static_cast<unsigned int>(route.hop * 0x85ebca6bu)
         ^ static_cast<unsigned int>(
-            m_iObjectiveRouteRetryAttempt * 0xc2b2ae35u
+            route.retryAttempt * 0xc2b2ae35u
         );
 
     if (!roam) {
         const int goalNode = BotDemoRouteFindNearestNode(
-            graph, destination, BOT_OBJECTIVE_DEMO_ROUTE_SEARCH_RADIUS
+            graph, destination, BOT_DEMO_ROUTE_SEARCH_RADIUS
         );
         if (goalNode < 0) {
-            ResetObjectiveDemoRoute(true);
+            ResetDemoRoute(route, true);
             return false;
         }
-        m_iObjectiveRouteGoalNode = goalNode;
-    } else if (m_iObjectiveRouteGoalNode < 0
-               || m_iObjectiveRouteGoalNode
-                   == m_iObjectiveRouteCurrentNode) {
-        m_iObjectiveRouteGoalNode = BotDemoRouteChooseGoal(
+        route.goalNode = goalNode;
+    } else if (route.goalNode < 0
+               || route.goalNode == route.currentNode) {
+        route.goalNode = BotDemoRouteChooseGoal(
             graph,
+            route.currentNode,
             controlledEnt->origin,
             destination,
-            postPlant ? BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS : 0.0f,
-            BOT_OBJECTIVE_DEMO_ROUTE_ROAM_DISTANCE,
+            maxGoalCenterDistance,
+            minGoalOriginDistance,
             seed
         );
     }
 
-    if (m_iObjectiveRouteGoalNode < 0
-        || m_iObjectiveRouteGoalNode
-            == m_iObjectiveRouteCurrentNode) {
+    if (route.goalNode < 0 || route.goalNode == route.currentNode) {
         if (roam) {
-            ResetObjectiveDemoRoute(true);
+            ResetDemoRoute(route, true);
         } else {
-            m_iObjectiveRouteNextNode = -1;
+            route.nextNode = -1;
         }
-        return false;
-    }
-
-    if (graph->nodeCount > BOT_DEMO_ROUTE_MAX_NODES) {
-        ResetObjectiveDemoRoute(true);
         return false;
     }
 
     float distances[BOT_DEMO_ROUTE_MAX_NODES];
-    BotDemoRouteDistancesToGoal(
-        graph, m_iObjectiveRouteGoalNode, distances
-    );
+    BotDemoRouteDistancesToGoal(graph, route.goalNode, distances);
 
     // Several graph nodes can snap to one navigation node. Consume those
     // internally, but issue at most one movement destination per update.
     for (unsigned int skipped = 0; skipped < graph->nodeCount; ++skipped) {
-        m_iObjectiveRouteNextNode = BotDemoRouteChooseNext(
+        route.nextNode = BotDemoRouteChooseNext(
             graph,
-            m_iObjectiveRouteCurrentNode,
-            m_iObjectiveRoutePreviousNode,
+            route.currentNode,
+            route.previousNode,
             distances,
             seed + skipped
         );
-        if (m_iObjectiveRouteNextNode < 0) {
+        if (route.nextNode < 0) {
             break;
         }
 
         const Vector routePoint = BotDemoRouteNodePosition(
-            graph, m_iObjectiveRouteNextNode
+            graph, route.nextNode
         );
         const Vector routeDestination = BotDemoRouteNearestPathNode(
-            routePoint, BOT_OBJECTIVE_DEMO_ROUTE_FIT_RADIUS
+            routePoint, BOT_DEMO_ROUTE_FIT_RADIUS
         );
         if (BotDemoRoutePointReached(
                 controlledEnt->origin, routeDestination
             )) {
-            m_iObjectiveRoutePreviousNode =
-                m_iObjectiveRouteCurrentNode;
-            m_iObjectiveRouteCurrentNode =
-                m_iObjectiveRouteNextNode;
-            m_iObjectiveRouteNextNode = -1;
-            ++m_iObjectiveRouteHop;
+            route.previousNode = route.currentNode;
+            route.currentNode  = route.nextNode;
+            route.nextNode     = -1;
+            ++route.hop;
 
-            if (m_iObjectiveRouteCurrentNode
-                == m_iObjectiveRouteGoalNode) {
+            if (route.currentNode == route.goalNode) {
                 if (roam) {
-                    m_iObjectiveRouteGoalNode = -1;
+                    route.goalNode = -1;
                 }
-                return false;
+                return !objective;
             }
             continue;
         }
 
-        SetObjectiveDestination(
-            routeDestination, BOT_OBJECTIVE_ROUTE
-        );
-        if (!m_bObjectiveHasDestination) {
+        if (objective) {
+            SetObjectiveDestination(
+                routeDestination, BOT_OBJECTIVE_ROUTE
+            );
+        } else {
+            movement.MoveTo(routeDestination);
+        }
+        if (objective
+                ? !m_bObjectiveHasDestination
+                : !movement.IsMoving()) {
             G_MoveLogBotEvent(
-                "bot_objective_route_fallback",
+                fallbackEvent,
                 controlledEnt,
                 NULL,
-                m_iObjectiveRouteNextNode,
+                route.nextNode,
                 routePoint
             );
-            ResetObjectiveDemoRoute(true);
+            ResetDemoRoute(route, true);
             return false;
         }
 
-        ++m_iObjectiveRouteHop;
+        ++route.hop;
         G_MoveLogBotEvent(
-            "bot_objective_route_waypoint",
+            waypointEvent,
             controlledEnt,
             NULL,
-            m_iObjectiveRouteNextNode,
+            route.nextNode,
             routeDestination
         );
         return true;
     }
 
     G_MoveLogBotEvent(
-        "bot_objective_route_fallback",
+        fallbackEvent,
         controlledEnt,
         NULL,
-        m_iObjectiveRouteGoalNode,
+        route.goalNode,
         controlledEnt->origin
     );
-    ResetObjectiveDemoRoute(true);
+    ResetDemoRoute(route, true);
     return false;
 }

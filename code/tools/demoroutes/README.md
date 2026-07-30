@@ -10,7 +10,9 @@ falls back to complete normal-mode recorder lives when SMG support is sparse,
 and uses geometry counts only when no reliable behavior sample exists.
 
 The output contains separate pre-plant and post-plant graphs for attackers and
-defenders on `obj/obj_team2` and `obj/obj_team4`.
+defenders on `obj/obj_team2` and `obj/obj_team4`. It also contains a dedicated
+free-for-all roaming graph for `dm/mohdm6`; that graph has no team, objective,
+or plant-phase semantics.
 
 ```powershell
 python code\tools\demoroutes\build_bot_route_data.py `

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "xy_cell_units": 512.0,
   "z_cell_units": 192.0,
   "evidence_policy": {
@@ -9,7 +9,20 @@
   },
   "graphs": [
     {
+      "map": "dm/mohdm6",
+      "mode": "free_for_all",
+      "role": "roamer",
+      "team": 0,
+      "phase": "roam",
+      "nodes": 121,
+      "edges": 609,
+      "geometry_routes": 40996,
+      "normal_routes": 7189,
+      "smg_routes": 3012
+    },
+    {
       "map": "obj/obj_team2",
+      "mode": "objective",
       "role": "attacker",
       "team": 3,
       "phase": "postplant",
@@ -21,6 +34,7 @@
     },
     {
       "map": "obj/obj_team2",
+      "mode": "objective",
       "role": "attacker",
       "team": 3,
       "phase": "preplant",
@@ -32,6 +46,7 @@
     },
     {
       "map": "obj/obj_team2",
+      "mode": "objective",
       "role": "defender",
       "team": 4,
       "phase": "postplant",
@@ -43,6 +58,7 @@
     },
     {
       "map": "obj/obj_team2",
+      "mode": "objective",
       "role": "defender",
       "team": 4,
       "phase": "preplant",
@@ -54,6 +70,7 @@
     },
     {
       "map": "obj/obj_team4",
+      "mode": "objective",
       "role": "attacker",
       "team": 4,
       "phase": "postplant",
@@ -65,6 +82,7 @@
     },
     {
       "map": "obj/obj_team4",
+      "mode": "objective",
       "role": "attacker",
       "team": 4,
       "phase": "preplant",
@@ -76,6 +94,7 @@
     },
     {
       "map": "obj/obj_team4",
+      "mode": "objective",
       "role": "defender",
       "team": 3,
       "phase": "postplant",
@@ -87,6 +106,7 @@
     },
     {
       "map": "obj/obj_team4",
+      "mode": "objective",
       "role": "defender",
       "team": 3,
       "phase": "preplant",

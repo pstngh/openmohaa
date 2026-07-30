@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "player.h"
 #include "navigate.h"
 #include "navigation_path.h"
+#include "playerbot_route.h"
 
 #define MAX_BOT_FUNCTIONS 5
 
@@ -416,13 +417,8 @@ private:
     int                       m_iObjectiveRound;
     int                       m_iObjectiveSite;
     int                       m_iObjectiveRouteVariant;
-    int                       m_iObjectiveRouteCurrentNode;
-    int                       m_iObjectiveRoutePreviousNode;
-    int                       m_iObjectiveRouteNextNode;
-    int                       m_iObjectiveRouteGoalNode;
-    int                       m_iObjectiveRouteHop;
-    int                       m_iObjectiveRouteRetryTime;
-    int                       m_iObjectiveRouteRetryAttempt;
+    bot_demo_route_cursor_t   m_ObjectiveDemoRoute;
+    bot_demo_route_cursor_t   m_FreeForAllDemoRoute;
     int                       m_iObjectiveUseStartTime;
     int                       m_iObjectiveReapproachUntil;
     int                       m_iObjectiveNextMoveTime;
@@ -481,10 +477,24 @@ private:
     void UpdateObjectiveBehavior(void);
     void FinalizeObjectiveCommand(void);
     void ResetObjectiveBehavior(void);
+    void ResetDemoRoute(
+        bot_demo_route_cursor_t& route, bool retry = false
+    );
     void ResetObjectiveDemoRoute(bool retry = false);
+    void ResetFreeForAllDemoRoute(bool retry = false);
     void BeginObjectivePlan(void);
     bool UpdateObjectiveDemoRoute(
         const Vector& destination, bool postPlant, bool roam
+    );
+    bool UpdateFreeForAllDemoRoute(void);
+    bool UpdateDemoRoute(
+        const bot_demo_route_graph_t *graph,
+        bot_demo_route_cursor_t&      route,
+        const Vector&                 destination,
+        bool                          roam,
+        float                         maxGoalCenterDistance,
+        float                         minGoalOriginDistance,
+        unsigned int                  seed
     );
     void UpdateObjectiveAdvance(const Vector& sitePosition);
     void UpdateObjectiveUse(bool planting);

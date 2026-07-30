@@ -13,11 +13,16 @@ from pathlib import Path
 from typing import Any
 
 
-MAP_TEAMS = {
+OBJECTIVE_MAP_TEAMS = {
     "obj/obj_team2": {"attacker": 3, "defender": 4},
     "obj/obj_team4": {"attacker": 4, "defender": 3},
 }
-PHASES = ("preplant", "postplant")
+OBJECTIVE_PHASES = ("preplant", "postplant")
+FREE_FOR_ALL_MAPS = ("dm/mohdm6",)
+CPP_ROUTE_MODES = {
+    "objective": "BOT_DEMO_ROUTE_OBJECTIVE",
+    "free_for_all": "BOT_DEMO_ROUTE_FREE_FOR_ALL",
+}
 
 
 @dataclass
@@ -41,6 +46,7 @@ class EdgeStats:
 @dataclass
 class GraphStats:
     map_name: str
+    mode: str
     role: str
     team: int
     phase: str
@@ -224,19 +230,28 @@ def build_graphs(
             )
         }
 
-        graphs = {
-            (map_name, role, team, phase): GraphStats(
-                map_name, role, team, phase
+        graphs: dict[tuple[str, str, str, int, str], GraphStats] = {
+            (map_name, "objective", role, team, phase): GraphStats(
+                map_name, "objective", role, team, phase
             )
-            for map_name, roles in MAP_TEAMS.items()
+            for map_name, roles in OBJECTIVE_MAP_TEAMS.items()
             for role, team in roles.items()
-            for phase in PHASES
+            for phase in OBJECTIVE_PHASES
         }
+        graphs.update(
+            {
+                (map_name, "free_for_all", "roamer", 0, "roam"): GraphStats(
+                    map_name, "free_for_all", "roamer", 0, "roam"
+                )
+                for map_name in FREE_FOR_ALL_MAPS
+            }
+        )
 
         rows = connection.execute(
             """
             SELECT
                 r.map_name,
+                r.mode,
                 r.role,
                 r.team,
                 r.round_id,
@@ -249,17 +264,17 @@ def build_graphs(
             FROM routes AS r
             JOIN demos AS d ON d.demo_id = r.demo_id
             WHERE r.eligible_route = 1
-              AND r.mode = 'objective'
-              AND r.map_name IN ('obj/obj_team2', 'obj/obj_team4')
+              AND (
+                    (r.mode = 'objective'
+                     AND r.map_name IN ('obj/obj_team2', 'obj/obj_team4'))
+                 OR (r.mode = 'free_for_all'
+                     AND r.map_name = 'dm/mohdm6')
+              )
             ORDER BY r.route_id
             """
         )
 
         for row in rows:
-            key_prefix = (row["map_name"], row["role"], row["team"])
-            if key_prefix + ("preplant",) not in graphs:
-                continue
-
             normal_behavior = (
                 row["demo_status"] == "complete"
                 and row["route_scope"] == "recorder_life"
@@ -271,16 +286,35 @@ def build_graphs(
             points = decode_points(
                 row["points_blob"], row["points_codec"]
             )
-            phases = route_phases(
-                points, plant_times.get(row["round_id"])
-            )
 
-            for phase in PHASES:
-                collapsed = collapse_route(
-                    phases[phase], xy_cell, z_cell
+            if row["mode"] == "objective":
+                key_prefix = (
+                    row["map_name"],
+                    "objective",
+                    row["role"],
+                    row["team"],
                 )
-                graphs[key_prefix + (phase,)].add(
-                    collapsed, normal_behavior, smg_behavior
+                if key_prefix + ("preplant",) not in graphs:
+                    continue
+
+                phases = route_phases(
+                    points, plant_times.get(row["round_id"])
+                )
+                for phase in OBJECTIVE_PHASES:
+                    collapsed = collapse_route(
+                        phases[phase], xy_cell, z_cell
+                    )
+                    graphs[key_prefix + (phase,)].add(
+                        collapsed, normal_behavior, smg_behavior
+                    )
+            else:
+                graph = graphs[
+                    (row["map_name"], "free_for_all", "roamer", 0, "roam")
+                ]
+                graph.add(
+                    collapse_route(points, xy_cell, z_cell),
+                    normal_behavior,
+                    smg_behavior,
                 )
     finally:
         connection.close()
@@ -359,9 +393,11 @@ def render_cpp(
             )
         lines.extend(["};", ""])
 
+        mode = CPP_ROUTE_MODES[graph.mode]
         graph_rows.append(
             "    {"
             f'"{graph.map_name}", '
+            f"{mode}, "
             f"{str(graph.role == 'attacker').lower()}, "
             f"{str(graph.phase == 'postplant').lower()}, "
             f"{name}Nodes, "
@@ -392,7 +428,7 @@ def graph_summary(
     graphs: list[GraphStats], xy_cell: float, z_cell: float
 ) -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "xy_cell_units": xy_cell,
         "z_cell_units": z_cell,
         "evidence_policy": {
@@ -407,6 +443,7 @@ def graph_summary(
         "graphs": [
             {
                 "map": graph.map_name,
+                "mode": graph.mode,
                 "role": graph.role,
                 "team": graph.team,
                 "phase": graph.phase,

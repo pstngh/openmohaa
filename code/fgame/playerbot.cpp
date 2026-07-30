@@ -270,13 +270,8 @@ BotController::BotController()
     m_iObjectiveRound             = -1;
     m_iObjectiveSite              = -1;
     m_iObjectiveRouteVariant          = 0;
-    m_iObjectiveRouteCurrentNode      = -1;
-    m_iObjectiveRoutePreviousNode     = -1;
-    m_iObjectiveRouteNextNode         = -1;
-    m_iObjectiveRouteGoalNode         = -1;
-    m_iObjectiveRouteHop              = 0;
-    m_iObjectiveRouteRetryTime        = 0;
-    m_iObjectiveRouteRetryAttempt     = 0;
+    ResetDemoRoute(m_ObjectiveDemoRoute);
+    ResetDemoRoute(m_FreeForAllDemoRoute);
     m_iObjectiveUseStartTime      = 0;
     m_iObjectiveReapproachUntil   = 0;
     m_iObjectiveNextMoveTime     = 0;
@@ -1096,6 +1091,7 @@ void BotController::State_Reset(void)
     ClearTeamResponse();
     ResetTeamContactRejection();
     ResetObjectiveBehavior();
+    ResetFreeForAllDemoRoute();
 }
 
 /*
@@ -1174,32 +1170,49 @@ void BotController::State_Idle(void)
             movement.ClearMove();
             movement.AbandonAttractivePoint();
             m_vLastDeathPos = vec_zero;
+            ResetFreeForAllDemoRoute(true);
         }
 
         m_vIdleProgressPos  = controlledEnt->origin;
         m_iIdleProgressTime = level.inttime;
     }
 
-    if (!movement.MoveToBestAttractivePoint() && !movement.IsMoving()) {
-        if (m_vLastDeathPos != vec_zero) {
+    if (movement.MoveToBestAttractivePoint()) {
+        return;
+    }
+
+    // Preserve the existing occasional return to a killer's last position.
+    // Once that one-off path is gone, human-demo roaming owns ordinary FFA
+    // travel on maps with a generated graph.
+    if (m_vLastDeathPos != vec_zero) {
+        if (!movement.IsMoving()) {
             movement.MoveTo(m_vLastDeathPos);
 
             if (movement.MoveDone()) {
                 m_vLastDeathPos = vec_zero;
             }
-        } else {
-            Vector randomDir(G_CRandom(16), G_CRandom(16), 0);
-            Vector preferredDir(G_CRandom(1.0f), G_CRandom(1.0f), 0);
-            float  radius = 512 + G_Random(2048);
-
-            if (VectorNormalize2D(preferredDir) <= 0) {
-                preferredDir = Vector(controlledEnt->orientation[0]);
-            }
-            preferredDir *= 1024.0f;
-
-            movement.AvoidPath(controlledEnt->origin + randomDir, radius, preferredDir);
+        }
+        if (m_vLastDeathPos != vec_zero) {
+            return;
         }
     }
+
+    if (UpdateFreeForAllDemoRoute() || movement.IsMoving()) {
+        return;
+    }
+
+    Vector randomDir(G_CRandom(16), G_CRandom(16), 0);
+    Vector preferredDir(G_CRandom(1.0f), G_CRandom(1.0f), 0);
+    float  radius = 512 + G_Random(2048);
+
+    if (VectorNormalize2D(preferredDir) <= 0) {
+        preferredDir = Vector(controlledEnt->orientation[0]);
+    }
+    preferredDir *= 1024.0f;
+
+    movement.AvoidPath(
+        controlledEnt->origin + randomDir, radius, preferredDir
+    );
 }
 
 /*
@@ -2343,6 +2356,7 @@ void BotController::Killed(const Event& ev)
     ResetTeamContactRejection();
     ResetGrenadeAvoidance();
     ResetObjectiveBehavior();
+    ResetFreeForAllDemoRoute();
     m_pCombatPrimaryWeapon = NULL;
     m_iPostKillAimUntil    = 0;
     m_vPostKillAimAngles   = vec_zero;
