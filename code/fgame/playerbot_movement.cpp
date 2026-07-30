@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static int       maxFallHeight                   = 400;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const int   BOT_COLLISION_SIDE_COMMIT_MSEC  = 1200;
 static const int   BOT_COLLISION_STALL_MSEC        = 350;
 static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
@@ -35,6 +36,9 @@ static const int BOT_JUMP_LANDING_COMMIT_MSEC      = 250;
 static const int BOT_JUMP_RETRY_MSEC              = 500;
 static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
 static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
+static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
+static const float BOT_CORNER_PROBE_BLOCKED_FRACTION = 0.75f;
+static const float BOT_CORNER_PROBE_ADVANTAGE        = 0.25f;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -93,6 +97,8 @@ BotMovement::BotMovement()
     m_iCollisionCheckTime      = 0;
     m_iCollisionProgressTime   = 0;
     m_vCollisionProgressOrigin = vec_zero;
+    m_iCollisionAvoidDirection = 0;
+    m_iCollisionAvoidDirectionUntil = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -101,8 +107,9 @@ BotMovement::BotMovement()
     m_bJumpWasAirborne    = false;
 
     // Aggressive movement
-    m_iStrafeDirection      = 1;
-    m_iNextStrafeChangeTime = 0;
+    m_iStrafeDirection        = 1;
+    m_iNextStrafeChangeTime   = 0;
+    m_iStrafeGeometryLockTime = 0;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
     m_bIsLeaning            = false;
@@ -894,9 +901,11 @@ void BotMovement::MoveDirect(Vector vPos, float fRadius)
     m_bPathing          = true;
     m_bDirectMove       = true;
     m_fDirectMoveRadius = Q_max(0.0f, fRadius);
-    m_bAvoidCollision   = false;
-    m_iTempAwayState    = 0;
-    m_iNumBlocks        = 0;
+    m_bAvoidCollision               = false;
+    m_iCollisionAvoidDirection      = 0;
+    m_iCollisionAvoidDirectionUntil = 0;
+    m_iTempAwayState                = 0;
+    m_iNumBlocks                    = 0;
 }
 
 /*
@@ -1025,9 +1034,11 @@ void BotMovement::NewMove()
 {
     m_bDirectMove       = false;
     m_bPathing          = true;
-    m_bAvoidCollision   = false;
-    m_iTempAwayState    = 0;
-    m_iNumBlocks        = 0;
+    m_bAvoidCollision               = false;
+    m_iCollisionAvoidDirection      = 0;
+    m_iCollisionAvoidDirectionUntil = 0;
+    m_iTempAwayState                = 0;
+    m_iNumBlocks                    = 0;
     m_vLastCheckPos[0]  = controlledEntity->origin;
     m_vLastCheckPos[1]  = controlledEntity->origin;
 
@@ -1152,7 +1163,9 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     // Blocked recovery owns the escape direction. A stale collision detour
     // must not keep steering against it.
     if (m_iTempAwayState == 2) {
-        m_bAvoidCollision = false;
+        m_bAvoidCollision               = false;
+        m_iCollisionAvoidDirection      = 0;
+        m_iCollisionAvoidDirectionUntil = 0;
         return delta;
     }
 
@@ -1211,8 +1224,11 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     if (trace.ent && trace.ent->entity
         && trace.ent->entity->IsSubclassOfDoor()) {
         Door *door = static_cast<Door *>(trace.ent->entity);
-        if (door->isCompletelyClosed() && door->CanBeOpenedBy(controlledEntity)) {
-            // Approach a usable closed door directly so it reaches the use trace.
+        if (door->CanBeOpenedBy(controlledEntity)) {
+            // An unlocked door is part of the route, including while it is
+            // opening. Do not treat its moving panel as a wall.
+            m_iCollisionAvoidDirection      = 0;
+            m_iCollisionAvoidDirectionUntil = 0;
             return delta;
         }
     }
@@ -1245,7 +1261,9 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         if (trace.ent && trace.ent->entity
             && trace.ent->entity->IsSubclassOfDoor()) {
             Door *door = static_cast<Door *>(trace.ent->entity);
-            if (door->isCompletelyClosed() && door->CanBeOpenedBy(controlledEntity)) {
+            if (door->CanBeOpenedBy(controlledEntity)) {
+                m_iCollisionAvoidDirection      = 0;
+                m_iCollisionAvoidDirectionUntil = 0;
                 return delta;
             }
         }
@@ -1286,21 +1304,39 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             m_iCollisionProgressTime   = level.inttime;
             m_vCollisionProgressOrigin = controlledEntity->origin;
 
-            //
-            // By default use the one with higher fraction
-            //
-            if (bestLeftFrac > bestRightFrac) {
-                m_vTempCollisionAvoidance = bestLeftPos + forward * 64;
-            } else if (bestLeftFrac < bestRightFrac) {
-                m_vTempCollisionAvoidance = bestRightPos + forward * 64;
-            } else {
-                // Randomly choose direction if both are the same
-                if (Vector::DistanceSquared(bestLeftPos, dest) > Vector::DistanceSquared(bestRightPos, dest)) {
-                    m_vTempCollisionAvoidance = bestRightPos + forward * 64;
-                } else {
-                    m_vTempCollisionAvoidance = bestLeftPos + forward * 64;
+            // Preserve the selected side through short re-evaluations. Without
+            // this memory, near-equal traces can make a bot alternate sides at
+            // walls and narrow doorframes.
+            int direction = 0;
+            if (level.inttime < m_iCollisionAvoidDirectionUntil) {
+                if (m_iCollisionAvoidDirection < 0 && bestLeftFrac > 0.0f) {
+                    direction = -1;
+                } else if (m_iCollisionAvoidDirection > 0
+                           && bestRightFrac > 0.0f) {
+                    direction = 1;
                 }
             }
+
+            if (!direction && bestLeftFrac > bestRightFrac) {
+                direction = -1;
+            } else if (!direction && bestLeftFrac < bestRightFrac) {
+                direction = 1;
+            } else if (!direction
+                       && Vector::DistanceSquared(bestLeftPos, dest)
+                           > Vector::DistanceSquared(bestRightPos, dest)) {
+                direction = 1;
+            } else if (!direction) {
+                direction = -1;
+            }
+
+            if (direction < 0) {
+                m_vTempCollisionAvoidance = bestLeftPos + forward * 64;
+            } else {
+                m_vTempCollisionAvoidance = bestRightPos + forward * 64;
+            }
+            m_iCollisionAvoidDirection      = direction;
+            m_iCollisionAvoidDirectionUntil =
+                level.inttime + BOT_COLLISION_SIDE_COMMIT_MSEC;
 
             //
             // If falling, make sure to use the one that won't fall
@@ -1320,6 +1356,9 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         }
     }
 
+    if (level.inttime >= m_iCollisionAvoidDirectionUntil) {
+        m_iCollisionAvoidDirection = 0;
+    }
     return delta;
 }
 
@@ -1407,17 +1446,20 @@ void BotMovement::ClearMove(void)
 {
     m_bPathing          = false;
     m_bDirectMove       = false;
-    m_bAvoidCollision          = false;
-    m_iCollisionProgressTime   = 0;
-    m_vCollisionProgressOrigin = vec_zero;
-    m_iTempAwayState           = 0;
-    m_iNumBlocks               = 0;
+    m_bAvoidCollision               = false;
+    m_iCollisionProgressTime        = 0;
+    m_vCollisionProgressOrigin      = vec_zero;
+    m_iCollisionAvoidDirection      = 0;
+    m_iCollisionAvoidDirectionUntil = 0;
+    m_iTempAwayState                = 0;
+    m_iNumBlocks                    = 0;
     m_bJump             = false;
     m_iJumpCommitTime   = -1;
     m_iJumpLandingTime  = 0;
     m_iJumpRetryTime    = 0;
     m_bJumpWasAirborne  = false;
-    m_vCurrentDir       = vec_zero;
+    m_vCurrentDir              = vec_zero;
+    m_iStrafeGeometryLockTime  = 0;
 
     if (m_pPath) {
         m_pPath->Clear();
@@ -1507,6 +1549,37 @@ float BotMovement::CalculateLateralClearance(int direction)
     return trace.fraction * maxCheckDist;
 }
 
+float BotMovement::CalculateStrafeProbeFraction(int direction)
+{
+    if (direction == 0 || !controlledEntity) {
+        return 0.0f;
+    }
+
+    Vector forward, right, up;
+    controlledEntity->angles.AngleVectors(&forward, &right, &up);
+
+    Vector probeDirection = forward + right * static_cast<float>(direction);
+    probeDirection.z      = 0.0f;
+    probeDirection.normalize();
+
+    const float probeDistance = 56.0f;
+    const Vector start =
+        controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    const Vector end = start + probeDirection * probeDistance;
+    const trace_t trace = G_Trace(
+        start,
+        controlledEntity->mins,
+        controlledEntity->maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID,
+        false,
+        "BotMovement::CalculateStrafeProbeFraction"
+    );
+
+    return trace.fraction;
+}
+
 // Pick a random dwell time from a min/max interval cvar pair (milliseconds).
 static int RandomInterval(cvar_t *lo, cvar_t *hi)
 {
@@ -1529,6 +1602,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
 {
     // Ladders: leave pathing untouched
     if (controlledEntity->GetLadder()) {
+        m_iStrafeGeometryLockTime = 0;
         return;
     }
 
@@ -1537,19 +1611,65 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     // cover route must remain a real hold until its next route is assigned.
     if (!IsMoving() && !m_bHasCombatTarget) {
         m_bIsLeaning = false;
+        m_iStrafeGeometryLockTime = 0;
         return;
-    }
-
-    if (level.inttime >= m_iNextStrafeChangeTime) {
-        m_iStrafeDirection      = -m_iStrafeDirection;
-        m_iNextStrafeChangeTime =
-            level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
     }
 
     // Recovery and collision detours own the movement vector; lateral
     // injection here would fight their selected escape side.
     const bool bSuppressMovement = m_iTempAwayState == 2 || m_bAvoidCollision;
     m_telemetry.movementSuppressed = bSuppressMovement;
+
+    if (bSuppressMovement) {
+        // Resume the strafe oscillator on the side selected by collision
+        // steering. This prevents the overlay from immediately sending the
+        // bot back into the obstacle when recovery releases control.
+        if (botcmd.rightmove < -8) {
+            m_iStrafeDirection = -1;
+        } else if (botcmd.rightmove > 8) {
+            m_iStrafeDirection = 1;
+        }
+        m_iStrafeGeometryLockTime =
+            level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
+        m_iNextStrafeChangeTime =
+            Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
+    }
+
+    float leftProbeFraction  = -1.0f;
+    float rightProbeFraction = -1.0f;
+    if (!bSuppressMovement) {
+        leftProbeFraction  = CalculateStrafeProbeFraction(-1);
+        rightProbeFraction = CalculateStrafeProbeFraction(1);
+
+        int openDirection = 0;
+        if (leftProbeFraction <= BOT_CORNER_PROBE_BLOCKED_FRACTION
+            && rightProbeFraction - leftProbeFraction
+                >= BOT_CORNER_PROBE_ADVANTAGE) {
+            openDirection = 1;
+        } else if (rightProbeFraction <= BOT_CORNER_PROBE_BLOCKED_FRACTION
+                   && leftProbeFraction - rightProbeFraction
+                       >= BOT_CORNER_PROBE_ADVANTAGE) {
+            openDirection = -1;
+        }
+
+        // There is one strafe-direction owner. Geometry may change it only
+        // after the previous geometry-driven choice has had time to clear.
+        if (openDirection && openDirection != m_iStrafeDirection
+            && level.inttime >= m_iStrafeGeometryLockTime) {
+            m_iStrafeDirection = openDirection;
+            m_iStrafeGeometryLockTime =
+                level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
+            m_iNextStrafeChangeTime =
+                Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
+        }
+    }
+
+    if (level.inttime >= m_iNextStrafeChangeTime
+        && level.inttime >= m_iStrafeGeometryLockTime) {
+        m_iStrafeDirection = -m_iStrafeDirection;
+        m_iNextStrafeChangeTime =
+            level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+    }
 
     // Hysteresis: need 20 units to start strafing, but only drop out below 12.
     // Kept low so bots strafe close to walls and use the full side-to-side
@@ -1559,9 +1679,11 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     const float stopThreshold  = 12.0f;
     const float threshold      = m_bIsLeaning ? stopThreshold : startThreshold;
 
-    float clearance = CalculateLateralClearance(m_iStrafeDirection);
+    float clearance = bSuppressMovement
+        ? 0.0f
+        : CalculateLateralClearance(m_iStrafeDirection);
     m_telemetry.strafeClearance = clearance;
-    if (clearance < threshold) {
+    if (!bSuppressMovement && clearance < threshold) {
         // Preferred side is blocked. Switch only if the other side is clearly
         // open, and commit the flip to the oscillator (with a fresh dwell
         // time) so the side can't bounce back next frame — recomputing the
@@ -1572,6 +1694,8 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         if (otherClearance >= startThreshold) {
             m_iStrafeDirection      = -m_iStrafeDirection;
             m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+            m_iStrafeGeometryLockTime =
+                level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
             clearance               = otherClearance;
             m_telemetry.strafeClearanceFlip = true;
             m_telemetry.strafeClearance     = clearance;
@@ -1581,40 +1705,13 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     if (clearance >= threshold && !bSuppressMovement) {
         m_bIsLeaning = true;
 
-        // Doorway / gap damping: probe forward along the side the strafe is
-        // about to push toward. If that diagonal is obstructed soon - a
-        // doorframe, corner, or cover edge - scale the lateral push down so the
-        // bot straightens and threads the gap instead of clipping its edge. The
-        // lateral clearance traces above only see straight out to the sides, so
-        // they cannot tell "sliding along an open wall" from "drifting into a
-        // doorframe"; this forward-biased probe is what distinguishes them. Open
-        // ground leaves the probe clear, so open-field strafing keeps full
-        // intensity and the aggressive feel is unchanged.
-        Vector fwd, rgt, up;
-        controlledEntity->angles.AngleVectors(&fwd, &rgt, &up);
-
-        Vector probeDir = fwd + rgt * (float)m_iStrafeDirection;
-        probeDir.z      = 0;
-        probeDir.normalize();
-
-        const float probeDist  = 56.0f;
-        Vector      probeStart = controlledEntity->origin + Vector(0, 0, STEPSIZE);
-        Vector      probeEnd   = probeStart + probeDir * probeDist;
-
-        trace_t probe = G_Trace(
-            probeStart,
-            controlledEntity->mins,
-            controlledEntity->maxs,
-            probeEnd,
-            controlledEntity,
-            MASK_PLAYERSOLID,
-            false,
-            "BotMovement::StrafeProbe"
-        );
-
-        float intensity  = g_bot_strafe_intensity->value * probe.fraction;
+        const float probeFraction = m_iStrafeDirection < 0
+            ? leftProbeFraction
+            : rightProbeFraction;
+        const float intensity =
+            g_bot_strafe_intensity->value * probeFraction;
         m_telemetry.strafeApplied       = true;
-        m_telemetry.strafeProbeFraction = probe.fraction;
+        m_telemetry.strafeProbeFraction = probeFraction;
         m_telemetry.strafeIntensity     = intensity;
         int   offset     = (int)(m_iStrafeDirection * intensity * 127.0f);
         int   newRight   = botcmd.rightmove + offset;

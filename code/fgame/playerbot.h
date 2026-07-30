@@ -267,6 +267,8 @@ private:
     Vector m_vTempCollisionAvoidance;
     int    m_iCollisionProgressTime;
     Vector m_vCollisionProgressOrigin;
+    int    m_iCollisionAvoidDirection;
+    int    m_iCollisionAvoidDirectionUntil;
 
     ///
     /// Jump detection
@@ -285,8 +287,9 @@ private:
     /// Aggressive movement (strafe + lean + enemy-relative radial movement)
     ///
 
-    int  m_iStrafeDirection;       // -1 = left, 1 = right
-    int  m_iNextStrafeChangeTime;  // When to flip strafe direction
+    int  m_iStrafeDirection;         // -1 = left, 1 = right
+    int  m_iNextStrafeChangeTime;    // When to flip strafe direction
+    int  m_iStrafeGeometryLockTime;  // Prevent geometry-driven side flapping
     int  m_iRadialDirection;       // -1 = retreat, 0 = orbit, 1 = advance
     int  m_iNextRadialChangeTime;  // When to choose a new radial state
     bool m_bIsLeaning;             // Hysteresis: currently strafing
@@ -299,6 +302,7 @@ private:
     void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
     void   PreventImminentBodyContact(usercmd_t& botcmd);
     float  CalculateLateralClearance(int direction);
+    float  CalculateStrafeProbeFraction(int direction);
     int    ChooseRadialDirection(float distance) const;
     int    RadialPhaseDuration() const;
 
