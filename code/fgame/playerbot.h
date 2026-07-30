@@ -213,6 +213,7 @@ private:
     Vector CalculateRelativeWishDirection(const Vector& dir) const;
     Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
+    bool   ContinueLadderExit(usercmd_t& botcmd);
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
     void   RecoverStandingStance();
@@ -251,6 +252,11 @@ private:
     int    m_iTempAwayState;
     bool   m_bPathing;
     bool   m_bDirectMove;
+    bool   m_bWasOnLadder;
+    float  m_fLadderTop;
+    int    m_iLadderExitUntil;
+    Vector m_vLadderExitOrigin;
+    Vector m_vLadderExitDirection;
     float  m_fDirectMoveRadius;
 
     ///
