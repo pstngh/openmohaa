@@ -1718,6 +1718,10 @@ void BotController::State_Attack(void)
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
     m_telemetry.enemyDistance = sqrt(fDistanceSquared);
     const bool bReloading = pWeap && pWeap->GetState() == WEAPON_RELOADING;
+    const bool bViewModelIdle =
+        controlledEnt->client->ps.iViewModelAnim == VM_ANIM_IDLE
+        || (controlledEnt->client->ps.iViewModelAnim >= VM_ANIM_IDLE_0
+            && controlledEnt->client->ps.iViewModelAnim <= VM_ANIM_IDLE_2);
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
@@ -1815,16 +1819,24 @@ void BotController::State_Attack(void)
                 bashRange > 0.0f
                 && fDistanceSquared <= Square(bashRange)
                 && pWeap->HasAmmoInClip(FIRE_SECONDARY);
-            if (bPistolBash) {
+            if (bPistolBash && !bash) {
                 m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
             }
 
             if (bash) {
-                bFiring = true;
-                m_telemetry.fireDecision = BOT_FIRE_FIRING;
-                m_telemetry.wantsFire    = true;
-                m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                m_botCmd.buttons |= BUTTON_ATTACKRIGHT;
+                if (!bViewModelIdle) {
+                    m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_BUSY;
+                    m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+                } else {
+                    bFiring = true;
+                    m_telemetry.fireDecision = BOT_FIRE_FIRING;
+                    m_telemetry.wantsFire    = true;
+                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+                    // Pistol bash is edge-triggered by the player state
+                    // machine. Pulse it like other semi-auto attacks instead
+                    // of holding the button after the first swing.
+                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                }
             } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                 && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
                 m_telemetry.fireDecision = BOT_FIRE_NO_AMMO;
@@ -1840,9 +1852,7 @@ void BotController::State_Attack(void)
                 //
 
                 if (pWeap->IsSemiAuto()) {
-                    if (controlledEnt->client->ps.iViewModelAnim != VM_ANIM_IDLE
-                        && (controlledEnt->client->ps.iViewModelAnim < VM_ANIM_IDLE_0
-                            || controlledEnt->client->ps.iViewModelAnim > VM_ANIM_IDLE_2)) {
+                    if (!bViewModelIdle) {
                         m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_BUSY;
                         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
                         controlledEnt->ZoomOff();
@@ -1961,7 +1971,8 @@ void BotController::State_Attack(void)
             );
         }
 
-        if (g_bot_reload_pistol->integer) {
+        if (g_bot_reload_pistol->integer
+            && !pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
             UseCombatPistol();
         }
 
