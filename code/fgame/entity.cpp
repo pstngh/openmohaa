@@ -5091,9 +5091,6 @@ void Entity::DetachAllChildren(Event *ev)
     }
 }
 
-bool    monkeycheck = false;
-cvar_t *thereisnomonkey;
-
 qboolean Entity::CheckEventFlags(Event *event)
 {
     int flags = GetFlags(event);
@@ -5111,30 +5108,6 @@ qboolean Entity::CheckEventFlags(Event *event)
 
         // don't process
         return false;
-    }
-
-    // Don't allow console cheats unless the server explicitly enables them.
-    if (flags & EV_CHEAT) {
-        if (!monkeycheck) {
-            thereisnomonkey = gi.Cvar_Get("thereisnomonkey", "0", CVAR_TEMP);
-            monkeycheck     = true;
-        }
-
-        if (!thereisnomonkey->integer) {
-            gi.cvar_set("cheats", "0");
-        }
-
-        if (!sv_cheats->integer) {
-            if (isSubclassOf(Entity)) {
-                Entity     *ent    = (Entity *)this;
-                const char *notice =
-                    gi.LV_ConvertString("You must run the server with '+set cheats 1' to enable this command.");
-
-                gi.SendServerCommand(ent->edict - g_entities, "print \"%s\n\"", notice);
-            }
-
-            return false;
-        }
     }
 
     // ok to process
