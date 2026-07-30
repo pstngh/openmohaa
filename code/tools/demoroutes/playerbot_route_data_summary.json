@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "xy_cell_units": 512.0,
+  "z_cell_units": 192.0,
+  "evidence_policy": {
+    "geometry": "all eligible routes",
+    "normal_behavior": "complete non-realism recorder behavior candidates",
+    "smg_behavior": "normal behavior candidates with dominant SMG weapon"
+  },
+  "graphs": [
+    {
+      "map": "obj/obj_team2",
+      "role": "attacker",
+      "team": 3,
+      "phase": "postplant",
+      "nodes": 164,
+      "edges": 556,
+      "geometry_routes": 3003,
+      "normal_routes": 212,
+      "smg_routes": 153
+    },
+    {
+      "map": "obj/obj_team2",
+      "role": "attacker",
+      "team": 3,
+      "phase": "preplant",
+      "nodes": 245,
+      "edges": 963,
+      "geometry_routes": 41125,
+      "normal_routes": 3387,
+      "smg_routes": 2523
+    },
+    {
+      "map": "obj/obj_team2",
+      "role": "defender",
+      "team": 4,
+      "phase": "postplant",
+      "nodes": 120,
+      "edges": 461,
+      "geometry_routes": 1995,
+      "normal_routes": 175,
+      "smg_routes": 90
+    },
+    {
+      "map": "obj/obj_team2",
+      "role": "defender",
+      "team": 4,
+      "phase": "preplant",
+      "nodes": 160,
+      "edges": 955,
+      "geometry_routes": 35273,
+      "normal_routes": 3569,
+      "smg_routes": 1461
+    },
+    {
+      "map": "obj/obj_team4",
+      "role": "attacker",
+      "team": 4,
+      "phase": "postplant",
+      "nodes": 156,
+      "edges": 439,
+      "geometry_routes": 1180,
+      "normal_routes": 79,
+      "smg_routes": 19
+    },
+    {
+      "map": "obj/obj_team4",
+      "role": "attacker",
+      "team": 4,
+      "phase": "preplant",
+      "nodes": 535,
+      "edges": 1690,
+      "geometry_routes": 42085,
+      "normal_routes": 2528,
+      "smg_routes": 421
+    },
+    {
+      "map": "obj/obj_team4",
+      "role": "defender",
+      "team": 3,
+      "phase": "postplant",
+      "nodes": 134,
+      "edges": 377,
+      "geometry_routes": 646,
+      "normal_routes": 43,
+      "smg_routes": 16
+    },
+    {
+      "map": "obj/obj_team4",
+      "role": "defender",
+      "team": 3,
+      "phase": "preplant",
+      "nodes": 435,
+      "edges": 1490,
+      "geometry_routes": 44383,
+      "normal_routes": 2806,
+      "smg_routes": 1332
+    }
+  ]
+}

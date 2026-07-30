@@ -393,6 +393,13 @@ private:
     int                       m_iObjectiveRound;
     int                       m_iObjectiveSite;
     int                       m_iObjectiveRouteVariant;
+    int                       m_iObjectiveRouteCurrentNode;
+    int                       m_iObjectiveRoutePreviousNode;
+    int                       m_iObjectiveRouteNextNode;
+    int                       m_iObjectiveRouteGoalNode;
+    int                       m_iObjectiveRouteHop;
+    int                       m_iObjectiveRouteRetryTime;
+    int                       m_iObjectiveRouteRetryAttempt;
     int                       m_iObjectiveUseStartTime;
     int                       m_iObjectiveReapproachUntil;
     int                       m_iObjectiveNextMoveTime;
@@ -403,9 +410,10 @@ private:
     bool                      m_bObjectiveOwnsMovement;
     bool                      m_bObjectiveOwnsUse;
     bool                      m_bObjectiveCritical;
-    bool                      m_bObjectiveRouteActive;
+    bool                      m_bObjectiveRoutePostPlant;
     Vector                    m_vObjectiveDestination;
     Vector                    m_vObjectiveLastProgressPos;
+    float                     m_fObjectiveBestDistance;
     Vector                    m_vIdleProgressPos;
     int                       m_iIdleProgressTime;
     Vector                    m_vOldEnemyPos;
@@ -448,7 +456,11 @@ private:
     void UpdateObjectiveBehavior(void);
     void FinalizeObjectiveCommand(void);
     void ResetObjectiveBehavior(void);
+    void ResetObjectiveDemoRoute(bool retry = false);
     void BeginObjectivePlan(void);
+    bool UpdateObjectiveDemoRoute(
+        const Vector& destination, bool postPlant, bool roam
+    );
     void UpdateObjectiveAdvance(const Vector& sitePosition);
     void UpdateObjectiveUse(bool planting);
     bool TryStartObjectiveUse(bool planting, int site);
