@@ -272,6 +272,8 @@ BotController::BotController()
     m_iObjectiveRouteNextNode         = -1;
     m_iObjectiveRouteGoalNode         = -1;
     m_iObjectiveRouteHop              = 0;
+    m_iObjectiveRouteRetryTime        = 0;
+    m_iObjectiveRouteRetryAttempt     = 0;
     m_iObjectiveUseStartTime      = 0;
     m_iObjectiveReapproachUntil   = 0;
     m_iObjectiveNextMoveTime     = 0;
@@ -283,9 +285,9 @@ BotController::BotController()
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical        = false;
     m_bObjectiveRoutePostPlant  = false;
-    m_bObjectiveRouteDisabled   = false;
     m_vObjectiveDestination     = vec_zero;
     m_vObjectiveLastProgressPos = vec_zero;
+    m_fObjectiveBestDistance    = 0.0f;
     m_vIdleProgressPos               = vec_zero;
     m_iIdleProgressTime              = 0;
 

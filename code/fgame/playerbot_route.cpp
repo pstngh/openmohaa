@@ -21,11 +21,11 @@ static const float        BOT_DEMO_ROUTE_DETOUR_ALLOWANCE = 768.0f;
 static const float        BOT_DEMO_ROUTE_INFINITY = 1.0e30f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_SEARCH_RADIUS  = 1024.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_FIT_RADIUS     = 384.0f;
-static const float BOT_OBJECTIVE_DEMO_ROUTE_NODE_RADIUS    = 128.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_REACHED_RADIUS = 192.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_REACHED_HEIGHT = 96.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_ROAM_DISTANCE  = 1024.0f;
 static const float BOT_OBJECTIVE_DEMO_ROUTE_COVER_RADIUS   = 2048.0f;
+static const int   BOT_OBJECTIVE_DEMO_ROUTE_RETRY_MSEC     = 2000;
 
 enum bot_demo_route_support_t {
     BOT_DEMO_ROUTE_GEOMETRY,
@@ -490,18 +490,26 @@ static bool BotDemoRoutePointReached(
         && fabs(delta.z) <= BOT_OBJECTIVE_DEMO_ROUTE_REACHED_HEIGHT;
 }
 
-void BotController::ResetObjectiveDemoRoute(bool disable)
+void BotController::ResetObjectiveDemoRoute(bool retry)
 {
     m_iObjectiveRouteCurrentNode      = -1;
     m_iObjectiveRoutePreviousNode     = -1;
     m_iObjectiveRouteNextNode         = -1;
     m_iObjectiveRouteGoalNode         = -1;
     m_iObjectiveRouteHop              = 0;
-    m_bObjectiveRouteDisabled         = disable;
+    if (retry) {
+        m_iObjectiveRouteRetryTime =
+            level.inttime + BOT_OBJECTIVE_DEMO_ROUTE_RETRY_MSEC;
+        ++m_iObjectiveRouteRetryAttempt;
+    } else {
+        m_iObjectiveRouteRetryTime    = 0;
+        m_iObjectiveRouteRetryAttempt = 0;
+    }
 
     if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
         m_iObjectiveState          = BOT_OBJECTIVE_NONE;
         m_bObjectiveHasDestination = false;
+        m_bObjectiveOwnsMovement   = false;
         m_vObjectiveDestination    = vec_zero;
     }
 }
@@ -514,7 +522,7 @@ bool BotController::UpdateObjectiveDemoRoute(
         ResetObjectiveDemoRoute();
         m_bObjectiveRoutePostPlant = postPlant;
     }
-    if (m_bObjectiveRouteDisabled) {
+    if (level.inttime < m_iObjectiveRouteRetryTime) {
         return false;
     }
 
@@ -565,16 +573,14 @@ bool BotController::UpdateObjectiveDemoRoute(
             movement.ClearMove();
         } else {
             SetObjectiveDestination(
-                routeDestination,
-                BOT_OBJECTIVE_ROUTE,
-                BOT_OBJECTIVE_DEMO_ROUTE_NODE_RADIUS
+                routeDestination, BOT_OBJECTIVE_ROUTE
             );
             if (m_bObjectiveHasDestination) {
                 return true;
             }
 
-            // A failed strategic hop is no better after a fixed delay. Use
-            // normal navigation for this phase rather than retry-looping it.
+            // Let normal navigation keep the bot active briefly, then rebuild
+            // the strategic route from its new position with a different seed.
             G_MoveLogBotEvent(
                 "bot_objective_route_fallback",
                 controlledEnt,
@@ -590,7 +596,10 @@ bool BotController::UpdateObjectiveDemoRoute(
     const unsigned int seed =
         static_cast<unsigned int>(botManager.GetObjectiveSeed())
         ^ static_cast<unsigned int>(controlledEnt->entnum * 0x9e3779b9u)
-        ^ static_cast<unsigned int>(m_iObjectiveRouteHop * 0x85ebca6bu);
+        ^ static_cast<unsigned int>(m_iObjectiveRouteHop * 0x85ebca6bu)
+        ^ static_cast<unsigned int>(
+            m_iObjectiveRouteRetryAttempt * 0xc2b2ae35u
+        );
 
     if (!roam) {
         const int goalNode = BotDemoRouteFindNearestNode(
@@ -676,9 +685,7 @@ bool BotController::UpdateObjectiveDemoRoute(
         }
 
         SetObjectiveDestination(
-            routeDestination,
-            BOT_OBJECTIVE_ROUTE,
-            BOT_OBJECTIVE_DEMO_ROUTE_NODE_RADIUS
+            routeDestination, BOT_OBJECTIVE_ROUTE
         );
         if (!m_bObjectiveHasDestination) {
             G_MoveLogBotEvent(

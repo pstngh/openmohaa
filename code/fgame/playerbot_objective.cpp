@@ -417,6 +417,8 @@ void BotController::ResetObjectiveBehavior()
     m_iObjectiveRouteNextNode         = -1;
     m_iObjectiveRouteGoalNode         = -1;
     m_iObjectiveRouteHop              = 0;
+    m_iObjectiveRouteRetryTime        = 0;
+    m_iObjectiveRouteRetryAttempt     = 0;
     m_iObjectiveUseStartTime      = 0;
     m_iObjectiveReapproachUntil   = 0;
     m_iObjectiveNextMoveTime     = 0;
@@ -428,9 +430,9 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveOwnsUse          = false;
     m_bObjectiveCritical        = false;
     m_bObjectiveRoutePostPlant  = false;
-    m_bObjectiveRouteDisabled   = false;
     m_vObjectiveDestination     = vec_zero;
     m_vObjectiveLastProgressPos = vec_zero;
+    m_fObjectiveBestDistance    = 0.0f;
 
     m_botCmd.buttons &= ~BUTTON_USE;
     movement.ClearMove();
@@ -454,6 +456,7 @@ void BotController::BeginObjectivePlan()
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = controlledEnt->origin;
     m_iObjectiveLastProgressTime = level.inttime;
+    m_fObjectiveBestDistance     = 0.0f;
 
     G_MoveLogBotEvent(
         "bot_objective_plan",
@@ -524,6 +527,8 @@ void BotController::SetObjectiveDestination(
     if (changed) {
         m_vObjectiveLastProgressPos  = controlledEnt->origin;
         m_iObjectiveLastProgressTime = level.inttime;
+        m_fObjectiveBestDistance =
+            (destination - controlledEnt->origin).length();
     }
 
     if (changed || !movement.IsMoving() || movement.MoveDone()) {
@@ -747,15 +752,26 @@ void BotController::UpdateObjectiveProgress()
         return;
     }
 
-    if ((controlledEnt->origin - m_vObjectiveLastProgressPos).lengthSquared()
-        >= Square(BOT_OBJECTIVE_PROGRESS_UNITS)) {
+    if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
+        const float distance =
+            (m_vObjectiveDestination - controlledEnt->origin).length();
+        if (distance <= m_fObjectiveBestDistance - BOT_OBJECTIVE_PROGRESS_UNITS) {
+            m_fObjectiveBestDistance     = distance;
+            m_vObjectiveLastProgressPos  = controlledEnt->origin;
+            m_iObjectiveLastProgressTime = level.inttime;
+            return;
+        }
+    } else if ((controlledEnt->origin - m_vObjectiveLastProgressPos).lengthSquared()
+               >= Square(BOT_OBJECTIVE_PROGRESS_UNITS)) {
         m_vObjectiveLastProgressPos  = controlledEnt->origin;
         m_iObjectiveLastProgressTime = level.inttime;
         return;
     }
 
-    if (level.inttime - m_iObjectiveLastProgressTime >= BOT_OBJECTIVE_STALL_MSEC
-        && level.inttime - m_iObjectiveLastStallLogTime >= BOT_OBJECTIVE_STALL_MSEC) {
+    if (level.inttime - m_iObjectiveLastProgressTime
+            >= BOT_OBJECTIVE_STALL_MSEC
+        && level.inttime - m_iObjectiveLastStallLogTime
+            >= BOT_OBJECTIVE_STALL_MSEC) {
         G_MoveLogBotEvent(
             "bot_objective_stalled",
             controlledEnt,
@@ -802,6 +818,12 @@ void BotController::UpdateObjectiveBehavior()
             m_iObjectiveUsePhase     = BOT_OBJECTIVE_USE_AIM;
             m_iObjectiveUseStartTime = 0;
             m_iObjectiveNextMoveTime = 0;
+        }
+        if (m_bObjectiveHasDestination) {
+            m_vObjectiveLastProgressPos  = controlledEnt->origin;
+            m_iObjectiveLastProgressTime = level.inttime;
+            m_fObjectiveBestDistance =
+                (m_vObjectiveDestination - controlledEnt->origin).length();
         }
         m_botCmd.buttons &= ~BUTTON_USE;
         return;
@@ -850,12 +872,16 @@ void BotController::UpdateObjectiveBehavior()
         if (m_iAttackTime) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
+            m_fObjectiveBestDistance =
+                (m_vObjectiveDestination - controlledEnt->origin).length();
             return;
         }
 
         if (m_bTeamResponding) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
+            m_fObjectiveBestDistance =
+                (m_vObjectiveDestination - controlledEnt->origin).length();
             return;
         }
 
@@ -964,9 +990,10 @@ void BotController::UpdateObjectiveBehavior()
                 );
             } else if (inUseRange) {
                 UpdateObjectivePatrol(sitePosition, enemySpawn, 224.0f, BOT_OBJECTIVE_COVER);
-            } else if (!UpdateObjectiveDemoRoute(
-                           sitePosition, true, false
-                       )) {
+            } else {
+                // Once a bomb is live, go directly to it. A demo route can
+                // keep reaching waypoints without reducing the fuse time.
+                ResetObjectiveDemoRoute();
                 SetObjectiveDestination(
                     sitePosition,
                     BOT_OBJECTIVE_ADVANCE,
@@ -1003,6 +1030,22 @@ void BotController::UpdateObjectiveBehavior()
 
 void BotController::FinalizeObjectiveCommand()
 {
+    if (m_bObjectiveOwnsMovement
+        && m_iObjectiveState == BOT_OBJECTIVE_ROUTE
+        && !movement.IsMoving()) {
+        // Movement can finish a horizontally close path below or above the
+        // strategic waypoint. Keep the route's height check and abandon this
+        // hop instead of recreating a zero-input path until the watchdog fires.
+        G_MoveLogBotEvent(
+            "bot_objective_route_fallback",
+            controlledEnt,
+            NULL,
+            2,
+            m_vObjectiveDestination
+        );
+        ResetObjectiveDemoRoute(true);
+    }
+
     if (!m_bObjectiveOwnsUse) {
         return;
     }
