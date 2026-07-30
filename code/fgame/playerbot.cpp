@@ -55,6 +55,9 @@ static const float BOT_GRENADE_SAFE_DISTANCE      = 384.0f;
 static const int   BOT_GRENADE_REPATH_MSEC        = 250;
 static const float BOT_GRENADE_DIRECT_ESCAPE_STEP = 192.0f;
 static const float BOT_RELOAD_SAFE_DISTANCE       = 384.0f;
+static const int   BOT_EMPTY_RELOAD_DELAY_MSEC    = 2000;
+static const int   BOT_PARTIAL_RELOAD_SAFE_MSEC   = 4000;
+static const int   BOT_PARTIAL_RELOAD_PERCENT     = 25;
 static const int   BOT_IDLE_PROGRESS_MSEC          = 10000;
 static const float BOT_IDLE_PROGRESS_UNITS         = 512.0f;
 static const int   BOT_POST_KILL_AIM_MSEC          = 150;
@@ -669,18 +672,31 @@ Make the bot reload if necessary
 */
 void BotController::CheckReload(void)
 {
-    Weapon *weap;
-
-    if (level.inttime < m_iLastFireTime + 2000) {
+    if (level.inttime < m_iLastFireTime + BOT_EMPTY_RELOAD_DELAY_MSEC) {
         // Don't reload while attacking
         return;
     }
 
-    weap = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
-
-    if (weap && weap->CheckReload(FIRE_PRIMARY)) {
-        SendCommand("reload");
+    Weapon *weap = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    if (!weap || !weap->CheckReload(FIRE_PRIMARY)) {
+        return;
     }
+
+    const int clipSize = weap->GetClipSize(FIRE_PRIMARY);
+    const int clipAmmo = weap->ClipAmmo(FIRE_PRIMARY);
+    if (clipSize > 0 && clipAmmo > 0) {
+        const bool lowAmmo =
+            clipAmmo * 100 <= clipSize * BOT_PARTIAL_RELOAD_PERCENT;
+        const int lastThreatTime = Q_max(m_iLastFireTime, m_iLastSeenTime);
+        const bool safe =
+            !m_bTeamResponding
+            && level.inttime >= lastThreatTime + BOT_PARTIAL_RELOAD_SAFE_MSEC;
+        if (!lowAmmo || !safe) {
+            return;
+        }
+    }
+
+    SendCommand("reload");
 }
 
 /*
@@ -1693,10 +1709,14 @@ void BotController::State_Attack(void)
     bool    bCanSee             = false;
     bool    bCanAttack          = false;
     float   fAimHeightFraction  = m_fAimHeightFraction;
-    float   fMinDistance        = 128;
-    float   fMinDistanceSquared = fMinDistance * fMinDistance;
     float   fEnemyDistanceSquared;
     Weapon *pWeap   = controlledEnt->GetActiveWeapon(WEAPON_MAIN);
+    const bool bPistol =
+        pWeap && (pWeap->GetWeaponClass() & WEAPON_CLASS_PISTOL);
+    const bool bPistolBash =
+        bPistol && pWeap->GetFireType(FIRE_SECONDARY) == FT_MELEE;
+    float   fMinDistance        = bPistol ? 0.0f : 128.0f;
+    float   fMinDistanceSquared = fMinDistance * fMinDistance;
     bool    bNoMove = false;
     bool    bFiring = false;
 
@@ -1710,16 +1730,24 @@ void BotController::State_Attack(void)
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
     m_telemetry.enemyDistance = sqrt(fDistanceSquared);
     const bool bReloading = pWeap && pWeap->GetState() == WEAPON_RELOADING;
-
-    // Feed the aggressive-movement layer the enemy itself, not only a
-    // distance. This lets forward/back phases remain enemy-relative while the
-    // bot turns and follows a path around a cramped room.
-    movement.SetCombatTarget(m_pEnemy->origin);
+    const bool bViewModelIdle =
+        controlledEnt->client->ps.iViewModelAnim == VM_ANIM_IDLE
+        || (controlledEnt->client->ps.iViewModelAnim >= VM_ANIM_IDLE_0
+            && controlledEnt->client->ps.iViewModelAnim <= VM_ANIM_IDLE_2);
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
     bCanSee = CheckEnemyVisibility(m_pEnemy, m_fAimHeightFraction, fAimHeightFraction);
     m_telemetry.enemyVisible = bCanSee;
+
+    // Feed the aggressive-movement layer the enemy itself, not only a
+    // distance. Pistol pursuit is forced only while the enemy is visible;
+    // otherwise the bot follows the ordinary path to the last seen position.
+    movement.SetCombatTarget(
+        bCanSee ? m_pEnemy->origin : m_vLastEnemyPos,
+        false,
+        bPistol && bCanSee
+    );
 
     if (bCanSee) {
         m_iAttackStopAimTime = Q_max(
@@ -1783,6 +1811,11 @@ void BotController::State_Attack(void)
 
             fMinDistance = fPrimaryBulletRange;
 
+            if (bPistol) {
+                // Pistols can close into secondary-fire bash range.
+                fMinDistance = 0.0f;
+            }
+
             // Human players did not try to maintain a broad 256-unit buffer.
             // Retreat behavior rose sharply only at body-contact range; the
             // radial movement layer handles the wider 64-384 unit rhythm.
@@ -1792,7 +1825,31 @@ void BotController::State_Attack(void)
 
             fMinDistanceSquared = fMinDistance * fMinDistance;
 
-            if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
+            const float bashRange =
+                bPistolBash ? pWeap->GetBulletRange(FIRE_SECONDARY) : 0.0f;
+            const bool bash =
+                bashRange > 0.0f
+                && fDistanceSquared <= Square(bashRange)
+                && pWeap->HasAmmoInClip(FIRE_SECONDARY);
+            if (bPistolBash && !bash) {
+                m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
+            }
+
+            if (bash) {
+                if (!bViewModelIdle) {
+                    m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_BUSY;
+                    m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+                } else {
+                    bFiring = true;
+                    m_telemetry.fireDecision = BOT_FIRE_FIRING;
+                    m_telemetry.wantsFire    = true;
+                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
+                    // Pistol bash is edge-triggered by the player state
+                    // machine. Pulse it like other semi-auto attacks instead
+                    // of holding the button after the first swing.
+                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                }
+            } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                 && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
                 m_telemetry.fireDecision = BOT_FIRE_NO_AMMO;
                 m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
@@ -1807,9 +1864,7 @@ void BotController::State_Attack(void)
                 //
 
                 if (pWeap->IsSemiAuto()) {
-                    if (controlledEnt->client->ps.iViewModelAnim != VM_ANIM_IDLE
-                        && (controlledEnt->client->ps.iViewModelAnim < VM_ANIM_IDLE_0
-                            || controlledEnt->client->ps.iViewModelAnim > VM_ANIM_IDLE_2)) {
+                    if (!bViewModelIdle) {
                         m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_BUSY;
                         m_botCmd.buttons &= ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
                         controlledEnt->ZoomOff();
@@ -1840,10 +1895,6 @@ void BotController::State_Attack(void)
             }
 
             m_iLastFireTime = level.inttime;
-
-            // Bots do not use the secondary-fire melee bash (Spearhead /
-            // Breakthrough): they keep firing their primary at point-blank
-            // range instead of lunging in to butt-strike an enemy.
 
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
@@ -1932,7 +1983,8 @@ void BotController::State_Attack(void)
             );
         }
 
-        if (g_bot_reload_pistol->integer) {
+        if (g_bot_reload_pistol->integer
+            && !pWeap->HasAmmoInClip(FIRE_PRIMARY)) {
             UseCombatPistol();
         }
 
@@ -1956,8 +2008,23 @@ void BotController::State_Attack(void)
 
     fEnemyDistanceSquared = (controlledEnt->origin - m_vLastEnemyPos).lengthSquared();
 
+    if (bPistol) {
+        movement.AbandonAttractivePoint();
+
+        if (fEnemyDistanceSquared > Square(32.0f)
+            && !movement.IsMovingTo(m_vLastEnemyPos)) {
+            movement.MoveTo(m_vLastEnemyPos);
+        }
+
+        if (!bCanSee && movement.MoveDone()) {
+            ClearEnemy();
+        }
+        return;
+    }
+
     if ((!movement.MoveToBestAttractivePoint(5) && !movement.IsMoving())
-        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone()) || fEnemyDistanceSquared < fMinDistanceSquared) {
+        || (m_vOldEnemyPos != m_vLastEnemyPos && !movement.MoveDone())
+        || fEnemyDistanceSquared < fMinDistanceSquared) {
         if (fEnemyDistanceSquared < fMinDistanceSquared) {
             Vector vDir = controlledEnt->origin - m_vLastEnemyPos;
             VectorNormalizeFast(vDir);

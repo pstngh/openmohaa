@@ -126,6 +126,7 @@ BotMovement::BotMovement()
     m_bLeanCommandActive    = false;
     m_bHasCombatTarget      = false;
     m_bForceCombatRetreat   = false;
+    m_bForceCombatAdvance   = false;
     m_vCombatTarget         = vec_zero;
 }
 
@@ -144,10 +145,13 @@ void BotMovement::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
-void BotMovement::SetCombatTarget(const Vector& target, bool forceRetreat)
+void BotMovement::SetCombatTarget(
+    const Vector& target, bool forceRetreat, bool forceAdvance
+)
 {
     m_bHasCombatTarget    = true;
     m_bForceCombatRetreat = forceRetreat;
+    m_bForceCombatAdvance = forceAdvance && !forceRetreat;
     m_vCombatTarget       = target;
 }
 
@@ -155,6 +159,7 @@ void BotMovement::ClearCombatTarget()
 {
     m_bHasCombatTarget      = false;
     m_bForceCombatRetreat   = false;
+    m_bForceCombatAdvance   = false;
     m_vCombatTarget         = vec_zero;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
@@ -1575,6 +1580,14 @@ bool BotMovement::IsMoving(void)
     return m_bPathing;
 }
 
+bool BotMovement::IsMovingTo(const Vector& position, float tolerance) const
+{
+    if (!m_bPathing) {
+        return false;
+    }
+    return (m_vTargetPos - position).lengthSquared() <= Square(tolerance);
+}
+
 /*
 ====================
 ClearMove
@@ -2046,6 +2059,9 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
         m_iRadialDirection      = -1;
         m_iNextRadialChangeTime = 0;
         m_telemetry.radialForcedCloseRetreat = true;
+    } else if (m_bForceCombatAdvance) {
+        m_iRadialDirection      = 1;
+        m_iNextRadialChangeTime = 0;
     } else if (distance < 56.0f) {
         // Resolve unsafe spacing immediately rather than waiting for the
         // current phase to expire. Leaving this range starts a fresh phase.
@@ -2067,6 +2083,8 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     float desiredRadialMove;
     if (m_bForceCombatRetreat) {
         desiredRadialMove = -127.0f;
+    } else if (m_bForceCombatAdvance) {
+        desiredRadialMove = 127.0f;
     } else if (distance < 56.0f) {
         desiredRadialMove = -48.0f;
     } else if (m_iRadialDirection < 0) {

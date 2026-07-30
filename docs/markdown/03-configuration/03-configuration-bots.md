@@ -132,6 +132,11 @@ wall, the lowest visible point above the cover.
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
 | `g_bot_stg` | `5` | `0`-`100` percent | Chance that an Axis bot receives an STG. Snipers take priority, so the effective STG percentage is capped by the remaining non-sniper percentage. |
 
+Bots reload an empty weapon after the normal post-fire delay. They only top off
+a non-empty magazine at or below 25% capacity, after four seconds without
+firing or seeing an enemy, and while they are not responding to a teammate's
+contact report.
+
 Bot SMG loadouts are team-based rather than skin-based: Allied bots receive a
 Thompson and Axis bots receive an MP40. Human loadouts remain nationality-based.
 
