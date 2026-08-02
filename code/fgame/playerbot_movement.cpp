@@ -47,6 +47,16 @@ static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const float BOT_STRAFE_PROBE_DISTANCE        = 56.0f;
 
+static bool BotTraceHitsOpenableDoor(const trace_t& trace, Player *player)
+{
+    if (!trace.ent || !trace.ent->entity
+        || !trace.ent->entity->IsSubclassOfDoor()) {
+        return false;
+    }
+
+    return static_cast<Door *>(trace.ent->entity)->CanBeOpenedBy(player);
+}
+
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
     Reset();
@@ -1439,16 +1449,12 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     targetStepOrg = target + Vector(0, 0, STEPSIZE);
 
     trace = G_Trace(stepOrg, mins, maxs, targetStepOrg, controlledEntity, MASK_PLAYERSOLID, qtrue, "GetCurrentDelta");
-    if (trace.ent && trace.ent->entity
-        && trace.ent->entity->IsSubclassOfDoor()) {
-        Door *door = static_cast<Door *>(trace.ent->entity);
-        if (door->CanBeOpenedBy(controlledEntity)) {
-            // An unlocked door is part of the route, including while it is
-            // opening. Do not treat its moving panel as a wall.
-            m_iCollisionAvoidDirection      = 0;
-            m_iCollisionAvoidDirectionUntil = 0;
-            return delta;
-        }
+    if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
+        // An unlocked door is part of the route, including while it is
+        // opening. Do not treat its moving panel as a wall.
+        m_iCollisionAvoidDirection      = 0;
+        m_iCollisionAvoidDirectionUntil = 0;
+        return delta;
     }
 
     if (trace.fraction < 1.0) {
@@ -1476,14 +1482,10 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             target  = targetXY;
         }
 
-        if (trace.ent && trace.ent->entity
-            && trace.ent->entity->IsSubclassOfDoor()) {
-            Door *door = static_cast<Door *>(trace.ent->entity);
-            if (door->CanBeOpenedBy(controlledEntity)) {
-                m_iCollisionAvoidDirection      = 0;
-                m_iCollisionAvoidDirectionUntil = 0;
-                return delta;
-            }
+        if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
+            m_iCollisionAvoidDirection      = 0;
+            m_iCollisionAvoidDirectionUntil = 0;
+            return delta;
         }
     }
 
@@ -2228,6 +2230,12 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
 
         move  = GetCommandMoveVector(botcmd);
         trace = baseTrace;
+    }
+    // Closed and moving doors are handled by normal player collision and the
+    // use command. Treating their panels as walls here can erase every escape
+    // command when a bot is caught beside one.
+    if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
+        return;
     }
 
     const bool hitSentient = trace.ent && trace.ent->entity
