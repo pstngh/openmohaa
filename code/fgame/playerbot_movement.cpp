@@ -30,8 +30,11 @@ static int       maxFallHeight                   = 400;
 static const int   BOT_LADDER_EXIT_MAX_MSEC        = 1000;
 static const float BOT_LADDER_EXIT_DISTANCE        = 64.0f;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const float BOT_COLLISION_AVOID_REACHED_UNITS = 16.0f;
 static const int   BOT_COLLISION_SIDE_COMMIT_MSEC  = 1200;
 static const int   BOT_COLLISION_STALL_MSEC        = 350;
+static const float BOT_COLLISION_LOOKAHEAD_FRAMES = 2.0f;
+static const float BOT_COLLISION_SAFETY_MARGIN    = 2.0f;
 static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
 static const int   BOT_REDUCED_STANCE_RECOVERY_MSEC = 1500;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
@@ -41,8 +44,8 @@ static const int BOT_JUMP_RETRY_MSEC              = 500;
 static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
 static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
-static const float BOT_CORNER_PROBE_BLOCKED_FRACTION = 0.75f;
-static const float BOT_CORNER_PROBE_ADVANTAGE        = 0.25f;
+static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
+static const float BOT_STRAFE_PROBE_DISTANCE        = 56.0f;
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
 {
@@ -120,6 +123,7 @@ BotMovement::BotMovement()
     m_iStrafeDirection        = 1;
     m_iNextStrafeChangeTime   = 0;
     m_iStrafeGeometryLockTime = 0;
+    m_iMovementOverlaySuppressUntil = 0;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
     m_bIsLeaning            = false;
@@ -244,8 +248,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     if (!IsMoving() || !m_pPath) {
         // No path to follow. Active combat can still juke in place; deliberate
         // holds and genuine idle leave the movement command neutral.
-        UpdateAggressiveMovement(botcmd);
-        PreventImminentBodyContact(botcmd);
+        FinalizeMovement(botcmd);
         return;
     }
 
@@ -293,8 +296,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     if (!m_pPath->GetNodeCount() && m_iTempAwayState != 2) {
         ClearMove();
-        UpdateAggressiveMovement(botcmd);
-        PreventImminentBodyContact(botcmd);
+        FinalizeMovement(botcmd);
         return;
     }
 
@@ -311,8 +313,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     if (MoveDone()) {
         ClearMove();
-        UpdateAggressiveMovement(botcmd);
-        PreventImminentBodyContact(botcmd);
+        FinalizeMovement(botcmd);
         return;
     }
 
@@ -329,8 +330,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         if (m_iNumBlocks >= 5) {
             // Give up
             ClearMove();
-            UpdateAggressiveMovement(botcmd);
-            PreventImminentBodyContact(botcmd);
+            FinalizeMovement(botcmd);
             return;
         }
 
@@ -418,14 +418,12 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     if (m_pPath->GetNodeCount() || m_iTempAwayState != 0) {
         if ((m_vTargetPos - controlledEntity->origin).lengthSquared() <= Square(16)) {
             ClearMove();
-            UpdateAggressiveMovement(botcmd);
-            PreventImminentBodyContact(botcmd);
+            FinalizeMovement(botcmd);
             return;
         }
     } else {
         ClearMove();
-        UpdateAggressiveMovement(botcmd);
-        PreventImminentBodyContact(botcmd);
+        FinalizeMovement(botcmd);
         return;
     }
 
@@ -448,8 +446,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     botcmd.upmove      = 0;
 
     // Apply aggressive evasive movement (strafe + lean)
-    UpdateAggressiveMovement(botcmd);
-    PreventImminentBodyContact(botcmd);
+    FinalizeMovement(botcmd);
 
     CheckJump(botcmd);
 
@@ -1293,6 +1290,72 @@ void BotMovement::CalculateBestFrontAvoidance(
     }
 }
 
+void BotMovement::AbandonCollisionAvoidance()
+{
+    m_bAvoidCollision        = false;
+    m_iCollisionCheckTime    = 0;
+    m_iCollisionProgressTime = 0;
+
+    // Give the other side first choice when this detour is evaluated again.
+    if (m_iCollisionAvoidDirection) {
+        m_iCollisionAvoidDirection = -m_iCollisionAvoidDirection;
+        m_iCollisionAvoidDirectionUntil =
+            level.inttime + BOT_COLLISION_SIDE_COMMIT_MSEC;
+    }
+}
+
+bool BotMovement::CollisionAvoidanceTargetClear(const Vector& target) const
+{
+    Vector mins = controlledEntity->mins;
+    Vector maxs = controlledEntity->maxs;
+    maxs.z -= STEPSIZE;
+
+    const Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
+    Vector end = target;
+    end.z = start.z;
+    Vector direction = end - start;
+    const float targetDistance = VectorNormalize2D(direction);
+    if (targetDistance <= 0.0f) {
+        return false;
+    }
+
+    // A committed detour stops within 16 units, while the final guard looks
+    // two frames ahead. Include the possible overshoot in this validation.
+    const float guardDistance =
+        controlledEntity->GetRunSpeed() * level.frametime
+            * BOT_COLLISION_LOOKAHEAD_FRAMES
+        + BOT_COLLISION_SAFETY_MARGIN;
+    const float endpointClearance =
+        Q_max(0.0f, guardDistance - BOT_COLLISION_AVOID_REACHED_UNITS);
+    end += direction * endpointClearance;
+
+    const trace_t trace = G_Trace(
+        start,
+        mins,
+        maxs,
+        end,
+        controlledEntity,
+        MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
+        true,
+        "BotMovement::CollisionAvoidanceTargetClear"
+    );
+    if (trace.startsolid || trace.fraction < 1.0f) {
+        return false;
+    }
+
+    const trace_t groundTrace = G_Trace(
+        end,
+        mins,
+        maxs,
+        end - Vector(0, 0, STEPSIZE * 4),
+        controlledEntity,
+        MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
+        true,
+        "BotMovement::CollisionAvoidanceTargetClearGround"
+    );
+    return groundTrace.fraction < 1.0f;
+}
+
 Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
 {
     trace_t trace;
@@ -1334,14 +1397,12 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             // Re-evaluate the local obstacle instead of rebuilding the whole
             // route. A strategic repath here could turn a bot completely
             // around because one short collision detour stalled.
-            m_bAvoidCollision        = false;
-            m_iCollisionCheckTime    = 0;
-            m_iCollisionProgressTime = 0;
+            AbandonCollisionAvoidance();
         }
 
         newDelta = m_vTempCollisionAvoidance - controlledEntity->origin;
         if (m_bAvoidCollision && !m_bJump
-            && newDelta.lengthXYSquared() > Square(16)
+            && newDelta.lengthXYSquared() > Square(BOT_COLLISION_AVOID_REACHED_UNITS)
             && level.inttime < m_iCollisionCheckTime + BOT_COLLISION_AVOID_COMMIT_MSEC) {
             return newDelta;
         }
@@ -1350,7 +1411,11 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         m_iCollisionProgressTime = 0;
     }
 
-    if (level.inttime < m_iCollisionCheckTime + 250 || m_bJump) {
+    // This 32-unit path probe must run before the two-frame final guard. At
+    // run speed a bot travels farther than that during the old 250 ms
+    // throttle, so the guard visibly hit and slid along the obstacle before
+    // the path layer had a chance to choose its committed detour.
+    if (m_bJump) {
         return delta;
     }
 
@@ -1453,59 +1518,62 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
         }
 
         if (bestLeftFrac != 0 || bestRightFrac != 0) {
-            m_bAvoidCollision          = true;
-            m_iCollisionProgressTime   = level.inttime;
-            m_vCollisionProgressOrigin = controlledEntity->origin;
-
             // Preserve the selected side through short re-evaluations. Without
             // this memory, near-equal traces can make a bot alternate sides at
             // walls and narrow doorframes.
-            int direction = 0;
+            int preferredDirection = 0;
             if (level.inttime < m_iCollisionAvoidDirectionUntil) {
                 if (m_iCollisionAvoidDirection < 0 && bestLeftFrac > 0.0f) {
-                    direction = -1;
+                    preferredDirection = -1;
                 } else if (m_iCollisionAvoidDirection > 0
                            && bestRightFrac > 0.0f) {
-                    direction = 1;
+                    preferredDirection = 1;
                 }
             }
 
-            if (!direction && bestLeftFrac > bestRightFrac) {
-                direction = -1;
-            } else if (!direction && bestLeftFrac < bestRightFrac) {
-                direction = 1;
-            } else if (!direction
+            if (!preferredDirection && bestLeftFrac > bestRightFrac) {
+                preferredDirection = -1;
+            } else if (!preferredDirection && bestLeftFrac < bestRightFrac) {
+                preferredDirection = 1;
+            } else if (!preferredDirection
                        && Vector::DistanceSquared(bestLeftPos, dest)
                            > Vector::DistanceSquared(bestRightPos, dest)) {
-                direction = 1;
-            } else if (!direction) {
-                direction = -1;
+                preferredDirection = 1;
+            } else if (!preferredDirection) {
+                preferredDirection = -1;
             }
 
-            if (direction < 0) {
-                m_vTempCollisionAvoidance = bestLeftPos + forward * 64;
-            } else {
-                m_vTempCollisionAvoidance = bestRightPos + forward * 64;
-            }
-            m_iCollisionAvoidDirection      = direction;
-            m_iCollisionAvoidDirectionUntil =
-                level.inttime + BOT_COLLISION_SIDE_COMMIT_MSEC;
-
-            //
-            // If falling, make sure to use the one that won't fall
-            //
-#if 0
-            if (leftFallTrace.fraction != rightFallTrace.fraction
-                && (leftFallTrace.fraction != 1 || rightFallTrace.fraction != 1)) {
-                if (leftFallTrace.fraction == 1 && bestRightFrac) {
-                    m_vTempCollisionAvoidance = bestRightPos + forward * 64;
-                } else if (rightFallTrace.fraction == 1 && bestLeftFrac) {
-                    m_vTempCollisionAvoidance = bestLeftPos + forward * 64;
+            const int directions[2] = {preferredDirection, -preferredDirection};
+            int selectedDirection = 0;
+            Vector selectedTarget;
+            for (int i = 0; i < 2 && !selectedDirection; ++i) {
+                const int direction = directions[i];
+                const float fraction = direction < 0 ? bestLeftFrac : bestRightFrac;
+                if (fraction <= 0.0f) {
+                    continue;
                 }
-            }
-#endif
 
-            return m_vTempCollisionAvoidance - controlledEntity->origin;
+                const Vector sideTarget = direction < 0 ? bestLeftPos : bestRightPos;
+                const Vector forwardTarget = sideTarget + forward * 64;
+                if (CollisionAvoidanceTargetClear(forwardTarget)) {
+                    selectedTarget = forwardTarget;
+                } else if (CollisionAvoidanceTargetClear(sideTarget)) {
+                    selectedTarget = sideTarget;
+                } else {
+                    continue;
+                }
+                selectedDirection = direction;
+            }
+
+            if (selectedDirection) {
+                m_bAvoidCollision          = true;
+                m_iCollisionProgressTime   = level.inttime;
+                m_vCollisionProgressOrigin = controlledEntity->origin;
+                m_vTempCollisionAvoidance  = selectedTarget;
+                m_iCollisionAvoidDirection = selectedDirection;
+                m_iCollisionAvoidDirectionUntil = level.inttime + BOT_COLLISION_SIDE_COMMIT_MSEC;
+                return m_vTempCollisionAvoidance - controlledEntity->origin;
+            }
         }
     }
 
@@ -1621,7 +1689,7 @@ void BotMovement::ClearMove(void)
     m_bJumpWasAirborne  = false;
     m_vCurrentDir              = vec_zero;
     m_iStrafeGeometryLockTime  = 0;
-
+    m_iMovementOverlaySuppressUntil = 0;
     if (m_pPath) {
         m_pPath->Clear();
     }
@@ -1674,66 +1742,38 @@ void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
         m_iNextRadialChangeTime ? Q_max(0, m_iNextRadialChangeTime - level.inttime) : -1;
 }
 
-/*
-====================
-CalculateLateralClearance
-
-Trace laterally to determine how much space is available for strafing
-Returns distance in units (0 to maxCheckDist)
-====================
-*/
-float BotMovement::CalculateLateralClearance(int direction)
-{
-    const float maxCheckDist = 96.0f;
-
-    if (direction == 0 || !controlledEntity) {
-        return 0;
-    }
-
-    Vector forward, right, up;
-    controlledEntity->angles.AngleVectors(&forward, &right, &up);
-
-    Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
-    Vector end   = start + right * direction * maxCheckDist;
-
-    trace_t trace = G_Trace(
-        start,
-        controlledEntity->mins,
-        controlledEntity->maxs,
-        end,
-        controlledEntity,
-        MASK_PLAYERSOLID,
-        false,
-        "BotMovement::CalculateLateralClearance"
-    );
-
-    return trace.fraction * maxCheckDist;
-}
-
-float BotMovement::CalculateStrafeProbeFraction(int direction)
+float BotMovement::CalculateStrafeProbeFraction(const usercmd_t& botcmd, int direction)
 {
     if (direction == 0 || !controlledEntity) {
         return 0.0f;
     }
 
-    Vector forward, right, up;
-    controlledEntity->angles.AngleVectors(&forward, &right, &up);
+    usercmd_t probeCommand = botcmd;
+    const int offset =
+        (int)(direction * g_bot_strafe_intensity->value * 127.0f);
+    int probeRight = (int)probeCommand.rightmove + offset;
+    probeCommand.rightmove =
+        (signed char)Q_clamp(probeRight, -127, 127);
 
-    Vector probeDirection = forward + right * static_cast<float>(direction);
-    probeDirection.z      = 0.0f;
-    probeDirection.normalize();
+    Vector probeDirection = GetCommandMoveVector(probeCommand);
+    if (VectorNormalize2D(probeDirection) <= 0.0f) {
+        return 0.0f;
+    }
 
-    const float probeDistance = 56.0f;
+    const float probeDistance = BOT_STRAFE_PROBE_DISTANCE;
+    Vector mins = controlledEntity->mins;
+    Vector maxs = controlledEntity->maxs;
+    maxs.z -= STEPSIZE;
     const Vector start =
         controlledEntity->origin + Vector(0, 0, STEPSIZE);
     const Vector end = start + probeDirection * probeDistance;
     const trace_t trace = G_Trace(
         start,
-        controlledEntity->mins,
-        controlledEntity->maxs,
+        mins,
+        maxs,
         end,
         controlledEntity,
-        MASK_PLAYERSOLID,
+        MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
         false,
         "BotMovement::CalculateStrafeProbeFraction"
     );
@@ -1749,6 +1789,13 @@ static int RandomInterval(cvar_t *lo, cvar_t *hi)
     return lower + (int)G_Random(upper - lower);
 }
 
+void BotMovement::FinalizeMovement(usercmd_t& botcmd)
+{
+    const usercmd_t baseCommand = botcmd;
+    UpdateAggressiveMovement(botcmd);
+    ResolveImminentCollision(botcmd, baseCommand);
+}
+
 /*
 ====================
 UpdateAggressiveMovement
@@ -1761,30 +1808,29 @@ an independent animation.
 */
 void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
 {
-    // Ladders: leave pathing untouched
+    // Ladders: leave pathing untouched.
     if (controlledEntity->GetLadder()) {
+        m_bIsLeaning = false;
         m_iStrafeGeometryLockTime = 0;
         return;
     }
 
     // Strafe and lean are an overlay for purposeful travel and combat, not a
-    // source of movement by themselves. In particular, a completed objective
-    // cover route must remain a real hold until its next route is assigned.
+    // source of movement by themselves. A completed cover route remains a
+    // genuine hold until another route is assigned.
     if (!IsMoving() && !m_bHasCombatTarget) {
         m_bIsLeaning = false;
         m_iStrafeGeometryLockTime = 0;
         return;
     }
 
-    // Recovery and collision detours own the movement vector; lateral
-    // injection here would fight their selected escape side.
-    const bool bSuppressMovement = m_iTempAwayState == 2 || m_bAvoidCollision;
-    m_telemetry.movementSuppressed = bSuppressMovement;
+    // Recovery and collision detours own the movement vector; lateral input
+    // here would fight their selected escape side.
+    const bool suppressMovement = m_iTempAwayState == 2 || m_bAvoidCollision
+        || level.inttime < m_iMovementOverlaySuppressUntil;
+    m_telemetry.movementSuppressed = suppressMovement;
 
-    if (bSuppressMovement) {
-        // Resume the strafe oscillator on the side selected by collision
-        // steering. This prevents the overlay from immediately sending the
-        // bot back into the obstacle when recovery releases control.
+    if (suppressMovement) {
         if (botcmd.rightmove < -8) {
             m_iStrafeDirection = -1;
         } else if (botcmd.rightmove > 8) {
@@ -1796,35 +1842,8 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
             Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
     }
 
-    float leftProbeFraction  = -1.0f;
-    float rightProbeFraction = -1.0f;
-    if (!bSuppressMovement) {
-        leftProbeFraction  = CalculateStrafeProbeFraction(-1);
-        rightProbeFraction = CalculateStrafeProbeFraction(1);
-
-        int openDirection = 0;
-        if (leftProbeFraction <= BOT_CORNER_PROBE_BLOCKED_FRACTION
-            && rightProbeFraction - leftProbeFraction
-                >= BOT_CORNER_PROBE_ADVANTAGE) {
-            openDirection = 1;
-        } else if (rightProbeFraction <= BOT_CORNER_PROBE_BLOCKED_FRACTION
-                   && leftProbeFraction - rightProbeFraction
-                       >= BOT_CORNER_PROBE_ADVANTAGE) {
-            openDirection = -1;
-        }
-
-        // There is one strafe-direction owner. Geometry may change it only
-        // after the previous geometry-driven choice has had time to clear.
-        if (openDirection && openDirection != m_iStrafeDirection
-            && level.inttime >= m_iStrafeGeometryLockTime) {
-            m_iStrafeDirection = openDirection;
-            m_iStrafeGeometryLockTime =
-                level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
-            m_iNextStrafeChangeTime =
-                Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
-        }
-    }
-
+    // Select the side before probing it. Probing first used the clearance for
+    // the old side on the exact frame the oscillator changed direction.
     if (level.inttime >= m_iNextStrafeChangeTime
         && level.inttime >= m_iStrafeGeometryLockTime) {
         m_iStrafeDirection = -m_iStrafeDirection;
@@ -1832,68 +1851,52 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
             level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
     }
 
-    // Hysteresis: need 20 units to start strafing, but only drop out below 12.
-    // Kept low so bots strafe close to walls and use the full side-to-side
-    // room; the stop floor (~one frame of lateral travel) keeps the hull off
-    // the wall rather than grinding against it.
-    const float startThreshold = 20.0f;
-    const float stopThreshold  = 12.0f;
-    const float threshold      = m_bIsLeaning ? stopThreshold : startThreshold;
-
-    float clearance = bSuppressMovement
-        ? 0.0f
-        : CalculateLateralClearance(m_iStrafeDirection);
-    m_telemetry.strafeClearance = clearance;
-    if (!bSuppressMovement && clearance < threshold) {
-        // Preferred side is blocked. Switch only if the other side is clearly
-        // open, and commit the flip to the oscillator (with a fresh dwell
-        // time) so the side can't bounce back next frame — recomputing the
-        // side per frame turns marginal clearance into frame-rate left/right
-        // lean flapping against walls.
-        float otherClearance = CalculateLateralClearance(-m_iStrafeDirection);
-        m_telemetry.strafeOtherClearance = otherClearance;
-        if (otherClearance >= startThreshold) {
-            m_iStrafeDirection      = -m_iStrafeDirection;
-            m_iNextStrafeChangeTime = level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
-            m_iStrafeGeometryLockTime =
-                level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
-            clearance               = otherClearance;
-            m_telemetry.strafeClearanceFlip = true;
-            m_telemetry.strafeClearance     = clearance;
-        }
-    }
-
-    if (clearance >= threshold && !bSuppressMovement) {
-        m_bIsLeaning = true;
-
-        const float probeFraction = m_iStrafeDirection < 0
-            ? leftProbeFraction
-            : rightProbeFraction;
+    m_bIsLeaning = false;
+    if (!suppressMovement) {
+        // Probe the actual path-plus-strafe command. Human telemetry retains
+        // substantial strafe in narrow spaces, so geometry scales this overlay
+        // instead of reversing it or choosing a second movement direction.
+        const float probeFraction =
+            CalculateStrafeProbeFraction(botcmd, m_iStrafeDirection);
         const float intensity =
             g_bot_strafe_intensity->value * probeFraction;
-        m_telemetry.strafeApplied       = true;
+        const int offset =
+            (int)(m_iStrafeDirection * intensity * 127.0f);
+
         m_telemetry.strafeProbeFraction = probeFraction;
-        m_telemetry.strafeIntensity     = intensity;
-        int   offset     = (int)(m_iStrafeDirection * intensity * 127.0f);
-        int   newRight   = botcmd.rightmove + offset;
-        botcmd.rightmove = (signed char)Q_clamp(newRight, -127, 127);
+        m_telemetry.strafeClearance =
+            probeFraction * BOT_STRAFE_PROBE_DISTANCE;
+        m_telemetry.strafeIntensity = intensity;
 
-    } else {
-        m_bIsLeaning = false;
-    }
-
-    // Lean only when the corresponding body strafe was actually applied.
-    if (m_bIsLeaning) {
-        if (m_iStrafeDirection < 0) {
-            botcmd.buttons |= BUTTON_LEAN_LEFT;
-        } else {
-            botcmd.buttons |= BUTTON_LEAN_RIGHT;
+        if (offset) {
+            int newRight = (int)botcmd.rightmove + offset;
+            botcmd.rightmove =
+                (signed char)Q_clamp(newRight, -127, 127);
+            m_telemetry.strafeApplied = true;
+            m_bIsLeaning = true;
         }
-        m_bLeanCommandActive = true;
     }
 
     if (m_bHasCombatTarget) {
-        UpdateCombatRadialMovement(botcmd, bSuppressMovement);
+        UpdateCombatRadialMovement(botcmd, suppressMovement);
+    }
+
+    // Lean follows the final lateral command, after the combat radial layer.
+    // The collision resolver performs the same check if it removes a component.
+    if (m_bIsLeaning) {
+        const bool matchesDirection = m_iStrafeDirection < 0
+            ? botcmd.rightmove < -8
+            : botcmd.rightmove > 8;
+        if (matchesDirection) {
+            if (m_iStrafeDirection < 0) {
+                botcmd.buttons |= BUTTON_LEAN_LEFT;
+            } else {
+                botcmd.buttons |= BUTTON_LEAN_RIGHT;
+            }
+            m_bLeanCommandActive = true;
+        } else {
+            m_bIsLeaning = false;
+        }
     }
 }
 
@@ -1904,8 +1907,7 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
 
     if (delta.lengthXYSquared() <= Square(m_fDirectMoveRadius)) {
         ClearMove();
-        UpdateAggressiveMovement(botcmd);
-        PreventImminentBodyContact(botcmd);
+        FinalizeMovement(botcmd);
         return;
     }
 
@@ -1919,8 +1921,7 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
     botcmd.rightmove   = (signed char)Q_clamp_float(-wishDirection.y * 127.0f, -127.0f, 127.0f);
     botcmd.upmove      = 0;
 
-    UpdateAggressiveMovement(botcmd);
-    PreventImminentBodyContact(botcmd);
+    FinalizeMovement(botcmd);
     CheckJump(botcmd);
     if (!m_bJump) {
         CheckJumpOverEdge(botcmd);
@@ -2127,34 +2128,40 @@ void BotMovement::UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMov
     SetCommandMoveVector(botcmd, move);
 }
 
-void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
+bool BotMovement::TraceImminentMove(const usercmd_t& botcmd, trace_t& trace) const
 {
-    if (!controlledEntity || controlledEntity->GetLadder() || m_bJump) {
-        return;
+    if (!controlledEntity) {
+        return false;
     }
 
     Vector move = GetCommandMoveVector(botcmd);
     if (move.lengthXYSquared() <= 1.0f) {
-        return;
+        return false;
+    }
+
+    const float commandFraction =
+        Q_max(fabs((float)botcmd.forwardmove), fabs((float)botcmd.rightmove)) / 127.0f;
+    const float frameDistance =
+        controlledEntity->GetRunSpeed() * commandFraction * level.frametime;
+    if (frameDistance <= 0.0f) {
+        return false;
     }
 
     Vector direction = move;
     VectorNormalize2D(direction);
 
-    const float commandFraction =
-        Q_max(fabs((float)botcmd.forwardmove), fabs((float)botcmd.rightmove)) / 127.0f;
-    const float lookAheadDistance = controlledEntity->GetRunSpeed() * commandFraction * level.frametime + 1.0f;
-    if (lookAheadDistance <= 1.0f) {
-        return;
-    }
-
+    // Resolve the fully shaped command two frames ahead. This is the single
+    // final authority for path, strafe, lean, and combat-radial movement.
+    const float lookAheadDistance =
+        frameDistance * BOT_COLLISION_LOOKAHEAD_FRAMES
+        + BOT_COLLISION_SAFETY_MARGIN;
     Vector mins = controlledEntity->mins;
     Vector maxs = controlledEntity->maxs;
     maxs.z -= STEPSIZE;
 
     const Vector start = controlledEntity->origin + Vector(0, 0, STEPSIZE);
     const Vector end   = start + direction * lookAheadDistance;
-    trace_t trace      = G_Trace(
+    trace = G_Trace(
         start,
         mins,
         maxs,
@@ -2162,43 +2169,125 @@ void BotMovement::PreventImminentBodyContact(usercmd_t& botcmd)
         controlledEntity,
         MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
         true,
-        "BotMovement::PreventImminentBodyContact"
+        "BotMovement::TraceImminentMove"
     );
+    return trace.startsolid || trace.fraction < 1.0f;
+}
 
-    if (!trace.startsolid && trace.fraction >= 1.0f) {
+void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& baseCommand)
+{
+    if (!controlledEntity || controlledEntity->GetLadder() || m_bJump) {
         return;
     }
 
-    const bool hitSentient = trace.ent && trace.ent->entity && trace.ent->entity->IsSubclassOfSentient();
+    Vector move = GetCommandMoveVector(botcmd);
+    trace_t trace;
+    if (!TraceImminentMove(botcmd, trace)) {
+        return;
+    }
+
+    const bool overlayChangedCommand =
+        botcmd.forwardmove != baseCommand.forwardmove
+        || botcmd.rightmove != baseCommand.rightmove;
+    if ((m_telemetry.strafeApplied || m_telemetry.radialActive)
+        && overlayChangedCommand) {
+        trace_t baseTrace;
+        const bool baseBlocked = TraceImminentMove(baseCommand, baseTrace);
+
+        // Navigation remains authoritative when an optional combat overlay
+        // causes a collision. If the base path also collides, resolve that
+        // path vector instead of sliding the unrelated overlay vector.
+        botcmd.forwardmove = baseCommand.forwardmove;
+        botcmd.rightmove   = baseCommand.rightmove;
+        botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+        m_bIsLeaning         = false;
+        m_bLeanCommandActive = false;
+        m_iMovementOverlaySuppressUntil =
+            level.inttime + BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC;
+        m_iNextStrafeChangeTime =
+            Q_max(m_iNextStrafeChangeTime, m_iMovementOverlaySuppressUntil);
+        m_iRadialDirection      = 0;
+        m_iNextRadialChangeTime = 0;
+        m_telemetry.movementSuppressed = true;
+        m_telemetry.strafeApplied      = false;
+        m_telemetry.strafeIntensity    = 0.0f;
+        m_telemetry.radialActive       = false;
+        m_telemetry.radialDesiredMove  = 0.0f;
+
+        if (!baseBlocked) {
+            const bool hitSentient = trace.ent && trace.ent->entity
+                && trace.ent->entity->IsSubclassOfSentient();
+            m_telemetry.guardTriggered   = true;
+            m_telemetry.guardHitSentient = hitSentient;
+            m_telemetry.guardHitWorld    = trace.entityNum == ENTITYNUM_WORLD;
+            m_telemetry.guardFraction    = trace.fraction;
+            m_telemetry.guardEntity      = trace.entityNum;
+            m_telemetry.guardRemovedComponent = true;
+            return;
+        }
+
+        move  = GetCommandMoveVector(botcmd);
+        trace = baseTrace;
+    }
+
+    const bool hitSentient = trace.ent && trace.ent->entity
+        && trace.ent->entity->IsSubclassOfSentient();
     m_telemetry.guardTriggered   = true;
     m_telemetry.guardHitSentient = hitSentient;
     m_telemetry.guardHitWorld    = trace.entityNum == ENTITYNUM_WORLD;
     m_telemetry.guardFraction    = trace.fraction;
     m_telemetry.guardEntity      = trace.entityNum;
 
-    // Always prevent actual player/body contact. For world geometry, intervene
-    // only while backing up; normal forward pathing already handles walls and
-    // should remain free to hug corners and doorways.
-    if (!hitSentient && botcmd.forwardmove >= 0 && !m_bForceCombatRetreat) {
-        return;
-    }
-
     Vector collisionNormal = trace.plane.normal;
-    collisionNormal.z      = 0;
+    collisionNormal.z      = 0.0f;
     if (collisionNormal.lengthXYSquared() < 0.01f && hitSentient) {
         collisionNormal   = controlledEntity->origin - trace.ent->entity->origin;
-        collisionNormal.z = 0;
+        collisionNormal.z = 0.0f;
     }
-    if (VectorNormalize2D(collisionNormal) <= 0) {
-        return;
+    if (VectorNormalize2D(collisionNormal) > 0.0f) {
+        const float intoObstacle = DotProduct(move, collisionNormal);
+        if (intoObstacle < 0.0f) {
+            // Project onto the collision plane. Tangential movement survives,
+            // matching human wall-sliding without entering the first obstacle.
+            move += collisionNormal * -intoObstacle;
+            SetCommandMoveVector(botcmd, move);
+
+            // A tight corner can put that tangent into a second plane.
+            trace_t resolvedTrace;
+            if (TraceImminentMove(botcmd, resolvedTrace)) {
+                botcmd.forwardmove = 0;
+                botcmd.rightmove   = 0;
+            }
+        } else {
+            // This is only expected while already touching an obstacle.
+            botcmd.forwardmove = 0;
+            botcmd.rightmove   = 0;
+        }
+    } else {
+        // An indeterminate collision normal is not safe to move through.
+        botcmd.forwardmove = 0;
+        botcmd.rightmove   = 0;
     }
 
-    const float intoObstacle = DotProduct(move, collisionNormal);
-    if (intoObstacle < 0) {
-        // Remove only the component entering the obstacle. Tangential strafe
-        // and the lean buttons are deliberately preserved.
-        move += collisionNormal * -intoObstacle;
-        SetCommandMoveVector(botcmd, move);
-        m_telemetry.guardRemovedComponent = true;
+    const float resolvedCommand = Q_max(
+        fabs((float)botcmd.forwardmove),
+        fabs((float)botcmd.rightmove)
+    );
+    if (m_bAvoidCollision && !hitSentient
+        && resolvedCommand <= 8.0f) {
+        AbandonCollisionAvoidance();
+    }
+
+    m_telemetry.guardRemovedComponent = true;
+
+    if (m_bLeanCommandActive) {
+        const bool leanMatchesMovement =
+            ((botcmd.buttons & BUTTON_LEAN_LEFT) && botcmd.rightmove < -8)
+            || ((botcmd.buttons & BUTTON_LEAN_RIGHT) && botcmd.rightmove > 8);
+        if (!leanMatchesMovement) {
+            botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+            m_bLeanCommandActive = false;
+            m_bIsLeaning         = false;
+        }
     }
 }

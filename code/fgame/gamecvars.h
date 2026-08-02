@@ -396,9 +396,21 @@ extern cvar_t *g_bot_team;
  */
 extern cvar_t *g_bot_sniper;
 /**
+ * @brief Percentage of bots that get standard rifles.
+ */
+extern cvar_t *g_bot_rifle;
+/**
+ * @brief Percentage of bots that get shotguns.
+ */
+extern cvar_t *g_bot_shotgun;
+/**
  * @brief Percentage of Axis bots that get an StG instead of an SMG.
  */
 extern cvar_t *g_bot_stg;
+/**
+ * @brief Percentage of Allied and free-for-all bots that get a BAR instead of an SMG.
+ */
+extern cvar_t *g_bot_bar;
 
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;

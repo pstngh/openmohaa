@@ -8780,28 +8780,29 @@ void Player::InitDeathmatch(void)
 
     ChooseSpawnPoint();
 
-    // Assign random weapons to bots based on team
+    // Assign explicit bot weapon shares in priority order. Any percentage not
+    // consumed by a configured special weapon remains the SMG default.
     if (edict->r.svFlags & SVF_BOT) {
-        float roll          = G_Random();
-        float sniperChance = g_bot_sniper->value / 100.0f;
-        float stgChance     = g_bot_stg->value / 100.0f;
-        if (GetTeam() == TEAM_ALLIES) {
-            if (roll < sniperChance) {
-                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
-            } else {
-                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
-            }
-        } else if (GetTeam() == TEAM_AXIS) {
-            // Snipers take priority if the configured percentages overlap.
-            // The StG share is therefore capped by the non-sniper remainder.
-            if (roll < sniperChance) {
-                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
-            } else if (roll < sniperChance + stgChance) {
-                Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
-            } else {
-                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
-            }
+        const bool  axis         = GetTeam() == TEAM_AXIS;
+        const float automatic    = axis ? g_bot_stg->value : g_bot_bar->value;
+        const float roll         = G_Random() * 100.0f;
+        const float sniperEnd    = g_bot_sniper->value;
+        const float rifleEnd     = sniperEnd + g_bot_rifle->value;
+        const float shotgunEnd   = rifleEnd + g_bot_shotgun->value;
+        const float automaticEnd = shotgunEnd + automatic;
+        const char *primary      = "smg";
+
+        if (roll < sniperEnd) {
+            primary = "sniper";
+        } else if (roll < rifleEnd) {
+            primary = "rifle";
+        } else if (roll < shotgunEnd) {
+            primary = "shotgun";
+        } else if (roll < automaticEnd) {
+            primary = "mg";
         }
+
+        Q_strncpyz(client->pers.dm_primary, primary, sizeof(client->pers.dm_primary));
     }
 
     EquipWeapons();
@@ -9056,11 +9057,16 @@ void Player::EquipWeapons()
             }
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(dmflags->integer & DF_WEAPON_NO_MG)) {
-        // g_bot_stg is weapon-specific: an Axis bot selected for this slot
-        // gets the StG even when its randomized BT skin is Italian.
-        if ((edict->r.svFlags & SVF_BOT) && GetTeam() == TEAM_AXIS) {
-            giveItem("weapons/mp44.tik");
-            event->AddString("StG 44");
+        // The automatic-weapon cvars are team-specific: Axis bots get the StG,
+        // while Allied and free-for-all bots get the BAR.
+        if (edict->r.svFlags & SVF_BOT) {
+            if (GetTeam() == TEAM_AXIS) {
+                giveItem("weapons/mp44.tik");
+                event->AddString("StG 44");
+            } else {
+                giveItem("weapons/bar.tik");
+                event->AddString("BAR");
+            }
         } else {
             switch (nationality) {
             case NA_BRITISH:

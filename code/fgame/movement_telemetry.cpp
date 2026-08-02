@@ -665,7 +665,10 @@ static bool EnsureOpen()
          << CvarLine("g_bot_spread", g_bot_spread)
          << CvarLine("g_bot_team", g_bot_team)
          << CvarLine("g_bot_sniper", g_bot_sniper)
+         << CvarLine("g_bot_rifle", g_bot_rifle)
+         << CvarLine("g_bot_shotgun", g_bot_shotgun)
          << CvarLine("g_bot_stg", g_bot_stg)
+         << CvarLine("g_bot_bar", g_bot_bar)
          << CvarLine("g_accuracy", g_accuracy)
          << '\n';
     const std::string metadata = meta.str();

@@ -299,19 +299,23 @@ private:
     int  m_iStrafeDirection;         // -1 = left, 1 = right
     int  m_iNextStrafeChangeTime;    // When to flip strafe direction
     int  m_iStrafeGeometryLockTime;  // Prevent geometry-driven side flapping
+    int  m_iMovementOverlaySuppressUntil;  // Briefly reject an unsafe optional overlay
     int  m_iRadialDirection;       // -1 = retreat, 0 = orbit, 1 = advance
     int  m_iNextRadialChangeTime;  // When to choose a new radial state
-    bool m_bIsLeaning;             // Hysteresis: currently strafing
+    bool m_bIsLeaning;             // Current strafe overlay can drive lean
     bool m_bLeanCommandActive;     // Current usercmd contains a lean input
     bool m_bHasCombatTarget;
     bool m_bForceCombatRetreat;
     bool m_bForceCombatAdvance;
 
+    void   FinalizeMovement(usercmd_t& botcmd);
     void   UpdateAggressiveMovement(usercmd_t& botcmd);
     void   UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
-    void   PreventImminentBodyContact(usercmd_t& botcmd);
-    float  CalculateLateralClearance(int direction);
-    float  CalculateStrafeProbeFraction(int direction);
+    bool   TraceImminentMove(const usercmd_t& botcmd, trace_t& trace) const;
+    void   ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& baseCommand);
+    bool   CollisionAvoidanceTargetClear(const Vector& target) const;
+    void   AbandonCollisionAvoidance();
+    float  CalculateStrafeProbeFraction(const usercmd_t& botcmd, int direction);
     int    ChooseRadialDirection(float distance) const;
     int    RadialPhaseDuration() const;
 

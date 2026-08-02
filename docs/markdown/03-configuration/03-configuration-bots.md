@@ -133,7 +133,14 @@ wall, the lowest visible point above the cover.
 | `g_bot_reload_pistol` | `1` | `0` or `1` | Makes a bot switch to an available handgun when its active weapon begins reloading during a fight. With no usable handgun, or when disabled, the bot retreats until reloading finishes. |
 | `g_bot_spread` | `1` | `0`-`10` | Static multiple of each bullet's base spread. `0` is pinpoint; values above `1` are less accurate. Bot weapon bloom does not accumulate. Horizontal spread remains symmetric; vertical bot spread is mirrored downward at full magnitude to avoid accidental head/neck shots without concentrating bullets at zero deviation. The difficulty presets use `6` at casual, `3.5` at normal, and `0` at maximum. |
 | `g_bot_sniper` | `25` | `0`-`100` percent | Chance that a bot receives a sniper rifle. |
-| `g_bot_stg` | `5` | `0`-`100` percent | Chance that an Axis bot receives an STG. Snipers take priority, so the effective STG percentage is capped by the remaining non-sniper percentage. |
+| `g_bot_rifle` | `0` | `0`-`100` percent | Chance that a bot receives a standard rifle. |
+| `g_bot_shotgun` | `0` | `0`-`100` percent | Chance that a bot receives a shotgun. |
+| `g_bot_stg` | `5` | `0`-`100` percent | Chance that an Axis bot receives an StG 44. |
+| `g_bot_bar` | `0` | `0`-`100` percent | Chance that an Allied or free-for-all bot receives a BAR. |
+
+Applicable bot weapon percentages are evaluated in the order shown above. If
+their sum exceeds 100, later entries are limited by the remaining share. Every
+unassigned bot receives an SMG, including in free-for-all games.
 
 Bots reload an empty weapon after the normal post-fire delay. They only top off
 a non-empty magazine at or below 25% capacity, after four seconds without

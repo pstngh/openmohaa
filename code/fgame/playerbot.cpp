@@ -66,6 +66,27 @@ static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
 static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
 static const int   BOT_TEAM_CONTACT_RETRY_MSEC      = 2000;
 
+static trace_t TraceBotUse(Player *player, const Vector& start, const Vector& direction)
+{
+    return G_Trace(
+        start,
+        vec_zero,
+        vec_zero,
+        start + direction * 64.0f,
+        player,
+        MASK_USABLE | MASK_LADDER,
+        false,
+        "BotController::CheckUse"
+    );
+}
+
+static bool BotUseTraceHitsTarget(const trace_t& trace)
+{
+    return trace.ent && trace.ent->entity && trace.ent->entity != world
+        && (trace.ent->entity->IsSubclassOfDoor()
+            || trace.ent->entity->isSubclassOf(FuncLadder));
+}
+
 // Body heights sampled when checking whether an enemy is partially visible,
 // as fractions of the bounding-box height, ordered top-down. A single
 // eye-to-eye trace declares an enemy invisible whenever anything clips that
@@ -437,25 +458,40 @@ void BotController::UpdateBotStates(void)
 
 void BotController::CheckUse(void)
 {
-    Vector  dir;
+    Vector  forward;
+    Vector  left;
     Vector  start;
-    Vector  end;
     trace_t trace;
 
     if (m_bObjectiveOwnsUse || controlledEnt->GetLadder()) {
         return;
     }
 
-    controlledEnt->angles.AngleVectorsLeft(&dir);
-
+    controlledEnt->angles.AngleVectorsLeft(&forward, &left);
     start = controlledEnt->origin + Vector(0, 0, controlledEnt->viewheight);
-    end   = controlledEnt->origin + Vector(0, 0, controlledEnt->viewheight) + dir * 64;
+    trace = TraceBotUse(controlledEnt, start, forward);
 
-    trace = G_Trace(
-        start, vec_zero, vec_zero, end, controlledEnt, MASK_USABLE | MASK_LADDER, false, "BotController::CheckUse"
-    );
+    // Looking and travelling are independent during combat. Try the final
+    // command and then the underlying path so collision shaping cannot hide a
+    // closed door that the bot still needs to use.
+    if (!BotUseTraceHitsTarget(trace)) {
+        Vector moveDirection = forward * (float)m_botCmd.forwardmove
+                             - left * (float)m_botCmd.rightmove;
+        moveDirection.z = 0.0f;
+        if (VectorNormalize2D(moveDirection) > 0.0f) {
+            trace = TraceBotUse(controlledEnt, start, moveDirection);
+        }
+    }
 
-    if (!trace.ent || trace.ent->entity == world) {
+    if (!BotUseTraceHitsTarget(trace)) {
+        Vector pathDirection = movement.GetCurrentMoveDirection();
+        pathDirection.z = 0.0f;
+        if (VectorNormalize2D(pathDirection) > 0.0f) {
+            trace = TraceBotUse(controlledEnt, start, pathDirection);
+        }
+    }
+
+    if (!BotUseTraceHitsTarget(trace)) {
         m_botCmd.buttons &= ~BUTTON_USE;
         return;
     }
@@ -467,14 +503,9 @@ void BotController::CheckUse(void)
             m_botCmd.buttons &= ~BUTTON_USE;
             return;
         }
-    } else if (!trace.ent->entity->isSubclassOf(FuncLadder)) {
-        m_botCmd.buttons &= ~BUTTON_USE;
-        return;
     }
 
-    //
-    // Toggle the use button
-    //
+    // Toggle the use button.
     m_botCmd.buttons ^= BUTTON_USE;
 
 #if 0
