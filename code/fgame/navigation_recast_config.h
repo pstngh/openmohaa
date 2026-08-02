@@ -31,7 +31,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 namespace NavigationMapConfiguration
 {
-    static const float recastCellSize   = 10.25;
+    // Keep the horizontal voxel size fine enough to represent the 15-unit
+    // player hull exactly. The previous 10.25-unit grid could only erode the
+    // mesh by 10.25 or 20.5 units, neither of which matched the real hull.
+    static const float recastCellSize   = 5.0f;
     static const float recastCellHeight = 1.0;
     static const float agentHeight      = MAXS_Z;
     static const float agentMaxClimb    = STEPSIZE;
@@ -39,7 +42,9 @@ namespace NavigationMapConfiguration
     // normal of { 0.714142799, 0, 0.700000048 }, or an angle of -44.4270058
     static const float agentMaxSlope = 45.5729942f;
 
-    static const float agentRadius          = 1.0;
+    // Navmesh corridors must leave room for the physical player hull. A
+    // smaller radius lets Detour choose corners that the bot cannot clear.
+    static const float agentRadius          = MAXS_X;
     static const int   regionMinSize        = 5;
     static const int   regionMergeSize      = 20;
     static const float edgeMaxLen           = 100.0;
