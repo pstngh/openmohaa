@@ -307,7 +307,6 @@ BotController::BotController()
     m_bObjectiveRoutePostPlant  = false;
     m_vObjectiveDestination     = vec_zero;
     m_vObjectiveLastProgressPos = vec_zero;
-    m_fObjectiveBestDistance    = 0.0f;
     m_vIdleProgressPos               = vec_zero;
     m_iIdleProgressTime              = 0;
 

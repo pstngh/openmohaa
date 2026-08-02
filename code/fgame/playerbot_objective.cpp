@@ -427,7 +427,6 @@ void BotController::ResetObjectiveBehavior()
     m_bObjectiveRoutePostPlant  = false;
     m_vObjectiveDestination     = vec_zero;
     m_vObjectiveLastProgressPos = vec_zero;
-    m_fObjectiveBestDistance    = 0.0f;
 
     m_botCmd.buttons &= ~BUTTON_USE;
     movement.ClearMove();
@@ -451,7 +450,6 @@ void BotController::BeginObjectivePlan()
     m_vObjectiveDestination      = vec_zero;
     m_vObjectiveLastProgressPos  = controlledEnt->origin;
     m_iObjectiveLastProgressTime = level.inttime;
-    m_fObjectiveBestDistance     = 0.0f;
 
     G_MoveLogBotEvent(
         "bot_objective_plan",
@@ -522,8 +520,6 @@ void BotController::SetObjectiveDestination(
     if (changed) {
         m_vObjectiveLastProgressPos  = controlledEnt->origin;
         m_iObjectiveLastProgressTime = level.inttime;
-        m_fObjectiveBestDistance =
-            (destination - controlledEnt->origin).length();
     }
 
     if (changed || !movement.IsMoving() || movement.MoveDone()) {
@@ -747,17 +743,11 @@ void BotController::UpdateObjectiveProgress()
         return;
     }
 
-    if (m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
-        const float distance =
-            (m_vObjectiveDestination - controlledEnt->origin).length();
-        if (distance <= m_fObjectiveBestDistance - BOT_OBJECTIVE_PROGRESS_UNITS) {
-            m_fObjectiveBestDistance     = distance;
-            m_vObjectiveLastProgressPos  = controlledEnt->origin;
-            m_iObjectiveLastProgressTime = level.inttime;
-            return;
-        }
-    } else if ((controlledEnt->origin - m_vObjectiveLastProgressPos).lengthSquared()
-               >= Square(BOT_OBJECTIVE_PROGRESS_UNITS)) {
+    // A valid route can initially lead away from its destination to reach a
+    // staircase, ladder, or doorway. Count actual travel as progress and let
+    // the movement layer handle paths that are genuinely blocked.
+    if ((controlledEnt->origin - m_vObjectiveLastProgressPos).lengthSquared()
+        >= Square(BOT_OBJECTIVE_PROGRESS_UNITS)) {
         m_vObjectiveLastProgressPos  = controlledEnt->origin;
         m_iObjectiveLastProgressTime = level.inttime;
         return;
@@ -818,8 +808,6 @@ void BotController::UpdateObjectiveBehavior()
         if (m_bObjectiveHasDestination) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
-            m_fObjectiveBestDistance =
-                (m_vObjectiveDestination - controlledEnt->origin).length();
         }
         m_botCmd.buttons &= ~BUTTON_USE;
         return;
@@ -868,16 +856,12 @@ void BotController::UpdateObjectiveBehavior()
         if (m_iAttackTime) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
-            m_fObjectiveBestDistance =
-                (m_vObjectiveDestination - controlledEnt->origin).length();
             return;
         }
 
         if (m_bTeamResponding) {
             m_vObjectiveLastProgressPos  = controlledEnt->origin;
             m_iObjectiveLastProgressTime = level.inttime;
-            m_fObjectiveBestDistance =
-                (m_vObjectiveDestination - controlledEnt->origin).length();
             return;
         }
 

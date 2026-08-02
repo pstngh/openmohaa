@@ -437,7 +437,6 @@ private:
     bool                      m_bObjectiveRoutePostPlant;
     Vector                    m_vObjectiveDestination;
     Vector                    m_vObjectiveLastProgressPos;
-    float                     m_fObjectiveBestDistance;
     Vector                    m_vIdleProgressPos;
     int                       m_iIdleProgressTime;
     Vector                    m_vOldEnemyPos;
