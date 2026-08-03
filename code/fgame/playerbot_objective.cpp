@@ -766,6 +766,14 @@ void BotController::UpdateObjectiveProgress()
         );
         m_iObjectiveLastStallLogTime = level.inttime;
         m_iObjectiveLastProgressTime = level.inttime;
+
+        // Ladder traversal and blocked-path recovery have their own escape
+        // logic. Let it finish instead of clearing its state and immediately
+        // issuing the same strategic route again.
+        if (controlledEnt->GetLadder() || movement.IsBlockedRecoveryActive()) {
+            return;
+        }
+
         movement.ClearMove();
         m_iObjectiveNextMoveTime = 0;
 
@@ -1012,7 +1020,8 @@ void BotController::FinalizeObjectiveCommand()
 {
     if (m_bObjectiveOwnsMovement
         && m_iObjectiveState == BOT_OBJECTIVE_ROUTE
-        && !movement.IsMoving()) {
+        && !movement.IsMoving()
+        && !controlledEnt->GetLadder()) {
         // Movement can finish a horizontally close path below or above the
         // strategic waypoint. Keep the route's height check and abandon this
         // hop instead of recreating a zero-input path until the watchdog fires.

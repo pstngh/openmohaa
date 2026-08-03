@@ -817,7 +817,7 @@ bool BotController::UpdateDemoRoute(
     unsigned int                  seed
 )
 {
-    if (!graph || level.inttime < route.retryTime) {
+    if (!graph) {
         return false;
     }
 
@@ -827,6 +827,21 @@ bool BotController::UpdateDemoRoute(
     }
 
     const bool objective = graph->mode == BOT_DEMO_ROUTE_OBJECTIVE;
+
+    // Replacing a path from a mid-ladder origin can fail and send the bot back
+    // to the same entrance. Finish or abandon the current ladder transition
+    // before the strategic route layer issues another hop.
+    if (controlledEnt->GetLadder()) {
+        if (objective) {
+            m_bObjectiveOwnsMovement = true;
+        }
+        return true;
+    }
+
+    if (level.inttime < route.retryTime) {
+        return false;
+    }
+
     const char *planEvent = objective
         ? "bot_objective_route_plan" : "bot_ffa_route_plan";
     const char *waypointEvent = objective

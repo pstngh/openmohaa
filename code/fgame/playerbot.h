@@ -207,6 +207,7 @@ public:
     bool MoveDone();
     bool IsMoving(void);
     bool IsMovingTo(const Vector& position, float tolerance = 64.0f) const;
+    bool IsBlockedRecoveryActive(void) const;
     void ClearMove(void);
 
     Vector GetCurrentGoal() const;
@@ -261,6 +262,8 @@ private:
     bool   m_bDirectMove;
     bool   m_bWasOnLadder;
     float  m_fLadderTop;
+    float  m_fLadderProgressHeight;
+    int    m_iLadderProgressTime;
     int    m_iLadderExitUntil;
     Vector m_vLadderExitOrigin;
     Vector m_vLadderExitDirection;

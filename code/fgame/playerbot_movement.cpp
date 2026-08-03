@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "misc.h"
 
 static int       maxFallHeight                   = 400;
+static const int   BOT_LADDER_STALL_MSEC           = 1000;
+static const float BOT_LADDER_PROGRESS_UNITS       = 16.0f;
 static const int   BOT_LADDER_EXIT_MAX_MSEC        = 1000;
 static const float BOT_LADDER_EXIT_DISTANCE        = 64.0f;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
@@ -105,6 +107,8 @@ BotMovement::BotMovement()
     m_bDirectMove       = false;
     m_bWasOnLadder      = false;
     m_fLadderTop        = 0.0f;
+    m_fLadderProgressHeight = 0.0f;
+    m_iLadderProgressTime   = 0;
     m_iLadderExitUntil  = 0;
     m_vLadderExitOrigin = vec_zero;
     m_vLadderExitDirection = vec_zero;
@@ -199,6 +203,15 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     Entity *ladder = controlledEntity->GetLadder();
     if (ladder) {
+        if (!m_bWasOnLadder) {
+            m_fLadderProgressHeight = controlledEntity->origin.z;
+            m_iLadderProgressTime   = level.inttime;
+        } else if (fabs(controlledEntity->origin.z - m_fLadderProgressHeight)
+                   >= BOT_LADDER_PROGRESS_UNITS) {
+            m_fLadderProgressHeight = controlledEntity->origin.z;
+            m_iLadderProgressTime   = level.inttime;
+        }
+
         m_bWasOnLadder     = true;
         m_iLadderExitUntil = 0;
 
@@ -214,6 +227,8 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         }
     } else if (m_bWasOnLadder) {
         m_bWasOnLadder = false;
+        m_fLadderProgressHeight = 0.0f;
+        m_iLadderProgressTime   = 0;
 
         if (controlledEntity->origin.z >= m_fLadderTop
             && m_vLadderExitDirection.lengthXYSquared() > 0.0f) {
@@ -257,6 +272,11 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (!IsMoving() || !m_pPath) {
+        if (controlledEntity->GetLadder()) {
+            // CheckJump owns ladder-release input. Keep it reachable when a
+            // path search fails during a ladder transition.
+            CheckJump(botcmd);
+        }
         // No path to follow. Active combat can still juke in place; deliberate
         // holds and genuine idle leave the movement command neutral.
         FinalizeMovement(botcmd);
@@ -720,9 +740,13 @@ void BotMovement::CheckJump(usercmd_t& botcmd)
     trace_t trace;
 
     if (controlledEntity->GetLadder()) {
-        if (g_navigation_legacy->integer) {
+        const bool stalled = m_iLadderProgressTime
+            && level.inttime - m_iLadderProgressTime
+                >= BOT_LADDER_STALL_MSEC;
+
+        if (g_navigation_legacy->integer || stalled) {
             botcmd.upmove = botcmd.upmove ? 0 : 127;
-        } else if (!m_pPath->GetNodeCount()) {
+        } else if (!m_pPath || !m_pPath->GetNodeCount()) {
             // If the bot is not moving, cancel it
             botcmd.upmove = botcmd.upmove ? 0 : 127;
         }
@@ -1662,6 +1686,11 @@ bool BotMovement::IsMovingTo(const Vector& position, float tolerance) const
     return (m_vTargetPos - position).lengthSquared() <= Square(tolerance);
 }
 
+bool BotMovement::IsBlockedRecoveryActive(void) const
+{
+    return m_iTempAwayState != 0;
+}
+
 /*
 ====================
 ClearMove
@@ -1677,6 +1706,8 @@ void BotMovement::ClearMove(void)
         || (!controlledEntity->GetLadder() && !m_iLadderExitUntil)) {
         m_bWasOnLadder         = false;
         m_fLadderTop           = 0.0f;
+        m_fLadderProgressHeight = 0.0f;
+        m_iLadderProgressTime   = 0;
         m_iLadderExitUntil     = 0;
         m_vLadderExitOrigin    = vec_zero;
         m_vLadderExitDirection = vec_zero;
