@@ -47,14 +47,15 @@ static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const float BOT_STRAFE_PROBE_DISTANCE        = 56.0f;
 
-static bool BotTraceHitsOpenableDoor(const trace_t& trace, Player *player)
+static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
 {
     if (!trace.ent || !trace.ent->entity
         || !trace.ent->entity->IsSubclassOfDoor()) {
-        return false;
+        return nullptr;
     }
 
-    return static_cast<Door *>(trace.ent->entity)->CanBeOpenedBy(player);
+    Door *door = static_cast<Door *>(trace.ent->entity);
+    return door->CanBeOpenedBy(player) ? door : nullptr;
 }
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
@@ -1449,9 +1450,11 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     targetStepOrg = target + Vector(0, 0, STEPSIZE);
 
     trace = G_Trace(stepOrg, mins, maxs, targetStepOrg, controlledEntity, MASK_PLAYERSOLID, qtrue, "GetCurrentDelta");
-    if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
-        // An unlocked door is part of the route, including while it is
-        // opening. Do not treat its moving panel as a wall.
+    Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
+    if (openableDoor && !openableDoor->isOpen()) {
+        // Keep pushing into a closed or moving unlocked door so CheckUse can
+        // open it. A fully open panel falls through to local obstacle
+        // avoidance instead of being ground against every frame.
         m_iCollisionAvoidDirection      = 0;
         m_iCollisionAvoidDirectionUntil = 0;
         return delta;
@@ -1482,7 +1485,8 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
             target  = targetXY;
         }
 
-        if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
+        openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
+        if (openableDoor && !openableDoor->isOpen()) {
             m_iCollisionAvoidDirection      = 0;
             m_iCollisionAvoidDirectionUntil = 0;
             return delta;
@@ -2231,10 +2235,12 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         move  = GetCommandMoveVector(botcmd);
         trace = baseTrace;
     }
-    // Closed and moving doors are handled by normal player collision and the
-    // use command. Treating their panels as walls here can erase every escape
-    // command when a bot is caught beside one.
-    if (BotTraceHitsOpenableDoor(trace, controlledEntity)) {
+
+    Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
+    if (openableDoor && (m_iTempAwayState == 2 || !openableDoor->isOpen())) {
+        // Keep pushing while CheckUse opens the door, and preserve an active
+        // escape command if its moving panel catches the bot. A fully open
+        // panel falls through to normal wall-slide handling below.
         return;
     }
 
