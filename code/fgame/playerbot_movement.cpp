@@ -32,6 +32,7 @@ static const float BOT_LADDER_PROGRESS_UNITS       = 16.0f;
 static const int   BOT_LADDER_EXIT_MAX_MSEC        = 1000;
 static const float BOT_LADDER_EXIT_DISTANCE        = 64.0f;
 static const int   BOT_COLLISION_AVOID_COMMIT_MSEC = 750;
+static const float BOT_GUARD_RECOVERY_COMMAND_MAX   = 24.0f;
 static const float BOT_COLLISION_AVOID_REACHED_UNITS = 16.0f;
 static const int   BOT_COLLISION_SIDE_COMMIT_MSEC  = 1200;
 static const int   BOT_COLLISION_STALL_MSEC        = 350;
@@ -2324,6 +2325,18 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     if (m_bAvoidCollision && !hitSentient
         && resolvedCommand <= 8.0f) {
         AbandonCollisionAvoidance();
+    }
+
+    // The final guard can reduce a valid route command to nearly zero. Start
+    // the existing recovery grace period now instead of waiting for the
+    // periodic blocked check to discover it. A transient contact is still
+    // discarded by that normal movement check.
+    if (m_bPathing && !m_bHasCombatTarget
+        && resolvedCommand <= BOT_GUARD_RECOVERY_COMMAND_MAX
+        && m_iTempAwayState == 0) {
+        m_iTempAwayState = 1;
+        m_iLastBlockTime = level.inttime;
+        m_iCheckPathTime = level.inttime;
     }
 
     m_telemetry.guardRemovedComponent = true;
