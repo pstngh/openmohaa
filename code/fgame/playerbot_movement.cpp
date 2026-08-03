@@ -2182,7 +2182,11 @@ bool BotMovement::TraceImminentMove(const usercmd_t& botcmd, trace_t& trace) con
 
 void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& baseCommand)
 {
-    if (!controlledEntity || controlledEntity->GetLadder() || m_bJump) {
+    // Blocked recovery has already selected an escape direction. Let normal
+    // player collision constrain it instead of having this predictive guard
+    // erase the command that is meant to break the stall.
+    if (!controlledEntity || controlledEntity->GetLadder() || m_bJump
+        || m_iTempAwayState == 2) {
         return;
     }
 
@@ -2237,10 +2241,9 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     }
 
     Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
-    if (openableDoor && (m_iTempAwayState == 2 || !openableDoor->isOpen())) {
-        // Keep pushing while CheckUse opens the door, and preserve an active
-        // escape command if its moving panel catches the bot. A fully open
-        // panel falls through to normal wall-slide handling below.
+    if (openableDoor && !openableDoor->isOpen()) {
+        // Keep pushing while CheckUse opens the door. A fully open panel falls
+        // through to normal wall-slide handling below.
         return;
     }
 
