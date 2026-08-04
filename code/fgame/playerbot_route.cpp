@@ -15,6 +15,7 @@ existing navigation backend still owns the path between them.
 #include "playerbot_route.h"
 
 static const unsigned int BOT_DEMO_ROUTE_MAX_NODES = 1024;
+static const unsigned int BOT_DEMO_ROUTE_FIT_CANDIDATES = 3;
 static const unsigned int BOT_DEMO_ROUTE_MIN_SMG_SUPPORT = 3;
 static const unsigned int BOT_DEMO_ROUTE_MIN_NORMAL_SUPPORT = 5;
 static const float        BOT_DEMO_ROUTE_DETOUR_ALLOWANCE = 768.0f;
@@ -56,12 +57,20 @@ enum bot_demo_route_support_t {
     BOT_DEMO_ROUTE_SMG
 };
 
-static Vector BotDemoRouteNearestPathNode(
-    const Vector& desired, float maxDistance
+static bool BotDemoRouteNearestPathNode(
+    const Vector& desired,
+    float         maxDistance,
+    BotMovement  *movement,
+    Vector&       destination
 )
 {
-    PathNode *best = NULL;
-    float     bestDistanceSquared = 0.0f;
+    PathNode *candidates[BOT_DEMO_ROUTE_FIT_CANDIDATES] = {};
+    float candidateDistances[BOT_DEMO_ROUTE_FIT_CANDIDATES];
+    const unsigned int candidateCount =
+        movement ? BOT_DEMO_ROUTE_FIT_CANDIDATES : 1;
+    for (unsigned int i = 0; i < candidateCount; ++i) {
+        candidateDistances[i] = BOT_DEMO_ROUTE_INFINITY;
+    }
 
     for (int i = 0; i < PathSearch::nodecount; ++i) {
         PathNode *node = PathSearch::pathnodes[i];
@@ -71,14 +80,46 @@ static Vector BotDemoRouteNearestPathNode(
             continue;
         }
 
-        const float distanceSquared =
-            (node->origin - desired).lengthSquared();
-        if (!best || distanceSquared < bestDistanceSquared) {
-            best                = node;
-            bestDistanceSquared = distanceSquared;
+        const float distanceSquared = (node->origin - desired).lengthSquared();
+        for (unsigned int candidate = 0;
+             candidate < candidateCount;
+             ++candidate) {
+            if (distanceSquared >= candidateDistances[candidate]) {
+                continue;
+            }
+            for (unsigned int shift = candidateCount - 1;
+                 shift > candidate;
+                 --shift) {
+                candidates[shift]         = candidates[shift - 1];
+                candidateDistances[shift] = candidateDistances[shift - 1];
+            }
+            candidates[candidate]         = node;
+            candidateDistances[candidate] = distanceSquared;
+            break;
         }
     }
-    return best ? best->origin : desired;
+
+    if (!candidates[0]) {
+        destination = desired;
+        return !movement || movement->CanMoveTo(desired);
+    }
+
+    if (!movement) {
+        destination = candidates[0]->origin;
+        return true;
+    }
+
+    // Averaged demo points can sit between stacked navigation nodes. A pure
+    // geometric fit can select the wrong side of a staircase and repeatedly
+    // rebuild an impossible hop. Prefer the nearest candidate that the
+    // active navigation backend can actually reach.
+    for (unsigned int i = 0; i < BOT_DEMO_ROUTE_FIT_CANDIDATES; ++i) {
+        if (candidates[i] && movement->CanMoveTo(candidates[i]->origin)) {
+            destination = candidates[i]->origin;
+            return true;
+        }
+    }
+    return false;
 }
 
 static unsigned int BotDemoRouteHash(unsigned int value)
@@ -874,9 +915,16 @@ bool BotController::UpdateDemoRoute(
         const Vector routePoint = BotDemoRouteNodePosition(
             graph, route.nextNode
         );
-        const Vector routeDestination = BotDemoRouteNearestPathNode(
-            routePoint, BOT_DEMO_ROUTE_FIT_RADIUS
-        );
+        Vector routeDestination;
+        if (objective && m_bObjectiveHasDestination
+            && m_iObjectiveState == BOT_OBJECTIVE_ROUTE) {
+            routeDestination = m_vObjectiveDestination;
+        } else {
+            BotDemoRouteNearestPathNode(
+                routePoint, BOT_DEMO_ROUTE_FIT_RADIUS,
+                NULL, routeDestination
+            );
+        }
         if (BotDemoRoutePointReached(
                 controlledEnt->origin, routeDestination
             )) {
@@ -888,6 +936,20 @@ bool BotController::UpdateDemoRoute(
             }
             movement.ClearMove();
         } else {
+            if (objective
+                && (!m_bObjectiveHasDestination
+                    || m_iObjectiveState != BOT_OBJECTIVE_ROUTE)
+                && !BotDemoRouteNearestPathNode(
+                    routePoint, BOT_DEMO_ROUTE_FIT_RADIUS,
+                    &movement, routeDestination
+                )) {
+                G_MoveLogBotEvent(
+                    fallbackEvent, controlledEnt, NULL,
+                    route.nextNode, routePoint
+                );
+                ResetDemoRoute(route, true);
+                return false;
+            }
             if (objective) {
                 SetObjectiveDestination(
                     routeDestination, BOT_OBJECTIVE_ROUTE
@@ -973,8 +1035,10 @@ bool BotController::UpdateDemoRoute(
         const Vector routePoint = BotDemoRouteNodePosition(
             graph, route.nextNode
         );
-        const Vector routeDestination = BotDemoRouteNearestPathNode(
-            routePoint, BOT_DEMO_ROUTE_FIT_RADIUS
+        Vector routeDestination;
+        BotDemoRouteNearestPathNode(
+            routePoint, BOT_DEMO_ROUTE_FIT_RADIUS,
+            NULL, routeDestination
         );
         if (BotDemoRoutePointReached(
                 controlledEnt->origin, routeDestination
@@ -991,6 +1055,18 @@ bool BotController::UpdateDemoRoute(
                 return !objective;
             }
             continue;
+        }
+        if (objective
+            && !BotDemoRouteNearestPathNode(
+                routePoint, BOT_DEMO_ROUTE_FIT_RADIUS,
+                &movement, routeDestination
+            )) {
+            G_MoveLogBotEvent(
+                fallbackEvent, controlledEnt, NULL,
+                route.nextNode, routePoint
+            );
+            ResetDemoRoute(route, true);
+            return false;
         }
 
         if (objective) {

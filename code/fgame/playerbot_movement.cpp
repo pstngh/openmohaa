@@ -1623,6 +1623,13 @@ Returns true if the bot has done moving
 */
 bool BotMovement::CanMoveTo(Vector vPos)
 {
+    if (!controlledEntity) {
+        return false;
+    }
+    if (!m_pPath) {
+        m_pPath = IPather::CreatePather();
+    }
+
     PathSearchParameter parameters;
     parameters.fallHeight = maxFallHeight;
     parameters.entity     = controlledEntity;
