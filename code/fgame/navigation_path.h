@@ -161,4 +161,12 @@ public:
      * @return false 
      */
     virtual bool IsQuerying() const = 0;
+
+    /**
+     * @brief Return whether this pather needs the legacy local obstacle detour.
+     *
+     * Recast paths already steer around world geometry. Legacy paths still
+     * need the short-range detour before the final movement collision guard.
+     */
+    virtual bool UsesLegacyCollisionAvoidance() const { return true; }
 };

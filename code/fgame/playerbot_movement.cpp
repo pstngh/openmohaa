@@ -334,7 +334,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     if (m_pPath->GetNodeCount()) {
         vDelta = m_pPath->GetCurrentDelta();
-        vDelta = FixDeltaFromCollision(vDelta);
+        if (m_pPath->UsesLegacyCollisionAvoidance()) {
+            vDelta = FixDeltaFromCollision(vDelta);
+        }
 
         m_vCurrentGoal = controlledEntity->origin;
         VectorAdd2D(m_vCurrentGoal, vDelta, m_vCurrentGoal);
@@ -1956,7 +1958,9 @@ void BotMovement::DirectMoveThink(usercmd_t& botcmd)
         return;
     }
 
-    delta          = FixDeltaFromCollision(delta);
+    if (m_pPath->UsesLegacyCollisionAvoidance()) {
+        delta = FixDeltaFromCollision(delta);
+    }
     m_vCurrentGoal = controlledEntity->origin + delta;
     m_vCurrentDir  = CalculateDir(delta);
     SteerTowardPathHealth(m_vCurrentDir);

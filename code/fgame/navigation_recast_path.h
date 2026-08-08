@@ -61,6 +61,7 @@ public:
     virtual Vector  GetDestination() const override;
     virtual bool    HasReachedGoal(const Vector& origin) const override;
     virtual bool    IsQuerying() const override;
+    virtual bool    UsesLegacyCollisionAvoidance() const override { return false; }
 
 private:
     void ResetPosition(const Vector& origin);
