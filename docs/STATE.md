@@ -32,7 +32,7 @@ Continue evidence-driven server bot development without regressing working objec
 - The recent navigation series is implemented but has not been accepted as eliminating the owner's observed wall/door/item contacts or mindless back-and-forth. Do not stack another speculative fix without a fresh post-build telemetry comparison.
 - Demo routes influence strategic destinations, but live Recast navigation and collision steering still determine movement between route points.
 - Objective behavior works on tested rounds of `obj_team2` and has planted/defused on `obj_team4`, but map-specific regressions remain possible and must be tested separately.
-- The continuity retrofit updates CI branch-name filters from the former branch name. The first CI run containing that update remains to be verified.
+- The CI branch-name filters now recognize `bots/server-ai`; the first post-retrofit server-only run passed.
 
 ## Known blockers and uncertainty
 
@@ -50,7 +50,7 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 - GitHub `Builds` succeeded for audited tip `676c85f1` under the former branch name on 2026-08-08.
 - Branch tips were refreshed and verified equal locally/remotely after the GitHub rename.
 - On 2026-08-09, all 7 route-generator tests and the continuity check passed on the retrofit working tree.
-- The rename itself triggered workflows before the server-only name filters were updated; those transitional runs do not validate the final branch configuration.
+- GitHub run `31316489080` passed for continuity commit `380331a0`: only `Build Linux x64 dedicated server` ran, and artifact `openmohaa-bot-server-linux-x64` passed the exact-file and x86-64 checks.
 
 ## Cross-branch status
 
@@ -60,4 +60,4 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 
 ## Next action
 
-Push the continuity/CI-name commit, then verify that the `Builds` workflow for `bots/server-ai` runs the single `Build Linux x64 dedicated server` job and packages only `omohaaded` and `game.so`.
+Download the passing `380331a0` server artifact, compute SHA-256 for `omohaaded` and `game.so`, and compare them read-only with the VPS files to establish whether code tip `676c85f1` is deployed before collecting or changing telemetry.

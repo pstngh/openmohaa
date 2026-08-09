@@ -38,11 +38,11 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - [x] Add grenade/reload/health/weapon-aware behaviors and private tuning-server cheats.
 - [x] Stabilize several objective, route, ladder, door, and blocked-recovery failure modes.
 - [x] Rename the long-lived branch to `bots/server-ai` and add repository-first continuity.
+- [x] Verify the renamed branch runs only server-only Linux x64 CI and produces the exact two-file artifact.
 
 ## Remaining milestones
 
-- [ ] Verify CI branch filters and artifact contents after the rename.
-- [ ] Revalidate the external systemd deployment topology and deploy the current passing artifact without committing secrets.
+- [ ] Revalidate the external systemd deployment topology and current binary identity; deploy only if the code tip is not already live.
 - [ ] Start a clean schema 7 capture on the deployed current head.
 - [ ] Quantify wall/door/item contacts, oscillation, and local route reversals by map and bot state.
 - [ ] Compare the same telemetry measures with human samples, especially narrow corridors and non-combat lean/strafe behavior.
@@ -85,4 +85,4 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 ## Next action
 
-After pushing the continuity commit, inspect its GitHub `Builds` run and confirm that only the server-only Linux x64 job ran and its artifact contains exactly `omohaaded` and `game.so`.
+Download the passing `380331a0` artifact and compare its two binary checksums read-only with the VPS deployment before collecting or changing telemetry.
