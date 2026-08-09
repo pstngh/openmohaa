@@ -85,6 +85,13 @@ You can host your own [OpenMoHAA server](docs/markdown/02-running/02-running-ser
 
 - 💻 [Building from source](docs/markdown/04-coding/01-compiling.md)
 
+## Repository continuity for this fork
+
+The `pstngh/openmohaa` fork maintains independent server-bot and macOS-client
+workstreams. New development sessions should start with [AGENTS.md](AGENTS.md)
+and the branch-specific handoff in [docs/STATE.md](docs/STATE.md). Git and the
+tracked continuity files are authoritative over previous chat history.
+
 ## Third party librairies
 
 The following third party tools and libraries are used by the project
