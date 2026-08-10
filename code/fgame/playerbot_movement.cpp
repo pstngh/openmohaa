@@ -51,6 +51,18 @@ static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const float BOT_STRAFE_PROBE_DISTANCE          = 56.0f;
 static const float BOT_ROAM_STRAFE_VETO_DISTANCE      = 112.0f;
 static const float BOT_ROAM_STRAFE_CLEARANCE_EPSILON  = 0.05f;
+static const int   BOT_OPEN_DOOR_REPATH_MSEC          = 500;
+static const int   BOT_LOCAL_LOOP_SAMPLE_MSEC         = 500;
+static const int   BOT_LOCAL_LOOP_MIN_AGE_MSEC        = 3000;
+static const int   BOT_LOCAL_LOOP_MAX_AGE_MSEC        = 8000;
+static const int   BOT_LOCAL_LOOP_COOLDOWN_MSEC       = 8000;
+static const float BOT_LOCAL_LOOP_RETURN_UNITS        = 64.0f;
+static const float BOT_LOCAL_LOOP_TARGET_UNITS        = 32.0f;
+static const float BOT_LOCAL_LOOP_MIN_TRAVEL_UNITS    = 320.0f;
+static const float BOT_LOCAL_LOOP_TELEPORT_UNITS      = 256.0f;
+static const float BOT_BLOCKED_RECOVERY_SIDE_UNITS    = 96.0f;
+static const float BOT_BLOCKED_RECOVERY_FORWARD_UNITS = 32.0f;
+static const float BOT_BLOCKED_RECOVERY_BACK_UNITS    = 96.0f;
 
 static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
 {
@@ -122,6 +134,12 @@ BotMovement::BotMovement()
     m_iCheckPathTime = 0;
     m_iTempAwayTime  = 0;
     m_iNumBlocks     = 0;
+    m_vLocalLoopLastOrigin     = vec_zero;
+    m_fLocalLoopTravelTotal    = 0.0f;
+    m_iLocalLoopSampleCount    = 0;
+    m_iLocalLoopNextSampleTime = 0;
+    m_iLocalLoopCooldownUntil  = 0;
+    m_bLocalOscillation        = false;
 
     m_bAvoidCollision          = false;
     m_iCollisionCheckTime      = 0;
@@ -130,6 +148,8 @@ BotMovement::BotMovement()
     m_iCollisionAvoidDirection = 0;
     m_iCollisionAvoidDirectionUntil = 0;
     m_iReducedStanceStartTime  = 0;
+    m_iOpenDoorRepathTime      = 0;
+    m_iOpenDoorEntity          = ENTITYNUM_NONE;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -196,6 +216,8 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     m_telemetry.Reset();
     m_bLeanCommandActive = false;
+
+    UpdateLocalLoopDetection();
 
     botcmd.forwardmove = 0;
     botcmd.rightmove   = 0;
@@ -396,14 +418,16 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
         if (m_iTempAwayState && level.inttime >= m_iLastBlockTime + 1000) {
             Vector delta;
-            Vector dir;
 
             m_iTempAwayState = 2;
             m_iTempAwayTime  = level.inttime;
             m_iNumBlocks++;
             m_bAvoidCollision = false;
 
-            // Try to backward a little
+            // Prefer a committed lateral escape around the obstruction. The
+            // old recovery target mixed the remaining path delta with a
+            // reverse vector, so it repeatedly backed out and re-entered the
+            // same doorway or corner when the path was issued again.
             if (m_pPath->GetNodeCount()) {
                 delta = m_pPath->GetCurrentDelta();
             } else {
@@ -411,27 +435,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
             }
 
             m_pPath->Clear();
-
-            if (m_iNumBlocks < 2) {
-                dir   = -delta;
-                dir.z = 0;
-                dir.normalize();
-
-                if (dir.x < -0.5 || dir.x > 0.5) {
-                    dir.x *= 4;
-                    dir.y /= 4;
-                } else if (dir.y < -0.5 || dir.y > 0.5) {
-                    dir.x /= 4;
-                    dir.y *= 4;
-                } else {
-                    dir.x = G_CRandom(2);
-                    dir.y = G_CRandom(2);
-                }
-
-                m_vCurrentGoal = controlledEntity->origin + delta + dir * 128;
-            } else {
-                m_vCurrentGoal = controlledEntity->origin + Vector(G_CRandom(512), G_CRandom(512), G_CRandom(512));
-            }
+            m_vCurrentGoal = ChooseBlockedRecoveryGoal(delta);
         }
 
         m_vLastCheckPos[1] = m_vLastCheckPos[0];
@@ -1241,6 +1245,197 @@ void BotMovement::NewMove()
     }
 }
 
+void BotMovement::ResetLocalLoopHistory()
+{
+    m_iLocalLoopSampleCount    = 0;
+    m_fLocalLoopTravelTotal    = 0.0f;
+    m_iLocalLoopNextSampleTime = level.inttime;
+    m_vLocalLoopLastOrigin = controlledEntity
+        ? controlledEntity->origin : vec_zero;
+}
+
+void BotMovement::UpdateLocalLoopDetection()
+{
+    if (!controlledEntity || !m_bPathing || m_bDirectMove || !m_pPath
+        || (!m_pPath->GetNodeCount() && m_iTempAwayState == 0)
+        || m_bHasCombatTarget
+        || controlledEntity->GetLadder() || m_bJump) {
+        ResetLocalLoopHistory();
+        return;
+    }
+
+    const Vector origin = controlledEntity->origin;
+    if (!m_iLocalLoopSampleCount) {
+        m_vLocalLoopOrigins[0] = origin;
+        m_vLocalLoopTargets[0] = m_vTargetPos;
+        m_fLocalLoopTravel[0]  = 0.0f;
+        m_iLocalLoopTimes[0]   = level.inttime;
+        m_iLocalLoopSampleCount = 1;
+        m_iLocalLoopNextSampleTime =
+            level.inttime + BOT_LOCAL_LOOP_SAMPLE_MSEC;
+        m_vLocalLoopLastOrigin = origin;
+        return;
+    }
+
+    const Vector frameDelta = origin - m_vLocalLoopLastOrigin;
+    const float frameTravel = frameDelta.length();
+    m_vLocalLoopLastOrigin = origin;
+    if (frameTravel > BOT_LOCAL_LOOP_TELEPORT_UNITS) {
+        ResetLocalLoopHistory();
+        return;
+    }
+    m_fLocalLoopTravelTotal += frameTravel;
+
+    if (level.inttime < m_iLocalLoopNextSampleTime) {
+        return;
+    }
+
+    if (level.inttime >= m_iLocalLoopCooldownUntil) {
+        for (int i = 0; i < m_iLocalLoopSampleCount; ++i) {
+            const int age = level.inttime - m_iLocalLoopTimes[i];
+            if (age < BOT_LOCAL_LOOP_MIN_AGE_MSEC
+                || age > BOT_LOCAL_LOOP_MAX_AGE_MSEC) {
+                continue;
+            }
+            if ((origin - m_vLocalLoopOrigins[i]).lengthSquared()
+                    > Square(BOT_LOCAL_LOOP_RETURN_UNITS)
+                || (m_vTargetPos - m_vLocalLoopTargets[i]).lengthSquared()
+                    > Square(BOT_LOCAL_LOOP_TARGET_UNITS)
+                || m_fLocalLoopTravelTotal - m_fLocalLoopTravel[i]
+                    < BOT_LOCAL_LOOP_MIN_TRAVEL_UNITS) {
+                continue;
+            }
+
+            m_bLocalOscillation       = true;
+            m_iLocalLoopCooldownUntil =
+                level.inttime + BOT_LOCAL_LOOP_COOLDOWN_MSEC;
+            ResetLocalLoopHistory();
+            return;
+        }
+    }
+
+    if (m_iLocalLoopSampleCount == MAX_LOCAL_LOOP_SAMPLES) {
+        for (int i = 1; i < MAX_LOCAL_LOOP_SAMPLES; ++i) {
+            m_vLocalLoopOrigins[i - 1] = m_vLocalLoopOrigins[i];
+            m_vLocalLoopTargets[i - 1] = m_vLocalLoopTargets[i];
+            m_fLocalLoopTravel[i - 1]  = m_fLocalLoopTravel[i];
+            m_iLocalLoopTimes[i - 1]   = m_iLocalLoopTimes[i];
+        }
+        --m_iLocalLoopSampleCount;
+    }
+
+    const int sample = m_iLocalLoopSampleCount++;
+    m_vLocalLoopOrigins[sample] = origin;
+    m_vLocalLoopTargets[sample] = m_vTargetPos;
+    m_fLocalLoopTravel[sample]  = m_fLocalLoopTravelTotal;
+    m_iLocalLoopTimes[sample]   = level.inttime;
+    m_iLocalLoopNextSampleTime =
+        level.inttime + BOT_LOCAL_LOOP_SAMPLE_MSEC;
+}
+
+bool BotMovement::ConsumeLocalOscillation(void)
+{
+    const bool detected = m_bLocalOscillation;
+    m_bLocalOscillation = false;
+    return detected;
+}
+
+Vector BotMovement::ChooseBlockedRecoveryGoal(const Vector& pathDelta)
+{
+    Vector forward = pathDelta;
+    forward.z = 0.0f;
+    if (VectorNormalize2D(forward) <= 0.0f) {
+        forward = Vector(controlledEntity->orientation[0]);
+        forward.z = 0.0f;
+        VectorNormalize2D(forward);
+    }
+
+    const Vector right(-forward.y, forward.x, 0.0f);
+    int preferredDirection = 0;
+    if (level.inttime < m_iCollisionAvoidDirectionUntil) {
+        preferredDirection = m_iCollisionAvoidDirection;
+    }
+    if (!preferredDirection) {
+        preferredDirection =
+            ((controlledEntity->entnum + m_iNumBlocks) & 1) ? 1 : -1;
+    }
+
+    const int directions[2] = {
+        preferredDirection, -preferredDirection
+    };
+    for (int i = 0; i < 2; ++i) {
+        const int direction = directions[i];
+        const Vector side = right
+            * (BOT_BLOCKED_RECOVERY_SIDE_UNITS * direction);
+        const Vector candidates[2] = {
+            controlledEntity->origin + side
+                + forward * BOT_BLOCKED_RECOVERY_FORWARD_UNITS,
+            controlledEntity->origin + side
+        };
+        for (int j = 0; j < 2; ++j) {
+            if (!CollisionAvoidanceTargetClear(candidates[j])) {
+                continue;
+            }
+
+            m_iCollisionAvoidDirection = direction;
+            m_iCollisionAvoidDirectionUntil =
+                level.inttime + BOT_COLLISION_SIDE_COMMIT_MSEC;
+            G_MoveLogBotEvent(
+                "bot_blocked_lateral_recovery",
+                controlledEntity,
+                NULL,
+                direction,
+                candidates[j]
+            );
+            return candidates[j];
+        }
+    }
+
+    m_iCollisionAvoidDirection      = 0;
+    m_iCollisionAvoidDirectionUntil = 0;
+    const Vector fallback = controlledEntity->origin
+        - forward * BOT_BLOCKED_RECOVERY_BACK_UNITS;
+    G_MoveLogBotEvent(
+        "bot_blocked_reverse_recovery",
+        controlledEntity,
+        NULL,
+        m_iNumBlocks,
+        fallback
+    );
+    return fallback;
+}
+
+void BotMovement::RepathAroundOpenDoor(Door *door)
+{
+    if (!door || !m_bPathing || m_bDirectMove || !m_pPath
+        || m_pPath->UsesLegacyCollisionAvoidance()) {
+        return;
+    }
+    if (door->entnum == m_iOpenDoorEntity
+        && level.inttime < m_iOpenDoorRepathTime) {
+        return;
+    }
+
+    m_iOpenDoorEntity   = door->entnum;
+    m_iOpenDoorRepathTime = level.inttime + BOT_OPEN_DOOR_REPATH_MSEC;
+
+    PathSearchParameter parameters;
+    parameters.entity     = controlledEntity;
+    parameters.fallHeight = maxFallHeight;
+    m_pPath->FindPath(controlledEntity->origin, m_vTargetPos, parameters);
+    m_iLastMoveTime  = level.inttime;
+    m_iCheckPathTime = level.inttime;
+    m_iTempAwayState = 0;
+    m_iNumBlocks     = 0;
+
+    G_MoveLogBotEvent(
+        "bot_open_door_repath",
+        controlledEntity,
+        NULL,
+        door->entnum,
+        door->origin
+    );
+}
 void BotMovement::CalculateBestFrontAvoidance(
     const Vector& targetOrg, float maxDist, const Vector& forward, const Vector& right, float& bestFrac, Vector& bestPos
 )
@@ -2344,6 +2539,11 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         return;
     }
 
+    const bool hitOpenDoor = openableDoor && openableDoor->isOpen();
+    if (hitOpenDoor) {
+        RepathAroundOpenDoor(openableDoor);
+    }
+
     const bool hitSentient = trace.ent && trace.ent->entity
         && trace.ent->entity->IsSubclassOfSentient();
     m_telemetry.guardTriggered   = true;
@@ -2397,6 +2597,7 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     // periodic blocked check to discover it. A transient contact is still
     // discarded by that normal movement check.
     if (m_bPathing && !m_bHasCombatTarget
+        && !hitOpenDoor
         && resolvedCommand <= BOT_GUARD_RECOVERY_COMMAND_MAX
         && m_iTempAwayState == 0) {
         m_iTempAwayState = 1;

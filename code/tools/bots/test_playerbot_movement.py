@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused source contract for human-frequency roaming strafe and wall veto."""
+"""Focused source contracts for bot movement and navigation recovery."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE_PATH = ROOT / "code" / "fgame" / "playerbot_movement.cpp"
 HEADER_PATH = ROOT / "code" / "fgame" / "playerbot.h"
+ROUTE_PATH = ROOT / "code" / "fgame" / "playerbot_route.cpp"
+OBSTACLE_PATH = ROOT / "code" / "fgame" / "navigation_recast_obstacle.cpp"
 
 
 def constant(source: str, name: str) -> float:
@@ -107,6 +109,118 @@ class RoamingStyleContract(unittest.TestCase):
         self.assertIn(
             "m_iMovementOverlaySuppressUntil", self.guard
         )
+
+
+class NavigationFailureContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.source = SOURCE_PATH.read_text(encoding="utf-8")
+        cls.header = HEADER_PATH.read_text(encoding="utf-8")
+        cls.route = ROUTE_PATH.read_text(encoding="utf-8")
+        cls.obstacles = OBSTACLE_PATH.read_text(encoding="utf-8")
+
+        start = cls.source.index(
+            "void BotMovement::UpdateLocalLoopDetection"
+        )
+        end = cls.source.index(
+            "bool BotMovement::ConsumeLocalOscillation", start
+        )
+        cls.loop = cls.source[start:end]
+
+        start = cls.source.index(
+            "Vector BotMovement::ChooseBlockedRecoveryGoal"
+        )
+        end = cls.source.index(
+            "void BotMovement::RepathAroundOpenDoor", start
+        )
+        cls.recovery = cls.source[start:end]
+
+        start = cls.source.index(
+            "void BotMovement::RepathAroundOpenDoor"
+        )
+        end = cls.source.index(
+            "void BotMovement::CalculateBestFrontAvoidance", start
+        )
+        cls.door_repath = cls.source[start:end]
+
+        start = cls.source.index(
+            "void BotMovement::ResolveImminentCollision"
+        )
+        cls.guard = cls.source[start:]
+
+    def test_fully_open_door_panels_are_recast_obstacles(self) -> None:
+        self.assertIn('#include "doors.h"', self.obstacles)
+        self.assertIn("return door->isOpen();", self.obstacles)
+        self.assertEqual(
+            self.obstacles.count(
+                "!isDoor && radiusSqr < Square(100)"
+            ),
+            2,
+        )
+        self.assertEqual(
+            self.obstacles.count("Square(128)"),
+            2,
+        )
+
+    def test_open_door_contact_repaths_without_reverse_recovery(self) -> None:
+        self.assertIn("m_pPath->FindPath", self.door_repath)
+        self.assertIn("bot_open_door_repath", self.door_repath)
+        self.assertIn(
+            "RepathAroundOpenDoor(openableDoor)", self.guard
+        )
+        self.assertIn("&& !hitOpenDoor", self.guard)
+
+    def test_blocked_recovery_prefers_committed_lateral_clearance(self) -> None:
+        self.assertIn(
+            "CollisionAvoidanceTargetClear(candidates[j])",
+            self.recovery,
+        )
+        self.assertIn(
+            "bot_blocked_lateral_recovery", self.recovery
+        )
+        self.assertIn(
+            "- forward * BOT_BLOCKED_RECOVERY_BACK_UNITS",
+            self.recovery,
+        )
+        self.assertNotIn("G_CRandom", self.recovery)
+        self.assertNotIn(
+            "controlledEntity->origin + delta + dir * 128",
+            self.source,
+        )
+
+    def test_loop_detector_requires_return_travel_and_stable_target(self) -> None:
+        self.assertIn(
+            "BOT_LOCAL_LOOP_MIN_AGE_MSEC        = 3000",
+            self.source,
+        )
+        self.assertIn(
+            "BOT_LOCAL_LOOP_MIN_TRAVEL_UNITS    = 320.0f",
+            self.source,
+        )
+        self.assertIn(
+            "origin - m_vLocalLoopOrigins[i]", self.loop
+        )
+        self.assertIn(
+            "m_vTargetPos - m_vLocalLoopTargets[i]", self.loop
+        )
+        self.assertIn(
+            "m_fLocalLoopTravelTotal - m_fLocalLoopTravel[i]",
+            self.loop,
+        )
+        self.assertIn("m_bLocalOscillation       = true", self.loop)
+
+    def test_demo_route_abandons_and_reseeds_detected_loop(self) -> None:
+        start = self.route.index(
+            "if (movement.ConsumeLocalOscillation())"
+        )
+        end = self.route.index(
+            "// Replacing a path from a mid-ladder origin", start
+        )
+        response = self.route[start:end]
+        self.assertIn("bot_objective_route_oscillation", response)
+        self.assertIn("bot_ffa_route_oscillation", response)
+        self.assertIn("movement.ClearMove();", response)
+        self.assertIn("ResetDemoRoute(route, true);", response)
 
 
 if __name__ == "__main__":

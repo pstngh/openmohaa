@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "navigation_recast_obstacle.h"
 #include "navigation_recast_load.h"
 #include "navigation_recast_config.h"
+#include "doors.h"
 #include "navigation_recast_helpers.h"
 #include "entity.h"
 #include "trigger.h"
@@ -390,9 +391,13 @@ bool NavigationObstacleMap::IsValidEntity(gentity_t *ent) const
         return false;
     }
 
-    // Ignore doors as they can be interacted
+    // Closed and moving doors stay traversable so bots can approach and use
+    // them. Once fully open, the solid panel occupies a different position;
+    // expose that moved panel to Recast so paths go through the doorway rather
+    // than through the panel.
     if (ent->entity->IsSubclassOfDoor()) {
-        return false;
+        Door *door = static_cast<Door *>(ent->entity);
+        return door->isOpen();
     }
 
     return true;
@@ -492,14 +497,17 @@ void NavigationObstacleMap::EngagePolysAt(gentity_t *ent, const Vector& min, con
     halfExtents = size * 0.5;
 
     radiusSqr = halfExtents.lengthXYSquared();
-    // Minimum size of 100 units (sphere)
-    // So objects like barrels that the bot can get around are ignored.
-    if (radiusSqr < Square(100)) {
+    const bool isDoor = ent->entity && ent->entity->IsSubclassOfDoor();
+    // Ignore small ordinary objects, but retain thin open door panels. Their
+    // moved position is exactly the obstacle that must be routed around.
+    if (!isDoor && radiusSqr < Square(100)) {
         return;
     }
 
     // Allow the object to cover polygons up to twice its size
-    query.maxRadiusSqr = radiusSqr * Square(1.5);
+    query.maxRadiusSqr = isDoor
+        ? Q_max(radiusSqr * Square(1.5), Square(128))
+        : radiusSqr * Square(1.5);
 
     float rcCenter[3];
     float rcHalfExtents[3];
@@ -524,11 +532,14 @@ void NavigationObstacleMap::ReleasePolysAt(gentity_t *ent, const Vector& min, co
     halfExtents = size * 0.5;
 
     radiusSqr = halfExtents.lengthXYSquared();
-    if (radiusSqr < Square(100)) {
+    const bool isDoor = ent->entity && ent->entity->IsSubclassOfDoor();
+    if (!isDoor && radiusSqr < Square(100)) {
         return;
     }
 
-    query.maxRadiusSqr = radiusSqr * Square(1.5);
+    query.maxRadiusSqr = isDoor
+        ? Q_max(radiusSqr * Square(1.5), Square(128))
+        : radiusSqr * Square(1.5);
 
     float rcCenter[3];
     float rcHalfExtents[3];

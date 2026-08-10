@@ -36,6 +36,7 @@ typedef struct nodeAttract_s {
 } nodeAttract_t;
 
 class BotController;
+class Door;
 
 enum bot_fire_decision_t {
     BOT_FIRE_NONE,
@@ -208,6 +209,7 @@ public:
     bool IsMoving(void);
     bool IsMovingTo(const Vector& position, float tolerance = 64.0f) const;
     bool IsBlockedRecoveryActive(void) const;
+    bool ConsumeLocalOscillation(void);
     void ClearMove(void);
 
     Vector GetCurrentGoal() const;
@@ -230,6 +232,10 @@ private:
     void   DirectMoveThink(usercmd_t& botcmd);
     void   NewMove();
     Vector FixDeltaFromCollision(const Vector& delta);
+    Vector ChooseBlockedRecoveryGoal(const Vector& pathDelta);
+    void   UpdateLocalLoopDetection();
+    void   ResetLocalLoopHistory();
+    void   RepathAroundOpenDoor(Door *door);
     void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
@@ -259,6 +265,17 @@ private:
     int    m_iLastBlockTime;
     int    m_iTempAwayState;
     bool   m_bPathing;
+    enum { MAX_LOCAL_LOOP_SAMPLES = 16 };
+    Vector m_vLocalLoopOrigins[MAX_LOCAL_LOOP_SAMPLES];
+    Vector m_vLocalLoopTargets[MAX_LOCAL_LOOP_SAMPLES];
+    float  m_fLocalLoopTravel[MAX_LOCAL_LOOP_SAMPLES];
+    int    m_iLocalLoopTimes[MAX_LOCAL_LOOP_SAMPLES];
+    Vector m_vLocalLoopLastOrigin;
+    float  m_fLocalLoopTravelTotal;
+    int    m_iLocalLoopSampleCount;
+    int    m_iLocalLoopNextSampleTime;
+    int    m_iLocalLoopCooldownUntil;
+    bool   m_bLocalOscillation;
     bool   m_bDirectMove;
     bool   m_bWasOnLadder;
     float  m_fLadderTop;
@@ -280,6 +297,8 @@ private:
     Vector m_vCollisionProgressOrigin;
     int    m_iCollisionAvoidDirection;
     int    m_iCollisionAvoidDirectionUntil;
+    int    m_iOpenDoorRepathTime;
+    int    m_iOpenDoorEntity;
     int    m_iReducedStanceStartTime;
 
     ///

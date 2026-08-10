@@ -167,8 +167,8 @@ navigation periodically owns the command unchanged. Before an active roaming
 overlay is applied, a longer forward sweep compares it with the untouched
 navigation command. If the optional strafe loses clearance, it is canceled for
 that frame without reversing direction or introducing a centering controller.
-During an active comparison, ot_strafe_clearance records the optional-command
-clearance and ot_strafe_other_clearance records the untouched navigation
+During an active comparison, `bot_strafe_clearance` records the optional-command
+clearance and `bot_strafe_other_clearance` records the untouched navigation
 clearance. Combat retains continuous strafe-and-lean phases. Enemy-relative radial
 movement engages only while an enemy is within `g_bot_peek_distance`. Short
 randomized phases choose between advancing, orbiting with no radial input, and
@@ -208,6 +208,21 @@ normal-mode recorder lives when the SMG sample is sparse, and uses geometry
 counts only when neither behavior sample is reliable. Strategic graph points
 are fitted to nearby runtime path nodes; the normal navigation and collision
 steering still control movement between them.
+
+Blocked recovery first commits to a clearance-tested lateral exit and uses a
+short reverse only when neither side is traversable. The movement layer also
+detects a stable-destination loop when a bot travels substantially but returns
+to the same small area; objective and FFA route planners then abandon and
+reseed that hop instead of treating the repeated travel as progress. These
+escapes are recorded as `bot_blocked_lateral_recovery`,
+`bot_blocked_reverse_recovery`, `bot_objective_route_oscillation`, and
+`bot_ffa_route_oscillation` events.
+
+Closed and moving unlocked doors remain traversable so bots can approach and
+use them. A fully open panel is registered at its moved position as a Recast
+obstacle. If a bot still contacts that panel, it immediately requests a
+throttled path around it and records `bot_open_door_repath`; the generic
+blocked-recovery reversal does not compete with that door-specific response.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and

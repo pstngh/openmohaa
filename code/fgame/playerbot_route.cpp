@@ -858,6 +858,25 @@ bool BotController::UpdateDemoRoute(
     unsigned int                  seed
 )
 {
+    const bool objective = graph
+        ? graph->mode == BOT_DEMO_ROUTE_OBJECTIVE
+        : &route == &m_ObjectiveDemoRoute;
+
+    if (movement.ConsumeLocalOscillation()) {
+        G_MoveLogBotEvent(
+            objective
+                ? "bot_objective_route_oscillation"
+                : "bot_ffa_route_oscillation",
+            controlledEnt,
+            NULL,
+            route.nextNode >= 0 ? route.nextNode : route.goalNode,
+            controlledEnt->origin
+        );
+        movement.ClearMove();
+        ResetDemoRoute(route, true);
+        return false;
+    }
+
     if (!graph) {
         return false;
     }
@@ -866,8 +885,6 @@ bool BotController::UpdateDemoRoute(
         ResetDemoRoute(route, true);
         return false;
     }
-
-    const bool objective = graph->mode == BOT_DEMO_ROUTE_OBJECTIVE;
 
     // Replacing a path from a mid-ladder origin can fail and send the bot back
     // to the same entrance. Finish or abandon the current ladder transition
