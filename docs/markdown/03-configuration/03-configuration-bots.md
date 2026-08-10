@@ -218,20 +218,22 @@ escapes are recorded as `bot_blocked_lateral_recovery`,
 `bot_blocked_reverse_recovery`, `bot_objective_route_oscillation`, and
 `bot_ffa_route_oscillation` events.
 
-Closed, moving, and open unlocked doors remain push-through contacts. As with a
-human holding movement, the final bot collision guard preserves forward
-pressure while use logic opens the door. If panel contact persists for 350 ms,
-the bot commits to one probed panel-edge direction and holds the equivalent of
-forward-plus-strafe only while the panel remains in its immediate path. Once
-contact clears, the untouched route command resumes through the opening instead
-of carrying lateral input into the opposite door frame. The contact blend is
-scaled without rotating its world-space edge direction. If the chosen edge
-immediately meets an adjacent world corner, the commitment is discarded so the
-next contact probes again; this is recorded as `bot_door_push_blocked`. None of
-this changes the bot's path or routes it around the door. A fully open panel
-remains registered at its moved position as a Recast obstacle. Throttled
-`bot_door_pushthrough` events identify contact; `bot_door_push_slide` records
-the edge commitment.
+Closed and moving unlocked doors remain push-through contacts. As with a human
+holding movement, the final bot collision guard preserves pressure along the
+original route command while use logic opens the door. If panel contact
+persists for 350 ms, the bot also commits to one probed panel-edge direction
+and holds the equivalent of forward-plus-strafe only while the panel remains
+in its immediate path. During short contact-free gaps, it keeps the original
+through-door approach for up to 750 ms instead of carrying the lateral tangent
+along the frame or immediately accepting route pullback. The contact blend is
+scaled without rotating its world-space edge direction. If the commitment
+meets an adjacent world corner, both vectors are discarded so the next contact
+captures and probes again; this is recorded as `bot_door_push_blocked`. None
+of this changes the bot's path or routes it around the door. Once a panel is
+fully open it no longer enters door-push handling; it remains registered at its
+moved position as a Recast obstacle and uses the normal final collision guard.
+Throttled `bot_door_pushthrough` events identify closed/moving contact;
+`bot_door_push_slide` records the edge commitment.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and
