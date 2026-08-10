@@ -52,7 +52,7 @@ static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const float BOT_STRAFE_PROBE_DISTANCE          = 56.0f;
 static const float BOT_ROAM_STRAFE_VETO_DISTANCE      = 112.0f;
 static const float BOT_ROAM_STRAFE_CLEARANCE_EPSILON  = 0.05f;
-static const int   BOT_OPEN_DOOR_REPATH_MSEC          = 500;
+static const int   BOT_DOOR_PUSH_LOG_MSEC              = 1000;
 static const int   BOT_LOCAL_LOOP_SAMPLE_MSEC         = 500;
 static const int   BOT_LOCAL_LOOP_MIN_AGE_MSEC        = 3000;
 static const int   BOT_LOCAL_LOOP_MAX_AGE_MSEC        = 8000;
@@ -149,8 +149,8 @@ BotMovement::BotMovement()
     m_iCollisionAvoidDirection = 0;
     m_iCollisionAvoidDirectionUntil = 0;
     m_iReducedStanceStartTime  = 0;
-    m_iOpenDoorRepathTime      = 0;
-    m_iOpenDoorEntity          = ENTITYNUM_NONE;
+    m_iDoorPushLogTime         = 0;
+    m_iDoorPushEntity          = ENTITYNUM_NONE;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -1406,31 +1406,21 @@ Vector BotMovement::ChooseBlockedRecoveryGoal(const Vector& pathDelta)
     return fallback;
 }
 
-void BotMovement::RepathAroundOpenDoor(Door *door)
+void BotMovement::RecordDoorPushThrough(Door *door)
 {
-    if (!door || !m_bPathing || m_bDirectMove || !m_pPath
-        || m_pPath->UsesLegacyCollisionAvoidance()) {
+    if (!door) {
         return;
     }
-    if (door->entnum == m_iOpenDoorEntity
-        && level.inttime < m_iOpenDoorRepathTime) {
+    if (door->entnum == m_iDoorPushEntity
+        && level.inttime < m_iDoorPushLogTime) {
         return;
     }
 
-    m_iOpenDoorEntity   = door->entnum;
-    m_iOpenDoorRepathTime = level.inttime + BOT_OPEN_DOOR_REPATH_MSEC;
-
-    PathSearchParameter parameters;
-    parameters.entity     = controlledEntity;
-    parameters.fallHeight = maxFallHeight;
-    m_pPath->FindPath(controlledEntity->origin, m_vTargetPos, parameters);
-    m_iLastMoveTime  = level.inttime;
-    m_iCheckPathTime = level.inttime;
-    m_iTempAwayState = 0;
-    m_iNumBlocks     = 0;
+    m_iDoorPushEntity  = door->entnum;
+    m_iDoorPushLogTime = level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
 
     G_MoveLogBotEvent(
-        "bot_open_door_repath",
+        "bot_door_pushthrough",
         controlledEntity,
         NULL,
         door->entnum,
@@ -2534,15 +2524,12 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     }
 
     Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
-    if (openableDoor && !openableDoor->isOpen()) {
-        // Keep pushing while CheckUse opens the door. A fully open panel falls
-        // through to normal wall-slide handling below.
+    if (openableDoor) {
+        // Humans keep their movement command held while use logic opens the
+        // door and player physics pushes/slides through it. Do the same here:
+        // the final AI guard must not cancel, project, or repath this command.
+        RecordDoorPushThrough(openableDoor);
         return;
-    }
-
-    const bool hitOpenDoor = openableDoor && openableDoor->isOpen();
-    if (hitOpenDoor) {
-        RepathAroundOpenDoor(openableDoor);
     }
 
     const bool hitSentient = trace.ent && trace.ent->entity
@@ -2598,7 +2585,6 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     // periodic blocked check to discover it. A transient contact is still
     // discarded by that normal movement check.
     if (m_bPathing && !m_bHasCombatTarget
-        && !hitOpenDoor
         && resolvedCommand <= BOT_GUARD_RECOVERY_COMMAND_MAX
         && m_iTempAwayState == 0) {
         m_iTempAwayState = 1;

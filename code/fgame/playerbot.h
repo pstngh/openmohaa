@@ -235,7 +235,7 @@ private:
     Vector ChooseBlockedRecoveryGoal(const Vector& pathDelta);
     void   UpdateLocalLoopDetection();
     void   ResetLocalLoopHistory();
-    void   RepathAroundOpenDoor(Door *door);
+    void   RecordDoorPushThrough(Door *door);
     void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
@@ -297,8 +297,8 @@ private:
     Vector m_vCollisionProgressOrigin;
     int    m_iCollisionAvoidDirection;
     int    m_iCollisionAvoidDirectionUntil;
-    int    m_iOpenDoorRepathTime;
-    int    m_iOpenDoorEntity;
+    int    m_iDoorPushLogTime;
+    int    m_iDoorPushEntity;
     int    m_iReducedStanceStartTime;
 
     ///

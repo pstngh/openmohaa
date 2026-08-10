@@ -218,11 +218,13 @@ escapes are recorded as `bot_blocked_lateral_recovery`,
 `bot_blocked_reverse_recovery`, `bot_objective_route_oscillation`, and
 `bot_ffa_route_oscillation` events.
 
-Closed and moving unlocked doors remain traversable so bots can approach and
-use them. A fully open panel is registered at its moved position as a Recast
-obstacle. If a bot still contacts that panel, it immediately requests a
-throttled path around it and records `bot_open_door_repath`; the generic
-blocked-recovery reversal does not compete with that door-specific response.
+Closed, moving, and open unlocked doors remain push-through contacts. As with a
+human holding movement, the final bot collision guard leaves the existing
+command untouched while use logic opens the door and normal player physics
+pushes or slides through it. A fully open panel remains registered at its moved
+position as a Recast obstacle, so path steering can still prefer the opening.
+Throttled `bot_door_pushthrough` events identify the contacted panel; repeated
+events for one bot and door indicate that the physical push did not clear it.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and

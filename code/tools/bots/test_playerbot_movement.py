@@ -131,17 +131,17 @@ class NavigationFailureContract(unittest.TestCase):
             "Vector BotMovement::ChooseBlockedRecoveryGoal"
         )
         end = cls.source.index(
-            "void BotMovement::RepathAroundOpenDoor", start
+            "void BotMovement::RecordDoorPushThrough", start
         )
         cls.recovery = cls.source[start:end]
 
         start = cls.source.index(
-            "void BotMovement::RepathAroundOpenDoor"
+            "void BotMovement::RecordDoorPushThrough"
         )
         end = cls.source.index(
             "void BotMovement::CalculateBestFrontAvoidance", start
         )
-        cls.door_repath = cls.source[start:end]
+        cls.door_push = cls.source[start:end]
 
         start = cls.source.index(
             "void BotMovement::ResolveImminentCollision"
@@ -162,16 +162,25 @@ class NavigationFailureContract(unittest.TestCase):
             2,
         )
 
-    def test_open_door_contact_repaths_without_reverse_recovery(self) -> None:
+    def test_openable_door_contact_preserves_player_movement(self) -> None:
         self.assertIn(
             '#include "movement_telemetry.h"', self.source
         )
-        self.assertIn("m_pPath->FindPath", self.door_repath)
-        self.assertIn("bot_open_door_repath", self.door_repath)
+        self.assertNotIn("m_pPath->FindPath", self.door_push)
+        self.assertIn("bot_door_pushthrough", self.door_push)
         self.assertIn(
-            "RepathAroundOpenDoor(openableDoor)", self.guard
+            "RecordDoorPushThrough(openableDoor)", self.guard
         )
-        self.assertIn("&& !hitOpenDoor", self.guard)
+        door_start = self.guard.index("Door *openableDoor")
+        door_contact = self.guard[
+            door_start:
+            self.guard.index("const bool hitSentient", door_start)
+        ]
+        self.assertIn("if (openableDoor)", door_contact)
+        self.assertIn("return;", door_contact)
+        self.assertNotIn("botcmd.forwardmove", door_contact)
+        self.assertNotIn("botcmd.rightmove", door_contact)
+        self.assertNotIn("FindPath", door_contact)
 
     def test_blocked_recovery_prefers_committed_lateral_clearance(self) -> None:
         self.assertIn(
