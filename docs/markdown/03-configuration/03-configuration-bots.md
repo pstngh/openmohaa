@@ -158,6 +158,18 @@ For example, `g_playerdmhealth 200` gives those weapons twice their normal
 damage. Other weapons, melee attacks, knockback, and single-player damage are
 unchanged. Values are clamped to `1` through `1000`.
 
+### Route-direction continuity
+
+Fast ordinary path travel limits only abrupt direction handoffs above 45
+degrees, turning the requested world direction at up to 720 degrees per
+second. A 64-unit comparative sweep vetoes the limit whenever the rounded
+direction has worse clearance than the path's new direction, so a path turn
+away from a wall remains immediate. Direct movement, combat, active collision
+avoidance, blocked recovery, ladders, jumps, and committed door movement keep
+immediate ownership. This behavior does not center bots or replace the final
+collision guard. Throttled `bot_route_turn_limited` events identify
+frames where continuity changed the ordinary route request.
+
 ### Aggressive movement
 
 This movement is intentionally part of the default bot behavior and has no
@@ -234,6 +246,8 @@ fully open it no longer enters door-push handling; it remains registered at its
 moved position as a Recast obstacle and uses the normal final collision guard.
 Throttled `bot_door_pushthrough` events identify closed/moving contact;
 `bot_door_push_slide` records the edge commitment.
+Throttled `bot_open_door_panel_contact` events identify normal final-guard
+contact with a fully open displaced panel without changing movement or routes.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and
