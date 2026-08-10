@@ -42,11 +42,11 @@ Accept only an artifact containing x86-64 `omohaaded` and `game.so`.
 
 ## Tuning deployment sequence
 
-The owner's current preference for an accepted new server build is: stop the systemd service, replace only `omohaaded` and `game.so`, reset the active telemetry triplet for a clean schema-compatible run, reboot the VPS, and verify the service came back automatically. Before deleting telemetry, download/archive it when it is still needed as evidence.
+The current deployment policy for an accepted server build is: preserve the exact prior binary pair, stop the systemd service, replace only `omohaaded` and `game.so` as one verified pair, and start the service again. The configured service start hook resets exactly the active telemetry triplet for a clean schema-compatible run. Do not reboot the VPS unless the owner requests it or a verified deployment requirement makes it necessary. Before the reset, download/archive telemetry when it is still needed as evidence.
 
 Use the exact verified service and paths from the prerequisite inspection; this document deliberately contains no guessed unit or directory names.
 
-After reboot, verify:
+After the service restart, verify:
 
 - the systemd unit is active and enabled;
 - the process command line and working directory are expected;

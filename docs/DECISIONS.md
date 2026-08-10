@@ -67,3 +67,9 @@ This log records owner-approved choices that a future session might otherwise un
 **Decision:** Do not submit AI-generated code or documentation from these branches to upstream OpenMoHAA.
 
 **Rationale:** Upstream `CONTRIBUTING.md` explicitly rejects AI-generated contributions.
+
+## D012 - Recast corridor comfort without global erosion
+
+**Decision:** Keep Recast's global agent radius equal to the physical player half-width. For ordinary bot route travel only, wall comfort may adjust the first Detour corner when the proposed point remains within the existing polygon corridor and proves adequate clearance. Tight corridors, partial queries, short goals, off-mesh links, and explicit combat/movement owners retain the original corner.
+
+**Rationale:** Telemetry showed repeated full-speed lanes at near-zero hull clearance even when optional strafe and collision avoidance were inactive, because a physically valid shortest path may run on the eroded navmesh boundary. Increasing the global radius could remove valid doors and passages, while the rejected always-on input-centering layer damaged visible roaming personality without fixing contact.
