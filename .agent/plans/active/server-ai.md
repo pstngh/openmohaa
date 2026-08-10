@@ -60,7 +60,7 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - The 2026-08-10 VPS audit and rollback verified that the running binary pair matches passing code commit `676c85f1`; revalidate before later deployments because external state can change.
 - A 443,879-frame schema 7 comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
 - An always-on noncombat centering replacement failed visual acceptance: it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored; do not recreate an always-on centering overlay.
-- The current experiment instead alternates active and neutral noncombat style phases and vetoes an optional strafe only when a 112-unit forward sweep loses more clearance than the untouched navigation command. It never reverses the strafe, adds centering, or changes the final collision guard.
+- Deployed commit `1e30bea8` alternates active and neutral noncombat style phases and vetoes an optional strafe only when a 112-unit forward sweep loses more clearance than the untouched navigation command. It never reverses the strafe, adds centering, or changes the final collision guard. Server-only run `31406192630` passed and clean schema 7 telemetry is recording.
 
 ## Implementation discipline
 
@@ -88,4 +88,4 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 ## Next action
 
-Review and commit the focused roaming-phase/wall-veto experiment, push it to `bots/server-ai`, require the server-only Linux x64 build to pass, deploy only its verified two-file artifact, then compare a clean `obj_team2` plus FFA/practice capture against the recorded `lawl` baseline.
+Collect and pull a clean schema 7 sample from deployed commit `1e30bea8` on `obj_team2` plus an FFA/practice map, including `lawl` when practical. Compare lateral-input and moving-lean duty, full-speed share, nearer-wall commands, wall-hug episodes, and collision-guard suppression against the recorded baseline before changing movement again.

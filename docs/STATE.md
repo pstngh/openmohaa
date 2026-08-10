@@ -31,7 +31,7 @@ Continue evidence-driven server bot development without regressing working objec
 ## Partial or under evaluation
 
 - The recent navigation series is implemented but has not been accepted as eliminating the owner's observed wall/door/item contacts or mindless back-and-forth. A 443,879-frame human comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
-- An always-on noncombat centering replacement failed visual acceptance because it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored. The current working tree contains a narrower experiment: alternating active/neutral roaming phases plus a comparative forward-clearance veto that cancels only an unsafe optional strafe. It does not reverse direction, center the bot, or alter the final collision guard.
+- An always-on noncombat centering replacement failed visual acceptance because it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored. Deployed commit `1e30bea8` contains the narrower replacement: alternating active/neutral roaming phases plus a comparative forward-clearance veto that cancels only an unsafe optional strafe. It does not reverse direction, center the bot, or alter the final collision guard. Live acceptance remains pending.
 - Demo routes influence strategic destinations, but live Recast navigation and collision steering still determine movement between route points.
 - Objective behavior works on tested rounds of `obj_team2` and has planted/defused on `obj_team4`, but map-specific regressions remain possible and must be tested separately.
 - The CI branch-name filters now recognize `bots/server-ai`; the first post-retrofit server-only run passed.
@@ -52,7 +52,8 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 - GitHub `Builds` succeeded for audited tip `676c85f1` under the former branch name on 2026-08-08.
 - Branch tips were refreshed and verified equal locally/remotely after the GitHub rename.
 - On 2026-08-09, all 7 route-generator tests and the continuity check passed on the retrofit working tree.
-- On 2026-08-10, the focused roaming-phase/wall-veto experiment passed 6 source-contract tests, all 7 route-generator tests, `git diff --check`, and the continuity check. Linux compilation and live acceptance remain pending.
+- On 2026-08-10, the focused roaming-phase/wall-veto experiment passed 6 source-contract tests, all 7 route-generator tests, `git diff --check`, and the continuity check. The source contract also prevents const inputs to the legacy mutating `Q_clamp` macro after CI exposed both refactored call sites.
+- GitHub run `31406192630` passed for commit `1e30bea8`: only `Build Linux x64 dedicated server` ran, and artifact `openmohaa-bot-server-linux-x64` passed exact-file and x86-64 checks. The independently verified artifact was deployed successfully; the prior binary pair remains available outside Git as the exact rollback copy.
 - GitHub run `31316489080` passed for continuity commit `380331a0`: only `Build Linux x64 dedicated server` ran, and artifact `openmohaa-bot-server-linux-x64` passed the exact-file and x86-64 checks.
 
 ## Cross-branch status
@@ -63,4 +64,4 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 
 ## Next action
 
-Review and commit the focused roaming-phase/wall-veto experiment, push it to `bots/server-ai`, require the server-only Linux x64 build to pass, deploy only its verified two-file artifact, then compare a clean `obj_team2` plus FFA/practice capture against the recorded `lawl` baseline.
+Collect and pull a clean schema 7 sample from deployed commit `1e30bea8` on `obj_team2` plus an FFA/practice map, including `lawl` when practical. Compare lateral-input and moving-lean duty, full-speed share, nearer-wall commands, wall-hug episodes, and collision-guard suppression against the recorded baseline before changing movement again.
