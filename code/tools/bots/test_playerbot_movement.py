@@ -176,14 +176,12 @@ class NavigationFailureContract(unittest.TestCase):
             "BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500", self.source
         )
         self.assertIn(
-            "BOT_DOOR_PUSH_EXIT_COMMIT_MSEC      = 750", self.source
+            "BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC    = 250", self.source
         )
         self.assertIn(
-            "ContinueDoorPushThrough(baseCommand);", self.source
+            "ApplyDoorPushThrough(botcmd);", self.door_push
         )
-        self.assertIn(
-            "ContinueDoorPushThrough(botcmd);", self.source
-        )
+        self.assertNotIn("ContinueDoorPushThrough", self.source)
         self.assertIn(
             "m_iTempAwayState == 2", self.door_push
         )

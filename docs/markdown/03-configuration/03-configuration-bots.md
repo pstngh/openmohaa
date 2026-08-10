@@ -222,10 +222,11 @@ Closed, moving, and open unlocked doors remain push-through contacts. As with a
 human holding movement, the final bot collision guard preserves forward
 pressure while use logic opens the door. If panel contact persists for 350 ms,
 the bot commits to one probed panel-edge direction and holds the equivalent of
-forward-plus-strafe through contact and for a 750 ms exit window, preventing the
-route command from turning back into the panel before the player hull clears.
-The blend is scaled without rotating that world-space edge direction. If the
-chosen edge meets an adjacent world corner, the commitment is discarded so the
+forward-plus-strafe only while the panel remains in its immediate path. Once
+contact clears, the untouched route command resumes through the opening instead
+of carrying lateral input into the opposite door frame. The contact blend is
+scaled without rotating its world-space edge direction. If the chosen edge
+immediately meets an adjacent world corner, the commitment is discarded so the
 next contact probes again; this is recorded as `bot_door_push_blocked`. None of
 this changes the bot's path or routes it around the door. A fully open panel
 remains registered at its moved position as a Recast obstacle. Throttled

@@ -50,8 +50,8 @@ static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const int   BOT_DOOR_PUSH_STALL_MSEC            = 350;
-static const int   BOT_DOOR_PUSH_EXIT_COMMIT_MSEC      = 750;
 static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
+static const int   BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC    = 250;
 static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
 static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
 static const float BOT_DOOR_PUSH_SIDE_COMMAND          = 127.0f;
@@ -1495,17 +1495,15 @@ void BotMovement::PushThroughOpenableDoor(
         );
     }
 
-    ContinueDoorPushThrough(botcmd);
+    ApplyDoorPushThrough(botcmd);
 }
 
-void BotMovement::ContinueDoorPushThrough(usercmd_t& botcmd) const
+void BotMovement::ApplyDoorPushThrough(usercmd_t& botcmd) const
 {
     if (!controlledEntity
         || controlledEntity->GetLadder() || m_bJump
         || m_iTempAwayState == 2
-        || m_vDoorPushDirection.lengthXYSquared() <= 0.01f
-        || level.inttime > m_iDoorPushLastContactTime
-            + BOT_DOOR_PUSH_EXIT_COMMIT_MSEC) {
+        || m_vDoorPushDirection.lengthXYSquared() <= 0.01f) {
         return;
     }
 
@@ -2172,10 +2170,8 @@ static int RandomInterval(cvar_t *lo, cvar_t *hi)
 
 void BotMovement::FinalizeMovement(usercmd_t& botcmd)
 {
-    usercmd_t baseCommand = botcmd;
+    const usercmd_t baseCommand = botcmd;
     UpdateAggressiveMovement(botcmd);
-    ContinueDoorPushThrough(baseCommand);
-    ContinueDoorPushThrough(botcmd);
     ResolveImminentCollision(botcmd, baseCommand);
 }
 
@@ -2669,7 +2665,7 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     if (trace.entityNum == ENTITYNUM_WORLD
         && m_vDoorPushDirection.lengthXYSquared() > 0.01f
         && level.inttime <= m_iDoorPushLastContactTime
-            + BOT_DOOR_PUSH_EXIT_COMMIT_MSEC) {
+            + BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC) {
         m_vDoorPushDirection = vec_zero;
         if (level.inttime >= m_iDoorPushBlockedLogTime) {
             m_iDoorPushBlockedLogTime =
