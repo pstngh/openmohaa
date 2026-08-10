@@ -1969,7 +1969,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
             m_telemetry.strafeIntensity = intensity;
 
             if (offset) {
-                const int newRight = (int)botcmd.rightmove + offset;
+                int newRight = (int)botcmd.rightmove + offset;
                 botcmd.rightmove =
                     (signed char)Q_clamp(newRight, -127, 127);
                 m_telemetry.strafeApplied = true;

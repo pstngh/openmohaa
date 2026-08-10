@@ -88,6 +88,8 @@ class RoamingStyleContract(unittest.TestCase):
         decision = self.update[start:end]
         self.assertNotIn("m_iStrafeDirection =", decision)
         self.assertNotIn("botcmd.rightmove =", decision)
+        self.assertNotIn("const int probeRight", self.probes)
+        self.assertNotIn("const int newRight", self.update)
         self.assertNotIn("LaneSteering", self.source)
         self.assertNotIn("CENTER_ENGAGE", self.source)
 
