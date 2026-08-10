@@ -79,6 +79,15 @@ static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
     }
 
     Door *door = static_cast<Door *>(trace.ent->entity);
+
+    // A fully open panel is ordinary collision at its displaced position.
+    // Recast and the final movement guard already account for that geometry;
+    // treating it as still openable starts another push episode against a
+    // door that has nowhere left to move.
+    if (door->isOpen()) {
+        return nullptr;
+    }
+
     return door->CanBeOpenedBy(player) ? door : nullptr;
 }
 

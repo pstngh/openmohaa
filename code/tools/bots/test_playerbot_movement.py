@@ -150,6 +150,9 @@ class NavigationFailureContract(unittest.TestCase):
 
     def test_fully_open_door_panels_are_recast_obstacles(self) -> None:
         self.assertIn('#include "doors.h"', self.obstacles)
+        self.assertIn(
+            "if (door->isOpen())", self.source
+        )
         self.assertIn("return door->isOpen();", self.obstacles)
         self.assertEqual(
             self.obstacles.count(
