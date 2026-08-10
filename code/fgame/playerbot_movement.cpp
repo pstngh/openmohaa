@@ -1839,7 +1839,7 @@ float BotMovement::CalculateStrafeProbeFraction(
     usercmd_t probeCommand = botcmd;
     const int offset =
         (int)(direction * g_bot_strafe_intensity->value * 127.0f);
-    const int probeRight = (int)probeCommand.rightmove + offset;
+    int probeRight = (int)probeCommand.rightmove + offset;
     probeCommand.rightmove =
         (signed char)Q_clamp(probeRight, -127, 127);
     return CalculateMoveProbeFraction(probeCommand, distance);
