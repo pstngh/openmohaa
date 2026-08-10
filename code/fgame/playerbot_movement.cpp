@@ -49,6 +49,11 @@ static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
 static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
+static const int   BOT_DOOR_PUSH_STALL_MSEC            = 350;
+static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
+static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
+static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
+static const float BOT_DOOR_PUSH_SIDE_COMMAND          = 127.0f;
 static const float BOT_STRAFE_PROBE_DISTANCE          = 56.0f;
 static const float BOT_ROAM_STRAFE_VETO_DISTANCE      = 112.0f;
 static const float BOT_ROAM_STRAFE_CLEARANCE_EPSILON  = 0.05f;
@@ -151,6 +156,9 @@ BotMovement::BotMovement()
     m_iReducedStanceStartTime  = 0;
     m_iDoorPushLogTime         = 0;
     m_iDoorPushEntity          = ENTITYNUM_NONE;
+    m_iDoorPushStartTime       = 0;
+    m_iDoorPushLastContactTime = 0;
+    m_vDoorPushDirection       = vec_zero;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -1406,6 +1414,97 @@ Vector BotMovement::ChooseBlockedRecoveryGoal(const Vector& pathDelta)
     return fallback;
 }
 
+void BotMovement::PushThroughOpenableDoor(
+    usercmd_t& botcmd, Door *door, const trace_t& trace
+)
+{
+    if (!door || !controlledEntity) {
+        return;
+    }
+
+    const bool continuingContact = door->entnum == m_iDoorPushEntity
+        && level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_PUSH_RECONTACT_MSEC;
+    RecordDoorPushThrough(door);
+    if (!continuingContact) {
+        m_iDoorPushStartTime = level.inttime;
+        m_vDoorPushDirection = vec_zero;
+    }
+    m_iDoorPushLastContactTime = level.inttime;
+
+    // A normal square-on push is enough while the door begins moving. Only
+    // add human-like edge steering when contact persists long enough to prove
+    // that holding forward alone did not clear the panel.
+    if (level.inttime < m_iDoorPushStartTime + BOT_DOOR_PUSH_STALL_MSEC) {
+        return;
+    }
+
+    if (m_vDoorPushDirection.lengthXYSquared() <= 0.01f) {
+        Vector normal = trace.plane.normal;
+        normal.z      = 0.0f;
+        if (VectorNormalize2D(normal) <= 0.0f) {
+            return;
+        }
+
+        Vector tangent(-normal.y, normal.x, 0.0f);
+        const Vector doorCenter = (door->absmin + door->absmax) * 0.5f;
+        const Vector fromCenter = controlledEntity->origin - doorCenter;
+        const Vector pathDelta  = m_vCurrentGoal - controlledEntity->origin;
+        const float awayDot     = DotProduct(fromCenter, tangent);
+        const float pathDot     = DotProduct(pathDelta, tangent);
+        int preferredDirection;
+        if (fabs(awayDot) > 4.0f) {
+            preferredDirection = awayDot > 0.0f ? 1 : -1;
+        } else if (fabs(pathDot) > 1.0f) {
+            preferredDirection = pathDot > 0.0f ? 1 : -1;
+        } else {
+            preferredDirection = door->entnum & 1 ? 1 : -1;
+        }
+
+        usercmd_t preferredProbe = botcmd;
+        usercmd_t otherProbe     = botcmd;
+        SetCommandMoveVector(
+            preferredProbe,
+            tangent * (preferredDirection * BOT_DOOR_PUSH_SIDE_COMMAND)
+        );
+        SetCommandMoveVector(
+            otherProbe,
+            tangent * (-preferredDirection * BOT_DOOR_PUSH_SIDE_COMMAND)
+        );
+        const float preferredClearance = CalculateMoveProbeFraction(
+            preferredProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+        const float otherClearance = CalculateMoveProbeFraction(
+            otherProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+        if (otherClearance
+            > preferredClearance + BOT_DOOR_PUSH_PROBE_EPSILON) {
+            preferredDirection = -preferredDirection;
+        }
+
+        m_vDoorPushDirection = tangent * (float)preferredDirection;
+        G_MoveLogBotEvent(
+            "bot_door_push_slide",
+            controlledEntity,
+            NULL,
+            door->entnum,
+            controlledEntity->origin
+                + m_vDoorPushDirection * BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+    }
+
+    // Keep the original into-door component so touch/use logic still opens
+    // and pushes the panel. Force one committed tangential component instead
+    // of alternating sides as the door and path command change frame to frame.
+    Vector move = GetCommandMoveVector(botcmd);
+    const float sideMove = DotProduct(move, m_vDoorPushDirection);
+    if (sideMove < BOT_DOOR_PUSH_SIDE_COMMAND) {
+        move += m_vDoorPushDirection
+            * (BOT_DOOR_PUSH_SIDE_COMMAND - sideMove);
+    }
+    SetCommandMoveVector(botcmd, move);
+}
+
 void BotMovement::RecordDoorPushThrough(Door *door)
 {
     if (!door) {
@@ -2525,10 +2624,8 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
 
     Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
     if (openableDoor) {
-        // Humans keep their movement command held while use logic opens the
-        // door and player physics pushes/slides through it. Do the same here:
-        // the final AI guard must not cancel, project, or repath this command.
-        RecordDoorPushThrough(openableDoor);
+        // Preserve forward pressure and commit toward one panel edge.
+        PushThroughOpenableDoor(botcmd, openableDoor, trace);
         return;
     }
 

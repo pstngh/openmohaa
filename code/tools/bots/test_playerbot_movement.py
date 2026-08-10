@@ -131,12 +131,12 @@ class NavigationFailureContract(unittest.TestCase):
             "Vector BotMovement::ChooseBlockedRecoveryGoal"
         )
         end = cls.source.index(
-            "void BotMovement::RecordDoorPushThrough", start
+            "void BotMovement::PushThroughOpenableDoor", start
         )
         cls.recovery = cls.source[start:end]
 
         start = cls.source.index(
-            "void BotMovement::RecordDoorPushThrough"
+            "void BotMovement::PushThroughOpenableDoor"
         )
         end = cls.source.index(
             "void BotMovement::CalculateBestFrontAvoidance", start
@@ -168,8 +168,18 @@ class NavigationFailureContract(unittest.TestCase):
         )
         self.assertNotIn("m_pPath->FindPath", self.door_push)
         self.assertIn("bot_door_pushthrough", self.door_push)
+        self.assertIn("bot_door_push_slide", self.door_push)
         self.assertIn(
-            "RecordDoorPushThrough(openableDoor)", self.guard
+            "BOT_DOOR_PUSH_STALL_MSEC            = 350", self.source
+        )
+        self.assertIn(
+            "BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500", self.source
+        )
+        self.assertIn("door->absmin + door->absmax", self.door_push)
+        self.assertIn("CalculateMoveProbeFraction", self.door_push)
+        self.assertIn("m_vDoorPushDirection", self.header)
+        self.assertIn(
+            "PushThroughOpenableDoor(botcmd, openableDoor, trace)", self.guard
         )
         door_start = self.guard.index("Door *openableDoor")
         door_contact = self.guard[

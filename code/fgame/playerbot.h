@@ -236,6 +236,7 @@ private:
     void   UpdateLocalLoopDetection();
     void   ResetLocalLoopHistory();
     void   RecordDoorPushThrough(Door *door);
+    void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
@@ -299,6 +300,9 @@ private:
     int    m_iCollisionAvoidDirectionUntil;
     int    m_iDoorPushLogTime;
     int    m_iDoorPushEntity;
+    int    m_iDoorPushStartTime;
+    int    m_iDoorPushLastContactTime;
+    Vector m_vDoorPushDirection;
     int    m_iReducedStanceStartTime;
 
     ///

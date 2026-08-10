@@ -219,12 +219,14 @@ escapes are recorded as `bot_blocked_lateral_recovery`,
 `bot_ffa_route_oscillation` events.
 
 Closed, moving, and open unlocked doors remain push-through contacts. As with a
-human holding movement, the final bot collision guard leaves the existing
-command untouched while use logic opens the door and normal player physics
-pushes or slides through it. A fully open panel remains registered at its moved
-position as a Recast obstacle, so path steering can still prefer the opening.
-Throttled `bot_door_pushthrough` events identify the contacted panel; repeated
-events for one bot and door indicate that the physical push did not clear it.
+human holding movement, the final bot collision guard preserves forward
+pressure while use logic opens the door. If panel contact persists for 350 ms,
+the bot commits to one probed panel-edge direction and holds the equivalent of
+forward-plus-strafe until it clears, without changing its path or routing around
+the door. A fully open panel remains registered at its moved position as a
+Recast obstacle, so path steering can still prefer the opening. Throttled
+`bot_door_pushthrough` events identify contact; `bot_door_push_slide` records
+the edge commitment.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and
