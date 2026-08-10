@@ -163,6 +163,9 @@ class NavigationFailureContract(unittest.TestCase):
         )
 
     def test_open_door_contact_repaths_without_reverse_recovery(self) -> None:
+        self.assertIn(
+            '#include "movement_telemetry.h"', self.source
+        )
         self.assertIn("m_pPath->FindPath", self.door_repath)
         self.assertIn("bot_open_door_repath", self.door_repath)
         self.assertIn(

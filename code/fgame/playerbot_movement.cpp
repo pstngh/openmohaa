@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // playerbot_movement.cpp: Manages bot movements
 
 #include "playerbot.h"
+#include "movement_telemetry.h"
 #include "debuglines.h"
 #include "health.h"
 #include "misc.h"
