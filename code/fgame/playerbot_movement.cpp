@@ -159,6 +159,7 @@ BotMovement::BotMovement()
     m_iDoorPushEntity          = ENTITYNUM_NONE;
     m_iDoorPushStartTime       = 0;
     m_iDoorPushLastContactTime = 0;
+    m_iDoorPushBlockedLogTime  = 0;
     m_vDoorPushDirection       = vec_zero;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
@@ -1517,6 +1518,22 @@ void BotMovement::ContinueDoorPushThrough(usercmd_t& botcmd) const
         move += m_vDoorPushDirection
             * (BOT_DOOR_PUSH_SIDE_COMMAND - sideMove);
     }
+
+    // Preserve the selected world-space edge direction when converting the
+    // blended vector back to signed command axes. Independent axis clipping
+    // can rotate an over-range vector toward the opposite door-frame corner.
+    Vector angles = controlledEntity->angles;
+    Vector forward, left, up;
+    angles.x = 0.0f;
+    angles.z = 0.0f;
+    angles.AngleVectorsLeft(&forward, &left, &up);
+    const float commandMax = Q_max(
+        fabs(DotProduct(move, forward)),
+        fabs(DotProduct(move, left))
+    );
+    if (commandMax > BOT_DOOR_PUSH_SIDE_COMMAND) {
+        move *= BOT_DOOR_PUSH_SIDE_COMMAND / commandMax;
+    }
     SetCommandMoveVector(botcmd, move);
 }
 
@@ -2644,6 +2661,24 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         // Preserve forward pressure and commit toward one panel edge.
         PushThroughOpenableDoor(botcmd, openableDoor, trace);
         return;
+    }
+
+    // A committed panel edge can lead into the adjacent world corner. Drop
+    // that edge immediately so the next door contact probes the other side
+    // instead of repeatedly carrying the bot into a second obstacle.
+    if (trace.entityNum == ENTITYNUM_WORLD
+        && m_vDoorPushDirection.lengthXYSquared() > 0.01f
+        && level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_PUSH_EXIT_COMMIT_MSEC) {
+        m_vDoorPushDirection = vec_zero;
+        if (level.inttime >= m_iDoorPushBlockedLogTime) {
+            m_iDoorPushBlockedLogTime =
+                level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
+            G_MoveLogBotEvent(
+                "bot_door_push_blocked", controlledEntity, NULL,
+                m_iDoorPushEntity, trace.endpos
+            );
+        }
     }
 
     const bool hitSentient = trace.ent && trace.ent->entity

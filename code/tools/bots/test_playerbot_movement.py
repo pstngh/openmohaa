@@ -187,6 +187,13 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn(
             "m_iTempAwayState == 2", self.door_push
         )
+        self.assertIn(
+            "BOT_DOOR_PUSH_SIDE_COMMAND / commandMax", self.door_push
+        )
+        self.assertIn("bot_door_push_blocked", self.guard)
+        self.assertIn(
+            "m_vDoorPushDirection = vec_zero;", self.guard
+        )
         self.assertIn("door->absmin + door->absmax", self.door_push)
         self.assertIn("CalculateMoveProbeFraction", self.door_push)
         self.assertIn("m_vDoorPushDirection", self.header)

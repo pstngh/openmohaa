@@ -224,7 +224,10 @@ pressure while use logic opens the door. If panel contact persists for 350 ms,
 the bot commits to one probed panel-edge direction and holds the equivalent of
 forward-plus-strafe through contact and for a 750 ms exit window, preventing the
 route command from turning back into the panel before the player hull clears.
-This does not change its path or route around the door. A fully open panel
+The blend is scaled without rotating that world-space edge direction. If the
+chosen edge meets an adjacent world corner, the commitment is discarded so the
+next contact probes again; this is recorded as `bot_door_push_blocked`. None of
+this changes the bot's path or routes it around the door. A fully open panel
 remains registered at its moved position as a Recast obstacle. Throttled
 `bot_door_pushthrough` events identify contact; `bot_door_push_slide` records
 the edge commitment.

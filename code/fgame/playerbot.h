@@ -303,6 +303,7 @@ private:
     int    m_iDoorPushEntity;
     int    m_iDoorPushStartTime;
     int    m_iDoorPushLastContactTime;
+    int    m_iDoorPushBlockedLogTime;
     Vector m_vDoorPushDirection;
     int    m_iReducedStanceStartTime;
 
