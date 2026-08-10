@@ -44,7 +44,7 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 - [x] Revalidate the external systemd deployment topology and current binary identity; deploy only if the code tip is not already live.
 - [x] Start a clean schema 7 capture on the deployed current head.
-- [ ] Quantify wall/door/item contacts, oscillation, and local route reversals by map and bot state.
+- [x] Quantify the current `obj_team2` oscillation and doorway-contact signature by bot state from a preserved live schema 7 capture.
 - [x] Compare the same telemetry measures with human samples, especially narrow corridors and non-combat lean/strafe behavior.
 - [x] Make only the smallest evidence-supported steering/recovery correction, with a focused regression test.
 - [ ] Recheck `obj_team2`, `obj_team4`, and at least one FFA/practice map before accepting it.
@@ -57,10 +57,13 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - The CI filters were keyed to the former branch names; a rename without updating both workflow files would accidentally run the full build and unit-test workflow.
 - Strategic demo routes do not replace live navigation. Recast/path steering remains responsible for wall and doorway behavior between graph nodes.
 - A successful plant/defuse event does not prove all bots advance correctly; telemetry must be analyzed per bot and per round.
-- The 2026-08-10 VPS audit and rollback verified that the running binary pair matches passing code commit `676c85f1`; revalidate before later deployments because external state can change.
+- The external service was verified active on 2026-08-10 with the independently checked artifact for passing commit `13d2c465`; its live binary pair matched that artifact and fresh schema 7 telemetry was growing.
 - A 443,879-frame schema 7 comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
 - An always-on noncombat centering replacement failed visual acceptance: it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored; do not recreate an always-on centering overlay.
 - Deployed commit `1e30bea8` alternates active and neutral noncombat style phases and vetoes an optional strafe only when a 112-unit forward sweep loses more clearance than the untouched navigation command. It never reverses the strafe, adds centering, or changes the final collision guard. Server-only run `31406192630` passed and clean schema 7 telemetry is recording.
+- The preserved `1e30bea8` capture contained 183,128 bot frames across 15 `obj_team2` sessions and 27 strict 8-20 second small-area oscillations. Most kept one strategic destination while returning near their start after 350-900+ units of travel; door episodes repeatedly hit moved entities such as 73, 78, 81, and 82.
+- Two command-owner defects explained the pattern: objective progress counted repeated travel despite returning locally, while generic blocked recovery mixed the remaining path delta with a reverse offset and then reissued the same path. Fully open door panels were also excluded from runtime Recast obstacles even after moving into their open positions.
+- Commits `20f8c3fa` and `13d2c465` add local same-target loop invalidation, deterministic clearance-tested lateral recovery with reverse only as fallback, immediate open-door repathing, and runtime Recast obstacles for fully open solid door panels. Existing strafe/lean behavior is unchanged so this focused test does not conflate the uncertain style experiment with door/loop recovery.
 
 ## Implementation discipline
 
@@ -88,4 +91,4 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 ## Next action
 
-Collect and pull a clean schema 7 sample from deployed commit `1e30bea8` on `obj_team2` plus an FFA/practice map, including `lawl` when practical. Compare lateral-input and moving-lean duty, full-speed share, nearer-wall commands, wall-hug episodes, and collision-guard suppression against the recorded baseline before changing movement again.
+Exercise deployed commit `13d2c465` on `obj_team2` plus an FFA/practice map, deliberately crossing doors opened by the player and by bots. Pull the fresh schema 7 triplet and compare strict small-area loop rate/duration, `bot_objective_route_oscillation`/`bot_ffa_route_oscillation`, lateral-versus-reverse recovery, repeated same-door contacts, `bot_open_door_repath`, guard suppression, and stalls. Evaluate wall proximity, speed, lean, and roaming style separately before any further steering change.
