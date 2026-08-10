@@ -222,9 +222,10 @@ Closed, moving, and open unlocked doors remain push-through contacts. As with a
 human holding movement, the final bot collision guard preserves forward
 pressure while use logic opens the door. If panel contact persists for 350 ms,
 the bot commits to one probed panel-edge direction and holds the equivalent of
-forward-plus-strafe until it clears, without changing its path or routing around
-the door. A fully open panel remains registered at its moved position as a
-Recast obstacle, so path steering can still prefer the opening. Throttled
+forward-plus-strafe through contact and for a 750 ms exit window, preventing the
+route command from turning back into the panel before the player hull clears.
+This does not change its path or route around the door. A fully open panel
+remains registered at its moved position as a Recast obstacle. Throttled
 `bot_door_pushthrough` events identify contact; `bot_door_push_slide` records
 the edge commitment.
 

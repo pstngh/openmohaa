@@ -237,6 +237,7 @@ private:
     void   ResetLocalLoopHistory();
     void   RecordDoorPushThrough(Door *door);
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
+    void   ContinueDoorPushThrough(usercmd_t& botcmd) const;
     void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,

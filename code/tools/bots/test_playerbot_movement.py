@@ -175,6 +175,18 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn(
             "BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500", self.source
         )
+        self.assertIn(
+            "BOT_DOOR_PUSH_EXIT_COMMIT_MSEC      = 750", self.source
+        )
+        self.assertIn(
+            "ContinueDoorPushThrough(baseCommand);", self.source
+        )
+        self.assertIn(
+            "ContinueDoorPushThrough(botcmd);", self.source
+        )
+        self.assertIn(
+            "m_iTempAwayState == 2", self.door_push
+        )
         self.assertIn("door->absmin + door->absmax", self.door_push)
         self.assertIn("CalculateMoveProbeFraction", self.door_push)
         self.assertIn("m_vDoorPushDirection", self.header)
