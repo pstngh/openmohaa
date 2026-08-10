@@ -161,21 +161,27 @@ unchanged. Values are clamped to `1` through `1000`.
 ### Aggressive movement
 
 This movement is intentionally part of the default bot behavior and has no
-master enable/disable cvar. Strafing and matching lean are applied generally.
-Enemy-relative radial movement engages only while an enemy is within
-`g_bot_peek_distance`. Short randomized phases choose between advancing,
-orbiting with no radial input, and retreating. Retreat becomes less likely with
-distance, while the bot always backs away inside body-contact range. The radial
-layer shapes direction only and preserves the full running-speed command while
-the bot is moving, including through doorways and narrow spaces. Imminent
-player collisions and backward wall impacts remove only the entering movement
-component; they do not impose a wall buffer or disable leaning.
+master enable/disable cvar. During ordinary non-combat travel, randomized
+full-strength strafe-and-lean phases alternate with neutral lateral phases so
+navigation periodically owns the command unchanged. Before an active roaming
+overlay is applied, a longer forward sweep compares it with the untouched
+navigation command. If the optional strafe loses clearance, it is canceled for
+that frame without reversing direction or introducing a centering controller.
+During an active comparison, ot_strafe_clearance records the optional-command
+clearance and ot_strafe_other_clearance records the untouched navigation
+clearance. Combat retains continuous strafe-and-lean phases. Enemy-relative radial
+movement engages only while an enemy is within `g_bot_peek_distance`. Short
+randomized phases choose between advancing, orbiting with no radial input, and
+retreating. Retreat becomes less likely with distance, while the bot always
+backs away inside body-contact range. The radial layer shapes direction only
+and preserves the full running-speed command while the bot is moving. Imminent
+collisions continue through the existing final movement guard.
 
 | Cvar | Default | Valid range | Description |
 | --- | ---: | ---: | --- |
 | `g_bot_strafe_intensity` | `0.7` | `0`-`1` | Sideways movement intensity. |
-| `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum time before changing strafe direction. |
-| `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum time before changing strafe direction. |
+| `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum roaming active/neutral phase or combat strafe-side duration. |
+| `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum roaming active/neutral phase or combat strafe-side duration. |
 | `g_bot_peek_min_interval` | `400` | `50`-`10000` ms | Minimum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_max_interval` | `900` | `50`-`10000` ms | Maximum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots use enemy-relative radial movement. |

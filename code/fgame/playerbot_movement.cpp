@@ -48,7 +48,9 @@ static const float BOT_HEALTH_PATH_LOOKAHEAD       = 192.0f;
 static const float BOT_HEALTH_PATH_CORRIDOR        = 48.0f;
 static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
-static const float BOT_STRAFE_PROBE_DISTANCE        = 56.0f;
+static const float BOT_STRAFE_PROBE_DISTANCE          = 56.0f;
+static const float BOT_ROAM_STRAFE_VETO_DISTANCE      = 112.0f;
+static const float BOT_ROAM_STRAFE_CLEARANCE_EPSILON  = 0.05f;
 
 static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
 {
@@ -142,6 +144,7 @@ BotMovement::BotMovement()
     m_iMovementOverlaySuppressUntil = 0;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
+    m_bRoamStrafeActive     = false;
     m_bIsLeaning            = false;
     m_bLeanCommandActive    = false;
     m_bHasCombatTarget      = false;
@@ -1789,31 +1792,26 @@ void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
         m_iNextRadialChangeTime ? Q_max(0, m_iNextRadialChangeTime - level.inttime) : -1;
 }
 
-float BotMovement::CalculateStrafeProbeFraction(const usercmd_t& botcmd, int direction)
+float BotMovement::CalculateMoveProbeFraction(
+    const usercmd_t& botcmd,
+    float distance
+) const
 {
-    if (direction == 0 || !controlledEntity) {
+    if (!controlledEntity || distance <= 0.0f) {
         return 0.0f;
     }
 
-    usercmd_t probeCommand = botcmd;
-    const int offset =
-        (int)(direction * g_bot_strafe_intensity->value * 127.0f);
-    int probeRight = (int)probeCommand.rightmove + offset;
-    probeCommand.rightmove =
-        (signed char)Q_clamp(probeRight, -127, 127);
-
-    Vector probeDirection = GetCommandMoveVector(probeCommand);
+    Vector probeDirection = GetCommandMoveVector(botcmd);
     if (VectorNormalize2D(probeDirection) <= 0.0f) {
         return 0.0f;
     }
 
-    const float probeDistance = BOT_STRAFE_PROBE_DISTANCE;
     Vector mins = controlledEntity->mins;
     Vector maxs = controlledEntity->maxs;
     maxs.z -= STEPSIZE;
     const Vector start =
         controlledEntity->origin + Vector(0, 0, STEPSIZE);
-    const Vector end = start + probeDirection * probeDistance;
+    const Vector end = start + probeDirection * distance;
     const trace_t trace = G_Trace(
         start,
         mins,
@@ -1822,10 +1820,29 @@ float BotMovement::CalculateStrafeProbeFraction(const usercmd_t& botcmd, int dir
         controlledEntity,
         MASK_PLAYERSOLID | CONTENTS_BOTCLIP,
         false,
-        "BotMovement::CalculateStrafeProbeFraction"
+        "BotMovement::CalculateMoveProbeFraction"
     );
 
-    return trace.fraction;
+    return trace.startsolid ? 0.0f : trace.fraction;
+}
+
+float BotMovement::CalculateStrafeProbeFraction(
+    const usercmd_t& botcmd,
+    int direction,
+    float distance
+) const
+{
+    if (direction == 0) {
+        return 0.0f;
+    }
+
+    usercmd_t probeCommand = botcmd;
+    const int offset =
+        (int)(direction * g_bot_strafe_intensity->value * 127.0f);
+    const int probeRight = (int)probeCommand.rightmove + offset;
+    probeCommand.rightmove =
+        (signed char)Q_clamp(probeRight, -127, 127);
+    return CalculateMoveProbeFraction(probeCommand, distance);
 }
 
 // Pick a random dwell time from a min/max interval cvar pair (milliseconds).
@@ -1847,10 +1864,10 @@ void BotMovement::FinalizeMovement(usercmd_t& botcmd)
 ====================
 UpdateAggressiveMovement
 
-Movement layer calibrated from human-versus-human telemetry: continuous
-side-to-side strafing with matching lean, plus slower movement toward and away
-from nearby enemies. Lean follows actual lateral movement instead of running as
-an independent animation.
+Movement layer calibrated from human-versus-bot telemetry: active and neutral
+roaming strafe phases with matching lean, plus continuous combat strafe and
+slower movement toward and away from nearby enemies. Lean follows actual lateral
+movement instead of running as an independent animation.
 ====================
 */
 void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
@@ -1889,38 +1906,75 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
             Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
     }
 
-    // Select the side before probing it. Probing first used the clearance for
-    // the old side on the exact frame the oscillator changed direction.
+    const bool nonCombatTravel = !m_bHasCombatTarget;
+
+    // Human roaming contained substantial neutral lateral time. During
+    // non-combat travel, alternate full-strength strafe phases with neutral
+    // phases. Combat retains the continuous strafe cadence.
     if (level.inttime >= m_iNextStrafeChangeTime
         && level.inttime >= m_iStrafeGeometryLockTime) {
-        m_iStrafeDirection = -m_iStrafeDirection;
-        m_iNextStrafeChangeTime =
-            level.inttime + RandomInterval(g_bot_strafe_min_interval, g_bot_strafe_max_interval);
+        if (nonCombatTravel) {
+            m_bRoamStrafeActive = !m_bRoamStrafeActive;
+            if (m_bRoamStrafeActive) {
+                m_iStrafeDirection = -m_iStrafeDirection;
+            }
+        } else {
+            m_iStrafeDirection = -m_iStrafeDirection;
+        }
+        m_iNextStrafeChangeTime = level.inttime
+            + RandomInterval(
+                g_bot_strafe_min_interval,
+                g_bot_strafe_max_interval
+            );
     }
 
     m_bIsLeaning = false;
-    if (!suppressMovement) {
-        // Probe the actual path-plus-strafe command. Human telemetry retains
-        // substantial strafe in narrow spaces, so geometry scales this overlay
-        // instead of reversing it or choosing a second movement direction.
-        const float probeFraction =
-            CalculateStrafeProbeFraction(botcmd, m_iStrafeDirection);
-        const float intensity =
-            g_bot_strafe_intensity->value * probeFraction;
-        const int offset =
-            (int)(m_iStrafeDirection * intensity * 127.0f);
+    const bool baseTravelCommand = botcmd.forwardmove < -8
+        || botcmd.forwardmove > 8 || botcmd.rightmove < -8
+        || botcmd.rightmove > 8;
+    const bool strafePhaseActive = !nonCombatTravel
+        || (m_bRoamStrafeActive && baseTravelCommand);
+    if (!suppressMovement && strafePhaseActive) {
+        const float probeDistance = nonCombatTravel
+            ? BOT_ROAM_STRAFE_VETO_DISTANCE
+            : BOT_STRAFE_PROBE_DISTANCE;
+        const float probeFraction = CalculateStrafeProbeFraction(
+            botcmd,
+            m_iStrafeDirection,
+            probeDistance
+        );
+
+        // Optional roaming style must never make navigation clearance worse.
+        // Cancel it for this frame instead of reversing it or adding a second
+        // steering owner. The active phase can resume as soon as it is safe.
+        bool vetoRoamStrafe = false;
+        if (nonCombatTravel) {
+            const float baseProbeFraction =
+                CalculateMoveProbeFraction(botcmd, probeDistance);
+            vetoRoamStrafe = probeFraction
+                + BOT_ROAM_STRAFE_CLEARANCE_EPSILON
+                < baseProbeFraction;
+            m_telemetry.strafeOtherClearance =
+                baseProbeFraction * probeDistance;
+        }
 
         m_telemetry.strafeProbeFraction = probeFraction;
-        m_telemetry.strafeClearance =
-            probeFraction * BOT_STRAFE_PROBE_DISTANCE;
-        m_telemetry.strafeIntensity = intensity;
+        m_telemetry.strafeClearance = probeFraction * probeDistance;
 
-        if (offset) {
-            int newRight = (int)botcmd.rightmove + offset;
-            botcmd.rightmove =
-                (signed char)Q_clamp(newRight, -127, 127);
-            m_telemetry.strafeApplied = true;
-            m_bIsLeaning = true;
+        if (!vetoRoamStrafe) {
+            const float intensity =
+                g_bot_strafe_intensity->value * probeFraction;
+            const int offset =
+                (int)(m_iStrafeDirection * intensity * 127.0f);
+            m_telemetry.strafeIntensity = intensity;
+
+            if (offset) {
+                const int newRight = (int)botcmd.rightmove + offset;
+                botcmd.rightmove =
+                    (signed char)Q_clamp(newRight, -127, 127);
+                m_telemetry.strafeApplied = true;
+                m_bIsLeaning = true;
+            }
         }
     }
 

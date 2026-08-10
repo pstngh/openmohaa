@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-08-09 America/New_York
+last_updated: 2026-08-10 America/New_York
 branch: bots/server-ai
 peer_branch: bots/macos-client
 active_plan: .agent/plans/active/server-ai.md
@@ -25,11 +25,13 @@ Continue evidence-driven server bot development without regressing working objec
 - Added map-specific objective/practice behavior, including `obj_team2` defender opening roles.
 - Established a server-only CI recipe that packages only Linux x86-64 `omohaaded` and `game.so`.
 - Preserved cheats as an intentional private tuning-server policy.
+- Configured the external tuning service to keep schema 7 movement telemetry enabled and clear exactly its active three-file triplet before every service start; a restart therefore starts a clean capture.
 - Latest navigation series through `676c85f1` addresses multilevel progress, openable doors, door panels, blocked recovery, ladders, unreachable route hops, and shared Recast collision steering.
 
 ## Partial or under evaluation
 
-- The recent navigation series is implemented but has not been accepted as eliminating the owner's observed wall/door/item contacts or mindless back-and-forth. Do not stack another speculative fix without a fresh post-build telemetry comparison.
+- The recent navigation series is implemented but has not been accepted as eliminating the owner's observed wall/door/item contacts or mindless back-and-forth. A 443,879-frame human comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
+- An always-on noncombat centering replacement failed visual acceptance because it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored. The current working tree contains a narrower experiment: alternating active/neutral roaming phases plus a comparative forward-clearance veto that cancels only an unsafe optional strafe. It does not reverse direction, center the bot, or alter the final collision guard.
 - Demo routes influence strategic destinations, but live Recast navigation and collision steering still determine movement between route points.
 - Objective behavior works on tested rounds of `obj_team2` and has planted/defused on `obj_team4`, but map-specific regressions remain possible and must be tested separately.
 - The CI branch-name filters now recognize `bots/server-ai`; the first post-retrofit server-only run passed.
@@ -38,7 +40,7 @@ Continue evidence-driven server bot development without regressing working objec
 
 - The Windows checkout cannot locally prove the Linux x64 server package; GitHub Actions is the authoritative clean build.
 - The current VPS hostname, credentials, service unit, game root, and deployed binary checksum are intentionally not stored in Git. Revalidate them from an approved external source before deployment.
-- Repository history proves implementation and CI results, not whether the latest binary is currently deployed or whether existing telemetry was captured from it.
+- The running binary pair was verified after rollback on 2026-08-10 to match passing code commit `676c85f1`; revalidate before later deployment because external state can change. The current live schema 7 triplet began clean at that rollback and is recording continuously.
 - Raw demo databases and telemetry captures live outside the repository; regenerate compact route data only from documented, approved inputs.
 
 ## Working tree at handoff
@@ -50,6 +52,7 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 - GitHub `Builds` succeeded for audited tip `676c85f1` under the former branch name on 2026-08-08.
 - Branch tips were refreshed and verified equal locally/remotely after the GitHub rename.
 - On 2026-08-09, all 7 route-generator tests and the continuity check passed on the retrofit working tree.
+- On 2026-08-10, the focused roaming-phase/wall-veto experiment passed 6 source-contract tests, all 7 route-generator tests, `git diff --check`, and the continuity check. Linux compilation and live acceptance remain pending.
 - GitHub run `31316489080` passed for continuity commit `380331a0`: only `Build Linux x64 dedicated server` ran, and artifact `openmohaa-bot-server-linux-x64` passed the exact-file and x86-64 checks.
 
 ## Cross-branch status
@@ -60,4 +63,4 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 
 ## Next action
 
-Download the passing `380331a0` server artifact, compute SHA-256 for `omohaaded` and `game.so`, and compare them read-only with the VPS files to establish whether code tip `676c85f1` is deployed before collecting or changing telemetry.
+Review and commit the focused roaming-phase/wall-veto experiment, push it to `bots/server-ai`, require the server-only Linux x64 build to pass, deploy only its verified two-file artifact, then compare a clean `obj_team2` plus FFA/practice capture against the recorded `lawl` baseline.

@@ -42,11 +42,11 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 ## Remaining milestones
 
-- [ ] Revalidate the external systemd deployment topology and current binary identity; deploy only if the code tip is not already live.
-- [ ] Start a clean schema 7 capture on the deployed current head.
+- [x] Revalidate the external systemd deployment topology and current binary identity; deploy only if the code tip is not already live.
+- [x] Start a clean schema 7 capture on the deployed current head.
 - [ ] Quantify wall/door/item contacts, oscillation, and local route reversals by map and bot state.
-- [ ] Compare the same telemetry measures with human samples, especially narrow corridors and non-combat lean/strafe behavior.
-- [ ] Make only the smallest evidence-supported steering/recovery correction, with a focused regression test.
+- [x] Compare the same telemetry measures with human samples, especially narrow corridors and non-combat lean/strafe behavior.
+- [x] Make only the smallest evidence-supported steering/recovery correction, with a focused regression test.
 - [ ] Recheck `obj_team2`, `obj_team4`, and at least one FFA/practice map before accepting it.
 - [ ] Review mature shared bot commits for optional porting to `bots/macos-client`.
 
@@ -57,7 +57,10 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - The CI filters were keyed to the former branch names; a rename without updating both workflow files would accidentally run the full build and unit-test workflow.
 - Strategic demo routes do not replace live navigation. Recast/path steering remains responsible for wall and doorway behavior between graph nodes.
 - A successful plant/defuse event does not prove all bots advance correctly; telemetry must be analyzed per bot and per round.
-- Repository evidence does not identify which commit is deployed on the external VPS.
+- The 2026-08-10 VPS audit and rollback verified that the running binary pair matches passing code commit `676c85f1`; revalidate before later deployments because external state can change.
+- A 443,879-frame schema 7 comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
+- An always-on noncombat centering replacement failed visual acceptance: it removed roaming personality and lean without eliminating wall contact. The owner ordered its branch history deleted and the prior binaries restored; do not recreate an always-on centering overlay.
+- The current experiment instead alternates active and neutral noncombat style phases and vetoes an optional strafe only when a 112-unit forward sweep loses more clearance than the untouched navigation command. It never reverses the strafe, adds centering, or changes the final collision guard.
 
 ## Implementation discipline
 
@@ -85,4 +88,4 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 
 ## Next action
 
-Download the passing `380331a0` artifact and compare its two binary checksums read-only with the VPS deployment before collecting or changing telemetry.
+Review and commit the focused roaming-phase/wall-veto experiment, push it to `bots/server-ai`, require the server-only Linux x64 build to pass, deploy only its verified two-file artifact, then compare a clean `obj_team2` plus FFA/practice capture against the recorded `lawl` baseline.
