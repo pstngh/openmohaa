@@ -39,6 +39,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define MAX_NPOLYS 256
 
+static const float RECAST_COMFORT_ENTER_CLEARANCE  = 8.0f;
+static const float RECAST_COMFORT_EXIT_CLEARANCE   = 14.0f;
+static const float RECAST_COMFORT_TARGET_CLEARANCE = 16.0f;
+static const float RECAST_COMFORT_LOOKAHEAD        = 96.0f;
+static const float RECAST_COMFORT_MIN_FORWARD      = 32.0f;
+static const int   RECAST_COMFORT_MAX_VISITED      = 16;
+
 RecastPathMaster pathMaster;
 
 static const vec3_t DETOUR_EXTENT = {(MAXS_X - MINS_X) / 2, (MAXS_Z - MINS_Z) / 2, (MAXS_Y - MINS_Y) / 2};
@@ -57,9 +64,12 @@ RecastPather::RecastPather()
     , moving(false)
     , lastCheckTime(0)
     , traversingOffMeshLink(false)
+    , comfortInsetActive(false)
+    , comfortInsetEnabled(false)
 {
     detourData = new DetourData();
     detourData->corridor.init(256);
+    comfortInsetNormal = vec_zero;
 }
 
 RecastPather::~RecastPather()
@@ -295,6 +305,193 @@ static bool overOffmeshConnection(
     return false;
 }
 
+bool RecastPather::BuildComfortInsetCorner(float *corner)
+{
+    dtNavMesh            *navMesh  = navigationMap.GetNavMesh();
+    dtNavMeshQuery       *navQuery = navigationMap.GetNavMeshQuery();
+    const dtQueryFilter  *filter   = navigationMap.GetQueryFilter();
+    const dtPathCorridor& corridor = detourData->corridor;
+    const dtPolyRef       startRef = corridor.getFirstPoly();
+    const float          *startPos = corridor.getPos();
+
+    if (!comfortInsetEnabled || !moving || !navMesh || !navQuery || !startRef
+        || traversingOffMeshLink) {
+        comfortInsetActive = false;
+        return false;
+    }
+
+    for (int i = 0; i < detourData->ncorners; ++i) {
+        if (detourData->cornerFlags[i] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) {
+            // Ladder and jump links own their exact approach and departure.
+            comfortInsetActive = false;
+            return false;
+        }
+    }
+
+    float routeDelta[3] = {
+        corner[0] - startPos[0],
+        0.0f,
+        corner[2] - startPos[2]
+    };
+    const float routeDistance = sqrtf(
+        routeDelta[0] * routeDelta[0] + routeDelta[2] * routeDelta[2]
+    );
+    if (routeDistance < RECAST_COMFORT_MIN_FORWARD
+        || ((detourData->cornerFlags[0] & DT_STRAIGHTPATH_END)
+            && routeDistance
+                <= RECAST_COMFORT_LOOKAHEAD + RECAST_COMFORT_MIN_FORWARD)) {
+        // Do not replace a precise short-range goal with a lateral waypoint.
+        comfortInsetActive = false;
+        return false;
+    }
+
+    float wallDistance = RECAST_COMFORT_TARGET_CLEARANCE;
+    vec3_t wallPos;
+    vec3_t wallNormal;
+    const dtStatus wallStatus = navQuery->findDistanceToWall(
+        startRef,
+        startPos,
+        RECAST_COMFORT_TARGET_CLEARANCE,
+        filter,
+        &wallDistance,
+        wallPos,
+        wallNormal
+    );
+    if (dtStatusFailed(wallStatus)
+        || dtStatusDetail(wallStatus, DT_OUT_OF_NODES)
+        || (!comfortInsetActive
+            && wallDistance >= RECAST_COMFORT_ENTER_CLEARANCE)
+        || (comfortInsetActive
+            && wallDistance >= RECAST_COMFORT_EXIT_CLEARANCE)) {
+        comfortInsetActive = false;
+        return false;
+    }
+
+    wallNormal[1] = 0.0f;
+    float normalLength = sqrtf(
+        wallNormal[0] * wallNormal[0] + wallNormal[2] * wallNormal[2]
+    );
+    if (normalLength <= 0.001f) {
+        // Detour documents the wall normal as undefined at zero distance.
+        // The current polygon centroid supplies a deterministic fallback
+        // direction toward walkable space.
+        const dtMeshTile *tile = NULL;
+        const dtPoly     *poly = NULL;
+        if (dtStatusFailed(
+                navMesh->getTileAndPolyByRef(
+                    startRef, &tile, &poly
+                )
+            )
+            || !tile || !poly || !poly->vertCount) {
+            comfortInsetActive = false;
+            return false;
+        }
+
+        wallNormal[0] = 0.0f;
+        wallNormal[2] = 0.0f;
+        for (int i = 0; i < poly->vertCount; ++i) {
+            const float *vertex = &tile->verts[poly->verts[i] * 3];
+            wallNormal[0] += vertex[0];
+            wallNormal[2] += vertex[2];
+        }
+        wallNormal[0] = wallNormal[0] / poly->vertCount - startPos[0];
+        wallNormal[2] = wallNormal[2] / poly->vertCount - startPos[2];
+        normalLength = sqrtf(
+            wallNormal[0] * wallNormal[0]
+                + wallNormal[2] * wallNormal[2]
+        );
+        if (normalLength <= 0.001f) {
+            comfortInsetActive = false;
+            return false;
+        }
+    }
+
+    wallNormal[0] /= normalLength;
+    wallNormal[2] /= normalLength;
+
+    const float savedNormalLength = sqrtf(
+        comfortInsetNormal[0] * comfortInsetNormal[0]
+            + comfortInsetNormal[2] * comfortInsetNormal[2]
+    );
+    if (comfortInsetActive && savedNormalLength > 0.001f
+        && wallNormal[0] * comfortInsetNormal[0]
+                + wallNormal[2] * comfortInsetNormal[2]
+            < 0.5f) {
+        wallNormal[0] = comfortInsetNormal[0] / savedNormalLength;
+        wallNormal[2] = comfortInsetNormal[2] / savedNormalLength;
+    } else {
+        comfortInsetNormal = Vector(wallNormal[0], 0.0f, wallNormal[2]);
+    }
+
+    routeDelta[0] /= routeDistance;
+    routeDelta[2] /= routeDistance;
+    const float forwardDistance = Q_min(
+        RECAST_COMFORT_LOOKAHEAD, routeDistance
+    );
+    const float lateralDistance = Q_max(
+        0.0f, RECAST_COMFORT_TARGET_CLEARANCE - wallDistance
+    );
+    const float verticalFraction = forwardDistance / routeDistance;
+    vec3_t desired = {
+        startPos[0] + routeDelta[0] * forwardDistance
+            + wallNormal[0] * lateralDistance,
+        startPos[1] + (corner[1] - startPos[1]) * verticalFraction,
+        startPos[2] + routeDelta[2] * forwardDistance
+            + wallNormal[2] * lateralDistance
+    };
+
+    vec3_t result;
+    dtPolyRef visited[RECAST_COMFORT_MAX_VISITED];
+    int visitedCount = 0;
+    const dtStatus moveStatus = navQuery->moveAlongSurface(
+        startRef, startPos, desired, filter, result,
+        visited, &visitedCount, ARRAY_LEN(visited)
+    );
+    if (dtStatusFailed(moveStatus)
+        || dtStatusDetail(moveStatus, DT_BUFFER_TOO_SMALL) || !visitedCount
+        || dtVdist2D(result, desired) > 1.0f) {
+        comfortInsetActive = false;
+        return false;
+    }
+
+    const dtPolyRef *path = corridor.getPath();
+    const int pathCount = corridor.getPathCount();
+    for (int i = 0; i < visitedCount; ++i) {
+        bool inCorridor = false;
+        for (int j = 0; j < pathCount; ++j) {
+            if (visited[i] == path[j]) {
+                inCorridor = true;
+                break;
+            }
+        }
+        if (!inCorridor) {
+            comfortInsetActive = false;
+            return false;
+        }
+    }
+
+    float candidateClearance = RECAST_COMFORT_EXIT_CLEARANCE;
+    vec3_t candidateWallPos;
+    vec3_t candidateWallNormal;
+    const dtStatus candidateStatus = navQuery->findDistanceToWall(
+        visited[visitedCount - 1], result,
+        RECAST_COMFORT_EXIT_CLEARANCE, filter,
+        &candidateClearance, candidateWallPos, candidateWallNormal
+    );
+    if (dtStatusFailed(candidateStatus)
+        || dtStatusDetail(candidateStatus, DT_OUT_OF_NODES)
+        || candidateClearance < RECAST_COMFORT_EXIT_CLEARANCE - 0.1f) {
+        // Width gate: tight doors and passages retain Detour's original
+        // first corner instead of losing traversability.
+        comfortInsetActive = false;
+        return false;
+    }
+
+    dtVcopy(corner, result);
+    comfortInsetActive = true;
+    return true;
+}
+
 void RecastPather::UpdatePos(const Vector& origin)
 {
     const dtQueryFilter *filter = navigationMap.GetQueryFilter();
@@ -380,11 +577,23 @@ void RecastPather::UpdatePos(const Vector& origin)
 
                 traversingOffMeshLink = true;
             } else {
-                ConvertRecastToGameCoord(detourData->corners[0], currentNodePos);
+                vec3_t steeringCorner;
+                VectorCopy(detourData->corners[0], steeringCorner);
+                BuildComfortInsetCorner(steeringCorner);
+                ConvertRecastToGameCoord(steeringCorner, currentNodePos);
             }
         } else {
             ConvertRecastToGameCoord(detourData->corridor.getPos(), currentNodePos);
         }
+    }
+}
+
+void RecastPather::SetRouteComfortInsetEnabled(bool enabled)
+{
+    comfortInsetEnabled = enabled;
+    if (!enabled) {
+        comfortInsetActive = false;
+        comfortInsetNormal = vec_zero;
     }
 }
 
@@ -539,6 +748,8 @@ void RecastPather::ResetPosition(const Vector& origin)
     vec3_t               agentPos;
 
     traversingOffMeshLink = false;
+    comfortInsetActive    = false;
+    comfortInsetNormal    = vec_zero;
     lastCheckTime         = level.inttime;
 
     moving = false;

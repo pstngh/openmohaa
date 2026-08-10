@@ -13,6 +13,9 @@ SOURCE_PATH = ROOT / "code" / "fgame" / "playerbot_movement.cpp"
 HEADER_PATH = ROOT / "code" / "fgame" / "playerbot.h"
 ROUTE_PATH = ROOT / "code" / "fgame" / "playerbot_route.cpp"
 OBSTACLE_PATH = ROOT / "code" / "fgame" / "navigation_recast_obstacle.cpp"
+RECAST_PATH = ROOT / "code" / "fgame" / "navigation_recast_path.cpp"
+RECAST_CONFIG_PATH = ROOT / "code" / "fgame" / "navigation_recast_config.h"
+PATH_INTERFACE_PATH = ROOT / "code" / "fgame" / "navigation_path.h"
 
 
 def constant(source: str, name: str) -> float:
@@ -118,6 +121,21 @@ class NavigationFailureContract(unittest.TestCase):
         cls.header = HEADER_PATH.read_text(encoding="utf-8")
         cls.route = ROUTE_PATH.read_text(encoding="utf-8")
         cls.obstacles = OBSTACLE_PATH.read_text(encoding="utf-8")
+        cls.recast = RECAST_PATH.read_text(encoding="utf-8")
+        cls.recast_config = RECAST_CONFIG_PATH.read_text(encoding="utf-8")
+        cls.path_interface = PATH_INTERFACE_PATH.read_text(encoding="utf-8")
+        start = cls.recast.index(
+            "bool RecastPather::BuildComfortInsetCorner"
+        )
+        end = cls.recast.index("void RecastPather::UpdatePos", start)
+        cls.comfort_inset = cls.recast[start:end]
+        start = cls.source.index(
+            "bool BotMovement::AllowRouteComfortInset"
+        )
+        end = cls.source.index("void BotMovement::NewMove", start)
+        cls.comfort_gate = cls.source[start:end]
+
+
 
         start = cls.source.index(
             "void BotMovement::UpdateLocalLoopDetection"
@@ -155,6 +173,112 @@ class NavigationFailureContract(unittest.TestCase):
             "Vector BotMovement::CalculateRelativeWishDirection", start
         )
         cls.route_continuity = cls.source[start:end]
+
+
+    def test_recast_comfort_insets_the_first_corner_inside_its_corridor(
+        self,
+    ) -> None:
+        enter = constant(
+            self.recast, "RECAST_COMFORT_ENTER_CLEARANCE"
+        )
+        release = constant(
+            self.recast, "RECAST_COMFORT_EXIT_CLEARANCE"
+        )
+        target = constant(
+            self.recast, "RECAST_COMFORT_TARGET_CLEARANCE"
+        )
+        lookahead = constant(
+            self.recast, "RECAST_COMFORT_LOOKAHEAD"
+        )
+        self.assertLess(enter, release)
+        self.assertLess(release, target)
+        self.assertLessEqual(lookahead, 96.0)
+        self.assertEqual(
+            self.comfort_inset.count("findDistanceToWall("), 2
+        )
+        self.assertIn("moveAlongSurface(", self.comfort_inset)
+        self.assertIn("visited[i] == path[j]", self.comfort_inset)
+        self.assertIn(
+            "candidateClearance < "
+            "RECAST_COMFORT_EXIT_CLEARANCE - 0.1f",
+            self.comfort_inset,
+        )
+        self.assertIn("dtVcopy(corner, result)", self.comfort_inset)
+
+        update_start = self.recast.index(
+            "void RecastPather::UpdatePos"
+        )
+        update_end = self.recast.index(
+            "void RecastPather::Clear", update_start
+        )
+        update = self.recast[update_start:update_end]
+        self.assertIn(
+            "VectorCopy(detourData->corners[0], steeringCorner)",
+            update,
+        )
+        self.assertIn(
+            "BuildComfortInsetCorner(steeringCorner)", update
+        )
+        self.assertIn(
+            "ConvertRecastToGameCoord(steeringCorner, currentNodePos)",
+            update,
+        )
+
+    def test_recast_comfort_preserves_special_and_tight_routes(
+        self,
+    ) -> None:
+        self.assertRegex(
+            self.recast_config, r"agentRadius\s*=\s*MAXS_X"
+        )
+        self.assertIn(
+            "DT_STRAIGHTPATH_OFFMESH_CONNECTION",
+            self.comfort_inset,
+        )
+        self.assertIn(
+            "DT_STRAIGHTPATH_END", self.comfort_inset
+        )
+        self.assertIn(
+            "routeDistance < RECAST_COMFORT_MIN_FORWARD",
+            self.comfort_inset,
+        )
+        self.assertIn(
+            "const dtPolyRef *path = corridor.getPath()",
+            self.comfort_inset,
+        )
+        self.assertIn(
+            "comfortInsetActive = false", self.comfort_inset
+        )
+        self.assertIn(
+            "getTileAndPolyByRef(", self.comfort_inset
+        )
+        self.assertNotRegex(
+            self.recast_config,
+            r"agentRadius\s*=\s*MAXS_X\s*\+",
+        )
+
+        self.assertIn(
+            "!comfortInsetEnabled", self.comfort_inset
+        )
+        self.assertIn(
+            "SetRouteComfortInsetEnabled(bool) {}",
+            self.path_interface,
+        )
+        self.assertEqual(
+            self.source.count(
+                "SetRouteComfortInsetEnabled(AllowRouteComfortInset())"
+            ),
+            2,
+        )
+        for bypass in (
+            "m_bDirectMove",
+            "m_bHasCombatTarget",
+            "controlledEntity->GetLadder()",
+            "m_bJump",
+            "m_iTempAwayState != 2",
+            "m_bAvoidCollision",
+            "doorCommitActive",
+        ):
+            self.assertIn(bypass, self.comfort_gate)
 
 
     def test_fast_route_turns_have_narrowly_bypassed_continuity(self) -> None:

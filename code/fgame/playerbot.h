@@ -242,6 +242,7 @@ private:
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
     void   ContinueDoorExit(usercmd_t& botcmd) const;
     void   SteerTowardPathHealth(Vector& direction) const;
+    bool   AllowRouteComfortInset() const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
           float         maxDist,

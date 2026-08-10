@@ -388,6 +388,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         // Advance the corridor from the bot's current position before reading
         // its steering direction. Reading first used the previous frame's
         // corner and could alternate the command at walls and tight doorways.
+        m_pPath->SetRouteComfortInsetEnabled(AllowRouteComfortInset());
         m_pPath->UpdatePos(controlledEntity->origin);
     }
 
@@ -1338,6 +1339,29 @@ void BotMovement::AbandonAttractivePoint()
 
 /*
 ====================
+AllowRouteComfortInset
+
+Return whether ordinary route travel owns the current movement command.
+====================
+*/
+bool BotMovement::AllowRouteComfortInset() const
+{
+    if (!controlledEntity) {
+        return false;
+    }
+
+    const bool doorCommitActive =
+        m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
+        && level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_EXIT_COMMIT_MSEC;
+    return m_bPathing && !m_bDirectMove && !m_bHasCombatTarget
+        && !controlledEntity->GetLadder() && !m_bJump
+        && m_iTempAwayState != 2 && !m_bAvoidCollision
+        && !doorCommitActive;
+}
+
+/*
+====================
 NewMove
 
 Called when there is a new move
@@ -1356,6 +1380,7 @@ void BotMovement::NewMove()
     m_vLastCheckPos[1]  = controlledEntity->origin;
 
     if (m_pPath && m_pPath->GetNodeCount()) {
+        m_pPath->SetRouteComfortInsetEnabled(AllowRouteComfortInset());
         m_pPath->UpdatePos(controlledEntity->origin);
         m_vCurrentDir = CalculateDir(m_pPath->GetCurrentDelta());
     } else {

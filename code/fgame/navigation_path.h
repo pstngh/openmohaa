@@ -106,6 +106,13 @@ public:
     virtual void UpdatePos(const Vector& origin) = 0;
 
     /**
+     * @brief Enable optional comfort steering for ordinary route travel.
+     *
+     * Legacy and non-bot path users intentionally keep the default no-op.
+     */
+    virtual void SetRouteComfortInsetEnabled(bool) {}
+
+    /**
      * @brief Clear the path
      * 
      */

@@ -52,6 +52,7 @@ public:
     virtual bool TestPath(const Vector& start, const Vector& end, const PathSearchParameter& parameters) override;
 
     virtual void UpdatePos(const Vector& origin) override;
+    virtual void SetRouteComfortInsetEnabled(bool enabled) override;
     virtual void Clear() override;
 
     virtual PathNav GetNode(unsigned int index) const override;
@@ -65,6 +66,7 @@ public:
 
 private:
     void ResetPosition(const Vector& origin);
+    bool BuildComfortInsetCorner(float *corner);
 
 private:
     DetourData *detourData;
@@ -74,6 +76,9 @@ private:
     Vector      currentNodePos;
     int         lastCheckTime;
     int         traversingOffMeshLink;
+    bool        comfortInsetActive;
+    bool        comfortInsetEnabled;
+    Vector      comfortInsetNormal;
 };
 
 class RecastPathMaster
