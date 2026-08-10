@@ -148,6 +148,64 @@ class NavigationFailureContract(unittest.TestCase):
         )
         cls.guard = cls.source[start:]
 
+        start = cls.source.index(
+            "void BotMovement::ApplyRouteDirectionContinuity"
+        )
+        end = cls.source.index(
+            "Vector BotMovement::CalculateRelativeWishDirection", start
+        )
+        cls.route_continuity = cls.source[start:end]
+
+
+    def test_fast_route_turns_have_narrowly_bypassed_continuity(self) -> None:
+        self.assertIn(
+            "BOT_ROUTE_TURN_RATE_DEGREES         = 720.0f",
+            self.source,
+        )
+        self.assertIn(
+            "BOT_ROUTE_TURN_LIMIT_SPEED          = 80.0f",
+            self.source,
+        )
+        self.assertIn("AngleNormalize180", self.route_continuity)
+        self.assertIn("bot_route_turn_limited", self.route_continuity)
+        self.assertIn(
+            "BOT_ROUTE_TURN_CLEARANCE_EPSILON",
+            self.route_continuity,
+        )
+        for bypass in (
+            "m_bDirectMove",
+            "m_bHasCombatTarget",
+            "controlledEntity->GetLadder()",
+            "m_bJump",
+            "m_iTempAwayState == 2",
+            "m_bAvoidCollision",
+            "m_vDoorPushApproachDirection",
+        ):
+            self.assertIn(bypass, self.route_continuity)
+        self.assertEqual(
+            self.source.count(
+                "ApplyRouteDirectionContinuity(m_vCurrentDir);"
+            ),
+            1,
+        )
+
+    def test_open_panel_contact_is_observational(self) -> None:
+        self.assertIn(
+            "void   RecordOpenDoorPanelContact", self.header
+        )
+        self.assertIn("Door *tracedDoor = BotTraceDoor(trace)", self.guard)
+        self.assertIn("bot_open_door_panel_contact", self.source)
+        start = self.source.index(
+            "void BotMovement::RecordOpenDoorPanelContact"
+        )
+        end = self.source.index(
+            "void BotMovement::CalculateBestFrontAvoidance", start
+        )
+        recorder = self.source[start:end]
+        self.assertIn("G_MoveLogBotEvent", recorder)
+        self.assertNotIn("FindPath", recorder)
+        self.assertNotIn("SetCommandMoveVector", recorder)
+
     def test_fully_open_door_panels_are_recast_obstacles(self) -> None:
         self.assertIn('#include "doors.h"', self.obstacles)
         self.assertIn(

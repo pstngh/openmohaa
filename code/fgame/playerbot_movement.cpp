@@ -70,15 +70,29 @@ static const float BOT_LOCAL_LOOP_TELEPORT_UNITS      = 256.0f;
 static const float BOT_BLOCKED_RECOVERY_SIDE_UNITS    = 96.0f;
 static const float BOT_BLOCKED_RECOVERY_FORWARD_UNITS = 32.0f;
 static const float BOT_BLOCKED_RECOVERY_BACK_UNITS    = 96.0f;
+static const float BOT_ROUTE_TURN_LIMIT_SPEED          = 80.0f;
+static const float BOT_ROUTE_TURN_LIMIT_MIN_DEGREES    = 45.0f;
+static const float BOT_ROUTE_TURN_RATE_DEGREES         = 720.0f;
+static const float BOT_ROUTE_TURN_PROBE_DISTANCE       = 64.0f;
+static const float BOT_ROUTE_TURN_CLEARANCE_EPSILON    = 0.05f;
+static const int   BOT_ROUTE_TURN_RESET_MSEC           = 250;
 
-static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
+static Door *BotTraceDoor(const trace_t& trace)
 {
     if (!trace.ent || !trace.ent->entity
         || !trace.ent->entity->IsSubclassOfDoor()) {
         return nullptr;
     }
 
-    Door *door = static_cast<Door *>(trace.ent->entity);
+    return static_cast<Door *>(trace.ent->entity);
+}
+
+static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
+{
+    Door *door = BotTraceDoor(trace);
+    if (!door) {
+        return nullptr;
+    }
 
     // A fully open panel is ordinary collision at its displaced position.
     // Recast and the final movement guard already account for that geometry;
@@ -169,8 +183,13 @@ BotMovement::BotMovement()
     m_iDoorPushStartTime       = 0;
     m_iDoorPushLastContactTime = 0;
     m_iDoorPushBlockedLogTime  = 0;
+    m_iOpenDoorPanelLogTime    = 0;
+    m_iOpenDoorPanelEntity     = ENTITYNUM_NONE;
     m_vDoorPushDirection       = vec_zero;
     m_vDoorPushApproachDirection = vec_zero;
+    m_vRouteCommandDirection   = vec_zero;
+    m_iRouteCommandTime        = 0;
+    m_iRouteTurnLogTime        = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -496,6 +515,7 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         m_vCurrentDir = CalculateDir(m_vCurrentGoal - controlledEntity->origin);
     }
     SteerTowardPathHealth(m_vCurrentDir);
+    ApplyRouteDirectionContinuity(m_vCurrentDir);
 
     vWishDir = CalculateRelativeWishDirection(m_vCurrentDir);
 
@@ -526,6 +546,83 @@ Vector BotMovement::CalculateDir(const Vector& delta) const
     VectorNormalize2D(dir);
 
     return dir;
+}
+
+void BotMovement::ApplyRouteDirectionContinuity(Vector& direction)
+{
+    direction.z = 0.0f;
+    if (VectorNormalize2D(direction) <= 0.0f) {
+        m_vRouteCommandDirection = vec_zero;
+        m_iRouteCommandTime      = level.inttime;
+        return;
+    }
+
+    const bool explicitMovementOwner = !controlledEntity
+        || m_bDirectMove || m_bHasCombatTarget
+        || controlledEntity->GetLadder() || m_bJump
+        || m_iTempAwayState == 2 || m_bAvoidCollision
+        || (m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
+            && level.inttime <= m_iDoorPushLastContactTime
+                + BOT_DOOR_EXIT_COMMIT_MSEC);
+    const bool resetContinuity = explicitMovementOwner
+        || !m_iRouteCommandTime
+        || level.inttime > m_iRouteCommandTime + BOT_ROUTE_TURN_RESET_MSEC
+        || controlledEntity->velocity.lengthXYSquared()
+            < Square(BOT_ROUTE_TURN_LIMIT_SPEED)
+        || m_vRouteCommandDirection.lengthXYSquared() <= 0.01f;
+    if (resetContinuity) {
+        m_vRouteCommandDirection = direction;
+        m_iRouteCommandTime      = level.inttime;
+        return;
+    }
+
+    const float yawDelta = AngleNormalize180(
+        direction.toYaw() - m_vRouteCommandDirection.toYaw()
+    );
+    const int elapsedMsec = Q_max(1, level.inttime - m_iRouteCommandTime);
+    const float maxTurn = BOT_ROUTE_TURN_RATE_DEGREES
+        * elapsedMsec / 1000.0f;
+    if (fabs(yawDelta) > BOT_ROUTE_TURN_LIMIT_MIN_DEGREES
+        && fabs(yawDelta) > maxTurn) {
+        const float limitedYaw = m_vRouteCommandDirection.toYaw()
+            + (yawDelta < 0.0f ? -maxTurn : maxTurn);
+        const Vector limitedDirection(
+            cos(DEG2RAD(limitedYaw)),
+            sin(DEG2RAD(limitedYaw)),
+            0.0f
+        );
+        usercmd_t limitedCommand;
+        usercmd_t desiredCommand;
+        SetCommandMoveVector(
+            limitedCommand, limitedDirection * 127.0f
+        );
+        SetCommandMoveVector(desiredCommand, direction * 127.0f);
+        const float limitedClearance = CalculateMoveProbeFraction(
+            limitedCommand, BOT_ROUTE_TURN_PROBE_DISTANCE
+        );
+        const float desiredClearance = CalculateMoveProbeFraction(
+            desiredCommand, BOT_ROUTE_TURN_PROBE_DISTANCE
+        );
+        if (limitedClearance + BOT_ROUTE_TURN_CLEARANCE_EPSILON
+            < desiredClearance) {
+            m_vRouteCommandDirection = direction;
+            m_iRouteCommandTime      = level.inttime;
+            return;
+        }
+        direction = limitedDirection;
+
+        if (level.inttime >= m_iRouteTurnLogTime) {
+            m_iRouteTurnLogTime = level.inttime + 1000;
+            G_MoveLogBotEvent(
+                "bot_route_turn_limited", controlledEntity, NULL,
+                (int)fabs(yawDelta),
+                controlledEntity->origin + direction * 64.0f
+            );
+        }
+    }
+
+    m_vRouteCommandDirection = direction;
+    m_iRouteCommandTime      = level.inttime;
 }
 
 Vector BotMovement::CalculateRelativeWishDirection(const Vector& dir) const
@@ -1264,6 +1361,8 @@ void BotMovement::NewMove()
     } else {
         m_vCurrentDir = vec_zero;
     }
+    m_vRouteCommandDirection = m_vCurrentDir;
+    m_iRouteCommandTime      = level.inttime;
 }
 
 void BotMovement::ResetLocalLoopHistory()
@@ -1602,6 +1701,27 @@ void BotMovement::RecordDoorPushThrough(Door *door)
         door->origin
     );
 }
+
+void BotMovement::RecordOpenDoorPanelContact(
+    Door *door, const trace_t& trace
+)
+{
+    if (!door || !door->isOpen()) {
+        return;
+    }
+    if (door->entnum == m_iOpenDoorPanelEntity
+        && level.inttime < m_iOpenDoorPanelLogTime) {
+        return;
+    }
+
+    m_iOpenDoorPanelEntity  = door->entnum;
+    m_iOpenDoorPanelLogTime = level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
+    G_MoveLogBotEvent(
+        "bot_open_door_panel_contact", controlledEntity, NULL,
+        door->entnum, trace.endpos
+    );
+}
+
 void BotMovement::CalculateBestFrontAvoidance(
     const Vector& targetOrg, float maxDist, const Vector& forward, const Vector& right, float& bestFrac, Vector& bestPos
 )
@@ -2099,6 +2219,8 @@ void BotMovement::ClearMove(void)
     m_iJumpRetryTime    = 0;
     m_bJumpWasAirborne  = false;
     m_vCurrentDir              = vec_zero;
+    m_vRouteCommandDirection  = vec_zero;
+    m_iRouteCommandTime       = 0;
     m_iStrafeGeometryLockTime  = 0;
     m_iMovementOverlaySuppressUntil = 0;
     if (m_pPath) {
@@ -2700,6 +2822,10 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         trace = baseTrace;
     }
 
+    Door *tracedDoor = BotTraceDoor(trace);
+    if (tracedDoor && tracedDoor->isOpen()) {
+        RecordOpenDoorPanelContact(tracedDoor, trace);
+    }
     Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
     if (openableDoor) {
         // Preserve forward pressure and commit toward one panel edge.

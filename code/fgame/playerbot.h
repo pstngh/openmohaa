@@ -219,6 +219,7 @@ public:
 
 private:
     Vector CalculateDir(const Vector& delta) const;
+    void   ApplyRouteDirectionContinuity(Vector& direction);
     Vector CalculateRelativeWishDirection(const Vector& dir) const;
     Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
@@ -236,6 +237,7 @@ private:
     void   UpdateLocalLoopDetection();
     void   ResetLocalLoopHistory();
     void   RecordDoorPushThrough(Door *door);
+    void   RecordOpenDoorPanelContact(Door *door, const trace_t& trace);
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
     void   ContinueDoorExit(usercmd_t& botcmd) const;
@@ -260,6 +262,9 @@ private:
     Vector m_vTargetPos;
     Vector m_vCurrentGoal;
     Vector m_vCurrentDir;
+    Vector m_vRouteCommandDirection;
+    int    m_iRouteCommandTime;
+    int    m_iRouteTurnLogTime;
     Vector m_vLastCheckPos[2];
     float  m_fAttractTime;
     int    m_iTempAwayTime;
@@ -305,6 +310,8 @@ private:
     int    m_iDoorPushStartTime;
     int    m_iDoorPushLastContactTime;
     int    m_iDoorPushBlockedLogTime;
+    int    m_iOpenDoorPanelLogTime;
+    int    m_iOpenDoorPanelEntity;
     Vector m_vDoorPushDirection;
     Vector m_vDoorPushApproachDirection;
     int    m_iReducedStanceStartTime;
