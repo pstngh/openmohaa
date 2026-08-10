@@ -176,12 +176,13 @@ class NavigationFailureContract(unittest.TestCase):
             "BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500", self.source
         )
         self.assertIn(
-            "BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC    = 250", self.source
+            "BOT_DOOR_EXIT_COMMIT_MSEC           = 750", self.source
         )
         self.assertIn(
             "ApplyDoorPushThrough(botcmd);", self.door_push
         )
-        self.assertNotIn("ContinueDoorPushThrough", self.source)
+        self.assertIn("ContinueDoorExit(baseCommand);", self.source)
+        self.assertIn("ContinueDoorExit(botcmd);", self.source)
         self.assertIn(
             "m_iTempAwayState == 2", self.door_push
         )
@@ -192,9 +193,13 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn(
             "m_vDoorPushDirection = vec_zero;", self.guard
         )
+        self.assertIn(
+            "m_vDoorPushApproachDirection = vec_zero;", self.guard
+        )
         self.assertIn("door->absmin + door->absmax", self.door_push)
         self.assertIn("CalculateMoveProbeFraction", self.door_push)
         self.assertIn("m_vDoorPushDirection", self.header)
+        self.assertIn("m_vDoorPushApproachDirection", self.header)
         self.assertIn(
             "PushThroughOpenableDoor(botcmd, openableDoor, trace)", self.guard
         )

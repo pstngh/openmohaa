@@ -238,6 +238,7 @@ private:
     void   RecordDoorPushThrough(Door *door);
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
+    void   ContinueDoorExit(usercmd_t& botcmd) const;
     void   SteerTowardPathHealth(Vector& direction) const;
     void   CalculateBestFrontAvoidance(
           const Vector& targetOrg,
@@ -305,6 +306,7 @@ private:
     int    m_iDoorPushLastContactTime;
     int    m_iDoorPushBlockedLogTime;
     Vector m_vDoorPushDirection;
+    Vector m_vDoorPushApproachDirection;
     int    m_iReducedStanceStartTime;
 
     ///

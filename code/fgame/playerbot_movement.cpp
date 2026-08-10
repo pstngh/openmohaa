@@ -51,7 +51,7 @@ static const int   BOT_STRAFE_GEOMETRY_LOCK_MSEC   = 1200;
 static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const int   BOT_DOOR_PUSH_STALL_MSEC            = 350;
 static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
-static const int   BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC    = 250;
+static const int   BOT_DOOR_EXIT_COMMIT_MSEC           = 750;
 static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
 static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
 static const float BOT_DOOR_PUSH_SIDE_COMMAND          = 127.0f;
@@ -161,6 +161,7 @@ BotMovement::BotMovement()
     m_iDoorPushLastContactTime = 0;
     m_iDoorPushBlockedLogTime  = 0;
     m_vDoorPushDirection       = vec_zero;
+    m_vDoorPushApproachDirection = vec_zero;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
     m_iJumpCommitTime     = -1;
@@ -1431,8 +1432,22 @@ void BotMovement::PushThroughOpenableDoor(
     if (!continuingContact) {
         m_iDoorPushStartTime = level.inttime;
         m_vDoorPushDirection = vec_zero;
+        m_vDoorPushApproachDirection = vec_zero;
     }
     m_iDoorPushLastContactTime = level.inttime;
+
+    // Retain the route's original through-door approach. The path can flip
+    // sides while the moving panel intermittently stops tracing, so the
+    // first stable command is a better exit direction than later samples.
+    if (m_vDoorPushApproachDirection.lengthXYSquared() <= 0.01f) {
+        m_vDoorPushApproachDirection = GetCommandMoveVector(botcmd);
+        m_vDoorPushApproachDirection.z = 0.0f;
+        if (VectorNormalize2D(m_vDoorPushApproachDirection) <= 0.0f) {
+            m_vDoorPushApproachDirection = m_vCurrentDir;
+            m_vDoorPushApproachDirection.z = 0.0f;
+            VectorNormalize2D(m_vDoorPushApproachDirection);
+        }
+    }
 
     // A normal square-on push is enough while the door begins moving. Only
     // add human-like edge steering when contact persists long enough to prove
@@ -1507,10 +1522,12 @@ void BotMovement::ApplyDoorPushThrough(usercmd_t& botcmd) const
         return;
     }
 
-    // Keep the original into-door component and hold the chosen tangent for a
-    // short exit window after contact. This carries the player hull fully past
-    // the panel before the path command can turn back into it.
-    Vector move = GetCommandMoveVector(botcmd);
+    // Build contact movement from the stable through-door approach, then add
+    // the chosen edge tangent. This prevents a route update during panel
+    // movement from turning the bot back across the same doorway.
+    Vector move = m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
+        ? m_vDoorPushApproachDirection * BOT_DOOR_PUSH_SIDE_COMMAND
+        : GetCommandMoveVector(botcmd);
     const float sideMove = DotProduct(move, m_vDoorPushDirection);
     if (sideMove < BOT_DOOR_PUSH_SIDE_COMMAND) {
         move += m_vDoorPushDirection
@@ -1533,6 +1550,26 @@ void BotMovement::ApplyDoorPushThrough(usercmd_t& botcmd) const
         move *= BOT_DOOR_PUSH_SIDE_COMMAND / commandMax;
     }
     SetCommandMoveVector(botcmd, move);
+}
+
+void BotMovement::ContinueDoorExit(usercmd_t& botcmd) const
+{
+    if (!controlledEntity
+        || controlledEntity->GetLadder() || m_bJump
+        || m_iTempAwayState == 2
+        || m_vDoorPushDirection.lengthXYSquared() <= 0.01f
+        || m_vDoorPushApproachDirection.lengthXYSquared() <= 0.01f
+        || level.inttime > m_iDoorPushLastContactTime
+            + BOT_DOOR_EXIT_COMMIT_MSEC) {
+        return;
+    }
+
+    // Once contact with the panel clears, keep pushing through the doorway
+    // instead of carrying the lateral edge tangent along the frame.
+    SetCommandMoveVector(
+        botcmd,
+        m_vDoorPushApproachDirection * BOT_DOOR_PUSH_SIDE_COMMAND
+    );
 }
 
 void BotMovement::RecordDoorPushThrough(Door *door)
@@ -2170,8 +2207,10 @@ static int RandomInterval(cvar_t *lo, cvar_t *hi)
 
 void BotMovement::FinalizeMovement(usercmd_t& botcmd)
 {
-    const usercmd_t baseCommand = botcmd;
+    usercmd_t baseCommand = botcmd;
     UpdateAggressiveMovement(botcmd);
+    ContinueDoorExit(baseCommand);
+    ContinueDoorExit(botcmd);
     ResolveImminentCollision(botcmd, baseCommand);
 }
 
@@ -2659,14 +2698,15 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         return;
     }
 
-    // A committed panel edge can lead into the adjacent world corner. Drop
-    // that edge immediately so the next door contact probes the other side
-    // instead of repeatedly carrying the bot into a second obstacle.
+    // A committed door approach can meet the adjacent frame or world corner.
+    // Drop both vectors immediately so the next contact captures the route
+    // again and probes a fresh panel edge instead of repeating that collision.
     if (trace.entityNum == ENTITYNUM_WORLD
         && m_vDoorPushDirection.lengthXYSquared() > 0.01f
         && level.inttime <= m_iDoorPushLastContactTime
-            + BOT_DOOR_PUSH_BLOCKED_GRACE_MSEC) {
+            + BOT_DOOR_EXIT_COMMIT_MSEC) {
         m_vDoorPushDirection = vec_zero;
+        m_vDoorPushApproachDirection = vec_zero;
         if (level.inttime >= m_iDoorPushBlockedLogTime) {
             m_iDoorPushBlockedLogTime =
                 level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
