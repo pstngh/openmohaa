@@ -103,6 +103,13 @@ class RoamingStyleContract(unittest.TestCase):
         self.assertIn("m_bIsLeaning = true", self.update)
         self.assertIn("BUTTON_LEAN_LEFT", self.update)
         self.assertIn("BUTTON_LEAN_RIGHT", self.update)
+        self.assertIn("m_iLeanDirection", self.header)
+        self.assertIn("BOT_LEAN_RELEASE_GRACE_MSEC", self.update)
+        self.assertIn("BOT_LEAN_SWITCH_NEUTRAL_MSEC", self.update)
+        self.assertIn("leanReleaseGrace", self.update)
+        self.assertIn(
+            "!suppressMovement && m_iLeanDirection", self.update
+        )
 
     def test_existing_final_guard_still_owns_imminent_collisions(self) -> None:
         self.assertIn("TraceImminentMove(botcmd, trace)", self.guard)
@@ -192,6 +199,8 @@ class NavigationFailureContract(unittest.TestCase):
         )
         self.assertLess(enter, release)
         self.assertLess(release, target)
+        self.assertGreaterEqual(enter, 12.0)
+        self.assertGreaterEqual(target, 24.0)
         self.assertLessEqual(lookahead, 96.0)
         self.assertEqual(
             self.comfort_inset.count("findDistanceToWall("), 2
@@ -354,6 +363,13 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertNotIn("m_pPath->FindPath", self.door_push)
         self.assertIn("bot_door_pushthrough", self.door_push)
         self.assertIn("bot_door_push_slide", self.door_push)
+        self.assertIn("bot_door_push_open_edge", self.door_push)
+        self.assertIn(
+            "BotDoorOpeningEdgeDirection(door, openingEdge)",
+            self.door_push,
+        )
+        self.assertIn("doorCenter - door->origin", self.source)
+        self.assertIn("openingEdgeBlocked", self.door_push)
         self.assertIn(
             "BOT_DOOR_PUSH_STALL_MSEC            = 350", self.source
         )
@@ -416,6 +432,9 @@ class NavigationFailureContract(unittest.TestCase):
             "controlledEntity->origin + delta + dir * 128",
             self.source,
         )
+        self.assertIn(
+            "BOT_COLLISION_PATH_PROBE_DISTANCE", self.source
+        )
 
     def test_loop_detector_requires_return_travel_and_stable_target(self) -> None:
         self.assertIn(
@@ -450,6 +469,7 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn("bot_ffa_route_oscillation", response)
         self.assertIn("movement.ClearMove();", response)
         self.assertIn("ResetDemoRoute(route, true);", response)
+        self.assertIn("route.retryTime = level.inttime;", response)
 
 
 if __name__ == "__main__":

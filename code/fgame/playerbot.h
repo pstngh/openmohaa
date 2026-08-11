@@ -343,6 +343,8 @@ private:
     bool m_bRoamStrafeActive;      // Non-combat active/neutral style phase
     bool m_bIsLeaning;             // Current strafe overlay can drive lean
     bool m_bLeanCommandActive;     // Current usercmd contains a lean input
+    int  m_iLeanDirection;         // Last visually committed lean side
+    int  m_iLeanLastAppliedTime;   // Hysteresis for release and side changes
     bool m_bHasCombatTarget;
     bool m_bForceCombatRetreat;
     bool m_bForceCombatAdvance;

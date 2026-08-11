@@ -874,6 +874,10 @@ bool BotController::UpdateDemoRoute(
         );
         movement.ClearMove();
         ResetDemoRoute(route, true);
+        // The incremented retry attempt changes the deterministic route seed.
+        // Replan on the next update instead of idling for the normal two-second
+        // failure cooldown after we have already proved this route is looping.
+        route.retryTime = level.inttime;
         return false;
     }
 

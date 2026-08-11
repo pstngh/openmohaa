@@ -39,9 +39,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define MAX_NPOLYS 256
 
-static const float RECAST_COMFORT_ENTER_CLEARANCE  = 8.0f;
-static const float RECAST_COMFORT_EXIT_CLEARANCE   = 14.0f;
-static const float RECAST_COMFORT_TARGET_CLEARANCE = 16.0f;
+static const float RECAST_COMFORT_ENTER_CLEARANCE  = 12.0f;
+static const float RECAST_COMFORT_EXIT_CLEARANCE   = 18.0f;
+static const float RECAST_COMFORT_TARGET_CLEARANCE = 24.0f;
 static const float RECAST_COMFORT_LOOKAHEAD        = 96.0f;
 static const float RECAST_COMFORT_MIN_FORWARD      = 32.0f;
 static const int   RECAST_COMFORT_MAX_VISITED      = 16;

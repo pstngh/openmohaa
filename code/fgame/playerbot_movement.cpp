@@ -40,6 +40,7 @@ static const int   BOT_COLLISION_STALL_MSEC        = 350;
 static const float BOT_COLLISION_LOOKAHEAD_FRAMES = 2.0f;
 static const float BOT_COLLISION_SAFETY_MARGIN    = 2.0f;
 static const float BOT_COLLISION_PROGRESS_UNITS    = 24.0f;
+static const float BOT_COLLISION_PATH_PROBE_DISTANCE = 64.0f;
 static const int   BOT_REDUCED_STANCE_RECOVERY_MSEC = 1500;
 static const int BOT_JUMP_TAKEOFF_MSEC            = 250;
 static const int BOT_JUMP_COMMIT_MAX_MSEC         = 1000;
@@ -54,6 +55,8 @@ static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
 static const int   BOT_DOOR_EXIT_COMMIT_MSEC           = 750;
 static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
 static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
+static const float BOT_DOOR_OPEN_EDGE_BLOCKED_FRACTION = 0.25f;
+static const float BOT_DOOR_OPEN_EDGE_CLEARANCE_MARGIN = 0.25f;
 static const float BOT_DOOR_PUSH_SIDE_COMMAND          = 127.0f;
 static const float BOT_STRAFE_PROBE_DISTANCE          = 56.0f;
 static const float BOT_ROAM_STRAFE_VETO_DISTANCE      = 112.0f;
@@ -76,6 +79,8 @@ static const float BOT_ROUTE_TURN_RATE_DEGREES         = 720.0f;
 static const float BOT_ROUTE_TURN_PROBE_DISTANCE       = 64.0f;
 static const float BOT_ROUTE_TURN_CLEARANCE_EPSILON    = 0.05f;
 static const int   BOT_ROUTE_TURN_RESET_MSEC           = 250;
+static const int   BOT_LEAN_RELEASE_GRACE_MSEC         = 100;
+static const int   BOT_LEAN_SWITCH_NEUTRAL_MSEC        = 250;
 
 static Door *BotTraceDoor(const trace_t& trace)
 {
@@ -103,6 +108,22 @@ static Door *BotTraceOpenableDoor(const trace_t& trace, Player *player)
     }
 
     return door->CanBeOpenedBy(player) ? door : nullptr;
+}
+
+static bool BotDoorOpeningEdgeDirection(Door *door, Vector& direction)
+{
+    if (!door || !door->isSubclassOf(RotatingDoor)) {
+        direction = vec_zero;
+        return false;
+    }
+
+    // Rotating door brushes use their origin as the hinge. The center of the
+    // current world-space bounds therefore points from the hinge toward the
+    // free edge that a human naturally pushes while the panel swings open.
+    const Vector doorCenter = (door->absmin + door->absmax) * 0.5f;
+    direction = doorCenter - door->origin;
+    direction.z = 0.0f;
+    return VectorNormalize2D(direction) > 4.0f;
 }
 
 bot_movement_telemetry_t::bot_movement_telemetry_t()
@@ -207,6 +228,8 @@ BotMovement::BotMovement()
     m_bRoamStrafeActive     = false;
     m_bIsLeaning            = false;
     m_bLeanCommandActive    = false;
+    m_iLeanDirection        = 0;
+    m_iLeanLastAppliedTime  = 0;
     m_bHasCombatTarget      = false;
     m_bForceCombatRetreat   = false;
     m_bForceCombatAdvance   = false;
@@ -1582,10 +1605,16 @@ void BotMovement::PushThroughOpenableDoor(
         }
     }
 
-    // A normal square-on push is enough while the door begins moving. Only
-    // add human-like edge steering when contact persists long enough to prove
-    // that holding forward alone did not clear the panel.
-    if (level.inttime < m_iDoorPushStartTime + BOT_DOOR_PUSH_STALL_MSEC) {
+    Vector openingEdge;
+    const bool preferOpeningEdge =
+        BotDoorOpeningEdgeDirection(door, openingEdge);
+
+    // A human presses the free edge of a hinged panel as soon as it starts
+    // moving, rather than drifting toward the hinge. Sliding and unusual
+    // scripted doors retain the proven square-on grace period.
+    if (!preferOpeningEdge
+        && level.inttime < m_iDoorPushStartTime
+            + BOT_DOOR_PUSH_STALL_MSEC) {
         return;
     }
 
@@ -1600,10 +1629,13 @@ void BotMovement::PushThroughOpenableDoor(
         const Vector doorCenter = (door->absmin + door->absmax) * 0.5f;
         const Vector fromCenter = controlledEntity->origin - doorCenter;
         const Vector pathDelta  = m_vCurrentGoal - controlledEntity->origin;
+        const float edgeDot     = DotProduct(openingEdge, tangent);
         const float awayDot     = DotProduct(fromCenter, tangent);
         const float pathDot     = DotProduct(pathDelta, tangent);
         int preferredDirection;
-        if (fabs(awayDot) > 4.0f) {
+        if (preferOpeningEdge && fabs(edgeDot) > 0.1f) {
+            preferredDirection = edgeDot > 0.0f ? 1 : -1;
+        } else if (fabs(awayDot) > 4.0f) {
             preferredDirection = awayDot > 0.0f ? 1 : -1;
         } else if (fabs(pathDot) > 1.0f) {
             preferredDirection = pathDot > 0.0f ? 1 : -1;
@@ -1627,14 +1659,22 @@ void BotMovement::PushThroughOpenableDoor(
         const float otherClearance = CalculateMoveProbeFraction(
             otherProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
         );
-        if (otherClearance
-            > preferredClearance + BOT_DOOR_PUSH_PROBE_EPSILON) {
+        const bool openingEdgeBlocked = preferOpeningEdge
+            && preferredClearance < BOT_DOOR_OPEN_EDGE_BLOCKED_FRACTION
+            && otherClearance > preferredClearance
+                + BOT_DOOR_OPEN_EDGE_CLEARANCE_MARGIN;
+        if (openingEdgeBlocked
+            || (!preferOpeningEdge
+                && otherClearance > preferredClearance
+                    + BOT_DOOR_PUSH_PROBE_EPSILON)) {
             preferredDirection = -preferredDirection;
         }
 
         m_vDoorPushDirection = tangent * (float)preferredDirection;
         G_MoveLogBotEvent(
-            "bot_door_push_slide",
+            preferOpeningEdge
+                ? "bot_door_push_open_edge"
+                : "bot_door_push_slide",
             controlledEntity,
             NULL,
             door->entnum,
@@ -1979,7 +2019,7 @@ Vector BotMovement::FixDeltaFromCollision(const Vector& delta)
     maxs = controlledEntity->maxs;
     maxs.z -= STEPSIZE;
 
-    maxDist = Q_min(dist, 32);
+    maxDist = Q_min(dist, BOT_COLLISION_PATH_PROBE_DISTANCE);
 
     stepOrg       = controlledEntity->origin + Vector(0, 0, STEPSIZE);
     target        = controlledEntity->origin + forward * maxDist;
@@ -2220,6 +2260,10 @@ Stop the bot from moving
 void BotMovement::ClearMove(void)
 {
     m_bPathing          = false;
+    m_bIsLeaning        = false;
+    m_bLeanCommandActive = false;
+    m_iLeanDirection    = 0;
+    m_iLeanLastAppliedTime = 0;
     m_bDirectMove       = false;
     if (!controlledEntity || controlledEntity->IsDead()
         || (!controlledEntity->GetLadder() && !m_iLadderExitUntil)) {
@@ -2493,13 +2537,39 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
     }
 
     // Lean follows the final lateral command, after the combat radial layer.
-    // The collision resolver performs the same check if it removes a component.
+    // Preserve very short neutral gaps, but require a neutral beat before an
+    // opposite lean. This removes one-frame on/off and left/right animation
+    // flicker without shortening the underlying strafe movement.
+    const int requestedLeanDirection =
+        m_bIsLeaning ? m_iStrafeDirection : 0;
+    bool leanReleaseGrace = false;
+    if (requestedLeanDirection) {
+        const bool switchingTooSoon = m_iLeanDirection
+            && requestedLeanDirection != m_iLeanDirection
+            && level.inttime < m_iLeanLastAppliedTime
+                + BOT_LEAN_SWITCH_NEUTRAL_MSEC;
+        if (switchingTooSoon) {
+            m_bIsLeaning = false;
+        } else {
+            m_iLeanDirection       = requestedLeanDirection;
+            m_iLeanLastAppliedTime = level.inttime;
+        }
+    } else if (!suppressMovement && m_iLeanDirection
+        && level.inttime <= m_iLeanLastAppliedTime
+            + BOT_LEAN_RELEASE_GRACE_MSEC) {
+        m_bIsLeaning = true;
+        leanReleaseGrace = true;
+    }
+
+    // The collision resolver performs the same direction check if it removes
+    // a movement component.
     if (m_bIsLeaning) {
-        const bool matchesDirection = m_iStrafeDirection < 0
+        const bool matchesDirection = leanReleaseGrace
+            || (m_iLeanDirection < 0
             ? botcmd.rightmove < -8
-            : botcmd.rightmove > 8;
+            : botcmd.rightmove > 8);
         if (matchesDirection) {
-            if (m_iStrafeDirection < 0) {
+            if (m_iLeanDirection < 0) {
                 botcmd.buttons |= BUTTON_LEAN_LEFT;
             } else {
                 botcmd.buttons |= BUTTON_LEAN_RIGHT;

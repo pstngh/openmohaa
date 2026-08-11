@@ -73,3 +73,9 @@ This log records owner-approved choices that a future session might otherwise un
 **Decision:** Keep Recast's global agent radius equal to the physical player half-width. For ordinary bot route travel only, wall comfort may adjust the first Detour corner when the proposed point remains within the existing polygon corridor and proves adequate clearance. Tight corridors, partial queries, short goals, off-mesh links, and explicit combat/movement owners retain the original corner.
 
 **Rationale:** Telemetry showed repeated full-speed lanes at near-zero hull clearance even when optional strafe and collision avoidance were inactive, because a physically valid shortest path may run on the eroded navmesh boundary. Increasing the global radius could remove valid doors and passages, while the rejected always-on input-centering layer damaged visible roaming personality without fixing contact.
+
+## D013 - Human-style traversal commitment
+
+**Decision:** A bot opening a rotating door should immediately favor the panel's free edge away from the hinge, falling back to the other side only when the opening edge is materially blocked. Ordinary wall comfort belongs in the existing Recast corridor primitive, proven local route loops should reseed without an idle cooldown, and short lean gaps or side changes should use hysteresis. Do not restore an always-on final-input centering layer or carry a door tangent after panel contact ends.
+
+**Rationale:** Owner-annotated telemetry showed repeated panel contacts, hinge-side corrections, wall-side ordinary paths, route loops, and lean flicker. The owner's human movement instead combines strong strafe and lean with committed forward progress, so the correction must preserve personality while stabilizing the geometric target and traversal state.
