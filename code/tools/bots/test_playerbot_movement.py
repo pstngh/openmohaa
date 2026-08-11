@@ -348,6 +348,44 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn("BOT_DOOR_PUSH_SIDE_COMMAND", escape)
         self.assertNotIn("FindPath", escape)
 
+    def test_open_panel_exit_uses_bounded_geometric_completion(self) -> None:
+        self.assertIn(
+            "BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC   = 3000",
+            self.source,
+        )
+        self.assertIn(
+            "BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE   = 128.0f",
+            self.source,
+        )
+        self.assertIn("bool   m_bOpenDoorPanelExit", self.header)
+        self.assertIn("Vector m_vOpenDoorPanelExitOrigin", self.header)
+        start = self.source.index(
+            "void BotMovement::UpdateOpenDoorPanelExit"
+        )
+        end = self.source.index(
+            "void BotMovement::ContinueDoorExit", start
+        )
+        completion = self.source[start:end]
+        self.assertIn(
+            "DotProduct(displacement, m_vDoorPushApproachDirection)",
+            completion,
+        )
+        self.assertIn("bot_open_door_panel_exit_complete", completion)
+        self.assertIn("bot_open_door_panel_exit_timeout", completion)
+        self.assertNotIn("FindPath", completion)
+        self.assertIn(
+            "const bool continuingContact = m_bOpenDoorPanelExit",
+            self.door_push,
+        )
+        self.assertIn(
+            "const bool continuingContact = !m_bOpenDoorPanelExit",
+            self.door_push,
+        )
+        self.assertLess(
+            self.source.index("UpdateOpenDoorPanelExit();"),
+            self.source.index("ContinueDoorExit(baseCommand);"),
+        )
+
     def test_fully_open_door_panels_are_recast_obstacles(self) -> None:
         self.assertIn('#include "doors.h"', self.obstacles)
         self.assertIn(
@@ -582,6 +620,39 @@ class FocusedTraversalAndCombatContract(unittest.TestCase):
             self.ladder.index("ContinueLadderExit(botcmd)"),
         )
         self.assertIn("ContinueLadderExit(botcmd)", self.ladder)
+
+    def test_grounded_ladder_reacquisition_requires_clearance(self) -> None:
+        self.assertIn(
+            "BOT_LADDER_REATTACH_MAX_MSEC        = 2500",
+            self.movement,
+        )
+        self.assertIn(
+            "BOT_LADDER_REATTACH_CLEAR_DISTANCE = 128.0f",
+            self.movement,
+        )
+        self.assertIn("m_iLadderReattachUntil", self.header)
+        self.assertIn("m_bLadderReattachRecovery", self.header)
+        self.assertIn(
+            "m_iLadderExitUntil || m_iLadderReattachUntil",
+            self.ladder,
+        )
+        self.assertIn("bot_ladder_reattach_blocked", self.ladder)
+        self.assertIn("bot_ladder_reattach_clear", self.ladder)
+        self.assertIn("bot_ladder_reattach_timeout", self.ladder)
+        start = self.ladder.index(
+            "bool BotMovement::ContinueLadderReattachGate"
+        )
+        gate = self.ladder[start:]
+        self.assertIn(
+            "DotProduct(displacement, m_vLadderExitDirection)",
+            gate,
+        )
+        self.assertIn("BOT_LADDER_REATTACH_CLEAR_DISTANCE", gate)
+        self.assertNotIn("FindPath", gate)
+        self.assertLess(
+            self.ladder.index("ContinueLadderExit(botcmd)"),
+            self.ladder.index("ContinueLadderReattachGate(botcmd)"),
+        )
 
     def test_close_pistol_alternates_cadenced_shots_with_bashes(self) -> None:
         self.assertIn(

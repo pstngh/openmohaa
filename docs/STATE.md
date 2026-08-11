@@ -3,7 +3,7 @@ last_updated: 2026-08-11 America/New_York
 branch: bots/server-ai
 peer_branch: bots/macos-client
 active_plan: .agent/plans/active/server-ai.md
-audited_pre_continuity_tip: 676c85f1f078bf5cd86cee591f3f43ad8b33e2e9
+audited_pre_continuity_tip: 118a35996fb924e49556869f57b97566c88517d2
 working_tree_at_audit: clean
 ---
 
@@ -13,7 +13,7 @@ Git is authoritative for the current commit. The hash above is the clean code ti
 
 ## Current objective
 
-Treat deployed commit `849be809` as behaviorally unaccepted and review its live evidence before choosing another bounded correction. Ordinary progress improved, but fully-open-panel escape still enters long route/guard oscillation, grounded exits still reacquire after ownership ends, and wall proximity did not improve. Do not begin another movement change without owner authorization.
+Build and deploy the owner-authorized, focused door/ladder completion experiment. Fully open panel exits must retain the captured through-door approach until measured clearance, and grounded ladder exits must reject post-owner reacquisition until measured clearance; both remain bounded. Keep ordinary wall placement unchanged so a fresh capture can attribute the result.
 
 ## Complete
 
@@ -43,12 +43,15 @@ Treat deployed commit `849be809` as behaviorally unaccepted and review its live 
 - Deployed commit `66af0cff` extends the existing 64-unit, one-second ladder exit commitment to grounded detaches before path/recovery regains control, records `bot_ladder_ground_exit`, and lets a close pistol fire at most once per 1.2 seconds while bashing on ready opportunities between shots. It does not change ordinary route, combat radial/strafe, jump, door, or crosshair ownership.
 - The complete autonomous `66af0cff` capture was analyzed before deletion: 2,012,416 bot frames across 175 `obj_team2` sessions and about 3.50 session-hours. Ordinary wall proximity, lean, guard activation, route-loop events, and objectives were broadly stable, but grounded ladder exits reattached within 1.5 seconds 88.5% of the time versus 45.8% in the pre-change baseline. Exact origins repeated up to 16 times in 30 seconds. Fully open panels also retained a severe long tail, including a 16.6-second near-stationary door-84 stall.
 - Deployed commit `849be809` sends bottom exits opposite `FuncLadder::getFacingDir`, rejects immediate attachment while the bounded exit owns movement, gives fully open panels a stable clearance-probed tangent toward one panel end, and rotates telemetry into complete timestamped triplets at 1.5 GiB. It does not add repathing, global centering, or a new strategic route owner; build/runtime verification is complete and live behavioral acceptance remains pending.
+- The owner authorized the next narrow iteration after reviewing the `849be809` rejection: bounded geometric door completion plus a distinct grounded ladder reacquisition gate, with wall placement explicitly deferred.
 
 ## Partial or under evaluation
 - A transient post-deployment `849be809` pull contained 350,168 schema 7 frames and 19,635 events across 33 autonomous `obj_team2` sessions (32 complete), 0.610 summed session-hours, and 3.067 bot-alive hours. It contained no human frames and had not reached the first 1.5 GiB rotation boundary.
 - The bottom ladder direction and immediate attachment guard work, but the handoff remains incomplete. Of 51 grounded exits, 68.6% reacquired a ladder within 1.5 seconds versus 88.5% for `66af0cff`; first reacquisition was concentrated at 1,050 ms, median one-second displacement was 77.8 units, and the largest exact-origin 30-second cluster fell from 16 to 4. Repathing after the 64-unit/one-second owner ends is pulling bots back through the ladder.
 - The fully-open-panel experiment fails acceptance. Grouping same-bot/same-panel contacts across gaps up to 2.5 seconds produced 346 episodes: 14 lasted at least five seconds, 4 lasted at least ten, and the maximum was 22.95 seconds versus the prior 16.6-second baseline. Thirteen of the 14 long episodes had already invoked `bot_open_door_panel_escape` and also logged strategic route oscillation; entity 73 accounted for 11, while entity 87 produced a true 9.35-second near-stationary stall. The tangent engages, but the time-only contact/route handoff repeatedly returns the bot to the panel.
 - Ordinary noncombat travel improved without solving wall placement. Across 170,160 ordinary-path frames, median six-second efficiency was 0.685 versus the recorded 0.574 baseline and near-return windows fell from 15.87% to 1.75%; strong-command speed below 50 was 4.10%, no ordinary stall exceeded 1.05 seconds, and sharp velocity reversals were 0.20%. However, 29.04% of moving frames were below 12 units of lateral clearance and the strict one-sided lane rate was 23.63% versus the recorded 21.75%, so wall hugging is at least unchanged and possibly slightly worse. Six plants completed, two timed out, and combat remained active, but this one-map bot-only sample cannot establish human or multi-map acceptance.
+- The focused implementation carries only the captured through-door approach until 128 units of forward progress or a three-second maximum after fully-open-panel contact; the contact tangent remains contact-only and world collision still cancels the phase. It separately rejects a real grounded-ladder reattachment after the original 64-unit owner releases, reclaiming the established away direction until 128 units or 2.5 seconds. Neither path calls `FindPath`, changes strategic routes, or changes ordinary wall comfort.
+- Local source-contract validation passes all 24 bot movement/telemetry tests, all 7 route-data tests, all 6 client input tests, `git diff --check`, and continuity. Linux compilation and artifact identity remain pending GitHub's server-only workflow.
 
 - The recent navigation series is implemented but has not been accepted as eliminating the owner's observed wall/door/item contacts or mindless back-and-forth. A 443,879-frame human comparison covering 16 `lawl` sessions and 8 bots found that off-center bots had lateral input on 96.96% of frames versus 52.13% for `lawl`, moving lean was about 88.95% versus 39.81%, and bot lateral commands pointed toward the nearer wall 65.14% of the time.
 - The complete post-restart `6e472321` owner-comment snapshot covered 13 `lawl` sessions and 18 annotations. In matched noncombat movement, bots spent 21.75% of ordinary-path frames tightly beside one wall; all bot movement was tightly one-sided 18.98% versus 4.92% for `lawl`. Median six-second path efficiency was 0.574 for bots versus 0.703 for `lawl`, and near-return loops occurred in 15.87% versus 4.60%. The snapshot logged 207 open-panel contacts, 135 blocked door pushes, 60 lateral recoveries, and 51 reverse recoveries; one annotated route loop travelled 1,060 units but ended only 10 units from its start.
@@ -70,7 +73,7 @@ Treat deployed commit `849be809` as behaviorally unaccepted and review its live 
 
 - The Windows checkout cannot locally prove the Linux x64 server package; GitHub Actions is the authoritative clean build.
 - The current VPS hostname, credentials, service unit, game root, and deployed binary checksum are intentionally not stored in Git. Revalidate them from an approved external source before deployment.
-- The external service was verified active/enabled with zero restarts after deploying passing commit `849be809` on 2026-08-11. Its live binary pair matches the independently checked artifact, both intended UDP ports listen, startup reports `849be80`, the segment-aware cleanup hook is active, and a fresh schema 7 primary triplet is growing; revalidate before later deployment because external state can change.
+- The external service was last verified active/enabled with zero restarts after deploying passing commit `849be809` on 2026-08-11. Its live binary pair then matched the independently checked artifact, both intended UDP ports listened, startup reported `849be80`, the segment-aware cleanup hook was active, and schema 7 telemetry was growing. Revalidate all external state before deploying the pending experiment.
 - Raw demo databases remain outside the repository. Live telemetry remains on the VPS only until the next cleanup; any pulled analysis copy is transient and deleted afterward. Regenerate compact route data only from documented, approved inputs.
 
 ## Working tree at handoff
@@ -102,6 +105,7 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 - GitHub server-only run `31505803523` passed for commit `849be809`. The exact independently verified ELF64 x86-64 artifact hashes are `04c746ec582235c6d8a311e8feef72a78fc6883ee952baea9bb7dba65809d649` for `omohaaded` and `0a09f05a3e8e937a4fe7ef0a4241f48abecd225e0ad8f4854b77d33e4f1b0b54` for `game.so`; the deployed pair matches, the service is active/enabled with zero restarts, both ports listen, and fresh schema 7 telemetry is growing. The exact `66af0cff` pair and prior cleanup drop-in remain at `deploy-backups/pre-849be809`; binary rollback retention is separate from telemetry retention.
 - On 2026-08-11 the owner declared telemetry disposable. All 38 local capture directories (9,727,088,579 bytes), the remote `deploy-telemetry` tree (2,042,252,780 bytes), and the legacy live-directory archive (2,171,506,844 bytes) were permanently deleted. Read-only verification found only the current growing primary triplet, and the service remained active. Future clears and restarts do not require telemetry backups.
 - The 380,788,366-byte transient pull had no malformed tail row. After the aggregate analysis above, it was permanently deleted under the owner's no-backup policy; the live VPS triplet continues recording.
+- On 2026-08-11, the pending geometric door/ladder experiment passed all 24 bot movement/telemetry source-contract tests, all 7 route-data tests, all 6 client input tests, `git diff --check`, and continuity. GitHub Linux compilation, exact-artifact verification, deployment, and live acceptance remain pending.
 
 ## Cross-branch status
 
@@ -111,4 +115,4 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 
 ## Next action
 
-Report the `849be809` rejection and wait for owner direction. If another iteration is authorized, keep wall placement separate; replace the door's time-only handoff with a bounded geometric through-panel completion that does not restore the rejected post-contact tangent carry or door repathing, and separately prevent ladder attachment after the 64-unit exit owner releases until the bot has demonstrably advanced away.
+Commit and push the focused door/ladder experiment, require the exact source commit to pass the server-only Linux x64 workflow, independently verify the two-file artifact, revalidate the VPS read-only, then deploy and restart without backing up telemetry. Confirm hashes, service health, ports, cleanup, and a fresh schema 7 triplet before requesting a new visual/telemetry test.

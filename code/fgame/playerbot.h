@@ -225,6 +225,7 @@ private:
     Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     bool   ContinueLadderExit(usercmd_t& botcmd);
+    bool   ContinueLadderReattachGate(usercmd_t& botcmd);
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
     void   RecoverStandingStance();
@@ -243,6 +244,7 @@ private:
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
     void   ContinueDoorExit(usercmd_t& botcmd) const;
+    void   UpdateOpenDoorPanelExit();
     void   SteerTowardPathHealth(Vector& direction) const;
     bool   AllowRouteComfortInset() const;
     void   CalculateBestFrontAvoidance(
@@ -293,6 +295,8 @@ private:
     float  m_fLadderProgressHeight;
     int    m_iLadderProgressTime;
     int    m_iLadderExitUntil;
+    int    m_iLadderReattachUntil;
+    bool   m_bLadderReattachRecovery;
     Vector m_vLadderExitOrigin;
     Vector m_vLadderExitDirection;
     float  m_fDirectMoveRadius;
@@ -316,6 +320,9 @@ private:
     int    m_iOpenDoorPanelLogTime;
     int    m_iOpenDoorPanelEntity;
     Vector m_vDoorPushDirection;
+    bool   m_bOpenDoorPanelExit;
+    int    m_iOpenDoorPanelExitUntil;
+    Vector m_vOpenDoorPanelExitOrigin;
     Vector m_vDoorPushApproachDirection;
     int    m_iReducedStanceStartTime;
 

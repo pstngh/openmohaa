@@ -53,6 +53,10 @@ static const int   BOT_MOVEMENT_OVERLAY_SUPPRESS_MSEC = 350;
 static const int   BOT_DOOR_PUSH_STALL_MSEC            = 350;
 static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
 static const int   BOT_DOOR_EXIT_COMMIT_MSEC           = 750;
+static const int   BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC   = 3000;
+static const float BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE   = 128.0f;
+static const int   BOT_LADDER_REATTACH_MAX_MSEC        = 2500;
+static const float BOT_LADDER_REATTACH_CLEAR_DISTANCE = 128.0f;
 static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
 static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
 static const float BOT_DOOR_OPEN_EDGE_BLOCKED_FRACTION = 0.25f;
@@ -175,7 +179,9 @@ BotMovement::BotMovement()
     m_fLadderTop        = 0.0f;
     m_fLadderProgressHeight = 0.0f;
     m_iLadderProgressTime   = 0;
-    m_iLadderExitUntil  = 0;
+    m_iLadderExitUntil        = 0;
+    m_iLadderReattachUntil    = 0;
+    m_bLadderReattachRecovery = false;
     m_vLadderExitOrigin = vec_zero;
     m_vLadderExitDirection = vec_zero;
     m_fDirectMoveRadius = 0.0f;
@@ -210,6 +216,9 @@ BotMovement::BotMovement()
     m_vDoorPushApproachDirection = vec_zero;
     m_vRouteCommandDirection   = vec_zero;
     m_iRouteCommandTime        = 0;
+    m_bOpenDoorPanelExit       = false;
+    m_iOpenDoorPanelExitUntil  = 0;
+    m_vOpenDoorPanelExitOrigin = vec_zero;
     m_iRouteTurnLogTime        = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
@@ -291,11 +300,21 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     RecoverStandingStance();
 
     Entity *ladder = controlledEntity->GetLadder();
-    if (ladder && m_iLadderExitUntil) {
-        // Attachment detection can reacquire the same volume on the frame
-        // after a detach. The exit commitment remains the movement owner
-        // until it reaches clearance or expires, so reject that attachment
-        // instead of canceling the commitment and snapping back to the ladder.
+    if (ladder && (m_iLadderExitUntil || m_iLadderReattachUntil)) {
+        // Attachment detection can reacquire the same volume after the
+        // 64-unit exit owner releases. Reject that attachment until the bot
+        // has advanced far enough away, and only reclaim movement ownership
+        // when a real reattachment attempt proves the route is pulling back.
+        if (!m_iLadderExitUntil && m_iLadderReattachUntil
+            && !m_bLadderReattachRecovery) {
+            m_bLadderReattachRecovery = true;
+            G_MoveLogBotEvent(
+                "bot_ladder_reattach_blocked", controlledEntity, NULL, 0,
+                m_vLadderExitOrigin
+                    + m_vLadderExitDirection
+                        * BOT_LADDER_REATTACH_CLEAR_DISTANCE
+            );
+        }
         controlledEntity->UnattachFromLadder(NULL);
         ladder = NULL;
     }
@@ -311,6 +330,8 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
         m_bWasOnLadder     = true;
         m_iLadderExitUntil = 0;
+        m_iLadderReattachUntil = 0;
+        m_bLadderReattachRecovery = false;
 
         if (ladder->isSubclassOf(FuncLadder)) {
             const FuncLadder *funcLadder =
@@ -347,6 +368,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
             m_vCurrentDir = m_vLadderExitDirection;
 
             if (groundedLadderExit && !reachedLadderTop) {
+                m_iLadderReattachUntil =
+                    level.inttime + BOT_LADDER_REATTACH_MAX_MSEC;
+                m_bLadderReattachRecovery = false;
+
                 G_MoveLogBotEvent(
                     "bot_ladder_ground_exit",
                     controlledEntity,
@@ -369,6 +394,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (ContinueLadderExit(botcmd)) {
+        return;
+    }
+
+    if (ContinueLadderReattachGate(botcmd)) {
         return;
     }
 
@@ -614,8 +643,10 @@ void BotMovement::ApplyRouteDirectionContinuity(Vector& direction)
         || controlledEntity->GetLadder() || m_bJump
         || m_iTempAwayState == 2 || m_bAvoidCollision
         || (m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
-            && level.inttime <= m_iDoorPushLastContactTime
-                + BOT_DOOR_EXIT_COMMIT_MSEC);
+            && (m_bOpenDoorPanelExit
+                    ? level.inttime <= m_iOpenDoorPanelExitUntil
+                    : level.inttime <= m_iDoorPushLastContactTime
+                        + BOT_DOOR_EXIT_COMMIT_MSEC));
     const bool resetContinuity = explicitMovementOwner
         || !m_iRouteCommandTime
         || level.inttime > m_iRouteCommandTime + BOT_ROUTE_TURN_RESET_MSEC
@@ -759,6 +790,54 @@ bool BotMovement::ContinueLadderExit(usercmd_t& botcmd)
 
     m_bIsLeaning                   = false;
     m_bLeanCommandActive           = false;
+    m_telemetry.movementSuppressed = true;
+    return true;
+}
+bool BotMovement::ContinueLadderReattachGate(usercmd_t& botcmd)
+{
+    if (!m_iLadderReattachUntil) {
+        return false;
+    }
+
+    Vector displacement = controlledEntity->origin - m_vLadderExitOrigin;
+    displacement.z      = 0.0f;
+    const bool clearOfLadder =
+        DotProduct(displacement, m_vLadderExitDirection)
+        >= BOT_LADDER_REATTACH_CLEAR_DISTANCE;
+    const bool timedOut = level.inttime >= m_iLadderReattachUntil;
+    if (clearOfLadder || timedOut) {
+        if (m_bLadderReattachRecovery) {
+            G_MoveLogBotEvent(
+                clearOfLadder
+                    ? "bot_ladder_reattach_clear"
+                    : "bot_ladder_reattach_timeout",
+                controlledEntity,
+                NULL,
+                0,
+                controlledEntity->origin
+            );
+        }
+        m_iLadderReattachUntil = 0;
+        m_bLadderReattachRecovery = false;
+        return false;
+    }
+
+    if (!m_bLadderReattachRecovery) {
+        return false;
+    }
+
+    m_vCurrentDir = m_vLadderExitDirection;
+    SetCommandMoveVector(
+        botcmd, m_vLadderExitDirection * 127.0f
+    );
+    botcmd.upmove = 0;
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+
+    m_bIsLeaning                   = false;
+    m_bLeanCommandActive           = false;
+    m_bAvoidCollision              = false;
+    m_iTempAwayState               = 0;
+    m_iNumBlocks                   = 0;
     m_telemetry.movementSuppressed = true;
     return true;
 }
@@ -1403,8 +1482,10 @@ bool BotMovement::AllowRouteComfortInset() const
 
     const bool doorCommitActive =
         m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
-        && level.inttime <= m_iDoorPushLastContactTime
-            + BOT_DOOR_EXIT_COMMIT_MSEC;
+        && (m_bOpenDoorPanelExit
+                ? level.inttime <= m_iOpenDoorPanelExitUntil
+                : level.inttime <= m_iDoorPushLastContactTime
+                    + BOT_DOOR_EXIT_COMMIT_MSEC);
     return m_bPathing && !m_bDirectMove && !m_bHasCombatTarget
         && !controlledEntity->GetLadder() && !m_bJump
         && m_iTempAwayState != 2 && !m_bAvoidCollision
@@ -1609,9 +1690,13 @@ void BotMovement::PushThroughOpenableDoor(
         return;
     }
 
-    const bool continuingContact = door->entnum == m_iDoorPushEntity
+    const bool continuingContact = !m_bOpenDoorPanelExit
+        && door->entnum == m_iDoorPushEntity
         && level.inttime <= m_iDoorPushLastContactTime
             + BOT_DOOR_PUSH_RECONTACT_MSEC;
+    m_bOpenDoorPanelExit       = false;
+    m_iOpenDoorPanelExitUntil  = 0;
+    m_vOpenDoorPanelExitOrigin = vec_zero;
     RecordDoorPushThrough(door);
     if (!continuingContact) {
         m_iDoorPushStartTime = level.inttime;
@@ -1753,20 +1838,68 @@ void BotMovement::ApplyDoorPushThrough(usercmd_t& botcmd) const
     SetCommandMoveVector(botcmd, move);
 }
 
+void BotMovement::UpdateOpenDoorPanelExit()
+{
+    if (!m_bOpenDoorPanelExit) {
+        return;
+    }
+
+    if (!controlledEntity || controlledEntity->IsDead()
+        || controlledEntity->GetLadder() || m_bJump
+        || m_iTempAwayState == 2) {
+        m_bOpenDoorPanelExit       = false;
+        m_iOpenDoorPanelExitUntil  = 0;
+        m_vOpenDoorPanelExitOrigin = vec_zero;
+        m_vDoorPushDirection       = vec_zero;
+        m_vDoorPushApproachDirection = vec_zero;
+        return;
+    }
+
+    Vector displacement =
+        controlledEntity->origin - m_vOpenDoorPanelExitOrigin;
+    displacement.z = 0.0f;
+    const bool crossedPanel =
+        DotProduct(displacement, m_vDoorPushApproachDirection)
+        >= BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE;
+    const bool timedOut = level.inttime >= m_iOpenDoorPanelExitUntil;
+    if (!crossedPanel && !timedOut) {
+        return;
+    }
+
+    G_MoveLogBotEvent(
+        crossedPanel
+            ? "bot_open_door_panel_exit_complete"
+            : "bot_open_door_panel_exit_timeout",
+        controlledEntity,
+        NULL,
+        m_iDoorPushEntity,
+        controlledEntity->origin
+    );
+    m_bOpenDoorPanelExit       = false;
+    m_iOpenDoorPanelExitUntil  = 0;
+    m_vOpenDoorPanelExitOrigin = vec_zero;
+    m_vDoorPushDirection       = vec_zero;
+    m_vDoorPushApproachDirection = vec_zero;
+}
+
 void BotMovement::ContinueDoorExit(usercmd_t& botcmd) const
 {
+    const bool exitActive = m_bOpenDoorPanelExit
+        ? level.inttime <= m_iOpenDoorPanelExitUntil
+        : level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_EXIT_COMMIT_MSEC;
     if (!controlledEntity
         || controlledEntity->GetLadder() || m_bJump
         || m_iTempAwayState == 2
         || m_vDoorPushDirection.lengthXYSquared() <= 0.01f
         || m_vDoorPushApproachDirection.lengthXYSquared() <= 0.01f
-        || level.inttime > m_iDoorPushLastContactTime
-            + BOT_DOOR_EXIT_COMMIT_MSEC) {
+        || !exitActive) {
         return;
     }
 
-    // Once contact with the panel clears, keep pushing through the doorway
-    // instead of carrying the lateral edge tangent along the frame.
+    // Once contact clears, carry only the captured through-door approach.
+    // Fully open panels release on geometric progress or the bounded maximum;
+    // moving panels retain the existing short time-based exit.
     SetCommandMoveVector(
         botcmd,
         m_vDoorPushApproachDirection * BOT_DOOR_PUSH_SIDE_COMMAND
@@ -1823,10 +1956,16 @@ bool BotMovement::EscapeOpenDoorPanel(
         return false;
     }
 
-    const bool continuingContact = door->entnum == m_iDoorPushEntity
+    const bool continuingContact = m_bOpenDoorPanelExit
+        && door->entnum == m_iDoorPushEntity
+        && level.inttime <= m_iOpenDoorPanelExitUntil
         && level.inttime <= m_iDoorPushLastContactTime
             + BOT_DOOR_PUSH_RECONTACT_MSEC;
     if (!continuingContact) {
+        m_bOpenDoorPanelExit       = true;
+        m_iOpenDoorPanelExitUntil  =
+            level.inttime + BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC;
+        m_vOpenDoorPanelExitOrigin = controlledEntity->origin;
         m_iDoorPushStartTime = level.inttime;
         m_vDoorPushDirection = vec_zero;
         m_vDoorPushApproachDirection = GetCommandMoveVector(botcmd);
@@ -2391,12 +2530,15 @@ void BotMovement::ClearMove(void)
     m_iLeanLastAppliedTime = 0;
     m_bDirectMove       = false;
     if (!controlledEntity || controlledEntity->IsDead()
-        || (!controlledEntity->GetLadder() && !m_iLadderExitUntil)) {
+        || (!controlledEntity->GetLadder() && !m_iLadderExitUntil
+            && !m_iLadderReattachUntil)) {
         m_bWasOnLadder         = false;
         m_fLadderTop           = 0.0f;
         m_fLadderProgressHeight = 0.0f;
         m_iLadderProgressTime   = 0;
         m_iLadderExitUntil     = 0;
+        m_iLadderReattachUntil = 0;
+        m_bLadderReattachRecovery = false;
         m_vLadderExitOrigin    = vec_zero;
         m_vLadderExitDirection = vec_zero;
     }
@@ -2565,6 +2707,7 @@ void BotMovement::FinalizeMovement(usercmd_t& botcmd)
 {
     usercmd_t baseCommand = botcmd;
     UpdateAggressiveMovement(botcmd);
+    UpdateOpenDoorPanelExit();
     ContinueDoorExit(baseCommand);
     ContinueDoorExit(botcmd);
     ResolveImminentCollision(botcmd, baseCommand);
@@ -3090,12 +3233,18 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     // A committed door approach can meet the adjacent frame or world corner.
     // Drop both vectors immediately so the next contact captures the route
     // again and probes a fresh panel edge instead of repeating that collision.
+    const bool committedDoorExit = m_bOpenDoorPanelExit
+        ? level.inttime <= m_iOpenDoorPanelExitUntil
+        : level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_EXIT_COMMIT_MSEC;
     if (trace.entityNum == ENTITYNUM_WORLD
         && m_vDoorPushDirection.lengthXYSquared() > 0.01f
-        && level.inttime <= m_iDoorPushLastContactTime
-            + BOT_DOOR_EXIT_COMMIT_MSEC) {
+        && committedDoorExit) {
         m_vDoorPushDirection = vec_zero;
         m_vDoorPushApproachDirection = vec_zero;
+        m_bOpenDoorPanelExit       = false;
+        m_iOpenDoorPanelExitUntil  = 0;
+        m_vOpenDoorPanelExitOrigin = vec_zero;
         if (level.inttime >= m_iDoorPushBlockedLogTime) {
             m_iDoorPushBlockedLogTime =
                 level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
