@@ -79,6 +79,8 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - Commit `b89457ee` changes only ordinary noncombat view placement: it previews 96 units along the live route, uses Detour straight corners for Recast and ordered nodes for the legacy backend, and preserves all explicit movement/aim owners plus the old fallback. Eighteen focused tests, all route tests, continuity, passing server-only run `31455184141`, exact artifact verification, safe deployment, ports, and fresh schema 7 recording were verified; live owner and multi-map acceptance remain pending.
 - Focused comment review found that the apparent teammate stop was continuous ladder ascent, the ceiling-look sample was enemy aim, and SMGs already fired on most visible-target frames. Combat return windows were owned by target chase/orbit rather than a stable strategic route, so applying the route-loop reset there would be an ownership error. Earlier `6938284a` frames did prove repeated grounded ladder detach/reattach, and close pistol frames proved exclusive bashing despite available primary ammunition.
 - Commit `66af0cff` gives grounded ladder detaches the existing 64-unit, one-second exit commitment and observational `bot_ladder_ground_exit` event, while close pistols fire at most once per 1.2 seconds and bash between ready shot opportunities. Twenty focused tests, all route tests, continuity, passing server-only run `31457072835`, exact artifact verification, safe deployment, both ports, and fresh schema 7 recording were verified. The exact prior pair and stopped `b89457ee` capture are preserved remotely and outside Git; live owner and multi-map acceptance remain pending.
+- The complete `66af0cff` autonomous capture covered 175 `obj_team2` sessions and proved the grounded exit experiment regressed: 88.5% of grounded exits reattached within 1.5 seconds versus 45.8% before it, with exact-origin cycles up to 16 exits in 30 seconds. The same capture exposed a separate 16.6-second fully-open-panel stall and stopped recording when frames crossed 2.15 GB; wall, lean, route, combat, and objective aggregates were otherwise broadly stable.
+- The current correction makes bottom exits use `-facingDir`, refuses attachment while exit commitment is active, gives open panels a clearance-probed committed tangent without repathing, and rotates complete standard telemetry triplets at 1.5 GiB. Twenty-two focused movement/telemetry tests, all route tests, continuity, and whitespace validation pass; Linux CI, artifact verification, safe deployment, and live acceptance remain pending.
 
 ## Implementation discipline
 
@@ -92,6 +94,7 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 ## Validation and acceptance
 
 - `python code/tools/demoroutes/test_build_bot_route_data.py` passes.
+- `python -m unittest discover -s code/tools/bots -p 'test_*.py' -v` passes.
 - `python .agent/check_continuity.py` passes.
 - GitHub's server-only job configures with client/renderers/codecs disabled and builds targets `omohaaded game`.
 - Artifact contains exactly x86-64 `omohaaded` and `game.so`.
@@ -103,7 +106,8 @@ Keep `bots/server-ai` independently recoverable while iterating toward human-lik
 - Retain or obtain the previously known-good CI artifact before deploying a movement experiment.
 - If generated routes regress, revert both `playerbot_route_data.cpp` and its summary to the last validated generator result; never hand-edit generated graph arrays.
 - Do not delete telemetry until a copy is preserved outside the live game directory when it is needed as evidence.
+- A service restart for segmented telemetry must clear both the primary triplet and the exact `telemetry/segments` subtree; preserve any required evidence first.
 
 ## Next action
 
-Owner-test deployed commit `66af0cff` on `obj_team2`, focusing on crosshair lead through corners, grounded ladder exit without reattachment, and close pistol shot/bash mixing without loss of wall/door/loop/lean behavior. Preserve and pull the resulting clean capture, compare it with the complete `5d3fd2b2` baseline, then recheck `obj_team4` and `dm/mohdm6` before acceptance.
+Push the focused correction, require the server-only Linux x64 workflow to pass, verify the exact `omohaaded`/`game.so` artifact, preserve the deployed pair, extend the exact service-start cleanup to `telemetry/segments`, deploy, and verify hashes, ports, service state, and a fresh growing schema 7 primary triplet. Then compare fresh autonomous `obj_team2` ladder and open-panel episodes against the preserved `66af0cff` capture before owner visual and multi-map acceptance.

@@ -329,27 +329,36 @@ of the session, close the files cleanly with:
 set g_movelog 0
 ```
 
-The recorder keeps three persistent files under `telemetry` in the active game
-directory (`main`, `mainta`, or `maintt`):
+The recorder begins with one persistent triplet under `telemetry` in the active
+game directory (`main`, `mainta`, or `maintt`):
 
 - `movement_frames.csv`: synchronized 20 Hz movement and aim rows.
 - `movement_events.csv`: exact combat and lifecycle events.
 - `movement_meta.txt`: map, game, movement, health, accuracy, and bot-tuning
   settings needed to reproduce each session.
 
-Nothing is overwritten: new recordings append to these same three files.
+Nothing is overwritten while recording: new sessions append to a triplet.
 Every period between enabling and disabling `g_movelog` has a unique
 `session_id`, as does a recording continued after a map change or server
 restart. The CSV rows and metadata blocks carry that ID so individual matches
 can still be separated during analysis.
 
-All three files must use the same telemetry schema. Before the first recording
-with this schema 7 test build, archive or delete older copies of all three files.
-The recorder refuses to mix schemas or append when only part of the triplet is
-present. Once fresh schema 7 files exist, subsequent sessions append normally.
+Before `movement_frames.csv` reaches the engine's signed 2 GiB boundary, the
+recorder closes that complete triplet and starts another standard triplet
+under `telemetry/segments/<epoch>_<milliseconds>/`. Segment directories use the
+same three filenames, include their own headers and metadata, and recording
+continues without disabling `g_movelog`. A normal segment is capped at 1.5 GiB,
+leaving ample room for the final buffered rows and `session_end` event.
+
+Each triplet must use one telemetry schema and contain all three members.
+Before the first recording with a new schema, archive or delete every active
+older triplet. The recorder refuses to mix schemas, append to a partial triplet,
+or overwrite a completed segment. Operational cleanup hooks should remove the
+service's primary triplet and `telemetry/segments` together only after evidence
+and required captures have been preserved.
 
 For bot tuning, record several rounds of human versus human play and several
 rounds against bots on the same maps and settings. A normal client demo
 (`record <name>` / `stoprecord`) or video is useful visual context, but the
-three telemetry files contain the server-side data needed for quantitative
-movement and aim comparison.
+telemetry triplets contain the server-side data needed for quantitative movement
+and aim comparison.

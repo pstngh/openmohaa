@@ -88,6 +88,18 @@ This log records owner-approved choices that a future session might otherwise un
 
 ## D015 - Focus grounded ladder exits and close-pistol pressure
 
-**Decision:** A bot that detaches from a ladder while grounded should briefly continue in the ladder's existing exit direction before pathing or blocked recovery can regain control, using the same bounded commitment already used at the top. A pistol user inside melee range should mix deterministic, cadenced primary shots with edge-triggered bashes instead of bashing exclusively. Do not reinterpret normal ladder ascent as a teammate stop or apply strategic route-loop resets to target-chase/orbit movement.
+**Decision:** Ladder exit direction is attachment-position-specific: a completed top exit follows `+facingDir`, while a grounded bottom detach follows `-facingDir` because `FuncLadder::PositionOnLadder` places the user behind the panel. The bounded exit commitment must reject immediate reacquisition of the same ladder volume before pathing or recovery regains control. A pistol user inside melee range should still mix deterministic, cadenced primary shots with edge-triggered bashes instead of bashing exclusively. Do not reinterpret normal ladder ascent as a teammate stop or apply strategic route-loop resets to target-chase/orbit movement.
 
-**Rationale:** Annotated frames showed repeated grounded ladder detach/reattach caused by recovery taking control immediately, while the reported teammate pause was actually steady vertical ladder progress. Combat telemetry showed SMGs already firing aggressively and close pistol users choosing only melee despite loaded primary ammo. Keeping both corrections inside their existing owners addresses the measured behavior without adding another steering layer or weakening combat constraints.
+**Rationale:** Annotated frames originally showed repeated grounded ladder detach/reattach, while the reported teammate pause was steady vertical progress. The first grounded implementation used the top direction and allowed attachment to cancel its commitment; its complete capture reattached within 1.5 seconds on 88.5% of grounded exits and repeated exact origins up to 16 times in 30 seconds. Ladder geometry and the measured regression require opposite bottom direction plus retained ownership. Combat telemetry separately showed close pistol users choosing only melee despite loaded primary ammunition.
+
+## D016 - Fully open door panels need a physical escape owner
+
+**Decision:** Keep a fully open door panel as ordinary displaced collision geometry, but when the final movement guard traces that panel, commit to the clearer tangent toward one physical panel end until contact clears. Retain the through-door approach only for the existing short exit phase. Do not repath, reopen the door, or override movement when no valid panel tangent exists.
+
+**Rationale:** The complete `66af0cff` capture contained a 16.6-second near-stationary stall against a fully open panel while route planning and the final guard repeated. Pure collision-plane projection can reduce a square-on route command to zero. A stable, locally probed tangent removes that physical deadlock without restoring the rejected door-specific route owner.
+
+## D017 - Segment always-on server telemetry before 2 GiB
+
+**Decision:** Preserve always-on telemetry as complete schema-consistent triplets and rotate before the engine's signed 2 GiB file boundary. Each 1.5 GiB frame segment closes with `session_end`; recording continues in a timestamped directory with standard filenames, headers, metadata, and a new session. Service-start cleanup must remove the exact primary triplet and `telemetry/segments` together only after required evidence is preserved.
+
+**Rationale:** The `66af0cff` logger stopped at 2,153,632,622 frame bytes because the next file-length check overflowed its internal signed representation and misclassified the triplet. Segmentation prevents recurrence, preserves analysis boundaries, and honors the owner's policy that recording stays enabled while a service restart begins a clean capture.

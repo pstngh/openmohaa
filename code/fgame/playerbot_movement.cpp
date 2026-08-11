@@ -291,6 +291,14 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     RecoverStandingStance();
 
     Entity *ladder = controlledEntity->GetLadder();
+    if (ladder && m_iLadderExitUntil) {
+        // Attachment detection can reacquire the same volume on the frame
+        // after a detach. The exit commitment remains the movement owner
+        // until it reaches clearance or expires, so reject that attachment
+        // instead of canceling the commitment and snapping back to the ladder.
+        controlledEntity->UnattachFromLadder(NULL);
+        ladder = NULL;
+    }
     if (ladder) {
         if (!m_bWasOnLadder) {
             m_fLadderProgressHeight = controlledEntity->origin.z;
@@ -326,10 +334,13 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
             controlledEntity->origin.z >= m_fLadderTop;
         if ((reachedLadderTop || groundedLadderExit)
             && m_vLadderExitDirection.lengthXYSquared() > 0.0f) {
-            // A grounded bottom detach can reattach just as readily as a
-            // completed top-off. Keep moving in the ladder's prescribed exit
-            // direction before returning control to the path so recovery does
-            // not pull the bot straight back onto the same ladder.
+            // FuncLadder places a bottom user behind the panel
+            // (-facingDir), while a completed top-off leaves in +facingDir.
+            // Move farther from the panel at the bottom instead of crossing
+            // back through the ladder volume.
+            if (groundedLadderExit && !reachedLadderTop) {
+                m_vLadderExitDirection *= -1.0f;
+            }
             m_vLadderExitOrigin = controlledEntity->origin;
             m_iLadderExitUntil =
                 level.inttime + BOT_LADDER_EXIT_MAX_MSEC;
@@ -1804,6 +1815,103 @@ void BotMovement::RecordOpenDoorPanelContact(
     );
 }
 
+bool BotMovement::EscapeOpenDoorPanel(
+    usercmd_t& botcmd, Door *door, const trace_t& trace
+)
+{
+    if (!door || !door->isOpen() || !controlledEntity) {
+        return false;
+    }
+
+    const bool continuingContact = door->entnum == m_iDoorPushEntity
+        && level.inttime <= m_iDoorPushLastContactTime
+            + BOT_DOOR_PUSH_RECONTACT_MSEC;
+    if (!continuingContact) {
+        m_iDoorPushStartTime = level.inttime;
+        m_vDoorPushDirection = vec_zero;
+        m_vDoorPushApproachDirection = GetCommandMoveVector(botcmd);
+        m_vDoorPushApproachDirection.z = 0.0f;
+        if (VectorNormalize2D(m_vDoorPushApproachDirection) <= 0.0f) {
+            m_vDoorPushApproachDirection = m_vCurrentDir;
+            m_vDoorPushApproachDirection.z = 0.0f;
+            VectorNormalize2D(m_vDoorPushApproachDirection);
+        }
+    }
+    m_iDoorPushEntity          = door->entnum;
+    m_iDoorPushLastContactTime = level.inttime;
+
+    if (m_vDoorPushDirection.lengthXYSquared() <= 0.01f) {
+        Vector normal = trace.plane.normal;
+        normal.z      = 0.0f;
+        if (VectorNormalize2D(normal) <= 0.0f) {
+            return false;
+        }
+
+        const Vector tangent(-normal.y, normal.x, 0.0f);
+        const Vector doorCenter = (door->absmin + door->absmax) * 0.5f;
+        const Vector fromCenter = controlledEntity->origin - doorCenter;
+        const Vector pathDelta  = m_vCurrentGoal - controlledEntity->origin;
+        const float awayDot     = DotProduct(fromCenter, tangent);
+        const float pathDot     = DotProduct(pathDelta, tangent);
+        int preferredDirection;
+        if (fabs(awayDot) > 4.0f) {
+            // Slide toward the nearest end of the displaced panel.
+            preferredDirection = awayDot > 0.0f ? 1 : -1;
+        } else if (fabs(pathDot) > 1.0f) {
+            preferredDirection = pathDot > 0.0f ? 1 : -1;
+        } else {
+            preferredDirection = door->entnum & 1 ? 1 : -1;
+        }
+
+        usercmd_t preferredProbe = botcmd;
+        usercmd_t otherProbe     = botcmd;
+        SetCommandMoveVector(
+            preferredProbe,
+            tangent * (preferredDirection * BOT_DOOR_PUSH_SIDE_COMMAND)
+        );
+        SetCommandMoveVector(
+            otherProbe,
+            tangent * (-preferredDirection * BOT_DOOR_PUSH_SIDE_COMMAND)
+        );
+        const float preferredClearance = CalculateMoveProbeFraction(
+            preferredProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+        const float otherClearance = CalculateMoveProbeFraction(
+            otherProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+        if (otherClearance > preferredClearance
+            + BOT_DOOR_PUSH_PROBE_EPSILON) {
+            preferredDirection = -preferredDirection;
+        }
+
+        m_vDoorPushDirection = tangent * (float)preferredDirection;
+        G_MoveLogBotEvent(
+            "bot_open_door_panel_escape", controlledEntity, NULL,
+            door->entnum,
+            controlledEntity->origin
+                + m_vDoorPushDirection * BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
+    }
+
+    // A fully open panel cannot yield to forward pressure. Give its chosen
+    // tangent full command ownership until collision clears, then the existing
+    // short door-exit commitment resumes the retained through-door approach.
+    SetCommandMoveVector(
+        botcmd, m_vDoorPushDirection * BOT_DOOR_PUSH_SIDE_COMMAND
+    );
+    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
+    m_bIsLeaning                   = false;
+    m_bLeanCommandActive           = false;
+    m_telemetry.movementSuppressed = true;
+    m_telemetry.guardTriggered        = true;
+    m_telemetry.guardHitSentient      = false;
+    m_telemetry.guardHitWorld         = false;
+    m_telemetry.guardRemovedComponent = true;
+    m_telemetry.guardFraction         = trace.fraction;
+    m_telemetry.guardEntity           = trace.entityNum;
+    return true;
+}
+
 void BotMovement::CalculateBestFrontAvoidance(
     const Vector& targetOrg, float maxDist, const Vector& forward, const Vector& right, float& bestFrac, Vector& bestPos
 )
@@ -2968,6 +3076,9 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     Door *tracedDoor = BotTraceDoor(trace);
     if (tracedDoor && tracedDoor->isOpen()) {
         RecordOpenDoorPanelContact(tracedDoor, trace);
+        if (EscapeOpenDoorPanel(botcmd, tracedDoor, trace)) {
+            return;
+        }
     }
     Door *openableDoor = BotTraceOpenableDoor(trace, controlledEntity);
     if (openableDoor) {

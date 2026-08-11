@@ -36,6 +36,8 @@ constexpr int         MOVELOG_SCHEMA          = 7;
 constexpr int         MOVELOG_SAMPLE_MSEC     = 50;
 constexpr int         MOVELOG_FLUSH_MSEC      = 1000;
 constexpr size_t      MOVELOG_BUFFER_LIMIT    = 64 * 1024;
+constexpr unsigned long long MOVELOG_SEGMENT_LIMIT =
+    1536ULL * 1024ULL * 1024ULL;
 constexpr float       MOVELOG_CLEARANCE_RANGE = 128.0f;
 constexpr float       MOVELOG_AIM_RANGE       = 8192.0f;
 constexpr float       RAD_TO_DEG              = 57.29577951308232f;
@@ -47,10 +49,25 @@ fileHandle_t framesFile = 0;
 fileHandle_t eventsFile = 0;
 std::string  framesBuffer;
 std::string  eventsBuffer;
+std::string  framesPath(MOVELOG_FRAMES_PATH);
+std::string  eventsPath(MOVELOG_EVENTS_PATH);
+std::string  metaPath(MOVELOG_META_PATH);
 std::string  sessionId;
+unsigned long long framesBytesWritten = 0;
 int          sessionStartMsec = 0;
 int          nextSampleMsec   = 0;
 int          nextFlushMsec    = 0;
+
+static void SelectFreshSegmentPaths()
+{
+    std::ostringstream directory;
+    directory << "telemetry/segments/"
+              << static_cast<long long>(std::time(NULL)) << '_'
+              << gi.Milliseconds();
+    framesPath = directory.str() + "/movement_frames.csv";
+    eventsPath = directory.str() + "/movement_events.csv";
+    metaPath   = directory.str() + "/movement_meta.txt";
+}
 
 struct VisibilityState
 {
@@ -199,7 +216,9 @@ static int SessionMsec()
 static void FlushBuffers(bool force)
 {
     if (framesFile && !framesBuffer.empty() && (force || framesBuffer.size() >= MOVELOG_BUFFER_LIMIT)) {
-        gi.FS_Write(framesBuffer.data(), framesBuffer.size(), framesFile);
+        framesBytesWritten += gi.FS_Write(
+            framesBuffer.data(), framesBuffer.size(), framesFile
+        );
         framesBuffer.clear();
     }
 
@@ -500,10 +519,10 @@ static std::string CvarLine(const char *name, cvar_t *cvar)
     return line.str();
 }
 
-static int LastMetadataSchema()
+static int LastMetadataSchema(const char *path)
 {
     char *buffer = NULL;
-    const long length = gi.FS_ReadFile(MOVELOG_META_PATH, reinterpret_cast<void **>(&buffer), qtrue);
+    const long length = gi.FS_ReadFile(path, reinterpret_cast<void **>(&buffer), qtrue);
     if (length <= 0 || !buffer) {
         return 0;
     }
@@ -527,13 +546,21 @@ static bool EnsureOpen()
         return true;
     }
 
-    const bool framesNeedHeader = gi.FS_ReadFile(MOVELOG_FRAMES_PATH, NULL, qtrue) <= 0;
-    const bool eventsNeedHeader = gi.FS_ReadFile(MOVELOG_EVENTS_PATH, NULL, qtrue) <= 0;
-    const bool metaNeedsHeader   = gi.FS_ReadFile(MOVELOG_META_PATH, NULL, qtrue) <= 0;
+    long framesLength = gi.FS_ReadFile(framesPath.c_str(), NULL, qtrue);
+    if (framesLength >= static_cast<long>(MOVELOG_SEGMENT_LIMIT)) {
+        SelectFreshSegmentPaths();
+        framesLength = gi.FS_ReadFile(framesPath.c_str(), NULL, qtrue);
+    }
+
+    const long eventsLength = gi.FS_ReadFile(eventsPath.c_str(), NULL, qtrue);
+    const long metaLength   = gi.FS_ReadFile(metaPath.c_str(), NULL, qtrue);
+    const bool framesNeedHeader = framesLength <= 0;
+    const bool eventsNeedHeader = eventsLength <= 0;
+    const bool metaNeedsHeader   = metaLength <= 0;
     const bool anyExistingLog   = !framesNeedHeader || !eventsNeedHeader || !metaNeedsHeader;
     const bool allExistingLogs  = !framesNeedHeader && !eventsNeedHeader && !metaNeedsHeader;
 
-    if ((anyExistingLog && !allExistingLogs) || (allExistingLogs && LastMetadataSchema() != MOVELOG_SCHEMA)) {
+    if ((anyExistingLog && !allExistingLogs) || (allExistingLogs && LastMetadataSchema(metaPath.c_str()) != MOVELOG_SCHEMA)) {
         gi.Printf(
             "g_movelog: existing telemetry files do not use schema %d; archive/delete all three movement_* files "
             "before recording\n",
@@ -548,8 +575,8 @@ static bool EnsureOpen()
     id << mapName << '_' << static_cast<long long>(std::time(NULL)) << '_' << gi.Milliseconds();
     sessionId = id.str();
 
-    framesFile = gi.FS_FOpenFileAppend(MOVELOG_FRAMES_PATH);
-    eventsFile = gi.FS_FOpenFileAppend(MOVELOG_EVENTS_PATH);
+    framesFile = gi.FS_FOpenFileAppend(framesPath.c_str());
+    eventsFile = gi.FS_FOpenFileAppend(eventsPath.c_str());
     if (!framesFile || !eventsFile) {
         if (framesFile) {
             gi.FS_FCloseFile(framesFile);
@@ -566,6 +593,7 @@ static bool EnsureOpen()
     sessionStartMsec = level.inttime;
     nextSampleMsec   = level.inttime;
     nextFlushMsec    = level.inttime + MOVELOG_FLUSH_MSEC;
+    framesBytesWritten = framesLength > 0 ? static_cast<unsigned long long>(framesLength) : 0;
 
     framesBuffer.clear();
     eventsBuffer.clear();
@@ -672,7 +700,7 @@ static bool EnsureOpen()
          << CvarLine("g_accuracy", g_accuracy)
          << '\n';
     const std::string metadata = meta.str();
-    fileHandle_t metaFile = gi.FS_FOpenFileAppend(MOVELOG_META_PATH);
+    fileHandle_t metaFile = gi.FS_FOpenFileAppend(metaPath.c_str());
     if (!metaFile) {
         gi.FS_FCloseFile(framesFile);
         gi.FS_FCloseFile(eventsFile);
@@ -688,8 +716,11 @@ static bool EnsureOpen()
     AppendEventRow("session_start", NULL, NULL, "", -1, 0.0f, 0.0f, 0.0f, -1, -1, zero, zero, zero, NULL);
     FlushBuffers(true);
     gi.Printf(
-        "g_movelog: recording session %s to telemetry/movement_[frames.csv|events.csv|meta.txt]\n",
-        sessionId.c_str()
+        "g_movelog: recording session %s to %s, %s, and %s\n",
+        sessionId.c_str(),
+        framesPath.c_str(),
+        eventsPath.c_str(),
+        metaPath.c_str()
     );
     return true;
 }
@@ -870,6 +901,52 @@ static void AppendFrame(Player *player)
 
     framesBuffer += row.str();
 }
+
+static void CloseTelemetrySession()
+{
+    if (!framesFile && !eventsFile) {
+        return;
+    }
+
+    const Vector zero(0.0f, 0.0f, 0.0f);
+    AppendEventRow("session_end", NULL, NULL, "", -1, 0.0f, 0.0f, 0.0f, -1, -1, zero, zero, zero, NULL);
+    FlushBuffers(true);
+
+    if (framesFile) {
+        gi.FS_FCloseFile(framesFile);
+    }
+    if (eventsFile) {
+        gi.FS_FCloseFile(eventsFile);
+    }
+    gi.Printf("g_movelog: stopped recording session %s\n", sessionId.c_str());
+
+    framesFile = eventsFile = 0;
+    framesBuffer.clear();
+    eventsBuffer.clear();
+    sessionId.clear();
+    framesBytesWritten = 0;
+}
+
+static void RotateTelemetryIfNeeded()
+{
+    if (framesBytesWritten
+        + static_cast<unsigned long long>(framesBuffer.size())
+        < MOVELOG_SEGMENT_LIMIT) {
+        return;
+    }
+
+    const std::string priorFramesPath = framesPath;
+    CloseTelemetrySession();
+    SelectFreshSegmentPaths();
+    if (EnsureOpen()) {
+        gi.Printf(
+            "g_movelog: rotated full frame segment %s to fresh triplet %s\n",
+            priorFramesPath.c_str(),
+            framesPath.c_str()
+        );
+    }
+}
+
 } // namespace
 
 void G_MoveLogFrame()
@@ -901,30 +978,12 @@ void G_MoveLogFrame()
     if (timedFlush) {
         nextFlushMsec = level.inttime + MOVELOG_FLUSH_MSEC;
     }
+    RotateTelemetryIfNeeded();
 }
 
 void G_MoveLogShutdown()
 {
-    if (!framesFile && !eventsFile) {
-        return;
-    }
-
-    const Vector zero(0.0f, 0.0f, 0.0f);
-    AppendEventRow("session_end", NULL, NULL, "", -1, 0.0f, 0.0f, 0.0f, -1, -1, zero, zero, zero, NULL);
-    FlushBuffers(true);
-
-    if (framesFile) {
-        gi.FS_FCloseFile(framesFile);
-    }
-    if (eventsFile) {
-        gi.FS_FCloseFile(eventsFile);
-    }
-    gi.Printf("g_movelog: stopped recording session %s\n", sessionId.c_str());
-
-    framesFile = eventsFile = 0;
-    framesBuffer.clear();
-    eventsBuffer.clear();
-    sessionId.clear();
+    CloseTelemetrySession();
 }
 
 void G_MoveLogShot(Sentient *owner, Weapon *weapon, int mode, const Vector& position, const Vector& forward)

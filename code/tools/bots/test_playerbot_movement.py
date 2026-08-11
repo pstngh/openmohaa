@@ -324,22 +324,29 @@ class NavigationFailureContract(unittest.TestCase):
             1,
         )
 
-    def test_open_panel_contact_is_observational(self) -> None:
+    def test_open_panel_contact_commits_to_a_clear_panel_end(self) -> None:
         self.assertIn(
             "void   RecordOpenDoorPanelContact", self.header
         )
+        self.assertIn("bool   EscapeOpenDoorPanel", self.header)
         self.assertIn("Door *tracedDoor = BotTraceDoor(trace)", self.guard)
         self.assertIn("bot_open_door_panel_contact", self.source)
+        self.assertIn(
+            "EscapeOpenDoorPanel(botcmd, tracedDoor, trace)", self.guard
+        )
         start = self.source.index(
-            "void BotMovement::RecordOpenDoorPanelContact"
+            "bool BotMovement::EscapeOpenDoorPanel"
         )
         end = self.source.index(
             "void BotMovement::CalculateBestFrontAvoidance", start
         )
-        recorder = self.source[start:end]
-        self.assertIn("G_MoveLogBotEvent", recorder)
-        self.assertNotIn("FindPath", recorder)
-        self.assertNotIn("SetCommandMoveVector", recorder)
+        escape = self.source[start:end]
+        self.assertIn("CalculateMoveProbeFraction", escape)
+        self.assertIn("door->absmin + door->absmax", escape)
+        self.assertIn("bot_open_door_panel_escape", escape)
+        self.assertIn("SetCommandMoveVector", escape)
+        self.assertIn("BOT_DOOR_PUSH_SIDE_COMMAND", escape)
+        self.assertNotIn("FindPath", escape)
 
     def test_fully_open_door_panels_are_recast_obstacles(self) -> None:
         self.assertIn('#include "doors.h"', self.obstacles)
@@ -568,6 +575,12 @@ class FocusedTraversalAndCombatContract(unittest.TestCase):
         )
         self.assertIn("m_vLadderExitDirection", self.ladder)
         self.assertIn("bot_ladder_ground_exit", self.ladder)
+        self.assertIn("UnattachFromLadder(NULL)", self.ladder)
+        self.assertIn("m_vLadderExitDirection *= -1.0f", self.ladder)
+        self.assertLess(
+            self.ladder.index("UnattachFromLadder(NULL)"),
+            self.ladder.index("ContinueLadderExit(botcmd)"),
+        )
         self.assertIn("ContinueLadderExit(botcmd)", self.ladder)
 
     def test_close_pistol_alternates_cadenced_shots_with_bashes(self) -> None:
@@ -587,5 +600,7 @@ class FocusedTraversalAndCombatContract(unittest.TestCase):
             "+ BOT_PISTOL_BASH_SHOT_INTERVAL_MSEC",
             self.attack,
         )
+
+
 if __name__ == "__main__":
     unittest.main()

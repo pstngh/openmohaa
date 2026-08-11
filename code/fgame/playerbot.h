@@ -239,6 +239,7 @@ private:
     void   ResetLocalLoopHistory();
     void   RecordDoorPushThrough(Door *door);
     void   RecordOpenDoorPanelContact(Door *door, const trace_t& trace);
+    bool   EscapeOpenDoorPanel(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
     void   ContinueDoorExit(usercmd_t& botcmd) const;
