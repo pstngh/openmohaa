@@ -73,4 +73,4 @@ After the service restart, verify:
 
 ## Rollback
 
-If the server fails to start or gameplay regresses, stop the unit, restore the preserved binary pair from the same known-good build, reboot or restart according to the approved operation, and verify checksums/service status again. Then revert the focused Git commit rather than rewriting shared history.
+If the server fails to start or gameplay regresses, stop the unit, restore the preserved binary pair from the same known-good build, reboot or restart according to the approved operation, and verify checksums/service status again. For `bots/server-ai`, the owner requires rejected experiments to be removed from canonical history: after verifying a clean tree, the exact rejected range and safe parent, and an unchanged remote lease, replace that range with one reviewed commit via exact force-with-lease. Never erase unrelated or cross-branch work.
