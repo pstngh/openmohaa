@@ -225,7 +225,8 @@ private:
     Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
     void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     bool   ContinueLadderExit(usercmd_t& botcmd);
-    bool   ContinueLadderReattachGate(usercmd_t& botcmd);
+    bool   StartLadderRouteRecovery(int ladderEntity);
+    void   FinishLadderRouteRecovery(const char *eventName, int detail = 0);
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
     void   RecoverStandingStance();
@@ -295,8 +296,9 @@ private:
     float  m_fLadderProgressHeight;
     int    m_iLadderProgressTime;
     int    m_iLadderExitUntil;
-    int    m_iLadderReattachUntil;
-    bool   m_bLadderReattachRecovery;
+    int    m_iLadderReattachWatchUntil;
+    bool   m_bLadderRouteRecovery;
+    int    m_iLadderRouteRecoveryUntil;
     Vector m_vLadderExitOrigin;
     Vector m_vLadderExitDirection;
     float  m_fDirectMoveRadius;

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import unittest
 from pathlib import Path
@@ -138,6 +139,9 @@ class NavigationFailureContract(unittest.TestCase):
         )
         end = cls.recast.index("void RecastPather::UpdatePos", start)
         cls.comfort_inset = cls.recast[start:end]
+        start = cls.recast.index("void RecastPather::FindPathAway")
+        end = cls.recast.index("bool RecastPather::TestPath", start)
+        cls.find_path_away = cls.recast[start:end]
         start = cls.source.index(
             "bool BotMovement::AllowRouteComfortInset"
         )
@@ -234,6 +238,29 @@ class NavigationFailureContract(unittest.TestCase):
             "ConvertRecastToGameCoord(steeringCorner, currentNodePos)",
             update,
         )
+
+    def test_recast_find_path_away_preserves_game_xy_direction(self) -> None:
+        self.assertNotIn("preferredDir.toYaw()", self.find_path_away)
+        self.assertNotIn("preferredDir.toPitch()", self.find_path_away)
+        self.assertIn(
+            "const Vector recastPreferred = recastEnd - recastAvoid",
+            self.find_path_away,
+        )
+        self.assertIn(
+            "atan2(recastPreferred[2], recastPreferred[0])",
+            self.find_path_away,
+        )
+
+        # Game (x, y, z) maps to Recast (x, z, -y). Verify that the first
+        # generated Recast ray converts back to each cardinal game direction.
+        for game_x, game_y in ((1.0, 0.0), (-1.0, 0.0),
+                               (0.0, 1.0), (0.0, -1.0)):
+            recast_x, recast_z = game_x, -game_y
+            angle = math.atan2(recast_z, recast_x)
+            result_x = math.cos(angle)
+            result_y = -math.sin(angle)
+            self.assertAlmostEqual(result_x, game_x, places=7)
+            self.assertAlmostEqual(result_y, game_y, places=7)
 
     def test_recast_comfort_preserves_special_and_tight_routes(
         self,
@@ -621,37 +648,57 @@ class FocusedTraversalAndCombatContract(unittest.TestCase):
         )
         self.assertIn("ContinueLadderExit(botcmd)", self.ladder)
 
-    def test_grounded_ladder_reacquisition_requires_clearance(self) -> None:
+    def test_grounded_ladder_reacquisition_rebuilds_an_away_route(self) -> None:
         self.assertIn(
-            "BOT_LADDER_REATTACH_MAX_MSEC        = 2500",
+            "BOT_LADDER_REATTACH_WATCH_MSEC       = 3000",
             self.movement,
         )
         self.assertIn(
-            "BOT_LADDER_REATTACH_CLEAR_DISTANCE = 128.0f",
+            "BOT_LADDER_ROUTE_RECOVERY_MAX_MSEC   = 3000",
             self.movement,
         )
-        self.assertIn("m_iLadderReattachUntil", self.header)
-        self.assertIn("m_bLadderReattachRecovery", self.header)
         self.assertIn(
-            "m_iLadderExitUntil || m_iLadderReattachUntil",
+            "BOT_LADDER_ROUTE_RECOVERY_DISTANCE  = 128.0f",
+            self.movement,
+        )
+        self.assertIn("m_iLadderReattachWatchUntil", self.header)
+        self.assertIn("m_bLadderRouteRecovery", self.header)
+        self.assertIn("m_iLadderRouteRecoveryUntil", self.header)
+        self.assertIn(
+            "ladder && m_iLadderReattachWatchUntil",
             self.ladder,
         )
         self.assertIn("bot_ladder_reattach_blocked", self.ladder)
-        self.assertIn("bot_ladder_reattach_clear", self.ladder)
-        self.assertIn("bot_ladder_reattach_timeout", self.ladder)
-        start = self.ladder.index(
-            "bool BotMovement::ContinueLadderReattachGate"
-        )
-        gate = self.ladder[start:]
         self.assertIn(
-            "DotProduct(displacement, m_vLadderExitDirection)",
-            gate,
+            "StartLadderRouteRecovery(ladderEntity)",
+            self.ladder,
         )
-        self.assertIn("BOT_LADDER_REATTACH_CLEAR_DISTANCE", gate)
-        self.assertNotIn("FindPath", gate)
+
+        start = self.ladder.index(
+            "bool BotMovement::StartLadderRouteRecovery"
+        )
+        end = self.ladder.index(
+            "void BotMovement::FinishLadderRouteRecovery", start
+        )
+        recovery = self.ladder[start:end]
+        self.assertIn("FindPathAway(", recovery)
+        self.assertIn("BOT_LADDER_ROUTE_RECOVERY_DISTANCE", recovery)
+        self.assertIn("bot_ladder_route_recovery_start", recovery)
+        self.assertIn("bot_ladder_route_recovery_failed", recovery)
+        self.assertNotIn("SetCommandMoveVector", recovery)
+        self.assertNotIn("movementSuppressed", recovery)
+        self.assertIn("bot_ladder_route_recovery_complete", self.ladder)
+        self.assertIn("bot_ladder_route_recovery_timeout", self.ladder)
+        self.assertIn("bot_ladder_route_recovery_cancelled", self.movement)
+        self.assertIn("BOT_LADDER_ROUTE_CANCEL_MOVE_TO", self.movement)
+        self.assertIn(
+            "m_iTempAwayState == 2 || m_bLadderRouteRecovery",
+            self.movement.replace("\r\n", "\n"),
+        )
+        self.assertNotIn("ContinueLadderReattachGate", self.movement)
         self.assertLess(
-            self.ladder.index("ContinueLadderExit(botcmd)"),
-            self.ladder.index("ContinueLadderReattachGate(botcmd)"),
+            self.ladder.index("ladder && m_iLadderExitUntil"),
+            self.ladder.index("ladder && m_iLadderReattachWatchUntil"),
         )
 
     def test_close_pistol_alternates_cadenced_shots_with_bashes(self) -> None:

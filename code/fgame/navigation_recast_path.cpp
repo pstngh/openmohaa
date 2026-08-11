@@ -195,15 +195,26 @@ void RecastPather::FindPathAway(
     lastorg = start;
     ResetPosition(start);
 
-    startAngle = DEG2RAD(preferredDir.toYaw());
-    startPitch = DEG2RAD(preferredDir.toPitch());
-
     dirNormalized = preferredDir;
     dirNormalized.normalize();
 
     ConvertGameToRecastCoord(start, recastStart);
     ConvertGameToRecastCoord(avoid, recastAvoid);
     ConvertGameToRecastCoord(avoid + dirNormalized * radius, recastEnd);
+
+    // The game horizontal plane is X/Y while Recast uses X/Z, with game Y
+    // mapped to negative Recast Z. Derive the search angles from the
+    // converted direction instead of applying game-space yaw directly to
+    // Recast axes; doing the latter reverses every preferred +/-Y escape.
+    const Vector recastPreferred = recastEnd - recastAvoid;
+    startAngle = atan2(recastPreferred[2], recastPreferred[0]);
+    startPitch = atan2(
+        recastPreferred[1],
+        sqrt(
+            Square(recastPreferred[0])
+            + Square(recastPreferred[2])
+        )
+    );
 
     startRef = detourData->corridor.getFirstPoly();
     dtVcopy(startPt, detourData->corridor.getPos());

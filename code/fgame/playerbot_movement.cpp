@@ -55,8 +55,16 @@ static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
 static const int   BOT_DOOR_EXIT_COMMIT_MSEC           = 750;
 static const int   BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC   = 3000;
 static const float BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE   = 128.0f;
-static const int   BOT_LADDER_REATTACH_MAX_MSEC        = 2500;
-static const float BOT_LADDER_REATTACH_CLEAR_DISTANCE = 128.0f;
+static const int   BOT_LADDER_REATTACH_WATCH_MSEC       = 3000;
+static const int   BOT_LADDER_ROUTE_RECOVERY_MAX_MSEC   = 3000;
+static const float BOT_LADDER_ROUTE_RECOVERY_DISTANCE  = 128.0f;
+enum bot_ladder_route_cancel_reason_t {
+    BOT_LADDER_ROUTE_CANCEL_AVOID_PATH = 1,
+    BOT_LADDER_ROUTE_CANCEL_MOVE_NEAR,
+    BOT_LADDER_ROUTE_CANCEL_MOVE_TO,
+    BOT_LADDER_ROUTE_CANCEL_MOVE_DIRECT,
+    BOT_LADDER_ROUTE_CANCEL_CLEAR_MOVE
+};
 static const float BOT_DOOR_PUSH_PROBE_DISTANCE        = 64.0f;
 static const float BOT_DOOR_PUSH_PROBE_EPSILON         = 0.05f;
 static const float BOT_DOOR_OPEN_EDGE_BLOCKED_FRACTION = 0.25f;
@@ -179,9 +187,10 @@ BotMovement::BotMovement()
     m_fLadderTop        = 0.0f;
     m_fLadderProgressHeight = 0.0f;
     m_iLadderProgressTime   = 0;
-    m_iLadderExitUntil        = 0;
-    m_iLadderReattachUntil    = 0;
-    m_bLadderReattachRecovery = false;
+    m_iLadderExitUntil           = 0;
+    m_iLadderReattachWatchUntil  = 0;
+    m_bLadderRouteRecovery       = false;
+    m_iLadderRouteRecoveryUntil  = 0;
     m_vLadderExitOrigin = vec_zero;
     m_vLadderExitDirection = vec_zero;
     m_fDirectMoveRadius = 0.0f;
@@ -289,6 +298,17 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     m_telemetry.Reset();
     m_bLeanCommandActive = false;
 
+    if (m_bLadderRouteRecovery
+        && level.inttime >= m_iLadderRouteRecoveryUntil) {
+        FinishLadderRouteRecovery("bot_ladder_route_recovery_timeout");
+        ClearMove();
+    } else if (!m_bLadderRouteRecovery
+               && m_iLadderReattachWatchUntil
+               && level.inttime >= m_iLadderReattachWatchUntil) {
+        // No reattachment occurred during the observation window.
+        m_iLadderReattachWatchUntil = 0;
+    }
+
     UpdateLocalLoopDetection();
 
     botcmd.forwardmove = 0;
@@ -300,23 +320,25 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     RecoverStandingStance();
 
     Entity *ladder = controlledEntity->GetLadder();
-    if (ladder && (m_iLadderExitUntil || m_iLadderReattachUntil)) {
-        // Attachment detection can reacquire the same volume after the
-        // 64-unit exit owner releases. Reject that attachment until the bot
-        // has advanced far enough away, and only reclaim movement ownership
-        // when a real reattachment attempt proves the route is pulling back.
-        if (!m_iLadderExitUntil && m_iLadderReattachUntil
-            && !m_bLadderReattachRecovery) {
-            m_bLadderReattachRecovery = true;
-            G_MoveLogBotEvent(
-                "bot_ladder_reattach_blocked", controlledEntity, NULL, 0,
-                m_vLadderExitOrigin
-                    + m_vLadderExitDirection
-                        * BOT_LADDER_REATTACH_CLEAR_DISTANCE
-            );
-        }
+    if (ladder && m_iLadderExitUntil) {
+        // The initial exit owner still has command authority.
         controlledEntity->UnattachFromLadder(NULL);
         ladder = NULL;
+    } else if (ladder && m_iLadderReattachWatchUntil) {
+        const int ladderEntity = ladder->entnum;
+        controlledEntity->UnattachFromLadder(NULL);
+        ladder = NULL;
+
+        if (!m_bLadderRouteRecovery) {
+            G_MoveLogBotEvent(
+                "bot_ladder_reattach_blocked", controlledEntity, NULL,
+                ladderEntity,
+                m_vLadderExitOrigin
+                    + m_vLadderExitDirection
+                        * BOT_LADDER_ROUTE_RECOVERY_DISTANCE
+            );
+            StartLadderRouteRecovery(ladderEntity);
+        }
     }
     if (ladder) {
         if (!m_bWasOnLadder) {
@@ -330,8 +352,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
         m_bWasOnLadder     = true;
         m_iLadderExitUntil = 0;
-        m_iLadderReattachUntil = 0;
-        m_bLadderReattachRecovery = false;
+        m_iLadderReattachWatchUntil = 0;
+        m_bLadderRouteRecovery      = false;
+        m_iLadderRouteRecoveryUntil = 0;
 
         if (ladder->isSubclassOf(FuncLadder)) {
             const FuncLadder *funcLadder =
@@ -368,9 +391,10 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
             m_vCurrentDir = m_vLadderExitDirection;
 
             if (groundedLadderExit && !reachedLadderTop) {
-                m_iLadderReattachUntil =
-                    level.inttime + BOT_LADDER_REATTACH_MAX_MSEC;
-                m_bLadderReattachRecovery = false;
+                m_iLadderReattachWatchUntil =
+                    level.inttime + BOT_LADDER_REATTACH_WATCH_MSEC;
+                m_bLadderRouteRecovery      = false;
+                m_iLadderRouteRecoveryUntil = 0;
 
                 G_MoveLogBotEvent(
                     "bot_ladder_ground_exit",
@@ -394,10 +418,6 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (ContinueLadderExit(botcmd)) {
-        return;
-    }
-
-    if (ContinueLadderReattachGate(botcmd)) {
         return;
     }
 
@@ -473,6 +493,15 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (!m_pPath->GetNodeCount() && m_iTempAwayState != 2) {
+        if (m_bLadderRouteRecovery) {
+            const bool reachedRecoveryDestination =
+                (m_vTargetPos - controlledEntity->origin).lengthXYSquared()
+                <= Square(32);
+            FinishLadderRouteRecovery(
+                reachedRecoveryDestination ? "bot_ladder_route_recovery_complete"
+                                           : "bot_ladder_route_recovery_failed"
+            );
+        }
         ClearMove();
         FinalizeMovement(botcmd);
         return;
@@ -492,6 +521,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     if (MoveDone()) {
+        if (m_bLadderRouteRecovery) {
+            FinishLadderRouteRecovery("bot_ladder_route_recovery_complete");
+        }
         ClearMove();
         FinalizeMovement(botcmd);
         return;
@@ -509,6 +541,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
         if (m_iNumBlocks >= 5) {
             // Give up
+            if (m_bLadderRouteRecovery) {
+                FinishLadderRouteRecovery("bot_ladder_route_recovery_failed");
+            }
             ClearMove();
             FinalizeMovement(botcmd);
             return;
@@ -579,6 +614,9 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
 
     if (m_pPath->GetNodeCount() || m_iTempAwayState != 0) {
         if ((m_vTargetPos - controlledEntity->origin).lengthSquared() <= Square(16)) {
+            if (m_bLadderRouteRecovery) {
+                FinishLadderRouteRecovery("bot_ladder_route_recovery_complete");
+            }
             ClearMove();
             FinalizeMovement(botcmd);
             return;
@@ -641,6 +679,7 @@ void BotMovement::ApplyRouteDirectionContinuity(Vector& direction)
     const bool explicitMovementOwner = !controlledEntity
         || m_bDirectMove || m_bHasCombatTarget
         || controlledEntity->GetLadder() || m_bJump
+        || m_bLadderRouteRecovery
         || m_iTempAwayState == 2 || m_bAvoidCollision
         || (m_vDoorPushApproachDirection.lengthXYSquared() > 0.01f
             && (m_bOpenDoorPanelExit
@@ -793,53 +832,82 @@ bool BotMovement::ContinueLadderExit(usercmd_t& botcmd)
     m_telemetry.movementSuppressed = true;
     return true;
 }
-bool BotMovement::ContinueLadderReattachGate(usercmd_t& botcmd)
+bool BotMovement::StartLadderRouteRecovery(int ladderEntity)
 {
-    if (!m_iLadderReattachUntil) {
+    if (!m_bPathing || m_bDirectMove || !m_pPath) {
+        G_MoveLogBotEvent(
+            "bot_ladder_route_recovery_failed", controlledEntity, NULL,
+            ladderEntity,
+            m_vLadderExitOrigin
+                + m_vLadderExitDirection
+                    * BOT_LADDER_ROUTE_RECOVERY_DISTANCE
+        );
+        m_iLadderReattachWatchUntil = 0;
+        m_bLadderRouteRecovery      = false;
+        m_iLadderRouteRecoveryUntil = 0;
         return false;
     }
 
-    Vector displacement = controlledEntity->origin - m_vLadderExitOrigin;
-    displacement.z      = 0.0f;
-    const bool clearOfLadder =
-        DotProduct(displacement, m_vLadderExitDirection)
-        >= BOT_LADDER_REATTACH_CLEAR_DISTANCE;
-    const bool timedOut = level.inttime >= m_iLadderReattachUntil;
-    if (clearOfLadder || timedOut) {
-        if (m_bLadderReattachRecovery) {
-            G_MoveLogBotEvent(
-                clearOfLadder
-                    ? "bot_ladder_reattach_clear"
-                    : "bot_ladder_reattach_timeout",
-                controlledEntity,
-                NULL,
-                0,
-                controlledEntity->origin
-            );
-        }
-        m_iLadderReattachUntil = 0;
-        m_bLadderReattachRecovery = false;
-        return false;
-    }
+    PathSearchParameter parameters;
+    parameters.entity     = controlledEntity;
+    parameters.fallHeight = maxFallHeight;
 
-    if (!m_bLadderReattachRecovery) {
-        return false;
-    }
-
-    m_vCurrentDir = m_vLadderExitDirection;
-    SetCommandMoveVector(
-        botcmd, m_vLadderExitDirection * 127.0f
+    m_pPath->FindPathAway(
+        controlledEntity->origin,
+        m_vLadderExitOrigin,
+        m_vLadderExitDirection,
+        BOT_LADDER_ROUTE_RECOVERY_DISTANCE,
+        parameters
     );
-    botcmd.upmove = 0;
-    botcmd.buttons &= ~(BUTTON_LEAN_LEFT | BUTTON_LEAN_RIGHT);
 
-    m_bIsLeaning                   = false;
-    m_bLeanCommandActive           = false;
-    m_bAvoidCollision              = false;
-    m_iTempAwayState               = 0;
-    m_iNumBlocks                   = 0;
-    m_telemetry.movementSuppressed = true;
+    if (!m_pPath->GetNodeCount()) {
+        G_MoveLogBotEvent(
+            "bot_ladder_route_recovery_failed", controlledEntity, NULL,
+            ladderEntity,
+            m_vLadderExitOrigin
+                + m_vLadderExitDirection
+                    * BOT_LADDER_ROUTE_RECOVERY_DISTANCE
+        );
+        m_iLadderReattachWatchUntil = 0;
+        m_bLadderRouteRecovery      = false;
+        m_iLadderRouteRecoveryUntil = 0;
+        ClearMove();
+        return false;
+    }
+
+    m_bLadderRouteRecovery      = true;
+    m_iLadderRouteRecoveryUntil =
+        level.inttime + BOT_LADDER_ROUTE_RECOVERY_MAX_MSEC;
+    m_vTargetPos = m_pPath->GetDestination();
+    NewMove();
+
+    m_iLastMoveTime   = level.inttime;
+    m_iCheckPathTime  = level.inttime;
+    m_iTempAwayState  = 0;
+    m_iNumBlocks      = 0;
+    m_bAvoidCollision = false;
+    ResetLocalLoopHistory();
+
+    G_MoveLogBotEvent(
+        "bot_ladder_route_recovery_start", controlledEntity, NULL,
+        ladderEntity,
+        m_vTargetPos
+    );
     return true;
+}
+
+void BotMovement::FinishLadderRouteRecovery(const char *eventName, int detail)
+{
+    if (!m_bLadderRouteRecovery) {
+        return;
+    }
+
+    G_MoveLogBotEvent(
+        eventName, controlledEntity, NULL, detail, m_vTargetPos
+    );
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
+    m_iLadderReattachWatchUntil = 0;
 }
 
 void BotMovement::CheckAttractiveNodes()
@@ -1228,6 +1296,12 @@ void BotMovement::AvoidPath(
     Vector vAvoid, float fAvoidRadius, Vector vPreferredDir, float *vLeashHome, float fLeashRadius
 )
 {
+    FinishLadderRouteRecovery(
+        "bot_ladder_route_recovery_cancelled",
+        BOT_LADDER_ROUTE_CANCEL_AVOID_PATH
+    );
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
     Vector vDir;
 
     if (vPreferredDir == vec_zero) {
@@ -1273,6 +1347,12 @@ Move near the specified position within the radius
 */
 void BotMovement::MoveNear(Vector vNear, float fRadius, float *vLeashHome, float fLeashRadius)
 {
+    FinishLadderRouteRecovery(
+        "bot_ladder_route_recovery_cancelled",
+        BOT_LADDER_ROUTE_CANCEL_MOVE_NEAR
+    );
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
     PathSearchParameter parameters;
     parameters.entity     = controlledEntity;
     parameters.fallHeight = maxFallHeight;
@@ -1306,6 +1386,12 @@ Move to the specified position
 */
 void BotMovement::MoveTo(Vector vPos, float *vLeashHome, float fLeashRadius)
 {
+    FinishLadderRouteRecovery(
+        "bot_ladder_route_recovery_cancelled",
+        BOT_LADDER_ROUTE_CANCEL_MOVE_TO
+    );
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
     m_vTargetPos = vPos;
 
     PathSearchParameter parameters;
@@ -1335,6 +1421,12 @@ void BotMovement::MoveTo(Vector vPos, float *vLeashHome, float fLeashRadius)
 
 void BotMovement::MoveDirect(Vector vPos, float fRadius)
 {
+    FinishLadderRouteRecovery(
+        "bot_ladder_route_recovery_cancelled",
+        BOT_LADDER_ROUTE_CANCEL_MOVE_DIRECT
+    );
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
     if (m_pPath) {
         m_pPath->Clear();
     }
@@ -1489,6 +1581,7 @@ bool BotMovement::AllowRouteComfortInset() const
     return m_bPathing && !m_bDirectMove && !m_bHasCombatTarget
         && !controlledEntity->GetLadder() && !m_bJump
         && m_iTempAwayState != 2 && !m_bAvoidCollision
+        && !m_bLadderRouteRecovery
         && !doorCommitActive;
 }
 
@@ -1535,7 +1628,7 @@ void BotMovement::UpdateLocalLoopDetection()
 {
     if (!controlledEntity || !m_bPathing || m_bDirectMove || !m_pPath
         || (!m_pPath->GetNodeCount() && m_iTempAwayState == 0)
-        || m_bHasCombatTarget
+        || m_bHasCombatTarget || m_bLadderRouteRecovery
         || controlledEntity->GetLadder() || m_bJump) {
         ResetLocalLoopHistory();
         return;
@@ -2511,7 +2604,7 @@ bool BotMovement::IsMovingTo(const Vector& position, float tolerance) const
 
 bool BotMovement::IsBlockedRecoveryActive(void) const
 {
-    return m_iTempAwayState != 0;
+    return m_iTempAwayState != 0 || m_bLadderRouteRecovery;
 }
 
 /*
@@ -2523,6 +2616,10 @@ Stop the bot from moving
 */
 void BotMovement::ClearMove(void)
 {
+    FinishLadderRouteRecovery(
+        "bot_ladder_route_recovery_cancelled",
+        BOT_LADDER_ROUTE_CANCEL_CLEAR_MOVE
+    );
     m_bPathing          = false;
     m_bIsLeaning        = false;
     m_bLeanCommandActive = false;
@@ -2531,17 +2628,18 @@ void BotMovement::ClearMove(void)
     m_bDirectMove       = false;
     if (!controlledEntity || controlledEntity->IsDead()
         || (!controlledEntity->GetLadder() && !m_iLadderExitUntil
-            && !m_iLadderReattachUntil)) {
+            && !m_iLadderReattachWatchUntil)) {
         m_bWasOnLadder         = false;
         m_fLadderTop           = 0.0f;
         m_fLadderProgressHeight = 0.0f;
         m_iLadderProgressTime   = 0;
         m_iLadderExitUntil     = 0;
-        m_iLadderReattachUntil = 0;
-        m_bLadderReattachRecovery = false;
+        m_iLadderReattachWatchUntil = 0;
         m_vLadderExitOrigin    = vec_zero;
         m_vLadderExitDirection = vec_zero;
     }
+    m_bLadderRouteRecovery      = false;
+    m_iLadderRouteRecoveryUntil = 0;
     m_bAvoidCollision               = false;
     m_iCollisionProgressTime        = 0;
     m_vCollisionProgressOrigin      = vec_zero;
@@ -2632,7 +2730,8 @@ void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
     telemetry                        = m_telemetry;
     telemetry.hasCombatTarget        = m_bHasCombatTarget;
     telemetry.pathing                = m_bPathing;
-    telemetry.blockedRecovery        = m_iTempAwayState == 2;
+    telemetry.blockedRecovery        =
+        m_iTempAwayState == 2 || m_bLadderRouteRecovery;
     telemetry.pathCollisionAvoidance = m_bAvoidCollision;
     telemetry.strafeDirection        = m_iStrafeDirection;
     telemetry.strafeChangeMsec       = Q_max(0, m_iNextStrafeChangeTime - level.inttime);
