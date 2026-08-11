@@ -13,7 +13,7 @@ Git is authoritative for the current commit. The hash above is the clean code ti
 
 ## Current objective
 
-Correct the telemetry-proven grounded-ladder regression and fully-open-door long tail from deployed commit `66af0cff`, restore indefinite telemetry recording below the engine's 2 GiB file boundary, and deploy the independently verified Linux x64 artifact without changing ordinary wall/roam, crosshair, objective, or pistol ownership. Fresh `obj_team2` telemetry must then confirm fewer ladder reattachments and open-panel stalls before multi-map acceptance.
+Evaluate deployed commit `849be809` against the preserved `66af0cff` capture. Fresh autonomous `obj_team2` telemetry must confirm that grounded exits no longer cycle at exact origins, the fully-open-panel long tail contracts, and segmented recording remains enabled without regressing ordinary wall/roam, crosshair, lean, combat, or objective behavior. Owner visual and `obj_team4`/`dm/mohdm6` acceptance follow only after those measured gates.
 
 ## Complete
 
@@ -25,7 +25,7 @@ Correct the telemetry-proven grounded-ladder regression and fully-open-door long
 - Added map-specific objective/practice behavior, including `obj_team2` defender opening roles.
 - Established a server-only CI recipe that packages only Linux x86-64 `omohaaded` and `game.so`.
 - Preserved cheats as an intentional private tuning-server policy.
-- Configured the external tuning service to keep schema 7 movement telemetry enabled and clear its exact primary triplet before every service start. The segmented correction requires extending that hook to the resolved `telemetry/segments` subtree during its verified deployment so every restart still starts a clean capture.
+- Configured the external tuning service to keep schema 7 movement telemetry enabled and clear its exact primary triplet plus the resolved `telemetry/segments` subtree before every service start; an approved restart therefore starts a clean capture.
 - Latest navigation series through `676c85f1` addresses multilevel progress, openable doors, door panels, blocked recovery, ladders, unreachable route hops, and shared Recast collision steering.
 - A preserved schema 7 capture from deployed commit `1e30bea8` contained 183,128 bot frames across 15 `obj_team2` sessions. It exposed 27 strict 8-20 second small-area oscillations; most retained a stable strategic destination while repeatedly reversing, and several doorway episodes repeatedly contacted the same moved door-panel entity.
 - Focused commits `20f8c3fa` and `13d2c465` make fully open door panels dynamic Recast obstacles, repath immediately on open-door contact, prefer a clearance-tested committed lateral exit over generic reverse recovery, and invalidate strategic routes when a local same-target loop is detected.
@@ -42,7 +42,7 @@ Correct the telemetry-proven grounded-ladder regression and fully-open-door long
 - Focused review of the complete `5d3fd2b2` baseline and earlier `6938284a` ladder annotation separated the remaining comments by owner. The apparent teammate stop was continuous ladder ascent; the ceiling-look comment was active enemy aim; SMGs already fired on most visible-target frames; and route-loop reseeding is not appropriate for target-chase/orbit return windows. The actionable residuals were grounded ladder detach/reattach and pistol users bashing exclusively at contact range.
 - Deployed commit `66af0cff` extends the existing 64-unit, one-second ladder exit commitment to grounded detaches before path/recovery regains control, records `bot_ladder_ground_exit`, and lets a close pistol fire at most once per 1.2 seconds while bashing on ready opportunities between shots. It does not change ordinary route, combat radial/strafe, jump, door, or crosshair ownership.
 - The complete autonomous `66af0cff` capture is preserved outside Git: 2,012,416 bot frames across 175 `obj_team2` sessions and about 3.50 session-hours. Ordinary wall proximity, lean, guard activation, route-loop events, and objectives were broadly stable, but grounded ladder exits reattached within 1.5 seconds 88.5% of the time versus 45.8% in the pre-change baseline. Exact origins repeated up to 16 times in 30 seconds. Fully open panels also retained a severe long tail, including a 16.6-second near-stationary door-84 stall.
-- The current focused correction sends bottom exits opposite `FuncLadder::getFacingDir`, rejects immediate attachment while the bounded exit owns movement, gives fully open panels a stable clearance-probed tangent toward one panel end, and rotates telemetry into complete timestamped triplets at 1.5 GiB. It does not add repathing, global centering, or a new strategic route owner; Linux CI, artifact verification, deployment, and live acceptance remain pending.
+- Deployed commit `849be809` sends bottom exits opposite `FuncLadder::getFacingDir`, rejects immediate attachment while the bounded exit owns movement, gives fully open panels a stable clearance-probed tangent toward one panel end, and rotates telemetry into complete timestamped triplets at 1.5 GiB. It does not add repathing, global centering, or a new strategic route owner; build/runtime verification is complete and live behavioral acceptance remains pending.
 
 ## Partial or under evaluation
 
@@ -66,7 +66,7 @@ Correct the telemetry-proven grounded-ladder regression and fully-open-door long
 
 - The Windows checkout cannot locally prove the Linux x64 server package; GitHub Actions is the authoritative clean build.
 - The current VPS hostname, credentials, service unit, game root, and deployed binary checksum are intentionally not stored in Git. Revalidate them from an approved external source before deployment.
-- The external service and deployed `66af0cff` binary pair were still active with both intended UDP ports listening when its frame file stopped at 2,153,632,622 bytes. The logger disabled itself after the oversized file made the next session-open check look like a partial/schema-incompatible triplet; the game service did not crash. Revalidate all external state and clear the preserved live triplet only as part of the approved verified deployment.
+- The external service was verified active/enabled with zero restarts after deploying passing commit `849be809` on 2026-08-11. Its live binary pair matches the independently checked artifact, both intended UDP ports listen, startup reports `849be80`, the segment-aware cleanup hook is active, and a fresh schema 7 primary triplet is growing; revalidate before later deployment because external state can change.
 - Raw demo databases and telemetry captures live outside the repository; regenerate compact route data only from documented, approved inputs.
 
 ## Working tree at handoff
@@ -95,6 +95,7 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 - Commit `66af0cff` passed all 20 movement/navigation source-contract tests, all 7 route-generator tests, `git diff --check`, continuity, and server-only run `31457072835`. Its independently verified exact two-file ELF64 x86-64 artifact hashes are `94fabe5635e07137712e1eb6de10e9dee11d4298cc242783438b7cea14790389` for `omohaaded` and `104952224653c100c5d101d3803a4f9fa68f1e283bc6d141b76bf36419365832` for `game.so`; the deployed pair matches, the service is active/enabled with zero restarts, both intended UDP ports listen, startup reports `66af0cf`, and a fresh schema 7 capture is growing. The exact `b89457ee` pair is preserved at `deploy-backups/pre-66af0cff`. Its complete stopped capture is preserved at `deploy-telemetry/b89457ee-pre-66af0cff-20260811T040448Z` and outside Git with matching hashes `c420d916dc4b7c48154cb7fc74b5cffbfea42c5f40b455f2d09a718785c99a16`, `dbc25da867ad2eb33dc1182f0dd5a9278eabd741ddf9a28267eb6335d2fb5da7`, and `d37814f5ec18934338cc4dc639dc4e6ba319e996db40fe31c48f62a688bc8238` for frames, events, and meta.
 
 - On 2026-08-11, the focused correction passed all 22 movement/telemetry source-contract tests, all 7 route-generator tests, `git diff --check`, and continuity. The Windows checkout has no local CMake/clang toolchain, so only GitHub's Linux server-only job can establish compilation and artifact validity.
+- GitHub server-only run `31505803523` passed for commit `849be809`. The exact independently verified ELF64 x86-64 artifact hashes are `04c746ec582235c6d8a311e8feef72a78fc6883ee952baea9bb7dba65809d649` for `omohaaded` and `0a09f05a3e8e937a4fe7ef0a4241f48abecd225e0ad8f4854b77d33e4f1b0b54` for `game.so`; the deployed pair matches, the service is active/enabled with zero restarts, both ports listen, and fresh schema 7 telemetry is growing. The exact `66af0cff` pair and prior cleanup drop-in are preserved at `deploy-backups/pre-849be809`, while its complete 2,186,103,806-byte stopped capture remains outside Git with matching hashes.
 
 ## Cross-branch status
 
@@ -104,4 +105,4 @@ The pre-retrofit tree was clean. The intended handoff condition after committing
 
 ## Next action
 
-Commit and push the focused ladder/open-panel/telemetry correction, require the server-only Linux x64 workflow to pass, independently verify the exact two-file artifact, preserve the deployed pair for rollback, update the service-start cleanup to include `telemetry/segments`, deploy, and confirm ports plus a fresh growing schema 7 primary triplet. Then collect autonomous `obj_team2` evidence before owner visual or multi-map acceptance.
+Let autonomous `obj_team2` run on deployed `849be809`, then preserve and pull every primary/segmented telemetry triplet. Compare grounded-exit reattachment and exact-origin clusters, strict/broad fully-open-panel episode tails, wall proximity, six-second efficiency, run-stop/bounce rates, lean, guard/recovery, combat, and objectives against the preserved `66af0cff` capture before requesting owner visual or multi-map acceptance.
