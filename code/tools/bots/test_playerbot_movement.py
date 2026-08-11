@@ -541,5 +541,51 @@ class RouteViewLeadContract(unittest.TestCase):
         self.assertIn("targetAngles.x      = 0", self.aim)
         self.assertIn("target.z += controlledEntity->viewheight", self.preview)
         self.assertNotIn("G_Random", self.aim)
+
+
+class FocusedTraversalAndCombatContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.controller = CONTROLLER_PATH.read_text(encoding="utf-8")
+        cls.movement = SOURCE_PATH.read_text(encoding="utf-8")
+        cls.header = HEADER_PATH.read_text(encoding="utf-8")
+        start = cls.movement.index("void BotMovement::MoveThink")
+        end = cls.movement.index(
+            "void BotMovement::CheckAttractiveNodes", start
+        )
+        cls.ladder = cls.movement[start:end]
+        start = cls.controller.index("void BotController::State_Attack")
+        end = cls.controller.index(
+            "bool BotController::CheckCondition_Grenade", start
+        )
+        cls.attack = cls.controller[start:end]
+
+    def test_grounded_ladder_detach_commits_away_before_repath(self) -> None:
+        self.assertIn("groundedLadderExit", self.ladder)
+        self.assertIn(
+            "(reachedLadderTop || groundedLadderExit)",
+            self.ladder,
+        )
+        self.assertIn("m_vLadderExitDirection", self.ladder)
+        self.assertIn("bot_ladder_ground_exit", self.ladder)
+        self.assertIn("ContinueLadderExit(botcmd)", self.ladder)
+
+    def test_close_pistol_alternates_cadenced_shots_with_bashes(self) -> None:
+        self.assertIn(
+            "BOT_PISTOL_BASH_SHOT_INTERVAL_MSEC = 1200",
+            self.controller,
+        )
+        self.assertIn("m_iNextPistolBashShotTime", self.header)
+        self.assertIn("pWeap->HasAmmoInClip(FIRE_PRIMARY)", self.attack)
+        self.assertIn(
+            "m_botCmd.buttons ^= BUTTON_ATTACKLEFT", self.attack
+        )
+        self.assertIn(
+            "m_botCmd.buttons ^= BUTTON_ATTACKRIGHT", self.attack
+        )
+        self.assertIn(
+            "+ BOT_PISTOL_BASH_SHOT_INTERVAL_MSEC",
+            self.attack,
+        )
 if __name__ == "__main__":
     unittest.main()

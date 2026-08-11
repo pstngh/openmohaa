@@ -420,6 +420,7 @@ private:
     int    m_iCuriousTime;
     int    m_iAttackTime;
     int    m_iAttackStopAimTime;
+    int    m_iNextPistolBashShotTime;
     int    m_iLastSeenTime;
     int    m_iLastUnseenTime;
     float  m_fAimHeightFraction;

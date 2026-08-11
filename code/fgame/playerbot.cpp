@@ -66,6 +66,7 @@ static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
 static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
 static const float BOT_ROUTE_VIEW_LOOKAHEAD        = 96.0f;
 static const int   BOT_TEAM_CONTACT_RETRY_MSEC      = 2000;
+static const int   BOT_PISTOL_BASH_SHOT_INTERVAL_MSEC = 1200;
 
 static trace_t TraceBotUse(Player *player, const Vector& start, const Vector& direction)
 {
@@ -260,6 +261,7 @@ BotController::BotController()
     m_iCuriousTime              = 0;
     m_iAttackTime               = 0;
     m_iAttackStopAimTime        = 0;
+    m_iNextPistolBashShotTime   = 0;
     m_iEnemyEyesTag             = -1;
     m_iLastSeenTime             = 0;
     m_iLastUnseenTime           = 0;
@@ -1010,6 +1012,7 @@ void BotController::ClearEnemy(void)
 {
     m_iAttackTime               = 0;
     m_iAttackStopAimTime        = 0;
+    m_iNextPistolBashShotTime   = 0;
     m_iLadderAimUntil           = 0;
     m_vLadderAimAngles          = vec_zero;
     m_iAimAcquireTime           = -1;
@@ -1103,6 +1106,7 @@ void BotController::State_Reset(void)
     m_iCuriousTime              = 0;
     m_iAttackTime               = 0;
     m_iAttackStopAimTime        = 0;
+    m_iNextPistolBashShotTime   = 0;
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
     m_iAimHistoryCount          = 0;
@@ -1750,6 +1754,7 @@ void BotController::State_EndAttack(void)
     movement.ClearCombatTarget();
     m_bReloadRetreating = false;
     m_iAttackStopAimTime = 0;
+    m_iNextPistolBashShotTime = 0;
     controlledEnt->ZoomOff();
     m_iAimAcquireTime           = -1;
     m_iAimHistoryHead           = 0;
@@ -1888,6 +1893,7 @@ void BotController::State_Attack(void)
                 && pWeap->HasAmmoInClip(FIRE_SECONDARY);
             if (bPistolBash && !bash) {
                 m_botCmd.buttons &= ~BUTTON_ATTACKRIGHT;
+                m_iNextPistolBashShotTime = 0;
             }
 
             if (bash) {
@@ -1898,11 +1904,27 @@ void BotController::State_Attack(void)
                     bFiring = true;
                     m_telemetry.fireDecision = BOT_FIRE_FIRING;
                     m_telemetry.wantsFire    = true;
-                    m_botCmd.buttons &= ~BUTTON_ATTACKLEFT;
-                    // Pistol bash is edge-triggered by the player state
-                    // machine. Pulse it like other semi-auto attacks instead
-                    // of holding the button after the first swing.
-                    m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                    const bool shootPistol =
+                        pWeap->HasAmmoInClip(FIRE_PRIMARY)
+                        && level.inttime
+                            >= m_iNextPistolBashShotTime;
+                    m_botCmd.buttons &=
+                        ~(BUTTON_ATTACKLEFT | BUTTON_ATTACKRIGHT);
+                    if (shootPistol) {
+                        // A human pressing into bash range still mixes in
+                        // deliberate pistol shots. Fire at most one per
+                        // cadence, then let ready opportunities between shots
+                        // continue to pulse the melee attack.
+                        m_botCmd.buttons ^= BUTTON_ATTACKLEFT;
+                        m_iNextPistolBashShotTime =
+                            level.inttime
+                            + BOT_PISTOL_BASH_SHOT_INTERVAL_MSEC;
+                    } else {
+                        // Pistol bash is edge-triggered by the player state
+                        // machine. Pulse it instead of holding the button
+                        // after the first swing.
+                        m_botCmd.buttons ^= BUTTON_ATTACKRIGHT;
+                    }
                 }
             } else if (controlledEnt->client->ps.stats[STAT_AMMO] <= 0
                 && controlledEnt->client->ps.stats[STAT_CLIPAMMO] <= 0) {
@@ -2396,6 +2418,7 @@ void BotController::Killed(const Event& ev)
     ResetObjectiveBehavior();
     ResetFreeForAllDemoRoute();
     m_pCombatPrimaryWeapon = NULL;
+    m_iNextPistolBashShotTime = 0;
     m_iPostKillAimUntil    = 0;
     m_vPostKillAimAngles   = vec_zero;
     m_iLadderAimUntil      = 0;

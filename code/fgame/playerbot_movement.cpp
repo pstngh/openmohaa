@@ -319,16 +319,33 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
         m_fLadderProgressHeight = 0.0f;
         m_iLadderProgressTime   = 0;
 
-        if (controlledEntity->origin.z >= m_fLadderTop
+        const bool groundedLadderExit =
+            controlledEntity->groundentity
+            || controlledEntity->client->ps.walking;
+        const bool reachedLadderTop =
+            controlledEntity->origin.z >= m_fLadderTop;
+        if ((reachedLadderTop || groundedLadderExit)
             && m_vLadderExitDirection.lengthXYSquared() > 0.0f) {
-            // The top-off animation only clears the ladder lip. Keep moving
-            // in its prescribed forward direction before returning control to
-            // the path, or a newly projected route can turn back into the
-            // opening and attach to the same ladder again.
+            // A grounded bottom detach can reattach just as readily as a
+            // completed top-off. Keep moving in the ladder's prescribed exit
+            // direction before returning control to the path so recovery does
+            // not pull the bot straight back onto the same ladder.
             m_vLadderExitOrigin = controlledEntity->origin;
             m_iLadderExitUntil =
                 level.inttime + BOT_LADDER_EXIT_MAX_MSEC;
             m_vCurrentDir = m_vLadderExitDirection;
+
+            if (groundedLadderExit && !reachedLadderTop) {
+                G_MoveLogBotEvent(
+                    "bot_ladder_ground_exit",
+                    controlledEntity,
+                    NULL,
+                    0,
+                    controlledEntity->origin
+                        + m_vLadderExitDirection
+                            * BOT_LADDER_EXIT_DISTANCE
+                );
+            }
 
             m_bJump            = false;
             m_iJumpCommitTime  = -1;
