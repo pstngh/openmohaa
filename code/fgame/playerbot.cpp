@@ -64,6 +64,7 @@ static const int   BOT_POST_KILL_AIM_MSEC          = 150;
 static const int   BOT_ENEMY_MEMORY_MSEC            = 1000;
 static const int   BOT_LADDER_AIM_HOLD_MSEC        = 750;
 static const float BOT_LADDER_AIM_DISTANCE         = 96.0f;
+static const float BOT_ROUTE_VIEW_LOOKAHEAD        = 96.0f;
 static const int   BOT_TEAM_CONTACT_RETRY_MSEC      = 2000;
 
 static trace_t TraceBotUse(Player *player, const Vector& start, const Vector& direction)
@@ -688,9 +689,15 @@ void BotController::AimAtAimNode(void)
     }
     m_iLadderAimUntil = 0;
 
-    Vector targetAngles = movement.GetCurrentMoveDirection().toAngles();
-    targetAngles.x      = 0;
-    rotation.SetTargetAngles(targetAngles);
+    Vector routeLookTarget;
+    if (movement.GetRouteLookAheadTarget(
+            BOT_ROUTE_VIEW_LOOKAHEAD, routeLookTarget)) {
+        rotation.AimAt(routeLookTarget);
+    } else {
+        Vector targetAngles = movement.GetCurrentMoveDirection().toAngles();
+        targetAngles.x      = 0;
+        rotation.SetTargetAngles(targetAngles);
+    }
 }
 
 /*

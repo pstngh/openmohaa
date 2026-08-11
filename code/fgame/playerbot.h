@@ -214,6 +214,7 @@ public:
 
     Vector GetCurrentGoal() const;
     Vector GetCurrentMoveDirection() const;
+    bool   GetRouteLookAheadTarget(float distance, Vector& target) const;
     void   ResetTelemetry();
     void   GetTelemetry(bot_movement_telemetry_t& telemetry) const;
 

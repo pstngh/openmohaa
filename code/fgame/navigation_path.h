@@ -148,6 +148,46 @@ public:
     virtual Vector GetCurrentDirection() const = 0;
 
     /**
+     * @brief Return a point the requested 2D distance ahead on the current
+     * path without changing corridor or movement state.
+     *
+     * The current steering delta owns the first segment. Later path nodes
+     * only supply a visual preview; callers must not use this to replace the
+     * active movement command.
+     */
+    virtual Vector GetLookAheadPoint(const Vector& origin, float distance) const
+    {
+        const int nodeCount = GetNodeCount();
+        if (nodeCount <= 0 || distance <= 0.0f) {
+            return origin;
+        }
+
+        Vector point             = origin;
+        Vector next              = origin + GetCurrentDelta();
+        float  remainingDistance = distance;
+        int    nextNodeIndex      = 1;
+
+        while (true) {
+            const Vector segment       = next - point;
+            const float  segmentLength = segment.lengthXY();
+            if (segmentLength > 0.01f) {
+                if (segmentLength >= remainingDistance) {
+                    return point + segment * (remainingDistance / segmentLength);
+                }
+                remainingDistance -= segmentLength;
+                point = next;
+            }
+
+            if (nextNodeIndex >= nodeCount) {
+                return point;
+            }
+
+            next = GetNode(nextNodeIndex).origin;
+            nextNodeIndex++;
+        }
+    }
+
+    /**
      * @brief Return the final destination
      * 
      * @return Vector the destination.

@@ -714,9 +714,47 @@ Vector RecastPather::GetCurrentDirection() const
     return delta;
 }
 
+Vector RecastPather::GetLookAheadPoint(const Vector& origin, float distance) const
+{
+    if (!moving || distance <= 0.0f) {
+        return origin;
+    }
+
+    Vector point             = origin;
+    Vector next              = currentNodePos;
+    float  remainingDistance = distance;
+    int    nextCornerIndex    = 1;
+    bool   destinationQueued  = false;
+
+    while (true) {
+        const Vector segment       = next - point;
+        const float  segmentLength = segment.lengthXY();
+        if (segmentLength > 0.01f) {
+            if (segmentLength >= remainingDistance) {
+                return point + segment * (remainingDistance / segmentLength);
+            }
+            remainingDistance -= segmentLength;
+            point = next;
+        }
+
+        if (nextCornerIndex < detourData->ncorners) {
+            ConvertRecastToGameCoord(detourData->corners[nextCornerIndex], next);
+            nextCornerIndex++;
+            continue;
+        }
+
+        if (destinationQueued) {
+            return point;
+        }
+
+        ConvertRecastToGameCoord(detourData->corridor.getTarget(), next);
+        destinationQueued = true;
+    }
+}
 Vector RecastPather::GetDestination() const
 {
     Vector dest;
+
 
     ConvertRecastToGameCoord(detourData->corridor.getTarget(), dest);
 

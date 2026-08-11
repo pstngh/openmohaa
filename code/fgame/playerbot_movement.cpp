@@ -2323,6 +2323,37 @@ Vector BotMovement::GetCurrentMoveDirection() const
     return m_vCurrentDir;
 }
 
+/*
+====================
+GetRouteLookAheadTarget
+
+Return an eye-height point ahead on an ordinary path for noncombat view
+placement.  Movement continues to use the current steering direction; this
+preview must never become another locomotion owner.
+====================
+*/
+bool BotMovement::GetRouteLookAheadTarget(float distance, Vector& target) const
+{
+    if (!controlledEntity || distance <= 0.0f
+        || !AllowRouteComfortInset() || m_iTempAwayState != 0
+        || m_iLadderExitUntil || !m_pPath || !m_pPath->GetNodeCount()) {
+        return false;
+    }
+
+    target = m_pPath->GetLookAheadPoint(controlledEntity->origin, distance);
+    Vector delta = target - controlledEntity->origin;
+    delta.z      = 0.0f;
+    if (delta.lengthXYSquared() < Square(16.0f)) {
+        return false;
+    }
+
+    // Path points sit on the floor.  Raise the preview to the bot's current
+    // eye height so level travel keeps a level crosshair while stairs and
+    // ramps naturally contribute measured vertical placement.
+    target.z += controlledEntity->viewheight;
+    return true;
+}
+
 void BotMovement::ResetTelemetry()
 {
     m_telemetry.Reset();

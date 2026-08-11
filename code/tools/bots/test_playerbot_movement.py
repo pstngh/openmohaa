@@ -15,7 +15,9 @@ ROUTE_PATH = ROOT / "code" / "fgame" / "playerbot_route.cpp"
 OBSTACLE_PATH = ROOT / "code" / "fgame" / "navigation_recast_obstacle.cpp"
 RECAST_PATH = ROOT / "code" / "fgame" / "navigation_recast_path.cpp"
 RECAST_CONFIG_PATH = ROOT / "code" / "fgame" / "navigation_recast_config.h"
+RECAST_HEADER_PATH = ROOT / "code" / "fgame" / "navigation_recast_path.h"
 PATH_INTERFACE_PATH = ROOT / "code" / "fgame" / "navigation_path.h"
+CONTROLLER_PATH = ROOT / "code" / "fgame" / "playerbot.cpp"
 
 
 def constant(source: str, name: str) -> float:
@@ -472,5 +474,72 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn("route.retryTime = level.inttime;", response)
 
 
+class RouteViewLeadContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.controller = CONTROLLER_PATH.read_text(encoding="utf-8")
+        cls.movement = SOURCE_PATH.read_text(encoding="utf-8")
+        cls.header = HEADER_PATH.read_text(encoding="utf-8")
+        cls.recast = RECAST_PATH.read_text(encoding="utf-8")
+        cls.recast_header = RECAST_HEADER_PATH.read_text(encoding="utf-8")
+        cls.path_interface = PATH_INTERFACE_PATH.read_text(encoding="utf-8")
+        start = cls.controller.index("void BotController::AimAtAimNode")
+        end = cls.controller.index("void BotController::CheckReload", start)
+        cls.aim = cls.controller[start:end]
+        start = cls.movement.index(
+            "bool BotMovement::GetRouteLookAheadTarget"
+        )
+        end = cls.movement.index("void BotMovement::ResetTelemetry", start)
+        cls.preview = cls.movement[start:end]
+
+    def test_path_preview_is_bounded_and_observational(self) -> None:
+        lookahead = constant(
+            self.controller, "BOT_ROUTE_VIEW_LOOKAHEAD"
+        )
+        self.assertGreaterEqual(lookahead, 64.0)
+        self.assertLessEqual(lookahead, 128.0)
+        path_preview = self.path_interface[
+            self.path_interface.index("GetLookAheadPoint"):
+            self.path_interface.index("GetDestination")
+        ]
+        self.assertIn("GetLookAheadPoint", path_preview)
+        self.assertIn("GetCurrentDelta()", path_preview)
+        self.assertIn("GetNode(nextNodeIndex).origin", path_preview)
+        self.assertIn(
+            "GetLookAheadPoint(const Vector& origin, float distance)",
+            self.recast_header,
+        )
+        self.assertIn(
+            "Vector RecastPather::GetLookAheadPoint", self.recast
+        )
+        self.assertIn("detourData->corners[nextCornerIndex]", self.recast)
+        self.assertIn("currentNodePos", self.recast)
+        self.assertNotIn("GetNode(nextCornerIndex)", self.recast)
+
+        self.assertNotIn("FindPath", path_preview)
+        self.assertNotIn("UpdatePos", path_preview)
+
+    def test_preview_keeps_explicit_movement_owners(self) -> None:
+        self.assertIn(
+            "GetRouteLookAheadTarget(float distance, Vector& target) const",
+            self.header,
+        )
+        self.assertIn("!AllowRouteComfortInset()", self.preview)
+        self.assertIn("m_iTempAwayState != 0", self.preview)
+        self.assertIn("m_iLadderExitUntil", self.preview)
+        self.assertIn("m_pPath->GetLookAheadPoint", self.preview)
+        self.assertNotIn("usercmd_t", self.preview)
+        self.assertNotIn("m_vCurrentDir =", self.preview)
+        self.assertNotIn("FindPath", self.preview)
+
+    def test_noncombat_view_leads_without_replacing_fallback_aim(self) -> None:
+        self.assertIn("BOT_ROUTE_VIEW_LOOKAHEAD", self.aim)
+        self.assertIn("rotation.AimAt(routeLookTarget)", self.aim)
+        self.assertIn(
+            "movement.GetCurrentMoveDirection().toAngles()", self.aim
+        )
+        self.assertIn("targetAngles.x      = 0", self.aim)
+        self.assertIn("target.z += controlledEntity->viewheight", self.preview)
+        self.assertNotIn("G_Random", self.aim)
 if __name__ == "__main__":
     unittest.main()
