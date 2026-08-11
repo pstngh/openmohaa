@@ -79,3 +79,9 @@ This log records owner-approved choices that a future session might otherwise un
 **Decision:** A bot opening a rotating door should immediately favor the panel's free edge away from the hinge, falling back to the other side only when the opening edge is materially blocked. Ordinary wall comfort belongs in the existing Recast corridor primitive, proven local route loops should reseed without an idle cooldown, and short lean gaps or side changes should use hysteresis. Do not restore an always-on final-input centering layer or carry a door tangent after panel contact ends.
 
 **Rationale:** Owner-annotated telemetry showed repeated panel contacts, hinge-side corrections, wall-side ordinary paths, route loops, and lean flicker. The owner's human movement instead combines strong strafe and lean with committed forward progress, so the correction must preserve personality while stabilizing the geometric target and traversal state.
+
+## D014 - Crosshair-led ordinary traversal
+
+**Decision:** During ordinary noncombat route travel, place the bot's view a short deterministic distance ahead along the already-selected path instead of locking it to the current movement vector. This is observational view placement only: it must not issue movement input, choose a route, repath, or displace combat, direct movement, door, collision-avoidance, recovery, ladder, or jump ownership. Use route height for natural ramp/stair pitch and retain current-direction aim as the fallback.
+
+**Rationale:** Matched telemetry showed `lawl` routinely looking away from current velocity and toward future travel while bots aligned their view tightly with the current command. Human crosshair placement is therefore part of anticipatory traversal: the view leads a corner and movement catches up. Keeping the preview inside the existing path avoids another steering layer and preserves the movement rules already improved from owner feedback.
