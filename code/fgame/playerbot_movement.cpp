@@ -91,6 +91,7 @@ static const float BOT_ROUTE_TURN_RATE_DEGREES         = 720.0f;
 static const float BOT_ROUTE_TURN_PROBE_DISTANCE       = 64.0f;
 static const float BOT_ROUTE_TURN_CLEARANCE_EPSILON    = 0.05f;
 static const int   BOT_ROUTE_TURN_RESET_MSEC           = 250;
+static const int   BOT_ROAM_STRAFE_PHASE_SCALE         = 3;
 static const int   BOT_LEAN_RELEASE_GRACE_MSEC         = 100;
 static const int   BOT_LEAN_SWITCH_NEUTRAL_MSEC        = 250;
 
@@ -2802,6 +2803,17 @@ static int RandomInterval(cvar_t *lo, cvar_t *hi)
     return lower + (int)G_Random(upper - lower);
 }
 
+// Roaming style is a readable movement intent, not a combat dodge. Keep each
+// active or neutral phase substantially longer than the configured combat
+// side interval so the lean does not pulse several times per second.
+static int RoamStrafePhaseInterval()
+{
+    return BOT_ROAM_STRAFE_PHASE_SCALE * RandomInterval(
+        g_bot_strafe_min_interval,
+        g_bot_strafe_max_interval
+    );
+}
+
 void BotMovement::FinalizeMovement(usercmd_t& botcmd)
 {
     usercmd_t baseCommand = botcmd;
@@ -2840,6 +2852,8 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         return;
     }
 
+    const bool nonCombatTravel = !m_bHasCombatTarget;
+
     // Recovery and collision detours own the movement vector; lateral input
     // here would fight their selected escape side.
     const bool suppressMovement = m_iTempAwayState == 2 || m_bAvoidCollision
@@ -2856,13 +2870,22 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
             level.inttime + BOT_STRAFE_GEOMETRY_LOCK_MSEC;
         m_iNextStrafeChangeTime =
             Q_max(m_iNextStrafeChangeTime, m_iStrafeGeometryLockTime);
+
+        // Do not resume a partly consumed roaming lean as soon as recovery
+        // releases ownership. End that intent and require one complete
+        // neutral phase before another side is selected.
+        if (nonCombatTravel && m_bRoamStrafeActive) {
+            m_bRoamStrafeActive = false;
+            m_iNextStrafeChangeTime = Q_max(
+                m_iNextStrafeChangeTime,
+                level.inttime + RoamStrafePhaseInterval()
+            );
+        }
     }
 
-    const bool nonCombatTravel = !m_bHasCombatTarget;
-
-    // Human roaming contained substantial neutral lateral time. During
-    // non-combat travel, alternate full-strength strafe phases with neutral
-    // phases. Combat retains the continuous strafe cadence.
+    // Human roaming contained substantial neutral lateral time. Treat each
+    // non-combat active or neutral phase as a stable intent. Combat retains
+    // the faster configured side-change cadence.
     if (level.inttime >= m_iNextStrafeChangeTime
         && level.inttime >= m_iStrafeGeometryLockTime) {
         if (nonCombatTravel) {
@@ -2873,11 +2896,14 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         } else {
             m_iStrafeDirection = -m_iStrafeDirection;
         }
-        m_iNextStrafeChangeTime = level.inttime
-            + RandomInterval(
-                g_bot_strafe_min_interval,
-                g_bot_strafe_max_interval
-            );
+        const int phaseInterval =
+            nonCombatTravel
+                ? RoamStrafePhaseInterval()
+                : RandomInterval(
+                    g_bot_strafe_min_interval,
+                    g_bot_strafe_max_interval
+                );
+        m_iNextStrafeChangeTime = level.inttime + phaseInterval;
     }
 
     m_bIsLeaning = false;
@@ -2897,8 +2923,8 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
         );
 
         // Optional roaming style must never make navigation clearance worse.
-        // Cancel it for this frame instead of reversing it or adding a second
-        // steering owner. The active phase can resume as soon as it is safe.
+        // End it instead of reversing it or adding a second steering owner.
+        // A later active phase can start after a stable neutral interval.
         bool vetoRoamStrafe = false;
         if (nonCombatTravel) {
             const float baseProbeFraction =
@@ -2908,6 +2934,14 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd)
                 < baseProbeFraction;
             m_telemetry.strafeOtherClearance =
                 baseProbeFraction * probeDistance;
+
+            // Holding a complete neutral phase prevents frame-by-frame
+            // clearance changes from flicking the same lean on and off.
+            if (vetoRoamStrafe) {
+                m_bRoamStrafeActive = false;
+                m_iNextStrafeChangeTime =
+                    level.inttime + RoamStrafePhaseInterval();
+            }
         }
 
         m_telemetry.strafeProbeFraction = probeFraction;

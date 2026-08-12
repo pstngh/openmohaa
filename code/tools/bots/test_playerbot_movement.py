@@ -51,12 +51,33 @@ class RoamingStyleContract(unittest.TestCase):
     def test_noncombat_roaming_alternates_active_and_neutral(self) -> None:
         self.assertIn("bool m_bRoamStrafeActive", self.header)
         self.assertIn(
+            "BOT_ROAM_STRAFE_PHASE_SCALE         = 3", self.source
+        )
+        self.assertIn(
+            "static int RoamStrafePhaseInterval()", self.source
+        )
+        self.assertIn(
             "m_bRoamStrafeActive = !m_bRoamStrafeActive",
             self.update,
         )
         self.assertIn(
             "m_bRoamStrafeActive && baseTravelCommand",
             self.update,
+        )
+        self.assertIn(
+            "nonCombatTravel\n"
+            "                ? RoamStrafePhaseInterval()",
+            self.update.replace("\r\n", "\n"),
+        )
+
+    def test_unsafe_or_interrupted_roaming_finishes_in_neutral(self) -> None:
+        self.assertEqual(
+            self.update.count("m_bRoamStrafeActive = false"), 2
+        )
+        self.assertIn("if (vetoRoamStrafe)", self.update)
+        self.assertGreaterEqual(
+            self.update.count("level.inttime + RoamStrafePhaseInterval()"),
+            2,
         )
 
     def test_combat_strafe_remains_continuous(self) -> None:

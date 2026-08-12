@@ -192,8 +192,8 @@ collisions continue through the existing final movement guard.
 | Cvar | Default | Valid range | Description |
 | --- | ---: | ---: | --- |
 | `g_bot_strafe_intensity` | `0.7` | `0`-`1` | Sideways movement intensity. |
-| `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum roaming active/neutral phase or combat strafe-side duration. |
-| `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum roaming active/neutral phase or combat strafe-side duration. |
+| `g_bot_strafe_min_interval` | `400` | `50`-`10000` ms | Minimum combat strafe-side duration. Stable roaming active/neutral phases use three times this interval. |
+| `g_bot_strafe_max_interval` | `900` | `50`-`10000` ms | Maximum combat strafe-side duration. Stable roaming active/neutral phases use three times this interval. |
 | `g_bot_peek_min_interval` | `400` | `50`-`10000` ms | Minimum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_max_interval` | `900` | `50`-`10000` ms | Maximum time before choosing a new advance/orbit/retreat state. |
 | `g_bot_peek_distance` | `384` | `0`-`4096` units | Range inside which bots use enemy-relative radial movement. |
