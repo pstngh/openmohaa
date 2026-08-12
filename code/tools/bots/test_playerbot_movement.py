@@ -396,17 +396,24 @@ class NavigationFailureContract(unittest.TestCase):
         self.assertIn("BOT_DOOR_PUSH_SIDE_COMMAND", escape)
         self.assertNotIn("FindPath", escape)
 
-    def test_open_panel_exit_uses_bounded_geometric_completion(self) -> None:
-        self.assertIn(
+    def test_open_panel_exit_uses_one_bounded_progress_owner(self) -> None:
+        for contract in (
             "BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC   = 3000",
-            self.source,
-        )
-        self.assertIn(
             "BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE   = 128.0f",
-            self.source,
-        )
-        self.assertIn("bool   m_bOpenDoorPanelExit", self.header)
-        self.assertIn("Vector m_vOpenDoorPanelExitOrigin", self.header)
+            "BOT_DOOR_OPEN_PANEL_STALL_MSEC      = 750",
+            "BOT_DOOR_OPEN_PANEL_PROGRESS_UNITS  = 12.0f",
+            "BOT_DOOR_OPEN_PANEL_RETRY_MSEC      = 2000",
+        ):
+            self.assertIn(contract, self.source)
+        for field in (
+            "bool   m_bOpenDoorPanelExit",
+            "Vector m_vOpenDoorPanelExitOrigin",
+            "Vector m_vOpenDoorPanelProgressOrigin",
+            "int    m_iOpenDoorPanelProgressTime",
+            "int    m_iOpenDoorPanelRetryTime",
+        ):
+            self.assertIn(field, self.header)
+
         start = self.source.index(
             "void BotMovement::UpdateOpenDoorPanelExit"
         )
@@ -418,16 +425,34 @@ class NavigationFailureContract(unittest.TestCase):
             "DotProduct(displacement, m_vDoorPushApproachDirection)",
             completion,
         )
+        self.assertIn("directionalProgress", completion)
         self.assertIn("bot_open_door_panel_exit_complete", completion)
         self.assertIn("bot_open_door_panel_exit_timeout", completion)
+        self.assertIn("bot_open_door_panel_exit_cancelled", completion)
+        self.assertIn("BOT_OPEN_DOOR_PANEL_CANCEL_STALLED", completion)
         self.assertNotIn("FindPath", completion)
+        self.assertNotIn("m_iTempAwayState == 2", completion)
+
         self.assertIn(
             "const bool continuingContact = m_bOpenDoorPanelExit",
             self.door_push,
         )
         self.assertIn(
-            "const bool continuingContact = !m_bOpenDoorPanelExit",
+            "const bool openPanelRecontact = m_bOpenDoorPanelExit",
             self.door_push,
+        )
+        self.assertIn(
+            "level.inttime < m_iOpenDoorPanelRetryTime",
+            self.door_push,
+        )
+        self.assertIn(
+            "BotDoorOpeningEdgeDirection(door, openingEdge)",
+            self.door_push,
+        )
+        self.assertIn("!openDoorPanelExitActive", self.source)
+        self.assertIn(
+            "m_iTempAwayState == 0 && !m_bOpenDoorPanelExit",
+            self.guard,
         )
         self.assertLess(
             self.source.index("UpdateOpenDoorPanelExit();"),

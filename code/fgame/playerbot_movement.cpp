@@ -54,6 +54,17 @@ static const int   BOT_DOOR_PUSH_STALL_MSEC            = 350;
 static const int   BOT_DOOR_PUSH_RECONTACT_MSEC        = 1500;
 static const int   BOT_DOOR_EXIT_COMMIT_MSEC           = 750;
 static const int   BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC   = 3000;
+static const int   BOT_DOOR_OPEN_PANEL_RETRY_MSEC      = 2000;
+static const int   BOT_DOOR_OPEN_PANEL_STALL_MSEC      = 750;
+static const float BOT_DOOR_OPEN_PANEL_PROGRESS_UNITS  = 12.0f;
+enum bot_open_door_panel_cancel_reason_t {
+    BOT_OPEN_DOOR_PANEL_CANCEL_DEAD = 1,
+    BOT_OPEN_DOOR_PANEL_CANCEL_LADDER,
+    BOT_OPEN_DOOR_PANEL_CANCEL_JUMP,
+    BOT_OPEN_DOOR_PANEL_CANCEL_REPLACED,
+    BOT_OPEN_DOOR_PANEL_CANCEL_INVALID_DIRECTION,
+    BOT_OPEN_DOOR_PANEL_CANCEL_STALLED
+};
 static const float BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE   = 128.0f;
 static const int   BOT_LADDER_REATTACH_WATCH_MSEC       = 3000;
 static const int   BOT_LADDER_ROUTE_RECOVERY_MAX_MSEC   = 3000;
@@ -228,7 +239,10 @@ BotMovement::BotMovement()
     m_iRouteCommandTime        = 0;
     m_bOpenDoorPanelExit       = false;
     m_iOpenDoorPanelExitUntil  = 0;
-    m_vOpenDoorPanelExitOrigin = vec_zero;
+    m_vOpenDoorPanelExitOrigin     = vec_zero;
+    m_vOpenDoorPanelProgressOrigin = vec_zero;
+    m_iOpenDoorPanelProgressTime   = 0;
+    m_iOpenDoorPanelRetryTime      = 0;
     m_iRouteTurnLogTime        = 0;
     m_bJump               = false;
     m_iJumpCheckTime      = 0;
@@ -535,7 +549,18 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     }
 
     // Check if we're blocked
-    if (level.inttime >= m_iCheckPathTime + 1000 && m_iTempAwayState != 2) {
+    const bool openDoorPanelExitActive = m_bOpenDoorPanelExit
+        && level.inttime <= m_iOpenDoorPanelExitUntil;
+    if (openDoorPanelExitActive && m_iTempAwayState != 0) {
+        // The physical door escape owns this short interval. Do not let the
+        // generic blocked timer clear the route and then restart the same
+        // panel interaction while the committed direction is progressing.
+        m_iTempAwayState = 0;
+        m_iNumBlocks     = 0;
+    }
+
+    if (level.inttime >= m_iCheckPathTime + 1000
+        && m_iTempAwayState != 2 && !openDoorPanelExitActive) {
         bool blocked = false;
 
         m_iCheckPathTime = level.inttime;
@@ -1784,14 +1809,30 @@ void BotMovement::PushThroughOpenableDoor(
         return;
     }
 
-    const bool continuingContact = !m_bOpenDoorPanelExit
+    const bool openPanelRecontact = m_bOpenDoorPanelExit
         && door->entnum == m_iDoorPushEntity
+        && level.inttime <= m_iOpenDoorPanelExitUntil;
+    if (openPanelRecontact) {
+        // A scripted or closing panel can stop reporting fully-open between
+        // contacts. Keep the same physical escape instead of replacing it
+        // with the moving-door owner and choosing another side.
+        m_iDoorPushLastContactTime = level.inttime;
+        ApplyOpenDoorPanelEscape(botcmd, trace);
+        return;
+    }
+
+    if (m_bOpenDoorPanelExit) {
+        FinishOpenDoorPanelExit(
+            "bot_open_door_panel_exit_cancelled",
+            BOT_OPEN_DOOR_PANEL_CANCEL_REPLACED
+        );
+    }
+
+    const bool continuingContact = door->entnum == m_iDoorPushEntity
         && level.inttime <= m_iDoorPushLastContactTime
             + BOT_DOOR_PUSH_RECONTACT_MSEC;
-    m_bOpenDoorPanelExit       = false;
-    m_iOpenDoorPanelExitUntil  = 0;
-    m_vOpenDoorPanelExitOrigin = vec_zero;
     RecordDoorPushThrough(door);
+
     if (!continuingContact) {
         m_iDoorPushStartTime = level.inttime;
         m_vDoorPushDirection = vec_zero;
@@ -1932,20 +1973,62 @@ void BotMovement::ApplyDoorPushThrough(usercmd_t& botcmd) const
     SetCommandMoveVector(botcmd, move);
 }
 
+void BotMovement::FinishOpenDoorPanelExit(
+    const char *eventName, int eventDetail
+)
+{
+    if (!m_bOpenDoorPanelExit) {
+        return;
+    }
+
+    if (eventName && controlledEntity) {
+        G_MoveLogBotEvent(
+            eventName,
+            controlledEntity,
+            NULL,
+            eventDetail ? eventDetail : m_iDoorPushEntity,
+            controlledEntity->origin
+        );
+    }
+
+    m_bOpenDoorPanelExit           = false;
+    m_iOpenDoorPanelExitUntil      = 0;
+    m_vOpenDoorPanelExitOrigin     = vec_zero;
+    m_vOpenDoorPanelProgressOrigin = vec_zero;
+    m_iOpenDoorPanelProgressTime   = 0;
+    m_vDoorPushDirection           = vec_zero;
+    m_vDoorPushApproachDirection   = vec_zero;
+}
+
 void BotMovement::UpdateOpenDoorPanelExit()
 {
     if (!m_bOpenDoorPanelExit) {
         return;
     }
 
-    if (!controlledEntity || controlledEntity->IsDead()
-        || controlledEntity->GetLadder() || m_bJump
-        || m_iTempAwayState == 2) {
-        m_bOpenDoorPanelExit       = false;
-        m_iOpenDoorPanelExitUntil  = 0;
-        m_vOpenDoorPanelExitOrigin = vec_zero;
-        m_vDoorPushDirection       = vec_zero;
-        m_vDoorPushApproachDirection = vec_zero;
+    if (!controlledEntity) {
+        FinishOpenDoorPanelExit(NULL);
+        return;
+    }
+    if (controlledEntity->IsDead()) {
+        FinishOpenDoorPanelExit(
+            "bot_open_door_panel_exit_cancelled",
+            BOT_OPEN_DOOR_PANEL_CANCEL_DEAD
+        );
+        return;
+    }
+    if (controlledEntity->GetLadder()) {
+        FinishOpenDoorPanelExit(
+            "bot_open_door_panel_exit_cancelled",
+            BOT_OPEN_DOOR_PANEL_CANCEL_LADDER
+        );
+        return;
+    }
+    if (m_bJump) {
+        FinishOpenDoorPanelExit(
+            "bot_open_door_panel_exit_cancelled",
+            BOT_OPEN_DOOR_PANEL_CANCEL_JUMP
+        );
         return;
     }
 
@@ -1956,24 +2039,36 @@ void BotMovement::UpdateOpenDoorPanelExit()
         DotProduct(displacement, m_vDoorPushApproachDirection)
         >= BOT_DOOR_OPEN_PANEL_EXIT_DISTANCE;
     const bool timedOut = level.inttime >= m_iOpenDoorPanelExitUntil;
-    if (!crossedPanel && !timedOut) {
-        return;
-    }
 
-    G_MoveLogBotEvent(
-        crossedPanel
-            ? "bot_open_door_panel_exit_complete"
-            : "bot_open_door_panel_exit_timeout",
-        controlledEntity,
-        NULL,
-        m_iDoorPushEntity,
-        controlledEntity->origin
+    Vector progressDelta =
+        controlledEntity->origin - m_vOpenDoorPanelProgressOrigin;
+    progressDelta.z = 0.0f;
+    const float directionalProgress = Q_max(
+        DotProduct(progressDelta, m_vDoorPushDirection),
+        DotProduct(progressDelta, m_vDoorPushApproachDirection)
     );
-    m_bOpenDoorPanelExit       = false;
-    m_iOpenDoorPanelExitUntil  = 0;
-    m_vOpenDoorPanelExitOrigin = vec_zero;
-    m_vDoorPushDirection       = vec_zero;
-    m_vDoorPushApproachDirection = vec_zero;
+    if (directionalProgress >= BOT_DOOR_OPEN_PANEL_PROGRESS_UNITS) {
+        m_vOpenDoorPanelProgressOrigin = controlledEntity->origin;
+        m_iOpenDoorPanelProgressTime   = level.inttime;
+    }
+    const bool stalled = level.inttime
+        >= m_iOpenDoorPanelProgressTime + BOT_DOOR_OPEN_PANEL_STALL_MSEC;
+
+    if (crossedPanel) {
+        m_iOpenDoorPanelRetryTime = 0;
+        FinishOpenDoorPanelExit("bot_open_door_panel_exit_complete");
+    } else if (timedOut) {
+        m_iOpenDoorPanelRetryTime =
+            level.inttime + BOT_DOOR_OPEN_PANEL_RETRY_MSEC;
+        FinishOpenDoorPanelExit("bot_open_door_panel_exit_timeout");
+    } else if (stalled) {
+        m_iOpenDoorPanelRetryTime =
+            level.inttime + BOT_DOOR_OPEN_PANEL_RETRY_MSEC;
+        FinishOpenDoorPanelExit(
+            "bot_open_door_panel_exit_cancelled",
+            BOT_OPEN_DOOR_PANEL_CANCEL_STALLED
+        );
+    }
 }
 
 void BotMovement::ContinueDoorExit(usercmd_t& botcmd) const
@@ -1982,9 +2077,11 @@ void BotMovement::ContinueDoorExit(usercmd_t& botcmd) const
         ? level.inttime <= m_iOpenDoorPanelExitUntil
         : level.inttime <= m_iDoorPushLastContactTime
             + BOT_DOOR_EXIT_COMMIT_MSEC;
+    const bool recoveryOwnsMovement = m_iTempAwayState == 2
+        && !m_bOpenDoorPanelExit;
     if (!controlledEntity
         || controlledEntity->GetLadder() || m_bJump
-        || m_iTempAwayState == 2
+        || recoveryOwnsMovement
         || m_vDoorPushDirection.lengthXYSquared() <= 0.01f
         || m_vDoorPushApproachDirection.lengthXYSquared() <= 0.01f
         || !exitActive) {
@@ -2050,30 +2147,16 @@ bool BotMovement::EscapeOpenDoorPanel(
         return false;
     }
 
+    if (!m_bOpenDoorPanelExit
+        && door->entnum == m_iDoorPushEntity
+        && level.inttime < m_iOpenDoorPanelRetryTime) {
+        return false;
+    }
+
     const bool continuingContact = m_bOpenDoorPanelExit
         && door->entnum == m_iDoorPushEntity
-        && level.inttime <= m_iOpenDoorPanelExitUntil
-        && level.inttime <= m_iDoorPushLastContactTime
-            + BOT_DOOR_PUSH_RECONTACT_MSEC;
+        && level.inttime <= m_iOpenDoorPanelExitUntil;
     if (!continuingContact) {
-        m_bOpenDoorPanelExit       = true;
-        m_iOpenDoorPanelExitUntil  =
-            level.inttime + BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC;
-        m_vOpenDoorPanelExitOrigin = controlledEntity->origin;
-        m_iDoorPushStartTime = level.inttime;
-        m_vDoorPushDirection = vec_zero;
-        m_vDoorPushApproachDirection = GetCommandMoveVector(botcmd);
-        m_vDoorPushApproachDirection.z = 0.0f;
-        if (VectorNormalize2D(m_vDoorPushApproachDirection) <= 0.0f) {
-            m_vDoorPushApproachDirection = m_vCurrentDir;
-            m_vDoorPushApproachDirection.z = 0.0f;
-            VectorNormalize2D(m_vDoorPushApproachDirection);
-        }
-    }
-    m_iDoorPushEntity          = door->entnum;
-    m_iDoorPushLastContactTime = level.inttime;
-
-    if (m_vDoorPushDirection.lengthXYSquared() <= 0.01f) {
         Vector normal = trace.plane.normal;
         normal.z      = 0.0f;
         if (VectorNormalize2D(normal) <= 0.0f) {
@@ -2081,14 +2164,22 @@ bool BotMovement::EscapeOpenDoorPanel(
         }
 
         const Vector tangent(-normal.y, normal.x, 0.0f);
+        Vector openingEdge;
+        const bool preferOpeningEdge =
+            BotDoorOpeningEdgeDirection(door, openingEdge);
         const Vector doorCenter = (door->absmin + door->absmax) * 0.5f;
         const Vector fromCenter = controlledEntity->origin - doorCenter;
         const Vector pathDelta  = m_vCurrentGoal - controlledEntity->origin;
+        const float edgeDot     = DotProduct(openingEdge, tangent);
         const float awayDot     = DotProduct(fromCenter, tangent);
         const float pathDot     = DotProduct(pathDelta, tangent);
         int preferredDirection;
-        if (fabs(awayDot) > 4.0f) {
-            // Slide toward the nearest end of the displaced panel.
+        if (preferOpeningEdge && fabs(edgeDot) > 0.1f) {
+            // A rotating panel's center points from its hinge toward its
+            // physical free edge. Prefer that end even when the nearest end
+            // would send the bot back toward the hinge.
+            preferredDirection = edgeDot > 0.0f ? 1 : -1;
+        } else if (fabs(awayDot) > 4.0f) {
             preferredDirection = awayDot > 0.0f ? 1 : -1;
         } else if (fabs(pathDot) > 1.0f) {
             preferredDirection = pathDot > 0.0f ? 1 : -1;
@@ -2112,12 +2203,60 @@ bool BotMovement::EscapeOpenDoorPanel(
         const float otherClearance = CalculateMoveProbeFraction(
             otherProbe, BOT_DOOR_PUSH_PROBE_DISTANCE
         );
-        if (otherClearance > preferredClearance
-            + BOT_DOOR_PUSH_PROBE_EPSILON) {
+        const bool openingEdgeBlocked = preferOpeningEdge
+            && preferredClearance < BOT_DOOR_OPEN_EDGE_BLOCKED_FRACTION
+            && otherClearance > preferredClearance
+                + BOT_DOOR_OPEN_EDGE_CLEARANCE_MARGIN;
+        if (openingEdgeBlocked
+            || (!preferOpeningEdge
+                && otherClearance > preferredClearance
+                    + BOT_DOOR_PUSH_PROBE_EPSILON)) {
             preferredDirection = -preferredDirection;
         }
 
+        Vector approachDirection = GetCommandMoveVector(botcmd);
+        approachDirection.z = 0.0f;
+        if (VectorNormalize2D(approachDirection) <= 0.0f) {
+            approachDirection = m_vCurrentDir;
+            approachDirection.z = 0.0f;
+        }
+        if (VectorNormalize2D(approachDirection) <= 0.0f) {
+            if (m_bOpenDoorPanelExit) {
+                FinishOpenDoorPanelExit(
+                    "bot_open_door_panel_exit_cancelled",
+                    BOT_OPEN_DOOR_PANEL_CANCEL_INVALID_DIRECTION
+                );
+            }
+            return false;
+        }
+
+        if (m_bOpenDoorPanelExit) {
+            FinishOpenDoorPanelExit(
+                "bot_open_door_panel_exit_cancelled",
+                BOT_OPEN_DOOR_PANEL_CANCEL_REPLACED
+            );
+        }
+
+        m_bOpenDoorPanelExit           = true;
+        m_iOpenDoorPanelExitUntil      =
+            level.inttime + BOT_DOOR_OPEN_PANEL_EXIT_MAX_MSEC;
+        m_vOpenDoorPanelExitOrigin     = controlledEntity->origin;
+        m_vOpenDoorPanelProgressOrigin = controlledEntity->origin;
+        m_iOpenDoorPanelProgressTime   = level.inttime;
+        m_iOpenDoorPanelRetryTime      = 0;
+        m_iDoorPushStartTime           = level.inttime;
         m_vDoorPushDirection = tangent * (float)preferredDirection;
+        m_vDoorPushApproachDirection = approachDirection;
+        m_iTempAwayState = 0;
+        m_iNumBlocks     = 0;
+        m_bAvoidCollision = false;
+
+        G_MoveLogBotEvent(
+            "bot_open_door_panel_exit_start", controlledEntity, NULL,
+            door->entnum,
+            controlledEntity->origin
+                + m_vDoorPushDirection * BOT_DOOR_PUSH_PROBE_DISTANCE
+        );
         G_MoveLogBotEvent(
             "bot_open_door_panel_escape", controlledEntity, NULL,
             door->entnum,
@@ -2125,10 +2264,26 @@ bool BotMovement::EscapeOpenDoorPanel(
                 + m_vDoorPushDirection * BOT_DOOR_PUSH_PROBE_DISTANCE
         );
     }
+    m_iDoorPushEntity          = door->entnum;
+    m_iDoorPushLastContactTime = level.inttime;
 
-    // A fully open panel cannot yield to forward pressure. Give its chosen
-    // tangent full command ownership until collision clears, then the existing
-    // short door-exit commitment resumes the retained through-door approach.
+    ApplyOpenDoorPanelEscape(botcmd, trace);
+    return true;
+}
+
+void BotMovement::ApplyOpenDoorPanelEscape(
+    usercmd_t& botcmd, const trace_t& trace
+)
+{
+    if (!controlledEntity || !m_bOpenDoorPanelExit
+        || m_vDoorPushDirection.lengthXYSquared() <= 0.01f) {
+        return;
+    }
+
+    // A fully open panel cannot yield to forward pressure. Give its stable
+    // free-edge tangent full command ownership until contact clears. The
+    // captured through-door approach then resumes without selecting a side
+    // again on same-door recontact.
     SetCommandMoveVector(
         botcmd, m_vDoorPushDirection * BOT_DOOR_PUSH_SIDE_COMMAND
     );
@@ -2142,7 +2297,6 @@ bool BotMovement::EscapeOpenDoorPanel(
     m_telemetry.guardRemovedComponent = true;
     m_telemetry.guardFraction         = trace.fraction;
     m_telemetry.guardEntity           = trace.entityNum;
-    return true;
 }
 
 void BotMovement::CalculateBestFrontAvoidance(
@@ -3363,9 +3517,11 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
         return;
     }
 
-    // A committed door approach can meet the adjacent frame or world corner.
-    // Drop both vectors immediately so the next contact captures the route
-    // again and probes a fresh panel edge instead of repeating that collision.
+    // A moving-door approach may release immediately when it reaches the
+    // adjacent frame. A fully-open-panel escape instead keeps its selected
+    // free-edge direction until directional progress stalls; dropping it on
+    // first world contact caused the same door and blocked-recovery owners to
+    // restart one another.
     const bool committedDoorExit = m_bOpenDoorPanelExit
         ? level.inttime <= m_iOpenDoorPanelExitUntil
         : level.inttime <= m_iDoorPushLastContactTime
@@ -3373,11 +3529,6 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     if (trace.entityNum == ENTITYNUM_WORLD
         && m_vDoorPushDirection.lengthXYSquared() > 0.01f
         && committedDoorExit) {
-        m_vDoorPushDirection = vec_zero;
-        m_vDoorPushApproachDirection = vec_zero;
-        m_bOpenDoorPanelExit       = false;
-        m_iOpenDoorPanelExitUntil  = 0;
-        m_vOpenDoorPanelExitOrigin = vec_zero;
         if (level.inttime >= m_iDoorPushBlockedLogTime) {
             m_iDoorPushBlockedLogTime =
                 level.inttime + BOT_DOOR_PUSH_LOG_MSEC;
@@ -3385,6 +3536,10 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
                 "bot_door_push_blocked", controlledEntity, NULL,
                 m_iDoorPushEntity, trace.endpos
             );
+        }
+        if (!m_bOpenDoorPanelExit) {
+            m_vDoorPushDirection = vec_zero;
+            m_vDoorPushApproachDirection = vec_zero;
         }
     }
 
@@ -3442,7 +3597,7 @@ void BotMovement::ResolveImminentCollision(usercmd_t& botcmd, const usercmd_t& b
     // discarded by that normal movement check.
     if (m_bPathing && !m_bHasCombatTarget
         && resolvedCommand <= BOT_GUARD_RECOVERY_COMMAND_MAX
-        && m_iTempAwayState == 0) {
+        && m_iTempAwayState == 0 && !m_bOpenDoorPanelExit) {
         m_iTempAwayState = 1;
         m_iLastBlockTime = level.inttime;
         m_iCheckPathTime = level.inttime;

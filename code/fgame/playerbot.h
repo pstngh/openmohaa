@@ -242,6 +242,8 @@ private:
     void   RecordDoorPushThrough(Door *door);
     void   RecordOpenDoorPanelContact(Door *door, const trace_t& trace);
     bool   EscapeOpenDoorPanel(usercmd_t& botcmd, Door *door, const trace_t& trace);
+    void   ApplyOpenDoorPanelEscape(usercmd_t& botcmd, const trace_t& trace);
+    void   FinishOpenDoorPanelExit(const char *eventName, int eventDetail = 0);
     void   PushThroughOpenableDoor(usercmd_t& botcmd, Door *door, const trace_t& trace);
     void   ApplyDoorPushThrough(usercmd_t& botcmd) const;
     void   ContinueDoorExit(usercmd_t& botcmd) const;
@@ -325,6 +327,9 @@ private:
     bool   m_bOpenDoorPanelExit;
     int    m_iOpenDoorPanelExitUntil;
     Vector m_vOpenDoorPanelExitOrigin;
+    Vector m_vOpenDoorPanelProgressOrigin;
+    int    m_iOpenDoorPanelRetryTime;
+    int    m_iOpenDoorPanelProgressTime;
     Vector m_vDoorPushApproachDirection;
     int    m_iReducedStanceStartTime;
 

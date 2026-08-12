@@ -238,16 +238,33 @@ and holds the equivalent of forward-plus-strafe only while the panel remains
 in its immediate path. During short contact-free gaps, it keeps the original
 through-door approach for up to 750 ms instead of carrying the lateral tangent
 along the frame or immediately accepting route pullback. The contact blend is
-scaled without rotating its world-space edge direction. If the commitment
-meets an adjacent world corner, both vectors are discarded so the next contact
-captures and probes again; this is recorded as `bot_door_push_blocked`. None
-of this changes the bot's path or routes it around the door. Once a panel is
-fully open it no longer enters door-push handling; it remains registered at its
-moved position as a Recast obstacle and uses the normal final collision guard.
+scaled without rotating its world-space edge direction. If this moving-door
+commitment meets an adjacent world corner, both vectors are discarded so the
+next contact captures and probes again. This is recorded as
+`bot_door_push_blocked`; no path is rebuilt around the door.
+
+A fully open displaced panel remains ordinary Recast collision geometry. If the
+final movement guard traces it, however, one short physical escape owns the
+command rather than alternating with moving-door and generic blocked recovery.
+A rotating panel prefers its physical free edge away from the hinge, falling
+back only when the local probe shows that edge is materially blocked. Same-door
+recontact retains the selected edge. Contact-free movement retains the captured
+through-door approach. Directional progress is checked every 12 units; 750 ms
+without progress cancels the escape, while 128 through-door units completes it
+and three seconds remains the hard maximum. A stall or timeout gives ordinary
+recovery two seconds before the same fully open panel may start another escape.
+This local owner does not repath, change view placement, or alter roaming,
+leaning, corner comfort, combat, ladders, or moving-door behavior.
+
 Throttled `bot_door_pushthrough` events identify closed/moving contact;
-`bot_door_push_slide` records the edge commitment.
-Throttled `bot_open_door_panel_contact` events identify normal final-guard
-contact with a fully open displaced panel without changing movement or routes.
+`bot_door_push_slide` and `bot_door_push_open_edge` record its edge choice.
+`bot_open_door_panel_contact` records fully open panel contact.
+`bot_open_door_panel_exit_start` and the legacy
+`bot_open_door_panel_escape` identify one new physical escape;
+`bot_open_door_panel_exit_complete`, `bot_open_door_panel_exit_timeout`, and
+`bot_open_door_panel_exit_cancelled` close it. Cancellation detail values are
+1 dead, 2 ladder, 3 jump, 4 replaced by another door owner, 5 invalid direction,
+and 6 stalled.
 
 On objective maps, combat, team callouts, grenade escape, and reload retreat
 temporarily override the route without discarding its plan. Planting and
