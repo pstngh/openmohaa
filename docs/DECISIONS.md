@@ -110,11 +110,11 @@ This log records owner-approved choices that a future session might otherwise un
 
 **Rationale:** The complete `5940d700` capture supports retaining the door half: five-second episodes fell from 14/346 to 7/368 and 127 of 130 geometric phases completed. Its ladder command gate failed, so route ownership replaced it. The first route implementation also failed: 39 starts produced zero completions, and all 39 destinations projected exactly -128 units onto the intended away vector. The defect was deterministic coordinate misuse: game `(x,y,z)` converts to Recast `(x,z,-y)`, so direct game yaw reversed every observed Y-axis escape. Twenty-three starts also disappeared without a terminal event because explicit movement owners cleared the route. Correct the shared path primitive, expose every cancellation and active frame, and keep wall placement plus door residuals separate.
 
-## D019 - Preserve one physical free-edge door traversal
+## D019 - Reject the unified physical free-edge door traversal
 
-**Decision:** Treat opening-panel contact and fully-open-panel escape as phases of one bounded physical traversal. Retain the original through-door approach, but recompute the rotating panel's current free-edge vector after it has swung open and blend that contact-only tangent with forward pressure. While this geometric/three-second phase is active, generic blocked recovery must yield; the existing ladder, jump, recovery, and world-collision cancellations retain priority and the fully-open phase must leave a terminal telemetry event. Do not repath at a door, choose the nearest panel end when the hinge is identifiable, carry the tangent after contact, or alter ordinary wall steering in the same experiment.
+**Decision:** Reject and remove the D019 unified opening/fully-open traversal. Restore the `6a877fdc` door baseline while treating remaining door contact as an unresolved separate owner. Do not restore this experiment without new evidence and an isolated design.
 
-**Rationale:** In the representative `6a877fdc` capture, 153 of 6,210 comprehensively grouped door episodes lasted at least five seconds, 50 lasted at least ten, and the maximum was 37.1 seconds. Long episodes accumulated thousands of units of travel while returning near the same door. Event reconstruction showed the fully-open phase discarding the edge/approach chosen while opening, sometimes selecting the hinge as the nearest end, and interleaving generic recovery with recontact. Human traversal instead preserves forward commitment while pressing the physical free edge; one bounded owner expresses that behavior without another path or global steering layer.
+**Rationale:** The representative replacement capture improved view-relative forward motion but made actual traversal worse: completion fell from 60.5% to 42.1%, cancellation rose from 32.6% to 52.8%, and blocked-door cadence remained roughly 24 events per server-minute. Visual feedback also rejected it.
 
 ## D020 - Branch-local passive continuity
 
@@ -122,8 +122,14 @@ This log records owner-approved choices that a future session might otherwise un
 
 **Rationale:** The user requires branch-specific continuity. A long-lived branch already isolates code history, live state, CI selection, and deployment responsibility, while another fork would add synchronization and administration without improving product isolation. Passive files remain reviewable and removable with zero effect on project operations.
 
-## D021 - Align door facing and anticipate ordinary corners
+## D021 - Reject coupled door-facing and anticipatory-corner replacement
 
-**Decision:** While the bounded noncombat door traversal owns movement, its view must follow the captured through-door approach before ordinary route look-ahead is considered; the contact-only free-edge tangent remains a physical movement component. For ordinary Recast travel, comfort evaluates both the current corridor position and the projected first-corner point within 96 units, engages from the nearer wall clearance, and retains the existing same-corridor, width, short-goal, off-mesh, combat, direct-move, door, ladder, jump, and recovery gates. Do not add final-input centering or a second steering owner.
+**Decision:** Reject and remove both D021 product changes. Keep view ownership and the existing D012 first-corner comfort behavior at the `6a877fdc` baseline until either residual is isolated with new evidence.
 
-**Rationale:** In the rejected short `3cd38ebf` capture, only 49.3% of active door-exit frames moved forward relative to view while 22.0% moved backward, and 497 world-guard episodes occurred in 21.56 bot-alive minutes. Code ownership showed the door command retaining its approach while ordinary view followed a changed route, and the wall inset checked clearance only after the bot reached the near-wall lane. Aligning the existing owners and moving the existing clearance decision earlier addresses the measured failures without removing roaming strafe, lean, or crosshair-led path preview.
+**Rationale:** The replacement did not improve the primary contact criterion. World-guard cadence worsened by about 10%, from 23.05 to 25.39 episodes per bot-minute, and forward-corner clearance below 12 units remained effectively unchanged at 27.12% versus 26.94%. The door half also regressed as recorded in D019.
+
+## D022 - Stable roaming strafe and lean intent
+
+**Decision:** Preserve alternating noncombat active and neutral roaming personality, but hold each phase for three times the configured combat strafe interval. A wall-clearance veto or recovery/collision interruption ends the current active phase and requires a full neutral phase before another lean/strafe intent. Keep combat strafe timing, geometry veto direction, final collision ownership, lean-release grace, and side-switch hysteresis unchanged.
+
+**Rationale:** The rejected capture recorded roughly 91 ordinary lean transitions per minute, a 300 ms median lean episode, and 48.65% of episodes at or below 250 ms. Direct left/right flips were rare, so the visible twitch was active/neutral and geometry-interrupted on/off flicker rather than insufficient side-switch hysteresis. Longer stable phases lower transition cadence without removing lean, centering the bot, or adding another steering owner.
