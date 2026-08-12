@@ -60,13 +60,13 @@ int          nextFlushMsec    = 0;
 
 static void SelectFreshSegmentPaths()
 {
-    std::ostringstream directory;
-    directory << "telemetry/segments/"
-              << static_cast<long long>(std::time(NULL)) << '_'
-              << gi.Milliseconds();
-    framesPath = directory.str() + "/movement_frames.csv";
-    eventsPath = directory.str() + "/movement_events.csv";
-    metaPath   = directory.str() + "/movement_meta.txt";
+    std::ostringstream prefix;
+    prefix << "telemetry/segments/"
+           << static_cast<long long>(std::time(NULL)) << '_'
+           << gi.Milliseconds();
+    framesPath = prefix.str() + "_movement_frames.csv";
+    eventsPath = prefix.str() + "_movement_events.csv";
+    metaPath   = prefix.str() + "_movement_meta.txt";
 }
 
 struct VisibilityState

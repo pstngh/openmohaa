@@ -25,11 +25,18 @@ class TelemetryRotationContract(unittest.TestCase):
         self.assertIn("framesBytesWritten += gi.FS_Write", self.source)
         self.assertIn("framesBuffer.size()", self.rotation)
 
+    def test_rotated_triplets_need_only_the_precreated_segment_directory(self) -> None:
+        self.assertIn('prefix << "telemetry/segments/"', self.source)
+        self.assertIn('prefix.str() + "_movement_frames.csv"', self.source)
+        self.assertIn('prefix.str() + "_movement_events.csv"', self.source)
+        self.assertIn('prefix.str() + "_movement_meta.txt"', self.source)
+        self.assertNotIn('directory.str() + "/movement_', self.source)
+
     def test_rotation_preserves_complete_standard_triplets(self) -> None:
         self.assertIn('"telemetry/segments/"', self.source)
-        self.assertIn('"/movement_frames.csv"', self.source)
-        self.assertIn('"/movement_events.csv"', self.source)
-        self.assertIn('"/movement_meta.txt"', self.source)
+        self.assertIn('"_movement_frames.csv"', self.source)
+        self.assertIn('"_movement_events.csv"', self.source)
+        self.assertIn('"_movement_meta.txt"', self.source)
         self.assertIn('AppendEventRow("session_end"', self.source)
         self.assertLess(
             self.rotation.index("CloseTelemetrySession()"),
