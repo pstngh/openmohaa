@@ -12,7 +12,7 @@ Git and tests are canonical for implementation. External facts are timestamped a
 
 ## Current objective
 
-Validate candidate `b8dcc3b3`, which retains the restored `6a877fdc` movement baseline and replaces rapid noncombat strafe/lean oscillation with stable active and neutral intent phases.
+Behaviorally accept or reject deployed `b8dcc3b3`, which retains the `6a877fdc` movement baseline and replaces rapid noncombat strafe/lean oscillation with stable active and neutral intent phases.
 
 ## Completed and validated
 
@@ -23,20 +23,21 @@ Validate candidate `b8dcc3b3`, which retains the restored `6a877fdc` movement ba
 - The representative `5e82b49e` capture rejected both replacement experiments. World-guard cadence rose from 23.05 to 25.39 episodes per bot-minute, forward-corner clearance below 12 units remained 27.12% versus 26.94%, door completion fell from 60.5% to 42.1%, and cancellation rose from 32.6% to 52.8%.
 - The same capture objectively confirmed lean flicker: ordinary movement produced roughly 91 lean transitions per minute, with 48.65% of lean episodes at most 250 ms and a 300 ms median. Direct left/right flips were rare; rapid active/neutral and geometry-interrupted on/off transitions were the dominant visual defect.
 - `a447806e` keeps rotated schema 7 captures as timestamp-prefixed triplets directly beneath one `telemetry/segments` directory. This removes the per-segment child directory that failed on the VPS while preserving complete sessions and restart-time deletion. See D017.
-- The exact passing `6a877fdc` artifact was restored on the VPS before source history changed. Live hashes are `a9afbe5135f85151fa7488bd7fdca6f5d18ceee4b635f15aadf819a0d0788230` for `omohaaded` and `84dc45ae914d75031a9d9f3b165fe36397c7384c029093db155460253746e630` for `game.so`; startup reports `6a877fd`, the service is active/enabled with zero restarts, UDP 12203/12300 listen, and fresh schema 7 telemetry grows.
+- The exact passing `6a877fdc` artifact was restored and runtime-verified before source history changed, providing the deployment rollback baseline. Its hashes are `a9afbe5135f85151fa7488bd7fdca6f5d18ceee4b635f15aadf819a0d0788230` for `omohaaded` and `84dc45ae914d75031a9d9f3b165fe36397c7384c029093db155460253746e630` for `game.so`.
 - Rejected gameplay commits `69a4a212` and `6a663e1d` are absent from the rewritten local ancestry. Flat telemetry and passive continuity were replayed independently.
-- Candidate `b8dcc3b3` lengthens only noncombat active/neutral strafe phases from 400-900 ms to 1,200-2,700 ms. Combat timing is unchanged. A clearance veto or recovery interruption ends the active roaming intent and holds a full neutral phase instead of resuming frame by frame. The 24 movement contracts, 3 telemetry tests, 7 route-data tests, 6 client-input tests, continuity check, and `git diff --check` pass locally.
+- Product commit `b8dcc3b3` lengthens only noncombat active/neutral strafe phases from 400-900 ms to 1,200-2,700 ms. Combat timing is unchanged. A clearance veto or recovery interruption ends the active roaming intent and holds a full neutral phase instead of resuming frame by frame. The 24 movement contracts, 3 telemetry tests, 7 route-data tests, 6 client-input tests, continuity check, and `git diff --check` pass locally.
+- GitHub server-only run `31639673897` passed at rewritten tip `95c14d1f`. Full/release/deploy jobs were skipped. The artifact contained exactly ELF64 little-endian x86-64 `omohaaded` (`8240fbb1e77604cb02260076faf52fa57ebac9f112a8945d0c396524f0b89474`) and `game.so` (`c4ea594a1560df5f687e3c0c79c46659a13a2f8f8548cb6e1d61cceec494222c`).
+- That exact pair is deployed. Startup reports `95c14d1`, the intended `game.so` is loaded, the service is active/enabled with zero restarts, UDP 12203/12300 listen, and a clean schema 7 `obj_team2` triplet grows. The exact prior `6a877fdc` pair is preserved as `deploy-backups/pre-95c14d1f`; transient local artifact and remote staging copies were deleted.
 
 ## Remaining work
 
-1. Publish the lease-safe rewritten branch, require a passing Linux x64 server-only build for `b8dcc3b3`, and verify the artifact contains exactly `omohaaded` and `game.so`.
-2. Deploy that exact pair and obtain owner visual feedback plus a representative `obj_team2` capture. Lean episode/transition cadence is the primary measure; wall/guard, door, route-loop, objective, and combat metrics are regression controls.
-3. If promising, check `obj_team4` and one FFA/practice map before acceptance. Keep residual ladder cycling and geometric wall placement separate.
-4. Confirm the first live 1.5 GiB rotation creates one complete flat prefixed triplet without a service restart; this is operational validation, not a reason to retain raw telemetry.
+1. Obtain owner visual feedback plus a representative `obj_team2` capture. Lean episode/transition cadence is the primary measure; wall/guard, door, route-loop, objective, and combat metrics are regression controls.
+2. If promising, check `obj_team4` and one FFA/practice map before acceptance. Keep residual ladder cycling and geometric wall placement separate.
+3. Confirm the first live 1.5 GiB rotation creates one complete flat prefixed triplet without a service restart; this is operational validation, not a reason to retain raw telemetry.
 
 ## Blockers and unknowns
 
-- `b8dcc3b3` has local source-contract validation but no Linux build, deployment, owner visual verdict, or behavioral telemetry yet.
+- `b8dcc3b3` has build and deployment validation but no owner visual verdict or representative behavioral telemetry yet.
 - The rejected snapshot contained `lawl` only as a spectator, so it cannot provide a fresh human movement control. Historical matched telemetry remains the human reference.
 - VPS state and telemetry may change after this timestamp. Fresh read-only inspection must override this handoff before mutation.
 - Raw demos and telemetry are external and transient. Do not infer their presence or completeness from Git.
@@ -54,4 +55,4 @@ The peer was last recorded read-only at `b0f5debd` on 2026-08-10 and is stale un
 
 ## Next action
 
-Publish the exact rewritten `bots/server-ai` lease, require a passing Linux x64 server-only artifact for `b8dcc3b3`, deploy only that verified pair, and confirm service identity, hashes, ports, and fresh schema 7 growth before owner testing.
+Let the owner test deployed `b8dcc3b3` on `obj_team2`. After the owner comments, reverify the service and identity read-only, pull every coherent schema 7 triplet transiently, compare lean transition/episode cadence and movement regressions with the rejected capture, delete the pull, and record one accept/reject verdict before another movement edit.
