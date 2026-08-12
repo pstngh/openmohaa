@@ -14,7 +14,7 @@ The branches shared history through `8f614e61` (`fix(fgame): add human-like bot 
 - Develop server navigation, objectives, server telemetry, demo routes, and Linux deployment on `bots/server-ai` first.
 - Develop macOS packaging, launcher UI, client telemetry, client HUD/input, and online-client behavior on `bots/macos-client` first.
 - A bot gameplay change needed by both products originates on the branch where it can be measured, then moves as a reviewed commit.
-- `docs/STATE.md` and `.agent/plans/active/` are branch-local and must never be copied wholesale between branches.
+- `.agent/GOAL.md` and `docs/STATE.md` are branch-local and must never be copied wholesale between branches.
 - Stable common documentation may be synchronized only after comparing both versions.
 
 ## Cross-branch inspection
@@ -28,7 +28,7 @@ git show origin/bots/macos-client:docs/STATE.md
 git log --left-right --cherry-pick --oneline origin/bots/macos-client...origin/bots/server-ai
 ```
 
-Record the peer tip inspected and any candidate commits in the current branch's state or active plan. Do not claim parity from filenames alone.
+Record the peer tip inspected and any candidate commits in the current branch's state. Do not claim parity from filenames alone.
 
 ## Transfer protocol
 

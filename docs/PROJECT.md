@@ -43,7 +43,7 @@ Develop a recoverable, evidence-driven OpenMoHAA fork with bots that move, fight
 
 1. `bots/server-ai`: Linux x64 server-only bot AI, telemetry, route graphs, tests, and safe deployment runbook.
 2. `bots/macos-client`: arm64 macOS client/launcher, local bot controls, client UI/input features, and passive human telemetry.
-3. Repository-first continuity: branch registry, stable decisions, live state, active plans, and validation.
+3. Repository-first continuity: a stable branch goal, durable decisions, and one live state snapshot.
 
 ## Acceptance criteria
 

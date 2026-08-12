@@ -11,11 +11,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = (
+    ".agent/GOAL.md",
     "AGENTS.md",
     "docs/PROJECT.md",
     "docs/BRANCHES.md",
     "docs/STATE.md",
     "docs/DECISIONS.md",
+    "docs/SERVER_OPERATIONS.md",
 )
 SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
@@ -82,14 +84,11 @@ def main() -> int:
     metadata = frontmatter(state, errors)
     expected = metadata.get("branch", "")
     peer = metadata.get("peer_branch", "")
-    active_plan = metadata.get("active_plan", "")
 
     if not expected:
         fail("docs/STATE.md front matter is missing branch", errors)
     if not peer:
         fail("docs/STATE.md front matter is missing peer_branch", errors)
-    if not active_plan:
-        fail("docs/STATE.md front matter is missing active_plan", errors)
 
     actual = git_branch()
     if actual and expected and actual != expected:
@@ -99,20 +98,8 @@ def main() -> int:
             "detached HEAD: verify that HEAD was created from the expected branch before editing"
         )
 
-    plans = sorted((ROOT / ".agent" / "plans" / "active").glob("*.md"))
-    if len(plans) != 1:
-        fail(f"expected exactly one active plan, found {len(plans)}", errors)
-    if active_plan and not (ROOT / active_plan).is_file():
-        fail(f"active_plan does not exist: {active_plan}", errors)
-    elif plans and active_plan and plans[0].resolve() != (ROOT / active_plan).resolve():
-        fail(f"front matter points to {active_plan}, but active plan is {plans[0].relative_to(ROOT)}", errors)
-
     if state.count("## Next action") != 1:
         fail("docs/STATE.md must contain exactly one '## Next action' heading", errors)
-    if active_plan and (ROOT / active_plan).is_file():
-        plan_text = read_text(active_plan)
-        if plan_text.count("## Next action") != 1:
-            fail(f"{active_plan} must contain exactly one '## Next action' heading", errors)
 
     branches = read_text("docs/BRANCHES.md")
     for branch in (expected, peer):
@@ -120,8 +107,6 @@ def main() -> int:
             fail(f"docs/BRANCHES.md does not mention {branch}", errors)
 
     continuity_files = [ROOT / item for item in REQUIRED]
-    if active_plan and (ROOT / active_plan).is_file():
-        continuity_files.append(ROOT / active_plan)
     for path in continuity_files:
         content = path.read_text(encoding="utf-8")
         for pattern in SECRET_PATTERNS:
@@ -135,7 +120,7 @@ def main() -> int:
     if errors:
         return 1
 
-    print(f"Continuity OK: branch={expected}, plan={active_plan}, peer={peer}")
+    print(f"Continuity OK: branch={expected}, peer={peer}")
     return 0
 
 

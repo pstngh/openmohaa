@@ -42,7 +42,7 @@ Accept only an artifact containing x86-64 `omohaaded` and `game.so`.
 
 ## Tuning deployment sequence
 
-The current deployment policy for an accepted server build is: preserve the exact prior binary pair, stop the systemd service, replace only `omohaaded` and `game.so` as one verified pair, and start the service again. The configured service start hook resets the exact primary telemetry triplet plus its `telemetry/segments` subtree for a clean schema-compatible run. Resolve and validate that subtree under the approved game root before recursive cleanup. Do not reboot the VPS unless the owner requests it or a verified deployment requirement makes it necessary. Telemetry is disposable: do not create a backup before the reset. A pull used for immediate analysis must remain outside Git and be deleted after the analysis.
+The current deployment policy for an accepted server build is: preserve the exact prior binary pair, stop the systemd service, replace only `omohaaded` and `game.so` as one verified pair, and start the service again. The configured service start hook resets the exact primary telemetry triplet plus its `telemetry/segments` subtree for a clean schema-compatible run, then recreates only that empty directory with the service user's ownership before launch. Resolve and validate the subtree under the approved game root before recursive cleanup. Do not reboot the VPS unless the owner requests it or a verified deployment requirement makes it necessary. Telemetry is disposable: do not create a backup before the reset. A pull used for immediate analysis must remain outside Git and be deleted after the analysis.
 
 Use the exact verified service and paths from the prerequisite inspection; this document deliberately contains no guessed unit or directory names.
 
@@ -64,9 +64,9 @@ After the service restart, verify:
 
 ## Telemetry handling
 
-- Server telemetry begins with the three-file primary triplet documented in `docs/markdown/03-configuration/03-configuration-bots.md` and may add complete triplets under `telemetry/segments` during a long run.
+- Server telemetry begins with the three-file primary triplet documented in `docs/markdown/03-configuration/03-configuration-bots.md` and may add complete timestamp-prefixed triplets directly under `telemetry/segments` during a long run.
 - Do not mix schemas or partial triplets. Remove every member together before a clean run.
-- The service-start reset must clear the three exact primary files and the resolved `telemetry/segments` subtree; never target the game root or a broad unresolved path.
+- The service-start reset must clear the three exact primary files and the resolved `telemetry/segments` subtree, then recreate that empty directory for the service user; never target the game root or a broad unresolved path.
 - Stop logging cleanly when practical so buffers flush and each active segment records `session_end`.
 - Keep downloaded captures outside Git only as transient analysis inputs, label them with deployed commit, map, cvars, and session window, and delete them after analysis. Never place telemetry in deployment backups.
 - Owner chat annotations are delayed observations; correlate them with nearby frames rather than assuming the message timestamp is the exact event frame.
