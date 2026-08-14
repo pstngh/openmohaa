@@ -1,0 +1,25 @@
+name: "Linux Client-Only Build"
+
+on:
+  push:
+    branches:
+      - 'claude/streamingdemo-foSGu'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-client:
+    name: Linux x86_64 client
+    uses: ./.github/workflows/shared-build-linux.yml
+    with:
+      environment: 'testing'
+      architectures: >-
+        [{"name":"amd64","os":"ubuntu-22.04-arm","package":"x86-64-linux-gnu","triple":"x86_64-linux-gnu","arch_option":"linux-x86_64"}]
+      build_server: false
+      artifact_suffix: '-client-only'
