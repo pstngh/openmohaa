@@ -3,7 +3,7 @@ name: "Linux Client-Only Build"
 on:
   push:
     branches:
-      - 'claude/streamingdemo-foSGu'
+      - 'main'
   workflow_dispatch:
 
 concurrency:

@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build-all:
-   if: github.ref_name != 'claude/streamingdemo-foSGu'
+   if: github.ref_name != 'main'
    uses: ./.github/workflows/shared-build.yml
    with:
       environment: 'testing'
