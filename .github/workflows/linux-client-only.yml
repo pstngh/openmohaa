@@ -1,5 +1,6 @@
 name: "Linux Client-Only Build"
 
+# This standalone repository publishes the demo-streaming client from main.
 on:
   push:
     branches:
