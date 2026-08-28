@@ -350,6 +350,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - Fixed a crash related to invalid temp models being used
 - Fixed background ambient sounds being muted when restarting
 - Fixed bullet holes on door disappearing when the door moves
+- Fixed the chat box overlapping the compass at some compass scales and resolutions; the game messages and objectives are placed below the compass
 - Fixed terrain crashes
 - Fixed UI locking up in rare case in the server list
 - Keep the cursor at the same location when disconnecting
