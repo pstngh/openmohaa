@@ -671,7 +671,9 @@ void CG_GameStateReceived(void)
 
     CG_InitializeSpecialEffectsManager();
 
-    CG_InitializeObjectives();
+    // Removed in OPM
+    //  CG_InitializeObjectives() cleared the objectives the configstring pass had just set,
+    //  cg is already cleared above
 }
 
 /*
@@ -703,6 +705,8 @@ void CG_ServerRestarted(void)
     CG_ResetVSSSources();
     // Reset objectives
     CG_InitializeObjectives();
+    // Added in OPM
+    CG_RefreshObjectives();
 }
 
 /*

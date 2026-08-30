@@ -681,10 +681,24 @@ void CG_InitializeObjectives()
     cg.ObjectivesBaseAlpha    = 0.0;
     cg.ObjectivesDesiredAlpha = 0.0;
     cg.ObjectivesCurrentAlpha = 0.0;
+    // Added in OPM
+    cg.ObjectivesCurrentIndex = 0;
 
     for (i = 0; i < MAX_OBJECTIVES; i++) {
         cg.Objectives[i].flags   = 0;
         cg.Objectives[i].text[0] = 0;
+    }
+}
+
+// Added in OPM
+//  Reprocess the objective configstrings after they were reset
+void CG_RefreshObjectives()
+{
+    int i;
+
+    CG_ProcessConfigString(CS_CURRENT_OBJECTIVE, qfalse);
+    for (i = CS_OBJECTIVES; i < CS_OBJECTIVES + MAX_OBJECTIVES; ++i) {
+        CG_ProcessConfigString(i, qfalse);
     }
 }
 
@@ -705,11 +719,9 @@ void CG_DrawObjectives()
     const char  *pszLine;
 
     iTotalNumLines = 0;
-    for (i = CS_OBJECTIVES; i < CS_OBJECTIVES + MAX_OBJECTIVES; ++i) {
-        CG_ProcessConfigString(i, qfalse);
-    }
-
-    iCurrentObjective         = atoi(CG_ConfigString(CS_CURRENT_OBJECTIVE));
+    // Changed in OPM
+    //  The objectives are updated from configstrings, instead of every frame
+    iCurrentObjective         = cg.ObjectivesCurrentIndex;
     fTimeDelta                = cg.ObjectivesAlphaTime - cg.time;
     cg.ObjectivesCurrentAlpha = cg.ObjectivesDesiredAlpha;
     if (fTimeDelta > 0) {
@@ -1060,46 +1072,81 @@ void CG_UpdateCountdown()
     }
 }
 
-static void CG_RemoveStopwatch()
+// Added in OPM
+//  Only add or remove the stopwatch HUD when its state changes
+//====
+static void CG_ExecuteStopwatchHudCommand(stopwatchHudState_t state, qboolean show)
 {
-    cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_stopwatch\n");
-    cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fuse\n");
-    cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fuse_wet\n");
+    const char *command;
+
+    switch (state) {
+    case STOPWATCH_HUD_NORMAL:
+        command = show ? "ui_addhud hud_stopwatch\n" : "ui_removehud hud_stopwatch\n";
+        break;
+    case STOPWATCH_HUD_FUSE:
+        command = show ? "ui_addhud hud_fuse\n" : "ui_removehud hud_fuse\n";
+        break;
+    case STOPWATCH_HUD_FUSE_WET:
+        command = show ? "ui_addhud hud_fuse_wet\n" : "ui_removehud hud_fuse_wet\n";
+        break;
+    default:
+        return;
+    }
+
+    cgi.Cmd_Execute(EXEC_NOW, command);
 }
+
+static void CG_SetStopwatchHudState(stopwatchHudState_t desiredState)
+{
+    if (cg.stopwatchHudState == desiredState) {
+        return;
+    }
+
+    if (cg.stopwatchHudState == STOPWATCH_HUD_UNINITIALIZED) {
+        CG_ExecuteStopwatchHudCommand(STOPWATCH_HUD_NORMAL, qfalse);
+        CG_ExecuteStopwatchHudCommand(STOPWATCH_HUD_FUSE, qfalse);
+        CG_ExecuteStopwatchHudCommand(STOPWATCH_HUD_FUSE_WET, qfalse);
+    } else {
+        CG_ExecuteStopwatchHudCommand(cg.stopwatchHudState, qfalse);
+    }
+
+    CG_ExecuteStopwatchHudCommand(desiredState, qtrue);
+    cg.stopwatchHudState = desiredState;
+}
+
+static stopwatchHudState_t CG_GetDesiredStopwatchHudState()
+{
+    if (!cg_hud->integer || !cgi.stopWatch->iStartTime || cgi.stopWatch->iStartTime >= cgi.stopWatch->iEndTime
+        || cgi.stopWatch->iEndTime <= cg.time || cg.ObjectivesCurrentAlpha >= 0.02
+        || (cg.snap && cg.snap->ps.stats[STAT_HEALTH] <= 0)) {
+        return STOPWATCH_HUD_HIDDEN;
+    }
+
+    switch (cgi.stopWatch->eType) {
+    case SWT_FUSE:
+        return STOPWATCH_HUD_FUSE;
+    case SWT_FUSE_WET:
+        return STOPWATCH_HUD_FUSE_WET;
+    case SWT_NORMAL:
+    default:
+        return STOPWATCH_HUD_NORMAL;
+    }
+}
+
+//====
 
 void CG_DrawStopwatch()
 {
-    int iFraction;
+    stopwatchHudState_t desiredState = CG_GetDesiredStopwatchHudState();
+    int                 iFraction;
 
-    if (!cg_hud->integer) {
-        CG_RemoveStopwatch();
+    // Changed in OPM
+    //  The HUD is added and removed on state transitions, instead of every frame
+    if (desiredState == STOPWATCH_HUD_HIDDEN) {
+        CG_SetStopwatchHudState(desiredState);
         return;
     }
 
-    if (!cgi.stopWatch->iStartTime) {
-        CG_RemoveStopwatch();
-        return;
-    }
-
-    if (cgi.stopWatch->iStartTime >= cgi.stopWatch->iEndTime) {
-        CG_RemoveStopwatch();
-        return;
-    }
-
-    if (cgi.stopWatch->iEndTime <= cg.time) {
-        CG_RemoveStopwatch();
-        return;
-    }
-
-    if (cg.ObjectivesCurrentAlpha >= 0.02) {
-        CG_RemoveStopwatch();
-        return;
-    }
-
-    if (cg.snap && cg.snap->ps.stats[STAT_HEALTH] <= 0) {
-        CG_RemoveStopwatch();
-        return;
-    }
     if (cgi.stopWatch->eType >= SWT_FUSE_WET) {
         iFraction = cgi.stopWatch->iEndTime - cgi.stopWatch->iStartTime;
     } else {
@@ -1107,20 +1154,7 @@ void CG_DrawStopwatch()
     }
 
     cgi.Cvar_Set("ui_stopwatch", va("%i", iFraction));
-
-    switch (cgi.stopWatch->eType) {
-    case SWT_NORMAL:
-    default:
-        cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_stopwatch\n");
-        break;
-    case SWT_FUSE:
-        cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_fuse\n");
-        break;
-    case SWT_FUSE_WET:
-        cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fuse\n");
-        cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_fuse_wet\n");
-        break;
-    }
+    CG_SetStopwatchHudState(desiredState);
 }
 
 void CG_DrawInstantMessageMenu()

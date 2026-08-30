@@ -176,6 +176,15 @@ extern "C" {
         int  flags;
     } cobjective_t;
 
+    // Added in OPM
+    typedef enum {
+        STOPWATCH_HUD_UNINITIALIZED = 0,
+        STOPWATCH_HUD_HIDDEN,
+        STOPWATCH_HUD_NORMAL,
+        STOPWATCH_HUD_FUSE,
+        STOPWATCH_HUD_FUSE_WET
+    } stopwatchHudState_t;
+
 #define MAX_RAIN_SHADERS 16
 
     typedef struct crain_s {
@@ -308,6 +317,9 @@ extern "C" {
 
         // gameplay
         int matchStartTime;
+        // Added in OPM
+        //  The stopwatch HUD that was last shown
+        stopwatchHudState_t stopwatchHudState;
 
         // development tool
         refEntity_t testModelEntity;
@@ -637,6 +649,8 @@ extern "C" {
     void CG_RefreshHudDrawElements();
     void CG_HudDrawElements();
     void CG_InitializeObjectives();
+    // Added in OPM
+    void CG_RefreshObjectives(void);
     void CG_DrawObjectives();
     // Added in OPM
     void CG_UpdateCrosshair(void);
