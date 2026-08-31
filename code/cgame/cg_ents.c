@@ -683,7 +683,8 @@ void CG_GetOrigin(centity_t *cent, vec3_t origin)
             return;
         }
 
-        cgi.R_Model_GetHandle(parent->hModel);
+        // Removed in OPM
+        //  Unused cgi.R_Model_GetHandle call
         or = cgi.TIKI_Orientation(parent, cent->currentState.tag_num);
 
         VectorCopy(parent->origin, origin);
