@@ -125,7 +125,8 @@ public:
     virtual void set_sample_offset(U32 offset);
     void         set_sample_ms_offset(U32 offset);
     virtual void set_sample_loop_count(S32 count);
-    void         set_sample_loop_block(S32 start_offset, S32 end_offset);
+    // Removed in OPM
+    //  set_sample_loop_block
 
     U32 sample_status();
 

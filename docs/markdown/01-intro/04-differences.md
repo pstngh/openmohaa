@@ -353,6 +353,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - Fixed the chat box overlapping the compass at some compass scales and resolutions; the game messages and objectives are placed below the compass
 - Fixed terrain crashes
 - Fixed UI locking up in rare case in the server list
+- Sound info `maxnumber` and `maxfactor` values are now applied, and a sound already playing at its voice limit replaces its oldest voice instead of being dropped
 - Keep the cursor at the same location when disconnecting
 - Properly draw the players' world model when viewing from camera
 - Server list redundancy (multiple master servers support)

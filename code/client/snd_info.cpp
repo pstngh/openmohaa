@@ -32,8 +32,6 @@ void load_sfx_info()
 
     sfx_infos[0].name[0]            = 0;
     sfx_infos[0].max_factor         = -1.0;
-    sfx_infos[0].loop_start         = -1;
-    sfx_infos[0].loop_end           = -1;
     sfx_infos[0].max_number_playing = DEFAULT_SFX_NUMBER_PLAYING;
     number_of_sfx_infos             = 1;
 
@@ -53,37 +51,32 @@ void load_sfx_info()
                 if (tiki.TokenAvailable(qtrue)) {
                     token = tiki.GetToken(qtrue);
 
-                    if (number_of_sfx_infos == 1000) {
+                    if (number_of_sfx_infos == MAX_SFX_INFOS) {
                         Com_DPrintf("Too many sound infos specified\n");
                         break;
                     }
 
                     Q_strncpyz(sfx_infos[number_of_sfx_infos].name, token, sizeof(sfx_infos[number_of_sfx_infos].name));
                     sfx_infos[number_of_sfx_infos].max_factor         = -1.f;
-                    sfx_infos[number_of_sfx_infos].loop_start         = -1;
-                    sfx_infos[number_of_sfx_infos].loop_end           = -1;
                     sfx_infos[number_of_sfx_infos].max_number_playing = DEFAULT_SFX_NUMBER_PLAYING;
                     number_of_sfx_infos++;
                 }
-            } else if (!Q_stricmp(token, "loopstart")) {
-                if (!tiki.TokenAvailable(qtrue)) {
-                    token                                         = tiki.GetToken(qtrue);
-                    sfx_infos[number_of_sfx_infos - 1].loop_start = atoi(token);
-                }
-            } else if (!Q_stricmp(token, "loopend")) {
-                if (!tiki.TokenAvailable(qtrue)) {
-                    token                                       = tiki.GetToken(qtrue);
-                    sfx_infos[number_of_sfx_infos - 1].loop_end = atoi(token);
-                }
-            } else if (!Q_stricmp(token, "maxnumber")) {
-                if (!tiki.TokenAvailable(qtrue)) {
+            }
+            // Removed in OPM
+            //  loopstart and loopend, the loop block was never implemented
+            else if (!Q_stricmp(token, "maxnumber")) {
+                // Fixed in OPM
+                //  The value was only read when there was none
+                if (tiki.TokenAvailable(qtrue)) {
                     token                                                 = tiki.GetToken(qtrue);
                     sfx_infos[number_of_sfx_infos - 1].max_number_playing = atoi(token);
                 }
             } else if (!Q_stricmp(token, "maxfactor")) {
-                if (!tiki.TokenAvailable(qtrue)) {
+                // Fixed in OPM
+                //  The value was only read when there was none, and was truncated
+                if (tiki.TokenAvailable(qtrue)) {
                     token                                         = tiki.GetToken(qtrue);
-                    sfx_infos[number_of_sfx_infos - 1].max_factor = atoi(token);
+                    sfx_infos[number_of_sfx_infos - 1].max_factor = atof(token);
                 }
             }
         }

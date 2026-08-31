@@ -94,8 +94,8 @@ typedef struct {
 typedef struct {
     char name[64];
 
-    int loop_start;
-    int loop_end;
+    // Removed in OPM
+    //  loop_start and loop_end, the loop block was never implemented
 
     int   max_number_playing;
     float max_factor;
