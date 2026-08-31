@@ -1050,35 +1050,50 @@ void CG_UpdateAttackerDisplay()
 
 void CG_UpdateCountdown()
 {
-    const char *message = "";
+    countdownDisplayState_t desiredState;
+    const char             *message;
+    int                     secondsLeft;
 
     if (!cg.snap) {
         return;
     }
 
-    if (cg.matchStartTime != -1) {
-        if (cgs.gametype != GT_LIBERATION) {
-            int iSecondsLeft, iMinutesLeft;
+    // Changed in OPM
+    //  Only rebuild the message when the state or the remaining second changes
+    desiredState = COUNTDOWN_DISPLAY_HIDDEN;
+    secondsLeft  = 0;
 
-            iSecondsLeft = (cgs.matchEndTime - cg.time) / 1000;
-            if (iSecondsLeft >= 0) {
-                iMinutesLeft = iSecondsLeft / 60;
-                message      = va("%s %2i:%02i", cgi.LV_ConvertString("Time Left:"), iMinutesLeft, iSecondsLeft % 60);
-            } else if (!cgs.matchEndTime) {
-                message = "";
-            }
-        } else {
-            // No clock on liberation game mode
-            message = "";
-        }
-    } else {
+    if (cg.matchStartTime == -1) {
         // The match has not started yet
+        desiredState = COUNTDOWN_DISPLAY_WAITING;
+    } else if (cgs.gametype != GT_LIBERATION) {
+        // No clock on liberation game mode
+        secondsLeft = (cgs.matchEndTime - cg.time) / 1000;
+        if (secondsLeft >= 0) {
+            desiredState = COUNTDOWN_DISPLAY_TIME_LEFT;
+        }
+    }
+
+    if (cg.countdownDisplayState == desiredState
+        && (desiredState != COUNTDOWN_DISPLAY_TIME_LEFT || cg.countdownSeconds == secondsLeft)) {
+        return;
+    }
+
+    if (desiredState == COUNTDOWN_DISPLAY_TIME_LEFT) {
+        int minutesLeft = secondsLeft / 60;
+        message         = va("%s %2i:%02i", cgi.LV_ConvertString("Time Left:"), minutesLeft, secondsLeft % 60);
+    } else if (desiredState == COUNTDOWN_DISPLAY_WAITING) {
         message = "Waiting For Players";
+    } else {
+        message = "";
     }
 
     if (strcmp(ui_timemessage->string, message)) {
         cgi.Cvar_Set("ui_timemessage", message);
     }
+
+    cg.countdownDisplayState = desiredState;
+    cg.countdownSeconds      = secondsLeft;
 }
 
 // Added in OPM

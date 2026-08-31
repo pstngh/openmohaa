@@ -185,6 +185,14 @@ extern "C" {
         STOPWATCH_HUD_FUSE_WET
     } stopwatchHudState_t;
 
+    // Added in OPM
+    typedef enum {
+        COUNTDOWN_DISPLAY_UNINITIALIZED = 0,
+        COUNTDOWN_DISPLAY_HIDDEN,
+        COUNTDOWN_DISPLAY_WAITING,
+        COUNTDOWN_DISPLAY_TIME_LEFT
+    } countdownDisplayState_t;
+
 #define MAX_RAIN_SHADERS 16
 
     typedef struct crain_s {
@@ -318,8 +326,10 @@ extern "C" {
         // gameplay
         int matchStartTime;
         // Added in OPM
-        //  The stopwatch HUD that was last shown
-        stopwatchHudState_t stopwatchHudState;
+        //  The countdown and stopwatch HUD that were last shown
+        countdownDisplayState_t countdownDisplayState;
+        int                     countdownSeconds;
+        stopwatchHudState_t     stopwatchHudState;
 
         // development tool
         refEntity_t testModelEntity;
