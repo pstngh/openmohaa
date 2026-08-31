@@ -382,6 +382,20 @@ extern "C" {
         qhandle_t     objectivesBackShader;
         qhandle_t     checkedBoxShader;
         qhandle_t     uncheckedBoxShader;
+        // Added in OPM
+        //  HUD resources registered once per map
+        //====
+        qhandle_t disconnectShader;
+        qhandle_t serverLagShader;
+        qhandle_t alliesHudShader;
+        qhandle_t axisHudShader;
+        qhandle_t instantMessageShaders[7];
+        qhandle_t talkingHeadIconModel;
+        qhandle_t inMenuHeadIconModel;
+        qhandle_t artilleryHeadIconModel;
+        qhandle_t alliesHeadIconModel;
+        qhandle_t axisHeadIconModel;
+        //====
     } media_t;
 
     // The client game static (cgs) structure hold everything
@@ -431,6 +445,9 @@ extern "C" {
         //
         qhandle_t   model_draw[MAX_MODELS];
         sfxHandle_t sound_precache[MAX_SOUNDS];
+        // Added in OPM
+        //  Configstring images, registered on first use
+        qhandle_t   image_precache[MAX_IMAGES];
         int         numInlineModels;
         qhandle_t   inlineDrawModel[MAX_MODELS];
         vec3_t      inlineModelMidpoints[MAX_MODELS];
@@ -538,6 +555,8 @@ extern "C" {
     qboolean    CG_UseLargeLightmaps(const char* mapName);
     void        CG_ProcessConfigString(int num, qboolean modelOnly);
     const char *CG_ConfigString(int index);
+    // Added in OPM
+    qhandle_t   CG_GetImageShader(int index);
     void        CG_AddToTeamChat(const char *str);
     void        CG_NewClientinfo(int clientNum);
     sfxHandle_t CG_CustomSound(int entityNum, const char *soundName);

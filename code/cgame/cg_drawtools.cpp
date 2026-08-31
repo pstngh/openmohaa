@@ -190,7 +190,9 @@ void CG_DrawDisconnect(void)
         return;
     }
 
-    handle = cgi.R_RegisterShader("gfx/2d/net.tga");
+    // Changed in OPM
+    //  Registered once per map
+    handle = cgs.media.disconnectShader;
     w      = cgi.R_GetShaderWidth(handle) * cgs.uiHiResScale[0];
     h      = cgi.R_GetShaderHeight(handle) * cgs.uiHiResScale[1];
     x      = ((float)cgs.glconfig.vidWidth - w) * 0.5;
@@ -369,7 +371,9 @@ static void CG_DrawServerLag()
         return;
     }
 
-    handle = cgi.R_RegisterShader("gfx/2d/slowserver");
+    // Changed in OPM
+    //  Registered once per map
+    handle = cgs.media.serverLagShader;
     w      = (float)cgi.R_GetShaderWidth(handle) * cgs.uiHiResScale[0] / 4;
     h      = (float)cgi.R_GetShaderHeight(handle) * cgs.uiHiResScale[1] / 4;
     x      = ((float)cgs.glconfig.vidWidth - w) / 2;
@@ -870,6 +874,19 @@ void CG_DrawObjectives()
     }
 }
 
+// Added in OPM
+//  The team HUD icons are registered once per map
+static qhandle_t CG_GetTeamHudShader(int team)
+{
+    if (team == TEAM_ALLIES) {
+        return cgs.media.alliesHudShader;
+    } else if (team == TEAM_AXIS) {
+        return cgs.media.axisHudShader;
+    }
+
+    return 0;
+}
+
 void CG_DrawPlayerTeam()
 {
     qhandle_t handle;
@@ -881,12 +898,9 @@ void CG_DrawPlayerTeam()
         return;
     }
 
-    handle = 0;
-    if (cg.snap->ps.stats[STAT_TEAM] == 3) {
-        handle = cgi.R_RegisterShader("textures/hud/allies");
-    } else if (cg.snap->ps.stats[STAT_TEAM] == 4) {
-        handle = cgi.R_RegisterShader("textures/hud/axis");
-    }
+    // Changed in OPM
+    //  Registered once per map
+    handle = CG_GetTeamHudShader(cg.snap->ps.stats[STAT_TEAM]);
 
     if (handle) {
         cgi.R_SetColor(NULL);
@@ -934,11 +948,9 @@ void CG_DrawPlayerEntInfo()
     fX = 56.0;
     fY = (float)cgs.glconfig.vidHeight * 0.5;
 
-    if (cg.clientinfo[iClientNum].team == TEAM_ALLIES) {
-        handle = cgi.R_RegisterShader("textures/hud/allies");
-    } else if (cg.clientinfo[iClientNum].team == TEAM_AXIS) {
-        handle = cgi.R_RegisterShader("textures/hud/axis");
-    }
+    // Changed in OPM
+    //  Registered once per map
+    handle = CG_GetTeamHudShader(cg.clientinfo[iClientNum].team);
 
     if (handle) {
         cgi.R_SetColor(0);
@@ -993,12 +1005,9 @@ void CG_UpdateAttackerDisplay()
     if (cgs.gametype > GT_FFA) {
         qhandle_t handle;
 
-        handle = 0;
-        if (cg.clientinfo[iClientNum].team == TEAM_ALLIES) {
-            handle = cgi.R_RegisterShader("textures/hud/allies");
-        } else if (cg.clientinfo[iClientNum].team == TEAM_AXIS) {
-            handle = cgi.R_RegisterShader("textures/hud/axis");
-        }
+        // Changed in OPM
+        //  Registered once per map
+        handle = CG_GetTeamHudShader(cg.clientinfo[iClientNum].team);
 
         if (handle) {
             cgi.R_SetColor(0);
@@ -1167,11 +1176,9 @@ void CG_DrawInstantMessageMenu()
         return;
     }
 
-    if (cg.iInstaMessageMenu > 0) {
-        handle = cgi.R_RegisterShader(va("textures/hud/instamsg_group_%c", cg.iInstaMessageMenu + 96));
-    } else {
-        handle = cgi.R_RegisterShader("textures/hud/instamsg_main");
-    }
+    // Changed in OPM
+    //  Registered once per map. -1 is the main menu, 1 to 6 the groups
+    handle = cgs.media.instantMessageShaders[cg.iInstaMessageMenu > 0 ? cg.iInstaMessageMenu : 0];
 
     w = cgi.R_GetShaderWidth(handle);
     h = cgi.R_GetShaderHeight(handle);
@@ -1292,11 +1299,9 @@ void CG_DrawSpectatorView_ver_15()
             cgs.media.attackerFont, buf, fX / cgs.uiHiResScale[0], fY / cgs.uiHiResScale[1], -1, cgs.uiHiResScale
         );
 
-        if (cg.clientinfo[iClientNum].team == TEAM_ALLIES) {
-            hShader = cgi.R_RegisterShader("textures/hud/allies");
-        } else if (cg.clientinfo[iClientNum].team == TEAM_AXIS) {
-            hShader = cgi.R_RegisterShader("textures/hud/axis");
-        }
+        // Changed in OPM
+        //  Registered once per map
+        hShader = CG_GetTeamHudShader(cg.clientinfo[iClientNum].team);
 
         if (hShader) {
             cgi.R_SetColor(NULL);
