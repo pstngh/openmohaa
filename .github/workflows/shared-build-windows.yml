@@ -210,6 +210,9 @@ jobs:
         Copy-Item '${{github.workspace}}/thirdparties/soft-oal/install/bin/*.dll' -Destination '${{github.workspace}}/package'
         if (Test-Path ${{github.workspace}}/install/bin) { Copy-Item '${{github.workspace}}/install/bin/*' -Include '*.dll','*.exe' -Destination '${{github.workspace}}/package' }
         if (Test-Path ${{github.workspace}}/install/lib) { Copy-Item '${{github.workspace}}/install/lib/*' -Include '*.dll','*.exe' -Destination '${{github.workspace}}/package' }
+        # The HUD override ships next to the binaries; players move it into main/
+        python '${{github.workspace}}/source/hud/build_pk3.py' --output '${{github.workspace}}/package/zzz_openmohaa-hud.pk3'
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     ###
     # Artifact

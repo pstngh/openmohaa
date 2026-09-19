@@ -1,0 +1,7 @@
+// Empty-weapon fallback: deliberately contains no weapon-name widget.
+menu "hud_ammo_" 256 128 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+end.

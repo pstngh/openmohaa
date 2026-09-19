@@ -1,0 +1,33 @@
+menu "hud_ammo_Frag Grenade" 256 200 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+resource
+Label
+{
+name "ammobar"
+rect 208 7 32 192
+fgcolor 1 1 1 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+statbar vertical
+playerstat 4
+maxplayerstat 5
+statbar_tileshader textures/hud/clip_fraggrenade
+}
+
+resource
+Label
+{
+name "ammocount"
+rect 188 181 32 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+playerstat 4
+textalign left
+font facfont-20
+}
+
+end.

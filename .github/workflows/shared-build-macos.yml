@@ -152,6 +152,8 @@ jobs:
         cp -L ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+        # The HUD override ships next to the binaries; players move it into main/
+        python3 '${{github.workspace}}/source/hud/build_pk3.py' --output '${{github.workspace}}/package/zzz_openmohaa-hud.pk3'
 
     - name: Build launcher
       run: sh '${{github.workspace}}/source/code/LauncherMac/bundle.sh' '${{github.workspace}}/package'

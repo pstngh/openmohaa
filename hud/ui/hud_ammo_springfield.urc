@@ -1,0 +1,59 @@
+menu "hud_ammo_Springfield '03 Sniper" 288 136 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+resource
+Label
+{
+name "ammobar"
+rect 208 55 64 80
+fgcolor 1 1 1 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+statbar vertical
+playerstat 6
+maxplayerstat 7
+statbar_tileshader textures/hud/clip_rifle
+}
+
+resource
+Label
+{
+name "ammoseperator"
+title "|"
+rect 160 117 8 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+textalign centerx
+font facfont-20
+}
+
+resource
+Label
+{
+name "ammocount"
+rect 168 117 32 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+playerstat 4
+textalign left
+font facfont-20
+}
+
+resource
+Label
+{
+name "clipcount"
+rect 128 117 32 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+playerstat 6
+textalign right
+font facfont-20
+}
+
+end.

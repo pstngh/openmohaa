@@ -200,16 +200,16 @@ void CG_ParseServerinfo(void)
         cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_timelimit\n");
         if (cgs.fraglimit) {
             cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_fraglimit\n");
-            cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_score\n");
         } else {
-            cgi.Cmd_Execute(EXEC_NOW, "ui_addhud hud_score\n");
             cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fraglimit\n");
         }
     } else {
         cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_timelimit\n");
         cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_fraglimit\n");
-        cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_score\n");
     }
+    // Changed in OPM
+    //  The top-right score overlay is never shown
+    cgi.Cmd_Execute(EXEC_NOW, "ui_removehud hud_score\n");
 }
 
 /*

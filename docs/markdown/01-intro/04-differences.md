@@ -413,6 +413,7 @@ Enable this feature with `set sv_netoptimize 2`.
 
 - Configs are always stored in the installation directory, under `main/configs`, `mainta/configs` or `maintt/configs`; `fs_homepath` no longer moves them
 - All other user data (logs, saves, screenshots, demos) is stored in the installation directory too, unless `fs_homepath` is set
+- The countdown shows only the remaining time, without the "Time Left:" label, and the top-right score overlay is never shown
 - The sun lens flare and its fullscreen fade are no longer drawn in the GL1 renderer, light and dlight flares are unchanged
 
 #### Server-side

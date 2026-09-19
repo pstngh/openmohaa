@@ -1,0 +1,2 @@
+# The HUD PK3 is built byte for byte from these files
+hud/ui/*.urc text eol=lf

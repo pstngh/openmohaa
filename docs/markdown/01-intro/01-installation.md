@@ -88,6 +88,10 @@ Alternatively, you can also use [WINE](https://www.winehq.org/) to install the g
 
 1. For servers, only `omohaaded.*` and `game.*` binaries from the archive are required.
 
+### Compact HUD
+
+Every archive also contains `zzz_openmohaa-hud.pk3`, the compact health, ammo and timer layouts. Move it into the game's `main` folder to use them; remove it to go back to the stock layouts. It only changes the Allied Assault layouts: Spearhead and Breakthrough load their own paks after it, so any HUD layouts in those paks take precedence.
+
 ## Appendix
 
 ### (Optional) Cleaning up the game installation directory

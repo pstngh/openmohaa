@@ -25,7 +25,7 @@ jobs:
       run: |
         status=0
         count=0
-        for test_file in $(find code -path '*/tests/test_*.py' | sort); do
+        for test_file in $(find code hud -path '*/tests/test_*.py' | sort); do
           count=$((count + 1))
           python3 "$test_file" < /dev/null || status=1
         done

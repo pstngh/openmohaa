@@ -1,0 +1,73 @@
+menu "hud_ammo_BAR" 288 248 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+resource
+Label
+{
+name "clipbulletse"
+rect 213 88 64 160
+fgcolor 1 1 1 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+statbar vertical_stagger_even
+playerstat 6
+maxplayerstat 7
+statbar_tileshader textures/hud/clip_rifle
+}
+
+resource
+Label
+{
+name "clipbulletso"
+rect 209 80 64 160
+fgcolor 0.5 0.5 0.5 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+statbar vertical_stagger_odd
+playerstat 6
+maxplayerstat 7
+statbar_tileshader textures/hud/clip_rifle
+}
+
+resource
+Label
+{
+name "ammoseperator"
+title "|"
+rect 160 229 8 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+textalign centerx
+font facfont-20
+}
+
+resource
+Label
+{
+name "ammocount"
+rect 168 229 32 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+playerstat 4
+textalign left
+font facfont-20
+}
+
+resource
+Label
+{
+name "clipcount"
+rect 128 229 32 18
+fgcolor 0.70 0.60 0.05 1
+bgcolor 0.5 0.5 0.5 0
+borderstyle "NONE"
+playerstat 6
+textalign right
+font facfont-20
+}
+
+end.

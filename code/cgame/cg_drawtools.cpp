@@ -1081,7 +1081,9 @@ void CG_UpdateCountdown()
 
     if (desiredState == COUNTDOWN_DISPLAY_TIME_LEFT) {
         int minutesLeft = secondsLeft / 60;
-        message         = va("%s %2i:%02i", cgi.LV_ConvertString("Time Left:"), minutesLeft, secondsLeft % 60);
+        // Changed in OPM
+        //  Only the remaining time, without the "Time Left:" label
+        message = va("%i:%02i", minutesLeft, secondsLeft % 60);
     } else if (desiredState == COUNTDOWN_DISPLAY_WAITING) {
         message = "Waiting For Players";
     } else {

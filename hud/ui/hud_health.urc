@@ -1,0 +1,48 @@
+menu "hud_health" 128 136 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left bottom
+
+// Health backdrop
+resource
+Label
+{
+name "Default"
+rect 16 56 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader textures/hud/healthback
+}
+
+// Health bar
+resource
+Label
+{
+name "healthmeter"
+rect 16 56 16 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 0
+maxplayerstat 1
+statbar vertical
+statbar_shader textures/hud/healthmeter
+statbar_shader_flash textures/hud/healthmeterflash
+}
+
+// Health number, centered under the bar
+resource
+Label
+{
+name "healthnumber"
+rect 0 120 48 16
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+playerstat 0
+textalign centerx
+font facfont-20
+}
+
+end.

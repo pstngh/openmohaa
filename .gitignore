@@ -1,4 +1,5 @@
 build*
+!hud/build_pk3.py
 *.swp
 *tags
 *~
