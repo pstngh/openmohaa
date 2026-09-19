@@ -1,4 +1,4 @@
-menu "hud_ammo_Frag Grenade" 256 200 NONE 1
+menu "hud_ammo_Frag Grenade" 256 224 NONE 1
 bgcolor 0 0 0 0
 fgcolor 1 1 1 1
 align right bottom
@@ -21,7 +21,7 @@ resource
 Label
 {
 name "ammocount"
-rect 188 181 32 18
+rect 208 205 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"

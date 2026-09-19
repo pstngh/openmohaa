@@ -17,23 +17,23 @@ NAME_RE = re.compile(r'^name\s+"([^"]*)"', re.MULTILINE)
 RECT_RE = re.compile(r"^rect\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(\d+)", re.MULTILINE)
 
 AMMO_HEIGHTS = {
-    "hud_ammo_M2grenade.urc": 200,
-    "hud_ammo_bar.urc": 248,
-    "hud_ammo_bazooka.urc": 200,
-    "hud_ammo_colt45.urc": 136,
+    "hud_ammo_M2grenade.urc": 224,
+    "hud_ammo_bar.urc": 272,
+    "hud_ammo_bazooka.urc": 224,
+    "hud_ammo_colt45.urc": 160,
     "hud_ammo_empty.urc": 128,
-    "hud_ammo_garand.urc": 136,
-    "hud_ammo_kar98.urc": 136,
-    "hud_ammo_kar98sniper.urc": 136,
-    "hud_ammo_mp40.urc": 264,
-    "hud_ammo_mp44.urc": 248,
-    "hud_ammo_p38.urc": 136,
-    "hud_ammo_panzerschreck.urc": 200,
-    "hud_ammo_shotgun.urc": 136,
-    "hud_ammo_silencedpistol.urc": 136,
-    "hud_ammo_springfield.urc": 136,
-    "hud_ammo_steilhandgranate.urc": 200,
-    "hud_ammo_thompson.urc": 248,
+    "hud_ammo_garand.urc": 160,
+    "hud_ammo_kar98.urc": 160,
+    "hud_ammo_kar98sniper.urc": 160,
+    "hud_ammo_mp40.urc": 288,
+    "hud_ammo_mp44.urc": 272,
+    "hud_ammo_p38.urc": 160,
+    "hud_ammo_panzerschreck.urc": 224,
+    "hud_ammo_shotgun.urc": 160,
+    "hud_ammo_silencedpistol.urc": 160,
+    "hud_ammo_springfield.urc": 160,
+    "hud_ammo_steilhandgranate.urc": 224,
+    "hud_ammo_thompson.urc": 272,
 }
 
 
@@ -63,7 +63,7 @@ class HudLayoutTests(unittest.TestCase):
         actual = {path.name for path in UI.glob("hud_ammo_*.urc")}
         self.assertEqual(actual, set(AMMO_HEIGHTS))
 
-    def test_ammo_names_are_removed_and_bottom_shift_is_bounded(self):
+    def test_ammo_counts_are_below_and_centered_on_graphics(self):
         for filename, expected_height in AMMO_HEIGHTS.items():
             with self.subTest(filename=filename):
                 text = source(UI / filename)
@@ -80,18 +80,36 @@ class HudLayoutTests(unittest.TestCase):
                     self.assertLessEqual(x + widget_width, width, name)
                     self.assertLessEqual(y + widget_height, height, name)
 
-                count_y = [
-                    rect[1]
+                count_rects = [
+                    rect
                     for name, rect in widgets.items()
                     if name in {"ammoseperator", "ammocount", "clipcount"}
                 ]
-                graphic_y = [
-                    rect[1]
+                graphic_rects = [
+                    rect
                     for name, rect in widgets.items()
                     if name in {"ammobar", "clipbulletse", "clipbulletso"}
                 ]
-                if count_y and graphic_y:
-                    self.assertLess(min(graphic_y), min(count_y))
+                if filename == "hud_ammo_empty.urc":
+                    continue
+
+                # a renamed or mistyped widget would otherwise skip the checks
+                self.assertTrue(count_rects, "no count widgets")
+                self.assertTrue(graphic_rects, "no graphic widgets")
+                graphic_bottom = max(y + h for _, y, _, h in graphic_rects)
+                self.assertIn(height - graphic_bottom, (24, 25))
+                self.assertEqual(max(y + h for _, y, _, h in count_rects), height - 1)
+                self.assertGreaterEqual(min(y for _, y, _, _ in count_rects), graphic_bottom + 5)
+                self.assertEqual(len({y for _, y, _, _ in count_rects}), 1)
+                graphic_center = (
+                    min(x for x, _, _, _ in graphic_rects)
+                    + max(x + w for x, _, w, _ in graphic_rects)
+                ) / 2
+                count_center = (
+                    min(x for x, _, _, _ in count_rects)
+                    + max(x + w for x, _, w, _ in count_rects)
+                ) / 2
+                self.assertLessEqual(abs(graphic_center - count_center), 4)
 
     def test_health_geometry(self):
         text = source(UI / "hud_health.urc")

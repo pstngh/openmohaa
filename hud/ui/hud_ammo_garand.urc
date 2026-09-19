@@ -1,4 +1,4 @@
-menu "hud_ammo_M1 Garand" 288 136 NONE 1
+menu "hud_ammo_M1 Garand" 288 160 NONE 1
 bgcolor 0 0 0 0
 fgcolor 1 1 1 1
 align right bottom
@@ -22,7 +22,7 @@ Label
 {
 name "ammoseperator"
 title "|"
-rect 160 117 8 18
+rect 236 141 8 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -34,7 +34,7 @@ resource
 Label
 {
 name "ammocount"
-rect 168 117 32 18
+rect 244 141 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -47,7 +47,7 @@ resource
 Label
 {
 name "clipcount"
-rect 128 117 32 18
+rect 204 141 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"

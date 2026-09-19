@@ -1,4 +1,4 @@
-menu "hud_ammo_StG 44" 288 248 NONE 1
+menu "hud_ammo_StG 44" 288 272 NONE 1
 bgcolor 0 0 0 0
 fgcolor 1 1 1 1
 align right bottom
@@ -36,7 +36,7 @@ Label
 {
 name "ammoseperator"
 title "|"
-rect 160 229 8 18
+rect 239 253 8 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -48,7 +48,7 @@ resource
 Label
 {
 name "ammocount"
-rect 168 229 32 18
+rect 247 253 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -61,7 +61,7 @@ resource
 Label
 {
 name "clipcount"
-rect 128 229 32 18
+rect 207 253 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"

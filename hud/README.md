@@ -36,7 +36,7 @@ python3 hud/tests/test_hud_layouts.py
 python3 hud/tests/test_build_pk3.py
 ```
 
-The shotgun's stock menu is shorter than its peers. Its override uses the
-smallest safe height (`136`) that keeps the unchanged 18-unit count widgets
-inside the bottom-anchored menu; the other populated ammo menus move down by
-the requested 15 virtual units through menu-height reduction alone.
+Every populated ammo menu reserves 24 or 25 virtual units beneath the bullet
+graphic or animation. The count ends one unit above the bottom edge, centered
+under the graphic
+with at least 5 units of vertical clearance. The empty ammo menu is unchanged.

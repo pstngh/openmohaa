@@ -1,6 +1,5 @@
-// The stock menu is only 143 units high. 136 is the smallest height that
-// leaves the 18-unit count widgets fully visible while moving them downward.
-menu "hud_ammo_Shotgun" 256 136 NONE 1
+// The taller menu keeps the count below the bullet graphic at the bottom edge.
+menu "hud_ammo_Shotgun" 256 160 NONE 1
 bgcolor 0 0 0 0
 fgcolor 1 1 1 1
 align right bottom
@@ -24,7 +23,7 @@ Label
 {
 name "ammoseperator"
 title "|"
-rect 168 117 8 18
+rect 216 141 8 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -36,7 +35,7 @@ resource
 Label
 {
 name "ammocount"
-rect 176 117 32 18
+rect 224 141 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
@@ -49,7 +48,7 @@ resource
 Label
 {
 name "clipcount"
-rect 136 117 32 18
+rect 184 141 32 18
 fgcolor 0.70 0.60 0.05 1
 bgcolor 0.5 0.5 0.5 0
 borderstyle "NONE"
