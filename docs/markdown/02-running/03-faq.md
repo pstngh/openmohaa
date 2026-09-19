@@ -147,4 +147,4 @@ As you see the default variable above, you can add multiple keys (between the qu
 
 Footnotes:
 
-[^1]: omconfig.cfg is the OpenMoHAA configuration file that is located in the user game data folder (on Windows,  `%APPDATA%\openmohaa\main` or `mainta` or `maintt` `\configs\omconfig.cfg`)
+[^1]: `omconfig.cfg` is the OpenMoHAA configuration file. It is always in the game's installation folder under `main/configs/`, `mainta/configs/`, or `maintt/configs/`, depending on the selected game.

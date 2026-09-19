@@ -8,13 +8,16 @@ If you want to use containers, see [Creating a Docker image](../02-running/04-do
 
 ### Home directory
 
-OpenMoHAA uses a dedicated home directory by default for user data and mods. This behavior can be customized:
+OpenMoHAA always stores game configuration files in the installation directory
+(`main/configs/omconfig.cfg`, `mainta/configs/omconfig.cfg`, or
+`maintt/configs/omconfig.cfg`); this can't be changed. Other user data uses a
+dedicated home directory, which can be customized:
 
 - `set fs_homepath Z:\openmohaa_data`: User data will be read and written in the directory located in `Z:\openmohaa_data`
-- `set fs_homepath homedata`: The subdirectory `homedata` in the game directory will be used to read and store user data
-- `set fs_homepath .`: Not recommended, the game directory will be used for storing user data, just like the original MOH:AA
+- `set fs_homepath homedata`: The subdirectory `homedata` in the process working directory will be used to read and store user data
+- `set fs_homepath .`: The process working directory will be used for all user data
 
-#### Default paths by OS:
+#### Default paths for other user data by OS:
 
 - Windows: `%APPDATA%\openmohaa`
 - Linux: `~/.openmohaa`

@@ -144,7 +144,6 @@ static char *Sys_DefaultHomePath(void)
 	return homePath;
 }
 
-char *Sys_DefaultHomeConfigPath(void) { return Sys_DefaultHomePath(); }
 char *Sys_DefaultHomeDataPath(void)   { return Sys_DefaultHomePath(); }
 char *Sys_DefaultHomeStatePath(void)  { return Sys_DefaultHomePath(); }
 
@@ -437,19 +436,6 @@ static qboolean Sys_ShouldUseLegacyHomePath(void)
 	}
 
 	return qtrue;
-}
-
-/*
-==================
-Sys_DefaultHomeConfigPath
-==================
-*/
-char *Sys_DefaultHomeConfigPath(void)
-{
-	if( Sys_ShouldUseLegacyHomePath( ) )
-		return Sys_LegacyHomePath( );
-
-	return Sys_HomeConfigPath( );
 }
 
 /*

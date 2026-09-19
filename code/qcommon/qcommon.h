@@ -1418,7 +1418,6 @@ char	*Sys_MicrosoftStorePath(void);
 char    *Sys_DefaultAppPath(void);
 #endif
 
-char	*Sys_DefaultHomeConfigPath(void);
 char	*Sys_DefaultHomeDataPath(void);
 char	*Sys_DefaultHomeStatePath(void);
 const char *Sys_Dirname( char *path );

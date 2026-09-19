@@ -1342,6 +1342,17 @@ long FS_FOpenFileReadDir(const char *filename, searchpath_t *search, fileHandle_
 		return -1;
 	}
 
+	// configs are only read from the installation directory, never from pk3s or other paths
+	if(!Q_stricmpn(filename, "configs", 7) && (filename[7] == '/' || filename[7] == '\\')
+		&& (!search->dir || Q_stricmp(search->dir->path, fs_homeconfigpath->string)))
+	{
+		if(file == NULL)
+			return qfalse;
+
+		*file = 0;
+		return -1;
+	}
+
 	if(file == NULL)
 	{
 		// just wants to see if file is there
@@ -3562,10 +3573,10 @@ FS_InitPathVars
 static void FS_InitPathVars( void ) {
 	memset( fs_pathVars, 0, sizeof( fs_pathVars ) );
 
-	FS_AddPathVar( fs_homeconfigpath );
 	FS_AddPathVar( fs_homedatapath );
 	FS_AddPathVar( fs_homestatepath );
 	FS_AddPathVar( fs_basepath );
+	// fs_homeconfigpath is always fs_basepath
 	FS_AddPathVar( fs_apppath );
 	FS_AddPathVar( fs_steampath );
 	FS_AddPathVar( fs_gogpath );
@@ -3580,16 +3591,15 @@ FS_Startup
 static void FS_Startup(const char* gameName)
 {
 	cvar_t *fs_homepath = Cvar_Get("fs_homepath", "", CVAR_INIT|CVAR_PROTECTED);
-	const char *configPath = Sys_DefaultHomeConfigPath();
 	const char *dataPath = Sys_DefaultHomeDataPath();
 	const char *statePath = Sys_DefaultHomeStatePath();
 
 	if(*(fs_homepath)->string) {
-		// Setting fs_homepath manually overrides everything else
-		configPath = dataPath = statePath = fs_homepath->string;
-	} else if(!*configPath || !*dataPath || !*statePath) {
+		// Setting fs_homepath manually overrides everything else but configs
+		dataPath = statePath = fs_homepath->string;
+	} else if(!*dataPath || !*statePath) {
 		// #shouldneverhappen; just a sensible fallback
-		configPath = dataPath = statePath = Sys_DefaultInstallPath();
+		dataPath = statePath = Sys_DefaultInstallPath();
 	}
 
 	Com_Printf( "----- FS_Startup -----\n" );
@@ -3597,7 +3607,10 @@ static void FS_Startup(const char* gameName)
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
 	fs_basepath = Cvar_Get("fs_basepath", Sys_DefaultInstallPath(), CVAR_INIT | CVAR_PROTECTED);
 	fs_basegame = Cvar_Get ("fs_basegame", "", CVAR_INIT );
-	fs_homeconfigpath = Cvar_Get ("fs_homeconfigpath", configPath, CVAR_INIT|CVAR_PROTECTED );
+	// Configs always live in the game installation directory, fs_basepath,
+	// under <game>/configs, whatever the working directory says
+	fs_homeconfigpath = Cvar_Get ("fs_homeconfigpath", fs_basepath->string, CVAR_INIT|CVAR_PROTECTED );
+	Cvar_ForceReset( "fs_homeconfigpath" );
 	fs_homedatapath = Cvar_Get ("fs_homedatapath", dataPath, CVAR_INIT|CVAR_PROTECTED );
 	fs_homestatepath = Cvar_Get ("fs_homestatepath", statePath, CVAR_INIT|CVAR_PROTECTED );
 	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
@@ -4085,7 +4098,6 @@ void FS_InitFilesystem( void ) {
 	// has already been initialized
 	Com_StartupVariable("fs_basepath");
 	Com_StartupVariable("fs_homepath");
-	Com_StartupVariable("fs_homeconfigpath");
 	Com_StartupVariable("fs_homedatapath");
 	Com_StartupVariable("fs_homestatepath");
 	Com_StartupVariable("fs_game");
@@ -4158,9 +4170,9 @@ void FS_Restart( int checksumFeed ) {
 	}
 
 	if ( Q_stricmp(fs_gamedirvar->string, lastValidGame) ) {
-		// skip the q3config.cfg if "safe" is on the command line
+		// skip the config if "safe" is on the command line
 		if ( !Com_SafeMode() ) {
-			Cbuf_AddText ("exec " Q3CONFIG_CFG "\n");
+			Cbuf_AddText (va("exec configs/%s\n", Cvar_VariableString("config")));
 		}
 	}
 

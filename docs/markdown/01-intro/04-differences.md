@@ -412,6 +412,7 @@ Enable this feature with `set sv_netoptimize 2`.
 
 #### Client-side
 
+- Configs are always stored in the installation directory, under `main/configs`, `mainta/configs` or `maintt/configs`; `fs_homepath` no longer moves them
 - The sun lens flare and its fullscreen fade are no longer drawn in the GL1 renderer, light and dlight flares are unchanged
 
 #### Server-side

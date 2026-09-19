@@ -120,7 +120,6 @@ static char *Sys_DefaultHomePath( void )
 	return homePath;
 }
 
-char *Sys_DefaultHomeConfigPath(void) { return Sys_DefaultHomePath(); }
 char *Sys_DefaultHomeDataPath(void)   { return Sys_DefaultHomePath(); }
 char *Sys_DefaultHomeStatePath(void)  { return Sys_DefaultHomePath(); }
 

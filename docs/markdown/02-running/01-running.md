@@ -32,24 +32,33 @@ The argument `+set com_target_demo 1` must be appended to command-line to play t
 
 ## User data location
 
-The location of user-writable data, like the console logfile, saves and configuration files can be found in different locations depending on the platform:
+Game configuration files are always stored beside the binaries, under
+`main/configs/omconfig.cfg` for Allied Assault, `mainta/configs/omconfig.cfg`
+for Spearhead, or `maintt/configs/omconfig.cfg` for Breakthrough. For example,
+an installation at `/path/to/mohaa` stores the base-game config at
+`/path/to/mohaa/main/configs/omconfig.cfg`, regardless of the process's
+working directory. Configs are neither read from nor written to any other
+location, so the installation folder must be writable to save settings.
+After upgrading from a build that stored configs in the user data directory,
+copy the existing `omconfig.cfg` into the matching installation subdirectory
+to keep your settings.
+
+Other user-writable data, like the console logfile and saves, is stored in a
+platform-specific directory:
 
 - `%APPDATA%\openmohaa` on Windows
 - `~/.openmohaa` on Linux
 - `~/Library/Application Support/openmohaa` on macOS
 
-There will be one or more subdirectories like in the game installation folder, they match the game being used: either base game `main` or expansions `mainta`/`maintt`.
+There will be one or more subdirectories matching the game being used: `main`
+for the base game or `mainta`/`maintt` for the expansions.
 
-This is by design since ioquake3 and has two advantages:
-- On a multi-user system, each user will have their own configuration file
-- It doesn't overwrite the existing MOHAA configuration in the MOHAA installation directory.
-
-If necessary, the location of user-writable data can be changed manually by setting the `fs_homepath` variable in the command-line argument. This is useful when running a dedicated server that can only use the game directory to store/read data. The value can be a relative path (relative to the current working directory) or an absolute path. Example:
+If necessary, the location of all other user-writable data can be changed by
+setting `fs_homepath` on the command line. The value can be a relative path
+(relative to the current working directory) or an absolute path. Examples:
 - `+set fs_homepath Z:\openmohaa_data` data will be written inside the fully qualified path `Z:\openmohaa_data`
 - `+set fs_homepath homedata` will use the subfolder `homedata` in the process current working directory to write data (will be created automatically)
 - `+set fs_homepath .` not recommended, will write data inside the process current working directory
-
-The game directory is intended to be read-only, which is the reason why the home path exists. This prevents existing files in the game directory from being accidentally overwritten.
 
 Note that the configuration file isn't created nor written automatically on a dedicated server (**omohaaded**).
 

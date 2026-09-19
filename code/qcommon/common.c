@@ -1458,8 +1458,8 @@ void Com_ExecuteCfg(void)
 
 	if(!Com_SafeMode())
 	{
-		// skip the q3config.cfg and autoexec.cfg if "safe" is on the command line
-		Cbuf_ExecuteText(EXEC_NOW, "exec " Q3CONFIG_CFG "\n");
+		// skip the config and autoexec.cfg if "safe" is on the command line
+		Cbuf_ExecuteText(EXEC_NOW, va("exec configs/%s\n", Cvar_VariableString("config")));
 		Cbuf_Execute(0);
 		Cbuf_ExecuteText(EXEC_NOW, "exec autoexec.cfg\n");
 		Cbuf_Execute(0);
@@ -1797,7 +1797,8 @@ void Com_Init( char *commandLine ) {
 	// override anything from the config files with command line args
 	Com_StartupVariable( "config" );
 
-	config = Cvar_Get( "config", configname, 0 );
+	// a game restart keeps the active config
+	config = Cvar_Get( "config", configname, CVAR_NORESTART );
 
 	if( strlen( config->string ) > 1 )
 	{
