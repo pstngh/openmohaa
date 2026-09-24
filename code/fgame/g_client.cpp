@@ -749,6 +749,18 @@ static void ClientCleanName(const char *in, char *out, int outSize)
     }
 }
 
+static qboolean G_ClientNameTaken(const char *name, int clientnum)
+{
+    for (int i = 0; i < game.maxclients; i++) {
+        if (i != clientnum && game.clients[i].pers.netname[0]
+            && !Q_stricmp(name, game.clients[i].pers.netname)) {
+            return qtrue;
+        }
+    }
+
+    return qfalse;
+}
+
 /*
 ===========
 ClientUserInfoChanged
@@ -766,6 +778,7 @@ void G_ClientUserinfoChanged(gentity_t *ent, const char *u)
     gclient_t *client;
     int        clientnum;
     char       oldname[MAX_NAME_LENGTH];
+    char       fixedinfo[MAX_INFO_STRING];
 
     if (!ent) {
         return;
@@ -784,6 +797,60 @@ void G_ClientUserinfoChanged(gentity_t *ent, const char *u)
     Q_strncpyz(oldname, client->pers.netname, sizeof(oldname));
     if (gi.SanitizeName(s, client->pers.netname, sizeof(client->pers.netname))) {
         gi.Printf("WARNING: had to sanitize the name for client %i\n", clientnum);
+    }
+
+    if (g_gametype->integer != GT_SINGLE_PLAYER) {
+        char     plainname[MAX_NAME_LENGTH];
+        qboolean changed  = qfalse;
+        qboolean announce = qfalse;
+
+        Q_strncpyz(plainname, client->pers.netname, sizeof(plainname));
+        Q_CleanStr(plainname);
+
+        if (!plainname[0]
+            || !Q_stricmpn(plainname, "UnnamedSoldier", sizeof("UnnamedSoldier") - 1)
+            || !Q_stricmpn(plainname, "*** Blank Name #", sizeof("*** Blank Name #") - 1)
+            || !Q_stricmpn(plainname, "-=[FrontLine]=-", sizeof("-=[FrontLine]=-") - 1)) {
+            if (!Q_stricmpn(oldname, "ForteSoldier#", sizeof("ForteSoldier#") - 1)) {
+                Q_strncpyz(client->pers.netname, oldname, sizeof(client->pers.netname));
+            } else {
+                Com_sprintf(
+                    client->pers.netname,
+                    sizeof(client->pers.netname),
+                    "ForteSoldier#%04d",
+                    1000 + (int)G_Random(9000.0f)
+                );
+                announce = qtrue;
+            }
+            changed = qtrue;
+        }
+
+        char base[MAX_NAME_LENGTH];
+        Q_strncpyz(base, client->pers.netname, sizeof(base));
+
+        for (int suffix = 2; G_ClientNameTaken(client->pers.netname, clientnum); suffix++) {
+            char suffixText[12];
+
+            Com_sprintf(suffixText, sizeof(suffixText), "(%d)", suffix);
+            base[sizeof(base) - strlen(suffixText) - 1] = '\0';
+            Com_sprintf(client->pers.netname, sizeof(client->pers.netname), "%s%s", base, suffixText);
+            changed = announce = qtrue;
+        }
+
+        if (changed) {
+            Q_strncpyz(fixedinfo, u, sizeof(fixedinfo));
+            Info_SetValueForKey(fixedinfo, "name", client->pers.netname);
+            gi.SetUserinfo(clientnum, fixedinfo);
+            u = fixedinfo;
+
+            if (announce && !(ent->r.svFlags & SVF_BOT)) {
+                gi.SendServerCommand(
+                    clientnum,
+                    "print \"" HUD_MESSAGE_WHITE "Your name is now %s\n\"",
+                    client->pers.netname
+                );
+            }
+        }
     }
 
     s = Info_ValueForKey(u, "dm_playermodel");
@@ -863,8 +930,9 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
     G_ClientUserinfoChanged(ent, userinfo);
 
     // Every bot owns a real server-side client slot so master-server and
-    // player queries count it exactly like a human player.
-    gi.BotConnect(clientNum, userinfo);
+    // player queries count it exactly like a human player. Pass the userinfo
+    // as fixed by the name policy so the server reports the same name.
+    gi.BotConnect(clientNum, client->pers.userinfo);
 }
 
 /*
@@ -1083,6 +1151,12 @@ server system housekeeping.
 void G_ClientDisconnect(gentity_t *ent)
 {
     try {
+        // A client dropped before ClientBegin has no entity. Still release its
+        // name, or G_ClientNameTaken keeps treating it as taken.
+        if (ent && ent->client && !ent->entity) {
+            ent->client->pers.netname[0] = 0;
+        }
+
         if (!ent || (!ent->client) || (!ent->entity)) {
             return;
         }
