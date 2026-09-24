@@ -355,16 +355,18 @@ extern cvar_t *g_bot_strafe_min_interval;
  */
 extern cvar_t *g_bot_strafe_max_interval;
 /**
- * @brief Minimum interval in milliseconds before flipping peek/retreat direction.
+ * @brief Minimum interval in milliseconds before choosing a new
+ * advance/orbit/retreat state.
  */
 extern cvar_t *g_bot_peek_min_interval;
 /**
- * @brief Maximum interval in milliseconds before flipping peek/retreat direction.
+ * @brief Maximum interval in milliseconds before choosing a new
+ * advance/orbit/retreat state.
  */
 extern cvar_t *g_bot_peek_max_interval;
 /**
- * @brief Range within which bots peek/retreat (zig-zag). Farther out they run
- * straight in toward the enemy; inside this distance they start the dance.
+ * @brief Range within which bots advance, orbit, or retreat relative to the
+ * enemy. Farther out they move only along their path.
  */
 extern cvar_t *g_bot_peek_distance;
 /**
