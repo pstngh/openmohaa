@@ -87,7 +87,6 @@ struct bot_controller_telemetry_t {
     int                 enemyEntity;
     bool                enemyVisible;
     bool                canAttack;
-    bool                wantsFire;
     bool                noMove;
     bot_fire_decision_t fireDecision;
     int                 reactionRemainingMsec;
@@ -206,8 +205,7 @@ private:
     int  m_iNextStrafeChangeTime; // When to flip strafe direction
     int  m_iRadialDirection;      // -1 = retreat, 0 = orbit, 1 = advance
     int  m_iNextRadialChangeTime; // When to choose a new radial state
-    bool m_bIsLeaning;            // Hysteresis: currently strafing
-    bool m_bLeanCommandActive;    // Current usercmd contains a lean input
+    bool m_bIsStrafing;           // Clearance hysteresis for the strafe
     bool m_bHasCombatTarget;
     bool m_bHoldPosition;
 
@@ -358,6 +356,7 @@ private:
     bool        IsEnemyPartVisible(Sentient *enemy);
     bool        CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction);
     void        BeginAimAcquisition(void);
+    void        ResetAim(void);
     void        UpdateAimErrorAngle(void);
     Vector      GetAimErrorDirection(const Vector& aimTarget) const;
     Vector      GetDelayedAimTarget(const Vector& currentTarget);

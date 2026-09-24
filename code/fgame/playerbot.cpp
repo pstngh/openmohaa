@@ -71,7 +71,6 @@ void bot_controller_telemetry_t::Reset()
     enemyEntity           = -1;
     enemyVisible          = false;
     canAttack             = false;
-    wantsFire             = false;
     noMove                = false;
     fireDecision          = BOT_FIRE_NONE;
     reactionRemainingMsec = 0;
@@ -175,19 +174,14 @@ BotController::BotController()
     m_botEyes.ofs[1]    = 0;
     m_botEyes.ofs[2]    = DEFAULT_VIEWHEIGHT;
 
-    m_iCuriousTime             = 0;
-    m_iAttackTime              = 0;
-    m_iEnemyEyesTag            = -1;
-    m_iLastSeenTime            = 0;
-    m_iLastUnseenTime          = 0;
-    m_iAimAcquireTime          = -1;
-    m_fAimHeightFraction       = 0.57f;
-    m_fAimErrorAngle           = 0;
-    m_fAimErrorTargetAngle     = 0;
-    m_iNextAimErrorChangeTime  = 0;
-    m_iAimHistoryHead          = 0;
-    m_iAimHistoryCount         = 0;
-    m_iCuriousEventType        = AI_EVENT_NONE;
+    m_iCuriousTime       = 0;
+    m_iAttackTime        = 0;
+    m_iEnemyEyesTag      = -1;
+    m_iLastSeenTime      = 0;
+    m_iLastUnseenTime    = 0;
+    m_iCuriousEventType  = AI_EVENT_NONE;
+    m_fAimHeightFraction = 0.57f;
+    ResetAim();
 
     m_StateFlags = 0;
 }
@@ -592,18 +586,30 @@ Clear the bot's enemy
 */
 void BotController::ClearEnemy(void)
 {
-    m_iAttackTime              = 0;
-    m_iAimAcquireTime          = -1;
-    m_iAimHistoryHead          = 0;
-    m_iAimHistoryCount         = 0;
-    m_fAimErrorAngle           = 0;
-    m_fAimErrorTargetAngle     = 0;
-    m_iNextAimErrorChangeTime  = 0;
-    m_pEnemy                   = NULL;
-    m_iEnemyEyesTag            = -1;
-    m_vOldEnemyPos             = vec_zero;
-    m_vLastEnemyPos            = vec_zero;
+    m_iAttackTime   = 0;
+    m_pEnemy        = NULL;
+    m_iEnemyEyesTag = -1;
+    m_vOldEnemyPos  = vec_zero;
+    m_vLastEnemyPos = vec_zero;
+    ResetAim();
     movement.ClearCombatTarget();
+}
+
+/*
+====================
+ResetAim
+
+Forget the current aim acquisition, error, and latency history
+====================
+*/
+void BotController::ResetAim(void)
+{
+    m_iAimAcquireTime         = -1;
+    m_fAimErrorAngle          = 0;
+    m_fAimErrorTargetAngle    = 0;
+    m_iNextAimErrorChangeTime = 0;
+    m_iAimHistoryHead         = 0;
+    m_iAimHistoryCount        = 0;
 }
 
 /*
@@ -681,21 +687,15 @@ void BotController::State_DefaultEnd(void) {}
 
 void BotController::State_Reset(void)
 {
-    m_iCuriousTime             = 0;
-    m_iAttackTime              = 0;
-    m_iAimAcquireTime          = -1;
-    m_iAimHistoryHead          = 0;
-    m_iAimHistoryCount         = 0;
-    m_fAimErrorAngle           = 0;
-    m_fAimErrorTargetAngle     = 0;
-    m_iNextAimErrorChangeTime  = 0;
-    m_vLastCuriousPos          = vec_zero;
-    m_iCuriousEventType        = AI_EVENT_NONE;
-    m_vOldEnemyPos             = vec_zero;
-    m_vLastEnemyPos            = vec_zero;
-    m_vLastDeathPos            = vec_zero;
-    m_pEnemy                   = NULL;
-    m_iEnemyEyesTag            = -1;
+    m_iCuriousTime    = 0;
+    m_iAttackTime     = 0;
+    m_vLastCuriousPos = vec_zero;
+    m_vOldEnemyPos    = vec_zero;
+    m_vLastEnemyPos   = vec_zero;
+    m_vLastDeathPos   = vec_zero;
+    m_pEnemy          = NULL;
+    m_iEnemyEyesTag   = -1;
+    ResetAim();
     movement.ClearCombatTarget();
 }
 
@@ -772,16 +772,14 @@ void BotController::InitState_Curious(botfunc_t *func)
 bool BotController::CheckCondition_Curious(void)
 {
     if (m_iAttackTime) {
-        m_iCuriousTime      = 0;
-        m_iCuriousEventType = AI_EVENT_NONE;
+        m_iCuriousTime = 0;
         return false;
     }
 
     if (level.inttime > m_iCuriousTime) {
         if (m_iCuriousTime) {
             movement.ClearMove();
-            m_iCuriousTime      = 0;
-            m_iCuriousEventType = AI_EVENT_NONE;
+            m_iCuriousTime = 0;
         }
 
         return false;
@@ -807,8 +805,7 @@ void BotController::State_Curious(void)
     }
 
     if (movement.MoveDone()) {
-        m_iCuriousTime      = 0;
-        m_iCuriousEventType = AI_EVENT_NONE;
+        m_iCuriousTime = 0;
     }
 }
 
@@ -1305,7 +1302,6 @@ void BotController::State_Attack(void)
                 length = controlledEnt->velocity.length();
                 if ((length / sv_runspeed->value) > (pWeap->GetMaxFireMovementMult())) {
                     bNoMove = true;
-                    m_telemetry.noMove = true;
                     movement.ClearMove();
                 }
             }
@@ -1344,7 +1340,6 @@ void BotController::State_Attack(void)
                         controlledEnt->ZoomOff();
                     } else if (fSpreadFactor < 0.25) {
                         m_telemetry.fireDecision = BOT_FIRE_FIRING;
-                        m_telemetry.wantsFire    = true;
                         m_botCmd.buttons ^= BUTTON_ATTACKLEFT;
                         if (pWeap->GetZoom()) {
                             if (!controlledEnt->IsZoomed()) {
@@ -1354,23 +1349,17 @@ void BotController::State_Attack(void)
                             }
                         }
                     } else {
-                        bNoMove = true;
-                        m_telemetry.noMove       = true;
+                        bNoMove                  = true;
                         m_telemetry.fireDecision = BOT_FIRE_SEMIAUTO_SPREAD;
                         movement.ClearMove();
                     }
                 } else {
                     m_telemetry.fireDecision = BOT_FIRE_FIRING;
-                    m_telemetry.wantsFire    = true;
                     m_botCmd.buttons |= BUTTON_ATTACKLEFT;
                 }
             }
 
             m_iLastFireTime = level.inttime;
-
-            // Bots do not use the secondary-fire melee bash (Spearhead /
-            // Breakthrough): they keep firing their primary at point-blank
-            // range instead of lunging in to butt-strike an enemy.
 
             m_iAttackTime        = level.inttime + 1000;
             m_iAttackStopAimTime = level.inttime + 3000;
@@ -1590,9 +1579,8 @@ void BotController::UseWeaponWithAmmo()
 void BotController::Spawned(void)
 {
     ClearEnemy();
-    m_iCuriousTime      = 0;
-    m_iCuriousEventType = AI_EVENT_NONE;
-    m_botCmd.buttons    = 0;
+    m_iCuriousTime   = 0;
+    m_botCmd.buttons = 0;
 }
 
 void BotController::Think()
@@ -1643,10 +1631,7 @@ void BotController::Killed(const Event& ev)
 void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
-    m_iCuriousTime      = 0;
-    m_iCuriousEventType = AI_EVENT_NONE;
-
-    // Bot taunts disabled
+    m_iCuriousTime = 0;
 }
 
 void BotController::EventStuffText(const str& text)

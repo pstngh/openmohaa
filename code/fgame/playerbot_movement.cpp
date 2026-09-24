@@ -87,9 +87,8 @@ BotMovement::BotMovement()
     m_iNextStrafeChangeTime = 0;
     m_iRadialDirection      = 0;
     m_iNextRadialChangeTime = 0;
-    m_bIsLeaning            = false;
+    m_bIsStrafing           = false;
     m_bHoldPosition         = false;
-    m_bLeanCommandActive    = false;
     m_bHasCombatTarget      = false;
     m_vCombatTarget         = vec_zero;
 }
@@ -132,9 +131,6 @@ void BotMovement::MoveThink(usercmd_t& botcmd)
     // A hold request from the attack state applies to this frame only.
     const bool bHoldPosition = m_bHoldPosition;
     m_bHoldPosition          = false;
-
-    m_telemetry.Reset();
-    m_bLeanCommandActive = false;
 
     botcmd.forwardmove = 0;
     botcmd.rightmove   = 0;
@@ -1192,7 +1188,6 @@ Vector BotMovement::GetCurrentPathDirection() const
 void BotMovement::ResetTelemetry()
 {
     m_telemetry.Reset();
-    m_bLeanCommandActive = false;
 }
 
 void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
@@ -1204,7 +1199,6 @@ void BotMovement::GetTelemetry(bot_movement_telemetry_t& telemetry) const
     telemetry.pathCollisionAvoidance = m_bAvoidCollision;
     telemetry.strafeDirection        = m_iStrafeDirection;
     telemetry.strafeChangeMsec       = Q_max(0, m_iNextStrafeChangeTime - level.inttime);
-    telemetry.isLeaning              = m_bLeanCommandActive;
     telemetry.radialDirection        = m_iRadialDirection;
     telemetry.radialChangeMsec       = m_iNextRadialChangeTime ? Q_max(0, m_iNextRadialChangeTime - level.inttime) : -1;
 }
@@ -1289,7 +1283,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd, bool holdPosition)
     // the wall rather than grinding against it.
     const float startThreshold = 20.0f;
     const float stopThreshold  = 12.0f;
-    const float threshold      = m_bIsLeaning ? stopThreshold : startThreshold;
+    const float threshold      = m_bIsStrafing ? stopThreshold : startThreshold;
 
     float clearance = CalculateLateralClearance(m_iStrafeDirection);
     m_telemetry.strafeClearance = clearance;
@@ -1312,7 +1306,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd, bool holdPosition)
     }
 
     if (clearance >= threshold && !bSuppressMovement) {
-        m_bIsLeaning = true;
+        m_bIsStrafing = true;
 
         // Doorway / gap damping: probe forward along the side the strafe is
         // about to push toward. If that diagonal is obstructed soon - a
@@ -1354,7 +1348,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd, bool holdPosition)
         botcmd.rightmove = (signed char)Q_clamp(newRight, -127, 127);
 
     } else {
-        m_bIsLeaning = false;
+        m_bIsStrafing = false;
     }
 
     // Lean follows the intended strafe side even when a wall prevents the
@@ -1365,7 +1359,7 @@ void BotMovement::UpdateAggressiveMovement(usercmd_t& botcmd, bool holdPosition)
     } else {
         botcmd.buttons |= BUTTON_LEAN_RIGHT;
     }
-    m_bLeanCommandActive = true;
+    m_telemetry.isLeaning = true;
 
     UpdateCombatRadialMovement(botcmd, bSuppressMovement);
 }

@@ -490,8 +490,9 @@ namespace
 
         row << ',' << controllerTelemetry.stateFlags << ',' << controllerTelemetry.enemyEntity << ','
             << (controllerTelemetry.enemyVisible ? 1 : 0) << ',' << (controllerTelemetry.canAttack ? 1 : 0) << ','
-            << static_cast<int>(controllerTelemetry.fireDecision) << ',' << (controllerTelemetry.wantsFire ? 1 : 0)
-            << ',' << (controllerTelemetry.noMove ? 1 : 0) << ',' << controllerTelemetry.reactionRemainingMsec << ','
+            << static_cast<int>(controllerTelemetry.fireDecision) << ','
+            << (controllerTelemetry.fireDecision == BOT_FIRE_FIRING ? 1 : 0) << ','
+            << (controllerTelemetry.noMove ? 1 : 0) << ',' << controllerTelemetry.reactionRemainingMsec << ','
             << controllerTelemetry.enemyDistance << ',' << controllerTelemetry.aimAcquireMsec << ','
             << controllerTelemetry.aimHeightFraction << ',' << controllerTelemetry.aimErrorFraction << ','
             << controllerTelemetry.aimErrorUnits << ',' << controllerTelemetry.aimLatencyMsec << ','
