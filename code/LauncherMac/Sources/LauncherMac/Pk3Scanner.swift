@@ -9,51 +9,23 @@ enum Pk3Status {
     case scanning
 }
 
-struct Pk3Info: Identifiable {
-    let id = UUID()
+struct Pk3Info {
     let folder: String
     let filename: String
-    var size: UInt64 = 0
-    var md5: String = ""
     var status: Pk3Status = .scanning
 
     var key: String { "\(folder.lowercased())/\(filename.lowercased())" }
-
-    var sizeText: String {
-        if size >= 1_073_741_824 {
-            return String(format: "%.1f GB", Double(size) / 1_073_741_824)
-        } else if size >= 1_048_576 {
-            return String(format: "%.1f MB", Double(size) / 1_048_576)
-        } else if size >= 1024 {
-            return String(format: "%.1f KB", Double(size) / 1024)
-        }
-        return "\(size) B"
-    }
 }
 
 class Pk3Scanner: ObservableObject {
     @Published var files: [Pk3Info] = []
     @Published var isScanning = false
-    @Published var currentFile = ""
     @Published var hasScanned = false
 
     private let folders = ["main", "mainta", "maintt"]
 
-    var summary: String {
-        let verified = files.filter { $0.status == .verified }.count
-        let corrupt = files.filter { $0.status == .corrupt }.count
-        let unknown = files.filter { $0.status == .unknown }.count
-        let missing = files.filter { $0.status == .missing }.count
-        var parts: [String] = []
-        if verified > 0 { parts.append("\(verified) verified") }
-        if corrupt > 0 { parts.append("\(corrupt) corrupt") }
-        if unknown > 0 { parts.append("\(unknown) unknown") }
-        if missing > 0 { parts.append("\(missing) missing") }
-        return parts.isEmpty ? "No pak files found" : parts.joined(separator: ", ")
-    }
-
-    // Overall pass/fail rollup for the Connect tab's one-line status:
-    // the whole install either checks out or it doesn't.
+    // Overall pass/fail rollup for the one-line status: the whole install
+    // either checks out or it doesn't.
     var verifiedCount: Int { files.filter { $0.status == .verified }.count }
     var corruptCount: Int { files.filter { $0.status == .corrupt }.count }
     var missingCount: Int { files.filter { $0.status == .missing }.count }
@@ -83,9 +55,7 @@ class Pk3Scanner: ObservableObject {
                 return lower.hasPrefix("pak") && lower.hasSuffix(".pk3")
             }.sorted()
             for pak in paks {
-                let fullPath = (folderPath as NSString).appendingPathComponent(pak)
-                let size = (try? FileManager.default.attributesOfItem(atPath: fullPath)[.size] as? UInt64) ?? 0
-                found.append(Pk3Info(folder: actualFolder, filename: pak, size: size))
+                found.append(Pk3Info(folder: actualFolder, filename: pak))
             }
 
             // List the retail paks this game folder should have but does not,
@@ -111,10 +81,6 @@ class Pk3Scanner: ObservableObject {
                     .appendingPathComponent(info.folder)
                     .appending("/\(info.filename)")
 
-                DispatchQueue.main.async {
-                    self?.currentFile = "\(info.folder)/\(info.filename)"
-                }
-
                 let md5 = Self.computeMD5(path: fullPath)
 
                 let expected = Pk3Hashes.retail[info.key]
@@ -127,7 +93,6 @@ class Pk3Scanner: ObservableObject {
 
                 DispatchQueue.main.async {
                     if let self = self, i < self.files.count {
-                        self.files[i].md5 = md5
                         self.files[i].status = status
                     }
                 }
@@ -135,7 +100,6 @@ class Pk3Scanner: ObservableObject {
 
             DispatchQueue.main.async {
                 self?.isScanning = false
-                self?.currentFile = ""
             }
         }
     }

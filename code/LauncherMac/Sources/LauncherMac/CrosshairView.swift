@@ -84,11 +84,6 @@ struct CrosshairView: View {
             sliderRow("Center gap", value: $settings.crosshairGap, range: 1...20)
             sliderRow("Thickness", value: $settings.crosshairThickness, range: 1...8)
         }
-        .onChange(of: settings.crosshairEnabled) { _ in settings.save() }
-        .onChange(of: settings.crosshairLength) { _ in settings.save() }
-        .onChange(of: settings.crosshairGap) { _ in settings.save() }
-        .onChange(of: settings.crosshairThickness) { _ in settings.save() }
-        .onChange(of: settings.crosshairColor) { _ in settings.save() }
     }
 
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {

@@ -260,12 +260,6 @@ struct BotsView: View {
                 GameLauncher.launchBots(settings: settings)
             }
         }
-        .onChange(of: settings.botCount) { _ in settings.save() }
-        .onChange(of: settings.botGameType) { _ in settings.save() }
-        .onChange(of: settings.botMap) { _ in settings.save() }
-        .onChange(of: settings.botTeam) { _ in settings.save() }
-        .onChange(of: settings.playerHealth) { _ in settings.save() }
-        .onChange(of: settings.runSpeed) { _ in settings.save() }
         .onChange(of: settings.gameType) { g in
             if g == 2 && settings.runSpeed == LauncherSettings.aaDefaultRunSpeed {
                 settings.runSpeed = LauncherSettings.expansionDefaultRunSpeed
@@ -275,19 +269,7 @@ struct BotsView: View {
             if !maps(for: g).contains(settings.botMap) {
                 settings.botMap = maps(for: g).first ?? ""
             }
-            settings.save()
         }
-        .onChange(of: settings.botSniper) { _ in settings.save() }
-        .onChange(of: settings.botStg) { _ in settings.save() }
-        .onChange(of: settings.botDifficulty) { _ in settings.save() }
-        .onChange(of: settings.accuracy) { _ in settings.save() }
-        .onChange(of: settings.aaLean) { _ in settings.save() }
-        .onChange(of: settings.painAnimations) { _ in settings.save() }
-        .onChange(of: settings.godMode) { _ in settings.save() }
-        .onChange(of: settings.infiniteAmmo) { _ in settings.save() }
-        .onChange(of: settings.nullbinds) { _ in settings.save() }
-        .onChange(of: settings.forceModels) { _ in settings.save() }
-        .onChange(of: settings.moveLog) { _ in settings.save() }
         .onChange(of: settings.botManualTuning) { on in
             if on {
                 let t = settings.derivedTuning()
@@ -299,18 +281,7 @@ struct BotsView: View {
                 settings.botAimLatency = t.aimLatency
                 settings.botFirespreadScale = t.spreadScale
             }
-            settings.save()
         }
-        // Manual-tuning fields persist on edit like every other Bots field.
-        .onChange(of: settings.botReactDelay) { _ in settings.save() }
-        .onChange(of: settings.botTurnSpeed) { _ in settings.save() }
-        .onChange(of: settings.botTurnAccel) { _ in settings.save() }
-        .onChange(of: settings.botAimError) { _ in settings.save() }
-        .onChange(of: settings.botAimSettle) { _ in settings.save() }
-        .onChange(of: settings.botAimLatency) { _ in settings.save() }
-        .onChange(of: settings.botFirespreadScale) { _ in settings.save() }
-        .onChange(of: settings.botAimHeightMin) { _ in settings.save() }
-        .onChange(of: settings.botAimHeightMax) { _ in settings.save() }
     }
 
     private var gameSelector: some View {

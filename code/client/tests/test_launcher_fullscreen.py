@@ -13,16 +13,13 @@ LAUNCHER = ROOT / "code" / "LauncherMac" / "Sources" / "LauncherMac"
 class LauncherFullscreenTests(unittest.TestCase):
     def test_switch_is_persisted_and_defaults_to_existing_behavior(self):
         settings = (LAUNCHER / "LauncherSettings.swift").read_text()
-        content = (LAUNCHER / "ContentView.swift").read_text()
         view = (LAUNCHER / "BotsView.swift").read_text()
 
         self.assertIn("@Published var fullscreenEnabled: Bool = true", settings)
         self.assertIn('case "fullscreen_enabled"', settings)
         self.assertIn('lines.append("fullscreen_enabled=', settings)
-        self.assertIn(
-            ".onChange(of: settings.fullscreenEnabled) { _ in settings.save() }",
-            content,
-        )
+        # Every published setting is saved when it changes
+        self.assertIn("objectWillChange.sink", settings)
         self.assertIn(
             'Toggle("Fullscreen", isOn: $settings.fullscreenEnabled)',
             view,

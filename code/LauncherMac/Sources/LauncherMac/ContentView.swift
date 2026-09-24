@@ -19,17 +19,7 @@ struct ContentView: View {
         }
         .padding(Theme.pagePadding)
         .frame(width: 800, height: 520)
-        .onChange(of: settings.ip) { _ in
-            settings.serverAddressChanged()
-            settings.save()
-        }
-        .onChange(of: settings.password) { _ in settings.save() }
-        .onChange(of: settings.rconPassword) { _ in settings.save() }
-        .onChange(of: settings.nickname) { _ in settings.save() }
-        .onChange(of: settings.resolutionIndex) { _ in settings.save() }
-        .onChange(of: settings.fullscreenEnabled) { _ in settings.save() }
-        .onChange(of: settings.clientMoveLog) { _ in settings.save() }
-        .onChange(of: settings.compassEnabled) { _ in settings.save() }
+        .onChange(of: settings.ip) { _ in settings.serverAddressChanged() }
         .onChange(of: scenePhase) { phase in
             if phase != .active {
                 settings.flushPendingSave()
@@ -136,10 +126,7 @@ struct ContentView: View {
             }
             .font(.system(size: 11))
 
-            Button(action: {
-                settings.bookmarks[i] = Bookmark()
-                settings.save()
-            }) {
+            Button(action: { settings.bookmarks[i] = Bookmark() }) {
                 Image(systemName: "trash").foregroundColor(.red).font(.system(size: 10))
             }
             .frame(width: 20)

@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 struct Bookmark {
@@ -49,7 +50,7 @@ class LauncherSettings: ObservableObject {
     static let defaultCrosshairThickness = 2.0
     static let defaultCrosshairColor = "FFFFFF"
 
-    // Connect tab
+    // Connect panel
     @Published var ip: String = ""
     @Published var password: String = ""
     @Published var rconPassword: String = ""
@@ -61,7 +62,7 @@ class LauncherSettings: ObservableObject {
     @Published var clientMoveLog: Bool = false
     @Published var compassEnabled: Bool = true
 
-    // Bots tab
+    // Bots panel
     @Published var botCount: Int = 3
     @Published var botGameType: Int = 1  // FFA
     @Published var botMap: String = "dm/downladder"
@@ -90,7 +91,7 @@ class LauncherSettings: ObservableObject {
     @Published var forceModels: Bool = false
     @Published var moveLog: Bool = false
 
-    // Crosshair tab
+    // Crosshair panel
     @Published var crosshairEnabled: Bool = false
     @Published var crosshairLength: Double = LauncherSettings.defaultCrosshairLength
     @Published var crosshairGap: Double = LauncherSettings.defaultCrosshairGap
@@ -100,6 +101,7 @@ class LauncherSettings: ObservableObject {
     private var isLoading = false
     private var hasLoaded = false
     private var pendingSave: DispatchWorkItem?
+    private var autosave: AnyCancellable?
     private static let saveDebounce: TimeInterval = 0.25
 
     // The password and RCON fields belong to one server address, and to the
@@ -133,6 +135,8 @@ class LauncherSettings: ObservableObject {
 
     init() {
         load()
+        // Every published change schedules a debounced save.
+        autosave = objectWillChange.sink { [weak self] _ in self?.save() }
     }
 
     func load() {
@@ -168,7 +172,7 @@ class LauncherSettings: ObservableObject {
             case "fullscreen_enabled": fullscreenEnabled = (Int(value) ?? 0) != 0
             case "client_move_log": clientMoveLog = (Int(value) ?? 0) != 0
             case "compass_enabled": compassEnabled = (Int(value) ?? 0) != 0
-            // Bots tab
+            // Bots panel
             case "bot_count":
                 if let n = Int(value) { botCount = Self.clampedBotCount(n) }
             case "bot_game_type":
@@ -258,7 +262,7 @@ class LauncherSettings: ObservableObject {
             case "infinite_ammo": infiniteAmmo = (Int(value) ?? 0) != 0
             case "force_models": forceModels = (Int(value) ?? 0) != 0
             case "move_log": moveLog = (Int(value) ?? 0) != 0
-            // Crosshair tab
+            // Crosshair panel
             case "crosshair_enabled": crosshairEnabled = (Int(value) ?? 0) != 0
             case "crosshair_length":
                 if let n = Double(value), n.isFinite { crosshairLength = min(max(n, 2), 32) }
@@ -343,7 +347,6 @@ class LauncherSettings: ObservableObject {
         )
         credentialsIP = serverAddress
         credentialsBookmark = index
-        save()
     }
 
     /// Call whenever the server address changes. Credentials entered for the
@@ -386,7 +389,7 @@ class LauncherSettings: ObservableObject {
         lines.append("client_move_log=\(clientMoveLog ? 1 : 0)")
         lines.append("compass_enabled=\(compassEnabled ? 1 : 0)")
 
-        // Bots tab
+        // Bots panel
         lines.append("bot_count=\(botCount)")
         lines.append("bot_game_type=\(botGameType)")
         lines.append("bot_map=\(botMap)")
@@ -415,7 +418,7 @@ class LauncherSettings: ObservableObject {
         lines.append("force_models=\(forceModels ? 1 : 0)")
         lines.append("move_log=\(moveLog ? 1 : 0)")
 
-        // Crosshair tab
+        // Crosshair panel
         lines.append("crosshair_enabled=\(crosshairEnabled ? 1 : 0)")
         lines.append("crosshair_length=\(Int(crosshairLength))")
         lines.append("crosshair_gap=\(Int(crosshairGap))")

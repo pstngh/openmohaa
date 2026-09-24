@@ -1,48 +1,28 @@
 import SwiftUI
 
-/// Shared visual tokens so every tab uses the same accent, spacing and radii.
+/// Shared visual tokens so every panel uses the same accent, spacing and radii.
 enum Theme {
     static let accent = Color(red: 123 / 255, green: 79 / 255, blue: 191 / 255)
 
-    static let pagePadding: CGFloat = 14   // outer margin of each tab
+    static let pagePadding: CGFloat = 14   // outer window margin
     static let sectionGap: CGFloat = 12    // space between cards
     static let rowGap: CGFloat = 8         // space between rows inside a card
     static let cardRadius: CGFloat = 8
     static let labelWidth: CGFloat = 88    // right-aligned label column
 }
 
-/// A grouped section: an optional small-caps header over a subtly filled,
-/// rounded container. Replaces the old flat lists separated by dividers.
-struct Card<Content: View, Accessory: View>: View {
-    private let title: String?
+/// A grouped section in a subtly filled, rounded container.
+struct Card<Content: View>: View {
     private let spacing: CGFloat
-    private let accessory: Accessory
     private let content: Content
 
-    init(_ title: String? = nil,
-         spacing: CGFloat = Theme.rowGap,
-         @ViewBuilder accessory: () -> Accessory = { EmptyView() },
-         @ViewBuilder content: () -> Content) {
-        self.title = title
+    init(spacing: CGFloat = Theme.rowGap, @ViewBuilder content: () -> Content) {
         self.spacing = spacing
-        self.accessory = accessory()
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) {
-            if title != nil || Accessory.self != EmptyView.self {
-                HStack(spacing: 6) {
-                    if let title = title {
-                        Text(title.uppercased())
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(0.7)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    accessory
-                }
-            }
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
