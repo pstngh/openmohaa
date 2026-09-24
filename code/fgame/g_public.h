@@ -30,7 +30,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Version 11 is >= 0.05 and <= 1.00
 // Version 12 is >= 1.10
 // Version 15 is >= 2.0
-#define GAME_API_VERSION 15
+// Version 16 adds server-side registration for simulated clients
+#define GAME_API_VERSION 16
 
 // entity->svFlags
 // the server does not know how to interpret most of the values
@@ -502,6 +503,9 @@ typedef struct gameImport_s {
     unsigned int (*Client_MaxPendingCommands)(int clientNum);
 
     cvar_t *fsDebug;
+
+    // Added in API 16. Keep new imports at the end of the structure.
+    void (*BotConnect)(int clientNum, const char *userinfo);
 
 } game_import_t;
 

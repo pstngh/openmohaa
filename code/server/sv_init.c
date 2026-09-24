@@ -873,7 +873,7 @@ void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qb
 				}
 				else
 				{
-					SV_DropClient( &svs.clients[ i ], denied );
+					SV_DropClient( &svs.clients[ i ], "map change" );
 				}
 			}
 		}
@@ -1140,6 +1140,9 @@ void SV_Init (void)
 	
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
+
+	// Load admin accounts
+	SV_AdminInit();
 
     if (com_gotOriginalConfig) {
         // Added in OPM

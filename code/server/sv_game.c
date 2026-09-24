@@ -408,6 +408,14 @@ void PF_MSG_EndCGM ()
 void PF_MSG_SetClient (int iClient)
 {
 	memset(g_CGMRecieve,0,sizeof(g_CGMRecieve));
+	// Game-only clients have no matching server client or CGM buffer.
+	// Treat their client-targeted messages as a no-op at the engine boundary.
+	if (iClient < 0 || iClient >= svs.iNumClients) {
+		return;
+	}
+	if (svs.clients[iClient].netchan.remoteAddress.type == NA_BOT) {
+		return;
+	}
 	if(g_CGMessages[iClient].data && (g_CGMessages[iClient].cursize <= 3967))
 	{
 		g_CGMRecieve[iClient] = 1;
@@ -429,6 +437,11 @@ void MSG_SetBroadcastAll()
 		}
 
 		if (client->state == CS_FREE) {
+			continue;
+		}
+
+		// Bots have no network connection and never consume CGM data
+		if (client->netchan.remoteAddress.type == NA_BOT) {
 			continue;
 		}
 
@@ -480,6 +493,11 @@ void MSG_SetBroadcastVisible(const vec_t* vPos, const vec_t* vPosB)
 		}
 
 		if(pClient->state == CS_FREE) {
+			continue;
+		}
+
+		// Bots have no network connection and never consume CGM data
+		if (pClient->netchan.remoteAddress.type == NA_BOT) {
 			continue;
 		}
 
@@ -1713,7 +1731,7 @@ void SV_GameKickClientForReason( int clientNum, const char *reason ) {
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
 		return;
 	}
-	SV_KickClientForReason( svs.clients + clientNum, reason );	
+	SV_KickClientForReason( svs.clients + clientNum, reason, qfalse );
 }
 
 unsigned int PF_SV_Client_NumPendingCommands(int clientNum)
@@ -1742,7 +1760,7 @@ Called on a normal map change, not on a map_restart
 ===============
 */
 void SV_InitGameProgs( void ) {
-	game_import_t import;
+	game_import_t import = {0};
 	const char *err;
 	int i;
 
@@ -1952,6 +1970,8 @@ void SV_InitGameProgs( void ) {
     
     import.Client_NumPendingCommands	= PF_SV_Client_NumPendingCommands;
     import.Client_MaxPendingCommands	= PF_SV_Client_MaxPendingCommands;
+
+    import.BotConnect                   = SV_BotConnect;
 
 	ge = Sys_GetGameAPI( &import );
 
