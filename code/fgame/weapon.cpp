@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "debuglines.h"
 #include "g_spawn.h"
 #include "g_bot.h"
+#include "movement_telemetry.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1406,6 +1407,8 @@ void Weapon::Shoot(Event *ev)
     ApplyFireKickback(forward, 1000.0);
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
+        G_MoveLogShot(owner, this, (int)mode, pos, forward);
+
         float scaledBulletDamage = bulletdamage[mode];
 
         if (g_gametype->integer != GT_SINGLE_PLAYER && owner && owner->client && g_playerdmhealth->value > 0
@@ -3013,6 +3016,8 @@ void Weapon::StartReloading(void)
     if (!ammo_clip_size[0] || !owner) {
         return;
     }
+
+    G_MoveLogReload(owner, this);
 
     if (SetWeaponAnim("reload", EV_Weapon_DoneReloading)) {
         weaponstate = WEAPON_RELOADING;

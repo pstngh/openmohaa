@@ -164,6 +164,11 @@ extern cvar_t *g_no_grenades;
  * Not archived, so a bot match cannot leak it into later games.
  */
 extern cvar_t *g_instant_team_respawn;
+/**
+ * @brief Opt-in server-side movement, aiming, and combat telemetry. Output is
+ * written below the active game directory. Disabled by default.
+ */
+extern cvar_t *g_movelog;
 
 extern cvar_t *g_allowvote;
 extern cvar_t *g_monitor;

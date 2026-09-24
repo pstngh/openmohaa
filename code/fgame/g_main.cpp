@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "g_bot.h"
 #include "navigation_recast_load.h"
+#include "movement_telemetry.h"
 
 #include "../corepp/tiki.h"
 
@@ -355,6 +356,10 @@ void G_ShutdownGame()
 
     level.CleanUp();
 
+    // Close the recorder after the cleanup, whose script callbacks can still
+    // report events, so nothing reopens it once it is closed.
+    G_MoveLogShutdown();
+
     L_ShutdownEvents();
 
     G_DeAllocGameData();
@@ -637,6 +642,8 @@ void G_RunFrame(int levelTime, int frameTime)
 
         // Process any pending events that got posted during the script code
         L_ProcessPendingEvents();
+
+        G_MoveLogFrame();
 
         // show how many traces the game code is doing
         if (sv_traceinfo->integer) {
@@ -1240,6 +1247,9 @@ void G_Cleanup(qboolean samemap)
     G_WriteSessionData();
 
     level.CleanUp(samemap, qtrue);
+
+    // After the cleanup, as in G_ShutdownGame.
+    G_MoveLogShutdown();
 }
 
 void ArchiveAliases(Archiver& arc)

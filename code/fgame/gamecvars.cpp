@@ -125,6 +125,7 @@ cvar_t *g_showautoaim;
 cvar_t *g_debugtargets;
 cvar_t *g_debugdamage;
 cvar_t *g_logstats;
+cvar_t *g_movelog;
 
 cvar_t *g_showtokens;
 cvar_t *g_showopcodes;
@@ -529,6 +530,7 @@ void CVAR_Init(void)
     // sv_team_spawn_interval that later normal team games use.
     g_instant_team_respawn = gi.Cvar_Get("g_instant_team_respawn", "0", 0);
     gi.Cvar_CheckRange(g_instant_team_respawn, 0, 1, qtrue);
+    g_movelog            = gi.Cvar_Get("g_movelog", "0", 0);
     g_allowvote          = gi.Cvar_Get("g_allowvote", "1", CVAR_SERVERINFO);
     g_maprotation_filter = gi.Cvar_Get("g_maprotation_filter", "ffa", 0);
     g_warmup             = gi.Cvar_Get("g_warmup", "20", CVAR_ARCHIVE);

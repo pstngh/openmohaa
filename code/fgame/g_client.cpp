@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "scriptmaster.h"
 #include "g_spawn.h"
 #include "g_bot.h"
+#include "movement_telemetry.h"
 
 // g_client.c -- client functions that don't happen every frame
 
@@ -1039,6 +1040,10 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
         if (ent->entity) {
             ent->entity->EndFrame();
         }
+
+        if (player) {
+            G_MoveLogClientBegin(player);
+        }
     } catch (const char *error) {
         G_ExitWithError(error);
     }
@@ -1095,6 +1100,7 @@ void G_ClientDisconnect(gentity_t *ent)
         G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
 
         assert(ent->entity->IsSubclassOfPlayer());
+        G_MoveLogClientDisconnect(static_cast<Player *>(ent->entity));
         ((Player *)ent->entity)->Disconnect();
 
         if (g_iInThinks) {

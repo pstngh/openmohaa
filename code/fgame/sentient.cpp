@@ -42,6 +42,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "object.h"
 #include "../corepp/tiki.h"
 #include "weapturret.h"
+#include "movement_telemetry.h"
 
 Event EV_Sentient_ReloadWeapon
 (
@@ -1516,11 +1517,15 @@ void Sentient::ArmorDamage(Event *ev)
         G_DebugDamage(damage, this, attacker, inflictor);
     }
 
+    const float healthBefore = health;
+
     if (!(flags & FL_GODMODE)
         && ((g_gametype->integer != GT_SINGLE_PLAYER) || !(attacker) || (attacker) == this
             || !(attacker->IsSubclassOfSentient()) || (attacker->m_Team != m_Team))) {
         health -= damage;
     }
+
+    G_MoveLogDamage(this, attacker, damage, healthBefore, health, meansofdeath, location, position, direction);
 
     // Set means of death
     means_of_death = meansofdeath;
