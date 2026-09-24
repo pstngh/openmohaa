@@ -75,6 +75,7 @@ cvar_t	*sv_location;
 cvar_t	*sv_debug_gamespy;
 cvar_t	*sv_gamespy;
 cvar_t	*sv_lanForceRate; // dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
+cvar_t	*sv_lanOnly;      // reject non-LAN clients when hosting a private local session
 #ifndef STANDALONE
 cvar_t	*sv_strictAuth;
 #endif
