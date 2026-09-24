@@ -27,6 +27,7 @@ struct ContentView: View {
         .onChange(of: settings.rconPassword) { _ in settings.save() }
         .onChange(of: settings.nickname) { _ in settings.save() }
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
+        .onChange(of: settings.clientMoveLog) { _ in settings.save() }
         .onChange(of: scenePhase) { phase in
             if phase != .active {
                 settings.flushPendingSave()
@@ -57,6 +58,10 @@ struct ContentView: View {
                 ForEach(0..<maxBookmarks, id: \.self) { i in
                     bookmarkRow(index: i)
                 }
+
+                Toggle("Record my movement", isOn: $settings.clientMoveLog)
+                    .font(.system(size: 11))
+                    .help("Record local movement, input, aim, target, and collision telemetry while connected.")
             }
 
             LaunchButton(title: "Connect", systemImage: "bolt.fill") {

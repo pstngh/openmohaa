@@ -276,3 +276,31 @@ rounds against bots on the same maps and settings. A normal client demo
 (`record <name>` / `stoprecord`) or video is useful visual context, but the
 three telemetry files contain the server-side data needed for quantitative
 movement and aim comparison.
+
+### `cl_movelog`
+
+- **Default**: 0
+- **Type**: boolean
+
+`cl_movelog 1` records the local player's movement on any server without
+requiring changes to that server. The macOS launcher exposes it as **Record my
+movement**. It is passive: no commands are changed and no telemetry is sent
+over the network.
+
+Each recording creates three uniquely named files under `client_telemetry` in
+the active game directory. A new set starts with every map, video restart, or
+re-enable, and nothing is recorded during demo playback:
+
+- `*_frames.csv`: predicted movement, view, weapon, target, and collision state
+  at 50 Hz, or once per frame when the frame rate is lower. Full-player-hull
+  traces measure 256-unit clearance in eight directions, along the movement
+  command, and along actual velocity. Crosshair and enemy fields identify
+  direct or aim-aligned visible targets with an explicit confidence value.
+- `*_inputs.csv`: every discrete movement/button transition, including short
+  strafe and lean taps that may fall between state samples.
+- `*_meta.txt`: map, schema, trace ranges, and interpretation notes.
+
+The client deliberately omits names, chat, and network addresses. Enemy
+information is limited to entities sent by the server to the client, and local
+positions are predicted rather than authoritative server state. Use
+`cl_movelog 0` to flush and close an active recording cleanly.

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Init functions for the cgame
 
 #include "cg_local.h"
+#include "cg_client_telemetry.h"
 #include "cg_parsemsg.h"
 #include "cg_archive.h"
 #include "cg_radar.h"
@@ -740,6 +741,7 @@ void CG_Init(clientGameImport_t *imported, int serverMessageNum, int serverComma
     cgs.serverCommandSequence = serverCommandSequence;
 
     CG_RegisterCvars();
+    CG_ClientTelemetryInit();
 
     L_InitEvents();
 
@@ -789,6 +791,7 @@ Called before every level change or subsystem restart
 */
 void CG_Shutdown(void)
 {
+    CG_ClientTelemetryShutdown();
     L_ShutdownEvents();
     // Shutdown radar
     cgi.CL_InitRadar(NULL, NULL, -1);

@@ -57,6 +57,7 @@ class LauncherSettings: ObservableObject {
     @Published var gameType: Int = 0
     @Published var resolutionIndex: Int = 7  // default 1920x1080
     @Published var bookmarks: [Bookmark] = Array(repeating: Bookmark(), count: maxBookmarks)
+    @Published var clientMoveLog: Bool = false
 
     // Bots tab
     @Published var botCount: Int = 3
@@ -162,6 +163,7 @@ class LauncherSettings: ObservableObject {
                 if let g = Int(value), g >= 0, g <= 2 { gameType = (g == 1 ? 2 : g) }
             case "resolution_index":
                 if let r = Int(value), r >= 0, r < resolutionList.count { resolutionIndex = r }
+            case "client_move_log": clientMoveLog = (Int(value) ?? 0) != 0
             // Bots tab
             case "bot_count":
                 if let n = Int(value) { botCount = Self.clampedBotCount(n) }
@@ -361,13 +363,14 @@ class LauncherSettings: ObservableObject {
     private func writeSettings() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=8")
+        lines.append("settings_version=9")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
         lines.append("nickname=\(nickname)")
         lines.append("game=\(gameType)")
         lines.append("resolution_index=\(resolutionIndex)")
+        lines.append("client_move_log=\(clientMoveLog ? 1 : 0)")
 
         // Bots tab
         lines.append("bot_count=\(botCount)")
