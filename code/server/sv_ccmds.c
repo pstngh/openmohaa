@@ -2022,6 +2022,11 @@ void SV_AddOperatorCommands(void) {
 	Cmd_AddCommand("map", SV_Map_f);
 	Cmd_AddCommand("devmap", SV_Map_f);
 	Cmd_AddCommand("gamemap", SV_GameMap_f);
+	Cmd_AddCommand("maprotation_clear", SV_MapRotationClear_f);
+	Cmd_AddCommand("maprotation_add", SV_MapRotationAdd_f);
+	Cmd_AddCommand("maprotation_list", SV_MapRotationList_f);
+	Cmd_AddCommand("maprotation_start", SV_MapRotationStart_f);
+	Cmd_AddCommand("maprotation_advance_internal", SV_MapRotationAdvance_f);
 
 	Cmd_AddCommand("killserver", SV_KillServer_f);
 #ifndef DEDICATED

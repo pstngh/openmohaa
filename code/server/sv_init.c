@@ -805,6 +805,8 @@ void SV_SpawnServer( const char *server, qboolean loadgame, qboolean restart, qb
 			Com_Error(ERR_DROP, "%s", p);
 		}
 
+		SV_MapRotationMapStarted(mapname);
+
 		// save persistant structures
 		if( bTransition ) {
 			SV_ArchivePersistantFile( qtrue );
@@ -1073,6 +1075,8 @@ void SV_Init (void)
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0", CVAR_ARCHIVE | CVAR_SERVERINFO );
 
 	sv_maplist = Cvar_Get( "sv_maplist", "", CVAR_ARCHIVE | CVAR_SERVERINFO );
+	sv_maprotation_minplayers = Cvar_Get("sv_maprotation_minplayers", "12", CVAR_ARCHIVE);
+	sv_maprotation_lockmap = Cvar_Get("sv_maprotation_lockmap", "dm/mohdm6:20", CVAR_ARCHIVE);
 
 	// systeminfo
 	Cvar_Get( "cheats", "1", CVAR_LATCH | CVAR_SYSTEMINFO );

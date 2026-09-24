@@ -60,6 +60,8 @@ cvar_t	*sv_maxPing;
 cvar_t	*sv_pure;
 cvar_t	*sv_floodProtect;
 cvar_t	*sv_maplist;
+cvar_t	*sv_maprotation_minplayers;
+cvar_t	*sv_maprotation_lockmap;
 cvar_t	*sv_drawentities;
 cvar_t	*sv_deeptracedebug;
 cvar_t	*sv_netprofile;

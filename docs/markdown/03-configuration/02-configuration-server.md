@@ -166,6 +166,35 @@ Keywords, only relevant for server browsing software that handle this value. Not
 
 The map rotation, delimited by spaces. After the game ends, the server will start the next map in the rotation list. By default, the list is empty, which means the server restarts after the game ends.
 
+### Timed map rotation
+
+The native timed rotation supports repeated maps and a different duration for
+each entry. Configure it with server-console commands:
+
+```text
+maprotation_clear
+maprotation_add dm/mohdm6:20 dm/mohdm6:20 dm/mohdm1:15
+maprotation_start
+```
+
+`maprotation_add` may be used more than once and accepts up to 64 total
+`map:minutes` entries. `maprotation_list` prints the configured entries.
+Starting the native rotation clears `sv_maplist` and takes precedence over
+`nextmap` when a match ends.
+
+`sv_maprotation_minplayers` sets the minimum connected-client count required
+before a non-lock map can start; its default is `12`. Bots, spectators, loading
+clients, and active players all count. At exactly the configured value, the
+rotation is unlocked. This also applies to the first entry when
+`maprotation_start` runs, so a server starting empty begins on the lock map.
+
+`sv_maprotation_lockmap` selects the fallback map and its duration using the
+same `map:minutes` syntax. Its default is `dm/mohdm6:20`. When population is
+below the minimum, the next non-lock entry is held rather than skipped. The
+lock map restarts until the population reaches the minimum, then the held entry
+starts at the next natural map ending. Manual map changes take effect
+immediately and the native rotation resumes when that map naturally ends.
+
 ### `sv_maxPing`
 
 Maximum ping to allow clients to join with. `0` no maximum (the default).

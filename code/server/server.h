@@ -380,6 +380,8 @@ extern	cvar_t	*sv_pure;
 extern	cvar_t	*sv_floodProtect;
 extern	cvar_t	*sv_lanForceRate;
 extern	cvar_t	*sv_maplist;
+extern	cvar_t	*sv_maprotation_minplayers;
+extern	cvar_t	*sv_maprotation_lockmap;
 extern	cvar_t	*sv_drawentities;
 extern	cvar_t	*sv_deeptracedebug;
 extern	cvar_t	*sv_netprofile;
@@ -441,6 +443,13 @@ void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ...) Q_PRINTF_FU
 
 void SV_AddOperatorCommands (void);
 void SV_RemoveOperatorCommands (void);
+
+void SV_MapRotationClear_f(void);
+void SV_MapRotationAdd_f(void);
+void SV_MapRotationList_f(void);
+void SV_MapRotationStart_f(void);
+void SV_MapRotationAdvance_f(void);
+void SV_MapRotationMapStarted(const char *map);
 
 
 void SV_MasterHeartbeat (void);

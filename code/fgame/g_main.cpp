@@ -1929,6 +1929,8 @@ void G_ExitLevel(void)
     gi.SendConsoleCommand(command);
 
     if (g_gametype->integer != GT_SINGLE_PLAYER) {
+        gi.ExecuteConsoleCommand(EXEC_NOW, "maprotation_advance_internal\n");
+
         if (sv_nextmap->string && sv_nextmap->string[0]) {
             // The nextmap cvar was set (possibly by a vote - so go ahead and use it)
             level.nextmap = sv_nextmap->string;
