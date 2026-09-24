@@ -235,6 +235,7 @@ struct GameLauncher {
 
     private static func appendCommonArgs(_ args: inout [String], settings: LauncherSettings) {
         args.append(contentsOf: ["+set", "cl_playintro", "0"])
+        args.append(contentsOf: ["+set", "ui_compass", settings.compassEnabled ? "1" : "0"])
         args.append(contentsOf: ["+set", "cl_nullbind", settings.nullbinds ? "1" : "0"])
         args.append(contentsOf: ["+set", "cl_movelog", settings.clientMoveLog ? "1" : "0"])
         if settings.clientMoveLog {

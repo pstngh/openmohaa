@@ -28,6 +28,7 @@ struct ContentView: View {
         .onChange(of: settings.nickname) { _ in settings.save() }
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
         .onChange(of: settings.clientMoveLog) { _ in settings.save() }
+        .onChange(of: settings.compassEnabled) { _ in settings.save() }
         .onChange(of: scenePhase) { phase in
             if phase != .active {
                 settings.flushPendingSave()
@@ -59,9 +60,19 @@ struct ContentView: View {
                     bookmarkRow(index: i)
                 }
 
-                Toggle("Record my movement", isOn: $settings.clientMoveLog)
-                    .font(.system(size: 11))
-                    .help("Record local movement, input, aim, target, and collision telemetry while connected.")
+                HStack(spacing: 12) {
+                    Toggle("Compass", isOn: $settings.compassEnabled)
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 11))
+                        .help("Show the compass. Top messages align left automatically when it is hidden.")
+
+                    Toggle("Record my movement", isOn: $settings.clientMoveLog)
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 11))
+                        .help("Record local movement, input, aim, target, and collision telemetry while connected.")
+
+                    Spacer(minLength: 0)
+                }
             }
 
             LaunchButton(title: "Connect", systemImage: "bolt.fill") {

@@ -121,6 +121,11 @@ cvar_t        *ui_debugload;
 cvar_t        *sound_overlay;
 cvar_t        *ui_compass_scale;
 
+static qboolean s_compassMessageLayoutValid;
+static float    s_compassMessageLeft;
+static float    s_compassMessageBottom;
+static int      s_compassLayoutModificationCount = -1;
+
 static intro_stage_t intro_stage;
 static char          server_mapname[64];
 static UIListCtrl   *scoreboardlist;
@@ -154,6 +159,7 @@ void UI_MainMenuWidgetsUpdate(void);
 
 static UIRect2D getDefaultGMBoxRectangle(void);
 static UIRect2D getDefaultDMBoxRectangle(void);
+static void     updateCompassAwareMessageBoxLayout(void);
 
 class ConsoleHider : public Listener
 {
@@ -1196,20 +1202,70 @@ UIFloatingDMConsole *getNewDMConsole()
 
 /*
 ====================
+cacheCompassMessageLayout
+====================
+*/
+static void cacheCompassMessageLayout(void)
+{
+    const float scaleX = uid.scaleRes[0];
+    const float scaleY = uid.scaleRes[1];
+
+    s_compassMessageLayoutValid       = qfalse;
+    s_compassLayoutModificationCount = ui_compass ? ui_compass->modificationCount : -1;
+
+    if (!ui_compass || !ui_compass->integer) {
+        s_compassMessageLeft        = 20.0f * scaleX;
+        s_compassMessageBottom      = 0.0f;
+        s_compassMessageLayoutValid = qtrue;
+        return;
+    }
+
+    if (hud_compass) {
+        UIWidget *widget = hud_compass->GetContainerWidget();
+
+        if (widget) {
+            const UIRect2D frame   = widget->getFrame();
+            const float    padding = 12.0f;
+
+            if (frame.size.width > 0.0f && frame.size.height > 0.0f) {
+                s_compassMessageLeft   = frame.getMaxX() + padding * scaleX;
+                s_compassMessageBottom = frame.getMaxY() + padding * scaleY;
+                if (s_compassMessageLeft < 20.0f * scaleX) {
+                    s_compassMessageLeft = 20.0f * scaleX;
+                }
+                s_compassMessageLayoutValid = qtrue;
+            }
+        }
+    }
+}
+
+/*
+====================
 getDefaultGMBoxRectangle
 ====================
 */
 static UIRect2D getDefaultGMBoxRectangle(void)
 {
     UIRect2D dmRect = getDefaultDMBoxRectangle();
-    float    height = uid.vidHeight * ui_compass_scale->value * 0.25f;
-    float    y      = dmRect.size.height + dmRect.pos.y;
+    float    top    = dmRect.getMaxY();
+    float    left   = 20.0f * uid.scaleRes[0];
+    float    width  = getScreenWidth() * uid.scaleRes[0] - left;
 
-    if (height < y) {
-        height = y;
+    if (ui_compass && ui_compass->integer) {
+        float compassBottom;
+
+        if (s_compassMessageLayoutValid) {
+            compassBottom = s_compassMessageBottom;
+        } else {
+            const float scale = ui_compass_scale ? ui_compass_scale->value : 0.55f;
+            compassBottom    = uid.vidHeight * scale * 0.25f;
+        }
+        if (top < compassBottom) {
+            top = compassBottom;
+        }
     }
 
-    return UIRect2D(20.0f, height, (getScreenWidth() - 20) * uid.scaleRes[0], 128.0f * uid.scaleRes[1]);
+    return UIRect2D(left, top, width, 128.0f * uid.scaleRes[1]);
 }
 
 /*
@@ -1219,12 +1275,43 @@ getDefaultDMBoxRectangle
 */
 static UIRect2D getDefaultDMBoxRectangle(void)
 {
-    float width;
-    float screenWidth = getScreenWidth();
+    const float scaleX      = uid.scaleRes[0];
+    const float screenWidth = getScreenWidth() * scaleX;
+    float       left;
+    float       width;
 
-    width = screenWidth * uid.scaleRes[0] * ui_compass_scale->value * 0.2f;
+    if (!ui_compass || !ui_compass->integer) {
+        left = 20.0f * scaleX;
+    } else if (s_compassMessageLayoutValid) {
+        left = s_compassMessageLeft;
+    } else {
+        const float scale = ui_compass_scale ? ui_compass_scale->value : 0.55f;
+        left              = screenWidth * scale * 0.2f;
+    }
 
-    return UIRect2D(width, 0, (screenWidth - (width + 192.0f)) * uid.scaleRes[0], 120.0f * uid.scaleRes[1]);
+    width = screenWidth - left - 192.0f * scaleX;
+    if (width < 0.0f) {
+        width = 0.0f;
+    }
+
+    return UIRect2D(left, 0, width, 120.0f * uid.scaleRes[1]);
+}
+
+/*
+====================
+updateCompassAwareMessageBoxLayout
+====================
+*/
+static void updateCompassAwareMessageBoxLayout(void)
+{
+    cacheCompassMessageLayout();
+
+    if (gmbox) {
+        gmbox->setFrame(getDefaultGMBoxRectangle());
+    }
+    if (dmbox) {
+        dmbox->setFrame(getDefaultDMBoxRectangle());
+    }
 }
 
 /*
@@ -2359,6 +2446,10 @@ void UI_Update(void)
         // show the compass
         //
         if (hud_compass) {
+            if (ui_compass->modificationCount != s_compassLayoutModificationCount) {
+                updateCompassAwareMessageBoxLayout();
+            }
+
             if (ui_compass->integer) {
                 hud_compass->ForceShow();
             } else {
@@ -3944,15 +4035,7 @@ void UI_ResolutionChange(void)
         view3d->setFrame(frame);
     }
 
-    if (gmbox) {
-        frame = getDefaultGMBoxRectangle();
-        gmbox->setFrame(frame);
-    }
-
-    if (dmbox) {
-        frame = getDefaultDMBoxRectangle();
-        dmbox->setFrame(frame);
-    }
+    updateCompassAwareMessageBoxLayout();
 }
 
 /*
@@ -5478,6 +5561,7 @@ void CL_InitializeUI(void)
 
     // realign menus
     menuManager.RealignMenus();
+    updateCompassAwareMessageBoxLayout();
 
     // clear input
     CL_ClearButtons();
