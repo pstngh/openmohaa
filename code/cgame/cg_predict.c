@@ -505,9 +505,13 @@ void CG_PredictPlayerState(void)
     }
 
     cg_pmove.noFootsteps = (cgs.dmflags & DF_NO_FOOTSTEPS) > 0;
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
+
+    // Predict the lean rules the server actually runs: this fork always allows
+    // leaning while moving and uses AA tuning when its g_aalean is set, while
+    // stock servers keep the original rules.
+    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !(cgs.forkLeanRules && cgs.aaLean)) {
         // Leaning while moving is allowed in mohta and mohtt only with a specific dm flag bit set
-        cg_pmove.alwaysAllowLean = (cgs.dmflags & DF_ALLOW_LEAN_MOVEMENT) ? qtrue : qfalse;
+        cg_pmove.alwaysAllowLean = (cgs.forkLeanRules || (cgs.dmflags & DF_ALLOW_LEAN_MOVEMENT)) ? qtrue : qfalse;
 
         cg_pmove.leanMax = 45.f;
         cg_pmove.leanAdd = 6.f;
@@ -515,7 +519,7 @@ void CG_PredictPlayerState(void)
         cg_pmove.leanSpeed = 2.f;
     } else {
         cg_pmove.alwaysAllowLean = qtrue;
-        if (cgs.gametype != GT_SINGLE_PLAYER) {
+        if (cgs.forkLeanRules || cgs.gametype != GT_SINGLE_PLAYER) {
             cg_pmove.leanMax = 40.f;
         } else {
             // Don't allow lean in single-player, like in the original game

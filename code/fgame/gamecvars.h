@@ -415,6 +415,11 @@ extern cvar_t *g_textmsg_minDelay;
 extern cvar_t *g_teambalance;
 
 /**
+ * @brief Use AA lean limits, speeds, recovery, and camera roll in SH/BT.
+ */
+extern cvar_t *g_aalean;
+
+/**
  * @brief Enable SH/BT player hit-reaction pain animations.
  */
 extern cvar_t *g_painanims;

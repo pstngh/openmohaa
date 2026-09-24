@@ -399,6 +399,8 @@ extern "C" {
         int        fraglimit;
         int        timelimit;
         int        maxclients;
+        qboolean   forkLeanRules; // server publishes g_aalean and allows leaning while moving
+        qboolean   aaLean;        // server's g_aalean: AA lean tuning in SH/BT
         int        cinematic;
         int        mapChecksum;
         qboolean   useMapChecksum;

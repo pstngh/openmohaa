@@ -130,6 +130,7 @@ void CG_ParseServerinfo(void)
     char       *spawnpos;
     const char *version;
     const char *mapChecksumStr;
+    const char *aaLean;
 
     info           = CG_ConfigString(CS_SERVERINFO);
     cgs.gametype   = atoi(Info_ValueForKey(info, "g_gametype"));
@@ -138,6 +139,13 @@ void CG_ParseServerinfo(void)
     cgs.fraglimit  = atoi(Info_ValueForKey(info, "fraglimit"));
     cgs.timelimit  = atoi(Info_ValueForKey(info, "timelimit"));
     cgs.maxclients = atoi(Info_ValueForKey(info, "sv_maxclients"));
+
+    // Servers running this fork publish g_aalean. They allow leaning while
+    // moving in every mode and pick AA or SH/BT lean tuning with it; stock
+    // servers keep the original rules, and prediction must match the server.
+    aaLean            = Info_ValueForKey(info, "g_aalean");
+    cgs.forkLeanRules = aaLean[0] ? qtrue : qfalse;
+    cgs.aaLean        = atoi(aaLean) ? qtrue : qfalse;
 
     version = Info_ValueForKey(info, "version");
     if (strstr(version, "Spearhead")) {
