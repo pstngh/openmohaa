@@ -19,6 +19,8 @@ option(BUILD_GAME_LIBRARIES "Build game module libraries" ON)
 option(BUILD_GAME_QVMS "Build game module qvms" ON)
 option(BUILD_STANDALONE "Build binaries for standalone games" OFF)
 
+option(BUILD_MACOS_BUNDLE "Build unified macOS .app bundle" OFF)
+
 option(USE_RENDERER_DLOPEN "Dynamically load the renderer(s)" ON)
 option(USE_OPENAL "OpenAL audio" ON)
 option(USE_OPENAL_DLOPEN "Dynamically load OpenAL" ON)
@@ -82,6 +84,8 @@ include(client)
 include(basegame)
 #include(missionpack)
 include(launcher)
+
+include(bundle_macos)
 
 include(post_configure)
 #include(installer)

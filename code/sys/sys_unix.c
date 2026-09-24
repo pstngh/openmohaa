@@ -122,6 +122,12 @@ static int Sys_Exec( void )
 Sys_DefaultHomePath
 ==================
 */
+#ifdef PORTABLE_INSTALL
+static char *Sys_DefaultHomePath(void)
+{
+	return Sys_DefaultInstallPath();
+}
+#else
 static char *Sys_DefaultHomePath(void)
 {
 	static char homePath[ MAX_OSPATH ] = { 0 };
@@ -143,6 +149,7 @@ static char *Sys_DefaultHomePath(void)
 
 	return homePath;
 }
+#endif
 
 char *Sys_DefaultHomeConfigPath(void) { return Sys_DefaultHomePath(); }
 char *Sys_DefaultHomeDataPath(void)   { return Sys_DefaultHomePath(); }
