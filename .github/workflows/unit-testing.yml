@@ -20,7 +20,7 @@ jobs:
     - uses: awalsh128/cache-apt-pkgs-action@latest
       name: Install required packages
       with:
-        packages: flex bison ninja-build cmake clang libsdl2-dev libopenal-dev
+        packages: flex bison ninja-build cmake clang
         version: "${{ runner.os }}-${{ runner.arch }}-unittest-v1"
 
     - uses: actions/checkout@v4
@@ -34,9 +34,9 @@ jobs:
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
         echo "CMAKE_PARAM=--log-level=VERBOSE \
-        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install'" \
-        -DUSE_RENDERER_DLOPEN=OFF \
-        -DBUILD_RENDERER_GL2=OFF >> $GITHUB_ENV
+        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
+        -DBUILD_CLIENT=OFF \
+        -DUSE_HTTP=OFF" >> $GITHUB_ENV
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}
