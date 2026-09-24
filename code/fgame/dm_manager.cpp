@@ -1788,7 +1788,7 @@ bool DM_Manager::AllowTeamRespawn(int teamnum) const
 
 int DM_Manager::GetTeamSpawnTimeLeft() const
 {
-    if (sv_team_spawn_interval->integer <= 0) {
+    if (g_instant_team_respawn->integer || sv_team_spawn_interval->integer <= 0) {
         return -1;
     }
 
@@ -2043,14 +2043,19 @@ CTeamSpawnClock::CTeamSpawnClock()
     nextSpawnTime = 0;
 }
 
+static float G_TeamSpawnInterval()
+{
+    return g_instant_team_respawn->integer ? 0 : sv_team_spawn_interval->value;
+}
+
 void CTeamSpawnClock::Reset()
 {
-    nextSpawnTime = sv_team_spawn_interval->value;
+    nextSpawnTime = G_TeamSpawnInterval();
 }
 
 void CTeamSpawnClock::Restart()
 {
-    nextSpawnTime = level.time + sv_team_spawn_interval->value;
+    nextSpawnTime = level.time + G_TeamSpawnInterval();
 }
 
 int CTeamSpawnClock::GetSecondsLeft()

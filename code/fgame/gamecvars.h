@@ -62,6 +62,12 @@ extern cvar_t *sv_gravity;
 extern cvar_t *sv_rollspeed;
 extern cvar_t *sv_rollangle;
 extern cvar_t *sv_cheats;
+/**
+ * @brief Persistent god mode for human players. While set, god mode is
+ * applied to every hit taken, so it survives death and map changes.
+ * Bots are excluded and it only takes effect with cheats enabled. Default 0.
+ */
+extern cvar_t *g_godmode;
 extern cvar_t *sv_showbboxes;
 extern cvar_t *sv_showtags;
 
@@ -146,6 +152,18 @@ extern cvar_t *g_realismmode;
 extern cvar_t *g_teamdamage;
 extern cvar_t *g_healthdrop;
 extern cvar_t *g_healrate;
+/**
+ * @brief Multiplayer player health. Selected high-damage weapons scale their
+ * bullet damage relative to the 100-health baseline.
+ */
+extern cvar_t *g_playerdmhealth;
+/** Disable grenade spawn loadouts without changing ordinary server defaults. */
+extern cvar_t *g_no_grenades;
+/**
+ * @brief Respawn team players immediately, ignoring sv_team_spawn_interval.
+ * Not archived, so a bot match cannot leak it into later games.
+ */
+extern cvar_t *g_instant_team_respawn;
 
 extern cvar_t *g_allowvote;
 extern cvar_t *g_monitor;
@@ -390,6 +408,11 @@ extern cvar_t *g_textmsg_allowed;
 extern cvar_t *g_textmsg_minDelay;
 
 extern cvar_t *g_teambalance;
+
+/**
+ * @brief Enable SH/BT player hit-reaction pain animations.
+ */
+extern cvar_t *g_painanims;
 
 extern cvar_t *g_navigation_legacy;
 
