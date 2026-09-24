@@ -686,6 +686,20 @@ void RB_BeginDrawingView (void) {
 	}
 }
 
+static void RB_BuildFixedViewModelProjection(float projection[16]) {
+	float tanHalfY;
+	float aspect;
+
+	Com_Memcpy(projection, backEnd.viewParms.projectionMatrix, sizeof(float) * 16);
+
+	// cg_fov 80 is horizontal at 4:3; keep the same vertical FOV at every aspect ratio.
+	tanHalfY = tan(80.0f * M_PI / 360.0f) * (3.0f / 4.0f);
+	aspect = (float)backEnd.viewParms.viewportWidth / (float)backEnd.viewParms.viewportHeight;
+
+	projection[0] = 1.0f / (tanHalfY * aspect);
+	projection[5] = 1.0f / tanHalfY;
+}
+
 /*
 ==================
 RB_RenderDrawSurfList
@@ -695,12 +709,13 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	shader_t		*shader, *oldShader;
 	int				entityNum, oldEntityNum;
 	int				dlightMap, oldDlightMap;
-	qboolean		depthRange, oldDepthRange;
+	qboolean		depthRange, oldDepthRange, viewModelProjection, oldViewModelProjection;
 	qboolean		bStaticModel, oldbStaticModel;
 	int				i;
 	drawSurf_t		*drawSurf;
 	int				oldSort;
 	float			originalTime;
+	float			viewModelProjectionMatrix[16];
 
 	// save original time for entity shader offsets
 	originalTime = backEnd.refdef.floatTime;
@@ -708,12 +723,15 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	// clear the z buffer, set the modelview, etc
 	RB_BeginDrawingView ();
 
+	RB_BuildFixedViewModelProjection(viewModelProjectionMatrix);
+
 	// draw everything
 	oldEntityNum = -1;
 	backEnd.currentEntity = &tr.worldEntity;
 	oldShader = NULL;
 	oldDepthRange = qfalse;
 	oldDlightMap = 0;
+	oldViewModelProjection = qfalse;
 	oldSort = -1;
 	oldbStaticModel = -1;
 	depthRange = qfalse;
@@ -758,6 +776,7 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		//
 		if ( entityNum != oldEntityNum || bStaticModel != oldbStaticModel ) {
 			depthRange = qfalse;
+			viewModelProjection = qfalse;
 
 			if (bStaticModel) {
 				backEnd.shaderStartTime = 0.0;
@@ -784,6 +803,12 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 						// hack the depth range to prevent view model from poking into walls
 						depthRange = qtrue;
 					}
+
+					// Draw the first-person weapon and arms at their fixed field of view.
+					// Scripts can also put the depth hack on entities placed in the world,
+					// so only the first-person flag selects the view model.
+					viewModelProjection = (backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON)
+						&& !(backEnd.currentEntity->e.renderfx & RF_CROSSHAIR);
 				}
 				else {
 					backEnd.currentEntity = &tr.worldEntity;
@@ -794,6 +819,13 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 			}
 
 			qglLoadMatrixf( backEnd.ori.modelMatrix );
+
+			if (oldViewModelProjection != viewModelProjection) {
+				qglMatrixMode(GL_PROJECTION);
+				qglLoadMatrixf(viewModelProjection ? viewModelProjectionMatrix : backEnd.viewParms.projectionMatrix);
+				qglMatrixMode(GL_MODELVIEW);
+				oldViewModelProjection = viewModelProjection;
+			}
 
 			//
 			// change depthrange if needed
@@ -880,7 +912,12 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		RB_EndSurface();
 	}
 
-	// go back to the world modelview matrix
+	// go back to the world projection and modelview matrices
+	if (oldViewModelProjection) {
+		qglMatrixMode(GL_PROJECTION);
+		qglLoadMatrixf(backEnd.viewParms.projectionMatrix);
+		qglMatrixMode(GL_MODELVIEW);
+	}
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
 	if ( depthRange ) {
 		qglDepthRange (0, 1.0);

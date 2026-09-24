@@ -425,6 +425,20 @@ void RB_BeginDrawingView (void) {
 }
 
 
+static void RB_BuildFixedViewModelProjection(mat4_t projection) {
+	viewParms_t temp = backEnd.viewParms;
+	float tanHalfY;
+	float aspect;
+
+	tanHalfY = tan(80.0f * M_PI / 360.0f) * (3.0f / 4.0f);
+	aspect = (float)temp.viewportWidth / (float)temp.viewportHeight;
+
+	temp.fovX = atan(tanHalfY * aspect) * 360.0f / M_PI;
+	temp.fovY = atan(tanHalfY) * 360.0f / M_PI;
+	R_SetupProjection(&temp, r_znear->value, 0, qfalse);
+	Mat4Copy(temp.projectionMatrix, projection);
+}
+
 /*
 ==================
 RB_RenderDrawSurfList
@@ -437,7 +451,9 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	int				dlighted, oldDlighted;
 	int				pshadowed, oldPshadowed;
 	int             cubemapIndex, oldCubemapIndex;
-	qboolean		depthRange, oldDepthRange, isCrosshair, wasCrosshair;
+	qboolean		depthRange, oldDepthRange;
+	qboolean		viewModelProjection, oldViewModelProjection;
+	mat4_t			viewModelProjectionMatrix;
 	int				i;
 	drawSurf_t		*drawSurf;
 	int				oldSort;
@@ -449,6 +465,7 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	originalTime = backEnd.refdef.floatTime;
 
 	fbo = glState.currentFBO;
+	RB_BuildFixedViewModelProjection(viewModelProjectionMatrix);
 
 	// draw everything
 	oldEntityNum = -1;
@@ -456,7 +473,7 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	oldShader = NULL;
 	oldFogNum = -1;
 	oldDepthRange = qfalse;
-	wasCrosshair = qfalse;
+	oldViewModelProjection = qfalse;
 	oldDlighted = qfalse;
 	oldPshadowed = qfalse;
 	oldCubemapIndex = -1;
@@ -521,7 +538,8 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		//
 		if ( entityNum != oldEntityNum
 			|| bStaticModel != oldbStaticModel ) {
-			depthRange = isCrosshair = qfalse;
+			depthRange = qfalse;
+			viewModelProjection = qfalse;
 			
 			//
 			// OPENMOHAA-specific stuff
@@ -559,10 +577,13 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 					{
 						// hack the depth range to prevent view model from poking into walls
 						depthRange = qtrue;
-					
-						if(backEnd.currentEntity->e.renderfx & RF_CROSSHAIR)
-							isCrosshair = qtrue;
 					}
+
+					// Draw the first-person weapon and arms at their fixed field of view.
+					// Scripts can also put the depth hack on entities placed in the world,
+					// so only the first-person flag selects the view model.
+					viewModelProjection = (backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON)
+						&& !(backEnd.currentEntity->e.renderfx & RF_CROSSHAIR);
 				} else {
 					backEnd.currentEntity = &tr.worldEntity;
 					backEnd.refdef.floatTime = originalTime;
@@ -577,48 +598,24 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 			GL_SetModelviewMatrix( backEnd.ori.modelMatrix );
 
 			//
-			// change depthrange. Also change projection matrix so first person weapon does not look like coming
-			// out of the screen.
+			// Keep the first-person weapon at the original 80-degree 4:3 base FOV.
 			//
-			if (oldDepthRange != depthRange || wasCrosshair != isCrosshair)
-			{
-				if (depthRange)
-				{
-					if(backEnd.viewParms.stereoFrame != STEREO_CENTER)
-					{
-						if(isCrosshair)
-						{
-							if(oldDepthRange)
-							{
-								// was not a crosshair but now is, change back proj matrix
-								GL_SetProjectionMatrix( backEnd.viewParms.projectionMatrix );
-							}
-						}
-						else
-						{
-							viewParms_t temp = backEnd.viewParms;
+			if (oldViewModelProjection != viewModelProjection) {
+				GL_SetProjectionMatrix(
+					viewModelProjection
+						? viewModelProjectionMatrix
+						: backEnd.viewParms.projectionMatrix
+				);
+				oldViewModelProjection = viewModelProjection;
+			}
 
-							R_SetupProjection(&temp, r_znear->value, 0, qfalse);
-
-							GL_SetProjectionMatrix( temp.projectionMatrix );
-						}
-					}
-
-					if(!oldDepthRange)
-						qglDepthRange (0, 0.3);
+			if (oldDepthRange != depthRange) {
+				if (depthRange) {
+					qglDepthRange(0, 0.3);
+				} else {
+					qglDepthRange(0, 1);
 				}
-				else
-				{
-					if(!wasCrosshair && backEnd.viewParms.stereoFrame != STEREO_CENTER)
-					{
-						GL_SetProjectionMatrix( backEnd.viewParms.projectionMatrix );
-					}
-
-					qglDepthRange (0, 1);
-				}
-
 				oldDepthRange = depthRange;
-				wasCrosshair = isCrosshair;
 			}
 
             oldEntityNum = entityNum;
@@ -647,8 +644,10 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	if (glRefConfig.framebufferObject)
 		FBO_Bind(fbo);
 
-	// go back to the world modelview matrix
-
+	// go back to the world projection and modelview matrices
+	if (oldViewModelProjection) {
+		GL_SetProjectionMatrix(backEnd.viewParms.projectionMatrix);
+	}
 	GL_SetModelviewMatrix( backEnd.viewParms.world.modelMatrix );
 
 	qglDepthRange (0, 1);
