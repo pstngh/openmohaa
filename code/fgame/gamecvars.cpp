@@ -176,6 +176,7 @@ cvar_t *g_inactivekick;
 cvar_t *g_teamkillwarn;
 cvar_t *g_teamkillkick;
 cvar_t *g_teamswitchdelay;
+cvar_t *g_spectatordelay;
 
 cvar_t *g_viewkick_pitch;
 cvar_t *g_viewkick_yaw;
@@ -495,6 +496,7 @@ void CVAR_Init(void)
     g_teamkillwarn     = gi.Cvar_Get("g_teamkillwarn", "3", CVAR_ARCHIVE);
     g_teamkillkick     = gi.Cvar_Get("g_teamkillkick", "5", CVAR_ARCHIVE);
     g_teamswitchdelay  = gi.Cvar_Get("g_teamswitchdelay", "15", CVAR_ARCHIVE);
+    g_spectatordelay   = gi.Cvar_Get("g_spectatordelay", "5", CVAR_ARCHIVE);
     g_shownpc          = gi.Cvar_Get("g_shownpc", "0", 0);
 
     // Removed in OPM

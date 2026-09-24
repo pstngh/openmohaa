@@ -181,6 +181,7 @@ extern cvar_t *g_inactivekick;
 extern cvar_t *g_teamkillwarn;
 extern cvar_t *g_teamkillkick;
 extern cvar_t *g_teamswitchdelay;
+extern cvar_t *g_spectatordelay;
 
 extern cvar_t *g_viewkick_pitch;
 extern cvar_t *g_viewkick_yaw;

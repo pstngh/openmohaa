@@ -829,6 +829,15 @@ Event EV_Player_Spectator
     "Become a spectator",
     EV_NORMAL
 );
+Event EV_Player_CompleteSpectator
+(
+    "_completespectator",
+    EV_CODEONLY,
+    NULL,
+    NULL,
+    "Complete a delayed voluntary spectator switch",
+    EV_NORMAL
+);
 Event EV_Player_JoinArena
 (
     "join_arena",
@@ -1879,6 +1888,7 @@ CLASS_DECLARATION(Sentient, Player, "player") {
     {&EV_Player_SetInJail,                &Player::EventSetInJail               },
     {&EV_Player_GetInJail,                &Player::EventGetInJail               },
     {&EV_Player_Spectator,                &Player::Spectator                    },
+    {&EV_Player_CompleteSpectator,        &Player::Spectator                    },
     {&EV_Player_PickWeapon,               &Player::PickWeaponEvent              },
     {&EV_Player_CallVote,                 &Player::CallVote                     },
     {&EV_Player_Vote,                     &Player::Vote                         },
@@ -3097,6 +3107,8 @@ void Player::Killed(Event *ev)
         AddDeaths(1);
     }
 
+    const bool completeSpectatorPending = EventPending(EV_Player_CompleteSpectator);
+
     attacker     = ev->GetEntity(1);
     inflictor    = ev->GetEntity(3);
     meansofdeath = ev->GetInteger(9);
@@ -3157,6 +3169,20 @@ void Player::Killed(Event *ev)
 
     // Post a dead event just in case
     PostEvent(EV_Player_Dead, 5.0f);
+
+    if (completeSpectatorPending) {
+        float delay = g_spectatordelay->integer;
+
+        // DEAD_DYING is finalized by EV_Player_Dead after five seconds.
+        // Never enter spectator first because Spectator() cancels that event.
+        if (delay < 5.0f) {
+            delay = 5.0f;
+        }
+
+        CancelEventsOfType(EV_Player_CompleteSpectator);
+        PostEvent(EV_Player_CompleteSpectator, delay + 0.001f);
+    }
+
     ZoomOff();
 
     if (g_voiceChat->integer) {
@@ -9286,6 +9312,8 @@ void Player::EquipWeapons_ver8()
 
 void Player::Spectator(void)
 {
+    CancelEventsOfType(EV_Player_CompleteSpectator);
+
     if (!IsSpectator()) {
         respawn_time = level.time + 1.0f;
     }
@@ -9496,6 +9524,22 @@ void Player::Spectator(Event *ev)
         return;
     };
 
+    if (ev->isSubclassOf(ConsoleEvent) && !IsSpectator() && g_spectatordelay->integer > 0) {
+        if (!EventPending(EV_Player_CompleteSpectator)) {
+            gi.centerprintf(edict, "Spectator in %d seconds", g_spectatordelay->integer);
+            PostEvent(EV_Player_CompleteSpectator, g_spectatordelay->integer);
+        }
+        return;
+    }
+
+    CancelEventsOfType(EV_Player_CompleteSpectator);
+
+    // Test the team, not IsSpectator(): a player can already be spectating
+    // while still on a team, e.g. after a map change without a weapon.
+    if (GetTeam() == TEAM_SPECTATOR) {
+        return;
+    }
+
     client->pers.dm_primary[0] = 0;
     SetTeam(TEAM_SPECTATOR);
 }
@@ -9643,6 +9687,10 @@ teamtype_t Player::GetTeam() const
 
 void Player::SetTeam(teamtype_t team)
 {
+    if (team != TEAM_SPECTATOR) {
+        CancelEventsOfType(EV_Player_CompleteSpectator);
+    }
+
     dmManager.JoinTeam(this, team);
 
     if (dm_team == TEAM_SPECTATOR) {

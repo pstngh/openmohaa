@@ -140,6 +140,10 @@ set g_teamkillkick 5
 // Frequency at which you can switch teams
 set g_teamswitchdelay 15
 
+// Spectator Delay
+// Delay voluntary spectator commands to prevent escaping a death
+set g_spectatordelay 5
+
 // Allow Join Time
 set g_allowjointime 30
 

@@ -102,6 +102,14 @@ This prevents some tricks such as `ghost walking` where a player rapidly switch 
 
 If enabled, a player can stand on another player's head without being pushed off. Defaults to `0`.
 
+### `g_spectatordelay`
+
+Delays voluntary `spectator` commands by this many seconds. This covers both
+binds and the ESC-menu Spectator button. The player remains active and
+vulnerable during the delay. A fatal hit records the death and restarts the
+delay after the fatal damage; nonfatal damage does not restart it. Defaults to
+`5`; set to `0` for immediate voluntary spectating.
+
 ### `g_teamdamage`
 
 - `0` (the default): Friendly fire disabled.
