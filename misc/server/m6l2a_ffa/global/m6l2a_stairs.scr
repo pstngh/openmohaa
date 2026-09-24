@@ -1,0 +1,18 @@
+main local.origin local.yaw local.count local.width:
+    local.angles = ( 0 local.yaw 0 )
+    local.forward = angles_toforward local.angles
+    local.origin -= ( 0 0 45 )
+
+    while (local.count > 0)
+    {
+        local.origin += ( local.forward * local.width ) + ( 0 0 15 )
+
+        local.step = spawn script_model
+        local.step model "static/cratelid2.tik"
+        local.step.origin = local.origin
+        local.step.angle = local.yaw
+        local.step solid
+
+        local.count--
+    }
+end

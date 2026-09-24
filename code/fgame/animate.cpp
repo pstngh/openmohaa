@@ -1049,7 +1049,25 @@ void Animate::DumpAnimInfo(void)
 
 void Animate::ClientSound(Event *ev)
 {
-    PlayNonPvsSound(ev->GetString(1));
+    // GetString returns a temporary str; keep it alive while its text is used.
+    const str   sound     = ev->GetString(1);
+    const char *soundName = sound.c_str();
+
+    if (g_gametype->integer != GT_SINGLE_PLAYER && !Q_stricmp(level.mapname.c_str(), "m6l2a")
+        && (!Q_stricmpn(soundName, "bar_snd_", 8)
+            || !Q_stricmpn(soundName, "bazooka_snd_", 12)
+            || !Q_stricmpn(soundName, "colt45_snd_", 11)
+            || !Q_stricmpn(soundName, "m1_snd_", 7)
+            || !Q_stricmpn(soundName, "panzerschreck_snd_", 18)
+            || !Q_stricmpn(soundName, "shotgun_snd_", 12)
+            || !Q_stricmpn(soundName, "snd_bazooka_", 12)
+            || !Q_stricmpn(soundName, "snd_shotgun_", 12)
+            || !Q_stricmp(soundName, "snd_ping"))) {
+        Sound(sound, CHAN_AUTO);
+        return;
+    }
+
+    PlayNonPvsSound(sound);
 }
 
 void Animate::EventPauseAnim(Event *ev)

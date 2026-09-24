@@ -1,0 +1,198 @@
+main:
+    removeclass actor
+    removeclass TurretGun
+    removeclass AmmoEntity
+    removeclass health
+
+    setcvar "g_obj_alliedtext1" "Verschneit"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_start "origin" "-3643 -3230 0" "angle" "0"
+    spawn info_player_deathmatch "origin" "-3416 -3037 18" "angle" "-92"
+    spawn info_player_deathmatch "origin" "-2841 -3662 10" "angle" "90"
+    spawn info_player_deathmatch "origin" "-2303 -1842 9" "angle" "-175"
+    spawn info_player_deathmatch "origin" "-2210 -3726 -29" "angle" "-92"
+    spawn info_player_deathmatch "origin" "-1142 -4566 -157" "angle" "92"
+    spawn info_player_deathmatch "origin" "-1071 -3164 -37" "angle" "40"
+    spawn info_player_deathmatch "origin" "-132 -3426 -109" "angle" "180"
+    spawn info_player_deathmatch "origin" "81 -2171 -76" "angle" "-180"
+    spawn info_player_deathmatch "origin" "-1 -997 147" "angle" "-142"
+    spawn info_player_deathmatch "origin" "-1030 -1343 -117" "angle" "-90"
+    spawn info_player_deathmatch "origin" "-1314 -813 93" "angle" "-180"
+    spawn info_player_deathmatch "origin" "-1901 -2683 -45" "angle" "18"
+    spawn info_player_deathmatch "origin" "129 -3507 -116" "angle" "90"
+    spawn info_player_deathmatch "origin" "-4053 -803 10" "angle" "90"
+    spawn info_player_deathmatch "origin" "-2298 805 18" "angle" "-129"
+    spawn info_player_deathmatch "origin" "-2907 -2052 19" "angle" "-134"
+    spawn info_player_deathmatch "origin" "701 -2575 125" "angle" "125"
+
+    $cp1_bomb1 remove
+    $cp1_bomb2 remove
+    $cp1_bomb3 remove
+    $cp2_bomb1 remove
+    $cp2_bomb2 remove
+    $cp2_bomb3 remove
+    $explosion_speaker1 remove
+    $explosion_speaker2 remove
+    $cp1_crates1 remove
+    $exploderchunk remove
+    $explodersmashed remove
+    $objective1_fireball1 remove
+    $objective1_fireball2 remove
+    $objective1_fireball3 remove
+    $objective1_fireball4 remove
+    $objective1_fireball5 remove
+    $objective1_fireball6 remove
+    $objective1_fireball7 remove
+    $spotlight remove
+    $spotpath1_1 remove
+    $spotpath1_2 remove
+
+    level waittill prespawn
+
+    level.script = maps/m6l2a.scr
+    exec global/ambient.scr m6l2a
+    exec global/door_locked.scr::lock
+    exec global/m6l2a_openportals.scr
+    soundtrack music/m6l2a.mus
+
+    level.farplane = 3000
+    level.farplane_color = ".1 .1 .2"
+    $world farplane level.farplane
+    $world farplane_color level.farplane_color
+
+    setcvar "cg_rain_shader" "textures/snow"
+    setcvar "cg_rain_numshaders" "12"
+    setcvar "cg_rain_speed" "240"
+    setcvar "cg_rain_speed_vary" "100"
+    setcvar "cg_rain_min_dist" "3072"
+    setcvar "cg_rain_length" "2"
+    setcvar "cg_rain_width" "2"
+    setcvar "cg_rain_density" ".4"
+    setcvar "cg_rain_slant" "300"
+    setcvar "cg_rain" "1"
+
+    level waittill spawn
+
+    exec global/m6l2a_stairs.scr ( -2848 -1225 16 ) 90 16 1
+    exec global/m6l2a_stairs.scr ( -2710 -1193 16 ) -90 16 1
+
+    local.blocker = spawn script_model
+    local.blocker model "static/barbwire.tik"
+    local.blocker.origin = ( -3713.60 -3232.27 0.12 )
+    local.blocker.angle = 179.21
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn script_model
+    local.blocker model "static/barbwire.tik"
+    local.blocker.origin = ( 811 -2516 112 )
+    local.blocker.angle = 0
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn script_model
+    local.blocker model "static/wardrobe.tik"
+    local.blocker.origin = ( 394.80 -3700.46 -127 )
+    local.blocker.angle = -179.94
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn fx/dummy.tik
+    local.blocker.origin = ( -2470 -1233 216 )
+    local.blocker setsize ( -30 -30 0 ) ( 30 30 92 )
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn fx/dummy.tik
+    local.blocker.origin = ( -3446 -1233 215 )
+    local.blocker setsize ( -30 -30 0 ) ( 30 30 92 )
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn fx/dummy.tik
+    local.blocker.origin = ( -1761 -2630 120 )
+    local.blocker setsize ( -30 -30 0 ) ( 30 30 92 )
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn fx/dummy.tik
+    local.blocker.origin = ( -3286 -603 0 )
+    local.blocker setsize ( -30 -30 0 ) ( 30 30 130 )
+    local.blocker solid
+    local.blocker nodamage
+
+    local.blocker = spawn fx/dummy.tik
+    local.blocker.origin = ( -3406 -4 0 )
+    local.blocker setsize ( -30 -30 0 ) ( 30 30 130 )
+    local.blocker solid
+    local.blocker nodamage
+end
+
+alarm_player_reset:
+end
+
+cp1_bombplant1:
+end
+
+cp1_bombplant2:
+end
+
+cp1_bombplant3:
+end
+
+cp2_bombplant1:
+end
+
+cp2_bombplant2:
+end
+
+cp2_bombplant3:
+end
+
+m6l2a_changelevel:
+end
+
+scene3_spawn1_terminate:
+end
+
+objective2_alarm:
+end
+
+alarm_control:
+end
+
+radio2_operator_alarmnode:
+end
+
+locked_gate_sound:
+end
+
+locked_iron_gate_sound:
+end
+
+alarmer:
+end
+
+farplane_near:
+    level.farplane = 1600
+    $world farplane level.farplane
+end
+
+farplane_far:
+    level.farplane = 2400
+    $world farplane level.farplane
+end
+
+piano:
+    $pianospeaker playsound moh_piano
+end
+
+cello:
+    $cellospeaker playsound moh_cello
+end

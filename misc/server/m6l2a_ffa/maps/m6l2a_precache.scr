@@ -1,0 +1,23 @@
+// Multiplayer weapons used by the base game.
+cache models/weapons/colt45.tik
+cache models/weapons/p38.tik
+cache models/weapons/silencedpistol.tik
+cache models/weapons/m1_garand.tik
+cache models/weapons/kar98.tik
+cache models/weapons/kar98sniper.tik
+cache models/weapons/springfield.tik
+cache models/weapons/thompsonsmg.tik
+cache models/weapons/mp40.tik
+cache models/weapons/mp44.tik
+cache models/weapons/bar.tik
+cache models/weapons/bazooka.tik
+cache models/weapons/panzerschreck.tik
+cache models/weapons/shotgun.tik
+cache models/weapons/m2frag_grenade.tik
+cache models/weapons/steilhandgranate.tik
+
+// Models added by the multiplayer conversion.
+cache models/static/cratelid2.tik
+cache models/static/barbwire.tik
+cache models/static/wardrobe.tik
+cache models/fx/dummy.tik

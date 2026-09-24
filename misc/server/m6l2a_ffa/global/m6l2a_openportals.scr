@@ -1,0 +1,21 @@
+main:
+    local.portal = spawn script_object
+    local.portal setsize ( -16 -16 0 ) ( 16 16 92 )
+
+    local.portal.origin = ( 1660 -3008 384 )
+    local.portal openportal
+    local.portal.origin = ( 12 -3728 -64 )
+    local.portal openportal
+    local.portal.origin = ( 160 -3300 -64 )
+    local.portal openportal
+    local.portal.origin = ( -512 -3628 -56 )
+    local.portal openportal
+    local.portal.origin = ( -3132 -2736 72 )
+    local.portal openportal
+    local.portal.origin = ( -220 -2080 -24 )
+    local.portal openportal
+    local.portal.origin = ( -204 -2547 -88 )
+    local.portal openportal
+
+    local.portal remove
+end

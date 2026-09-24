@@ -434,6 +434,11 @@ static int bLoadForMap(char *psMapsBuffer, const char *name)
             return true;
         }
 
+        // "dm" aliases are required when a single-player map is hosted in multiplayer.
+        if (g_gametype->integer != GT_SINGLE_PLAYER && !Q_stricmp(token, "dm")) {
+            return true;
+        }
+
         token = COM_Parse(&psMapsBuffer);
     }
 

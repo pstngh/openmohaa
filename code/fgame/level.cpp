@@ -1121,6 +1121,7 @@ void Level::SpawnEntities(char *entities, int svsTime)
 {
     int         inhibit, radnum = 0, count = 0;
     const char *value;
+    bool        m6l2aDeathmatch;
     SpawnArgs   args;
     Listener   *listener;
     Entity     *ent;
@@ -1168,8 +1169,17 @@ void Level::SpawnEntities(char *entities, int svsTime)
 
     // parse ents
     inhibit = 0;
+    m6l2aDeathmatch = g_gametype->integer != GT_SINGLE_PLAYER && !Q_stricmp(mapname.c_str(), "m6l2a");
 
     for (entities = args.Parse(entities); entities != NULL; entities = args.Parse(entities)) {
+        if (m6l2aDeathmatch) {
+            value = args.getArg("classname");
+            if (value && (!Q_stricmp(value, "func_rotatingdoor") || !Q_stricmp(value, "info_player_start"))) {
+                inhibit++;
+                continue;
+            }
+        }
+
         // remove things (except the world) from different skill levels or deathmatch
         spawnflags = 0;
         value      = args.getArg("spawnflags");
