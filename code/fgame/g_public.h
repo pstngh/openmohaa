@@ -31,7 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Version 12 is >= 1.10
 // Version 15 is >= 2.0
 // Version 16 adds server-side registration for simulated clients
-#define GAME_API_VERSION 16
+// Version 17 adds a connected-human count for the regular-bot fill
+#define GAME_API_VERSION 17
 
 // entity->svFlags
 // the server does not know how to interpret most of the values
@@ -506,6 +507,10 @@ typedef struct gameImport_s {
 
     // Added in API 16. Keep new imports at the end of the structure.
     void (*BotConnect)(int clientNum, const char *userinfo);
+
+    // Added in API 17. Humans in real slots from connecting through active,
+    // so clients still loading after a map change are included.
+    unsigned int (*GetNumConnectedHumans)(void);
 
 } game_import_t;
 

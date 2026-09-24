@@ -137,7 +137,7 @@ void NavigationMapExtension_Ladders::Handle(Container<offMeshNavigationPoint>& p
             point.bidirectional = true;
             point.radius        = NavigationMapConfiguration::agentRadius;
             point.area          = RECAST_AREA_LADDER;
-            point.flags         = RECAST_POLYFLAG_WALKABLE;
+            point.flags         = RECAST_POLYFLAG_WALKABLE | RECAST_POLYFLAG_LADDER;
 
             points.AddObject(point);
         }

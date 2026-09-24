@@ -270,6 +270,13 @@ extern cvar_t *g_obituarylocation;
 extern cvar_t *sv_scriptfiles;
 
 extern cvar_t *sv_numbots;
+extern cvar_t *sv_maxregularbots;
+extern cvar_t *sv_regularbot_minplayers;
+extern cvar_t *sv_regularbot_damage;
+extern cvar_t *sv_regularbot_aim_reaction_ms;
+extern cvar_t *sv_regularbot_aim_latency_ms;
+extern cvar_t *sv_regularbot_aim_turnspeed;
+extern cvar_t *sv_regularbot_aim_error_deg;
 
 extern cvar_t *g_bot_allied_skin;
 extern cvar_t *g_bot_axis_skin;

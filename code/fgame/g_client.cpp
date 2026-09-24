@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 #include "player.h"
 #include "playerbot.h"
+#include "regularbot.h"
 #include "playerstart.h"
 #include "scriptmaster.h"
 #include "g_spawn.h"
@@ -840,7 +841,11 @@ void G_ClientUserinfoChanged(gentity_t *ent, const char *u)
         if (changed) {
             Q_strncpyz(fixedinfo, u, sizeof(fixedinfo));
             Info_SetValueForKey(fixedinfo, "name", client->pers.netname);
-            gi.SetUserinfo(clientnum, fixedinfo);
+            // Game-only regular bots sit above sv_maxclients and have no
+            // server client; SV_SetUserinfo would drop the map for them.
+            if (clientnum < maxclients->integer) {
+                gi.SetUserinfo(clientnum, fixedinfo);
+            }
             u = fixedinfo;
 
             if (announce && !(ent->r.svFlags & SVF_BOT)) {
@@ -933,6 +938,38 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
     // player queries count it exactly like a human player. Pass the userinfo
     // as fixed by the name policy so the server reports the same name.
     gi.BotConnect(clientNum, client->pers.userinfo);
+}
+
+/*
+===========
+G_RegularBotConnect
+
+Connect a game-only bot without creating a real server client. These slots
+start at sv_maxclients and therefore never enter the master-server roster.
+============
+*/
+void G_RegularBotConnect(int clientNum, qboolean firstTime, const char *userinfo)
+{
+    gentity_t *ent = &g_entities[clientNum];
+
+    ent->client   = game.clients + clientNum;
+    ent->s.number = clientNum;
+    ent->r.svFlags |= SVF_BOT;
+
+    gclient_t *client = ent->client;
+    memset(client, 0, sizeof(*client));
+
+    if (firstTime) {
+        if (!game.autosaved) {
+            G_InitClientPersistant(client, userinfo);
+        }
+    } else {
+        G_ReadClientSessionData(client);
+    }
+
+    Q_strncpyz(client->pers.ip, "localhost", sizeof(client->pers.ip));
+    client->pers.port = 0;
+    G_ClientUserinfoChanged(ent, userinfo);
 }
 
 /*
@@ -1170,12 +1207,30 @@ void G_ClientDisconnect(gentity_t *ent)
         // A configured bot removal can arrive through the server drop path.
         // Always destroy its matching controller here to avoid stale pointers.
         if (ent->r.svFlags & SVF_BOT) {
-            BotControllerManager& controllerManager = botManager.getControllerManager();
-            if (BotController *controller = controllerManager.findController(ent->entity)) {
-                gi.DPrintf("BOT: disconnecting '%s' (slot %d), controller cleanup\n", ent->client->pers.netname, (int)(ent - g_entities));
-                controllerManager.removeController(controller);
+            if (G_IsRegularBot(ent)) {
+                RegularBotController *controller = regularBotControllerManager.findController(ent->entity);
+                if (controller) {
+                    gi.DPrintf(
+                        "REGULARBOT: disconnecting '%s' (game-only slot %d), controller cleanup\n",
+                        ent->client->pers.netname,
+                        (int)(ent - g_entities)
+                    );
+                    regularBotControllerManager.removeController(controller);
+                } else {
+                    gi.DPrintf(
+                        "REGULARBOT: WARNING disconnecting '%s' (slot %d) but no controller found\n",
+                        ent->client->pers.netname,
+                        (int)(ent - g_entities)
+                    );
+                }
             } else {
-                gi.DPrintf("BOT: WARNING disconnecting '%s' (slot %d) but no controller found\n", ent->client->pers.netname, (int)(ent - g_entities));
+                BotControllerManager& controllerManager = botManager.getControllerManager();
+                if (BotController *controller = controllerManager.findController(ent->entity)) {
+                    gi.DPrintf("BOT: disconnecting '%s' (slot %d), controller cleanup\n", ent->client->pers.netname, (int)(ent - g_entities));
+                    controllerManager.removeController(controller);
+                } else {
+                    gi.DPrintf("BOT: WARNING disconnecting '%s' (slot %d) but no controller found\n", ent->client->pers.netname, (int)(ent - g_entities));
+                }
             }
         }
 

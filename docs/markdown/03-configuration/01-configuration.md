@@ -120,18 +120,18 @@ This feature is passive: it only checks the team sizes when someone tries to joi
 
 ### Bots
 
-OpenMoHAA multiplayer bots occupy normal client slots and are reported as players to the master server. This server variant gives them synthetic player-like pings.
+This server variant has two independent bot populations. Existing Roomba bots
+keep their original behavior, slots, names, and public-player reporting. The
+optional regular bots use a separate controller and separate game-only slots.
 
-> [!NOTE]
-> Bots work best on maps without dynamic objects. Currently, they have difficulty getting around obstacles such as vehicles placed in the middle of maps.
+#### Permanent Roomba bots
 
 Set `sv_numbots` to the exact permanent bot count. The value is capped at
 `sv_maxclients`; connecting humans never reduce it. Reserve enough client slots
-for both groups.
+for both humans and Roombas. Roombas are reported as normal players to the
+master server and have synthetic player-like pings.
 
-For more settings, see this [documentation](./03-configuration-bots.md).
-
-Bots can be spawned with a name, by setting `g_botx_name` variables where `x` is the bot number:
+Set Roomba names with `g_botx_name`, where `x` is the zero-based bot number:
 
 ```cpp
 set g_bot0_name customname // The first bot spawned will be named customname
@@ -149,6 +149,46 @@ set sv_numbots 5
 > [!NOTE]
 > These melee-only roomba bots do not use the navigation mesh, so no Recast
 > build or navigation package is required.
+
+#### Regular SMG bots
+
+Regular bots navigate, strafe, lean in the strafe direction, and use only the
+Allied or Axis SMG. They appear in the in-game scoreboard with `bot` instead of
+a numeric ping. Their game-only slots are above `sv_maxclients`, so they do not
+consume human slots and do not appear in the master-server player roster.
+
+```cpp
+set sv_maxregularbots 7 // Reserved capacity and maximum; set before loading the map
+set sv_regularbot_minplayers 12 // Fill total population to 12 when capacity permits
+set sv_regularbot_damage 100 // Bullet damage percentage, from 0 through 100
+set sv_regularbot_aim_reaction_ms 350 // Delay before reacting to a newly acquired enemy
+set sv_regularbot_aim_latency_ms 120 // Continuous lag while following enemy movement
+set sv_regularbot_aim_turnspeed 220 // Maximum tracking turn rate in degrees per second
+set sv_regularbot_aim_error_deg 2.5 // Maximum slowly drifting angular error
+```
+
+`sv_maxregularbots` is latched. The sum of `sv_maxclients` and
+`sv_maxregularbots` cannot exceed the engine limit of 64.
+`sv_regularbot_minplayers` counts humans and real-slot Roombas, then adds only
+enough regular bots to reach the requested total, capped by
+`sv_maxregularbots`. Humans count from the moment they connect, and no regular
+bots run while no human is connected. The population, damage, and all four aim
+settings can be changed while the map is running. Aim settings do not disable
+strafing or matched lean behavior.
+
+Set optional names with `g_regularbotx_name`:
+
+```cpp
+set g_regularbot0_name "Charlie"
+set g_regularbot1_name "Baker"
+```
+
+The default `sv_maxregularbots 0` avoids loading or updating Recast navigation.
+Enabling capacity builds the navigation mesh once when the map loads; frame
+updates run only while at least one regular bot exists.
+
+For the complete distinction and tuning details, see
+[Bot settings](./03-configuration-bots.md).
 
 #### Known issues with bots
 

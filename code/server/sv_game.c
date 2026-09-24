@@ -1734,6 +1734,21 @@ void SV_GameKickClientForReason( int clientNum, const char *reason ) {
 	SV_KickClientForReason( svs.clients + clientNum, reason, qfalse );
 }
 
+static unsigned int SV_GameGetNumConnectedHumans(void)
+{
+	unsigned int count = 0;
+	int i;
+
+	for ( i = 0; i < svs.iNumClients; i++ ) {
+		if ( svs.clients[i].state >= CS_CONNECTED
+			&& svs.clients[i].netchan.remoteAddress.type != NA_BOT ) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
 unsigned int PF_SV_Client_NumPendingCommands(int clientNum)
 {
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
@@ -1972,6 +1987,7 @@ void SV_InitGameProgs( void ) {
     import.Client_MaxPendingCommands	= PF_SV_Client_MaxPendingCommands;
 
     import.BotConnect                   = SV_BotConnect;
+    import.GetNumConnectedHumans        = SV_GameGetNumConnectedHumans;
 
 	ge = Sys_GetGameAPI( &import );
 
@@ -2015,4 +2031,3 @@ qboolean SV_GameCommand( void ) {
 
 	return ge->ConsoleCommand();
 }
-

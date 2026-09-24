@@ -52,3 +52,4 @@ namespace NavigationMapConfiguration
 // Polyflags
 static constexpr unsigned int RECAST_POLYFLAG_WALKABLE = (1 << 0);
 static constexpr unsigned int RECAST_POLYFLAG_BUSY     = (1 << 1);
+static constexpr unsigned int RECAST_POLYFLAG_LADDER   = (1 << 2);

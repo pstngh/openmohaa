@@ -24,11 +24,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 #include "entity.h"
 #include "playerbot.h"
+#include "regularbot.h"
 #include "g_bot.h"
 
 static saved_bot_t *saved_bots     = NULL;
 static unsigned int num_saved_bots = 0;
 static unsigned int botId          = 0;
+static unsigned int regularBotId   = 0;
 
 Container<str> alliedModelList;
 Container<str> germanModelList;
@@ -38,6 +40,7 @@ saved_bot_t::saved_bot_t()
 {}
 
 static unsigned int G_GetNumBotsToSpawn();
+static unsigned int G_GetNumRegularBotsToSpawn();
 static bool G_IsBot(gentity_t *ent);
 
 /*
@@ -175,6 +178,22 @@ void G_BotBegin(gentity_t *ent)
 
 /*
 ===========
+G_RegularBotBegin
+
+Begin a regular bot in an extra, game-only client slot.
+============
+*/
+static void G_RegularBotBegin(gentity_t *ent)
+{
+    level.spawn_entnum = ent->s.number;
+    Player *player     = new Player;
+
+    G_ClientBegin(ent, NULL);
+    regularBotControllerManager.createController(player);
+}
+
+/*
+===========
 G_BotThink
 
 Called each server frame to make bots think
@@ -223,7 +242,7 @@ static gentity_t *G_GetFirstBot()
     gentity_t   *ent;
     unsigned int n;
 
-    for (n = 0; n < game.maxclients; n++) {
+    for (n = 0; n < (unsigned int)maxclients->integer; n++) {
         ent = &g_entities[n];
         if (G_IsBot(ent)) {
             return ent;
@@ -242,7 +261,35 @@ Return whether or not the gentity is a bot
 */
 static bool G_IsBot(gentity_t *ent)
 {
-    return ent->inuse && ent->client && (ent->r.svFlags & SVF_BOT);
+    return ent >= g_entities && ent < &g_entities[maxclients->integer]
+        && ent->inuse && ent->client && (ent->r.svFlags & SVF_BOT);
+}
+
+bool G_IsRegularBot(const gentity_t *ent)
+{
+    return ent >= g_entities + maxclients->integer && ent < g_entities + game.maxclients
+        && ent->inuse && ent->client && (ent->r.svFlags & SVF_BOT);
+}
+
+static gentity_t *G_FindFreeEntityForRegularBot()
+{
+    for (int i = maxclients->integer; i < game.maxclients; i++) {
+        gentity_t *ent = &g_entities[i];
+        if (!ent->inuse && ent->client && !ent->client->pers.userinfo[0]) {
+            return ent;
+        }
+    }
+    return NULL;
+}
+
+static gentity_t *G_GetFirstRegularBot()
+{
+    for (int i = maxclients->integer; i < game.maxclients; i++) {
+        if (G_IsRegularBot(&g_entities[i])) {
+            return &g_entities[i];
+        }
+    }
+    return NULL;
 }
 
 /*
@@ -347,6 +394,55 @@ gentity_t *G_AddBot(const bot_info_t *info)
     return e;
 }
 
+static gentity_t *G_AddRegularBot()
+{
+    gentity_t *ent = G_FindFreeEntityForRegularBot();
+    if (!ent) {
+        gi.DPrintf("REGULARBOT: no free game-only bot slot\n");
+        return NULL;
+    }
+
+    const int clientNum = ent - g_entities;
+    char      botName[MAX_NETNAME];
+    char      userinfo[MAX_INFO_STRING] {0};
+
+    regularBotId++;
+
+    const unsigned int index =
+        regularBotControllerManager.getControllers().NumObjects();
+    cvar_t *nameCvar = gi.Cvar_Find(va("g_regularbot%u_name", index));
+    if (nameCvar && nameCvar->string[0]) {
+        Q_strncpyz(botName, nameCvar->string, sizeof(botName));
+    } else {
+        Com_sprintf(botName, sizeof(botName), "smgbot%u", regularBotId);
+    }
+
+    Info_SetValueForKey(userinfo, "name", botName);
+    Info_SetValueForKey(userinfo, "dm_playermodel", G_GetRandomAlliedPlayerModel());
+    Info_SetValueForKey(userinfo, "dm_playergermanmodel", G_GetRandomGermanPlayerModel());
+    Info_SetValueForKey(userinfo, "fov", "80");
+    Info_SetValueForKey(userinfo, "ip", "localhost");
+
+    G_RegularBotConnect(clientNum, qtrue, userinfo);
+    G_RegularBotBegin(ent);
+
+    gi.DPrintf(
+        "REGULARBOT: added '%s' in game-only slot %d (hidden from master roster)\n",
+        botName,
+        clientNum
+    );
+    return ent;
+}
+
+static void G_AddRegularBots(unsigned int num)
+{
+    for (unsigned int i = 0; i < num; i++) {
+        if (!G_AddRegularBot()) {
+            break;
+        }
+    }
+}
+
 /*
 ===========
 G_RestoreBot
@@ -414,6 +510,35 @@ static void G_RemoveBot(gentity_t *ent)
     gi.DropClient(clientNum, "removed");
 }
 
+static void G_RemoveRegularBot(gentity_t *ent)
+{
+    gi.DPrintf(
+        "REGULARBOT: removing '%s' from game-only slot %d\n",
+        ent->client ? ent->client->pers.netname : "?",
+        (int)(ent - g_entities)
+    );
+
+    // Extra bot slots do not have a matching server client to drop.
+    G_ClientDisconnect(ent);
+}
+
+static void G_RemoveRegularBots(unsigned int num)
+{
+    unsigned int removed = 0;
+
+    // Remove the highest configured index first so g_regularbotN_name remains
+    // stable when the target is lowered and raised again.
+    for (int i = game.maxclients - 1; i >= maxclients->integer && removed < num; i--) {
+        gentity_t *ent = &g_entities[i];
+        if (!G_IsRegularBot(ent)) {
+            continue;
+        }
+
+        G_RemoveRegularBot(ent);
+        removed++;
+    }
+}
+
 /*
 ===========
 G_RemoveBots
@@ -430,6 +555,23 @@ static void G_RemoveBots(unsigned int num)
 
     teamCount[0] = dmManager.GetTeamAllies()->m_players.NumObjects();
     teamCount[1] = dmManager.GetTeamAxis()->m_players.NumObjects();
+
+    // Regular bots are a separate population and must not influence which
+    // real-slot Roomba is removed.
+    for (n = maxclients->integer; n < (unsigned int)game.maxclients; n++) {
+        gentity_t *ent = &g_entities[n];
+        if (!G_IsRegularBot(ent) || !ent->entity) {
+            continue;
+        }
+
+        Player *player = static_cast<Player *>(ent->entity);
+        if (player->GetTeam() == TEAM_ALLIES || player->GetTeam() == TEAM_AXIS) {
+            const unsigned int teamIndex = player->GetTeam() - TEAM_ALLIES;
+            if (teamCount[teamIndex]) {
+                teamCount[teamIndex]--;
+            }
+        }
+    }
 
     while (!bNoMoreToRemove) {
         bNoMoreToRemove = true;
@@ -481,6 +623,11 @@ G_GetNumBots
 unsigned int G_GetNumBots()
 {
     return botManager.getControllerManager().getControllers().NumObjects();
+}
+
+unsigned int G_GetNumRegularBots()
+{
+    return regularBotControllerManager.getControllers().NumObjects();
 }
 
 /*
@@ -575,6 +722,36 @@ static unsigned int G_GetNumBotsToSpawn()
     return Q_min(requested, maxclients->integer);
 }
 
+static unsigned int G_GetNumRegularBotsToSpawn()
+{
+    const int capacity = Q_max(sv_maxregularbots->integer, 0);
+
+    // Without capacity no regular bot can run, so skip the per-frame count
+    // unless a changed sv_regularbot_minplayers still needs reporting below.
+    if (!capacity && !sv_regularbot_minplayers->modified) {
+        return 0;
+    }
+
+    // Count humans from the moment they connect, so those still loading
+    // after a map change are not first filled with bots and then removed.
+    const int humans         = (int)gi.GetNumConnectedHumans();
+    const int realPopulation = humans + (int)G_GetNumBots();
+    const int fillPopulation = Q_max(sv_regularbot_minplayers->integer, 0);
+    // Nobody can see regular bots on an empty server, so none run there.
+    const int requested = humans ? Q_max(fillPopulation - realPopulation, 0) : 0;
+    const int target    = Q_min(requested, capacity);
+
+    if (requested > capacity && sv_regularbot_minplayers->modified) {
+        gi.Printf(
+            "REGULARBOT: population fill needs %d regular bot(s), limited to %d by sv_maxregularbots\n",
+            requested,
+            target
+        );
+    }
+
+    return target;
+}
+
 /*
 ===========
 G_RestartBots
@@ -598,10 +775,21 @@ void G_RestartBots()
         G_RemoveBot(bot);
     }
 
+    while (true) {
+        gentity_t *bot = G_GetFirstRegularBot();
+        if (!bot) {
+            break;
+        }
+
+        G_RemoveRegularBot(bot);
+    }
+
     // Defensive cleanup in case a controller wasn't linked to an entity.
     botManager.Cleanup();
+    regularBotControllerManager.Cleanup();
 
-    botId = 0;
+    botId        = 0;
+    regularBotId = 0;
 }
 
 /*
@@ -616,8 +804,10 @@ void G_ResetBots()
     gi.DPrintf("BOT: resetting bots, cleaning up and resetting botId\n");
 
     botManager.Cleanup();
+    regularBotControllerManager.Cleanup();
 
-    botId = 0;
+    botId        = 0;
+    regularBotId = 0;
 }
 
 /*
@@ -642,6 +832,9 @@ Called each frame to manage bots
 void G_BotFrame()
 {
     botManager.Frame();
+    if (regularBotControllerManager.getControllers().NumObjects()) {
+        regularBotControllerManager.ThinkControllers();
+    }
 }
 
 /*
@@ -668,6 +861,8 @@ void G_SpawnBots()
 {
     unsigned int numBotsToSpawn;
     unsigned int numSpawnedBots;
+    unsigned int numRegularBotsToSpawn;
+    unsigned int numSpawnedRegularBots;
 
     if (g_gametype->integer == GT_SINGLE_PLAYER) {
         // No bot on single-player
@@ -688,5 +883,28 @@ void G_SpawnBots()
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
         sv_numbots->modified = false;
+    }
+
+    numRegularBotsToSpawn = G_GetNumRegularBotsToSpawn();
+    numSpawnedRegularBots = regularBotControllerManager.getControllers().NumObjects();
+
+    if (numRegularBotsToSpawn > numSpawnedRegularBots) {
+        gi.DPrintf(
+            "REGULARBOT: spawning %d bot(s) (target=%d, current=%d)\n",
+            numRegularBotsToSpawn - numSpawnedRegularBots,
+            numRegularBotsToSpawn,
+            numSpawnedRegularBots
+        );
+        G_AddRegularBots(numRegularBotsToSpawn - numSpawnedRegularBots);
+    } else if (numRegularBotsToSpawn < numSpawnedRegularBots) {
+        gi.DPrintf(
+            "REGULARBOT: removing %d bot(s) (target=%d, current=%d)\n",
+            numSpawnedRegularBots - numRegularBotsToSpawn,
+            numRegularBotsToSpawn,
+            numSpawnedRegularBots
+        );
+        G_RemoveRegularBots(numSpawnedRegularBots - numRegularBotsToSpawn);
+    } else {
+        sv_regularbot_minplayers->modified = false;
     }
 }

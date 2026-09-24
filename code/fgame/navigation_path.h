@@ -37,6 +37,7 @@ struct PathSearchParameter {
     float   leashDist;
     int     fallHeight;
     Entity *entity;
+    bool    allowLadders = true;
 };
 
 class IPather : public LightClass

@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "dm_manager.h"
 #include "playerstart.h"
 #include "scriptexception.h"
+#include "g_bot.h"
 
 cvar_t *g_tempaxisscore;
 cvar_t *g_tempaxiswinsinrow;
@@ -1888,6 +1889,7 @@ void DM_Manager::BuildTeamInfo_ver6(DM_Team *dmTeam)
     int     iPing = 0;
     int     iKills;
     int     iDeaths;
+    int     iNumPingPlayers = 0;
     const int iNumPlayers = dmTeam->m_players.NumObjects();
     Player *pTeamPlayer;
     char    entry[MAX_STRING_TOKENS];
@@ -1895,11 +1897,16 @@ void DM_Manager::BuildTeamInfo_ver6(DM_Team *dmTeam)
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
 
+        if (G_IsRegularBot(pTeamPlayer->edict)) {
+            continue;
+        }
+
+        iNumPingPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
     }
 
-    if (iNumPlayers > 0) {
-        iPing /= iNumPlayers;
+    if (iNumPingPlayers > 0) {
+        iPing /= iNumPingPlayers;
     }
 
     if (g_gametype->integer >= GT_TEAM_ROUNDS) {
@@ -1928,6 +1935,7 @@ void DM_Manager::BuildTeamInfo_ver15(DM_Team *dmTeam)
     int     iPing = 0;
     int     iKills;
     int     iDeaths;
+    int     iNumPingPlayers = 0;
     const int iNumPlayers = dmTeam->m_players.NumObjects();
     Player *pTeamPlayer;
     char    entry[MAX_STRING_TOKENS];
@@ -1935,11 +1943,16 @@ void DM_Manager::BuildTeamInfo_ver15(DM_Team *dmTeam)
     for (int i = iNumPlayers; i > 0; i--) {
         pTeamPlayer = dmTeam->m_players.ObjectAt(i);
 
+        if (G_IsRegularBot(pTeamPlayer->edict)) {
+            continue;
+        }
+
+        iNumPingPlayers++;
         iPing += pTeamPlayer->client->ps.ping;
     }
 
-    if (iNumPlayers > 0) {
-        iPing /= iNumPlayers;
+    if (iNumPingPlayers > 0) {
+        iPing /= iNumPingPlayers;
     }
 
     if (g_gametype->integer == GT_TEAM_ROUNDS || g_gametype->integer == GT_OBJECTIVE || g_gametype->integer == GT_TOW) {
@@ -1958,7 +1971,7 @@ void DM_Manager::BuildTeamInfo_ver15(DM_Team *dmTeam)
                 "%i %i %i %i %i \"\" %i ",
                 -1,
                 dmTeam->m_teamnumber,
-                dmTeam->m_players.NumObjects(),
+                iNumPlayers,
                 iKills,
                 iDeaths,
                 iPing
@@ -2004,7 +2017,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                va("%d", pTeamPlayer->client->ps.ping)
+                G_IsRegularBot(pTeamPlayer->edict) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
             );
         } else {
             Com_sprintf(
@@ -2015,7 +2028,7 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                va("%d", pTeamPlayer->client->ps.ping)
+                G_IsRegularBot(pTeamPlayer->edict) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
             );
         }
 

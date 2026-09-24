@@ -38,6 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "smokesprite.h"
 #include "playerbot.h"
 #include "g_bot.h"
+#include "navigation_recast_load.h"
 
 #include "../corepp/tiki.h"
 
@@ -286,12 +287,15 @@ void G_InitGame(int levelTime, int randomSeed)
         LODModel.Init();
     }
 
+    game.maxclients = maxclients->integer;
+    if (g_gametype->integer != GT_SINGLE_PLAYER) {
+        game.maxclients += sv_maxregularbots->integer;
+    }
+
     game.maxentities = maxentities->integer;
     if (game.maxclients * 8 > maxentities->integer) {
         game.maxentities = game.maxclients * 8;
     }
-
-    game.maxclients = maxclients->integer;
 
     L_InitEvents();
 
@@ -561,6 +565,11 @@ void G_RunFrame(int levelTime, int frameTime)
         G_InitDebugStrings();
 
         PathManager.ShowNodes();
+
+        if (g_gametype->integer != GT_SINGLE_PLAYER && G_GetNumRegularBots() > 0
+            && !g_navigation_legacy->integer) {
+            G_Navigation_Frame();
+        }
 
         showentnums = (sv_showentnums->integer && (g_gametype->integer == GT_SINGLE_PLAYER || sv_cheats->integer));
 

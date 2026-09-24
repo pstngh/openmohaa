@@ -29,10 +29,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "navigation_recast_helpers.h"
 #include "entity.h"
 #include "trigger.h"
+#include "level.h"
 
 #include "DetourNavMeshQuery.h"
 
 NavigationObstacleMap navigationObstacleMap;
+
+// Milliseconds between scans for moved or removed obstacles
+static const int OBSTACLE_UPDATE_INTERVAL = 250;
 
 /**
  * @brief Iterate through polys and set flags
@@ -314,7 +318,8 @@ NavigationObstacleEntities::NavigationObstacleEntities()
 
 NavigationObstacleMap::NavigationObstacleMap()
 {
-    ents = NULL;
+    ents           = NULL;
+    nextUpdateTime = 0;
 }
 
 NavigationObstacleMap::~NavigationObstacleMap()
@@ -338,6 +343,7 @@ void NavigationObstacleMap::Init()
 
     ents = new NavigationObstacleEntities();
     tiles.Init();
+    nextUpdateTime = 0;
 }
 
 void NavigationObstacleMap::Update()
@@ -348,6 +354,14 @@ void NavigationObstacleMap::Update()
     if (!ents) {
         return;
     }
+
+    // Obstacles only reshape routes, which bots replan every 750 ms or more,
+    // so scanning every entity slot each frame buys nothing. The second test
+    // catches the level clock restarting on a same-map restart.
+    if (level.inttime < nextUpdateTime && nextUpdateTime - level.inttime <= OBSTACLE_UPDATE_INTERVAL) {
+        return;
+    }
+    nextUpdateTime = level.inttime + OBSTACLE_UPDATE_INTERVAL;
 
     for (i = 0; i < MAX_GENTITIES; i++) {
         ent = &g_entities[i];

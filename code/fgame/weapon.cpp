@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "vehicleturret.h"
 #include "debuglines.h"
 #include "g_spawn.h"
+#include "g_bot.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1428,6 +1429,7 @@ void Weapon::Shoot(Event *ev)
             {
                 Vector            vSpread;
                 float             fSpreadFactor;
+                float             fBulletDamage;
                 int               tracerFrequency;
                 SafePtr<Sentient> ownerPtr;
 
@@ -1472,6 +1474,11 @@ void Weapon::Shoot(Event *ev)
                     ownerPtr                    = turretGun->GetRemoteOwner();
                 }
 
+                fBulletDamage = bulletdamage[mode];
+                if (ownerPtr && G_IsRegularBot(ownerPtr->edict)) {
+                    fBulletDamage *= Q_clamp_float(sv_regularbot_damage->value, 0.0f, 100.0f) * 0.01f;
+                }
+
                 BulletAttack(
                     pos,
                     vBarrel,
@@ -1479,7 +1486,7 @@ void Weapon::Shoot(Event *ev)
                     right,
                     up,
                     bulletrange[mode],
-                    bulletdamage[mode],
+                    fBulletDamage,
                     bulletlarge[mode],
                     bulletknockback[mode],
                     0,

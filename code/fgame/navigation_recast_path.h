@@ -73,6 +73,7 @@ private:
     Vector      currentNodePos;
     int         lastCheckTime;
     int         traversingOffMeshLink;
+    bool        allowLadders;
 };
 
 class RecastPathMaster

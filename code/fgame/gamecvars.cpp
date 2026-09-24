@@ -270,6 +270,13 @@ cvar_t *sv_scriptfiles;
 
 // Exact number of permanent bots that should be spawned
 cvar_t *sv_numbots;
+cvar_t *sv_maxregularbots;
+cvar_t *sv_regularbot_minplayers;
+cvar_t *sv_regularbot_damage;
+cvar_t *sv_regularbot_aim_reaction_ms;
+cvar_t *sv_regularbot_aim_latency_ms;
+cvar_t *sv_regularbot_aim_turnspeed;
+cvar_t *sv_regularbot_aim_error_deg;
 cvar_t *g_bot_allied_skin;
 cvar_t *g_bot_axis_skin;
 
@@ -659,8 +666,27 @@ void CVAR_Init(void)
         g_obituarylocation = gi.Cvar_Get("g_obituarylocation", "1", 0);
     }
 
-    sv_scriptfiles = gi.Cvar_Get("sv_scriptfiles", "0", 0);
-    sv_numbots = gi.Cvar_Get("sv_numbots", "0", 0);
+    sv_scriptfiles           = gi.Cvar_Get("sv_scriptfiles", "0", 0);
+    sv_numbots               = gi.Cvar_Get("sv_numbots", "0", 0);
+    sv_maxregularbots        = gi.Cvar_Get("sv_maxregularbots", "0", CVAR_LATCH);
+    sv_regularbot_minplayers = gi.Cvar_Get("sv_regularbot_minplayers", "0", 0);
+    sv_regularbot_damage     = gi.Cvar_Get("sv_regularbot_damage", "100", 0);
+    sv_regularbot_aim_reaction_ms = gi.Cvar_Get("sv_regularbot_aim_reaction_ms", "350", 0);
+    sv_regularbot_aim_latency_ms  = gi.Cvar_Get("sv_regularbot_aim_latency_ms", "120", 0);
+    sv_regularbot_aim_turnspeed   = gi.Cvar_Get("sv_regularbot_aim_turnspeed", "220", 0);
+    sv_regularbot_aim_error_deg   = gi.Cvar_Get("sv_regularbot_aim_error_deg", "2.5", 0);
+
+    const int maxRegularBots = Q_max(MAX_CLIENTS - maxclients->integer, 0);
+    if (sv_maxregularbots->integer < 0) {
+        gi.cvar_set("sv_maxregularbots", "0");
+    } else if (sv_maxregularbots->integer > maxRegularBots) {
+        gi.cvar_set("sv_maxregularbots", va("%d", maxRegularBots));
+        gi.Printf(
+            "sv_maxregularbots exceeds the %d total game-client limit; lowering it to %d\n",
+            MAX_CLIENTS,
+            maxRegularBots
+        );
+    }
 
     g_rankedserver               = gi.Cvar_Get("g_rankedserver", "0", 0);
     g_spectatefollow_firstperson = gi.Cvar_Get("g_spectatefollow_firstperson", "0", 0);

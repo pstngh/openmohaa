@@ -104,6 +104,7 @@ private:
     // This instance is quite big so only allocate it when used
     NavigationObstacleEntities *ents;
     NavigationObstacleTiles     tiles;
+    int                         nextUpdateTime;
 };
 
 extern NavigationObstacleMap navigationObstacleMap;

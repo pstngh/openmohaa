@@ -25,10 +25,6 @@ file(GLOB_RECURSE GAME_SOURCES
 	${SOURCE_DIR}/parser/parsetree.cpp
 )
 
-# The fixed roomba controller never creates an IPather. Do not compile or link
-# the otherwise unused Recast navigation subsystem into the server game module.
-list(FILTER GAME_SOURCES EXCLUDE REGEX "/navigation_.*[.]cpp$")
-
 # Compile lexer and grammar files
 
 if (FLEX_FOUND)
@@ -95,6 +91,7 @@ if(BUILD_GAME_LIBRARIES)
 
     add_library(                ${GAME_MODULE_BINARY_BASEGAME} SHARED ${GAME_SOURCES_BASEGAME} ${BG_SOURCES} ${GAME_BINARY_SOURCES})
     target_compile_definitions( ${GAME_MODULE_BINARY_BASEGAME} PRIVATE GAME_DLL WITH_SCRIPT_ENGINE ARCHIVE_SUPPORTED)
+    target_link_libraries(      ${GAME_MODULE_BINARY_BASEGAME} PRIVATE RecastNavigation::Detour RecastNavigation::DetourCrowd RecastNavigation::Recast)
     target_link_libraries(      ${GAME_MODULE_BINARY_BASEGAME} PRIVATE ${COMMON_LIBRARIES})
     set_target_properties(      ${GAME_MODULE_BINARY_BASEGAME} PROPERTIES OUTPUT_NAME ${GAME_MODULE_BINARY})
     set_output_dirs(            ${GAME_MODULE_BINARY_BASEGAME} SUBDIRECTORY ${BASEGAME})
