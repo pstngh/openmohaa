@@ -93,6 +93,11 @@ struct BotsView: View {
 
                         Spacer(minLength: 0)
 
+                        Toggle("Fullscreen", isOn: $settings.fullscreenEnabled)
+                            .toggleStyle(.checkbox)
+                            .font(.system(size: 10))
+                            .help("Launch the game in fullscreen mode.")
+
                         Text("Resolution")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)

@@ -56,6 +56,7 @@ class LauncherSettings: ObservableObject {
     @Published var nickname: String = ""
     @Published var gameType: Int = 0
     @Published var resolutionIndex: Int = 7  // default 1920x1080
+    @Published var fullscreenEnabled: Bool = true
     @Published var bookmarks: [Bookmark] = Array(repeating: Bookmark(), count: maxBookmarks)
     @Published var clientMoveLog: Bool = false
     @Published var compassEnabled: Bool = true
@@ -164,6 +165,7 @@ class LauncherSettings: ObservableObject {
                 if let g = Int(value), g >= 0, g <= 2 { gameType = (g == 1 ? 2 : g) }
             case "resolution_index":
                 if let r = Int(value), r >= 0, r < resolutionList.count { resolutionIndex = r }
+            case "fullscreen_enabled": fullscreenEnabled = (Int(value) ?? 0) != 0
             case "client_move_log": clientMoveLog = (Int(value) ?? 0) != 0
             case "compass_enabled": compassEnabled = (Int(value) ?? 0) != 0
             // Bots tab
@@ -372,6 +374,7 @@ class LauncherSettings: ObservableObject {
         lines.append("nickname=\(nickname)")
         lines.append("game=\(gameType)")
         lines.append("resolution_index=\(resolutionIndex)")
+        lines.append("fullscreen_enabled=\(fullscreenEnabled ? 1 : 0)")
         lines.append("client_move_log=\(clientMoveLog ? 1 : 0)")
         lines.append("compass_enabled=\(compassEnabled ? 1 : 0)")
 

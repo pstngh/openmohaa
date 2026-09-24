@@ -27,6 +27,7 @@ struct ContentView: View {
         .onChange(of: settings.rconPassword) { _ in settings.save() }
         .onChange(of: settings.nickname) { _ in settings.save() }
         .onChange(of: settings.resolutionIndex) { _ in settings.save() }
+        .onChange(of: settings.fullscreenEnabled) { _ in settings.save() }
         .onChange(of: settings.clientMoveLog) { _ in settings.save() }
         .onChange(of: settings.compassEnabled) { _ in settings.save() }
         .onChange(of: scenePhase) { phase in

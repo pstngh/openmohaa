@@ -262,6 +262,7 @@ struct GameLauncher {
     }
 
     private static func appendResolutionArgs(_ args: inout [String], settings: LauncherSettings) {
+        args.append(contentsOf: ["+set", "r_fullscreen", settings.fullscreenEnabled ? "1" : "0"])
         if settings.resolutionIndex < resolutionList.count {
             let res = resolutionList[settings.resolutionIndex]
             args.append(contentsOf: ["+set", "r_mode", "\(res.rMode)"])
