@@ -43,7 +43,7 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 
 ## Remaining milestones
 
-- [ ] Restore GitHub Actions (budget and artifact storage), rebuild `main`, and install that arm64 artifact on the Mac mini M4.
+- [ ] Restore the GitHub Actions budget, rebuild `main`, and install that arm64 artifact on the Mac mini M4.
 - [ ] Smoke-test at 1280x960 and one widescreen resolution:
   - Connect with bookmark switching; a changed address must clear or swap the credentials.
   - A nickname or password containing `+`, `"`, `;`, or `//` shows the alert instead of launching.
@@ -93,4 +93,4 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 
 ## Next action
 
-Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Restore GitHub Actions by raising the budget or waiting for it to reset, re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.

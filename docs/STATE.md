@@ -28,7 +28,7 @@ A second audit of the rewritten `main` (`fa50e60`) the same day left D012-D014 a
 - Dead macOS packaging code is removed without changing the package.
 - The launcher saves whenever a published setting changes, replacing 38 per-field save handlers, and unused pak-scanner and card code is gone.
 
-Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce a package: the account's Actions budget is used up, so macOS jobs are refused, and artifact storage is full, so even a successful build cannot upload its package.
+Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce a package because the account's Actions budget is used up, so macOS jobs are refused before they start.
 
 ## Completed
 
@@ -53,7 +53,7 @@ Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce
 ## Blockers and unknowns
 
 - Windows and Linux cannot provide arm64 Swift compilation or visual/runtime validation; the Builds workflow compiles the launcher, and runtime behavior needs the Mac.
-- The GitHub Actions budget is used up, so macOS jobs do not start until it resets or the spending limit is raised, and the artifact storage quota is full, so no downloadable package exists for the current `main` until old artifacts are deleted or expire.
+- The GitHub Actions budget is used up, so macOS jobs do not start until it resets or the spending limit is raised; no downloadable package exists for the current `main` until a build can run.
 - `upload-artifact` documents that file permissions are not preserved; whether the downloaded apps and `install.command` stay executable is unverified.
 - Public-server telemetry requires an owner-played session; raw captures stay outside Git.
 
@@ -78,4 +78,4 @@ Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce
 
 ## Next action
 
-Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Restore GitHub Actions by raising the budget or waiting for it to reset, re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
