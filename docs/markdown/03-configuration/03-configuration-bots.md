@@ -12,8 +12,9 @@ before allocating game clients. The macOS launcher keeps `sv_maxclients` at
 `2` and therefore accepts `1` through `62` bots.
 
 With the default `sv_sharedbots 0`, bot capacity is allocated when the map
-starts. Bots can be removed and added back live, but increasing `sv_bots`
-beyond that map's startup capacity requires a map restart.
+loads. Bots can be removed and added back live within that capacity. A higher
+`sv_bots` is kept and takes effect the next time a map is loaded with `map`;
+`map_restart` keeps the current capacity.
 
 ### Launcher deathmatch rules
 

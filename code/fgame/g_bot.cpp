@@ -970,15 +970,6 @@ void G_SpawnBots()
         return;
     }
 
-    const unsigned int botCapacity = G_GetBotCapacity();
-    if (sv_bots->integer > (int)botCapacity) {
-        gi.Printf(
-            "sv_bots exceeds this map's allocated bot capacity, lowering the value to %u\n",
-            botCapacity
-        );
-        gi.cvar_set("sv_bots", va("%u", botCapacity));
-    }
-
     numBotsToSpawn = G_GetNumBotsToSpawn();
     numSpawnedBots = botManager.getControllerManager().getControllers().NumObjects();
 
@@ -997,6 +988,10 @@ void G_SpawnBots()
     } else if (numBotsToSpawn < numSpawnedBots) {
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
+        if (sv_bots->modified && sv_bots->integer > (int)numBotsToSpawn) {
+            // Keep the requested value: loading a map allocates that many bots
+            gi.Printf("sv_bots exceeds this map's bot capacity of %u, load a map to add more\n", numBotsToSpawn);
+        }
         sv_bots->modified = false;
     }
 }
