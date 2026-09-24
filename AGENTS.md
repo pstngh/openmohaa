@@ -25,3 +25,11 @@ builds, CI, configuration, infrastructure, deployment, generated files, or
 runtime behavior. Add no automation. Deleting the continuity files must have
 zero project effect. This restriction does not prevent normal project changes
 during a separate, user-authorized development task.
+
+## Git workflow
+
+The owner lets agents work directly on `main`. Commit and push to
+`origin main`, even when a session names its own working branch, and create
+no branches or pull requests unless asked. Rebase onto `origin/main` before
+pushing so history stays linear. Rewrite published history (amend, rebase,
+force-push) only when the owner asks, and then with `--force-with-lease`.

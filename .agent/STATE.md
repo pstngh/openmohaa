@@ -6,8 +6,8 @@ Reconciled: 2026-09-24
 
 None in progress. On 2026-09-24, with the owner's approval and after a second
 audit of every commit after `a2f3401`, `main` was rewritten so each fork
-commit carries its own fixes (D-010). Next work is the owner's pick from the
-recommendations below.
+commit carries its own fixes (D-010). Agents now work directly on `main`
+(AGENTS.md). Next work is the owner's pick from the recommendations below.
 
 ## Why this serves the goal
 
@@ -19,8 +19,8 @@ correct on its own.
 
 ## Status
 
-`main` is 18 commits on `a2f3401` (upstream): the upstream `Info_RemoveKey`
-fix, the 16 fork commits, and this notes commit. Nothing is deployed.
+`main` is `a2f3401` (upstream) followed by the upstream `Info_RemoveKey` fix,
+the 16 fork commits and the agent notes. Nothing is deployed.
 
 ## History
 
@@ -32,11 +32,9 @@ fix, the 16 fork commits, and this notes commit. Nothing is deployed.
   listed under Completed.
 - Owner's choices: Claude is author and committer of every commit after
   `a2f3401`, dated 2026-09-24 in history order, with no co-author trailers.
-  `main` is the only branch; `backup/main-pre-rewrite` and the claude branch
-  are deleted once the new `main` is verified.
-- The `dev` tag still points at the old continuity commit `43d3ce2`, which
-  keeps the old history reachable. This environment cannot push tags, so the
-  owner moves it (see Exact next action).
+  `main` is the only branch: the owner deleted `backup/main-pre-rewrite` and
+  the claude branch and moved `dev` to the rewritten continuity commit
+  `ee341e1`, so no ref reaches the old history any more.
 - Clones and deployed checkouts made before the rewrite must reset to the new
   `main`.
 
@@ -115,8 +113,9 @@ Audit recommendations that need an owner decision or game assets:
   full, so no `out-linux-amd64` package is produced until old artifacts are
   deleted or usage is recalculated. CodeQL fails because code scanning is not
   enabled in the repository settings (since 2026-08-31, before this work).
-- This environment's git access refuses tag pushes (HTTP 403); branch pushes
-  work.
+- This environment's git access refuses tag pushes and ref deletions (HTTP
+  403); pushes to branches, including force-pushes to `main`, work. Auto mode
+  also blocks amending a commit that is already pushed.
 - The authoritative live game server is not identified; deployment is outside
   this change.
 - The SP-map findings need the map files to confirm.
@@ -142,8 +141,6 @@ Audit recommendations that need an owner decision or game assets:
 
 ## Exact next action
 
-The owner moves `dev` to the rewritten continuity commit: `git fetch origin &&
-git push --force-with-lease=refs/tags/dev:43d3ce2a0dabcb1e9c8971261fe8e185334f7f32
-origin ee341e15133c171d7b70a2e125810b1e0a24e53d:refs/tags/dev`. Then reset every existing clone and deployed
-checkout to the new `main` (after saving any local work), and deploy only from
-it, server and game module together (game API 17).
+Reset every existing clone and deployed checkout to the new `main` (after
+saving any local work), and deploy only from it, server and game module
+together (game API 17).
