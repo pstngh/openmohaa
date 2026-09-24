@@ -10771,6 +10771,7 @@ void Player::EventDMMessage(Event *ev)
     size_t           iStringLength;
     const char      *pTmpInstantMsg = "";
     qboolean         bInstaMessage  = qfalse;
+    qboolean         bServerSound   = qfalse;
     AliasListNode_t *pSoundAlias    = NULL;
     const char      *pszAliasname   = NULL;
     str              sAliasName;
@@ -10854,6 +10855,12 @@ void Player::EventDMMessage(Event *ev)
         if (!pszAliasname || !pSoundAlias) {
             return;
         }
+
+        // Stock clients do not load the "dm" voice aliases on single-player
+        // map names. Send the resolved sample on those FFA maps instead.
+        bServerSound = g_gametype->integer == GT_FFA
+                        && Q_stricmpn(level.mapname.c_str(), "dm", 2)
+                        && Q_stricmpn(level.mapname.c_str(), "obj", 3);
 
         n1 = sToken[1] - '1';
         n2 = sToken[2] - '1';
@@ -11077,6 +11084,23 @@ void Player::EventDMMessage(Event *ev)
         Q_strcat(szPrintString, sizeof(szPrintString), "\n\"");
 
         if (!IsSpectator() || g_spectate_allow_full_chat->integer) {
+            if (bServerSound) {
+                vec3_t soundOrigin;
+
+                m_vViewPos.copyTo(soundOrigin);
+                gi.Sound(
+                    &soundOrigin,
+                    entnum,
+                    pSoundAlias->channel,
+                    pszAliasname,
+                    G_Random() * pSoundAlias->volumeMod + pSoundAlias->volume,
+                    pSoundAlias->dist,
+                    G_Random() * pSoundAlias->pitchMod + pSoundAlias->pitch,
+                    pSoundAlias->maxDist,
+                    pSoundAlias->streamed
+                );
+            }
+
             for (i = 0; i < game.maxclients; i++) {
                 ent = &g_entities[i];
 
@@ -11086,7 +11110,7 @@ void Player::EventDMMessage(Event *ev)
 
                 gi.SendServerCommand(i, "%s\n", szPrintString);
 
-                if (bInstaMessage) {
+                if (bInstaMessage && !bServerSound) {
                     if (ent->r.svFlags & SVF_BOT) {
                         continue;
                     }
