@@ -589,7 +589,9 @@ quake3 set test blah + map test
 ============================================================================
 */
 
-#define	MAX_CONSOLE_LINES	32
+// Launcher presets can legitimately contain many independent +set commands.
+// Keep enough room for the final action command (+map or +connect) as well.
+#define	MAX_CONSOLE_LINES	64
 int		com_numConsoleLines;
 char	*com_consoleLines[MAX_CONSOLE_LINES];
 
