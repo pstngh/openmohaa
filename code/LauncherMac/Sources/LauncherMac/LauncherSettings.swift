@@ -30,6 +30,10 @@ let resolutionList: [ResolutionEntry] = [
     ResolutionEntry(label: "1280x1024 (5:4)", rMode: 8, width: 1280, height: 1024),
     ResolutionEntry(label: "1600x1200 (4:3)", rMode: 9, width: 1600, height: 1200),
     ResolutionEntry(label: "1920x1080 (16:9)", rMode: -1, width: 1920, height: 1080),
+    // Resolution selections are persisted by index, so keep new entries at
+    // the end to avoid changing an existing launcher's saved selection.
+    ResolutionEntry(label: "1280x960 (4:3)", rMode: -1, width: 1280, height: 960),
+    ResolutionEntry(label: "1344x1008 (4:3)", rMode: -1, width: 1344, height: 1008),
 ]
 
 let maxBookmarks = 3
