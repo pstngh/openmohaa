@@ -86,4 +86,7 @@ include(basegame)
 include(launcher)
 
 include(post_configure)
+if(BUILD_TESTING)
+    include(tests/all)
+endif()
 #include(installer)

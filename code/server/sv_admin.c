@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_admin.c -- server-side admin subsystem
 
 #include "server.h"
+#include "sv_chatban.h"
 
 // ---- Static storage ----
 static adminAccount_t   adminAccounts[MAX_ADMIN_ACCOUNTS];
@@ -244,6 +245,8 @@ void SV_AdminOnClientDisconnect(client_t *cl)
     SV_AdminClearSession(cl);
     cl->adminChatDisabled = qfalse;
     cl->adminTauntDisabled = qfalse;
+    cl->chatBanActive = qfalse;
+    cl->chatBanNotified = qfalse;
 }
 
 // ---- Helper: check access level ----
@@ -1066,6 +1069,200 @@ static void SV_Admin_Status(client_t *cl)
     }
 }
 
+// ---- Command: ad_chatban <clientnum|ip[/prefix]> [reason] ----
+static void SV_Admin_ChatBan(client_t *cl)
+{
+    netadr_t address;
+    int subnet;
+    serverChatBan_t added;
+    const char *reason;
+    char addressText[NET_ADDRSTRMAXLEN];
+    char error[256];
+
+    if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_DISCHAT, "ad_chatban")) {
+        return;
+    }
+
+    if (Cmd_Argc() < 2) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Usage: ad_chatban <clientnum|ip[/prefix]> [reason]\n\""
+        );
+        return;
+    }
+
+    reason = Cmd_Argc() >= 3 ? Cmd_ArgsFrom(2) : "";
+    if (!SV_ChatBanReasonIsSafe(reason)) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Reason is too long or contains unsafe characters.\n\""
+        );
+        return;
+    }
+
+    if (!SV_ChatBanResolveTarget(
+            Cmd_Argv(1), &address, &subnet, NULL, error, sizeof(error))
+        || !SV_ChatBanAdd(address, subnet, reason, &added, error, sizeof(error))) {
+        SV_AdminSanitizeCommandText(error);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%s.\n\"", error);
+        return;
+    }
+
+    Q_strncpyz(addressText, NET_AdrToString(added.ip), sizeof(addressText));
+    if (reason[0]) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Persistent chat ban added for %s/%d. Reason: %s\n\"",
+            addressText,
+            added.subnet,
+            reason
+        );
+    } else {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Persistent chat ban added for %s/%d.\n\"",
+            addressText,
+            added.subnet
+        );
+    }
+
+    Com_Printf(
+        "sv_admin: %s (%s) added persistent chat ban %s/%d%s%s\n",
+        cl->name,
+        cl->adminUsername,
+        addressText,
+        added.subnet,
+        reason[0] ? " for: " : "",
+        reason
+    );
+    SV_ChatBanAnnounceMatches(added.ip, added.subnet, qtrue, cl->adminUsername);
+}
+
+// ---- Command: ad_chatunban <clientnum|ip[/prefix]> ----
+static void SV_Admin_ChatUnban(client_t *cl)
+{
+    netadr_t address;
+    int subnet;
+    serverChatBan_t removed;
+    char addressText[NET_ADDRSTRMAXLEN];
+    char error[256];
+
+    if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_DISCHAT, "ad_chatunban")) {
+        return;
+    }
+
+    if (Cmd_Argc() != 2) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Usage: ad_chatunban <clientnum|ip[/prefix]>\n\""
+        );
+        return;
+    }
+
+    if (!SV_ChatBanResolveTarget(
+            Cmd_Argv(1), &address, &subnet, NULL, error, sizeof(error))
+        || !SV_ChatBanRemove(address, subnet, &removed, error, sizeof(error))) {
+        SV_AdminSanitizeCommandText(error);
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "%s.\n\"", error);
+        return;
+    }
+
+    Q_strncpyz(addressText, NET_AdrToString(removed.ip), sizeof(addressText));
+    SV_SendServerCommand(
+        cl,
+        "print \"" HUD_MESSAGE_WHITE "Persistent chat ban removed for %s/%d.\n\"",
+        addressText,
+        removed.subnet
+    );
+    Com_Printf(
+        "sv_admin: %s (%s) removed persistent chat ban %s/%d%s%s\n",
+        cl->name,
+        cl->adminUsername,
+        addressText,
+        removed.subnet,
+        removed.reason[0] ? " originally recorded for: " : "",
+        removed.reason
+    );
+    SV_ChatBanAnnounceMatches(removed.ip, removed.subnet, qfalse, cl->adminUsername);
+}
+
+// ---- Command: ad_listchatbans [page] ----
+static void SV_Admin_ListChatBans(client_t *cl)
+{
+    int count;
+    int page = 1;
+    int pageCount;
+    int first;
+    int end;
+    int index;
+
+    if (!SV_AdminCheckAccess(cl, ACCESSLEVEL_DISCHAT, "ad_listchatbans")) {
+        return;
+    }
+
+    if (Cmd_Argc() > 2) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Usage: ad_listchatbans [page]\n\""
+        );
+        return;
+    }
+
+    if (Cmd_Argc() == 2) {
+        if (!SV_ChatBanParseInteger(Cmd_Argv(1), 1, SERVER_MAXCHATBANS, &page)) {
+            SV_SendServerCommand(
+                cl,
+                "print \"" HUD_MESSAGE_WHITE "Usage: ad_listchatbans [page]\n\""
+            );
+            return;
+        }
+    }
+
+    count = SV_ChatBanGetCount();
+    if (!count) {
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "No persistent chat bans.\n\"");
+        return;
+    }
+
+    pageCount = (count + ADMIN_BAN_LIST_PAGE_SIZE - 1) / ADMIN_BAN_LIST_PAGE_SIZE;
+    if (page > pageCount) {
+        SV_SendServerCommand(
+            cl,
+            "print \"" HUD_MESSAGE_WHITE "Invalid page %d; valid pages are 1-%d.\n\"",
+            page,
+            pageCount
+        );
+        return;
+    }
+
+    first = (page - 1) * ADMIN_BAN_LIST_PAGE_SIZE;
+    end = Q_min(first + ADMIN_BAN_LIST_PAGE_SIZE, count);
+    SV_AdminConsoleEcho(cl, "--- Persistent chat bans: page %d/%d ---", page, pageCount);
+
+    for (index = first; index < end; index++) {
+        const serverChatBan_t *entry = SV_ChatBanGetEntry(index);
+
+        if (entry->reason[0]) {
+            SV_AdminConsoleEcho(
+                cl,
+                "Chat ban #%d: %s/%d - Reason: %s",
+                index + 1,
+                NET_AdrToString(entry->ip),
+                entry->subnet,
+                entry->reason
+            );
+        } else {
+            SV_AdminConsoleEcho(
+                cl,
+                "Chat ban #%d: %s/%d",
+                index + 1,
+                NET_AdrToString(entry->ip),
+                entry->subnet
+            );
+        }
+    }
+}
+
 // ---- Command: ad_dischat <clientnum> ----
 static void SV_Admin_DisChat(client_t *cl)
 {
@@ -1146,36 +1343,37 @@ Returns qtrue if the command is blocked.
 */
 qboolean SV_AdminShouldBlockClientCommand(client_t *cl, const char *cmdName)
 {
-    qboolean isTauntDMMessage = qfalse;
+    const char *messageToken = NULL;
+    chatBanCommandType_t commandType;
 
-    if (!cl->adminChatDisabled && !cl->adminTauntDisabled) {
+    if (!cl->adminChatDisabled && !cl->adminTauntDisabled && !cl->chatBanActive) {
         return qfalse;
     }
 
     // dmmessage <mode> <text...>: the game treats the message as a taunt
     // when its first word (argument 2) is a taunt code.
-    if (!Q_stricmp(cmdName, "dmmessage") && Cmd_Argc() > 2) {
-        const char *token = Cmd_Argv(2);
-        isTauntDMMessage =
-            token && token[0] == '*' && token[1] >= '1' && token[1] <= '9' && token[2] >= '1' && token[2] <= '9' &&
-            token[3] == '\0';
+    if (Cmd_Argc() > 2) {
+        messageToken = Cmd_Argv(2);
+    }
+    commandType = SV_ChatBanClassifyCommand(cmdName, messageToken);
+
+    if (commandType == CHATBAN_COMMAND_NONE) {
+        return qfalse;
     }
 
-    if (cl->adminChatDisabled) {
-        if (!Q_stricmp(cmdName, "say") || !Q_stricmp(cmdName, "sayteam") ||
-            !Q_stricmp(cmdName, "tell") || (!Q_stricmp(cmdName, "dmmessage") && !isTauntDMMessage)) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin\n\"");
-            return qtrue;
-        }
+    if (cl->chatBanActive) {
+        SV_ChatBanNotifyClient(cl);
+        return qtrue;
     }
 
-    if (cl->adminTauntDisabled) {
-        if (!Q_stricmp(cmdName, "vsay") || !Q_stricmp(cmdName, "vosay") ||
-            !Q_stricmp(cmdName, "vtell") || !Q_stricmp(cmdName, "instamsg") ||
-            (!Q_stricmp(cmdName, "dmmessage") && isTauntDMMessage)) {
-            SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin\n\"");
-            return qtrue;
-        }
+    if (commandType == CHATBAN_COMMAND_TEXT && cl->adminChatDisabled) {
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your chat has been disabled by an admin\n\"");
+        return qtrue;
+    }
+
+    if (commandType == CHATBAN_COMMAND_TAUNT && cl->adminTauntDisabled) {
+        SV_SendServerCommand(cl, "print \"" HUD_MESSAGE_WHITE "Your taunts have been disabled by an admin\n\"");
+        return qtrue;
     }
 
     return qfalse;
@@ -1232,6 +1430,9 @@ qboolean SV_AdminHandleClientCommand(client_t *cl)
     if (!Q_stricmp(cmd, "ad_say"))           { SV_Admin_Say(cl); return qtrue; }
     if (!Q_stricmp(cmd, "ad_listadmins"))    { SV_Admin_ListAdmins(cl); return qtrue; }
     if (!Q_stricmp(cmd, "ad_status"))        { SV_Admin_Status(cl); return qtrue; }
+    if (!Q_stricmp(cmd, "ad_chatban"))       { SV_Admin_ChatBan(cl); return qtrue; }
+    if (!Q_stricmp(cmd, "ad_chatunban"))     { SV_Admin_ChatUnban(cl); return qtrue; }
+    if (!Q_stricmp(cmd, "ad_listchatbans"))  { SV_Admin_ListChatBans(cl); return qtrue; }
     if (!Q_stricmp(cmd, "ad_dischat"))       { SV_Admin_DisChat(cl); return qtrue; }
     if (!Q_stricmp(cmd, "ad_distaunt"))      { SV_Admin_DisTaunt(cl); return qtrue; }
 

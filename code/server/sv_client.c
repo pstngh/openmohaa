@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
+#include "sv_chatban.h"
 #include "../gamespy/sv_gamespy.h"
 #include "../qcommon/bg_compat.h"
 
@@ -616,6 +617,7 @@ gotnewcl:
 #endif
 	// init the netchan queue
 	newcl->netchan_end_queue = &newcl->netchan_start_queue;
+	SV_ChatBanRefreshClient(newcl, qfalse);
 
 	// save the userinfo
 	Q_strncpyz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
@@ -932,6 +934,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 
 	// call the game begin function
 	ge->ClientBegin( ( gentity_t * )ent, cmd );
+	SV_ChatBanNotifyClient(client);
 
 	//
 	// Added in OPM

@@ -92,6 +92,66 @@ Examples:
 
 To calculate IP subnets, search for `IP subnet calculator` on Internet.
 
+### Persistent chat bans
+
+Persistent chat bans prevent selected IPv4 or IPv6 addresses and CIDR ranges
+from sending text or taunts. They do not reject connections, disconnect
+players, or restrict joining, movement, gameplay, downloads, userinfo, or
+admin commands.
+
+Chat bans are stored independently in `chatbans.dat`. Set another relative
+filename with the archived `sv_chatBanFile` cvar. For safety, the server refuses
+to load or write the file if its normalized path is the same as `sv_banFile`,
+if `sv_banFile` is not a plain relative path, or if the name ends in `.pk3`,
+`.qvm` or a library extension. Changes are saved only to the file the list was
+last loaded from: after a failed load or a new `sv_chatBanFile`, run
+`rehashchatbans` before adding or removing entries.
+
+Each record uses `<address> <prefix>[:reason]`:
+
+```text
+203.0.113.7 32:repeated spam
+2001:db8:1234:: 48
+```
+
+Blank lines and lines beginning with `//` are ignored. The list accepts exact
+addresses and explicit CIDR ranges, has a maximum of 1024 entries, and has no
+exceptions, expiration times, or temporary entries. Malformed addresses,
+prefixes, paths, and unsafe reasons are rejected.
+
+| Name | Parameters | Description |
+|------|------------|-------------|
+| `chatbanaddr` | `clientnum \| ip[/prefix] [reason]` | Adds and saves an exact client address or explicit CIDR range |
+| `chatbandel` | `entry-number \| ip[/prefix]` | Removes one exact entry by list number or exact address/prefix |
+| `listchatbans` | `[page]` | Lists saved entries and optional reasons |
+| `rehashchatbans` | | Reloads `chatbans.dat` and refreshes connected clients |
+| `flushchatbans` | | Removes only persistent chat bans |
+
+Authenticated admins with access right `64` can use the corresponding client
+commands:
+
+| Name | Parameters | Description |
+|------|------------|-------------|
+| `ad_chatban` | `clientnum \| ip[/prefix] [reason]` | Adds and saves a persistent chat ban |
+| `ad_chatunban` | `clientnum \| ip[/prefix]` | Removes an exact persistent chat-ban entry |
+| `ad_listchatbans` | `[page]` | Lists entries and reasons privately to the admin |
+
+Adding an exact address affects every connected client sharing that address.
+A broader existing range prevents redundant narrower additions; adding a new
+broader range replaces entries it contains. Removing an address never silently
+removes a broader range: specify that exact CIDR or its list number.
+
+Affected players receive one private notice, including the configured reason,
+when the restriction becomes active or when they reconnect. Later blocked
+attempts are silently discarded. Explicit additions and removals may announce
+the names of affected connected players publicly, but never expose an address,
+CIDR, or reason. Full details remain in the server log.
+
+The persistent restriction covers `say`, `sayteam`, `tell`, ordinary
+`dmmessage`, `vsay`, `vosay`, `vtell`, `instamsg`, and taunt-form `dmmessage`.
+The existing `ad_dischat` and `ad_distaunt` commands remain independent,
+temporary per-connection toggles.
+
 ## Game settings
 
 ### Chat

@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "server.h"
+#include "sv_chatban.h"
 
 #ifndef DEDICATED
 #    include "../client/client.h"
@@ -2051,6 +2052,7 @@ void SV_AddOperatorCommands(void) {
 	Cmd_AddCommand("bandel", SV_BanDel_f);
 	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
 	Cmd_AddCommand("flushbans", SV_FlushBans_f);
+	SV_ChatBanAddOperatorCommands();
 	
 	Cmd_AddCommand("difficultyEasy", SV_EasyMode_f);
 	Cmd_AddCommand("difficultyMedium", SV_MediumMode_f);

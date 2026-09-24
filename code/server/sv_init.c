@@ -1129,6 +1129,7 @@ void SV_Init (void)
 	sv_strictAuth = Cvar_Get ("sv_strictAuth", "1", CVAR_ARCHIVE );
 #endif
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
+	sv_chatBanFile = Cvar_Get("sv_chatBanFile", "chatbans.dat", CVAR_ARCHIVE);
 
     // Added in OPM
     sv_logContext = Cvar_Get("sv_logContext", "1", 0);
@@ -1146,6 +1147,7 @@ void SV_Init (void)
 	
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
+	Cbuf_AddText("rehashchatbans\n");
 
 	// Load admin accounts
 	SV_AdminInit();

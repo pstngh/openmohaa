@@ -41,6 +41,10 @@ than conventional defaults or feature breadth.
 - A human may change their exact name once per connection. Record name messages
   in `qconsole.log` without echoing them to the live console, and kick on the
   second change; bots remain exempt.
+- Persistent chat bans use the dedicated `chatbans.dat` list. They block text
+  and taunts for matching IPv4/IPv6 addresses or CIDR ranges without rejecting,
+  disconnecting, or otherwise restricting the player. Temporary chat and taunt
+  toggles remain independent.
 - Require no custom client. Keep `m6l2a` in its narrow server-only package and
   other supported SP FFA maps in a separate package, outside automatic rotation.
 - Taunt cooldown is runtime policy; keep the source default at 1000 ms.
@@ -50,5 +54,5 @@ than conventional defaults or feature breadth.
 
 - General OpenMoHAA modernization or feature-rich bot AI.
 - The broad Reborn package, custom clients, or automatic SP-map rotation.
-- Persistent IP taunt bans (paused) or individual taunt opt-out (exploratory).
+- Individual taunt opt-out (exploratory).
 - Any application, build, test, deployment, or runtime role for continuity.

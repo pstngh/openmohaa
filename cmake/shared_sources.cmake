@@ -52,6 +52,8 @@ set(SYSTEM_SOURCES
 set(SERVER_SOURCES
     ${SOURCE_DIR}/server/sv_client.c
     ${SOURCE_DIR}/server/sv_ccmds.c
+    ${SOURCE_DIR}/server/sv_chatban.c
+    ${SOURCE_DIR}/server/sv_chatban_core.c
     ${SOURCE_DIR}/server/sv_game.c
     ${SOURCE_DIR}/server/sv_init.c
     ${SOURCE_DIR}/server/sv_main.c

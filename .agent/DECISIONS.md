@@ -50,3 +50,13 @@ without echoing them to the live console. Do not count the initial name,
 identical userinfo updates, non-name updates, or bots. Preserve the count across
 map changes but reset it on reconnect, and stop game-side userinfo handling
 after the kick.
+
+## D-008: Persistent chat bans are separate and connection-safe
+
+Use `chatbans.dat`, never `serverbans.dat`, for persistent IPv4/IPv6 chat
+restrictions. A matching client stays connected and fully playable; only text
+and taunt commands are dropped. Cache the match on connection and recompute it
+only when the list changes, rather than performing file work or polling in a
+hot path. Keep temporary `ad_dischat` and `ad_distaunt` state independent. Do
+not add exceptions, expiration timers, or a second enforcement layer in the
+game module.

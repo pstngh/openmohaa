@@ -235,6 +235,8 @@ typedef struct client_s {
     char        adminUsername[64];
     qboolean    adminChatDisabled;
     qboolean    adminTauntDisabled;
+    qboolean    chatBanActive;
+    qboolean    chatBanNotified;
 
 #ifdef LEGACY_PROTOCOL
 	qboolean		compat;
@@ -402,6 +404,7 @@ extern	cvar_t	*sv_gamespy;
 extern	cvar_t	*sv_strictAuth;
 #endif
 extern	cvar_t	*sv_banFile;
+extern	cvar_t	*sv_chatBanFile;
 
 extern  cvar_t  *sv_logContext;
 

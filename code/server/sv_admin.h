@@ -9,7 +9,7 @@
 #define ACCESSLEVEL_BAN         (1 << 3)   // ad_banip, ad_banipr, ad_banid, ad_banidr, ad_unbanip, ad_listips
 #define ACCESSLEVEL_RCON        (1 << 4)   // ad_rcon
 #define ACCESSLEVEL_LISTADMINS  (1 << 5)   // ad_listadmins
-#define ACCESSLEVEL_DISCHAT     (1 << 6)   // ad_dischat
+#define ACCESSLEVEL_DISCHAT     (1 << 6)   // ad_dischat, ad_chatban, ad_chatunban, ad_listchatbans
 #define ACCESSLEVEL_DISTAUNT    (1 << 7)   // ad_distaunt
 
 // Maximum number of admin accounts loadable from admins.ini

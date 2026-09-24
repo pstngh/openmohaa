@@ -1,78 +1,79 @@
 # Current State
 
-Reconciled: 2026-08-20
+Reconciled: 2026-08-28
 
 ## Active task
 
-None. The implementation series is complete; await the next user request.
+None in source. Persistent chat bans and the requested history cleanup are
+complete; GitHub, Pages, deployment, and live behavior remain separate evidence.
 
 ## Why this serves the goal
 
-The branch contains the narrow server behavior described in `GOAL.md` while
-keeping deployment and live status explicit rather than assumed.
+The fork now has a compact history for the name-change policy and a dedicated,
+connection-safe chat restriction that adds no polling or per-frame work.
 
 ## Status
 
-Complete; no code or deployment work is currently authorized.
+Source implementation and local validation are complete.
 
 ## Completed
 
-- The implementation series through `4838a21` contains 13 commits after `main`:
-  real-slot administration/bots, lean melee behavior, GameSpy reporting, a lean
-  Linux server build, native rotation/announcements, spectator and name rules,
-  SP-map FFA packages, and SP-map taunt audio.
-- The name-change policy adds a per-connection human rename limit: the first
-  exact name change is logged and allowed, while the second is logged and
-  kicked. Bots are exempt, map changes preserve the count, and reconnecting
-  resets it.
-- The same change adds a shared log-only print path and routes only the
-  server-side client-name messages through it. Existing game-module contextual
-  console messages retain their prior behavior.
-- Tracked server packages: `misc/server/zzz_m6l2a_ffa.pk3` and
-  `misc/server/zzz_sp_ffa.pk3`.
+- The three adjacent name-change changes are one atomic
+  `feat(server): limit repeated name changes` commit, followed by the unchanged
+  lightweight hidden-SMG-bot patch.
+- Persistent IPv4/IPv6 chat bans are stored only in `chatbans.dat`; normalized
+  paths that collide with `sv_banFile` are refused.
+- Exact addresses and CIDR ranges support reasons, safe parsing, subsumption,
+  exact deletion, pagination, reload, and flush operations up to 1024 entries.
+- Admin add/remove/list commands use access right `64`. Console equivalents are
+  registered with the server operator commands.
+- Matching clients remain connected and playable. Text and taunt commands are
+  dropped before the game module, while admin and gameplay commands remain
+  available. Persistent state is cached on connect and refreshed only after a
+  list change.
+- Affected clients receive one private notice with the reason. Named add/remove
+  announcements omit addresses and reasons, while server logs retain details.
+- Configuration and operator behavior are documented. GitHub Pages is configured
+  to publish through GitHub Actions.
 
 ## Remaining
 
-Nothing until the user selects another development or operational task.
+No source work. Check current GitHub Actions and Pages state independently when
+remote publication status matters.
 
 ## Blockers / unknowns
 
-- The previously managed VPS is now a one-slot redirect, not the current public
-  game server.
-- The current server's binaries, config, five-bot state, PK3s, and taunt behavior
-  are unverified.
-- Live-server behavior of the name-change limit is unverified.
-- Live stock-client testing of SP-map taunts is unrecorded.
-- Runtime rotation is operator-owned and not tracked in Git.
+- The authoritative live game server is not identified; deployment is outside
+  this change.
+- Live stock-client behavior of chat-ban notices and suppression is unverified.
+- Runtime rotation and server configuration remain operator-owned and untracked.
 
 ## Assumptions
 
 - `GOAL.md` remains current until the user explicitly changes it.
-- Committed or CI-passing code is not assumed deployed or live-tested.
+- A committed or CI-passing change is not assumed deployed or live-tested.
 
 ## Verified
 
-- The name-change policy passed a focused harness covering initial, identical,
-  non-name, first/second rename, reason, and bot cases. Debug `omohaaded` and
-  `game` targets built successfully; the dedicated-server startup smoke test
-  stopped at the expected missing proprietary game assets.
-- The log-only update builds successfully for Debug `omohaaded` and `game`.
-  A debugger-driven runtime check against the real server binary verified that
-  log-only output appears in `qconsole.log` but not captured console output,
-  while ordinary output continues to appear in both.
-- Linux build and unit-test workflows for `4838a21` passed on 2026-07-30.
-- `server_opm.cfg` and external `z_forteffa.pk3` are not tracked.
-- No earlier continuity/task system existed; source TODOs are not active tasks.
+- Debug dedicated-server and game-module targets build successfully with GCC.
+- CTest passes the LZ77 and chat-ban suites. The chat-ban core also passes
+  AddressSanitizer and UndefinedBehaviorSanitizer.
+- Dedicated-server smoke tests cover empty/startup loading, IPv4/IPv6 records,
+  malformed records, normalized ban-file collision refusal, and persistent
+  add/reload/delete/flush command flows without a crash.
+- The replayed hidden-SMG-bot source matches its prior tree, excluding deliberate
+  continuity-note normalization.
 
 ## Relevant locations
 
-- Server: `code/server/`
-- Game module: `code/fgame/`
-- Server docs: `docs/markdown/03-configuration/`
-- Server map packages: `misc/server/`
+- Chat-ban runtime: `code/server/sv_chatban.c`
+- Chat-ban parsing and matching: `code/server/sv_chatban_core.c`
+- Unit tests: `code/server/tests/test_chatban.c`
+- Configuration docs: `docs/markdown/03-configuration/01-configuration.md`
 
 ## Exact next action
 
-For the next request, inspect Git and the affected files first. If it concerns a
-live server, identify the authoritative server before inspecting or deploying;
-do not assume the legacy redirect is production.
+For a publication check, inspect the workflows for the current `main` commit and
+the Pages deployment rather than inferring status from this file. For live-game
+work, first identify the authoritative server and obtain explicit deployment
+scope.
