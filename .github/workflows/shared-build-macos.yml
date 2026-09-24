@@ -234,41 +234,19 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Assemble package
         mkdir ${{github.workspace}}/package
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
-        # Bundle all required files into each .app so they are self-contained
-        # (macOS App Translocation prevents loading from outside the bundle)
-        DYLIBS=(
-          "${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib"
-          "${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib"
-        )
-        # curl uses lib or lib64 depending on the platform
-        DYLIBS+=(${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib)
-        LIBDIR='${{github.workspace}}/install/lib/openmohaa'
-        for app in '${{github.workspace}}/package'/*.app; do
-          if [ -d "$app" ]; then
-            MACOSDIR="$app/Contents/MacOS"
-            # Copy third-party shared libraries
-            for lib in "${DYLIBS[@]}"; do
-              cp "$lib" "$MACOSDIR/"
-            done
-            # Copy game module libraries (game.dylib, cgame.dylib, etc.)
-            if [ -d "$LIBDIR" ]; then
-              find "$LIBDIR" -name '*.dylib' -not -path '*.app/*' -not -path '*/.*' | while read -r mod; do
-                # Preserve subdirectory structure (e.g. missionpack/)
-                relpath="${mod#$LIBDIR/}"
-                mkdir -p "$MACOSDIR/$(dirname "$relpath")"
-                cp "$mod" "$MACOSDIR/$relpath"
-              done
-            fi
-            # Ad-hoc sign the complete bundle after all contents are in place
-            codesign --force --deep \
-              --entitlements '${{github.workspace}}/source/cmake/entitlements.plist' \
-              --sign - "$app"
-          fi
-        done
+        # Ship the third-party libraries inside the bundle, because App
+        # Translocation hides the files next to it (curl uses lib or lib64)
+        APP='${{github.workspace}}/package/mohbots.app'
+        cp ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib \
+          ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib \
+          ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib \
+          "$APP/Contents/MacOS/"
+        codesign --force --deep \
+          --entitlements '${{github.workspace}}/source/cmake/entitlements.plist' \
+          --sign - "$APP"
 
     - name: Build Launcher
       working-directory: ${{github.workspace}}/source/code/LauncherMac
