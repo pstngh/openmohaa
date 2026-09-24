@@ -62,6 +62,8 @@ cvar_t	*sv_floodProtect;
 cvar_t	*sv_maplist;
 cvar_t	*sv_maprotation_minplayers;
 cvar_t	*sv_maprotation_lockmap;
+cvar_t	*sv_announcement;
+cvar_t	*sv_announcement_interval;
 cvar_t	*sv_drawentities;
 cvar_t	*sv_deeptracedebug;
 cvar_t	*sv_netprofile;
@@ -86,6 +88,56 @@ cvar_t  *sv_logContext;
 
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
+
+static void SV_CheckAnnouncement(void)
+{
+	static int nextTime;
+	static int textModificationCount = -1;
+	static int intervalModificationCount = -1;
+	char       text[MAX_CVAR_VALUE_STRING];
+	int        interval;
+	int        i;
+
+	if (textModificationCount != sv_announcement->modificationCount
+		|| intervalModificationCount != sv_announcement_interval->modificationCount) {
+		textModificationCount = sv_announcement->modificationCount;
+		intervalModificationCount = sv_announcement_interval->modificationCount;
+		nextTime = 0;
+	}
+
+	interval = sv_announcement_interval->integer;
+	if (!sv_announcement->string[0] || interval <= 0) {
+		nextTime = 0;
+		return;
+	}
+
+	if (interval > 86400) {
+		interval = 86400;
+	}
+
+	// SV_Shutdown clears svs, so svs.time restarts near zero after killserver,
+	// an error drop or a wrap restart; reschedule instead of waiting that out.
+	if (!nextTime || nextTime - svs.time > interval * 1000) {
+		nextTime = svs.time + interval * 1000;
+		return;
+	}
+
+	if (svs.time < nextTime) {
+		return;
+	}
+
+	Q_strncpyz(text, sv_announcement->string, sizeof(text));
+	for (i = 0; text[i]; i++) {
+		if (text[i] == '"' || text[i] == '\\'
+			|| text[i] == '\n' || text[i] == '\r') {
+			text[i] = ' ';
+		}
+	}
+
+	Com_Printf("console: %s\n", text);
+	SV_SendServerCommand(NULL, "print \"" HUD_MESSAGE_CHAT_WHITE "console: %s\n\"", text);
+	nextTime = svs.time + interval * 1000;
+}
 
 /*
 =============================================================================
@@ -1186,6 +1238,8 @@ void SV_Frame( int msec ) {
 
 	// check timeouts
 	SV_CheckTimeouts();
+
+	SV_CheckAnnouncement();
 
 	// send messages back to the clients
 	SV_SendClientMessages();

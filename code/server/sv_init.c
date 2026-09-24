@@ -1077,6 +1077,8 @@ void SV_Init (void)
 	sv_maplist = Cvar_Get( "sv_maplist", "", CVAR_ARCHIVE | CVAR_SERVERINFO );
 	sv_maprotation_minplayers = Cvar_Get("sv_maprotation_minplayers", "12", CVAR_ARCHIVE);
 	sv_maprotation_lockmap = Cvar_Get("sv_maprotation_lockmap", "dm/mohdm6:20", CVAR_ARCHIVE);
+	sv_announcement = Cvar_Get("sv_announcement", "", CVAR_ARCHIVE);
+	sv_announcement_interval = Cvar_Get("sv_announcement_interval", "0", CVAR_ARCHIVE);
 
 	// systeminfo
 	Cvar_Get( "cheats", "1", CVAR_LATCH | CVAR_SYSTEMINFO );

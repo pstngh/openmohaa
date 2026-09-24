@@ -382,6 +382,8 @@ extern	cvar_t	*sv_lanForceRate;
 extern	cvar_t	*sv_maplist;
 extern	cvar_t	*sv_maprotation_minplayers;
 extern	cvar_t	*sv_maprotation_lockmap;
+extern	cvar_t	*sv_announcement;
+extern	cvar_t	*sv_announcement_interval;
 extern	cvar_t	*sv_drawentities;
 extern	cvar_t	*sv_deeptracedebug;
 extern	cvar_t	*sv_netprofile;

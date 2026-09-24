@@ -149,6 +149,17 @@ Time in seconds at which a player is invulnerable after spawning. `0` means no i
 - Defaults to `0` (Allied Assault)
 - Defaults to `3` (Spearhead and Breakthrough)
 
+### `sv_announcement`
+
+A chat announcement sent by the server at the interval configured by
+`sv_announcement_interval`. An empty value disables announcements.
+
+### `sv_announcement_interval`
+
+The number of seconds between server announcements. The first announcement is
+sent after one full interval. `0` disables announcements. The timer continues
+across map changes.
+
 ### `sv_gamespy`
 
 - `0`: Disables gamespy, the server won't appear on the server browser
