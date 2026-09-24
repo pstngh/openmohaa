@@ -27,6 +27,14 @@ jobs:
       with:
         path: 'source'
 
+    - name: Python tests
+      working-directory: ${{github.workspace}}/source
+      run: |
+        for test in code/*/tests/test_*.py; do
+          echo "Running $test"
+          python3 "$test"
+        done
+
     - name: Settings
       working-directory: ${{github.workspace}}
       run: |
