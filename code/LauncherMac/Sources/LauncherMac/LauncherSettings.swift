@@ -75,7 +75,7 @@ class LauncherSettings: ObservableObject {
     @Published var botReactDelay: String = "0.2"
     @Published var botTurnSpeed: String = "360"
     @Published var botTurnAccel: String = "5"
-    @Published var botAimError: String = "40"
+    @Published var botAimError: String = "20"
     @Published var botAimSettle: String = "0.4"
     @Published var botAimLatency: String = "120"
     @Published var botAimHeightMin: String = "0.32"
@@ -201,7 +201,15 @@ class LauncherSettings: ObservableObject {
                     botTurnAccel = value
                 }
             case "bot_turn_accel": botTurnAccel = value
-            case "bot_aim_error": botAimError = value
+            case "bot_aim_error":
+                // Version 11 applies the aim error across the line of sight,
+                // where all of it becomes a miss instead of about half. Halve
+                // older values to keep the accuracy they were tuned for.
+                if settingsVersion < 11, let oldError = Double(value), oldError.isFinite {
+                    botAimError = String(format: "%.0f", oldError / 2)
+                } else {
+                    botAimError = value
+                }
             case "bot_aim_settle": botAimSettle = value
             case "bot_aim_latency": botAimLatency = value
             case "bot_aim_height_min":
@@ -367,7 +375,7 @@ class LauncherSettings: ObservableObject {
     private func writeSettings() {
         guard !isLoading else { return }
         var lines: [String] = []
-        lines.append("settings_version=10")
+        lines.append("settings_version=11")
         lines.append("ip=\(ip)")
         lines.append("password=\(password)")
         lines.append("rcon=\(rconPassword)")
@@ -500,7 +508,7 @@ extension LauncherSettings {
             reactDelay: String(format: "%.2f", Self.lerp3(t, 0.35, 0.2, 0.1)),
             turnSpeed: String(format: "%.0f", Self.lerp3(t, 240, 360, 540)),
             turnAccel: String(format: "%.0f", Self.lerp3(t, 3, 5, 10)),
-            aimError: String(format: "%.0f", Self.lerp3(t, 60, 40, 20)),
+            aimError: String(format: "%.0f", Self.lerp3(t, 30, 20, 10)),
             aimSettle: String(format: "%.2f", Self.lerp3(t, 0.6, 0.4, 0.2)),
             aimLatency: String(format: "%.0f", Self.lerp3(t, 250, 120, 40)),
             // Bots do not accumulate weapon bloom, so even the hardest preset
@@ -547,7 +555,7 @@ extension LauncherSettings {
             reactDelay: Self.clampedNumber(tuning.reactDelay, min: 0, max: 10, fallback: 0.2),
             turnSpeed: Self.clampedNumber(tuning.turnSpeed, min: 1, max: 1080, fallback: 360),
             turnAccel: Self.clampedNumber(tuning.turnAccel, min: 0.1, max: 100, fallback: 5),
-            aimError: Self.clampedNumber(tuning.aimError, min: 0, max: 400, fallback: 40),
+            aimError: Self.clampedNumber(tuning.aimError, min: 0, max: 400, fallback: 20),
             aimSettle: Self.clampedNumber(tuning.aimSettle, min: 0, max: 10, fallback: 0.4),
             aimLatency: Self.clampedNumber(tuning.aimLatency, min: 0, max: 2000, fallback: 120),
             spreadScale: Self.clampedNumber(tuning.spreadScale, min: 0, max: 10, fallback: 2)

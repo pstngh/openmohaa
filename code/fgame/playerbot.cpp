@@ -137,18 +137,14 @@ static int BotSoundInterestDuration(int eventType)
     }
 }
 
-static Vector RandomBotAimErrorDirection()
+static float RandomBotAimErrorAngle()
 {
-    // Keep persistent error away from the head and neck: horizontal error is
-    // symmetric, while its smaller vertical component can only pull down.
-    Vector direction(G_CRandom(1.0f), G_CRandom(1.0f), 0);
-    if (direction.length() < 0.01f) {
-        direction = Vector(1, 0, 0);
-    }
-    direction.normalize();
-    direction.z = -G_Random(0.35f);
-    direction.normalize();
-    return direction;
+    // The error lies across the line of sight, at an angle measured downward
+    // from the bot's right (0) through straight down (90) to its left (180).
+    // Keep it away from the head and neck: it goes to either side, and only
+    // dips below the horizontal by at most a third of its sideways part.
+    const float dip = RAD2DEG(atanf(G_Random(0.35f)));
+    return G_Random(1.0f) < 0.5f ? dip : 180.0f - dip;
 }
 
 static int RandomBotAimErrorInterval()
@@ -186,8 +182,8 @@ BotController::BotController()
     m_iLastUnseenTime          = 0;
     m_iAimAcquireTime          = -1;
     m_fAimHeightFraction       = 0.57f;
-    m_vAimErrorDirection       = vec_zero;
-    m_vAimErrorTargetDirection = vec_zero;
+    m_fAimErrorAngle           = 0;
+    m_fAimErrorTargetAngle     = 0;
     m_iNextAimErrorChangeTime  = 0;
     m_iAimHistoryHead          = 0;
     m_iAimHistoryCount         = 0;
@@ -600,8 +596,8 @@ void BotController::ClearEnemy(void)
     m_iAimAcquireTime          = -1;
     m_iAimHistoryHead          = 0;
     m_iAimHistoryCount         = 0;
-    m_vAimErrorDirection       = vec_zero;
-    m_vAimErrorTargetDirection = vec_zero;
+    m_fAimErrorAngle           = 0;
+    m_fAimErrorTargetAngle     = 0;
     m_iNextAimErrorChangeTime  = 0;
     m_pEnemy                   = NULL;
     m_iEnemyEyesTag            = -1;
@@ -690,8 +686,8 @@ void BotController::State_Reset(void)
     m_iAimAcquireTime          = -1;
     m_iAimHistoryHead          = 0;
     m_iAimHistoryCount         = 0;
-    m_vAimErrorDirection       = vec_zero;
-    m_vAimErrorTargetDirection = vec_zero;
+    m_fAimErrorAngle           = 0;
+    m_fAimErrorTargetAngle     = 0;
     m_iNextAimErrorChangeTime  = 0;
     m_vLastCuriousPos          = vec_zero;
     m_iCuriousEventType        = AI_EVENT_NONE;
@@ -1058,25 +1054,43 @@ void BotController::BeginAimAcquisition(void)
     const float maxHeight = Q_max(g_bot_aim_height_min->value, g_bot_aim_height_max->value);
     m_fAimHeightFraction  = minHeight + G_Random(maxHeight - minHeight);
 
-    m_vAimErrorDirection       = RandomBotAimErrorDirection();
-    m_vAimErrorTargetDirection = m_vAimErrorDirection;
-    m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
+    m_fAimErrorAngle          = RandomBotAimErrorAngle();
+    m_fAimErrorTargetAngle    = m_fAimErrorAngle;
+    m_iNextAimErrorChangeTime = level.inttime + RandomBotAimErrorInterval();
 
     m_iAimHistoryHead  = 0;
     m_iAimHistoryCount = 0;
 }
 
-void BotController::UpdateAimErrorDirection(void)
+void BotController::UpdateAimErrorAngle(void)
 {
     if (level.inttime >= m_iNextAimErrorChangeTime) {
-        m_vAimErrorTargetDirection = RandomBotAimErrorDirection();
-        m_iNextAimErrorChangeTime  = level.inttime + RandomBotAimErrorInterval();
+        m_fAimErrorTargetAngle    = RandomBotAimErrorAngle();
+        m_iNextAimErrorChangeTime = level.inttime + RandomBotAimErrorInterval();
     }
 
     // Exponential-style smoothing keeps the miss direction moving without
     // per-frame jitter and makes the behavior independent of server FPS.
+    // Switching sides sweeps through straight down, under the target.
     const float blend = Q_clamp_float(level.frametime * 1.5f, 0, 1);
-    m_vAimErrorDirection += (m_vAimErrorTargetDirection - m_vAimErrorDirection) * blend;
+    m_fAimErrorAngle += (m_fAimErrorTargetAngle - m_fAimErrorAngle) * blend;
+}
+
+Vector BotController::GetAimErrorDirection(const Vector& aimTarget) const
+{
+    Vector forward = aimTarget - controlledEnt->EyePosition();
+    forward.normalize();
+
+    // Any horizontal axis is across a vertical line of sight.
+    Vector right = Vector::Cross(forward, Vector(0, 0, 1));
+    if (right.normalize() < 0.001f) {
+        right = Vector(1, 0, 0);
+    }
+    Vector up = Vector::Cross(right, forward);
+    up.normalize();
+
+    const float angle = DEG2RAD(m_fAimErrorAngle);
+    return right * cosf(angle) - up * sinf(angle);
 }
 
 Vector BotController::GetDelayedAimTarget(const Vector& currentTarget)
@@ -1416,14 +1430,17 @@ void BotController::State_Attack(void)
             errorFraction += (1.0f - BOT_AIM_RESIDUAL_FRACTION) * acquisitionFraction;
         }
 
-        UpdateAimErrorDirection();
+        // The error lies across the line of sight, so all of it turns into
+        // a miss wherever the target stands relative to the bot.
+        UpdateAimErrorAngle();
+        const Vector vErrorDirection = GetAimErrorDirection(vTarget);
 
         Vector vAimPoint = vTarget;
-        vAimPoint += m_vAimErrorDirection * (g_bot_aim_error->value * errorFraction);
+        vAimPoint += vErrorDirection * (g_bot_aim_error->value * errorFraction);
 
         m_telemetry.aimErrorFraction  = errorFraction;
         m_telemetry.aimErrorUnits     = g_bot_aim_error->value * errorFraction;
-        m_telemetry.aimErrorDirection = m_vAimErrorDirection;
+        m_telemetry.aimErrorDirection = vErrorDirection;
         m_telemetry.aimPoint          = vAimPoint;
 
         rotation.AimAt(vAimPoint);

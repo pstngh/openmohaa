@@ -131,7 +131,7 @@ ascending order.
 | `g_bot_attack_react_min_delay` | `0.2` | `0`-`10` seconds | Delay before a bot may fire at a newly acquired target, including a switch to another target. |
 | `g_bot_aim_height_min` | `0.32` | `0`-`1` | Lowest aim height as a fraction of the enemy bounding box. The wider stock range reflects human vertical shot placement while retaining a torso-biased ceiling. |
 | `g_bot_aim_height_max` | `0.55` | `0`-`1` | Highest aim height as a fraction of the enemy bounding box. The default keeps the selected aim point in the torso. |
-| `g_bot_aim_error` | `40` | `0`-`400` units | Off-target error on acquisition; after settling, 60% persists as a smooth horizontal/downward drift. |
+| `g_bot_aim_error` | `20` | `0`-`400` units | Off-target error at the target on acquisition, applied across the line of sight so all of it becomes a miss; after settling, 60% persists as a smooth sideways/downward drift. The launcher presets use `30` at casual, `20` at default, and `10` at esports. |
 | `g_bot_aim_settle_time` | `0.4` | `0`-`10` seconds | Time for acquisition error to decay smoothly to its persistent floor. |
 | `g_bot_aim_latency` | `0` | `0`-`2000` ms | Makes the bot aim at a timestamped past target position. |
 

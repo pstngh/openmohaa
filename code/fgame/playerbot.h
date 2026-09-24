@@ -276,8 +276,8 @@ private:
     int    m_iLastUnseenTime;
     float  m_fAimHeightFraction;
     int    m_iAimAcquireTime;
-    Vector m_vAimErrorDirection;
-    Vector m_vAimErrorTargetDirection;
+    float  m_fAimErrorAngle; // Across the line of sight: 0 right, 90 down, 180 left
+    float  m_fAimErrorTargetAngle;
     int    m_iNextAimErrorChangeTime;
 
     enum {
@@ -358,7 +358,8 @@ private:
     bool        IsEnemyPartVisible(Sentient *enemy);
     bool        CheckEnemyVisibility(Sentient *enemy, float desiredAimFraction, float& aimFraction);
     void        BeginAimAcquisition(void);
-    void        UpdateAimErrorDirection(void);
+    void        UpdateAimErrorAngle(void);
+    Vector      GetAimErrorDirection(const Vector& aimTarget) const;
     Vector      GetDelayedAimTarget(const Vector& currentTarget);
 
     static void InitState_Grenade(botfunc_t *func);

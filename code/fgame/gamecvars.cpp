@@ -723,7 +723,7 @@ void CVAR_Init(void)
     g_bot_attack_react_min_delay = gi.Cvar_Get("g_bot_attack_react_min_delay", "0.2", 0);
     g_bot_aim_height_max         = gi.Cvar_Get("g_bot_aim_height_max", "0.55", 0);
     g_bot_aim_height_min         = gi.Cvar_Get("g_bot_aim_height_min", "0.32", 0);
-    g_bot_aim_error              = gi.Cvar_Get("g_bot_aim_error", "40", 0);
+    g_bot_aim_error              = gi.Cvar_Get("g_bot_aim_error", "20", 0);
     g_bot_aim_settle_time        = gi.Cvar_Get("g_bot_aim_settle_time", "0.4", 0);
     g_bot_aim_latency            = gi.Cvar_Get("g_bot_aim_latency", "0", 0);
     g_bot_turn_speed             = gi.Cvar_Get("g_bot_turn_speed", "360", 0);
