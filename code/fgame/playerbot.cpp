@@ -567,6 +567,7 @@ void BotController::ClearEnemy(void)
     m_iEnemyEyesTag            = -1;
     m_vOldEnemyPos             = vec_zero;
     m_vLastEnemyPos            = vec_zero;
+    movement.ClearCombatTarget();
 }
 
 /*
@@ -659,6 +660,7 @@ void BotController::State_Reset(void)
     m_vLastDeathPos            = vec_zero;
     m_pEnemy                   = NULL;
     m_iEnemyEyesTag            = -1;
+    movement.ClearCombatTarget();
 }
 
 /*
@@ -1194,9 +1196,15 @@ void BotController::State_Attack(void)
     if (!m_pEnemy || !IsValidEnemy(m_pEnemy)) {
         // Ignore dead enemies
         m_iAttackTime = 0;
+        movement.ClearCombatTarget();
         return;
     }
     float fDistanceSquared = (m_pEnemy->origin - controlledEnt->origin).lengthSquared();
+
+    // Feed the aggressive-movement layer the enemy itself, not only a
+    // distance. This lets forward/back phases remain enemy-relative while the
+    // bot turns and follows a path around a cramped room.
+    movement.SetCombatTarget(m_pEnemy->origin);
 
     m_vOldEnemyPos = m_vLastEnemyPos;
 
@@ -1242,8 +1250,11 @@ void BotController::State_Attack(void)
 
             fMinDistance = fPrimaryBulletRange;
 
-            if (fMinDistance > 256) {
-                fMinDistance = 256;
+            // Human players did not try to maintain a broad 256-unit buffer.
+            // Retreat behavior rose sharply only at body-contact range; the
+            // radial movement layer handles the wider 64-384 unit rhythm.
+            if (fMinDistance > 64) {
+                fMinDistance = 64;
             }
 
             fMinDistanceSquared = fMinDistance * fMinDistance;
@@ -1357,6 +1368,7 @@ void BotController::State_Attack(void)
     }
 
     if (bNoMove) {
+        movement.HoldPosition();
         return;
     }
 

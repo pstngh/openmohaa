@@ -43,6 +43,11 @@ public:
     ~BotMovement();
 
     void SetControlledEntity(Player *newEntity);
+    void SetCombatTarget(const Vector& target);
+    void ClearCombatTarget();
+    // Keep the bot in place for the current frame: combat strafing and
+    // radial movement stand down while leaning continues.
+    void HoldPosition();
 
     void MoveThink(usercmd_t& botcmd);
 
@@ -68,6 +73,8 @@ public:
 private:
     Vector CalculateDir(const Vector& delta) const;
     Vector CalculateRelativeWishDirection(const Vector& dir) const;
+    Vector GetCommandMoveVector(const usercmd_t& botcmd) const;
+    void   SetCommandMoveVector(usercmd_t& botcmd, const Vector& move) const;
     void   CheckAttractiveNodes();
     void   CheckEndPos(Entity *entity);
     void   CheckJump(usercmd_t& botcmd);
@@ -118,6 +125,26 @@ private:
     bool   m_bJump;
     int    m_iJumpCheckTime;
     Vector m_vJumpLocation;
+
+    ///
+    /// Aggressive movement (strafe + lean + enemy-relative radial movement)
+    ///
+
+    int  m_iStrafeDirection;      // -1 = left, 1 = right
+    int  m_iNextStrafeChangeTime; // When to flip strafe direction
+    int  m_iRadialDirection;      // -1 = retreat, 1 = advance
+    int  m_iNextRadialChangeTime; // When to flip radial direction
+    bool m_bIsLeaning;            // Hysteresis: currently strafing
+    bool m_bHasCombatTarget;
+    bool m_bHoldPosition;
+
+    void  UpdateAggressiveMovement(usercmd_t& botcmd, bool holdPosition);
+    void  UpdateCombatRadialMovement(usercmd_t& botcmd, bool suppressMovement);
+    void  PreventImminentBodyContact(usercmd_t& botcmd);
+    float CalculateLateralClearance(int direction);
+    int   RadialPhaseDuration(float distance) const;
+
+    Vector m_vCombatTarget;
 };
 
 class BotRotation
