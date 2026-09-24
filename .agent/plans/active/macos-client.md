@@ -39,11 +39,10 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 - [x] Lock the first-person weapon/arms projection to the original aspect-corrected 80-degree 4:3 base FOV without a setting or cvar.
 - [x] Audit `a2f3401..dev` (2026-09-23) and settle every finding with the owner (D012-D014).
 - [x] Rewrite the history after `a2f3401` into a clean series with the audit fixes folded in, replace `main`, and keep the old history at the tag `dev` (2026-09-24).
-- [x] Re-audit the rewritten `main` and add focused follow-up commits on `claude/nifty-faraday-rmgmfc` (2026-09-24).
+- [x] Re-audit the rewritten `main`, review the focused follow-up commits, and fast-forward them onto `main` (2026-09-24).
 
 ## Remaining milestones
 
-- [ ] Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them.
 - [ ] Restore GitHub Actions (budget and artifact storage), rebuild `main`, and install that arm64 artifact on the Mac mini M4.
 - [ ] Smoke-test at 1280x960 and one widescreen resolution:
   - Connect with bookmark switching; a changed address must clear or swap the credentials.
@@ -94,4 +93,4 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 
 ## Next action
 
-Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them. Then restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.

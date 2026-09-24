@@ -9,7 +9,7 @@ active_plan: .agent/plans/active/macos-client.md
 
 ## Active task
 
-Merge the follow-up audit commits on `claude/nifty-faraday-rmgmfc` into `main`, then smoke-test `main` on the Mac mini M4 before changing launcher, layout, rendering, or bot behavior further.
+Smoke-test the merged follow-up audit on `main` on the Mac mini M4 before changing launcher, layout, rendering, or bot behavior further.
 
 ## Why this serves the goal
 
@@ -19,7 +19,7 @@ The code and its history are complete and build on Linux and in macOS CI; real-d
 
 On 2026-09-24 the history after the upstream base `a2f3401` was rewritten into a clean series with the fixes from the 2026-09-23 audit folded into the commits they belong to, and it replaced `main`. The previous history remains at the tag `dev`.
 
-A second audit of the rewritten `main` (`fa50e60`) the same day left D012-D014 as they are and added six commits on `claude/nifty-faraday-rmgmfc`, which fast-forwards from `main`:
+A second audit of the rewritten `main` (`fa50e60`) the same day left D012-D014 as they are and added six focused commits, which were reviewed and fast-forwarded onto `main`:
 
 - A raised `sv_bots` is kept until the next map load instead of being lowered to the current map's capacity.
 - Human bloom is capped at a clip's worth only with the infinite ammo dmflag, as it was meant for bottomless clips; normal games keep stock bloom.
@@ -78,4 +78,4 @@ Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce
 
 ## Next action
 
-Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them. Then restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
