@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "scriptmaster.h"
 #include "scriptthread.h"
 #include "player.h"
-#include "playerbot.h"
 #include "playerstart.h"
 #include "debuglines.h"
 #include "smokesprite.h"
@@ -1848,7 +1847,6 @@ void G_BroadcastAIEvent(Entity *originator, Vector origin, int iType, float radi
         act->ReceiveAIEvent(origin, iType, originator, dist2, r2);
     }
 
-    botManager.BroadcastEvent(originator, origin, iType, radius);
 #if 0
     gi.DPrintf("Broadcast event %s to %d entities\n", ev->getName(), count);
 #endif

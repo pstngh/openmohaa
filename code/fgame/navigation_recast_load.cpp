@@ -726,7 +726,7 @@ void NavigationMap::LoadWorldMap(const char *mapname)
         ClearNavigation();
     }
 
-    if (!sv_maxbots->integer) {
+    if (!sv_numbots->integer) {
         gi.Printf("No bots, skipping navigation\n");
         return;
     }

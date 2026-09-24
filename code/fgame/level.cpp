@@ -35,8 +35,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Entities.h"
 #include "health.h"
 
-#include "navigation_recast_load.h"
-
 #include "scriptmaster.h"
 #include "scriptthread.h"
 #include "scriptvariable.h"
@@ -805,6 +803,7 @@ void Level::Init(void)
     m_fade_time_start = 0.0f;
     m_fade_time       = -1.0f;
     m_fade_color      = vec_zero;
+    m_fade_type       = fadein;
     m_fade_style      = additive;
 
     m_fade_alpha = 0;
@@ -886,8 +885,6 @@ void Level::CleanUp(qboolean samemap, qboolean resetConfigStrings)
 
     // clear active current bots
     G_ResetBots();
-
-    navigationMap.CleanUp(samemap);
 
     assert(active_edicts.next);
     assert(active_edicts.next->prev == &active_edicts);
@@ -1537,11 +1534,6 @@ void Level::ServerSpawned(void)
 
         Unregister(STRING_SPAWN);
 
-        if (!g_navigation_legacy->integer && g_gametype->integer != GT_SINGLE_PLAYER) {
-            // Added in OPM
-            //  Recast navigation
-            navigationMap.LoadWorldMap(m_mapfile);
-        }
     } else {
         Director.LoadMenus();
     }

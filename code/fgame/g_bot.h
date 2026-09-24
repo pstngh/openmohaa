@@ -34,18 +34,9 @@ struct bot_info_t {
 
 void         G_BotBegin(gentity_t *ent);
 void         G_BotThink(gentity_t *ent, int msec);
-void         G_BotShift(int clientNum);
-gentity_t   *G_GetFirstBot();
-unsigned int G_GetBotId(gentity_t *e);
 gentity_t   *G_AddBot(const bot_info_t *info = NULL);
-gentity_t   *G_RestoreBot(const saved_bot_t& saved);
-void         G_AddBots(unsigned int num);
-void         G_RemoveBot(gentity_t *ent);
-void         G_RemoveBots(unsigned int num);
 unsigned int G_GetNumBots();
 const char  *G_GetBotSkill();
-bool         G_IsBot(gentity_t *ent);
-bool         G_IsPlayer(gentity_t *ent);
 void         G_ResetBots();
 void         G_RestartBots();
 void         G_BotInit();

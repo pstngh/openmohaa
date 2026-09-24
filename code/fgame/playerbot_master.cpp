@@ -1,4 +1,3 @@
-#include "playerbot.h"
 /*
 ===========================================================================
 Copyright (C) 2024 the OpenMoHAA team
@@ -23,13 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // playerbot_master.cpp: Multiplayer bot system.
 
 #include "g_local.h"
-#include "actor.h"
 #include "playerbot.h"
-#include "consoleevent.h"
-#include "debuglines.h"
-#include "scriptexception.h"
-#include "vehicleturret.h"
-#include "weaputils.h"
 
 BotManager botManager;
 
@@ -41,11 +34,6 @@ CLASS_DECLARATION(Listener, BotManager, NULL) {
     {NULL, NULL}
 };
 
-void BotManager::Init()
-{
-    botControllerManager.Init();
-}
-
 void BotManager::Cleanup()
 {
     botControllerManager.Cleanup();
@@ -54,58 +42,6 @@ void BotManager::Cleanup()
 void BotManager::Frame()
 {
     botControllerManager.ThinkControllers();
-}
-
-void BotManager::BroadcastEvent(Entity *originator, Vector origin, int iType, float radius)
-{
-    Sentient      *ent;
-    Actor         *act;
-    Vector         delta;
-    str            name;
-    float          r2;
-    float          dist2;
-    int            i;
-    int            iNumSentients;
-    int            iAreaNum;
-    BotController *controller;
-
-    if (radius <= 0.0f) {
-        radius = G_AIEventRadius(iType);
-    }
-
-    assert(originator);
-
-    r2 = Square(radius);
-
-    const Container<BotController *>& controllers = getControllerManager().getControllers();
-    for (i = 1; i <= controllers.NumObjects(); i++) {
-        controller = controllers.ObjectAt(i);
-        ent        = controller->getControlledEntity();
-        if (!ent || ent == originator || ent->deadflag) {
-            continue;
-        }
-
-        delta = origin - ent->centroid;
-
-        // dot product returns length squared
-        dist2 = Square(delta);
-
-        if (originator) {
-            iAreaNum = originator->edict->r.areanum;
-        } else {
-            iAreaNum = gi.AreaForPoint(origin);
-        }
-
-        if (dist2 > r2) {
-            continue;
-        }
-
-        if (iAreaNum != ent->edict->r.areanum && !gi.AreasConnected(iAreaNum, ent->edict->r.areanum)) {
-            continue;
-        }
-
-        controller->NoticeEvent(origin, iType, originator, dist2, r2);
-    }
 }
 
 BotControllerManager& BotManager::getControllerManager()

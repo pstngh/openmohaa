@@ -844,10 +844,9 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
 
     client = ent->client;
 
-    // read the session data
+    // Read the session data from a clean client structure.
     memset(client, 0, sizeof(*client));
     if (firstTime) {
-        memset(client, 0, sizeof(*client));
         if (!game.autosaved) {
             G_InitClientPersistant(client, userinfo);
         }
@@ -862,6 +861,10 @@ void G_BotConnect(int clientNum, qboolean firstTime, const char *userinfo)
     client->pers.port = 0;
 
     G_ClientUserinfoChanged(ent, userinfo);
+
+    // Every bot owns a real server-side client slot so master-server and
+    // player queries count it exactly like a human player.
+    gi.BotConnect(clientNum, userinfo);
 }
 
 /*
@@ -890,9 +893,6 @@ const char *G_ClientConnect(int clientNum, qboolean firstTime, qboolean differen
     gclient_t *client;
     gentity_t *ent;
     char       userinfo[MAX_INFO_STRING];
-
-    // Added in OPM
-    G_BotShift(clientNum);
 
     ent = &g_entities[clientNum];
 
@@ -964,9 +964,11 @@ const char *G_ClientConnect(int clientNum, qboolean firstTime, qboolean differen
 
     // don't do the "xxx connected" messages if they were caried over from previous level
     if (firstTime && g_gametype->integer != GT_SINGLE_PLAYER) {
-        G_PrintfClient(ent, "is preparing for deployment\n");
+        if (!(ent->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(ent, "is preparing for deployment\n");
 
-        G_PrintToAllClients(va("%s is preparing for deployment\n", client->pers.netname), 2);
+            G_PrintToAllClients(va("%s is preparing for deployment\n", client->pers.netname), 2);
+        }
     }
     return NULL;
 }
@@ -1021,10 +1023,12 @@ void G_ClientBegin(gentity_t *ent, usercmd_t *cmd)
             G_MoveClientToIntermission(ent->entity);
         } else {
             if (g_gametype->integer != GT_SINGLE_PLAYER) {
-                // send effect if in a multiplayer game
-                G_PrintfClient(ent, "has entered the battle\n");
+                if (!(ent->r.svFlags & SVF_BOT)) {
+                    // send effect if in a multiplayer game
+                    G_PrintfClient(ent, "has entered the battle\n");
 
-                G_PrintToAllClients(va("%s has entered the battle\n", ent->client->pers.netname), 2);
+                    G_PrintToAllClients(va("%s has entered the battle\n", ent->client->pers.netname), 2);
+                }
             }
         }
 
@@ -1083,9 +1087,23 @@ void G_ClientDisconnect(gentity_t *ent)
             return;
         }
 
-        G_PrintfClient(ent, "has left the battle\n");
+        if (!(ent->r.svFlags & SVF_BOT)) {
+            G_PrintfClient(ent, "has left the battle\n");
 
-        G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+            G_PrintToAllClients(va("%s has left the battle\n", ent->client->pers.netname), 2);
+        }
+
+        // A configured bot removal can arrive through the server drop path.
+        // Always destroy its matching controller here to avoid stale pointers.
+        if (ent->r.svFlags & SVF_BOT) {
+            BotControllerManager& controllerManager = botManager.getControllerManager();
+            if (BotController *controller = controllerManager.findController(ent->entity)) {
+                gi.DPrintf("BOT: disconnecting '%s' (slot %d), controller cleanup\n", ent->client->pers.netname, (int)(ent - g_entities));
+                controllerManager.removeController(controller);
+            } else {
+                gi.DPrintf("BOT: WARNING disconnecting '%s' (slot %d) but no controller found\n", ent->client->pers.netname, (int)(ent - g_entities));
+            }
+        }
 
         assert(ent->entity->IsSubclassOfPlayer());
         ((Player *)ent->entity)->Disconnect();
@@ -1186,7 +1204,9 @@ void G_PrintfClient(gentity_t *ent, const char *fmt, ...)
     va_end(argptr);
 
     if (ent->r.svFlags & SVF_BOT) {
-        gi.Printf("%s %s", ent->client->pers.netname, msg);
+        // Suppress bot killfeed/death messages from the main console;
+        // they are still visible with developer 1.
+        gi.DPrintf("%s %s", ent->client->pers.netname, msg);
         return;
     }
 

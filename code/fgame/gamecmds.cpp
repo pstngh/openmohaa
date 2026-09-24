@@ -49,7 +49,9 @@ typedef struct {
 
 consolecmd_t G_ConsoleCmds[] = {
     //   command name       function             available in multiplayer?
-    {"say",             G_SayCmd,             qtrue },
+    // Stock clients chat through dmmessage; a raw multiplayer say would skip
+    // its text-chat gates and broadcast unthrottled.
+    {"say",             G_SayCmd,             qfalse},
     {"eventlist",       G_EventListCmd,       qfalse},
     {"pendingevents",   G_PendingEventsCmd,   qfalse},
     {"eventhelp",       G_EventHelpCmd,       qfalse},
@@ -300,8 +302,6 @@ Cmd_Say_f
 */
 void G_Say(gentity_t *ent, qboolean team, qboolean arg0)
 {
-    int         j;
-    gentity_t  *other;
     const char *p;
     char        text[2048];
 
@@ -345,20 +345,11 @@ void G_Say(gentity_t *ent, qboolean team, qboolean arg0)
         text[150] = 0;
     }
 
-    strcat(text, "\n");
-
     if (dedicated->integer) {
-        gi.SendServerCommand(0, "print \"%s\"", text);
+        gi.Printf("%s\n", text);
     }
 
-    for (j = 0; j < game.maxclients; j++) {
-        other = &g_entities[j];
-        if (!other->inuse || !other->client || !other->entity) {
-            continue;
-        }
-
-        gi.SendServerCommand(0, "print \"%s\"", text);
-    }
+    gi.SendServerCommand(-1, "print \"" HUD_MESSAGE_CHAT_WHITE "%s\n\"", text);
 }
 
 qboolean G_CameraCmd(gentity_t *ent)
@@ -646,7 +637,7 @@ qboolean G_AddBotCommand(gentity_t *ent)
         return qfalse;
     }
 
-    totalnumbots = Q_min(numbots + sv_numbots->integer, sv_maxbots->integer);
+    totalnumbots = Q_min(numbots + sv_numbots->integer, game.maxclients);
 
     gi.cvar_set("sv_numbots", va("%d", totalnumbots));
     return qtrue;
@@ -654,8 +645,8 @@ qboolean G_AddBotCommand(gentity_t *ent)
 
 qboolean G_AddBotNamedCommand(gentity_t *ent)
 {
-    unsigned int numbots;
     unsigned int totalnumbots;
+    unsigned int botIndex;
     const char* name;
     gentity_t *e;
 
@@ -665,8 +656,9 @@ qboolean G_AddBotNamedCommand(gentity_t *ent)
     }
 
     name = gi.Argv(1);
+    botIndex = G_GetNumBots();
 
-    totalnumbots = Q_min(sv_numbots->integer + 1, sv_maxbots->integer);
+    totalnumbots = Q_min(sv_numbots->integer + 1, game.maxclients);
 
     gi.cvar_set("sv_numbots", va("%d", totalnumbots));
 
@@ -675,8 +667,7 @@ qboolean G_AddBotNamedCommand(gentity_t *ent)
 
     e = G_AddBot(&botInfo);
     if (e) {
-        const unsigned int id = G_GetBotId(e);
-        gi.cvar_set(va("g_bot%d_name", id), e->client->pers.netname);
+        gi.cvar_set(va("g_bot%d_name", botIndex), e->client->pers.netname);
     }
 
     return qtrue;
@@ -720,25 +711,7 @@ qboolean G_BotCommand(gentity_t *ent)
 
     command = gi.Argv(1);
 
-    if (!Q_stricmp(command, "movehere")) {
-        bot->GetMovement().MoveTo(ent->entity->origin);
-    } else if (!Q_stricmp(command, "moveherenear")) {
-        float rad = 256.0f;
-
-        if (gi.Argc() > 2) {
-            rad = atof(gi.Argv(2));
-        }
-
-        bot->GetMovement().MoveNear(ent->entity->origin, rad);
-    } else if (!Q_stricmp(command, "avoidhere")) {
-        float rad = 256.0f;
-
-        if (gi.Argc() > 2) {
-            rad = atof(gi.Argv(2));
-        }
-
-        bot->GetMovement().AvoidPath(ent->entity->origin, rad);
-    } else if (!Q_stricmp(command, "telehere")) {
+    if (!Q_stricmp(command, "telehere")) {
         bot->getControlledEntity()->setOrigin(ent->s.origin);
     }
 

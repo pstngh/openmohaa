@@ -38,7 +38,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "smokesprite.h"
 #include "playerbot.h"
 #include "g_bot.h"
-#include "navigation_recast_load.h"
 
 #include "../corepp/tiki.h"
 
@@ -294,10 +293,6 @@ void G_InitGame(int levelTime, int randomSeed)
 
     game.maxclients = maxclients->integer;
 
-    if (g_gametype->integer != GT_SINGLE_PLAYER) {
-        game.maxclients += sv_maxbots->integer;
-    }
-
     L_InitEvents();
 
     G_AllocGameData();
@@ -508,6 +503,7 @@ void G_RunFrame(int levelTime, int frameTime)
 
         if (level.intermissiontime || level.died_already) {
             L_ProcessPendingEvents();
+            level.m_fade_time -= level.frametime;
             G_ClientDoBlends();
 
             if (g_gametype->integer != GT_SINGLE_PLAYER && g_maxintermission->value != 0.0f) {
@@ -565,8 +561,6 @@ void G_RunFrame(int levelTime, int frameTime)
         G_InitDebugStrings();
 
         PathManager.ShowNodes();
-
-        G_Navigation_Frame();
 
         showentnums = (sv_showentnums->integer && (g_gametype->integer == GT_SINGLE_PLAYER || sv_cheats->integer));
 
@@ -1718,6 +1712,11 @@ void G_ClientEndServerFrames(void)
 {
     int        i;
     gentity_t *ent;
+
+    // Decrement fade time once per frame, not per player.
+    // CalcBlend (called from EndFrame) used to decrement this,
+    // causing fades to run N times faster with N clients.
+    level.m_fade_time -= level.frametime;
 
     // calc the player views now that all pushing
     // and damage has been added

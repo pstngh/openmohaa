@@ -356,6 +356,13 @@ void Sentient::ChargeWeapon(weaponhand_t hand, firemode_t mode)
     if (activeWeapon && activeWeapon->ReadyToFire(mode) && activeWeapon->MuzzleClear()) {
         charge_start_time = level.time;
         activeWeapon->Charge(mode);
+
+        //
+        // Cancel invulnerability when charging a weapon (e.g. cooking a grenade)
+        //
+        if (IsSubclassOfPlayer()) {
+            static_cast<Player *>(this)->CancelInvulnerable();
+        }
     }
 }
 

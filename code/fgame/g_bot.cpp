@@ -29,7 +29,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 static saved_bot_t *saved_bots     = NULL;
 static unsigned int num_saved_bots = 0;
 static unsigned int botId          = 0;
-static float  botInitTime          = 0;
 
 Container<str> alliedModelList;
 Container<str> germanModelList;
@@ -38,8 +37,8 @@ saved_bot_t::saved_bot_t()
     : userinfo {0}
 {}
 
-static void G_ReadBotSessionData();
 static unsigned int G_GetNumBotsToSpawn();
+static bool G_IsBot(gentity_t *ent);
 
 /*
 ===========
@@ -115,7 +114,6 @@ void InitModelList()
     int    numFiles;
     int    i;
     size_t numAlliedModels = 0, numGermanModels = 0;
-    byte  *p;
 
     ClearModelList();
 
@@ -165,16 +163,14 @@ Begin spawning a new bot entity
 */
 void G_BotBegin(gentity_t *ent)
 {
-    Player        *player;
-    BotController *controller;
+    Player *player;
 
     level.spawn_entnum = ent->s.number;
     player             = new Player;
 
     G_ClientBegin(ent, NULL);
 
-    controller = botManager.getControllerManager().createController(player);
-    //player->setController(controller);
+    botManager.getControllerManager().createController(player);
 }
 
 /*
@@ -186,23 +182,9 @@ Called each server frame to make bots think
 */
 void G_BotThink(gentity_t *ent, int msec)
 {
-    /*
-    usercmd_t  ucmd;
-    usereyes_t eyeinfo;
-    PlayerBot *bot;
-
-    assert(ent);
-    assert(ent->entity);
-    assert(ent->entity->IsSubclassOfBot());
-
-    bot = (PlayerBot *)ent->entity;
-
-    bot->UpdateBotStates();
-    bot->GetUsercmd(&ucmd);
-    bot->GetEyeInfo(&eyeinfo);
-
-    G_ClientThink(ent, &ucmd, &eyeinfo);
-    */
+    // Controllers are advanced together by G_BotFrame.
+    (void)ent;
+    (void)msec;
 }
 
 /*
@@ -215,16 +197,11 @@ Find a free client slot
 gentity_t *G_FindFreeEntityForBot()
 {
     gentity_t *ent;
-    int        minNum = 0;
     int        i;
 
-    if (sv_sharedbots->integer) {
-        minNum = 0;
-    } else {
-        minNum = maxclients->integer;
-    }
-
-    for (i = minNum; i < game.maxclients; i++) {
+    // Bots permanently occupy real client slots and are reported as players.
+    // Prefer high slots so bots do not consume low private-client reservations.
+    for (i = maxclients->integer - 1; i >= 0; i--) {
         ent = &g_entities[i];
         if (!ent->inuse && ent->client && !ent->client->pers.userinfo[0]) {
             return ent;
@@ -236,106 +213,12 @@ gentity_t *G_FindFreeEntityForBot()
 
 /*
 ===========
-G_ChangeParent
-
-Fix parenting for entities that use the old number
-============
-*/
-void G_ChangeParent(int oldNum, int newNum)
-{
-    gentity_t *ent;
-    int        i;
-
-    for (i = 0; i < game.maxentities; i++) {
-        ent = &g_entities[i];
-        if (!ent->inuse || !ent->entity) {
-            continue;
-        }
-
-        if (ent->s.parent == oldNum) {
-            ent->s.parent = newNum;
-        }
-        if (ent->r.ownerNum == oldNum) {
-            ent->r.ownerNum = newNum;
-        }
-    }
-}
-
-/*
-===========
-G_BotShift
-
-If the specified slot is used, the bot will be relocated
-to the next free entity slot
-============
-*/
-void G_BotShift(int clientNum)
-{
-    gentity_t *ent;
-    gentity_t *newEnt;
-
-    ent = &g_entities[clientNum];
-    if (!ent->inuse || !ent->client || !ent->entity) {
-        return;
-    }
-
-    if (!botManager.getControllerManager().findController(ent->entity)) {
-        return;
-    }
-
-    newEnt = G_FindFreeEntityForBot();
-    if (!newEnt) {
-        G_RemoveBot(ent);
-        return;
-    }
-
-    //
-    // Allocate the new entity
-    //
-    level.spawn_entnum = newEnt - g_entities;
-    level.AllocEdict(ent->entity);
-
-    //
-    // Copy all fields
-    //
-    newEnt->s        = ent->s;
-    newEnt->s.number = newEnt - g_entities;
-    memcpy(newEnt->client, ent->client, sizeof(*newEnt->client));
-    newEnt->r     = ent->r;
-    newEnt->solid = ent->solid;
-    newEnt->tiki  = ent->tiki;
-    AxisCopy(ent->mat, newEnt->mat);
-
-    newEnt->freetime  = ent->freetime;
-    newEnt->spawntime = ent->spawntime;
-    newEnt->radius2   = ent->radius2;
-    memcpy(newEnt->entname, ent->entname, sizeof(newEnt->entname));
-    newEnt->clipmask             = ent->clipmask;
-    newEnt->entity               = ent->entity;
-    newEnt->entity->edict        = newEnt;
-    newEnt->entity->client       = newEnt->client;
-    newEnt->entity->entnum       = newEnt->s.number;
-    newEnt->client->ps.clientNum = newEnt->s.number;
-
-    G_ChangeParent(ent->s.number, newEnt->s.number);
-
-    //
-    // Free the old entity so the real client will use it
-    //
-    level.FreeEdict(ent);
-    memset(ent->client, 0, sizeof(*ent->client));
-
-    G_SetClientConfigString(newEnt);
-}
-
-/*
-===========
 G_GetFirstBot
 
 Return the first bot
 ============
 */
-gentity_t *G_GetFirstBot()
+static gentity_t *G_GetFirstBot()
 {
     gentity_t   *ent;
     unsigned int n;
@@ -357,37 +240,9 @@ G_IsBot
 Return whether or not the gentity is a bot
 ============
 */
-bool G_IsBot(gentity_t *ent)
+static bool G_IsBot(gentity_t *ent)
 {
-    if (!ent->inuse || !ent->client) {
-        return false;
-    }
-
-    if (!ent->entity || !botManager.getControllerManager().findController(ent->entity)) {
-        return false;
-    }
-
-    return true;
-}
-
-/*
-===========
-G_IsPlayer
-
-Return whether or not the gentity is a player
-============
-*/
-bool G_IsPlayer(gentity_t *ent)
-{
-    if (!ent->inuse || !ent->client) {
-        return false;
-    }
-
-    if (!ent->entity || botManager.getControllerManager().findController(ent->entity)) {
-        return false;
-    }
-
-    return true;
+    return ent->inuse && ent->client && (ent->r.svFlags & SVF_BOT);
 }
 
 /*
@@ -397,6 +252,10 @@ G_GetRandomAlliedPlayerModel
 */
 const char *G_GetRandomAlliedPlayerModel()
 {
+    if (g_bot_allied_skin->string[0]) {
+        return g_bot_allied_skin->string;
+    }
+
     if (!alliedModelList.NumObjects()) {
         return "";
     }
@@ -412,23 +271,16 @@ G_GetRandomGermanPlayerModel
 */
 const char *G_GetRandomGermanPlayerModel()
 {
+    if (g_bot_axis_skin->string[0]) {
+        return g_bot_axis_skin->string;
+    }
+
     if (!germanModelList.NumObjects()) {
         return "";
     }
 
     const unsigned int index = rand() % germanModelList.NumObjects();
     return germanModelList[index];
-}
-
-/*
-===========
-G_GetBotId
-============
-*/
-unsigned int G_GetBotId(gentity_t *e) {
-    const unsigned int clientNum = e - g_entities;
-
-    return sv_sharedbots->integer ? clientNum : clientNum - maxclients->integer;
 }
 
 /*
@@ -447,7 +299,7 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     e = G_FindFreeEntityForBot();
     if (!e) {
-        gi.Printf("No free slot for a bot\n");
+        gi.DPrintf("BOT: no free slot for a new bot\n");
         return NULL;
     }
 
@@ -458,14 +310,19 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     if (info && info->name) {
         Q_strncpyz(botName, info->name, sizeof(botName));
+        gi.DPrintf("BOT: using custom name '%s'\n", botName);
     } else {
-        const unsigned int num = sv_sharedbots->integer ? clientNum : clientNum - maxclients->integer;
+        // Bot names remain sequential even if real player slots are sparse.
+        const unsigned int num =
+            botManager.getControllerManager().getControllers().NumObjects();
 
         cvar_t *v = gi.Cvar_Find(va("g_bot%d_name", num));
         if (v && *v->string) {
             Q_strncpyz(botName, v->string, sizeof(botName));
+            gi.DPrintf("BOT: using cvar name '%s' from g_bot%d_name\n", botName, num);
         } else {
             Com_sprintf(botName, sizeof(botName), "bot%d", botId);
+            gi.DPrintf("BOT: generated name '%s' (botId=%d)\n", botName, botId);
         }
     }
 
@@ -485,6 +342,8 @@ gentity_t *G_AddBot(const bot_info_t *info)
     G_BotConnect(clientNum, qtrue, userinfo);
     G_BotBegin(e);
 
+    gi.DPrintf("BOT: added '%s' in real client slot %d\n", botName, clientNum);
+
     return e;
 }
 
@@ -495,16 +354,17 @@ G_RestoreBot
 Restore the specified bot
 ============
 */
-gentity_t *G_RestoreBot(const saved_bot_t& saved)
+static gentity_t *G_RestoreBot(const saved_bot_t& saved)
 {
     gentity_t *e;
-    char       userinfo[MAX_INFO_STRING] {0};
 
     e = G_FindFreeEntityForBot();
     if (!e) {
-        gi.Printf("No free slot for a bot\n");
+        gi.DPrintf("BOT: no free slot for restoring bot\n");
         return NULL;
     }
+
+    gi.DPrintf("BOT: restoring bot in slot %d\n", (int)(e - g_entities));
 
     G_BotConnect(e - g_entities, qfalse, saved.userinfo);
     G_BotBegin(e);
@@ -519,7 +379,7 @@ G_AddBots
 Add the specified number of bots
 ============
 */
-void G_AddBots(unsigned int num)
+static void G_AddBots(unsigned int num)
 {
     int n;
 
@@ -535,15 +395,23 @@ G_RemoveBot
 Remove the specified bot
 ============
 */
-void G_RemoveBot(gentity_t *ent)
+static void G_RemoveBot(gentity_t *ent)
 {
-    if (ent->entity) {
-        BotController *controller = botManager.getControllerManager().findController(ent->entity);
+    int clientNum = ent - g_entities;
 
-        botManager.getControllerManager().removeController(controller);
-    }
+    gi.DPrintf(
+        "BOT: removing '%s' from real client slot %d\n",
+        ent->client ? ent->client->pers.netname : "?",
+        clientNum
+    );
 
-    G_ClientDisconnect(ent);
+    // Controller cleanup is now handled inside G_ClientDisconnect so that
+    // both the explicit G_RemoveBot path and the server-side SV_DropClient
+    // path (which bypasses G_RemoveBot) are covered.  No need to remove
+    // the controller here – G_ClientDisconnect will take care of it.
+
+    // All bots own real server slots, so always use the server drop path.
+    gi.DropClient(clientNum, "removed");
 }
 
 /*
@@ -553,7 +421,7 @@ G_RemoveBots
 Remove the specified number of bots
 ============
 */
-void G_RemoveBots(unsigned int num)
+static void G_RemoveBots(unsigned int num)
 {
     unsigned int removed = 0;
     unsigned int n;
@@ -699,87 +567,12 @@ void G_RestoreBots()
     }
 }
 
-/*
-===========
-G_CountPlayingClients
-
-Count the number of real clients that are playing
-============
-*/
-int G_CountPlayingClients()
-{
-    gentity_t   *other;
-    unsigned int n;
-    unsigned int count = 0;
-
-    for (n = 0; n < game.maxclients; n++) {
-        other = &g_entities[n];
-        if (G_IsPlayer(other)) {
-            Player *p = static_cast<Player *>(other->entity);
-            // Ignore spectators
-            if (p->GetTeam() != teamtype_t::TEAM_NONE && p->GetTeam() != teamtype_t::TEAM_SPECTATOR) {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-/*
-===========
-G_CountClients
-
-Count the number of real clients
-============
-*/
-int G_CountClients()
-{
-    gentity_t   *other;
-    unsigned int n;
-    unsigned int count = 0;
-
-    for (n = 0; n < game.maxclients; n++) {
-        other = &g_entities[n];
-        if (G_IsBot(other)) {
-            continue;
-        }
-
-        if (other->client && other->client->pers.userinfo[0]) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
 static unsigned int G_GetNumBotsToSpawn()
 {
-    unsigned int numClients;
-    unsigned int numBotsToSpawn;
+    const int requested = Q_max(sv_numbots->integer, 0);
 
-    //
-    // Check the minimum bot count
-    //
-    numClients = G_CountPlayingClients();
-    if (numClients < sv_minPlayers->integer) {
-        numBotsToSpawn = sv_minPlayers->integer - numClients + sv_numbots->integer;
-    } else {
-        numBotsToSpawn = sv_numbots->integer;
-    }
-
-    if (sv_sharedbots->integer) {
-        numClients = G_CountClients();
-
-        //
-        // Cap to the maximum number of possible clients
-        //
-        numBotsToSpawn = Q_min(numBotsToSpawn, maxclients->integer - numClients + sv_maxbots->integer);
-    } else {
-        numBotsToSpawn = Q_min(numBotsToSpawn, sv_maxbots->integer);
-    }
-
-    return numBotsToSpawn;
+    // Bots use real client slots. Human population never changes this target.
+    return Q_min(requested, maxclients->integer);
 }
 
 /*
@@ -791,96 +584,24 @@ Save bots
 */
 void G_RestartBots()
 {
+    gi.DPrintf("BOT: restarting bots, resetting botId\n");
     G_SaveBots();
-}
 
-static void G_InitBotSessionData()
-{
-    unsigned int n;
-
-    gi.Cvar_Get("botsession", "", CVAR_ROM);
-
-    for (n = 0; n < sv_maxbots->integer; n++) {
-        gi.Cvar_Get(va("botsession%i", n), "", CVAR_ROM);
-    }
-}
-
-/*
-===========
-G_ReadBotSessionData
-============
-*/
-static void G_ReadBotSessionData()
-{
-    unsigned int n;
-    unsigned int numSessions;
-
-    if (saved_bots) {
-        return;
-    }
-
-    cvar_t *v = gi.Cvar_Find("botsession");
-    if (!v || !v->integer) {
-        return;
-    }
-
-    // Unused for now, may be reserved for future use
-#if 0
-    numSessions = Q_min(v->integer, G_GetNumBotsToSpawn());
-
-    // Spawn bots if there are any prepared
-    for (n = 0; n < numSessions; n++) {
-        v = gi.Cvar_Find(va("botsession%i", n));
-        if (v) {
-            gi.cvar_set(va("botsession%i", n), "");
-        }
-    }
-#endif
-
-    gi.cvar_set("botsession", "");
-}
-
-/*
-===========
-G_WriteBotSessionData
-============
-*/
-void G_WriteBotSessionData()
-{
-    const BotControllerManager& manager        = botManager.getControllerManager();
-    unsigned int                numSpawnedBots = manager.getControllers().NumObjects();
-    unsigned int                count;
-    unsigned int                n;
-    unsigned int                current;
-
-    if (!numSpawnedBots) {
-        return;
-    }
-
-    if (saved_bots) {
-        return;
-    }
-
-    // Unused for now, may be reserved for future use
-    current = 0;
-#if 0
-    count = manager.getControllers().NumObjects();
-    assert(count <= numSpawnedBots);
-
-    for (n = 0; n < count; n++) {
-        const BotController *controller = manager.getControllers().ObjectAt(n + 1);
-        Player              *player     = controller->getControlledEntity();
-        if (!player) {
-            // this shouldn't happen
-            continue;
+    // Map restarts keep the game module loaded. Remove all active bot entities
+    // before restore to avoid duplicate bots or stale pre-spawn entities.
+    while (true) {
+        gentity_t *bot = G_GetFirstBot();
+        if (!bot) {
+            break;
         }
 
-        gi.cvar_set(va("botsession%i", current), "");
-        current++;
+        G_RemoveBot(bot);
     }
-#endif
 
-    gi.cvar_set("botsession", va("%d", current));
+    // Defensive cleanup in case a controller wasn't linked to an entity.
+    botManager.Cleanup();
+
+    botId = 0;
 }
 
 /*
@@ -892,7 +613,7 @@ Save and reset the bot count
 */
 void G_ResetBots()
 {
-    G_WriteBotSessionData();
+    gi.DPrintf("BOT: resetting bots, cleaning up and resetting botId\n");
 
     botManager.Cleanup();
 
@@ -909,9 +630,6 @@ Called to initialize bots
 void G_BotInit()
 {
     InitModelList();
-    botManager.Init();
-
-    G_InitBotSessionData();
 }
 
 /*
@@ -935,15 +653,8 @@ Called after the server has spawned
 */
 void G_BotPostInit()
 {
-    G_ReadBotSessionData();
-
     G_RestoreBots();
-
-    if (g_bot_initial_spawn_delay->value <= 0) {
-        G_SpawnBots();
-    }
-
-    botInitTime = level.time;
+    G_SpawnBots();
 }
 
 /*
@@ -955,17 +666,11 @@ Called each frame to manage bot spawning
 */
 void G_SpawnBots()
 {
-    unsigned int numClients;
     unsigned int numBotsToSpawn;
     unsigned int numSpawnedBots;
 
     if (g_gametype->integer == GT_SINGLE_PLAYER) {
         // No bot on single-player
-        return;
-    }
-
-    if (level.time - botInitTime < g_bot_initial_spawn_delay->value && !sv_numbots->modified) {
-        // Wait before spawning all bots
         return;
     }
 
@@ -976,8 +681,10 @@ void G_SpawnBots()
     // Spawn bots
     //
     if (numBotsToSpawn > numSpawnedBots) {
+        gi.DPrintf("BOT: spawning %d bot(s) (target=%d, current=%d)\n", numBotsToSpawn - numSpawnedBots, numBotsToSpawn, numSpawnedBots);
         G_AddBots(numBotsToSpawn - numSpawnedBots);
     } else if (numBotsToSpawn < numSpawnedBots) {
+        gi.DPrintf("BOT: removing %d bot(s) (target=%d, current=%d)\n", numSpawnedBots - numBotsToSpawn, numBotsToSpawn, numSpawnedBots);
         G_RemoveBots(numSpawnedBots - numBotsToSpawn);
     } else {
         sv_numbots->modified = false;

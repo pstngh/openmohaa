@@ -120,16 +120,14 @@ This feature is passive: it only checks the team sizes when someone tries to joi
 
 ### Bots
 
-OpenMoHAA introduced multiplayer bots which can be used for entertainment or for testing purposes. They appear in the scoreboard with their ping set to **bot**.
+OpenMoHAA multiplayer bots occupy normal client slots and are reported as players to the master server. This server variant gives them synthetic player-like pings.
 
 > [!NOTE]
 > Bots work best on maps without dynamic objects. Currently, they have difficulty getting around obstacles such as vehicles placed in the middle of maps.
 
-Configure bots with the following variables:
-
-- `set sv_maxbots x`: **Required**, max number of bots allowed. The game can only handle a total of 64 players (clients), it will be limited to 64 minus the number of real players (`sv_maxclients`). For example, if you set `sv_maxclients` to 48, the maximum number of bots (sv_maxbots) can be 16.
-- `set sv_numbots x`: Number of bots to spawn (capped at `sv_maxbots`).
-- `set sv_minPlayers x`: Configure the minimum number of players required. If the number of real players in a team is below the specified value, the game will automatically add bots to fill the gap. For example, if `sv_minPlayers` is set to 8 and only 5 real players are active, the game will spawn 3 bots to make sure there are always 8 players in the game.
+Set `sv_numbots` to the exact permanent bot count. The value is capped at
+`sv_maxclients`; connecting humans never reduce it. Reserve enough client slots
+for both groups.
 
 For more settings, see this [documentation](./03-configuration-bots.md).
 
@@ -142,25 +140,15 @@ set g_bot1_name "Fast beat" // The second bot spawned will be named Fast beat
 
 Bots will keep their name between restarts and new maps.
 
-Example with the requirement of 6 players:
+Example with five permanent bots and capacity for 16 humans:
 ```cpp
-set sv_maxbots 16 // Reserve 16 slots for bots
-set sv_minPlayers 6 // Ensure each team has at least 6 players (bots are added if there are fewer players active)
-```
-
-Example with 4 bots playing:
-```cpp
-set sv_maxbots 16 // Reserve 16 slots for bots
-set sv_numbots 4 // Spawn 4 bots
+set sv_maxclients 21
+set sv_numbots 5
 ```
 
 > [!NOTE]
-> Bots have their ping set to **bot** in the scoreboard to avoid confusion with human or cheaters.
-> 
-> Since OpenMoHAA 0.82.0, the navigation path is generated automatically using [Recast](https://recastnav.com/) for any map, including custom maps.
-> If the Recast-based navigation system is not working correctly or if you are running a version below 0.82.0:
-> 1. Get the [mp-navigation](https://github.com/openmoh/mp-navigation) pk3 (it only covers stock maps) and place it inside your game's `main` folder.
-> 2. Append `set g_navigation_legacy 1` somewhere, like in your `server.cfg` file.
+> These melee-only roomba bots do not use the navigation mesh, so no Recast
+> build or navigation package is required.
 
 #### Known issues with bots
 

@@ -25,10 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 BotRotation::BotRotation()
 {
-    m_vAngDelta   = vec_zero;
-    m_vAngSpeed   = vec_zero;
-    m_vTargetAng  = vec_zero;
-    m_vCurrentAng = vec_zero;
+    m_vTargetAng = vec_zero;
 }
 
 void BotRotation::SetControlledEntity(Player *newEntity)
@@ -36,90 +33,20 @@ void BotRotation::SetControlledEntity(Player *newEntity)
     controlledEntity = newEntity;
 }
 
-float AngleDifference(float ang1, float ang2)
-{
-    float diff;
-
-    diff = ang1 - ang2;
-    if (ang1 > ang2) {
-        if (diff > 180.0) {
-            diff -= 360.0;
-        }
-    } else {
-        if (diff < -180.0) {
-            diff += 360.0;
-        }
-    }
-    return diff;
-}
-
 void BotRotation::TurnThink(usercmd_t& botcmd, usereyes_t& eyeinfo)
 {
-    float diff;
-    float deltaDiff;
-    float factor;
-    float maxChange;
-    float maxChangeDelta;
-    float minChange;
-    float changeSpeed;
-    float speed;
-    int   i;
+    float pitch = AngleMod(m_vTargetAng[PITCH]);
+    const float yaw = AngleMod(m_vTargetAng[YAW]);
 
-    factor      = 1.0;
-    maxChange   = Q_max(360, g_bot_turn_speed->integer);
-    minChange   = 20;
-    changeSpeed = g_bot_turn_speed->integer;
-
-    if (m_vTargetAng[PITCH] > 180) {
-        m_vTargetAng[PITCH] -= 360;
+    if (pitch > 180) {
+        pitch -= 360;
     }
 
-    for (i = 0; i < 2; i++) {
-        m_vCurrentAng[i] = AngleMod(m_vCurrentAng[i]);
-        m_vTargetAng[i]  = AngleMod(m_vTargetAng[i]);
-
-        diff      = AngleDifference(m_vCurrentAng[i], m_vTargetAng[i]);
-        deltaDiff = fabs(diff);
-
-        maxChangeDelta = maxChange * level.frametime;
-        if (maxChangeDelta > deltaDiff) {
-            maxChangeDelta = deltaDiff;
-        }
-
-        if (deltaDiff >= minChange) {
-            m_vAngSpeed[i] = Q_min(1.0, m_vAngSpeed[i] + changeSpeed * level.frametime);
-            maxChangeDelta *= m_vAngSpeed[i];
-        } else {
-            m_vAngSpeed[i] = Q_max(0.0, m_vAngSpeed[i] - changeSpeed * level.frametime);
-        }
-
-        speed = diff * level.frametime * 10 * factor;
-
-        m_vAngDelta[i]   = Q_clamp_float(speed, -maxChangeDelta, maxChangeDelta);
-        m_vCurrentAng[i] = AngleMod(m_vCurrentAng[i] - m_vAngDelta[i]);
-    }
-
-    if (m_vCurrentAng[PITCH] > 180) {
-        m_vCurrentAng[PITCH] -= 360;
-    }
-
-    eyeinfo.angles[0] = m_vCurrentAng[0];
-    eyeinfo.angles[1] = m_vCurrentAng[1];
-    botcmd.angles[0]  = ANGLE2SHORT(m_vCurrentAng[0]) - controlledEntity->client->ps.delta_angles[0];
-    botcmd.angles[1]  = ANGLE2SHORT(m_vCurrentAng[1]) - controlledEntity->client->ps.delta_angles[1];
-    botcmd.angles[2]  = ANGLE2SHORT(m_vCurrentAng[2]) - controlledEntity->client->ps.delta_angles[2];
-}
-
-/*
-====================
-GetTargetAngles
-
-Return the target angle
-====================
-*/
-const Vector& BotRotation::GetTargetAngles() const
-{
-    return m_vTargetAng;
+    eyeinfo.angles[0] = pitch;
+    eyeinfo.angles[1] = yaw;
+    botcmd.angles[0]  = ANGLE2SHORT(pitch) - controlledEntity->client->ps.delta_angles[0];
+    botcmd.angles[1]  = ANGLE2SHORT(yaw) - controlledEntity->client->ps.delta_angles[1];
+    botcmd.angles[2]  = -controlledEntity->client->ps.delta_angles[2];
 }
 
 /*
