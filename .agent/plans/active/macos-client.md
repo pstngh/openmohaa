@@ -39,9 +39,11 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 - [x] Lock the first-person weapon/arms projection to the original aspect-corrected 80-degree 4:3 base FOV without a setting or cvar.
 - [x] Audit `a2f3401..dev` (2026-09-23) and settle every finding with the owner (D012-D014).
 - [x] Rewrite the history after `a2f3401` into a clean series with the audit fixes folded in, replace `main`, and keep the old history at the tag `dev` (2026-09-24).
+- [x] Re-audit the rewritten `main` and add focused follow-up commits on `claude/nifty-faraday-rmgmfc` (2026-09-24).
 
 ## Remaining milestones
 
+- [ ] Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them.
 - [ ] Restore GitHub Actions (budget and artifact storage), rebuild `main`, and install that arm64 artifact on the Mac mini M4.
 - [ ] Smoke-test at 1280x960 and one widescreen resolution:
   - Connect with bookmark switching; a changed address must clear or swap the credentials.
@@ -51,6 +53,7 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
   - Fullscreen/windowed, compass alignment at the default `ui_compass_scale`, and the crosshair overlay on an MG nest.
   - Weapon framing while world FOV changes, including whether first-person sprite effects such as muzzle flashes line up with the barrel.
   - Bot aim and difficulty feel after the aim-error change.
+  - Change a control in every panel, quit, and relaunch: each change must persist, since settings now save on any change.
 - [ ] Check whether the downloaded artifact keeps the executable bits of the apps and `install.command`; if not, archive the package with `ditto` or `tar` before upload.
 - [ ] Confirm `obj/obj_team2` and `obj/obj_team4`, which upstream hid from the FFA/TDM map lists, work in both modes.
 - [ ] Record a natural public-server session with `Record my movement` enabled and flush it cleanly.
@@ -60,6 +63,7 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 ## Important discoveries
 
 - A launcher-started `mohbots.app` process keeps the bot-match settings it was started with, including cheats, LAN-only hosting, the observer lock, and the dmflags, until it quits. Host other games from a fresh process.
+- A raised `sv_bots` is kept until a map is loaded with `map`, which allocates that many bot slots; `map_restart` keeps the current capacity.
 - The compass layout uses the rendered widget bounds, falls back conservatively, and refreshes on UI realignment or cvar changes rather than every frame.
 - The view model is recognized by its first-person render flag. Sprite effects still use the world projection, because the sprite pass batches sprites by shader and cannot switch projections mid-batch without a restructure.
 - Client telemetry is predicted/local rather than authoritative server state and can only reason about entities the server sends to the client.
@@ -90,4 +94,4 @@ Keep this repository independently recoverable and deliver a polished arm64 Open
 
 ## Next action
 
-Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them. Then restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist above at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.

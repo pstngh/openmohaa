@@ -9,7 +9,7 @@ active_plan: .agent/plans/active/macos-client.md
 
 ## Active task
 
-Smoke-test the rewritten `main` on the Mac mini M4 before changing launcher, layout, rendering, or bot behavior further.
+Merge the follow-up audit commits on `claude/nifty-faraday-rmgmfc` into `main`, then smoke-test `main` on the Mac mini M4 before changing launcher, layout, rendering, or bot behavior further.
 
 ## Why this serves the goal
 
@@ -17,7 +17,18 @@ The code and its history are complete and build on Linux and in macOS CI; real-d
 
 ## Status
 
-On 2026-09-24 the history after the upstream base `a2f3401` was rewritten into a clean series with the fixes from the 2026-09-23 audit folded into the commits they belong to, and it replaced `main`. The previous history remains at the tag `dev`. Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce a package: the account's Actions budget is used up, so macOS jobs are refused, and artifact storage is full, so even a successful build cannot upload its package.
+On 2026-09-24 the history after the upstream base `a2f3401` was rewritten into a clean series with the fixes from the 2026-09-23 audit folded into the commits they belong to, and it replaced `main`. The previous history remains at the tag `dev`.
+
+A second audit of the rewritten `main` (`fa50e60`) the same day left D012-D014 as they are and added six commits on `claude/nifty-faraday-rmgmfc`, which fast-forwards from `main`:
+
+- A raised `sv_bots` is kept until the next map load instead of being lowered to the current map's capacity.
+- Human bloom is capped at a clip's worth only with the infinite ammo dmflag, as it was meant for bottomless clips; normal games keep stock bloom.
+- The server telemetry `model` column records the German model for Axis players.
+- Duplicate bot aim, curious, and telemetry state and dead remarks are removed without changing the bots or the telemetry columns.
+- Dead macOS packaging code is removed without changing the package.
+- The launcher saves whenever a published setting changes, replacing 38 per-field save handlers, and unused pak-scanner and card code is gone.
+
+Runtime testing on a Mac is still outstanding, and GitHub Actions cannot produce a package: the account's Actions budget is used up, so macOS jobs are refused, and artifact storage is full, so even a successful build cannot upload its package.
 
 ## Completed
 
@@ -57,6 +68,7 @@ On 2026-09-24 the history after the upstream base `a2f3401` was rewritten into a
 - The launcher's Swift sources pass a syntax check at every commit.
 - Before the Actions budget ran out, macOS CI built the arm64 client, packaged it, and compiled the Swift launcher for the server telemetry commit and for the aim-error commit, whose code matches the `main` head; only the artifact upload failed. The launcher commits between those two could not be compiled in CI.
 - The Unit Tests workflow passed on the final code.
+- The six follow-up commits each build on Linux with no new compiler warnings against the upstream base, pass every focused Python test, and pass the Swift syntax check; a stand-in CMake project on Linux exercised the simplified `bundle_macos.cmake`, including the icon rendering. Compiling the launcher and packaging still need macOS CI or a Mac.
 
 ## Relevant locations
 
@@ -66,4 +78,4 @@ On 2026-09-24 the history after the upstream base `a2f3401` was rewritten into a
 
 ## Next action
 
-Restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
+Review the follow-up commits on `claude/nifty-faraday-rmgmfc` and fast-forward `main` to them. Then restore GitHub Actions (raise the budget or wait for it to reset, and free artifact storage), re-run Builds for the `main` head, install that arm64 artifact on the Mac mini M4, and run the smoke-test checklist in the active plan at 1280x960 and one widescreen resolution; record build, resolution, and result before requesting a code change.
