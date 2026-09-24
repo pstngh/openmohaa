@@ -1,0 +1,43 @@
+main:
+    removeclass Actor NIL 1
+    removeclass TurretGun NIL 1
+    removeclass AmmoEntity NIL 1
+    removeclass Health NIL 1
+    removeclass Vehicle NIL 1
+    removeclass Trigger NIL 1
+
+    $plunger remove
+    $tankclip remove
+    $tankclip2 remove
+
+    setcvar "g_obj_alliedtext1" "The Bridge"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_deathmatch "origin" "496 2432 432" "angle" "-40"
+    spawn info_player_deathmatch "origin" "-4640 -3992 88" "angle" "49"
+    spawn info_player_deathmatch "origin" "966 1780 892" "angle" "118"
+    spawn info_player_deathmatch "origin" "-2424 -1824 440" "angle" "52"
+    spawn info_player_deathmatch "origin" "2984 6112 216" "angle" "-120"
+    spawn info_player_deathmatch "origin" "-1208 1912 672" "angle" "10"
+    spawn info_player_deathmatch "origin" "1112 5992 432" "angle" "-96"
+    spawn info_player_deathmatch "origin" "2744 3528 756" "angle" "-148"
+    spawn info_player_deathmatch "origin" "112 -1634 416" "angle" "81"
+    spawn info_player_deathmatch "origin" "2640 3032 328" "angle" "-158"
+    spawn info_player_deathmatch "origin" "952 1616 656" "angle" "110"
+    spawn info_player_deathmatch "origin" "-3584 -2920 248" "angle" "50"
+    spawn info_player_deathmatch "origin" "-528 352 512" "angle" "57"
+    spawn info_player_deathmatch "origin" "1032 4136 544" "angle" "-99"
+    spawn info_player_deathmatch "origin" "1352 6152 256" "angle" "-99"
+    spawn info_player_deathmatch "origin" "1152 3888 312" "angle" "-105"
+    spawn info_player_deathmatch "origin" "-512 3912 432" "angle" "-53"
+    spawn info_player_deathmatch "origin" "-920 2056 432" "angle" "7"
+
+    level waittill prespawn
+
+    level waittill spawn
+end

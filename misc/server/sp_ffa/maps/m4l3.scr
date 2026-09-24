@@ -1,0 +1,51 @@
+main:
+    removeclass Actor NIL 1
+    removeclass TurretGun NIL 1
+    removeclass AmmoEntity NIL 1
+    removeclass Health NIL 1
+    removeclass Vehicle NIL 1
+    removeclass Trigger NIL 1
+    removeclass RotatingDoor
+
+    $startgate_left remove
+    $startgate_right remove
+    $endgate_left remove
+    $endgate_right remove
+    $truckgate remove
+    $truckblock remove
+
+    setcvar "g_obj_alliedtext1" "The Command Post"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_deathmatch "origin" "-2656 -656 56" "angle" "-165"
+    spawn info_player_deathmatch "origin" "3968 5008 48" "angle" "-141"
+    spawn info_player_deathmatch "origin" "-5552 -4800 -304" "angle" "58"
+    spawn info_player_deathmatch "origin" "-6064 -6224 64" "angle" "61"
+    spawn info_player_deathmatch "origin" "-624 560 -184" "angle" "-152"
+    spawn info_player_deathmatch "origin" "2368 16 56" "angle" "-172"
+    spawn info_player_deathmatch "origin" "-6032 2928 64" "angle" "-51"
+    spawn info_player_deathmatch "origin" "-8 -1364 256" "angle" "169"
+    spawn info_player_deathmatch "origin" "-5648 -2928 -96" "angle" "40"
+    spawn info_player_deathmatch "origin" "-2288 -4880 64" "angle" "101"
+    spawn info_player_deathmatch "origin" "-496 2928 48" "angle" "-125"
+    spawn info_player_deathmatch "origin" "-3152 368 264" "angle" "-86"
+    spawn info_player_deathmatch "origin" "-6192 -880 64" "angle" "2"
+    spawn info_player_deathmatch "origin" "-2992 -3648 -208" "angle" "92"
+    spawn info_player_deathmatch "origin" "256 -2608 48" "angle" "151"
+    spawn info_player_deathmatch "origin" "-3172 -336 -104" "angle" "-77"
+    spawn info_player_deathmatch "origin" "-4848 -3536 64" "angle" "57"
+    spawn info_player_deathmatch "origin" "-3184 2256 56" "angle" "-88"
+
+    level waittill prespawn
+
+    level.farplane = 2700
+    $world farplane level.farplane
+    $world farplane_color ( .1 .1 .14 )
+
+    level waittill spawn
+end

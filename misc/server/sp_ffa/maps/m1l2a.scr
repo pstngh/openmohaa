@@ -1,0 +1,47 @@
+main:
+    removeclass Actor NIL 1
+    removeclass TurretGun NIL 1
+    removeclass AmmoEntity NIL 1
+    removeclass Health NIL 1
+    removeclass Vehicle NIL 1
+    removeclass Trigger NIL 1
+
+    $enddoor remove
+    $doorL remove
+    $doorR remove
+    $ossdoorbar remove
+    $right_gate remove
+    $left_gate remove
+    $lock remove
+
+    setcvar "g_obj_alliedtext1" "The Rescue Mission"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_deathmatch "origin" "1892 -604 -32" "angle" "61"
+    spawn info_player_deathmatch "origin" "2000 4040 -504" "angle" "-88"
+    spawn info_player_deathmatch "origin" "6304 -4664 224" "angle" "133"
+    spawn info_player_deathmatch "origin" "-1440 -3848 -288" "angle" "46"
+    spawn info_player_deathmatch "origin" "1050 4101 80" "angle" "-76"
+    spawn info_player_deathmatch "origin" "5916 -884 16" "angle" "169"
+    spawn info_player_deathmatch "origin" "-256 2872 -208" "angle" "-52"
+    spawn info_player_deathmatch "origin" "-1213 -723 -99" "angle" "9"
+    spawn info_player_deathmatch "origin" "5120 -4056 -24" "angle" "128"
+    spawn info_player_deathmatch "origin" "2400 3872 -184" "angle" "-94"
+    spawn info_player_deathmatch "origin" "4252 -68 -160" "angle" "-177"
+    spawn info_player_deathmatch "origin" "4892 -1884 192" "angle" "148"
+    spawn info_player_deathmatch "origin" "400 1808 0" "angle" "-49"
+    spawn info_player_deathmatch "origin" "8 3080 -416" "angle" "-57"
+    spawn info_player_deathmatch "origin" "2576 1744 -64" "angle" "-103"
+    spawn info_player_deathmatch "origin" "3291 -291 138" "angle" "175"
+    spawn info_player_deathmatch "origin" "2256 2280 112" "angle" "-93"
+    spawn info_player_deathmatch "origin" "-1552 -1624 -264" "angle" "21"
+
+    level waittill prespawn
+
+    level waittill spawn
+end

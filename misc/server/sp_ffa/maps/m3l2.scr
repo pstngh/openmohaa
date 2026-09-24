@@ -1,0 +1,44 @@
+main:
+    removeclass Actor NIL 1
+    removeclass TurretGun NIL 1
+    removeclass AmmoEntity NIL 1
+    removeclass Health NIL 1
+    removeclass Vehicle NIL 1
+    removeclass Trigger NIL 1
+
+    $cobb_door remove
+    $s2_playerclip remove
+    $scene2_airborne_door remove
+    $level_end_blocker remove
+
+    setcvar "g_obj_alliedtext1" "Battle in the Bocage"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_deathmatch "origin" "-3536 -2992 96" "angle" "-33"
+    spawn info_player_deathmatch "origin" "4064 -3456 -208" "angle" "-180"
+    spawn info_player_deathmatch "origin" "-6752 -6408 -168" "angle" "36"
+    spawn info_player_deathmatch "origin" "4496 -4848 96" "angle" "170"
+    spawn info_player_deathmatch "origin" "-3432 3744 192" "angle" "-85"
+    spawn info_player_deathmatch "origin" "-6320 -7568 96" "angle" "49"
+    spawn info_player_deathmatch "origin" "-5024 1712 32" "angle" "-66"
+    spawn info_player_deathmatch "origin" "1504 -1056 96" "angle" "-150"
+    spawn info_player_deathmatch "origin" "2452 -4868 -64" "angle" "165"
+    spawn info_player_deathmatch "origin" "232 -5376 96" "angle" "148"
+    spawn info_player_deathmatch "origin" "-5256 -5632 -24" "angle" "40"
+    spawn info_player_deathmatch "origin" "-2992 -6928 -128" "angle" "86"
+    spawn info_player_deathmatch "origin" "-6144 -1632 32" "angle" "-29"
+    spawn info_player_deathmatch "origin" "-2492 2996 64" "angle" "-92"
+    spawn info_player_deathmatch "origin" "4336 -1808 96" "angle" "-166"
+    spawn info_player_deathmatch "origin" "-5840 -4720 96" "angle" "21"
+    spawn info_player_deathmatch "origin" "-720 -2768 96" "angle" "-160"
+    spawn info_player_deathmatch "origin" "2256 -3568 96" "angle" "179"
+
+    level waittill prespawn
+
+    level waittill spawn
+end

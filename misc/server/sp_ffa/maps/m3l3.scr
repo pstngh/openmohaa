@@ -1,0 +1,46 @@
+main:
+    removeclass Actor NIL 1
+    removeclass TurretGun NIL 1
+    removeclass AmmoEntity NIL 1
+    removeclass Health NIL 1
+    removeclass Vehicle NIL 1
+    removeclass Trigger NIL 1
+
+    $scene0_panzerschreck remove
+    $scene4_tank_barrel_collision remove
+
+    setcvar "g_obj_alliedtext1" "The Nebelwerfer Hunt"
+    setcvar "g_obj_alliedtext2" ""
+    setcvar "g_obj_alliedtext3" ""
+    setcvar "g_obj_axistext1" ""
+    setcvar "g_obj_axistext2" ""
+    setcvar "g_obj_axistext3" ""
+    setcvar "g_scoreboardpic" ""
+
+    spawn info_player_deathmatch "origin" "1976 -2040 -192" "angle" "150"
+    spawn info_player_deathmatch "origin" "-5856 3040 256" "angle" "-35"
+    spawn info_player_deathmatch "origin" "-6464 -7040 64" "angle" "56"
+    spawn info_player_deathmatch "origin" "1568 5024 256" "angle" "-123"
+    spawn info_player_deathmatch "origin" "-2224 4096 -120" "angle" "-82"
+    spawn info_player_deathmatch "origin" "5360 3224 -344" "angle" "-156"
+    spawn info_player_deathmatch "origin" "-4592 -1760 -224" "angle" "31"
+    spawn info_player_deathmatch "origin" "-1408 -6080 -64" "angle" "92"
+    spawn info_player_deathmatch "origin" "3144 4048 -24" "angle" "-140"
+    spawn info_player_deathmatch "origin" "-6504 2520 0" "angle" "-27"
+    spawn info_player_deathmatch "origin" "5488 -2896 -368" "angle" "158"
+    spawn info_player_deathmatch "origin" "5184 736 -128" "angle" "-174"
+    spawn info_player_deathmatch "origin" "1568 4192 -232" "angle" "-128"
+    spawn info_player_deathmatch "origin" "-1856 -1920 -64" "angle" "83"
+    spawn info_player_deathmatch "origin" "-5184 -6976 -136" "angle" "63"
+    spawn info_player_deathmatch "origin" "-1888 2656 256" "angle" "-84"
+    spawn info_player_deathmatch "origin" "-5888 -3456 -64" "angle" "39"
+    spawn info_player_deathmatch "origin" "-1160 -656 -232" "angle" "124"
+
+    level waittill prespawn
+
+    level.farplane = 4200
+    $world farplane level.farplane
+    $world farplane_color ( .62 .62 .61 )
+
+    level waittill spawn
+end
