@@ -1815,8 +1815,10 @@ Info_RemoveKey
 */
 void Info_RemoveKey( char *s, const char *key ) {
 	char	*start;
-	char	pkey[MAX_INFO_KEY];
-	char	value[MAX_INFO_VALUE];
+	// Sized to the whole string: MAX_INFO_STRING exceeds MAX_INFO_KEY and
+	// MAX_INFO_VALUE, so one long pair in a client userinfo would overflow.
+	char	pkey[MAX_INFO_STRING];
+	char	value[MAX_INFO_STRING];
 	char	*o;
 
 	if ( strlen( s ) >= MAX_INFO_STRING ) {
