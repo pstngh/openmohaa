@@ -166,6 +166,8 @@ typedef struct client_s {
 	char			lastClientCommandString[MAX_STRING_CHARS];
 	gentity_t		*gentity;			// SV_GentityNum(clientnum)
 	char			name[MAX_NAME_LENGTH];			// extracted from userinfo, high bits masked
+	char			requestedName[MAX_NAME_LENGTH];	// last name sent by the client, before game-side fixes
+	int				nameChangeCount;			// reset when this client slot is initialized on connect
 
 	// downloading
 	char			downloadName[MAX_QPATH]; // if not empty string, we are downloading
@@ -458,7 +460,8 @@ void SV_MasterHeartbeat (void);
 void SV_MasterShutdown (void);
 int SV_RateMsec(client_t *client);
 
-void SV_PrintfClient(int clientNum, const char *fmt, ...);
+void SV_PrintfClient(int clientNum, const char *fmt, ...) Q_PRINTF_FUNC(2, 3);
+void SV_LogPrintfClient(int clientNum, const char *fmt, ...) Q_PRINTF_FUNC(2, 3);
 void SV_BotConnect(int clientNum, const char *userinfo);
 const char *SV_GetClientStatusAddress(const client_t *cl, int *botPortIndex);
 
@@ -531,7 +534,7 @@ void SV_DirectConnect( netadr_t from );
 void SV_AuthorizeIpPacket( netadr_t from );
 
 void SV_ExecuteClientMessage( client_t *cl, msg_t *msg );
-void SV_UserinfoChanged( client_t *cl );
+qboolean SV_UserinfoChanged( client_t *cl );
 
 void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient(client_t *client);

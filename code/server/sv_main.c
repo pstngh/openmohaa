@@ -1490,23 +1490,17 @@ int SV_SendQueuedPackets(void)
 
 /*
 =====================
-SV_PrintfClient
+SV_WriteClientMessage
 =====================
 */
-void SV_PrintfClient(int clientNum, const char *fmt, ...) {
+static void SV_WriteClientMessage(int clientNum, const char *msg, qboolean logOnly) {
     client_t   *cl;
     const char *addr, *name;
-    va_list     argptr;
-    char        msg[MAXPRINTMSG];
 
     if (!com_dedicated->integer) {
-        // Only print client details on dedicated servers
+        // Only report client details on dedicated servers
         return;
     }
-
-    va_start(argptr, fmt);
-    Q_vsnprintf(msg, sizeof(msg), fmt, argptr);
-    va_end(argptr);
 
     if (clientNum < 0 || clientNum >= svs.iNumClients) {
         return;
@@ -1523,13 +1517,53 @@ void SV_PrintfClient(int clientNum, const char *fmt, ...) {
     }
 
     if (!sv_logContext->integer) {
-        // Contextual print disabled
-        Com_Printf("%s %s", name, msg);
+        // Context prefix disabled
+        if (logOnly) {
+            Com_LogPrintf("%s %s", name, msg);
+        } else {
+            Com_Printf("%s %s", name, msg);
+        }
         return;
     }
 
     addr = NET_AdrToStringwPort(cl->netchan.remoteAddress);
-    Com_Printf("{#%d | %s} %s %s", clientNum, addr, name, msg);
+    if (logOnly) {
+        Com_LogPrintf("{#%d | %s} %s %s", clientNum, addr, name, msg);
+    } else {
+        Com_Printf("{#%d | %s} %s %s", clientNum, addr, name, msg);
+    }
+}
+
+/*
+=====================
+SV_PrintfClient
+=====================
+*/
+void SV_PrintfClient(int clientNum, const char *fmt, ...) {
+    va_list argptr;
+    char    msg[MAXPRINTMSG];
+
+    va_start(argptr, fmt);
+    Q_vsnprintf(msg, sizeof(msg), fmt, argptr);
+    va_end(argptr);
+
+    SV_WriteClientMessage(clientNum, msg, qfalse);
+}
+
+/*
+=====================
+SV_LogPrintfClient
+=====================
+*/
+void SV_LogPrintfClient(int clientNum, const char *fmt, ...) {
+    va_list argptr;
+    char    msg[MAXPRINTMSG];
+
+    va_start(argptr, fmt);
+    Q_vsnprintf(msg, sizeof(msg), fmt, argptr);
+    va_end(argptr);
+
+    SV_WriteClientMessage(clientNum, msg, qtrue);
 }
 
 /*

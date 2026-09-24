@@ -218,6 +218,69 @@ void Com_EndRedirect (void)
 #ifndef _COM_NOPRINTF
 
 /*
+================
+Com_WriteLogMessage
+
+Write an already formatted message to qconsole.log without echoing it to any
+console. The logfile must already be open.
+================
+*/
+static void Com_WriteLogMessage( const char *msg ) {
+	static qboolean no_newline = qfalse;
+	size_t msgLen;
+
+	if ( !logfile || !FS_Initialized() ) {
+		return;
+	}
+
+	msgLen = strlen( msg );
+	if ( !msgLen ) {
+		return;
+	}
+
+	if ( com_logfile_timestamps->integer ) {
+		if ( !no_newline ) {
+			time_t t;
+			time_t t_gmt;
+			struct tm tms_local;
+			struct tm tms_gm;
+			double tz;
+			const char *tzStr;
+			char buffer[26];
+
+			t = time( NULL );
+#ifdef WIN32
+			localtime_s( &tms_local, &t );
+			gmtime_s( &tms_gm, &t );
+#else
+			localtime_r( &t, &tms_local );
+			gmtime_r( &t, &tms_gm );
+#endif
+			t_gmt = mktime( &tms_gm );
+			tz = difftime( t, t_gmt ) / 60.0 / 60.0;
+
+			strftime( buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tms_local );
+			FS_Write( "[", 1, logfile );
+			FS_Write( buffer, strlen(buffer), logfile );
+			FS_Write( " ", 1, logfile );
+
+			if ( tz >= 0 ) {
+				tzStr = va( "UTC+%.03f", tz );
+			} else {
+				tzStr = va( "UTC%.03f", tz );
+			}
+
+			FS_Write( tzStr, strlen(tzStr), logfile );
+			FS_Write( "] ", 2, logfile );
+		}
+
+		no_newline = msg[msgLen - 1] != '\n';
+	}
+
+	FS_Write( msg, msgLen, logfile );
+}
+
+/*
 =============
 Com_Printf
 
@@ -303,66 +366,37 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 
       opening_qconsole = qfalse;
 		}
-        if (logfile && FS_Initialized()) {
-            // Added in OPM
-            //  Write the time before each message
-            //================
-			size_t msgLen = strlen(msg);
-
-            if (msgLen > 0) {
-                if (com_logfile_timestamps->integer) {
-                    static qboolean no_newline = qfalse;
-
-                    if (!no_newline) {
-                        time_t t;
-                        time_t t_gmt;
-                        struct tm tms_local;
-                        struct tm tms_gm;
-                        double tz;
-                        const char* tzStr;
-                        char buffer[26];
-
-                        t = time(NULL);
-    #ifdef WIN32
-                        localtime_s(&tms_local, &t);
-                        gmtime_s(&tms_gm, &t);
-    #else
-                        localtime_r(&t, &tms_local);
-                        gmtime_r(&t, &tms_gm);
-    #endif
-                        t_gmt = mktime(&tms_gm);
-                        tz = difftime(t, t_gmt) / 60.0 / 60.0;
-
-                        strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", &tms_local);
-                        FS_Write("[", 1, logfile);
-                        FS_Write(buffer, strlen(buffer), logfile);
-                        FS_Write(" ", 1, logfile);
-
-                        if (tz >= 0) {
-                            tzStr = va("UTC+%.03f", tz);
-                        } else {
-                            tzStr = va("UTC%.03f", tz);
-                        }
-
-                        FS_Write(tzStr, strlen(tzStr), logfile);
-                        FS_Write("] ", 2, logfile);
-                    }
-
-                    if (msg[msgLen - 1] != '\n') {
-                        // Don't write the time if the previous message has no newline
-                        no_newline = qtrue;
-                    } else {
-                        no_newline = qfalse;
-                    }
-                }
-                //================
-
-                FS_Write(msg, msgLen, logfile);
-            }
-		}
+		Com_WriteLogMessage( msg );
     }
 
     recursive_count--;
+}
+
+/*
+================
+Com_LogPrintf
+
+Write to qconsole.log without echoing the message to a console.
+================
+*/
+void QDECL Com_LogPrintf( const char *fmt, ... ) {
+	va_list argptr;
+	char msg[MAXPRINTMSG];
+
+	if ( !com_logfile || !com_logfile->integer ) {
+		return;
+	}
+
+	va_start( argptr, fmt );
+	Q_vsnprintf( msg, sizeof(msg), fmt, argptr );
+	va_end( argptr );
+
+	if ( !logfile && FS_Initialized() ) {
+		// Preserve normal logfile initialization and its standard header.
+		Com_Printf( "%s", "" );
+	}
+
+	Com_WriteLogMessage( msg );
 }
 
 

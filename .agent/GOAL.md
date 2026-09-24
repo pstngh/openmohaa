@@ -38,6 +38,9 @@ than conventional defaults or feature breadth.
   death when possible.
 - Blank, `unnamedsoldier`, and `-=[FrontLine]=-`-prefixed names become unique
   `ForteSoldier` names.
+- A human may change their exact name once per connection. Record name messages
+  in `qconsole.log` without echoing them to the live console, and kick on the
+  second change; bots remain exempt.
 - Require no custom client. Keep `m6l2a` in its narrow server-only package and
   other supported SP FFA maps in a separate package, outside automatic rotation.
 - Taunt cooldown is runtime policy; keep the source default at 1000 ms.

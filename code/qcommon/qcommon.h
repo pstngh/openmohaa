@@ -994,6 +994,7 @@ void		Info_Print( const char *s );
 void		Com_BeginRedirect (char *buffer, int buffersize, void (*flush)(char *));
 void		Com_EndRedirect( void );
 void 		QDECL Com_Printf( const char *fmt, ... ) Q_PRINTF_FUNC(1, 2);
+void 		QDECL Com_LogPrintf( const char *fmt, ... ) Q_PRINTF_FUNC(1, 2);
 void 		QDECL Com_DPrintf( const char *fmt, ... ) Q_PRINTF_FUNC(1, 2);
 void 		QDECL Com_Error( int code, const char *fmt, ... ) Q_NO_RETURN Q_PRINTF_FUNC(2, 3);
 void 		Com_Quit_f( void ) Q_NO_RETURN;
