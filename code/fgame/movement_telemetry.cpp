@@ -148,6 +148,13 @@ namespace
         return IsRecordablePlayer(player) ? player->client->pers.netname : "";
     }
 
+    // Axis players wear their German model, everyone else the Allied one
+    static const char *PlayerModel(Player *player)
+    {
+        return player->GetTeam() == TEAM_AXIS ? player->client->pers.dm_playergermanmodel
+                                              : player->client->pers.dm_playermodel;
+    }
+
     static bool PlayerIsBot(Player *player)
     {
         // The server marks bot clients when they connect, before they begin, so
@@ -860,7 +867,7 @@ namespace
         row << std::fixed << std::setprecision(3) << MOVELOG_SCHEMA << ',' << CsvQuote(sessionId.c_str()) << ','
             << SessionMsec() << ',' << level.inttime << ',' << level.framenum << ',' << level.intframetime << ','
             << CsvQuote(level.current_map) << ',' << player->entnum << ',' << CsvQuote(PlayerName(player)) << ','
-            << CsvQuote(player->client->pers.dm_playermodel) << ',' << (PlayerIsBot(player) ? 1 : 0) << ','
+            << CsvQuote(PlayerModel(player)) << ',' << (PlayerIsBot(player) ? 1 : 0) << ','
             << static_cast<int>(player->GetTeam()) << ',' << (player->deadflag == DEAD_NO && player->health > 0 ? 1 : 0)
             << ',' << (player->IsSpectator() ? 1 : 0) << ',' << player->client->ping << ',' << player->health << ','
             << player->max_health << ',' << player->origin.x << ',' << player->origin.y << ',' << player->origin.z
