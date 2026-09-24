@@ -54,6 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "portableturret.h"
 #include "fixedturret.h"
 #include "clientvote.h"
+#include "g_bot.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -2268,6 +2269,11 @@ void Player::Init(void)
     InitInventory();
     InitHealth();
     InitStats();
+
+    // Bots rotate through the installed team skins on every spawn.
+    // Do this before the model and nationality-dependent loadout are chosen.
+    G_RandomizeBotPlayerModels(edict);
+
     InitModel();
     InitInvulnerable();
 
@@ -8784,6 +8790,31 @@ void Player::InitDeathmatch(void)
     }
 
     ChooseSpawnPoint();
+
+    // Assign random weapons to bots based on team
+    if (edict->r.svFlags & SVF_BOT) {
+        float roll          = G_Random();
+        float sniperChance = g_bot_sniper->value / 100.0f;
+        float stgChance     = g_bot_stg->value / 100.0f;
+        if (GetTeam() == TEAM_ALLIES) {
+            if (roll < sniperChance) {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            }
+        } else if (GetTeam() == TEAM_AXIS) {
+            // Snipers take priority if the configured percentages overlap.
+            // The StG share is therefore capped by the non-sniper remainder.
+            if (roll < sniperChance) {
+                Q_strncpyz(client->pers.dm_primary, "sniper", sizeof(client->pers.dm_primary));
+            } else if (roll < sniperChance + stgChance) {
+                Q_strncpyz(client->pers.dm_primary, "mg", sizeof(client->pers.dm_primary));
+            } else {
+                Q_strncpyz(client->pers.dm_primary, "smg", sizeof(client->pers.dm_primary));
+            }
+        }
+    }
+
     EquipWeapons();
 
     if (current_team) {
@@ -8999,54 +9030,74 @@ void Player::EquipWeapons()
             break;
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "smg") && !(dmflags->integer & DF_WEAPON_NO_SMG)) {
-        switch (nationality) {
-        case NA_BRITISH:
-            giveItem("weapons/sten.tik");
-            event->AddString("Sten Mark II");
-            break;
-        case NA_RUSSIAN:
-            giveItem("weapons/ppsh_smg.tik");
-            event->AddString("PPSH SMG");
-            break;
-        case NA_GERMAN:
-            giveItem("weapons/mp40.tik");
-            event->AddString("MP40");
-            break;
-        case NA_ITALIAN:
-            giveItem("weapons/it_w_moschetto.tik");
-            event->AddString("Moschetto");
-            break;
-        case NA_AMERICAN:
-        default:
-            giveItem("weapons/thompsonsmg.tik");
-            event->AddString("Thompson");
-            break;
+        // Keep bot SMGs consistent across randomized skins: MP40 for Axis,
+        // Thompson for Allies (and the non-team FFA fallback). Human loadouts
+        // remain nationality-specific.
+        if (edict->r.svFlags & SVF_BOT) {
+            if (GetTeam() == TEAM_AXIS) {
+                giveItem("weapons/mp40.tik");
+                event->AddString("MP40");
+            } else {
+                giveItem("weapons/thompsonsmg.tik");
+                event->AddString("Thompson");
+            }
+        } else {
+            switch (nationality) {
+            case NA_BRITISH:
+                giveItem("weapons/sten.tik");
+                event->AddString("Sten Mark II");
+                break;
+            case NA_RUSSIAN:
+                giveItem("weapons/ppsh_smg.tik");
+                event->AddString("PPSH SMG");
+                break;
+            case NA_GERMAN:
+                giveItem("weapons/mp40.tik");
+                event->AddString("MP40");
+                break;
+            case NA_ITALIAN:
+                giveItem("weapons/it_w_moschetto.tik");
+                event->AddString("Moschetto");
+                break;
+            case NA_AMERICAN:
+            default:
+                giveItem("weapons/thompsonsmg.tik");
+                event->AddString("Thompson");
+                break;
+            }
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "mg") && !(dmflags->integer & DF_WEAPON_NO_MG)) {
-        switch (nationality) {
-        case NA_BRITISH:
-            if (g_target_game < target_game_e::TG_MOHTT) {
+        // g_bot_stg is weapon-specific: an Axis bot selected for this slot
+        // gets the StG even when its randomized BT skin is Italian.
+        if ((edict->r.svFlags & SVF_BOT) && GetTeam() == TEAM_AXIS) {
+            giveItem("weapons/mp44.tik");
+            event->AddString("StG 44");
+        } else {
+            switch (nationality) {
+            case NA_BRITISH:
+                if (g_target_game < target_game_e::TG_MOHTT) {
+                    giveItem("weapons/bar.tik");
+                    event->AddString("BAR");
+                    break;
+                } else {
+                    giveItem("weapons/Uk_W_Vickers.tik");
+                    event->AddString("Vickers-Berthier");
+                }
+                break;
+            case NA_GERMAN:
+                giveItem("weapons/mp44.tik");
+                event->AddString("StG 44");
+                break;
+            case NA_ITALIAN:
+                giveItem("weapons/It_W_Breda.tik");
+                event->AddString("Breda");
+                break;
+            case NA_AMERICAN:
+            default:
                 giveItem("weapons/bar.tik");
                 event->AddString("BAR");
                 break;
-            } else {
-                giveItem("weapons/Uk_W_Vickers.tik");
-                event->AddString("Vickers-Berthier");
             }
-            break;
-        case NA_GERMAN:
-            giveItem("weapons/mp44.tik");
-            event->AddString("StG 44");
-            break;
-        case NA_ITALIAN:
-            giveItem("weapons/It_W_Breda.tik");
-            event->AddString("Breda");
-            break;
-        case NA_AMERICAN:
-        default:
-            giveItem("weapons/bar.tik");
-            event->AddString("BAR");
-            break;
         }
     } else if (!Q_stricmp(client->pers.dm_primary, "heavy") && !(dmflags->integer & DF_WEAPON_NO_ROCKET)) {
         switch (nationality) {
@@ -9639,6 +9690,20 @@ void Player::Auto_Join_DM_Team(Event *ev)
     };
 
     Event event(EV_Player_JoinDMTeam, 1);
+
+    // Check if bot should be forced to a specific team
+    if (edict->r.svFlags & SVF_BOT) {
+        if (!Q_stricmp(g_bot_team->string, "axis")) {
+            event.AddString("axis");
+            ProcessEvent(event);
+            return;
+        } else if (!Q_stricmp(g_bot_team->string, "allies")) {
+            event.AddString("allies");
+            ProcessEvent(event);
+            return;
+        }
+        // Fall through for "auto"
+    }
 
     if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
         event.AddString("axis");
