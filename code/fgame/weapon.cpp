@@ -1720,15 +1720,16 @@ void Weapon::Shoot(Event *ev)
 
             // Handle spread for human clients.
             if (!isBot && owner && owner->client) {
-                int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
-                float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
-
                 if (g_accuracy->integer >= 1) {
                     // High / Perfect: no bloom (Perfect also zeroes the total
                     // spread at fire time, above).
                     m_fFireSpreadMult[mode] = 0;
-                } else {
-                    // Normal: natural accumulation clamped to the full-clip cap.
+                } else if (DM_FLAG(DF_INFINITE_AMMO)) {
+                    // Bottomless clips never force a reload, so keep bloom
+                    // within what one full clip can build up.
+                    int   clipSize    = ammo_clip_size[mode] ? ammo_clip_size[mode] : startammo[mode];
+                    float maxFromClip = clipSize * m_fFireSpreadMultAmount[mode];
+
                     if (maxFromClip > 0 && m_fFireSpreadMult[mode] > maxFromClip) {
                         m_fFireSpreadMult[mode] = maxFromClip;
                     } else if (maxFromClip < 0 && m_fFireSpreadMult[mode] < maxFromClip) {

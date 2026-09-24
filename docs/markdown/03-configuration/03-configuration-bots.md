@@ -27,8 +27,9 @@ controls the infinite ammo flag independently and defaults to on. Normal
 engine and multiplayer launches retain their standard defaults.
 
 With the infinite ammo flag (`dmflags` bit 14, value 16384) set, weapons in
-this build never use ammunition, so they never need reloading. This applies
-to every server running this build, not only to launcher matches.
+this build never use ammunition, so they never need reloading, and the bloom
+of human players stops growing after a full clip's worth of shots. This
+applies to every server running this build, not only to launcher matches.
 
 ### `g_no_grenades`
 
