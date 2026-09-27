@@ -243,6 +243,10 @@ private:
     usercmd_t  last_ucmd;
     usereyes_t last_eyeinfo;
 
+    // Usercmds accepted by ClientThink since this player was created. Read by
+    // the movement telemetry (ext_usercmds); never reset.
+    unsigned int m_iUsercmdCount;
+
     // movement variables
     float  animheight;
     Vector yaw_forward;
@@ -780,6 +784,10 @@ public:
     void ReceivedItem(Item *item) override;
     void RemovedItem(Item *item) override;
     void AmmoAmountChanged(Ammo *ammo, int inclip = 0) override;
+
+    // Movement telemetry
+    const usercmd_t& GetLastUsercmd(void) const { return last_ucmd; }
+    unsigned int     GetUsercmdCount(void) const { return m_iUsercmdCount; }
 
     void WaitForState(Event *ev);
     void SkipCinematic(Event *ev);

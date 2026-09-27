@@ -54,6 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "portableturret.h"
 #include "fixedturret.h"
 #include "clientvote.h"
+#include "movement_telemetry.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -2006,6 +2007,7 @@ Player::Player()
     mCurTrailOrigin   = 0;
     mLastTrailTime    = 0;
     m_pLastSpawnpoint = NULL;
+    m_iUsercmdCount   = 0;
 
     voted                      = false;
     m_fInvulnerableTimeElapsed = 0;
@@ -3131,6 +3133,8 @@ void Player::Killed(Event *ev)
     inflictor    = ev->GetEntity(3);
     meansofdeath = ev->GetInteger(9);
     location     = ev->GetInteger(10);
+
+    G_MoveLogDeath(this, attacker, meansofdeath, location);
 
     if (attacker && inflictor) {
         Obituary(attacker, inflictor, meansofdeath, location);
@@ -4485,6 +4489,9 @@ void Player::ClientThink(void)
     if ((current_ucmd->serverTime - client->ps.commandTime) < 1) {
         return;
     }
+
+    // Count accepted usercmds for the movement telemetry (ext_usercmds)
+    m_iUsercmdCount++;
 
     TickSprint();
 
@@ -11022,6 +11029,10 @@ void Player::EventDMMessage(Event *ev)
             }
         }
 
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
+        }
+
         // Added in OPM
         if (bInstaMessage) {
             G_PrintfClient(edict, "shouts @all: %s\n", pStartMessage);
@@ -11098,6 +11109,10 @@ void Player::EventDMMessage(Event *ev)
             }
         }
 
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
+        }
+
         // Added in OPM
         if (bInstaMessage) {
             G_PrintfClient(edict, "shouts @team: %s\n", pStartMessage);
@@ -11162,6 +11177,10 @@ void Player::EventDMMessage(Event *ev)
                 reasonString.c_str()
             );
             return;
+        }
+
+        if (!bInstaMessage) {
+            G_MoveLogChat(this, iMode, pStartMessage);
         }
 
         // Added in OPM
@@ -12289,6 +12308,8 @@ bool Player::IsReady(void) const
 
 void Player::Spawned(void)
 {
+    G_MoveLogSpawn(this);
+
     delegate_spawned.Execute();
 
     Event *ev = new Event;

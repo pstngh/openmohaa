@@ -68,7 +68,7 @@ bool G_HumanBotGetDiag(Player *player, hb::Diag *out);
 const char *G_HumanBotModelSha256(void);
 
 // "key=value\n" lines describing the bot configuration for the telemetry
-// metadata: every g_humanbot_* cvar and the model hash.
+// metadata: every g_humanbot_* cvar (the logger adds hb_model_sha256 itself).
 const char *G_HumanBotMetaLines(void);
 
 // Human-fair view of `target` from `viewer`'s eye: the number of visible body
