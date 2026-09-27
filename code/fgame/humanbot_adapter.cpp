@@ -47,6 +47,11 @@ const char *G_HumanBotModelSha256(void)
     return "";
 }
 
+const char *G_HumanBotMetaLines(void)
+{
+    return "";
+}
+
 void G_HumanBotObserveParts(Player *viewer, Player *target, int *visibleParts, int *inFov)
 {
     if (visibleParts) {
