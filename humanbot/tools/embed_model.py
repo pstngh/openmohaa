@@ -46,7 +46,7 @@ def files():
     out = []
     for p in sorted((HB / "model").glob("*.json")):
         if p.name == "tuning.json":
-            continue  # already merged into shared.json by build_model.py
+            continue  # already merged into shared.json by assemble_model.py
         out.append((p.name, p.read_text(encoding="utf-8")))
     for p in sorted((HB / "maps").glob("*.json")):
         out.append(("maps/" + p.name, p.read_text(encoding="utf-8")))
