@@ -480,6 +480,8 @@ void ParseBelief(const json& j, BeliefModel& b)
     b.moveBoost       = NumOr(j, "move_boost", b.moveBoost);
     b.soundSigmaScale = NumOr(j, "sound_sigma_scale", b.soundSigmaScale);
     b.spawnMinDist    = NumOr(j, "spawn_min_dist", b.spawnMinDist);
+    b.momentum        = NumOr(j, "momentum", b.momentum);
+    b.injectMax       = NumOr(j, "inject_max", b.injectMax);
     Require(b.particles >= 16 && b.particles <= 4096, "belief.particles out of range");
     Require(b.negDetect >= 0.0f && b.negDetect <= 1.0f, "belief.neg_detect out of range");
 }

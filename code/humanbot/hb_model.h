@@ -248,6 +248,8 @@ struct BeliefModel {
     float moveBoost       = 1.0f;   // multiplies the prior leave probability
     float soundSigmaScale = 1.0f;
     float spawnMinDist    = 256.0f;
+    float momentum        = 1.5f;   // preference for keeping the previous move direction
+    float injectMax       = 0.5f;   // share of particles re-drawn from a surprising sound or hit
 };
 
 struct NavModel {

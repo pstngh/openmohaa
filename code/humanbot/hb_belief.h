@@ -84,6 +84,7 @@ public:
 private:
     struct Particle {
         int   cell = -1;
+        int   prev = -1;     // previous cell: people keep moving the way they were going
         Vec3  pos;
         float w    = 1.0f;
     };
@@ -103,6 +104,9 @@ private:
     void NegativeInfo(TrackState& t, const Observation& obs, float hfovDeg, float vfovDeg);
     void ApplySound(TrackState& t, const SoundObs& s, const Observation& obs);
     void ApplyDamage(TrackState& t, const DamageObs& d, const Observation& obs);
+    // Re-draws part of the cloud along a bearing when the cloud cannot explain an observation.
+    void Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
+                float share, bool needVisible, const Observation& obs);
     void Normalise(TrackState& t, const Observation& obs);
     void Summarise(TrackState& t, const Observation& obs);
     void RefreshPathTree(int botCell);
