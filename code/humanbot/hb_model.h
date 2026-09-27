@@ -1,0 +1,365 @@
+/*
+===========================================================================
+Copyright (C) 2026 the OpenMoHAA team
+
+This file is part of OpenMoHAA source code.
+
+OpenMoHAA source code is free software; you can redistribute it
+and/or modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of the License,
+or (at your option) any later version.
+
+OpenMoHAA source code is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with OpenMoHAA source code; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+===========================================================================
+*/
+// hb_model.h: the shared, data-fitted model of the human-imitation bots.
+//
+// Every table here is pooled over all recorded players (humanbot/model/shared.json).
+// Per-bot variation comes only from the style dials (hb_style.h), which shift
+// these tables through calibrated offsets.
+
+#pragma once
+
+#include <string>
+#include <vector>
+
+namespace hb
+{
+
+enum Context {
+    CTX_HIDDEN_NOFIRE,
+    CTX_HIDDEN_FIRE,
+    CTX_LOS_NOFIRE,
+    CTX_LOS_FIRE,
+    CTX_RELOAD,
+    CTX_COUNT
+};
+
+constexpr int NUM_CHORDS    = 9;
+constexpr int CHORD_NEUTRAL = 4;
+
+// Chord index = (fwd + 1) * 3 + (side + 1), side +1 = right key.
+inline int ChordFwd(int chord)
+{
+    return chord / 3 - 1;
+}
+
+inline int ChordSide(int chord)
+{
+    return chord % 3 - 1;
+}
+
+inline int MakeChord(int fwd, int side)
+{
+    return (fwd + 1) * 3 + (side + 1);
+}
+
+// A dense float table with explicit dimensions (row-major).
+struct Table {
+    std::vector<int>   dims;
+    std::vector<float> v;
+
+    void Resize(std::initializer_list<int> d, float fill = 0.0f)
+    {
+        dims.assign(d);
+        size_t n = 1;
+        for (int x : dims) {
+            n *= static_cast<size_t>(x);
+        }
+        v.assign(n, fill);
+    }
+
+    size_t Index(int a, int b = 0, int c = 0, int d = 0, int e = 0) const
+    {
+        const int idx[5] = {a, b, c, d, e};
+        size_t    off    = 0;
+        for (size_t i = 0; i < dims.size(); i++) {
+            off = off * static_cast<size_t>(dims[i]) + static_cast<size_t>(idx[i]);
+        }
+        return off;
+    }
+
+    float At(int a, int b = 0, int c = 0, int d = 0, int e = 0) const { return v[Index(a, b, c, d, e)]; }
+    float& At(int a, int b = 0, int c = 0, int d = 0, int e = 0) { return v[Index(a, b, c, d, e)]; }
+};
+
+struct StanceKeyModel {
+    std::vector<float> pressHazard;  // per context, per tick while released
+    std::vector<float> holdPmf;      // hold length in ticks (index 0 = 1 tick)
+};
+
+struct MovementModel {
+    std::vector<int>   ageEdges;     // lower edges of chord-age bins, ticks
+    Table              switchLogit;  // [ctx][chord][age bin]
+    std::vector<float> clearEdges;   // clearance bins in the chord direction, units
+    std::vector<float> wallLogit;    // per clearance bin
+    float              losChangeLogit = 0.0f;
+    Table              transLogit;   // [ctx][from][to]
+    std::vector<float> distEdges;
+    Table              radial;       // [ctx][distance bin]
+    float              radialEnemyReload = 0.0f;
+    float              vetoClearance     = 16.0f;
+
+    // lean: next[state][ctx][age bin][relation][outcome], see fit_movement.py
+    std::vector<int> leanAgeEdges;
+    Table            leanNext;
+
+    StanceKeyModel crouch;
+    StanceKeyModel jump;
+    StanceKeyModel walk;
+
+    // closed-loop couplings (calibrated in the arena)
+    float navSwitchLogit      = 1.0f;   // switch logit per unit of misalignment x urgency
+    float navChoiceLogit      = 1.5f;   // choice logit per unit of alignment x urgency
+    float wallPressureLogit   = 2.0f;   // switch logit while pushing into a wall
+    float neutralNavLogit     = -1.0f;  // choice logit of neutral when urgency is 1
+};
+
+struct NoiseModel {
+    float medianAbsUnits  = 5.0f;  // lateral size at the target (world units)
+    float floorDeg        = 0.2f;  // angular floor
+    float tNu             = 6.0f;
+    float tScalePerMedian = 1.4f;
+    float ar1             = 0.2f;
+};
+
+struct YawController {
+    float      rho   = 0.36f;
+    float      Kp    = 0.23f;
+    float      Kself = 0.9f;
+    float      Kopp  = 0.13f;
+    float      bias  = 0.0f;
+    NoiseModel noise;
+};
+
+struct PitchController {
+    float      rho  = 0.63f;
+    float      Kp   = 0.05f;
+    float      Kt   = 0.07f;
+    float      bias = 0.0f;
+    NoiseModel noise;
+};
+
+struct MainSequenceRow {
+    float ampLo      = 0.0f;
+    float ampMed     = 0.0f;
+    float ticksMed   = 1.0f;
+    float ticksSigma = 0.3f;
+};
+
+struct ViewModel {
+    YawController   firing;
+    YawController   idle;
+    PitchController pitchFiring;
+    PitchController pitchIdle;
+    float           flickDeg = 12.0f;
+
+    std::vector<float> stillEnter;  // per context
+    std::vector<float> stillStay;   // per context
+
+    std::vector<MainSequenceRow> mainSequence;
+    float                        flickGainMedian = 0.92f;
+    float                        flickGainSigma  = 0.25f;
+
+    float aimHeightIdle   = 0.66f;
+    float aimHeightFiring = 0.44f;
+    float aimHeightSd     = 0.08f;
+
+    // calibrated
+    float noiseScale         = 1.0f;
+    float biasScale          = 0.0f;
+    float acquireMinHalfW    = 1.5f;   // corrective saccade when the error exceeds this many half-widths
+    float acquireHazard      = 0.35f;  // per tick once detected
+    float trackFlickHazard   = 0.25f;  // per tick while |err| > flickDeg and tracking
+    float lookaroundPerMin   = 20.0f;
+    float preaimShare        = 0.65f;  // of hidden look decisions
+    float travelShare        = 0.25f;
+    float lookDwellMedianMs  = 900.0f;
+    float lookDwellSigma     = 0.6f;
+    float damageTurnDelayMs  = 100.0f;
+};
+
+struct TriggerSide {
+    float              bias    = 0.0f;
+    std::vector<float> err;
+    std::vector<float> lage;
+    std::vector<float> age;
+    float              damaged = 0.0f;
+};
+
+struct TriggerModel {
+    std::vector<float> enEdges;
+    std::vector<float> yawEdges;
+    std::vector<float> lageLosEdges;
+    std::vector<float> lageHiddenEdges;
+    std::vector<int>   holdEdges;
+    std::vector<int>   gapEdges;
+    TriggerSide        pressLos;
+    TriggerSide        releaseLos;
+    TriggerSide        pressHidden;
+    TriggerSide        releaseHidden;
+
+    // calibrated
+    float anticipationLogit = 1.0f;   // hidden press, when an exposure is predicted within ~300 ms
+    float hiddenFireLogit   = 0.0f;   // overall shift of the hidden press hazard
+};
+
+struct WeaponModel {
+    std::vector<int>    postKillRoundEdges;  // lower edges of rounds-left bins
+    std::vector<float>  postKillReloadP;     // P(reload within 3 s)
+    std::vector<double> postKillDelayProbs;
+    std::vector<double> postKillDelayMs;
+    float               tacticalHazard     = 0.004f;  // per tick, enemy alive and hidden, clip below tacticalClipFrac
+    float               tacticalClipFrac   = 0.5f;
+    float               pistolSwitchPerMin = 0.1f;
+    std::vector<double> respawnProbs;
+    std::vector<double> respawnMs;
+};
+
+struct PerceptionModel {
+    float detectRate       = 1.2f;    // hazard rate per tick for a full body at the view centre
+    float eccScaleDeg      = 18.0f;   // rate falls as exp(-eccentricity / scale)
+    float distScale        = 1400.0f; // rate falls as exp(-distance / scale)
+    float partExponent     = 0.7f;    // rate ~ (visible parts / 6)^exponent
+    int   lossMemoryTicks  = 3;       // keep a lost target this long
+    float gunfireSigmaDeg  = 10.0f;
+    float gunfireRange     = 3000.0f;
+    float footstepSigmaDeg = 20.0f;
+    float footstepRange    = 1000.0f;
+    float frontBackConfusion = 0.25f;
+    float reloadRange      = 600.0f;
+    float reloadSigmaDeg   = 15.0f;
+    float distanceLogSd    = 0.35f;
+    float damageSigmaDeg   = 20.0f;
+};
+
+struct BeliefModel {
+    int   particles       = 256;
+    float negDetect       = 0.85f;  // P(seen | enemy in view and in LOS)
+    float essResample     = 0.5f;
+    float jitter          = 10.0f;  // units, applied at resampling
+    float moveBoost       = 1.0f;   // multiplies the prior leave probability
+    float soundSigmaScale = 1.0f;
+    float spawnMinDist    = 256.0f;
+};
+
+struct NavModel {
+    float holdHazard        = 0.02f;  // per tick when hunting with a concentrated belief
+    float holdMedianMs      = 1500.0f;
+    float holdSigma         = 0.7f;
+    float spawnPushMs       = 2500.0f;
+    float huntUrgency       = 0.8f;
+    float engageUrgency     = 0.25f;
+    float reloadUrgency     = 0.4f;
+    float waypointReach     = 48.0f;
+    float repathMs          = 1000.0f;
+};
+
+struct PresentationModel {
+    float pingMedianMs = 45.0f;
+    float pingSigma    = 0.45f;
+    float pingDriftAr  = 0.995f;
+    float pingJitterMs = 4.0f;
+    float joinDelayMedianMs = 6000.0f;
+    float joinDelaySigma    = 0.6f;
+};
+
+struct SharedModel {
+    int                 version = 0;
+    MovementModel       movement;
+    ViewModel           view;
+    TriggerModel        trigger;
+    WeaponModel         weapon;
+    PerceptionModel     perception;
+    BeliefModel         belief;
+    NavModel            nav;
+    PresentationModel   presentation;
+};
+
+//
+// Style distribution (anonymous) and the dial calibration curves
+//
+enum Dial {
+    DIAL_FWD_DIAG,
+    DIAL_REVERSE,
+    DIAL_SIDE_HOLD,
+    DIAL_LEAN,
+    DIAL_JUMPS,
+    DIAL_CROUCH,
+    DIAL_WALK,
+    DIAL_BURST,
+    DIAL_AIM_HEIGHT,
+    DIAL_COUNT
+};
+
+enum SkillDial {
+    SKILL_AIM_ERROR,
+    SKILL_REACTION,
+    SKILL_COUNT
+};
+
+enum Family {
+    FAMILY_PRESSER,
+    FAMILY_STRAFER,
+    FAMILY_STOPPER,
+    FAMILY_COUNT
+};
+
+extern const char *const DIAL_NAMES[DIAL_COUNT];
+extern const char *const SKILL_NAMES[SKILL_COUNT];
+extern const char *const FAMILY_NAMES[FAMILY_COUNT];
+
+struct FamilyDist {
+    std::string name;
+    float       weight = 0.0f;
+    float       centre[DIAL_COUNT] = {};
+    float       spread[DIAL_COUNT] = {};
+};
+
+struct WeaponMixComponent {
+    float weight = 0.0f;
+    float mean   = 0.5f;
+    float sd     = 0.1f;
+};
+
+struct StyleModel {
+    FamilyDist                      families[FAMILY_COUNT];
+    float                           dialMin[DIAL_COUNT]   = {};
+    float                           dialMax[DIAL_COUNT]   = {};
+    float                           skillMin[SKILL_COUNT] = {};
+    float                           skillMax[SKILL_COUNT] = {};
+    float                           pooled[DIAL_COUNT]    = {};
+    float                           pooledSkill[SKILL_COUNT] = {};
+    std::vector<WeaponMixComponent> weaponMix;
+};
+
+// Monotone curve from a dial target to an internal offset.
+struct Curve {
+    std::vector<float> x;
+    std::vector<float> y;
+
+    bool  Valid() const { return x.size() >= 2 && x.size() == y.size(); }
+    float Eval(float t) const;
+};
+
+struct Calibration {
+    Curve dial[DIAL_COUNT];
+    Curve skill[SKILL_COUNT];
+};
+
+struct ModelBundle {
+    SharedModel  shared;
+    StyleModel   style;
+    Calibration  calib;
+    std::string  sha256;
+    std::string  source;  // "embedded" or the override directory
+};
+
+} // namespace hb
