@@ -25,6 +25,10 @@ file(GLOB_RECURSE GAME_SOURCES
 	${SOURCE_DIR}/parser/parsetree.cpp
 )
 
+# Human-imitation bot brain (engine-independent library, see code/humanbot)
+file(GLOB HUMANBOT_SOURCES ${SOURCE_DIR}/humanbot/*.cpp)
+list(APPEND GAME_SOURCES ${HUMANBOT_SOURCES})
+
 # Compile lexer and grammar files
 
 if (FLEX_FOUND)

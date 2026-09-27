@@ -83,5 +83,10 @@ include(basegame)
 #include(missionpack)
 include(launcher)
 
+include(CTest)
+if(BUILD_TESTING)
+    include(tests/all)
+endif()
+
 include(post_configure)
 #include(installer)
