@@ -129,6 +129,15 @@ extern cvar_t *g_showautoaim;
 extern cvar_t *g_debugtargets;
 extern cvar_t *g_debugdamage;
 extern cvar_t *g_logstats;
+/**
+ * @brief Opt-in server-side movement, aiming, and combat telemetry. Output is
+ * written below the active game directory. Disabled by default.
+ */
+extern cvar_t *g_movelog;
+/** Optional per-capture telemetry size limit in MiB. Zero is unlimited. */
+extern cvar_t *g_movelog_max_mb;
+/** Optional per-capture telemetry duration limit in seconds. Zero is unlimited. */
+extern cvar_t *g_movelog_max_seconds;
 
 extern cvar_t *g_showtokens;
 extern cvar_t *g_showopcodes;

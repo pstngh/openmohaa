@@ -48,3 +48,7 @@ out
 # Flex and Bison
 ####################
 /code/parser/generated
+
+# Human-bot fitting caches (derived from private human captures; never commit)
+humanbot/cache/
+__pycache__/

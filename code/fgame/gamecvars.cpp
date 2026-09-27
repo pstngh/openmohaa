@@ -124,6 +124,9 @@ cvar_t *g_showautoaim;
 cvar_t *g_debugtargets;
 cvar_t *g_debugdamage;
 cvar_t *g_logstats;
+cvar_t *g_movelog;
+cvar_t *g_movelog_max_mb;
+cvar_t *g_movelog_max_seconds;
 
 cvar_t *g_showtokens;
 cvar_t *g_showopcodes;
@@ -510,6 +513,11 @@ void CVAR_Init(void)
         //
         g_healrate = gi.Cvar_Get("g_healrate", "0", 0);
     }
+    g_movelog             = gi.Cvar_Get("g_movelog", "0", 0);
+    g_movelog_max_mb      = gi.Cvar_Get("g_movelog_max_mb", "0", 0);
+    g_movelog_max_seconds = gi.Cvar_Get("g_movelog_max_seconds", "0", 0);
+    gi.Cvar_CheckRange(g_movelog_max_mb, 0, 8192, qtrue);
+    gi.Cvar_CheckRange(g_movelog_max_seconds, 0, 86400, qtrue);
     g_allowvote          = gi.Cvar_Get("g_allowvote", "1", CVAR_SERVERINFO);
     g_maprotation_filter = gi.Cvar_Get("g_maprotation_filter", "ffa", 0);
     g_warmup             = gi.Cvar_Get("g_warmup", "20", CVAR_ARCHIVE);
