@@ -177,6 +177,9 @@ void BeliefFilter::Predict(TrackState& t, const Observation& obs)
             if (m_map) {
                 const int c = m_map->CellAt(p.pos);
                 if (c >= 0) {
+                    if (c != p.cell) {
+                        p.prev = p.cell;
+                    }
                     p.cell = c;
                 }
             }
@@ -198,9 +201,22 @@ void BeliefFilter::Predict(TrackState& t, const Observation& obs)
             m_map->KernelWeights(p.cell, toBot, toBot.lengthXY(), m_kTo, m_kW);
             if (!m_kTo.empty()) {
                 std::vector<double> w(m_kW.begin(), m_kW.end());
-                const int           to = m_kTo[m_rng.Categorical(w)];
-                p.cell                 = to;
-                const MapCell& nc      = m_map->cells[to];
+                if (p.prev >= 0 && p.prev != p.cell && m_p->momentum != 0.0f) {
+                    // keep going the way it was going
+                    const Vec3  h  = mc.center - m_map->cells[p.prev].center;
+                    const float hl = h.lengthXY();
+                    for (size_t k = 0; k < w.size(); k++) {
+                        const Vec3  dv = m_map->cells[m_kTo[k]].center - mc.center;
+                        const float dl = dv.lengthXY();
+                        if (hl > 1.0f && dl > 1.0f) {
+                            w[k] *= std::exp(m_p->momentum * (h.x * dv.x + h.y * dv.y) / (hl * dl));
+                        }
+                    }
+                }
+                const int to = m_kTo[m_rng.Categorical(w)];
+                p.prev       = p.cell;
+                p.cell       = to;
+                const MapCell& nc = m_map->cells[to];
                 p.pos = nc.center
                       + Vec3(static_cast<float>(m_rng.Uniform(-half, half)), static_cast<float>(m_rng.Uniform(-half, half)), 0.0f);
             }
@@ -258,10 +274,69 @@ float BeliefFilter::SoundLikelihood(const Particle& p, const SoundObs& s, const 
     return ly * ld;
 }
 
+void BeliefFilter::Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
+                          float share, bool needVisible, const Observation& obs)
+{
+    if (share <= 0.0f || t.parts.empty()) {
+        return;
+    }
+    const int n       = static_cast<int>(t.parts.size());
+    const int k       = std::min(n, static_cast<int>(share * n + 0.5f));
+    const int botCell = m_map ? m_map->CellAt(obs.self.origin) : -1;
+    // replace the least likely particles
+    std::vector<int> order(n);
+    for (int i = 0; i < n; i++) {
+        order[i] = i;
+    }
+    std::sort(order.begin(), order.end(), [&](int a, int b) { return t.parts[a].w < t.parts[b].w; });
+    float wsum = 0.0f;
+    for (const Particle& p : t.parts) {
+        wsum += p.w;
+    }
+    const float wnew = wsum / n;
+    for (int j = 0; j < k; j++) {
+        Particle& p = t.parts[order[j]];
+        for (int tries = 0; tries < 4; tries++) {
+            const bool  mir = m_rng.Uniform() < mirrorP;
+            const float y   = (mir ? mirrorYaw : yaw) + static_cast<float>(m_rng.Normal(0.0, yawSigma));
+            const float d   = std::max(32.0f, dist * static_cast<float>(std::exp(m_rng.Normal(0.0, distLogSd))));
+            const Vec3  pos = obs.self.origin + YawDir(y) * d;
+            if (m_map) {
+                const int c = m_map->NearestCell(pos, 96.0f);
+                if (c < 0) {
+                    continue;
+                }
+                if (needVisible && botCell >= 0 && m_map->Visibility(botCell, c) < 0.3f) {
+                    continue;
+                }
+                p.cell = c;
+                p.prev = -1;
+                p.pos  = m_map->cells[c].center;
+            } else {
+                p.pos = pos;
+            }
+            p.w = wnew;
+            break;
+        }
+    }
+}
+
 void BeliefFilter::ApplySound(TrackState& t, const SoundObs& s, const Observation& obs)
 {
+    // how well does the current cloud explain the sound?
+    double lbar = 0.0, wsum = 0.0;
+    for (const Particle& p : t.parts) {
+        lbar += p.w * SoundLikelihood(p, s, obs);
+        wsum += p.w;
+    }
+    lbar = wsum > 0.0 ? lbar / wsum : 0.0;
+    if (lbar < 0.25) {
+        const float c = s.frontBack ? (m_perc ? m_perc->frontBackConfusion : 0.25f) : 0.0f;
+        Inject(t, s.yaw, s.yawSigma * m_p->soundSigmaScale, s.mirrorYaw, c, s.dist, s.distLogSd,
+               m_p->injectMax * static_cast<float>(1.0 - lbar / 0.25), false, obs);
+    }
     for (Particle& p : t.parts) {
-        p.w *= 0.05f + SoundLikelihood(p, s, obs);
+        p.w *= 0.01f + SoundLikelihood(p, s, obs);
     }
     t.est.msSinceHeard = 0;
     t.est.lastThreatMs = obs.self.timeMs;
@@ -270,6 +345,18 @@ void BeliefFilter::ApplySound(TrackState& t, const SoundObs& s, const Observatio
 void BeliefFilter::ApplyDamage(TrackState& t, const DamageObs& dm, const Observation& obs)
 {
     const int botCell = m_map ? m_map->CellAt(obs.self.origin) : -1;
+    double    lbar = 0.0, wsum = 0.0;
+    for (const Particle& p : t.parts) {
+        const float e = Wrap180(YawOf(p.pos - obs.self.origin) - dm.yaw) / std::max(3.0f, dm.yawSigma);
+        lbar += p.w * std::exp(-0.5f * e * e);
+        wsum += p.w;
+    }
+    lbar = wsum > 0.0 ? lbar / wsum : 0.0;
+    if (lbar < 0.25) {
+        // the shooter is somewhere along that bearing, in a cell that sees us
+        Inject(t, dm.yaw, dm.yawSigma, dm.yaw, 0.0f, 500.0f, 0.6f, m_p->injectMax * static_cast<float>(1.0 - lbar / 0.25),
+               true, obs);
+    }
     for (Particle& p : t.parts) {
         const Vec3  d  = p.pos - obs.self.origin;
         const float e  = Wrap180(YawOf(d) - dm.yaw) / std::max(3.0f, dm.yawSigma);
@@ -543,6 +630,7 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
             for (Particle& p : t.parts) {
                 p.pos  = e.lastSeenPos + Vec3(static_cast<float>(m_rng.Normal(0.0, 6.0)), static_cast<float>(m_rng.Normal(0.0, 6.0)), 0.0f);
                 p.cell = c;
+                p.prev = -1;
                 p.w    = 1.0f / n;
             }
             e.mode    = e.lastSeenPos;
