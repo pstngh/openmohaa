@@ -67,6 +67,10 @@ bool G_HumanBotGetDiag(Player *player, hb::Diag *out);
 // SHA-256 (hex) of the active model bundle, or an empty string.
 const char *G_HumanBotModelSha256(void);
 
+// "key=value\n" lines describing the bot configuration for the telemetry
+// metadata: every g_humanbot_* cvar and the model hash.
+const char *G_HumanBotMetaLines(void);
+
 // Human-fair view of `target` from `viewer`'s eye: the number of visible body
 // parts (head, upper and lower spine, pelvis, feet) and whether any part is
 // inside the viewer's 16:9 frustum at the bot fov. Used by the logger for the
