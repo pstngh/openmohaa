@@ -1,0 +1,225 @@
+"""Shared data access for the human-bot fitting scripts.
+
+The human captures live in the private openmohaa-movement repository and never
+enter this one. These helpers locate that repository, reuse its analysis code
+unchanged (by path, not by copy) and build the per-tick tables the fits need.
+
+Sequence rule (from the data repo): every next-tick value, hold age and
+time-since-LOS-change is computed on unbroken valid segments first, and only
+then filtered by context. Runs touching a segment edge are censored.
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+HERE = Path(__file__).resolve().parent
+HB_ROOT = HERE.parent                      # <fork>/humanbot
+FORK_ROOT = HB_ROOT.parent
+CACHE = Path(os.environ.get("HB_CACHE", HB_ROOT / "cache"))
+PARTS = CACHE / "parts"
+
+CONTEXTS = ["hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"]
+CHORDS = ["back-left", "back", "back-right", "left", "neutral", "right",
+          "forward-left", "forward", "forward-right"]
+TICK_MS = 50
+
+
+def movement_repo() -> Path:
+    """Path of the private openmohaa-movement checkout."""
+    env = os.environ.get("HB_MOVEMENT_REPO")
+    cands = [Path(env)] if env else []
+    cands += [FORK_ROOT.parent / "openmohaa-movement", Path.home() / "openmohaa-movement"]
+    for c in cands:
+        if (c / "analysis" / "common.py").exists():
+            return c.resolve()
+    raise SystemExit("openmohaa-movement not found: set HB_MOVEMENT_REPO to its checkout")
+
+
+def analysis_cache() -> Path:
+    """Directory holding the data repo's run_all.sh caches (features.parquet ...)."""
+    env = os.environ.get("HB_ANALYSIS_CACHE")
+    cands = [Path(env)] if env else []
+    cands += [CACHE / "analysis", movement_repo() / "cache"]
+    for c in cands:
+        if (c / "features.parquet").exists():
+            return c.resolve()
+    return cands[0]
+
+
+def import_analysis():
+    """Make the data repo's analysis modules importable (common, load_captures)."""
+    p = str(movement_repo() / "analysis")
+    if p not in sys.path:
+        sys.path.insert(0, p)
+    import common  # noqa: F401
+    import load_captures  # noqa: F401
+    return common, load_captures
+
+
+def ensure_features(rebuild: bool = False) -> Path:
+    """Build the data repo's caches with its own (unchanged) scripts if missing."""
+    cache = analysis_cache()
+    if rebuild or not (cache / "features.parquet").exists():
+        repo = movement_repo()
+        cache.mkdir(parents=True, exist_ok=True)
+        subprocess.run([sys.executable, str(repo / "analysis" / "load_captures.py"), str(repo / "captures"), str(cache)], check=True)
+        subprocess.run([sys.executable, str(repo / "analysis" / "common.py"), str(cache)], check=True)
+    return cache
+
+
+FRAME_COLS = [
+    "session_id", "client_id", "session_ms", "seg", "seg_start", "valid", "dm_session", "eligible", "person", "name",
+    "capture_date", "map", "sv_mapchecksum", "line_of_sight", "attack", "reloading", "action", "side", "fwd", "lean", "lean_both",
+    "crouch_key", "jump_key", "run", "ducked", "on_ground", "on_ladder", "speed_xy", "clear_move", "clear_left", "clear_right",
+    "clear_front", "clear_back", "clear_front_left", "clear_front_right", "clear_back_left", "clear_back_right",
+    "yaw_d", "pitch_d", "view_yaw", "view_pitch", "aim_yaw_error", "aim_pitch_error", "aim_total_error", "aim_height_fraction",
+    "aim_closest_miss", "crosshair_on_opponent", "tgt_half_w_deg", "tgt_yaw_d", "tgt_pitch_d", "distance_xy", "distance_xyz",
+    "height_delta", "relative_bearing", "self_approach_speed", "self_tangential_speed", "opp_self_tangential_speed",
+    "opp_self_approach_speed", "opp_weapon_state", "opp_attack_primary", "opp_line_of_sight", "opp_speed_xy", "health",
+    "opp_health", "clip_ammo", "clip_size", "weapon", "weapon_state", "origin_x", "origin_y", "origin_z", "velocity_x",
+    "velocity_y", "velocity_z", "opponent_id", "opponent_origin_x", "opponent_origin_y", "opponent_origin_z",
+    "opponent_velocity_x", "opponent_velocity_y", "has_opp", "opp_alive", "ev_shot", "ev_reload", "ev_dmg_taken",
+    "ev_dmg_dealt", "ev_kill", "ev_death", "ev_spawn", "pm_flags", "eye_z",
+]
+
+
+def load_dm(cols=None) -> pd.DataFrame:
+    """Valid human rows of deathmatch sessions, sorted, with sequence features.
+
+    Adds ctx, next-tick values (nx_*), ages (age_*, ticks, 1 on the first tick of
+    a run), `age_known` (the run did not start at a segment edge) and `lage`
+    (ms since line_of_sight last changed; NaN when the change is not observed).
+    """
+    cache = ensure_features()
+    src = cache / "features.parquet"
+    seq = CACHE / "dm_seq.parquet"
+    if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
+        return pd.read_parquet(seq)
+    F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])
+    F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
+    add_sequences(F)
+    if cols is None:
+        CACHE.mkdir(parents=True, exist_ok=True)
+        F.to_parquet(seq, index=False)
+    return F
+
+
+def add_sequences(F: pd.DataFrame) -> None:
+    keys = ["session_id", "client_id", "seg"]
+    g = F.groupby(keys, sort=False)
+    F["ctx"] = np.select([F.reloading, F.line_of_sight.eq(1) & F.attack, F.line_of_sight.eq(1), F.attack],
+                         ["reload", "los_fire", "los_nofire", "hidden_fire"], "hidden_nofire")
+    F["ctx_i"] = F.ctx.map({c: i for i, c in enumerate(CONTEXTS)}).astype("int8")
+    first_tick = g.cumcount().eq(0)
+    for c in ["action", "side", "lean", "attack", "crouch_key", "jump_key", "run", "line_of_sight"]:
+        if c not in F:
+            continue
+        F["nx_" + c] = g[c].shift(-1)
+        run = (F[c] != g[c].shift()).cumsum()
+        F["age_" + c] = F.groupby([F.session_id, F.client_id, F.seg, run], sort=False).cumcount() + 1
+        # a run that starts on the segment's first tick has an unknown (censored) start
+        run_first = run.where(first_tick).groupby([F.session_id, F.client_id, F.seg], sort=False).transform("max")
+        F["known_" + c] = run.ne(run_first)
+    F["lage"] = (F["age_line_of_sight"] - 1) * TICK_MS
+    F.loc[~F["known_line_of_sight"], "lage"] = np.nan
+    F["en"] = F.aim_total_error / F.tgt_half_w_deg
+
+
+def write_part(name: str, obj) -> Path:
+    PARTS.mkdir(parents=True, exist_ok=True)
+    p = PARTS / f"{name}.json"
+    p.write_text(json.dumps(jsonable(obj), indent=1, sort_keys=False))
+    return p
+
+
+def read_part(name: str):
+    return json.loads((PARTS / f"{name}.json").read_text())
+
+
+def jsonable(x):
+    if isinstance(x, dict):
+        return {str(k): jsonable(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [jsonable(v) for v in x]
+    if isinstance(x, np.ndarray):
+        return [jsonable(v) for v in x.tolist()]
+    if isinstance(x, (np.integer,)):
+        return int(x)
+    if isinstance(x, (np.floating, float)):
+        v = float(x)
+        if not np.isfinite(v):
+            return None
+        return float(f"{v:.6g}")
+    if isinstance(x, (np.bool_,)):
+        return bool(x)
+    return x
+
+
+def logit(p, eps=1e-6):
+    p = np.clip(np.asarray(p, dtype=float), eps, 1 - eps)
+    return np.log(p / (1 - p))
+
+
+def sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-np.asarray(z, dtype=float)))
+
+
+def shrink_rate(k, n, k0, n0, strength=20.0):
+    """Empirical-Bayes rate: k/n shrunk toward k0/n0 with `strength` pseudo-counts."""
+    k = np.asarray(k, float)
+    n = np.asarray(n, float)
+    prior = (k0 + 0.5) / (n0 + 1.0)
+    return (k + strength * prior) / (n + strength)
+
+
+def fit_logistic(codes, y, sizes, l2=1.0, offset=None, weights=None):
+    """Additive logistic regression over categorical factors.
+
+    codes: list of int arrays (one per factor, values in [0, size)); a -1 code means
+    'factor absent' (no contribution). Returns (intercept, [coef arrays]).
+    """
+    y = np.asarray(y, float)
+    n = len(y)
+    off = np.zeros(n) if offset is None else np.asarray(offset, float)
+    w = np.ones(n) if weights is None else np.asarray(weights, float)
+    starts = np.cumsum([0] + list(sizes))[:-1]
+    nparam = 1 + int(sum(sizes))
+    cols = [np.where(c >= 0, c + s + 1, -1) for c, s in zip(codes, starts)]
+
+    def unpack(theta):
+        return theta[0], [theta[1 + s:1 + s + k] for s, k in zip(starts, sizes)]
+
+    def f(theta):
+        z = off + theta[0]
+        for c in cols:
+            z = z + np.where(c >= 0, theta[np.maximum(c, 0)], 0.0)
+        p = sigmoid(z)
+        eps = 1e-12
+        ll = (w * (y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps))).sum()
+        r = w * (p - y)
+        g = np.zeros(nparam)
+        g[0] = r.sum()
+        for c in cols:
+            m = c >= 0
+            np.add.at(g, c[m], r[m])
+        g[1:] += 2 * l2 * theta[1:]
+        return -ll + l2 * (theta[1:] ** 2).sum(), g
+
+    from scipy import optimize
+    res = optimize.minimize(f, np.zeros(nparam), jac=True, method="L-BFGS-B", options={"maxiter": 3000})
+    b0, coefs = unpack(res.x)
+    return float(b0), [np.asarray(c) for c in coefs]
+
+
+def binidx(x, edges):
+    """Index of the bin whose lower edge is <= x (edges ascending); NaN -> -1."""
+    x = np.asarray(x, float)
+    i = np.clip(np.searchsorted(np.asarray(edges, float), x, side="right") - 1, 0, len(edges) - 1)
+    return np.where(np.isnan(x), -1, i)
