@@ -37,6 +37,8 @@ static constexpr float DIFFUSE_SPREAD = 600.0f;  // belief spread (units) beyond
 // A look along a direction (route, hold, look-around, damage) aims at a point this far away, so the
 // bot's own motion does not turn the view (people keep a direction while running, not a point 10 m away).
 static constexpr float DIR_LOOK_DIST  = 4000.0f;
+// The chest, as a fraction of the body height from the feet (the head starts near 0.83).
+static constexpr float CHEST_AIM_H = 0.5f;
 // A route look re-aims once the route turned this far from it.
 static constexpr float TRAVEL_FOLLOW_DEG = 15.0f;
 
@@ -225,7 +227,12 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     bool        newLook = false;
 
     if (in.track) {
-        const float hWant = in.firing ? in.aimHeightFiring : p.aimHeightIdle;
+        float hWant = in.firing ? in.aimHeightFiring : p.aimHeightIdle;
+        if (in.chestOnly) {
+            // at once: the next round leaves within 100 ms
+            hWant  = std::min(hWant, CHEST_AIM_H);
+            m_aimH = std::min(m_aimH, CHEST_AIM_H);
+        }
         m_aimH += (hWant - m_aimH) * 0.35f;
         aim  = in.enemyFeet + Vec3(0.0f, 0.0f, m_aimH * in.bodyHeight);
         tvel = in.enemyVel;

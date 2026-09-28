@@ -179,6 +179,7 @@ struct RawInput {
     std::vector<RawDamage> damage;
     std::vector<int>       deaths;    // players who died this tick (kill feed)
     int                    gotKillOf  = -1;
+    bool                   headHit    = false;   // a bullet of ours hit an enemy's head this tick
     bool                   teammateInCrosshair = false;
 };
 
@@ -225,6 +226,7 @@ struct Observation {
     std::vector<DamageObs> damage;
     std::vector<int>       deaths;
     int                    gotKillOf = -1;
+    bool                   headHit   = false;
     bool                   teammateInCrosshair = false;
 };
 

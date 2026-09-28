@@ -82,6 +82,7 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
     out.damage.clear();
     out.deaths              = raw.deaths;
     out.gotKillOf           = raw.gotKillOf;
+    out.headHit             = raw.headHit;
     out.teammateInCrosshair = raw.teammateInCrosshair;
     m_lastDetectP           = 0.0f;
 
