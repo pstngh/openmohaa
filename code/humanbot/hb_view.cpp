@@ -243,6 +243,14 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             m_lookMode       = VIEW_DAMAGE;
             m_dwellMs        = 900.0f;
             newLook          = true;
+        } else if (in.firing) {
+            // spraying at a hidden enemy: the view stays where it points, no new look starts
+            if (m_wasTracking || !m_lookPointValid) {
+                m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * 400.0f;
+                m_lookPointValid = true;
+                m_lookMode       = VIEW_HOLD;
+                m_dwellMs        = p.lookDwellMedianMs;
+            }
         } else {
             m_dwellMs -= TICK_MS;
             if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid) {

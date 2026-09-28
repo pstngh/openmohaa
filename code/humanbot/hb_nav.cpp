@@ -41,8 +41,37 @@ void Navigator::Init(const NavModel *params, const MapPrior *map)
 
 void Navigator::SetMap(const MapPrior *map)
 {
-    m_map = map;
+    m_map        = map;
+    m_treeTarget = -1;
     Reset();
+}
+
+bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
+{
+    if (!m_map || m_map->NumCells() == 0) {
+        return false;
+    }
+    int here = m_map->CellAt(self.origin);
+    if (here < 0) {
+        here = m_map->NearestCell(self.origin, 2.0f * m_map->cellSize);
+    }
+    const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
+    if (here < 0 || goal < 0 || here == goal) {
+        return false;
+    }
+    if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells())) {
+        m_map->PathTreeTo(goal, m_next, m_dist);
+        m_treeTarget = goal;
+    }
+    const int next = m_next[here];
+    if (next < 0) {
+        return false;
+    }
+    // aim one cell further when it exists, to cut corners like people do
+    const int  after = m_next[next];
+    const Vec3 aim   = after >= 0 ? m_map->cells[after].center : m_map->cells[next].center;
+    yaw              = YawOf(aim - self.origin);
+    return true;
 }
 
 void Navigator::Reset()
@@ -175,8 +204,11 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     }
     out.intent = m_intent;
     out.valid  = true;
+    float routeYaw = 0.0f;
     if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;
+    } else if (RouteYaw(self, out.target, routeYaw)) {
+        out.desiredYaw = routeYaw;
     } else {
         out.desiredYaw = YawOf(out.target - self.origin);
     }
