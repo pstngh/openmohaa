@@ -72,7 +72,7 @@ public:
     double Uniform(double lo, double hi);  // [lo, hi)
     int    UniformInt(int n);              // [0, n)
     bool   Bernoulli(double p);
-    double Normal();                       // standard normal (Box-Muller, 2 uniforms)
+    double Normal();                       // standard normal (Box-Muller: 2 uniforms per pair of draws)
     double Normal(double mean, double sd);
     double LogNormal(double median, double sigma);
     double Gamma(double shape);            // scale 1 (Marsaglia-Tsang)
@@ -81,12 +81,16 @@ public:
     double StudentTUnitVar(double nu);     // scaled to unit variance (nu > 2)
     int    Categorical(const double *weights, int n);
     int    Categorical(const std::vector<double>& weights);
+    // The same draw from cumulative weights (cdf[i] = weights[0] + ... + weights[i]): O(log n).
+    int    CategoricalCdf(const std::vector<double>& cdf);
     // Inverse-CDF draw from monotone quantile knots (probabilities ascending).
     double FromQuantiles(const std::vector<double>& probs, const std::vector<double>& values);
 
 private:
     uint64_t m_s[4];
     uint64_t m_seed;
+    double   m_spare    = 0.0;    // the second normal of the last Box-Muller pair
+    bool     m_hasSpare = false;
 };
 
 } // namespace hb

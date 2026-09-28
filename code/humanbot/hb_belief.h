@@ -41,6 +41,7 @@ namespace hb
 
 constexpr int MAX_TRACKS   = 3;
 constexpr int MAX_EXPOSURE = 4;
+constexpr int MAX_HEARD_SOUNDS   = 3;   // sounds followed per frame (the nearest)
 
 struct BeliefEstimate {
     bool  valid        = false;
@@ -108,7 +109,8 @@ private:
     void Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
                 float share, bool needVisible, const Observation& obs);
     void Normalise(TrackState& t, const Observation& obs);
-    void Summarise(TrackState& t, const Observation& obs);
+    void Summarise(TrackState& t, const Observation& obs, bool exposures);
+    int  ParticlesPerTrack(const Observation& obs) const;
     void RefreshPathTree(int botCell);
     float SoundLikelihood(const Particle& p, const SoundObs& s, const Observation& obs) const;
 

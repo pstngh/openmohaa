@@ -32,17 +32,50 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace hb
 {
 
-static int64_t ColumnKey(int ix, int iy)
-{
-    return (static_cast<int64_t>(ix) << 32) ^ static_cast<int64_t>(static_cast<uint32_t>(iy));
-}
-
 void MapPrior::AddCellIndex()
 {
-    m_columns.clear();
-    for (int i = 0; i < NumCells(); i++) {
-        m_columns[ColumnKey(cells[i].ix, cells[i].iy)].push_back(i);
+    m_colStart.clear();
+    m_colCells.clear();
+    m_nx = m_ny = 0;
+    if (cells.empty()) {
+        return;
     }
+    int ix1 = cells[0].ix, iy1 = cells[0].iy;
+    m_ix0 = ix1;
+    m_iy0 = iy1;
+    for (const MapCell& c : cells) {
+        m_ix0 = std::min(m_ix0, c.ix);
+        m_iy0 = std::min(m_iy0, c.iy);
+        ix1   = std::max(ix1, c.ix);
+        iy1   = std::max(iy1, c.iy);
+    }
+    m_nx = ix1 - m_ix0 + 1;
+    m_ny = iy1 - m_iy0 + 1;
+    // counting sort of the cells by column, in cell order within a column
+    m_colStart.assign(static_cast<size_t>(m_nx) * m_ny + 1, 0);
+    for (const MapCell& c : cells) {
+        m_colStart[static_cast<size_t>(c.ix - m_ix0) * m_ny + (c.iy - m_iy0) + 1]++;
+    }
+    for (size_t k = 1; k < m_colStart.size(); k++) {
+        m_colStart[k] += m_colStart[k - 1];
+    }
+    m_colCells.assign(cells.size(), 0);
+    std::vector<int> fill(m_colStart.begin(), m_colStart.end() - 1);
+    for (int i = 0; i < NumCells(); i++) {
+        m_colCells[fill[static_cast<size_t>(cells[i].ix - m_ix0) * m_ny + (cells[i].iy - m_iy0)]++] = i;
+    }
+}
+
+bool MapPrior::Column(int ix, int iy, const int *&b, const int *&e) const
+{
+    const int x = ix - m_ix0, y = iy - m_iy0;
+    if (x < 0 || y < 0 || x >= m_nx || y >= m_ny) {
+        return false;
+    }
+    const size_t k = static_cast<size_t>(x) * m_ny + y;
+    b              = m_colCells.data() + m_colStart[k];
+    e              = m_colCells.data() + m_colStart[k + 1];
+    return b != e;
 }
 
 void MapPrior::BuildRouteGraph()
@@ -115,11 +148,12 @@ int MapPrior::CellAt(const Vec3& p) const
                 if (dx && ox > -dx && ox < dx && oy > -dx && oy < dx) {
                     continue;
                 }
-                auto it = m_columns.find(ColumnKey(ix + ox, iy + oy));
-                if (it == m_columns.end()) {
+                const int *cb, *ce;
+                if (!Column(ix + ox, iy + oy, cb, ce)) {
                     continue;
                 }
-                for (int c : it->second) {
+                for (const int *it = cb; it != ce; ++it) {
+                    const int   c  = *it;
                     const float dz = std::fabs(cells[c].z - p.z);
                     const float dxy = dx ? (cells[c].center - p).lengthXY() : 0.0f;
                     const float d  = dz + dxy;
@@ -140,14 +174,34 @@ int MapPrior::NearestCell(const Vec3& p, float maxDist) const
     if (best >= 0) {
         return best;
     }
-    float bestD = maxDist * maxDist;
-    for (int i = 0; i < NumCells(); i++) {
+    float     bestD = maxDist * maxDist;
+    auto      visit = [&](int i) {
         const Vec3  d  = cells[i].center - p;
         const float d2 = d.x * d.x + d.y * d.y + 4.0f * d.z * d.z;
-        if (d2 < bestD) {
+        if (d2 < bestD || (d2 == bestD && best >= 0 && i < best)) {
             bestD = d2;
             best  = i;
         }
+    };
+    // only the columns within maxDist can hold a closer cell (a hot path: every injected particle)
+    const int r = static_cast<int>(std::ceil(maxDist / cellSize)) + 1;
+    if (m_nx > 0 && static_cast<double>(2 * r + 1) * (2 * r + 1) < NumCells()) {
+        const int ix = static_cast<int>(std::floor(p.x / cellSize));
+        const int iy = static_cast<int>(std::floor(p.y / cellSize));
+        for (int ox = -r; ox <= r; ox++) {
+            for (int oy = -r; oy <= r; oy++) {
+                const int *cb, *ce;
+                if (Column(ix + ox, iy + oy, cb, ce)) {
+                    for (const int *it = cb; it != ce; ++it) {
+                        visit(*it);
+                    }
+                }
+            }
+        }
+        return best;
+    }
+    for (int i = 0; i < NumCells(); i++) {
+        visit(i);
     }
     return best;
 }

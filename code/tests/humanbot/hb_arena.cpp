@@ -282,6 +282,7 @@ struct Bot {
     std::vector<float> yawSpeed;
     std::vector<float> beliefErr;
     double    thinkUs = 0.0;
+    double    brainUs = 0.0;   // the brain alone (Perceiver, Brain, Substepper), without the arena's traces
     long long thinkN  = 0;
     int       thinkMax = 0;
     int       kbdBad = 0;
@@ -563,6 +564,7 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     raw.gotKillOf = b.gotKillOf;
     b.gotKillOf   = -1;
 
+    const auto      tBrain = std::chrono::steady_clock::now();
     hb::Observation obs;
     b.perceiver.Process(raw, hfov, vfov, b.brain.Offsets().detectMult, obs);
     b.brain.SetFov(hfov, vfov);
@@ -571,9 +573,9 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     if (!hb::Substepper::CheckContract(b.cmds)) {
         b.kbdBad++;
     }
-    const int us = static_cast<int>(
-        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0).count()
-    );
+    const auto tEnd = std::chrono::steady_clock::now();
+    const int  us   = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(tEnd - t0).count());
+    b.brainUs += std::chrono::duration_cast<std::chrono::duration<double, std::micro>>(tEnd - tBrain).count();
     b.thinkUs += us;
     b.thinkN++;
     b.thinkMax = std::max(b.thinkMax, us);
@@ -901,7 +903,7 @@ bool Arena::Report()
     std::vector<float> yaws, errs;
     long long hidden = 0, still = 0, fight = 0, stillF = 0, shots = 0, hits = 0, kills = 0, kbd = 0;
     int       stuck = 0, pressure = 0, maxStuck = 0;
-    double    us = 0.0;
+    double    us = 0.0, brainUs = 0.0;
     long long usN = 0;
     int       usMax = 0;
     for (const Bot& b : m_bots) {
@@ -919,6 +921,7 @@ bool Arena::Report()
         pressure += b.pressureBouts;
         maxStuck = std::max(maxStuck, b.maxStuckMs);
         us += b.thinkUs;
+        brainUs += b.brainUs;
         usN += b.thinkN;
         usMax = std::max(usMax, b.thinkMax);
     }
@@ -937,7 +940,8 @@ bool Arena::Report()
     j << ",\"shots_per_bot_min\":" << shots / botMinutes << ",\"hit_share\":" << (shots ? static_cast<double>(hits) / shots : 0.0);
     j << ",\"kills_per_bot_min\":" << kills / botMinutes;
     j << ",\"belief_err_p50\":" << Quantile(errs, 0.5) << ",\"belief_err_p90\":" << Quantile(errs, 0.9);
-    j << ",\"think_us_mean\":" << meanUs << ",\"think_us_max\":" << usMax << ",\"kbd_violations\":" << kbd;
+    j << ",\"think_us_mean\":" << meanUs << ",\"brain_us_mean\":" << (usN ? brainUs / usN : 0.0) << ",\"think_us_max\":" << usMax
+      << ",\"kbd_violations\":" << kbd;
     // the same statistics as humanbot/eval (human_reference.json keys)
     std::map<std::string, double> M = Metrics();
     j << ",\"metrics\":{";

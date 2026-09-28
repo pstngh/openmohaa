@@ -106,7 +106,10 @@ public:
     void KernelWeights(int cell, const Vec3& towardEnemy, float enemyDist, std::vector<int>& to, std::vector<float>& w) const;
 
 private:
-    std::unordered_map<int64_t, std::vector<int>> m_columns;
+    // dense column index over the cells' bounding box (CSR): the cells of column (ix, iy)
+    int                                            m_ix0 = 0, m_iy0 = 0, m_nx = 0, m_ny = 0;
+    std::vector<int>                               m_colStart;
+    std::vector<int>                               m_colCells;
     std::vector<uint8_t>                           m_empirical;   // 255 unknown, else round(frac * 254)
     std::vector<uint8_t>                           m_runtimeBits; // 2 bits per pair: 0 unknown, 1 hidden, 2 visible
     bool                                           m_runtimeReady = false;
@@ -115,6 +118,8 @@ private:
     std::vector<float>                             m_revLen;
 
     size_t PairIndex(int a, int b) const;
+    // The cells of column (ix, iy) as [*b, *e); false outside the map.
+    bool   Column(int ix, int iy, const int *&b, const int *&e) const;
 };
 
 // Derives a coarse route graph from sampled walkable points (navmesh fallback):

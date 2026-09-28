@@ -15,13 +15,15 @@ On Linux (the tests below are native, not for MSVC or cross builds):
 sudo apt-get install -y cmake ninja-build clang lld flex bison libsdl2-dev libopenal-dev libcurl4-openssl-dev
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENT=OFF
 cmake --build build
-(cd build && ctest --output-on-failure)     # 7 tests, under a minute
+(cd build && ctest --output-on-failure)     # 8 tests, under a minute
 cmake --install build --prefix /path/to/mohaa
 ```
 
-`ctest` runs the brain's statistical unit tests, the Pmove sub-step test, the telemetry header
-test and `test_hb_arena`: two bots play two minutes on the real player movement code and must
-not get stuck, fight walls, break the keyboard contract, or think longer than 150 us per tick.
+`ctest` runs the brain's statistical unit tests, the Pmove sub-step test and the telemetry
+header test. It also runs two arena tests on the real player movement code:
+- `test_hb_arena`: two bots play two minutes and must not get stuck, fight walls, break the
+  keyboard contract, or think longer than 150 us per tick;
+- `test_hb_arena_load`: 16 bots must stay within that budget.
 
 ## 2. Smoke test (5 minutes)
 
