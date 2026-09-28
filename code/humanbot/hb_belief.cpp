@@ -210,7 +210,8 @@ void BeliefFilter::Predict(TrackState& t, const Observation& obs)
             const Vec3 toBot = obs.self.origin - mc.center;
             m_map->KernelWeights(p.cell, toBot, toBot.lengthXY(), m_kTo, m_kW);
             if (!m_kTo.empty()) {
-                std::vector<double> w(m_kW.begin(), m_kW.end());
+                std::vector<double>& w = m_kWd;
+                w.assign(m_kW.begin(), m_kW.end());
                 if (p.prev >= 0 && p.prev != p.cell && m_p->momentum != 0.0f) {
                     // keep going the way it was going
                     const Vec3  h  = mc.center - m_map->cells[p.prev].center;
@@ -249,9 +250,9 @@ void BeliefFilter::NegativeInfo(TrackState& t, const Observation& obs, float hfo
             p.w *= 0.2f;  // it would be touching us
             continue;
         }
-        const float dyaw   = std::fabs(Wrap180(YawOf(d) - obs.self.viewYaw));
-        const float dpitch = std::fabs(PitchOf(d) - obs.self.viewPitch);
-        if (dyaw > 0.5f * hfovDeg || dpitch > 0.5f * vfovDeg) {
+        // most particles are off screen sideways: the pitch only for those within the yaw
+        if (std::fabs(Wrap180(YawOf(d) - obs.self.viewYaw)) > 0.5f * hfovDeg
+            || std::fabs(PitchOf(d) - obs.self.viewPitch) > 0.5f * vfovDeg) {
             continue;
         }
         float vis;
@@ -294,7 +295,8 @@ void BeliefFilter::Inject(TrackState& t, float yaw, float yawSigma, float mirror
     const int k       = std::min(n, static_cast<int>(share * n + 0.5f));
     const int botCell = m_map ? m_map->CellAt(obs.self.origin) : -1;
     // replace the least likely particles
-    std::vector<int> order(n);
+    std::vector<int>& order = m_order;
+    order.resize(n);
     for (int i = 0; i < n; i++) {
         order[i] = i;
     }

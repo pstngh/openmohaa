@@ -87,6 +87,18 @@ inline int ClampI(int v, int lo, int hi)
 // Wrap an angle to [-180, 180).
 inline float Wrap180(float a)
 {
+    // the belief filter wraps every particle's bearing each tick: skip the fmod in the usual
+    // range, where both subtractions are exact and the result is the same bit for bit
+    float x = a + 180.0f;
+    if (x >= 0.0f && x < 360.0f) {
+        return x - 180.0f;
+    }
+    if (x >= 360.0f && x < 720.0f) {
+        return (x - 360.0f) - 180.0f;
+    }
+    if (x >= -360.0f && x < 0.0f) {
+        return (x + 360.0f) - 180.0f;
+    }
     a = std::fmod(a + 180.0f, 360.0f);
     if (a < 0.0f) {
         a += 360.0f;
