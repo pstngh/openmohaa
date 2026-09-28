@@ -56,6 +56,7 @@ void Mover::Reset()
     m_ctx       = -1;
     m_ctxAge    = 10000;
     m_crouchAge = 0;
+    m_crouchedTicks = 0;
     m_jumpAge   = 0;
     m_walkAge   = 0;
     m_sideSpawn = false;
@@ -136,16 +137,17 @@ float Mover::NavAlign(const MoveInput& in, int chord) const
     return std::cos((ChordAngle(chord) - in.navBearing) * DEG2RAD);
 }
 
-// How much changing one key (to its best allowed other state) would improve the alignment.
-float Mover::NavGain(const MoveInput& in, bool sideKey, int veto) const
+// How much changing one key (to its best allowed other state) would improve the alignment;
+// `side` is the side key the change combines with.
+float Mover::NavGain(const MoveInput& in, bool sideKey, int veto, int side) const
 {
-    const float cur  = NavAlign(in, MakeChord(m_fwd, m_side));
+    const float cur  = NavAlign(in, MakeChord(m_fwd, side));
     float       best = -2.0f;
     for (int v = -1; v <= 1; v++) {
-        if (v == (sideKey ? m_side : m_fwd)) {
+        if (v == (sideKey ? side : m_fwd)) {
             continue;
         }
-        const int c = sideKey ? MakeChord(m_fwd, v) : MakeChord(v, m_side);
+        const int c = sideKey ? MakeChord(m_fwd, v) : MakeChord(v, side);
         if (veto & Bit(c)) {
             continue;
         }
@@ -186,8 +188,13 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         z += m.side.losChangeLogit;
     }
     z += CtxChange(m.side, m_side != 0 ? 1 : 0, in.ctx);
+    // the calibrated strafe habit only shortens or stretches the pauses between strafes: how strafes
+    // end (hold length, reverse or let go) stays as fitted
+    if (m_side == 0) {
+        z += m.sideCtxLogit[in.ctx];
+    }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * in.urgency * (NavGain(in, true, veto) - 0.3f);
+        z += m.navSwitchLogit * in.urgency * (NavGain(in, true, veto, m_side) - 0.3f);
     }
     p    = Sigmoid(z);
     side = m_side;
@@ -201,7 +208,7 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     if (m_side != 0) {
         a  = -m_side; // reverse
         b  = 0;       // let go
-        za = Logit(m.reverseP.At(in.ctx, m_fwd + 1, BinIndex(m_sideAge, m.ageEdges))) + style.reverseLogit;
+        za = Logit(m.reverseP.At(in.ctx, m_fwd + 1, BinIndex(m_sideAge, m.ageEdges))) + m.reverseLogit + style.reverseLogit;
     } else {
         a  = 1;       // right
         b  = -1;      // left
@@ -223,14 +230,15 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     side = pick;
 }
 
-void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, Rng& rng, int& fwd, float& p)
+void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, int side, double u1, Rng& rng,
+                    int& fwd, float& p)
 {
     const MovementModel& m  = *m_p;
     const int            ab = BinIndex(m_fwdAge, m.ageEdges);
 
     float z = m_fwdSpawn ? SpawnLogit(m_spawn->fwdSwitchP, m_fwd + 1, m_fwdAge) : NAN;
     if (std::isnan(z)) {
-        z = m.fwd.switchLogit.At(in.ctx, m_fwd + 1, m_side + 1, ab);
+        z = m.fwd.switchLogit.At(in.ctx, m_fwd + 1, side + 1, ab);
     }
     if (m_fwd != 0) {
         z += m.fwd.wallLogit[BinIndex(in.clearance[MakeChord(m_fwd, 0)], m.clearEdges)];
@@ -245,12 +253,16 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         z += m.fwd.losChangeLogit;
     }
     z += CtxChange(m.fwd, m_fwd + 1, in.ctx);
+    // the calibrated forward habit pulls toward forward; letting go of forward stays as fitted
+    if (m_fwd != 1) {
+        z += m.fwdCtxLogit[in.ctx];
+    }
     // the diagonal habit keeps forward held while strafing
-    if (m_fwd == 1 && m_side != 0) {
+    if (m_fwd == 1 && side != 0) {
         z -= 0.5f * style.diagLogit;
     }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * in.urgency * (NavGain(in, false, veto) - 0.3f);
+        z += m.navSwitchLogit * in.urgency * (NavGain(in, false, veto, side) - 0.3f);
     }
     p   = Sigmoid(z);
     fwd = m_fwd;
@@ -271,12 +283,12 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
             zz[to + 1] = -1e30;
             continue;
         }
-        double v = m.fwdNext.At(in.ctx, m_fwd + 1, m_side + 1, to + 1) + k * static_cast<float>(to - m_fwd) * cosb;
-        if (to == 1 && m_side != 0) {
-            v += 0.5f * style.diagLogit;
+        double v = m.fwdNext.At(in.ctx, m_fwd + 1, side + 1, to + 1) + k * static_cast<float>(to - m_fwd) * cosb;
+        if (to == 1) {
+            v += m.fwdCtxLogit[in.ctx] + (side != 0 ? 0.5f * style.diagLogit : 0.0f);
         }
         if (in.navValid && in.urgency > 0.0f) {
-            v += m.navChoiceLogit * in.urgency * NavAlign(in, MakeChord(to, m_side));
+            v += m.navChoiceLogit * in.urgency * NavAlign(in, MakeChord(to, side));
         }
         zz[to + 1] = v;
         zmax       = std::max(zmax, v);
@@ -292,23 +304,25 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     fwd = rng.Categorical(w, 3) - 1;
 }
 
-void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, Rng& rng)
+void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng)
 {
     const MovementModel& m  = *m_p;
     const int            ab = BinIndex(m_leanAge, m.leanAgeEdges);
+    // the opponent-dead time has lean habits of its own
+    const int lctx = in.enemyDead ? LEAN_CTX_DEAD : in.ctx;
     // a context change shifts the chance of leaving the current lean state
     float     change = 0.0f;
     const int cb     = BinIndex(m_ctxAge, m.leanCtxAgeEdges);
-    if (cb < static_cast<int>(m.leanCtxAgeEdges.size()) - 1) {
+    if (!in.enemyDead && cb < static_cast<int>(m.leanCtxAgeEdges.size()) - 1) {
         change = m.leanCtxChangeLogit.At(in.ctx, m_lean != 0 ? 1 : 0, cb);
     }
     // style and the calibrated per-context habit: lean on (+) / off (-)
-    const float habit = style.leanLogit + m.leanCtxLogit[in.ctx];
+    const float habit = style.leanLogit + (in.enemyDead ? 0.0f : m.leanCtxLogit[in.ctx]);
     double      p[3];
     if (m_lean == 0) {
-        const int rel = m_side + 1;
+        const int rel = side + 1;
         for (int k = 0; k < 3; k++) {
-            p[k] = m.leanNext.At(0, in.ctx, ab, rel, k);
+            p[k] = m.leanNext.At(0, lctx, ab, rel, k);
         }
         const double on = 1.0 - p[1];
         if (on > 1e-6 && on < 1.0 - 1e-6) {
@@ -326,9 +340,9 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, Rng& rng)
             m_leanAge++;
         }
     } else {
-        const int rel = m_side == 0 ? 0 : (m_side == m_lean ? 1 : 2);
+        const int rel = side == 0 ? 0 : (side == m_lean ? 1 : 2);
         for (int k = 0; k < 3; k++) {
-            p[k] = m.leanNext.At(1, in.ctx, ab, rel, k);
+            p[k] = m.leanNext.At(1, lctx, ab, rel, k);
         }
         const double stay = p[0];
         if (stay > 1e-6 && stay < 1.0 - 1e-6) {
@@ -371,6 +385,24 @@ static bool StepKey(const StanceKeyModel& k, int ctx, float mult, bool allowPres
     return false;
 }
 
+// Crouch toggles the stance: a press while standing ducks, the next press stands up.
+// People dip for about 350 ms; the stand-up press comes by ticks crouched.
+static bool StepToggle(const StanceKeyModel& k, int ctx, float mult, bool crouched, bool onGround, double uPress,
+                       double uRelease, int& age, int& crouchedTicks)
+{
+    crouchedTicks = crouched && onGround ? crouchedTicks + 1 : 0;
+    if (age > 0) {
+        return StepKey(k, ctx, mult, false, uPress, uRelease, age);
+    }
+    const float h = crouchedTicks > 0 ? k.upHazard[BinIndex(crouchedTicks, k.upAgeEdges)]
+                                      : (onGround ? k.pressHazard[ctx] * mult : 0.0f);
+    if (uPress < h) {
+        age = 1;
+        return true;
+    }
+    return false;
+}
+
 void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out)
 {
     const MovementModel& m = *m_p;
@@ -379,13 +411,18 @@ void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng,
     const double uj = rng.Uniform(), ujr = rng.Uniform();
     const double uw = rng.Uniform(), uwr = rng.Uniform();
 
-    out.crouch = StepKey(m.crouch, in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
+    if (m.crouch.upHazard.empty()) {
+        out.crouch = StepKey(m.crouch, in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
+    } else {
+        out.crouch = StepToggle(m.crouch, in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr, m_crouchAge,
+                                m_crouchedTicks);
+    }
     out.jump   = StepKey(m.jump, in.ctx, style.jumpMult, in.allowJump && in.onGround && !out.crouch, uj, ujr, m_jumpAge);
     if (out.crouch && out.jump) {
         out.jump  = false;
         m_jumpAge = 0;
     }
-    out.walk = StepKey(m.walk, in.ctx, style.walkMult, true, uw, uwr, m_walkAge);
+    out.walk = StepKey(m.walk, in.ctx, m.walkMult * style.walkMult, true, uw, uwr, m_walkAge);
     // people let go of walk when a fight starts
     if (in.ctx == CTX_LOS_FIRE || in.ctx == CTX_HIDDEN_FIRE) {
         m_walkAge = 0;
@@ -418,7 +455,7 @@ void Mover::Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, R
     int   side, fwd;
     float ps, pf;
     StepSide(in, style, ledge, veto, us1, us2, side, ps);
-    StepFwd(in, style, ledge, veto, uf1, moveRng, fwd, pf);
+    StepFwd(in, style, ledge, veto, m_side, uf1, moveRng, fwd, pf);
     // a diagonal both keys allow may still lead over a ledge: let go of forward first
     if (ledge & Bit(MakeChord(fwd, side))) {
         if (!(ledge & Bit(MakeChord(0, side)))) {
@@ -445,7 +482,8 @@ void Mover::Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, R
         m_fwdAge++;
     }
     out.pSwitch = 1.0f - (1.0f - ps) * (1.0f - pf);
-    StepLean(in, style, stanceRng);
+    // people switch lean and strafe together: the lean follows this tick's side key (as fitted)
+    StepLean(in, style, m_side, stanceRng);
     StepStance(in, style, stanceRng, out);
     out.chord = MakeChord(m_fwd, m_side);
     out.lean  = m_lean;

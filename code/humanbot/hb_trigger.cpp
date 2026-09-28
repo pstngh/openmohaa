@@ -49,7 +49,7 @@ float Trigger::PressProb(const TriggerInput& in, int gapTicks) const
     if (in.los) {
         const TriggerSide& s = t.pressLos;
         z = s.bias + s.err[BinIndex(in.errHalfWidths, t.enEdges)] + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageLosEdges)]
-          + s.age[BinIndex(gapTicks, t.gapEdges)];
+          + s.age[BinIndex(gapTicks, t.gapEdges)] + t.pressLosLogit + in.pressLogit;
         if (in.damaged) {
             z += s.damaged;
         }
@@ -75,7 +75,7 @@ float Trigger::ReleaseProb(const TriggerInput& in, int holdTicks) const
     if (in.los) {
         const TriggerSide& s = t.releaseLos;
         z = s.bias + s.err[BinIndex(in.errHalfWidths, t.enEdges)] + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageLosEdges)]
-          + s.age[BinIndex(holdTicks, t.holdEdges)];
+          + s.age[BinIndex(holdTicks, t.holdEdges)] + t.releaseLosLogit;
     } else {
         const TriggerSide& s = t.releaseHidden;
         z = s.bias + s.err[BinIndex(in.hiddenYawErr, t.yawEdges)]

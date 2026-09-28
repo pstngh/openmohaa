@@ -141,6 +141,64 @@ static void TestMovement(const hb::ModelBundle& b)
     HB_CHECK(agree / double(both) > 0.6);
 }
 
+// Crouch toggles the stance in this engine: the bot must stand up again, in short dips
+// (people crouch 3.5% of the time, dips of about 350 ms). The engine side of the toggle
+// is played here: each press edge flips the stance.
+static void TestStance(const hb::ModelBundle& b)
+{
+    hb::Mover mv;
+    mv.Init(&b.shared.movement);
+    hb::StyleOffsets style;
+    hb::MoveInput    in;
+    in.ctx      = hb::CTX_HIDDEN_NOFIRE;
+    in.onGround = true;
+    hb::Rng          rm(11), rs(12);
+    hb::MoveOutput   out;
+    bool             ducked = false, prevKey = false;
+    int              duckTicks = 0, run = 0;
+    std::vector<int> dips;
+    const int        n = 400000;
+    for (int i = 0; i < n; i++) {
+        in.ducked = ducked;
+        mv.Step(in, style, rm, rs, out);
+        if (out.crouch && !prevKey) {
+            if (ducked) {
+                dips.push_back(run * 50);
+                run = 0;
+            }
+            ducked = !ducked;
+        }
+        prevKey = out.crouch;
+        duckTicks += ducked;
+        run += ducked;
+    }
+    std::sort(dips.begin(), dips.end());
+    const double share = duckTicks / double(n);
+    const double med   = dips.empty() ? 0.0 : dips[dips.size() / 2];
+    HB_REPORT("crouch toggle: crouched %.3f of the time, %zu dips, median %.0f ms", share, dips.size(), med);
+    HB_CHECK(share > 0.005 && share < 0.12);
+    HB_CHECK(dips.size() > 100);
+    HB_CHECK(med >= 150.0 && med <= 800.0);
+
+    // lean with no living enemy (after a kill) is far rarer than while hunting one
+    auto leanShare = [&](bool dead) {
+        hb::Mover m;
+        m.Init(&b.shared.movement);
+        hb::MoveInput li = in;
+        li.enemyDead     = dead;
+        hb::Rng r1(21), r2(22);
+        int     lean = 0;
+        for (int i = 0; i < 200000; i++) {
+            m.Step(li, style, r1, r2, out);
+            lean += out.lean != 0;
+        }
+        return lean / 200000.0;
+    };
+    const double hunting = leanShare(false), deadOpp = leanShare(true);
+    HB_REPORT("lean hidden: %.2f with a living enemy, %.2f with none", hunting, deadOpp);
+    HB_CHECK(deadOpp < hunting - 0.1);
+}
+
 static void TestTrigger(const hb::ModelBundle& b)
 {
     hb::Trigger tr;
@@ -353,6 +411,7 @@ int main()
         return 1;
     }
     TestMovement(b);
+    TestStance(b);
     TestTrigger(b);
     TestView(b);
     TestSubsteps();

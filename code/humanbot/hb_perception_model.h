@@ -44,7 +44,7 @@ public:
     void Init(const PerceptionModel *params, const Rng& rng);
     void Reset();
 
-    // hfov/vfov in degrees; detectMult is the reaction skill multiplier.
+    // hfov/vfov in degrees; detectMult scales the detection rate (1 for every style today).
     void Process(const RawInput& raw, float hfovDeg, float vfovDeg, float detectMult, Observation& out);
 
     float LastDetectP() const { return m_lastDetectP; }

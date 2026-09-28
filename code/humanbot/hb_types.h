@@ -120,6 +120,8 @@ struct SelfState {
     float viewYaw   = 0.0f;
     float viewPitch = 0.0f;
     Vec3  eye;                    // leaned eye used for perception and firing
+    Vec3  aimEye;                 // unleaned eye (origin + viewheight): the frame of the recorded aim heights
+    bool  aimEyeValid = false;
     float health    = 0.0f;
     float maxHealth = 100.0f;
     bool  onGround  = true;

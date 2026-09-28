@@ -264,6 +264,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     ti.blocked      = obs.teammateInCrosshair;
     ti.releaseLogit = m_off.releaseLogit;
+    ti.pressLogit   = m_off.reactionLogit;
     // the respawn click is often still held, or clicked again, in the first live ticks (it never fires);
     // the trigger takes over for good once an enemy is seen or the clicking is over
     const SpawnModel& sp = S.spawn;
@@ -343,6 +344,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     mi.wallPressMs = self.wallPressMs;
     mi.ducked      = self.ducked;
+    mi.enemyDead   = !enemyAlive;
     mi.onGround    = self.onGround;
     MoveOutput mo;
     if (liveTick == 0) {

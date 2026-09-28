@@ -95,7 +95,9 @@ StyleOffsets ComputeOffsets(const StyleDials& dials, const Calibration& calib, c
     o.releaseLogit    = calib.dial[DIAL_BURST].Eval(dials.dial[DIAL_BURST]);
     o.aimHeightFiring = Clamp(calib.dial[DIAL_AIM_HEIGHT].Eval(dials.dial[DIAL_AIM_HEIGHT]), 0.2f, 0.8f);
     o.noiseScale      = Clamp(calib.skill[SKILL_AIM_ERROR].Eval(dials.skill[SKILL_AIM_ERROR]), 0.3f, 3.0f);
-    o.detectMult      = Clamp(calib.skill[SKILL_REACTION].Eval(dials.skill[SKILL_REACTION]), 0.2f, 5.0f);
+    // the time to the first shot after a sighting is set by the trigger, not by detection
+    // (a detection sweep in the arena moves it by less than 30 ms)
+    o.reactionLogit   = Clamp(calib.skill[SKILL_REACTION].Eval(dials.skill[SKILL_REACTION]), -3.0f, 3.0f);
     if (dials.family < 0) {
         // pooled style: no dial shift at all
         StyleOffsets p;

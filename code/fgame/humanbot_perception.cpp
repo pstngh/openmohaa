@@ -200,6 +200,8 @@ void HB_FillSelf(Player *player, const HbView& view, hb::SelfState& self)
     self.viewYaw   = view.yaw;
     self.viewPitch = view.pitch;
     self.eye       = hb::Vec3(view.eye.x, view.eye.y, view.eye.z);
+    self.aimEye    = hb::Vec3(view.logEye.x, view.logEye.y, view.logEye.z);
+    self.aimEyeValid = true;
     self.health    = player->health;
     self.maxHealth = player->max_health;
     self.onGround  = player->groundentity != NULL || player->client->ps.walking;
