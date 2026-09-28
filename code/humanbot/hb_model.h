@@ -256,7 +256,15 @@ struct TriggerModel {
     float hiddenFireLogit   = 0.0f;   // overall shift of the hidden press hazard
     float pressLosLogit     = 0.0f;   // calibrated shift of the press hazard with LOS
     float releaseLosLogit   = 0.0f;   // calibrated shift of the release hazard with LOS
+    // Calibrated tilts of the release with LOS. The fitted release by aim error comes out too flat in
+    // closed loop (the bot let go near the target and sprayed far off it, and tapped too little);
+    // in the game's spread every round of a spray widens the next.
+    float releaseNearLogit  = 0.0f;   // aim error below RELEASE_FAR_HALF_WIDTHS
+    float releaseFarLogit   = 0.0f;   // aim error from RELEASE_FAR_HALF_WIDTHS
+    float releaseTapLogit   = 0.0f;   // the first two ticks of a hold (a tap)
 };
+
+constexpr float RELEASE_FAR_HALF_WIDTHS = 6.0f;
 
 struct WeaponModel {
     std::vector<int>    postKillRoundEdges;  // lower edges of rounds-left bins

@@ -75,7 +75,9 @@ float Trigger::ReleaseProb(const TriggerInput& in, int holdTicks) const
     if (in.los) {
         const TriggerSide& s = t.releaseLos;
         z = s.bias + s.err[BinIndex(in.errHalfWidths, t.enEdges)] + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageLosEdges)]
-          + s.age[BinIndex(holdTicks, t.holdEdges)] + t.releaseLosLogit;
+          + s.age[BinIndex(holdTicks, t.holdEdges)] + t.releaseLosLogit
+          + (in.errHalfWidths >= RELEASE_FAR_HALF_WIDTHS ? t.releaseFarLogit : t.releaseNearLogit)
+          + (holdTicks <= 2 ? t.releaseTapLogit : 0.0f);
     } else {
         const TriggerSide& s = t.releaseHidden;
         z = s.bias + s.err[BinIndex(in.hiddenYawErr, t.yawEdges)]
