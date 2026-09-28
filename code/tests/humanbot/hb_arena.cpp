@@ -260,6 +260,13 @@ struct Bot {
     bool  firing    = false;
     int   gotKillOf = -1;
     int   lastStep  = 0;
+    // the weapon's fire spread multiplier (Weapon::Shoot) and our last hit
+    float spreadMult  = 0.0f;
+    int   lastShotMs  = -100000;
+    bool  headHit     = false;
+    int   lastHitMs   = -100000;
+    int   lastHitId   = -1;
+    bool  lastHitHead = false;
 
     std::vector<hb::RawDamage> damageIn;
     std::vector<hb::SubCmd>    cmds;
@@ -278,6 +285,7 @@ struct Bot {
     std::vector<arena::Life> lives;   // one per spawn: the frame rows and shots of that life
     long long ticksAlive = 0, ticksHidden = 0, stillHidden = 0, ticksFight = 0, stillFight = 0;
     int       shots = 0, hits = 0, kills = 0, deaths = 0;
+    int       headHits = 0, doubleHeads = 0;   // head hits; head hits right after a head hit (within 300 ms)
     int       stuckBouts = 0, pressureBouts = 0, maxStuckMs = 0;
     std::vector<float> yawSpeed;
     std::vector<float> beliefErr;
@@ -563,6 +571,8 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     raw.deaths    = m_deaths;
     raw.gotKillOf = b.gotKillOf;
     b.gotKillOf   = -1;
+    raw.headHit   = b.headHit;
+    b.headHit     = false;
 
     const auto      tBrain = std::chrono::steady_clock::now();
     hb::Observation obs;
@@ -662,8 +672,17 @@ void Arena::Fire(Bot& b)
     b.nextShot = m_now + 100;
     b.clip--;
     b.shots++;
-    const float    speed  = PmSpeedXY(b.pm);
-    const float    spread = (speed > 100.0f ? 2.4f : 1.2f) * (b.pm.onGround ? 1.0f : 3.0f);
+    // the DM SMG spread (mp40.tik / thompsonsmg.tik of pak7, Weapon::Shoot, BulletAttack): a Gaussian of
+    // 38 units at 4000 standing to 50 running, times 1 + the fire spread multiplier, which grows 0.3 a
+    // round, falls 0.6 a second and resets after 0.25 s without a round. Long bursts scatter.
+    const float sinceShot = (m_now - b.lastShotMs) * 0.001f;
+    b.spreadMult          = sinceShot > 0.25f ? 0.0f : std::max(0.0f, b.spreadMult - sinceShot * 0.6f);
+    const float v3        = std::sqrt(b.pm.ps.velocity[0] * b.pm.ps.velocity[0] + b.pm.ps.velocity[1] * b.pm.ps.velocity[1]
+                                      + b.pm.ps.velocity[2] * b.pm.ps.velocity[2]);
+    const float    sf     = std::min(1.0f, v3 / 250.0f);
+    const float    spread = std::atan((38.0f + 12.0f * sf) * (1.0f + b.spreadMult) / 4000.0f) / TO_RAD;
+    b.spreadMult += 0.3f;
+    b.lastShotMs          = m_now;
     const float    yaw    = b.pm.ps.viewangles[YAW] + static_cast<float>(b.rngArena.Normal()) * spread;
     const float    pitch  = b.pm.ps.viewangles[PITCH] + static_cast<float>(b.rngArena.Normal()) * spread;
     hb::EyeInput   ei;
@@ -693,8 +712,17 @@ void Arena::Fire(Bot& b)
     }
     Bot& t = m_bots[tr.entityNum];
     const float hitZ   = tr.endpos[2] - t.pm.ps.origin[2];
-    const float damage = hitZ > 0.83f * BodyHeight(t) ? 60.0f : 20.0f;
+    const bool  head   = hitZ > 0.83f * BodyHeight(t);
+    const float damage = head ? 60.0f : 20.0f;
     b.hits++;
+    if (head) {
+        b.headHits++;
+        b.headHit = true;
+        b.doubleHeads += b.lastHitHead && b.lastHitId == t.id && m_now - b.lastHitMs <= 300;
+    }
+    b.lastHitMs   = m_now;
+    b.lastHitId   = t.id;
+    b.lastHitHead = head;
     t.health -= damage;
     hb::RawDamage d;
     d.attackerId  = b.id;
@@ -902,7 +930,7 @@ bool Arena::Report()
     const double minutes = m_o.seconds / 60.0;
     std::vector<float> yaws, errs;
     long long hidden = 0, still = 0, fight = 0, stillF = 0, shots = 0, hits = 0, kills = 0, kbd = 0;
-    int       stuck = 0, pressure = 0, maxStuck = 0;
+    int       stuck = 0, pressure = 0, maxStuck = 0, headHits = 0, doubleHeads = 0;
     double    us = 0.0, brainUs = 0.0;
     long long usN = 0;
     int       usMax = 0;
@@ -915,6 +943,8 @@ bool Arena::Report()
         stillF += b.stillFight;
         shots += b.shots;
         hits += b.hits;
+        headHits += b.headHits;
+        doubleHeads += b.doubleHeads;
         kills += b.kills;
         kbd += b.kbdBad;
         stuck += b.stuckBouts;
@@ -939,6 +969,7 @@ bool Arena::Report()
     j << ",\"still_hidden\":" << stillHidden << ",\"still_fight\":" << (fight ? static_cast<float>(stillF) / fight : NAN);
     j << ",\"shots_per_bot_min\":" << shots / botMinutes << ",\"hit_share\":" << (shots ? static_cast<double>(hits) / shots : 0.0);
     j << ",\"kills_per_bot_min\":" << kills / botMinutes;
+    j << ",\"head_share\":" << (hits ? static_cast<double>(headHits) / hits : 0.0) << ",\"double_heads\":" << doubleHeads;
     j << ",\"belief_err_p50\":" << Quantile(errs, 0.5) << ",\"belief_err_p90\":" << Quantile(errs, 0.9);
     j << ",\"think_us_mean\":" << meanUs << ",\"brain_us_mean\":" << (usN ? brainUs / usN : 0.0) << ",\"think_us_max\":" << usMax
       << ",\"kbd_violations\":" << kbd;
