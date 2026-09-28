@@ -970,7 +970,9 @@ bool Arena::Report()
         check(yawP99 > 300.0f && yawP99 < 1400.0f, "yaw speed p99 far outside the human 450-700 deg/s");
         check(stillHidden > 0.08f && stillHidden < 0.7f, "hidden stillness far outside the human 20-40%");
     }
-#ifdef NDEBUG
+#if defined(__OPTIMIZE__)
+    // the budget holds for optimized code only (NDEBUG is defined in every configuration of a
+    // multi-config build, Debug included, so it cannot tell)
     check(meanUs <= 150.0f, "mean think time over 150 us per bot per tick");
 #endif
     std::printf("hb_arena: %s\n", ok ? "PASS" : "FAIL");
