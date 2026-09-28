@@ -21,13 +21,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // hb_movement.h: movement keys, lean and stance as human-like hazard processes.
 //
-// The 9 digital (forward, right) chords are a semi-Markov chain: the chance of
-// letting go of the current chord depends on the context, the chord and how
-// long it has been held (a refractory ramp, then a flat hazard), plus nearby
-// walls, a fresh LOS change and how badly the chord disagrees with where the
-// bot wants to go. The next chord follows the recorded transitions, tilted
-// toward or away from the enemy by distance and toward the travel direction.
-// Chords are relative to the view, so looking and moving stay independent.
+// The side key (left/none/right) and the forward key (back/none/forward) are
+// two coupled semi-Markov processes, like the two fingers pressing them. Each
+// has its own hold age: the chance of changing it follows a refractory ramp
+// and then a flat hazard, shifted by walls in its direction, a fresh LOS
+// change, a context change (a fight starting or ending) and how badly the
+// resulting chord disagrees with where the bot wants to go. A strafe that ends
+// either reverses or lets go; the forward key leans toward or away from the
+// enemy by distance. The 9 chords are relative to the view, so looking and
+// moving stay independent.
 
 #pragma once
 
@@ -49,7 +51,7 @@ struct MoveInput {
     float navBearing     = 0.0f;    // desired travel direction relative to the view, + = left
     float urgency        = 0.0f;    // 0 = no preference, 1 = must travel
     float clearance[9]   = {128, 128, 128, 128, 128, 128, 128, 128, 128};
-    float drop[9]        = {};
+    float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;
     bool  ducked         = false;
     bool  onGround       = true;
@@ -62,43 +64,61 @@ struct MoveOutput {
     bool  crouch   = false;
     bool  jump     = false;
     bool  walk     = false;
-    float pSwitch  = 0.0f;
+    float pSwitch  = 0.0f;   // chance that some movement key changed this tick
     int   vetoMask = 0;
 };
 
 class Mover
 {
 public:
-    void Init(const MovementModel *params);
+    void Init(const MovementModel *params, const SpawnModel *spawn = nullptr);
     void Reset();
 
+    // The first live tick of a life: the keys already held (drawn from the spawn model by the
+    // caller). The first run of each key then follows the spawn hazards until it changes.
+    void Spawn(int chord, MoveOutput& out);
     void Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, Rng& stanceRng, MoveOutput& out);
+    // Starts from given key states with fresh ages (replays start from what the human held).
+    void SetKeys(int fwd, int side);
 
-    int Chord() const { return m_chord; }
-    int ChordAgeTicks() const { return m_age; }
+    int Chord() const { return MakeChord(m_fwd, m_side); }
+    int ChordAgeTicks() const { return m_side != 0 ? m_sideAge : m_fwdAge; }
+    int SideAgeTicks() const { return m_sideAge; }
     int Lean() const { return m_lean; }
     int LeanAgeTicks() const { return m_leanAge; }
 
     // Chord direction in the view frame (degrees, + = left); 0 for neutral.
     static float ChordAngle(int chord);
-
-    // Probability of leaving the current chord this tick (exposed for tests and replay).
-    float SwitchProb(const MoveInput& in, const StyleOffsets& style, int chord, int age, int vetoMask) const;
-    void  NextChordWeights(const MoveInput& in, const StyleOffsets& style, int chord, int vetoMask, double w[NUM_CHORDS]) const;
-    int   VetoMask(const MoveInput& in) const;
+    // Chords a new key press may not go toward (walls closer than the veto clearance, ledges).
+    int          VetoMask(const MoveInput& in) const;
 
 private:
-    void StepLean(const MoveInput& in, const StyleOffsets& style, Rng& rng);
-    void StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out);
+    float NavAlign(const MoveInput& in, int chord) const;
+    float NavGain(const MoveInput& in, bool sideKey, int veto) const;
+    float CtxChange(const KeyModel& k, int row, int ctx) const;
+    int   LedgeMask(const MoveInput& in) const;
+    void  StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p);
+    void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, Rng& rng, int& fwd, float& p);
+    void  StepLean(const MoveInput& in, const StyleOffsets& style, Rng& rng);
+    void  StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out);
 
-    const MovementModel *m_p = nullptr;
-    int                  m_chord   = CHORD_NEUTRAL;
-    int                  m_age     = 1;
+    float SpawnLogit(const Table& t, int row, int age) const;
+
+    const MovementModel *m_p     = nullptr;
+    const SpawnModel    *m_spawn = nullptr;
+    bool                 m_sideSpawn = false;  // the side key has not changed since the first live tick
+    bool                 m_fwdSpawn  = false;
+    int                  m_side    = 0;
+    int                  m_sideAge = 1;
+    int                  m_fwd     = 0;
+    int                  m_fwdAge  = 1;
     int                  m_lean    = 0;
     int                  m_leanAge = 1;
-    int                  m_crouchLeft = 0;
-    int                  m_jumpLeft   = 0;
-    int                  m_walkLeft   = 0;
+    int                  m_ctx        = -1;
+    int                  m_ctxAge     = 10000;
+    int                  m_crouchAge  = 0;   // ticks held, 0 = released
+    int                  m_jumpAge    = 0;
+    int                  m_walkAge    = 0;
 };
 
 } // namespace hb

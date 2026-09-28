@@ -34,8 +34,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cmath>
 #include <vector>
 
-// The chord process in a steady LOS firefight reproduces the fitted switch
-// hazard, strafe holds of about 300 ms and mostly direct reversals.
+// The two key processes in a steady LOS firefight reproduce strafe holds of
+// about 300 ms, mostly direct reversals and the human chord shares.
 static void TestMovement(const hb::ModelBundle& b)
 {
     hb::Mover mv;
@@ -92,17 +92,37 @@ static void TestMovement(const hb::ModelBundle& b)
     }
     HB_CHECK(diag2 / 100000.0 > diag + 0.05);
 
-    // a wall closer than the veto distance is never walked into
-    hb::MoveInput wall = in;
-    wall.clearance[5]  = 4.0f;   // right
-    wall.clearance[8]  = 4.0f;   // forward-right
+    // people keep pressing toward walls they touch, so the fitted model vetoes none; with a
+    // veto clearance set, a key is never pressed toward a wall that close
+    hb::MovementModel vetoed = b.shared.movement;
+    vetoed.vetoClearance     = 16.0f;
+    hb::MoveInput wall       = in;
+    wall.clearance[5]        = 4.0f;   // right
+    wall.clearance[8]        = 4.0f;   // forward-right
     hb::Mover mv3;
-    mv3.Init(&b.shared.movement);
+    mv3.Init(&vetoed);
+    int into = 0, sideMoves = 0;
     for (int i = 0; i < 20000; i++) {
         mv3.Step(wall, style, rm, rs, out);
-        HB_CHECK(!(out.chord == 5 && mv3.ChordAgeTicks() == 1));
-        HB_CHECK(!(out.chord == 8 && mv3.ChordAgeTicks() == 1));
+        into += out.chord == 5 || out.chord == 8;
+        sideMoves += hb::ChordSide(out.chord) == -1;
     }
+    HB_CHECK(into == 0);
+    HB_CHECK(sideMoves > 2000);   // it still strafes the other way
+    // a ledge deep enough to hurt is let go of at once, even when the key was already held
+    hb::MoveInput ledge = in;
+    ledge.drop[7]       = 400.0f;  // forward
+    ledge.drop[6]       = 400.0f;
+    ledge.drop[8]       = 400.0f;
+    hb::Mover mv5;
+    mv5.Init(&b.shared.movement);
+    mv5.SetKeys(1, 0);
+    int overLedge = 0;
+    for (int i = 0; i < 20000; i++) {
+        mv5.Step(ledge, style, rm, rs, out);
+        overLedge += hb::ChordFwd(out.chord) == 1;
+    }
+    HB_CHECK(overLedge == 0);
     // lean is held most of a firefight and mostly agrees with the strafe side
     hb::Mover mv4;
     mv4.Init(&b.shared.movement);
@@ -139,10 +159,12 @@ static void TestTrigger(const hb::ModelBundle& b)
     in.lageMs        = 0;
     const float pFirst = tr.PressProb(in, 10);
     HB_CHECK(pFirst < pNear);                  // reaction: the first tick is less likely than 200 ms in
-    // release: sprays are committed while on target
-    HB_CHECK(tr.ReleaseProb(in, 4) < 0.06f);
+    // release: sprays are committed while on target, and let go of far off target
+    // (11-13% per tick beyond 10 half-widths in the recordings, from about a hundred ticks)
+    const float relOn = tr.ReleaseProb(in, 4);
+    HB_CHECK(relOn < 0.06f);
     in.errHalfWidths = 15.0f;
-    HB_CHECK(tr.ReleaseProb(in, 4) > 0.15f);
+    HB_CHECK(tr.ReleaseProb(in, 4) > 0.06f && tr.ReleaseProb(in, 4) > 3.0f * relOn);
     // bursts in a steady on-target fight: median of a few shots, heavy tail
     in.errHalfWidths = 1.0f;
     in.lageMs        = 600;

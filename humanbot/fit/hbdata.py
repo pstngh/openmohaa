@@ -6,7 +6,8 @@ unchanged (by path, not by copy) and build the per-tick tables the fits need.
 
 Sequence rule (from the data repo): every next-tick value, hold age and
 time-since-LOS-change is computed on unbroken valid segments first, and only
-then filtered by context. Runs touching a segment edge are censored.
+then filtered by context. Runs touching a segment edge are censored, except
+the first run after a respawn (the empty usercmds before it are dropped).
 """
 from __future__ import annotations
 
@@ -94,16 +95,19 @@ def load_dm(cols=None) -> pd.DataFrame:
     """Valid human rows of deathmatch sessions, sorted, with sequence features.
 
     Adds ctx, next-tick values (nx_*), ages (age_*, ticks, 1 on the first tick of
-    a run), `age_known` (the run did not start at a segment edge) and `lage`
-    (ms since line_of_sight last changed; NaN when the change is not observed).
+    a run), known_* (the run's start is observed: it did not start at a segment
+    edge, or the segment starts with a respawn) and `lage` (ms since
+    line_of_sight last changed, or since the respawn; NaN when unobserved). The
+    empty usercmds right after each respawn are dropped (drop_spawn_dead_time).
     """
     cache = ensure_features()
     src = cache / "features.parquet"
-    seq = CACHE / "dm_seq.parquet"
+    seq = CACHE / "dm_seq_v6.parquet"
     if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
         return pd.read_parquet(seq)
     F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])
     F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
+    F = drop_spawn_dead_time(F)
     add_sequences(F)
     if cols is None:
         CACHE.mkdir(parents=True, exist_ok=True)
@@ -111,22 +115,57 @@ def load_dm(cols=None) -> pd.DataFrame:
     return F
 
 
+SPAWN_DEAD_MAX_TICKS = 6
+SPAWN_CLICK_TICKS = 10      # the respawn click can still be held or repeated this long after the first live tick
+
+
+def drop_spawn_dead_time(F: pd.DataFrame) -> pd.DataFrame:
+    """Drop the empty usercmds at the start of every life.
+
+    For 2-4 ticks after a respawn the client still sends empty usercmds (no keys,
+    no run bit, no mouse, no attack) while it catches up with the server. They are
+    not decisions, so each spawn segment starts at its first live tick instead, and
+    `spawn_seg` marks segments whose first live tick is a real start: runs that
+    begin there are complete, not censored. Only leading rows are dropped, so the
+    remaining rows of every segment stay unbroken.
+    """
+    keys = [F.session_id, F.client_id, F.seg]
+    g = F.groupby(keys, sort=False)
+    spawn = g.ev_spawn.transform("first").fillna(0).astype(bool)
+    empty = F.run.eq(0) & F.action.eq(4) & ~F.attack.astype(bool) & F.yaw_d.fillna(0).eq(0)
+    lead = empty.astype(int).groupby(keys, sort=False).cummin().astype(bool)
+    dead = spawn & lead & g.cumcount().lt(SPAWN_DEAD_MAX_TICKS)
+    ndead = dead.astype(int).groupby(keys, sort=False).transform("sum")
+    # where the life started (the player settles onto the floor during the dead time)
+    at = {f"spawn_{c}": g[src].transform("first") for c, src in [("x", "origin_x"), ("y", "origin_y"), ("z", "origin_z"),
+                                                                   ("yaw", "view_yaw")]}
+    F = F.assign(spawn_seg=spawn, dead_ticks=ndead.where(spawn, -1), **at).loc[~dead].reset_index(drop=True)
+    return F
+
+
 def add_sequences(F: pd.DataFrame) -> None:
     keys = ["session_id", "client_id", "seg"]
     g = F.groupby(keys, sort=False)
+    F["seg_k"] = g.cumcount()      # ticks since the segment's first (live) tick
     F["ctx"] = np.select([F.reloading, F.line_of_sight.eq(1) & F.attack, F.line_of_sight.eq(1), F.attack],
                          ["reload", "los_fire", "los_nofire", "hidden_fire"], "hidden_nofire")
     F["ctx_i"] = F.ctx.map({c: i for i, c in enumerate(CONTEXTS)}).astype("int8")
     first_tick = g.cumcount().eq(0)
-    for c in ["action", "side", "lean", "attack", "crouch_key", "jump_key", "run", "line_of_sight"]:
+    for c in ["action", "side", "fwd", "lean", "attack", "crouch_key", "jump_key", "run", "line_of_sight"]:
         if c not in F:
             continue
         F["nx_" + c] = g[c].shift(-1)
         run = (F[c] != g[c].shift()).cumsum()
         F["age_" + c] = F.groupby([F.session_id, F.client_id, F.seg, run], sort=False).cumcount() + 1
-        # a run that starts on the segment's first tick has an unknown (censored) start
+        # a run that starts on the segment's first tick has an unknown (censored) start,
+        # unless the segment starts with a respawn (see drop_spawn_dead_time)
         run_first = run.where(first_tick).groupby([F.session_id, F.client_id, F.seg], sort=False).transform("max")
-        F["known_" + c] = run.ne(run_first)
+        F["known_" + c] = run.ne(run_first) | F.spawn_seg
+    # ticks since the context changed (1 on the first tick of a context run)
+    crun = (F["ctx_i"] != g["ctx_i"].shift()).cumsum()
+    F["age_ctx"] = F.groupby([F.session_id, F.client_id, F.seg, crun], sort=False).cumcount() + 1
+    crun_first = crun.where(first_tick).groupby([F.session_id, F.client_id, F.seg], sort=False).transform("max")
+    F.loc[crun.eq(crun_first), "age_ctx"] = 10000   # context started before the segment: treat as old
     F["lage"] = (F["age_line_of_sight"] - 1) * TICK_MS
     F.loc[~F["known_line_of_sight"], "lage"] = np.nan
     F["en"] = F.aim_total_error / F.tgt_half_w_deg

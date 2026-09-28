@@ -33,6 +33,7 @@ static constexpr float HEAD_HEIGHT   = 62.0f;   // ~0.66 of a standing body: whe
 static constexpr float MAX_RATE_DEG  = 60.0f;   // per tick outside flicks
 static constexpr float PITCH_LIMIT   = 85.0f;
 static constexpr float BODY_HALF_W   = 15.0f;
+static constexpr float DIFFUSE_SPREAD = 600.0f;  // belief spread (units) beyond which it no longer points anywhere
 
 static float MinJerk(float tau)
 {
@@ -76,6 +77,7 @@ void ViewControl::Reset(const SelfState& self)
     m_dwellMs        = 0.0f;
     m_damagePending  = false;
     m_wasTracking    = false;
+    m_refractory     = 0;
 }
 
 float ViewControl::FlickDurationMs(float amplitude) const
@@ -124,33 +126,51 @@ float ViewControl::NoiseStep(const NoiseModel& nm, float dist, float& state, flo
     return state;
 }
 
+// Where to look without a visible enemy. People keep their view close to where they
+// believe the enemy is (5-10 degrees for the first seconds after losing sight, about
+// 20 later), mostly by watching that position or the corner it will come out of.
+// With a diffuse belief they look along their route; with nothing better they keep
+// looking where they look. Sounds reach the view through the belief; look-arounds
+// are a separate hazard.
 void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rng)
 {
-    const ViewModel& p   = *m_p;
-    const Vec3&      eye = self.eye;
-    double           w[4] = {0.0, 0.0, 0.0, 0.0};   // preaim, travel, lookaround, sound
-    const BeliefEstimate *b = in.belief;
-    const bool hasExposure  = b && b->valid && b->nExposure > 0;
-    const bool heard        = in.sounds && !in.sounds->empty();
+    const ViewModel&      p    = *m_p;
+    const Vec3&           eye  = self.eye;
+    const BeliefEstimate *b    = in.belief;
+    const bool            live = b && b->valid && !b->dead;
+    const bool            focused     = live && b->spread < DIFFUSE_SPREAD;
+    const bool            hasExposure = live && b->nExposure > 0;
+    double                w[4] = {0.0, 0.0, 0.0, 0.0};   // belief, preaim, travel, hold
+    if (focused) {
+        w[0] = p.beliefLookShare;
+    }
     if (hasExposure) {
-        w[0] = p.preaimShare;
+        w[1] = p.preaimShare;
     }
-    if (in.moving && in.navValid) {
-        w[1] = p.travelShare;
+    if (in.moving && in.navValid && !focused) {
+        w[2] = p.travelShare;
     }
-    w[2] = std::max(0.05, 1.0 - w[0] - w[1]);
-    if (heard) {
-        w[3] = 1.5;
-    }
-    const int pick = rng.Categorical(w, 4);
+    w[3] = std::max(0.02, 1.0 - w[0] - w[1] - w[2]);
+    const int    pick     = rng.Categorical(w, 4);
     const double dwellMul = rng.LogNormal(1.0, p.lookDwellSigma);
-    m_dwellMs = static_cast<float>(p.lookDwellMedianMs * dwellMul);
+    m_dwellMs             = static_cast<float>(p.lookDwellMedianMs * dwellMul);
+    const float  lookYaw  = m_lookPointValid ? YawOf(m_lookPoint - eye) : self.viewYaw;
     switch (pick) {
     case 0:
+        m_lookPoint      = b->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+        m_lookPointValid = true;
+        m_lookMode       = VIEW_BELIEF;
+        break;
+    case 1:
         {
-            double ew[MAX_EXPOSURE];
+            const float beliefYaw = YawOf(b->mode - eye);
+            double      ew[MAX_EXPOSURE];
             for (int i = 0; i < b->nExposure; i++) {
-                ew[i] = b->exposureMass[i] * std::exp(-b->exposureEtaMs[i] / 2500.0);
+                const float ey = YawOf(b->exposure[i] - eye);
+                const float db = focused ? Wrap180(ey - beliefYaw) / 30.0f : 0.0f;
+                // the corner already watched weighs more
+                const float dl = std::fabs(Wrap180(ey - lookYaw));
+                ew[i] = b->exposureMass[i] * std::exp(-b->exposureEtaMs[i] / 2500.0 - db * db) * (dl < 20.0f ? 3.0 : 1.0);
             }
             const int i      = rng.Categorical(ew, b->nExposure);
             m_lookPoint      = b->exposure[i] + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
@@ -158,33 +178,29 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
             m_lookMode       = VIEW_PREAIM;
             break;
         }
-    case 1:
+    case 2:
         m_lookPoint      = eye + YawDir(in.navYaw) * 400.0f;
         m_lookPointValid = true;
         m_lookMode       = VIEW_TRAVEL;
         m_dwellMs *= 0.7f;
         break;
-    case 3:
-        {
-            const SoundObs& s = in.sounds->back();
-            const float     d = Clamp(s.dist, 128.0f, 900.0f);
-            m_lookPoint       = self.origin + YawDir(s.yaw) * d + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
-            m_lookPointValid  = true;
-            m_lookMode        = VIEW_SOUND;
-            break;
-        }
     default:
-        {
-            const float mag  = static_cast<float>(rng.Uniform(45.0, 150.0));
-            const float sign = rng.Bernoulli(0.5) ? 1.0f : -1.0f;
-            const float yaw  = self.viewYaw + sign * mag;
-            m_lookPoint      = eye + YawDir(yaw) * 400.0f;
-            m_lookPointValid = true;
-            m_lookMode       = VIEW_LOOKAROUND;
-            m_dwellMs *= 0.6f;
-            break;
-        }
+        m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * 400.0f;
+        m_lookPointValid = true;
+        m_lookMode       = VIEW_HOLD;
+        break;
     }
+}
+
+void ViewControl::LookAround(const SelfState& self, Rng& rng)
+{
+    const ViewModel& p    = *m_p;
+    const float      mag  = static_cast<float>(rng.Uniform(45.0, 150.0));
+    const float      sign = rng.Bernoulli(0.5) ? 1.0f : -1.0f;
+    m_lookPoint           = self.eye + YawDir(self.viewYaw + sign * mag) * 400.0f;
+    m_lookPointValid      = true;
+    m_lookMode            = VIEW_LOOKAROUND;
+    m_dwellMs             = static_cast<float>(0.6 * p.lookDwellMedianMs * rng.LogNormal(1.0, p.lookDwellSigma));
 }
 
 void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, ViewOutput& out)
@@ -194,6 +210,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     // fixed draws per tick
     const double uStill = rng.Uniform();
     const double uFlick = rng.Uniform();
+    const double uLook  = rng.Uniform();
 
     const Vec3& eye = self.eye;
     Vec3        aim;
@@ -228,14 +245,16 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             newLook          = true;
         } else {
             m_dwellMs -= TICK_MS;
-            const bool heardNew = in.sounds && !in.sounds->empty() && self.timeMs - m_lastSoundMs > 600;
-            if (m_dwellMs <= 0.0f || m_wasTracking || heardNew || !m_lookPointValid) {
+            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid) {
                 ChooseLook(self, in, rng);
                 newLook = true;
+            } else if (m_lookMode != VIEW_LOOKAROUND && uLook < p.lookaroundPerMin / 1200.0f) {
+                LookAround(self, rng);
+                newLook = true;
+            } else if (m_lookMode == VIEW_BELIEF && in.belief && in.belief->valid && !in.belief->dead) {
+                // keep following the believed position as it moves
+                m_lookPoint = in.belief->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
             }
-        }
-        if (in.sounds && !in.sounds->empty()) {
-            m_lastSoundMs = self.timeMs;
         }
         m_wasTracking = false;
         aim           = m_lookPoint;
@@ -247,7 +266,8 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const float dist   = std::max(1.0f, d.length());
     const float dxy2   = std::max(1.0f, d.x * d.x + d.y * d.y);
     const float tYaw   = YawOf(d);
-    const float tPitch = PitchOf(d);
+    // people keep the crosshair slightly low, more so at range (a small constant angle)
+    const float tPitch = PitchOf(d) + (in.track ? (in.firing ? p.pitchOffsetFiring : p.pitchOffsetIdle) : 0.0f);
     const float errYaw   = Wrap180(tYaw - self.viewYaw);
     const float errPitch = tPitch - self.viewPitch;
     // angular velocity of the target direction caused by my motion and by the target's
@@ -291,13 +311,17 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     out.aimHeight   = m_aimH;
 
     // flick decisions
-    if (!m_flick.active) {
-        const float angErr = std::sqrt(errYaw * errYaw + errPitch * errPitch);
+    const float angErr     = std::sqrt(errYaw * errYaw + errPitch * errPitch);
+    const float halfW      = std::atan(BODY_HALF_W / dist) * RAD2DEG;
+    const bool  offTarget  = in.track && angErr > p.acquireMinHalfW * halfW;
+    if (m_refractory > 0) {
+        m_refractory--;
+    }
+    if (!m_flick.active && m_refractory == 0) {
         if (in.track) {
-            const float halfW = std::atan(BODY_HALF_W / dist) * RAD2DEG;
-            if (in.acquisition && angErr > p.acquireMinHalfW * halfW && uFlick < p.acquireHazard) {
-                StartFlick(errYaw, errPitch, p.flickGainMedian, p.flickGainSigma, rng);
-            } else if (std::fabs(errYaw) > p.flickDeg && uFlick < p.trackFlickHazard) {
+            // corrective submovements toward a seen target: fast right after the sighting
+            const float hz = in.acquisition ? p.acquireHazard : p.trackFlickHazard;
+            if ((offTarget || std::fabs(errYaw) > p.flickDeg) && uFlick < hz) {
                 StartFlick(errYaw, errPitch, p.flickGainMedian, p.flickGainSigma, rng);
             }
         } else if (newLook && angErr > p.flickDeg) {
@@ -330,6 +354,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         m_flick.tMs = t1;
         if (t1 >= m_flick.durMs) {
             m_flick.active = false;
+            m_refractory   = p.flickRefractoryTicks;
             m_rate         = 0.0f;
             m_prate        = 0.0f;
             m_noise        = 0.0f;
@@ -340,9 +365,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         }
         m_still = false;
     } else {
-        // still gate
+        // still gate (not while still reacting to a fresh sighting)
         const int ctx = ClampI(in.ctx, 0, CTX_COUNT - 1);
-        if (m_still) {
+        if (in.acquisition && offTarget) {
+            m_still = false;
+        } else if (m_still) {
             m_still = uStill < p.stillStay[ctx];
         } else {
             m_still = uStill < p.stillEnter[ctx];

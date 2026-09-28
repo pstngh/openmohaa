@@ -82,6 +82,11 @@ private:
 
     bool m_alive         = false;
     int  m_spawnMs       = 0;
+    int  m_liveTick      = 0;      // ticks since the first live tick of this life (< 0 during the dead time)
+    int  m_spawnChord    = 4;      // keys already held at the first live tick
+    bool m_click         = false;  // the respawn click still held or repeated after the spawn
+    bool m_clickOver     = false;
+    bool m_attackPrev    = false;  // attack actually sent last tick
     int  m_deathMs       = 0;
     int  m_respawnAtMs   = 0;
     bool m_clickDown     = false;

@@ -1,6 +1,6 @@
 """Assemble humanbot/model/shared.json from the fitted parts.
 
-Inputs: humanbot/cache/parts/{movement,view,trigger,weapon}.json (from the fit_*.py
+Inputs: humanbot/cache/parts/{keys,spawn,movement,view,trigger,weapon}.json (from the fit_*.py
 scripts, git-ignored) and humanbot/model/tuning.json (pooled parameters tuned in
 closed loop by calibrate.py, committed). Constants that the recordings cannot fix
 (sound noise, belief particle count, ...) are set here and documented.
@@ -32,6 +32,8 @@ def merge_patch(target, patch):
 
 def build():
     mv = H.read_part("movement")
+    keys = H.read_part("keys")
+    spawn = H.read_part("spawn")
     vw = H.read_part("view")
     tr = H.read_part("trigger")
     wp = H.read_part("weapon")
@@ -42,13 +44,16 @@ def build():
         "contexts": H.CONTEXTS,
         "chords": H.CHORDS,
         "movement": {
-            "switch": {k: mv["switch"][k] for k in ["age_edges", "logit", "clear_edges", "wall_logit", "los_change_logit"]},
-            "next": {k: mv["next"][k] for k in ["logit", "dist_edges", "radial", "radial_enemy_reload"]},
-            "lean": {"age_edges": mv["lean"]["age_edges"], "next": mv["lean"]["next"]},
-            "stance": {k: {"press_hazard": v["press_hazard"], "hold_pmf": v["hold_pmf"]} for k, v in mv["stance"].items()},
+            "keys": {k: keys[k] for k in ["age_edges", "clear_edges", "dist_edges", "ctx_age_edges", "side", "fwd"]},
+            "lean": {k: mv["lean"][k] for k in ["age_edges", "next", "ctx_age_edges", "ctx_change_logit"]},
+            "stance": {k: {"press_hazard": v["press_hazard"], "hold_pmf": v["hold_pmf"],
+                           "release_age_edges": v["release_age_edges"], "release_hazard": v["release_hazard"]}
+                       for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
-            "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0, "neutral_nav_logit": -1.0},
+            "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0},
         },
+        "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
+                                         "click_first_p", "click_stay_p", "click_press_p"]},
         "view": {
             "firing": vw["firing"], "idle": vw["idle"], "pitch_firing": vw["pitch_firing"], "pitch_idle": vw["pitch_idle"],
             "flick_deg": vw["flick_deg"],
@@ -58,7 +63,7 @@ def build():
             "flick_gain": {"median": 0.92, "sigma": 0.25},
             "aim_height": {"idle": 0.66, "firing": 0.44, "sd": 0.08},
             "tuning": {"noise_scale": 1.0, "bias_scale": 0.0, "acquire_min_halfw": 1.5, "acquire_hazard": 0.35,
-                       "track_flick_hazard": 0.25, "lookaround_per_min": 20.0, "preaim_share": 0.65, "travel_share": 0.25,
+                       "track_flick_hazard": 0.25, "lookaround_per_min": 6.0, "belief_look_share": 0.6, "preaim_share": 0.3, "travel_share": 0.25,
                        "look_dwell_median_ms": 900.0, "look_dwell_sigma": 0.6, "damage_turn_delay_ms": 100.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",

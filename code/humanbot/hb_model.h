@@ -91,25 +91,40 @@ struct Table {
 };
 
 struct StanceKeyModel {
-    std::vector<float> pressHazard;  // per context, per tick while released
-    std::vector<float> holdPmf;      // hold length in ticks (index 0 = 1 tick)
+    std::vector<float> pressHazard;      // per context, per tick while released
+    std::vector<float> holdPmf;          // hold length in ticks (index 0 = 1 tick), complete holds only
+    std::vector<int>   releaseAgeEdges;  // lower edges of hold-age bins, ticks
+    std::vector<float> releaseHazard;    // per tick while held, by hold age (survival estimate)
+};
+
+// One movement key (the side key or the forward key) as a semi-Markov process.
+struct KeyModel {
+    Table              switchLogit;    // side: [ctx][side+1][fwd+1][age bin]; forward: [ctx][fwd+1][side+1][age bin]
+    std::vector<float> wallLogit;      // by clearance bin in the key's direction (last = open)
+    float              losChangeLogit = 0.0f;
+    Table              ctxChangeLogit; // side: [ctx][strafing][ctx age bin]; forward: [ctx][fwd+1][ctx age bin]
 };
 
 struct MovementModel {
-    std::vector<int>   ageEdges;     // lower edges of chord-age bins, ticks
-    Table              switchLogit;  // [ctx][chord][age bin]
-    std::vector<float> clearEdges;   // clearance bins in the chord direction, units
-    std::vector<float> wallLogit;    // per clearance bin
-    float              losChangeLogit = 0.0f;
-    Table              transLogit;   // [ctx][from][to]
+    std::vector<int>   ageEdges;     // lower edges of key-age bins, ticks
+    std::vector<float> clearEdges;   // clearance bins in the key direction, units
     std::vector<float> distEdges;
-    Table              radial;       // [ctx][distance bin]
-    float              radialEnemyReload = 0.0f;
-    float              vetoClearance     = 16.0f;
+    std::vector<int>   ctxAgeEdges;  // ticks since the context changed; the last bin is the reference
+    KeyModel           side;
+    KeyModel           fwd;
+    Table              reverseP;     // [ctx][fwd+1][side age bin]: a strafe that ends reverses (else lets go)
+    Table              rightP;       // [ctx][fwd+1]: from no strafe, right (else left)
+    Table              fwdNext;      // [ctx][from+1][side+1][to+1] logits of the forward key's next state
+    Table              approach;     // [ctx][distance bin]: logit per unit of approach (to - from) * cos(bearing)
+    float              approachEnemyReload = 0.0f;
+    float              vetoClearance       = 0.0f;   // walls closer than this block a new key press (0 = off)
 
     // lean: next[state][ctx][age bin][relation][outcome], see fit_movement.py
     std::vector<int> leanAgeEdges;
     Table            leanNext;
+    std::vector<int> leanCtxAgeEdges;
+    Table            leanCtxChangeLogit;  // [ctx][state 0 none / 1 leaning][ctx age bin < last]: leave the state
+    std::vector<float> leanCtxLogit;      // calibrated per-context shift of leaning (on +, off -)
 
     StanceKeyModel crouch;
     StanceKeyModel jump;
@@ -119,7 +134,6 @@ struct MovementModel {
     float navSwitchLogit      = 1.0f;   // switch logit per unit of misalignment x urgency
     float navChoiceLogit      = 1.5f;   // choice logit per unit of alignment x urgency
     float wallPressureLogit   = 2.0f;   // switch logit while pushing into a wall
-    float neutralNavLogit     = -1.0f;  // choice logit of neutral when urgency is 1
 };
 
 struct NoiseModel {
@@ -175,11 +189,15 @@ struct ViewModel {
     // calibrated
     float noiseScale         = 1.0f;
     float biasScale          = 0.0f;
+    float pitchOffsetFiring  = 0.0f;   // degrees added to the aim pitch (+ = lower), firing
+    float pitchOffsetIdle    = 0.0f;
+    int   flickRefractoryTicks = 2;
     float acquireMinHalfW    = 1.5f;   // corrective saccade when the error exceeds this many half-widths
     float acquireHazard      = 0.35f;  // per tick once detected
     float trackFlickHazard   = 0.25f;  // per tick while |err| > flickDeg and tracking
-    float lookaroundPerMin   = 20.0f;
-    float preaimShare        = 0.65f;  // of hidden look decisions
+    float lookaroundPerMin   = 6.0f;   // look-arounds (a turn away and back) per minute without a visible enemy
+    float beliefLookShare    = 0.6f;   // of hidden look decisions with a focused belief: watch the believed position
+    float preaimShare        = 0.3f;   // of hidden look decisions: watch the corner it will come out of
     float travelShare        = 0.25f;
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
@@ -273,8 +291,21 @@ struct PresentationModel {
     float joinDelaySigma    = 0.6f;
 };
 
+// How a life starts (fitted on the first ticks after each respawn).
+struct SpawnModel {
+    std::vector<float> deadTicksPmf;   // ticks of empty usercmds after the respawn (index = ticks)
+    std::vector<float> chordP;         // keys held at the first live tick, by chord
+    std::vector<int>   ageEdges;       // ticks since the first live tick; the last edge ends the spawn run
+    Table              sideSwitchP;    // [strafing][age bin]: first run of the side key
+    Table              fwdSwitchP;     // [fwd+1][age bin]: first run of the forward key
+    float              clickFirstP = 0.0f;       // the respawn click still held at the first live tick
+    std::vector<float> clickStayP;     // P(attack at live tick t | attack at t-1), t = 1..n
+    std::vector<float> clickPressP;    // P(attack at live tick t | none at t-1)
+};
+
 struct SharedModel {
     int                 version = 0;
+    SpawnModel          spawn;
     MovementModel       movement;
     ViewModel           view;
     TriggerModel        trigger;
