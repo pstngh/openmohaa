@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "dm_manager.h"
 #include "playerstart.h"
 #include "scriptexception.h"
+#include "humanbot_adapter.h"
 
 cvar_t *g_tempaxisscore;
 cvar_t *g_tempaxiswinsinrow;
@@ -393,6 +394,18 @@ PlayerStart *DM_Team::GetRandomSpawnpoint(void)
     return spot;
 }
 
+// dm/main: this exact FFA start is in the west stairwell beside a rail that
+// bots cannot leave reliably. It stays available to humans; bots use the map's
+// other starts.
+static bool BotAvoidsMainStairSpawn(const Player *player, const Vector& origin)
+{
+    if (!player || !player->edict || !(player->edict->r.svFlags & SVF_BOT) || Q_stricmp(level.mapname.c_str(), "dm/main")) {
+        return false;
+    }
+    return origin.x >= 80.0f && origin.x <= 96.0f && origin.y >= 1296.0f && origin.y <= 1312.0f && origin.z >= -120.0f
+        && origin.z <= -104.0f;
+}
+
 PlayerStart *DM_Team::GetRandomSpawnpointWithMetric(
     Player *player, float (*MetricFunction)(const float *origin, DM_Team *dmTeam, const Player *player)
 )
@@ -410,7 +423,7 @@ PlayerStart *DM_Team::GetRandomSpawnpointWithMetric(
 
     for (int i = 1; i <= m_spawnpoints.NumObjects(); i++) {
         spot = m_spawnpoints.ObjectAt(i);
-        if (spot->m_bForbidSpawns || player->GetLastSpawnpoint() == spot) {
+        if (spot->m_bForbidSpawns || player->GetLastSpawnpoint() == spot || BotAvoidsMainStairSpawn(player, spot->origin)) {
             continue;
         }
 
@@ -439,7 +452,7 @@ PlayerStart *DM_Team::GetRandomSpawnpointWithMetric(
 
     for (int i = 1; i <= m_spawnpoints.NumObjects(); i++) {
         spot = m_spawnpoints.ObjectAt(i);
-        if (spot->m_bForbidSpawns) {
+        if (spot->m_bForbidSpawns || BotAvoidsMainStairSpawn(player, spot->origin)) {
             continue;
         }
 
@@ -496,7 +509,7 @@ PlayerStart *DM_Team::GetRandomSpawnpointWithMetric(
 
     for (int i = 1; i <= m_spawnpoints.NumObjects(); i++) {
         spot = m_spawnpoints.ObjectAt(i);
-        if (!spot->m_bForbidSpawns || player->GetLastSpawnpoint() != spot) {
+        if (!spot->m_bForbidSpawns || player->GetLastSpawnpoint() != spot || BotAvoidsMainStairSpawn(player, spot->origin)) {
             continue;
         }
 
@@ -2013,7 +2026,8 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
+                ((pTeamPlayer->edict->r.svFlags & SVF_BOT) && !G_HumanBotDisguised()) ? "bot"
+                                                                                  : va("%d", pTeamPlayer->client->ps.ping)
             );
         } else {
             Com_sprintf(
@@ -2024,7 +2038,8 @@ void DM_Manager::BuildPlayerTeamInfo(DM_Team *dmTeam, int *iPlayerList, DM_Team 
                 pTeamPlayer->GetNumKills(),
                 pTeamPlayer->GetNumDeaths(),
                 G_TimeString(level.svsFloatTime - pTeamPlayer->edict->client->pers.enterTime),
-                (pTeamPlayer->edict->r.svFlags & SVF_BOT) ? "bot" : va("%d", pTeamPlayer->client->ps.ping)
+                ((pTeamPlayer->edict->r.svFlags & SVF_BOT) && !G_HumanBotDisguised()) ? "bot"
+                                                                                  : va("%d", pTeamPlayer->client->ps.ping)
             );
         }
 

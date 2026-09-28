@@ -538,14 +538,22 @@ void SVC_Status( netadr_t from ) {
 	status[0] = 0;
 	statusLength = 0;
 
-	for (i=0 ; i < sv_maxclients->integer ; i++) {
+	for (i=0 ; i < svs.iNumClients ; i++) {
+		int ping, shown;
+
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
+			// Added in OPM: disguised bots (g_humanbot_disguise) are listed like players
+			shown = (ge && ge->GetClientDisplayPing) ? ge->GetClientDisplayPing( i ) : -1;
+			if ( shown < 0 && i >= sv_maxclients->integer ) {
+				continue;
+			}
+			ping = shown >= 0 ? shown : cl->ping;
 			ps = SV_GameClientNum( i );
 			Com_sprintf (player, sizeof(player), "%i \"%s\"\n", 
 			// su44: ps->persistant is not avaible in MoHAA
 			//	ps->persistant[PERS_SCORE], cl->ping, cl->name);
-				cl->ping, cl->name);
+				ping, cl->name);
 			playerLength = strlen(player);
 			if (statusLength + playerLength >= sizeof(status) ) {
 				break;		// can't hold any more

@@ -43,6 +43,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../corepp/tiki.h"
 #include "weapturret.h"
 #include "movement_telemetry.h"
+#include "humanbot_adapter.h"
 
 Event EV_Sentient_ReloadWeapon
 (
@@ -1526,6 +1527,9 @@ void Sentient::ArmorDamage(Event *ev)
     }
 
     G_MoveLogDamage(this, attacker, damage, healthBefore, health, meansofdeath, location, position, direction);
+    if (health < healthBefore) {
+        G_HumanBotDamage(this, attacker, healthBefore - health, position, direction, meansofdeath);
+    }
 
     // Set means of death
     means_of_death = meansofdeath;

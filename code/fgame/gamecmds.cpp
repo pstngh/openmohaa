@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "playerbot.h"
 #include "consoleevent.h"
 #include "g_bot.h"
+#include "humanbot_adapter.h"
 
 typedef struct {
     const char *command;
@@ -73,6 +74,10 @@ consolecmd_t G_ConsoleCmds[] = {
     {"addbot",          G_AddBotCommand,      qfalse},
     {"addbotnamed",     G_AddBotNamedCommand, qfalse},
     {"removebot",       G_RemoveBotCommand,   qfalse},
+    {"addbotstyle",       G_AddBotStyleCommand,      qfalse},
+    {"humanbot_list",     G_HumanBotListCommand,     qfalse},
+    {"humanbot_reload",   G_HumanBotReloadCommand,   qfalse},
+    {"humanbot_selftest", G_HumanBotSelfTestCommand, qfalse},
 #ifdef _DEBUG
     {"bot",             G_BotCommand,         qfalse},
 #endif

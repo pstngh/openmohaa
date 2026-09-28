@@ -228,6 +228,7 @@ static void players_callback(char *outbuf, int maxlen, void *userdata)
     size_t         currlen = 0;
     int            i;
     int            index;
+    int            shownPing;
     char           infostring[128];
 
     outbuf[0] = 0;
@@ -246,6 +247,9 @@ static void players_callback(char *outbuf, int maxlen, void *userdata)
 
         ps = SV_GameClientNum(i);
 
+        // Added in OPM: disguised bots (g_humanbot_disguise) show their simulated ping
+        shownPing = (ge && ge->GetClientDisplayPing) ? ge->GetClientDisplayPing(i) : -1;
+
         infolen = Com_sprintf(
             infostring,
             sizeof(infostring),
@@ -257,7 +261,7 @@ static void players_callback(char *outbuf, int maxlen, void *userdata)
             index,
             ps->stats[STAT_DEATHS],
             index,
-            cl->ping
+            shownPing >= 0 ? shownPing : cl->ping
         );
 
         if (currlen + infolen < maxlen) {

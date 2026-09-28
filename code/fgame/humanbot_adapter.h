@@ -27,10 +27,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #pragma once
 
+class BotController;
 class Entity;
+class HumanBotAdapter;
 class Player;
 class Sentient;
 class Vector;
+struct gentity_s;
 
 namespace hb
 {
@@ -54,7 +57,45 @@ enum hb_sound_type_t {
 //
 void G_HumanBotInit(void);
 void G_HumanBotShutdown(void);
-void G_HumanBotFrame(void);
+void G_HumanBotFrame(void);  // map context and self test, once per server frame
+
+//
+// Bots (called by BotController / BotControllerManager)
+//
+
+// The adapter of a new bot, or nullptr when no model is loaded (the stock bot then runs).
+HumanBotAdapter *G_HumanBotCreate(BotController *controller, Player *player);
+void             G_HumanBotDestroy(HumanBotAdapter *adapter);
+// Two-phase frame: every bot perceives and decides on the same world snapshot,
+// then every bot sends its usercmds.
+void G_HumanBotBeginFrame(void);
+void G_HumanBotPrepare(HumanBotAdapter *adapter);
+void G_HumanBotCommit(HumanBotAdapter *adapter);
+void G_HumanBotSpawned(HumanBotAdapter *adapter);
+void G_HumanBotKilled(HumanBotAdapter *adapter);
+void G_HumanBotGotKill(HumanBotAdapter *adapter, Entity *victim);
+void G_HumanBotReinitAll(void);
+void G_HumanBotResetCounters(void);
+bool G_HumanBotReportCounters(float minutes);
+
+//
+// Presentation
+//
+
+// A human-looking name for a new bot while g_humanbot_disguise is on, else NULL.
+const char  *G_HumanBotDisguiseName(int clientNum);
+bool         G_HumanBotDisguised(void);
+// Ping to show for a client in server status queries: a disguised bot's ping, or -1.
+int          G_HumanBotDisplayPing(int clientNum);
+unsigned int G_HumanBotNumSimulatedPlayers(void);
+
+//
+// Server commands
+//
+int G_AddBotStyleCommand(struct gentity_s *ent);
+int G_HumanBotListCommand(struct gentity_s *ent);
+int G_HumanBotReloadCommand(struct gentity_s *ent);
+int G_HumanBotSelfTestCommand(struct gentity_s *ent);
 
 //
 // Telemetry support
@@ -81,6 +122,10 @@ void G_HumanBotObserveParts(Player *viewer, Player *target, int *visibleParts, i
 // Event buses
 //
 void G_HumanBotEmitSound(Entity *source, const Vector& origin, int soundType, float radius);
+// G_BroadcastAIEvent: footsteps, impacts, doors (weapon fire comes from Weapon::Shoot).
+void G_HumanBotAIEvent(Entity *source, const Vector& origin, int aiEventType, float radius);
+// Player::Killed: the kill feed every player sees.
+void G_HumanBotDeath(Player *victim);
 void G_HumanBotDamage(
     Sentient     *victim,
     Entity       *attacker,
