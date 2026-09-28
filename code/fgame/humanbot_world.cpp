@@ -437,6 +437,7 @@ static void InitWorld()
         std::string  error;
         hb::MapPrior prior;
         if (hb::LoadMapPrior(text, overrideText, prior, error)) {
+            st.recorded   = true;
             st.checksumOk = checksum == 0 || prior.checksum == checksum;
             if (st.checksumOk) {
                 s_world.prior = std::move(prior);

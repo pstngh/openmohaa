@@ -1,0 +1,165 @@
+# Handoff: human-imitation bots
+
+For a Claude Code session picking this work up. The state is as of 2026-09-28.
+
+## What this is
+
+The bots of this fork (github.com/pstngh/openmohaa, public) run one data-fitted, stochastic brain
+learned from six recorded players (346 player-minutes of 1v1 SMG duels). They move, aim, fire and
+look like those players. Each bot draws a style family (presser, strafer, stopper), then its own
+dials. Read [README.md](README.md) for how it works and [TESTING.md](TESTING.md) for the test
+procedure.
+
+- **Code:** all the work is on branch `claude/funny-cray-e3yyih`. `main` is untouched and no PR
+  is open; open one only if the owner asks.
+- **Human data:** github.com/pstngh/openmohaa-movement (private) holds the human recordings and
+  their analysis. It is needed only to refit the model, calibrate, or compare bots with humans,
+  checked out next to the fork (`../openmohaa-movement`, or `$HB_MOVEMENT_REPO`). Its own
+  CLAUDE.md rules apply, and this work never commits to it.
+
+## State
+
+Built and pushed:
+- the telemetry logger (`g_movelog`, schema 13);
+- the brain library (`code/humanbot`) and the engine glue (`code/fgame/humanbot_*.cpp`);
+- fitting and calibration (`humanbot/fit`) and evaluation (`humanbot/eval`);
+- test harnesses: `hb_replay` (recorded traces), `hb_arena` (closed loop on the real Pmove),
+  `pm_harness`;
+- the owner kit: `humanbot/server/duel.cfg`, `soak.cfg`, `names.txt`, and `pack_capture.py`.
+
+Verified:
+- `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
+- CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
+- In the arena, two average-style bots are within 25% of the human value on 58% of 195
+  statistics (median relative error 0.20; four seeds of 900 s).
+- 16 bots take 112 us per bot per tick; the budget is 150.
+
+**Not verified: the engine glue has never run.** It only compiles and builds in CI. The
+container that built it had no game data. The first real run is the smoke test below.
+
+## The task now: the test server
+
+Use the Linux VPS the human duels were recorded on; the owner plays from a Mac. Its telemetry
+lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
+
+1. **Build on the server**, server only, no install:
+   ```sh
+   cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENT=OFF
+   cmake --build build
+   (cd build && ctest --output-on-failure)
+   ```
+2. **Start it.** Copy `humanbot/server/*.cfg` into `~/.local/share/openmohaa/main/` (and
+   `humanbot/server/names.txt` to `main/humanbot/names.txt` for the disguise test), then run
+   ```sh
+   build/RelWithDebInfo/omohaaded +set fs_basepath /path/to/mohaa +set com_target_game 0 +exec duel.cfg
+   ```
+   `fs_basepath` must hold `main/` with the pak files and the practice maps. The server uses UDP
+   port 12203. `sv_maxbots` has to be above 0 before a map loads: it reserves the slots and makes
+   the navmesh get built. `duel.cfg` sets it.
+3. **Smoke test** in the server console:
+   - At startup: `humanbot: model <sha12> (embedded)`.
+   - `humanbot_selftest 60`: navmesh valid, map prior "checksum ok" on dm/crnodoors, dm/main,
+     dm/vents and dm/downladder, visibility ready, then `PASS`.
+   - `humanbot_list`: each bot's style and think time.
+4. **Duels:** 20-30 min per practice map. Then copy the telemetry to the Mac,
+   `pack_capture.py` it into `humanbot/captures/`, push, and run `compare.py`.
+5. **Soak:** `soak.cfg`, 16 bots for a few hours.
+
+### Likely first-run problems, in pipeline order
+
+1. **Model does not load.** The line above `no usable model` says why. `g_humanbot_model_dir`
+   names a folder in the game filesystem whose `shared.json`, `styles.json` and
+   `calibration.json` are merge patches over the embedded model. Leave it empty.
+2. **Bot not created or not joining.**
+   - A human bot is attached in `BotController::AttachHumanBot` (`playerbot.cpp`) when the model
+     loaded.
+   - It picks the SMG (`primarydmweapon smg`), then joins 0.5-2 s after connecting: axis or
+     allies by its MP40 share in free-for-all, auto-join in team modes (`Join` in
+     `humanbot_adapter.cpp`).
+3. **Map context.**
+   - `checksum MISMATCH` on a practice map means the map file differs from the recorded one; the
+     bots then use a prior derived from the navmesh.
+   - The visibility table builds 2 ms per frame and is cached in
+     `~/.local/share/openmohaa/main/humanbot/vis/`.
+4. **Movement.**
+   - Usercmds go through `G_ClientThink` 4 times per frame (`Commit`, `g_humanbot_substeps`).
+   - Look for jitter, bots standing still, or bots stuck on doors and ladders.
+   - The stock code takes over for ladders and doors, and for 750 ms when a bot is stuck for
+     1.5 s or pushes into a wall for 1 s. `g_humanbot_debug 1` prints every hand-off.
+5. **Perception.**
+   - Sight uses the skeleton tags "Bip01 Head/Spine2/Spine1/Pelvis/L Foot/R Foot", with a bbox
+     fallback (`humanbot_perception.cpp`).
+   - A bot that never reacts to a visible enemy points here.
+6. **Firing and reload:** the buttons of each usercmd, `SendCommand("reload")` and the weapon
+   switch (`useWeapon`), all in `Commit`.
+
+Debugging:
+- The telemetry has one `bot_*` column per diagnostic in `code/humanbot/hb_diag.h`: context,
+  focus, detection, belief, view mode, flick, trigger hazards, chord, owner, think time.
+- For a brain problem, reproduce it offline in `hb_arena`, which runs the same brain. Keep
+  engine-glue fixes in `code/fgame/humanbot_*.cpp`.
+
+## Working rules
+
+- **Privacy: the fork is public.** Only aggregates belong in it:
+  - the pooled model;
+  - the anonymous style distribution (no aliases);
+  - map priors;
+  - the pooled human reference;
+  - the owner's own captures against bots (alias `pstN`, which may be named).
+
+  Never commit raw human captures, per-frame or per-person tables, or any other player's alias.
+  `humanbot/tools/check_no_raw_data.py` enforces this in CI.
+- **Human-fair perception.** Never give a bot an enemy's true hidden position (not even for
+  evaluation feedback).
+- **Before every push** (the Python checks need `pip install -r humanbot/eval/requirements.txt`):
+  ```sh
+  (cd build && ctest --output-on-failure)
+  python3 humanbot/tools/embed_model.py --check
+  python3 humanbot/tools/check_no_raw_data.py
+  python3 -m unittest discover -s humanbot/eval/tests
+  ```
+- **Model changes** go through the scripts, never hand edits of `shared.json`:
+  - edit `humanbot/fit/*.py`;
+  - run `humanbot/fit/run_fits.sh` (it needs the data repo);
+  - run `humanbot/fit/calibrate.py --stage all --build build`, which writes `tuning.json` and
+    `calibration.json`, reassembles and re-embeds. The test binaries (`hb_arena`, `hb_replay`)
+    are in `build/`; the server's (`omohaaded`, `game.so`) in `build/RelWithDebInfo/`.
+  - `hb_replay` needs the git-ignored replay exports: `humanbot/fit/export_replay.py` recreates
+    them.
+- **Arena check:**
+  ```sh
+  build/hb_arena --seconds 900 --pooled --seed 1 --reference humanbot/eval/human_reference.json
+  ```
+  It prints bot vs human for every shared statistic. `--bots 16 --load` checks the think budget.
+
+## Known gaps (arena, two average-style bots)
+
+- **Aim at a sighting:** 13 deg off vs people's 5, so the first shot comes at 250 ms vs 150. People
+  peek into their own crosshair; the bots hear and track hidden enemies as well as people do but
+  never peek. The likely next feature is corner clearing: slow before an exposure and pre-aim it.
+- **Close range:** firing at under 128 u, aim error is 21 deg vs 14. Turn speed in fights is
+  p99 620 deg/s vs 300.
+- **Trigger:** bots keep firing with the crosshair more than 10 body half-widths off 11% of the time;
+  people do it 4%.
+- **Retreats:** bots back off in fights at 100-300 u twice as often as people.
+- **Seeing the enemy without firing:** people stand still 31% of that time, bots 13%.
+- **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
+  shares) are judged on real captures only.
+
+## Deviations from the original plan
+
+- The plan's branch `claude/intelligent-euler-5nq2po` never existed; the work is on
+  `claude/funny-cray-e3yyih`.
+- Visibility cells are 32 u, not 64.
+- Movement is two coupled keys (strafe and forward) instead of one chord model.
+- Walls veto no key; only drops deeper than 240 u do.
+- Engage urgency is 0: bots do not push forward to engage.
+- The hidden look policy, the sound precision and the pitch gain were set by hand (see the
+  `calibrate.py` docstring).
+- The reaction skill shifts the trigger's press hazard instead of the detection rate. Both skills
+  are relative to the average bot.
+- AFK behavior is not modelled.
+- With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
+  opponent is dead).
+- The upstream Unit Tests workflow builds without the client; it could not find SDL2 on this fork.

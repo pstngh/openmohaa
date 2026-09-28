@@ -108,7 +108,7 @@ static void PrintWorld()
     gi.Printf(
         "  map prior         %s%s, %d cells, %d on the navmesh, %d spawns\n",
         st.prior ? (st.embedded ? "recorded human prior" : "derived from the navmesh") : "NONE",
-        st.embedded ? (st.checksumOk ? ", checksum ok" : ", checksum MISMATCH") : "",
+        st.recorded ? (st.checksumOk ? ", checksum ok" : ", checksum MISMATCH") : "",
         st.cells,
         st.snapped,
         st.spawns

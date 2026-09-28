@@ -90,8 +90,9 @@ Please send the console log if anything reads FAIL, MISSING or MISMATCH.
    - `g_humanbot_families "1 0 0"` gives only pressers; `"0 1 0"` strafers, `"0 0 1"` stoppers.
      The default is the recorded mix, about 50/33/17.
    - `addbotstyle strafer` adds one bot of a family (`kick` or `removebot` to drop one).
-   - `g_humanbot_disguise 1` gives the bots names from `humanbot/names.txt` and a ping, and
-     lists them as players. Use it for a blind test with a friend.
+   - `g_humanbot_disguise 1` gives the bots names and a ping, and lists them as players. Use it
+     for a blind test with a friend. The names come from `main/humanbot/names.txt` (copy
+     `humanbot/server/names.txt` there), or a built-in list.
 3. Watch for what feels wrong and note the time (the `session_ms` in the telemetry makes it
    easy to find again). Things the tests cannot judge: the bot's line through doors and
    ladders, how it gets unstuck (the stock bot code takes over for a moment), and whether it
@@ -145,16 +146,16 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 55% of 195 statistics. These are furthest off,
+The model matches the human duels within 25% on 58% of 195 statistics. These are furthest off,
 and what to look for in the live test:
 
-- **Aim at the moment of a sighting.** The bots are 13.5 degrees off when the enemy appears;
+- **Aim at the moment of a sighting.** The bots are 13.2 degrees off when the enemy appears;
   people are 5.2 degrees off. People mostly see the enemy where they already aim, because they
   peek into their own crosshair. The bots hear and track hidden enemies about as well as people,
   but do not yet peek. The first shot therefore comes later (250 ms after a clean sighting vs
   150), and fewer early shots hit.
-- **Close-range tracking.** Firing at under 128 u, the bots' aim error is 22 degrees (people
-  14). They also turn faster in fights (p99 650 deg/s vs 300).
+- **Close-range tracking.** Firing at under 128 u, the bots' aim error is 21 degrees (people
+  14). They also turn faster in fights (p99 620 deg/s vs 300).
 - **Trigger far off target.** Bots keep firing with the crosshair more than 10 body
   half-widths off 11% of the time (people 4%).
 - **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
