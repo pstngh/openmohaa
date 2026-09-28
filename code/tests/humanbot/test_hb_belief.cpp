@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_perception_model.h"
 #include "hb_test.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -128,6 +129,60 @@ static void TestNoTruthLeak(const hb::ModelBundle& b, const hb::MapPrior& m)
     HB_CHECK(firstDiff < 0);
 }
 
+// A life starts like a human's: 2-4 ticks of empty usercmds (no keys, no run bit, no
+// mouse, no fire), then the keys already held (none or forward), with the respawn
+// click still held in about half of the lives and no strafe for the first ticks.
+static void TestSpawn(const hb::ModelBundle& b, const hb::MapPrior& m)
+{
+    int       deadHist[8] = {};
+    int       lives = 0, noneOrFwd = 0, click = 0, earlyStrafe = 0;
+    const int n     = 600;
+    for (int seed = 0; seed < n; seed++) {
+        hb::Brain     br;
+        hb::Perceiver pc;
+        br.Init(&b, &m, hb::SampleStyle(b.style, -1, seed), 5000 + seed, 4);
+        pc.Init(&b.shared.perception, hb::Rng(seed).Derive(hb::STREAM_PERCEPTION));
+        hb::RawInput raw = BaseInput(m);
+        raw.enemies[0].centroid = raw.self.origin + hb::Vec3(3000, 0, 0);
+        int  dead      = 0;
+        bool live      = false;
+        int  liveTicks = 0;
+        for (int t = 0; t < 12; t++) {
+            raw.self.timeMs = t * 50;
+            hb::Observation obs;
+            pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+            hb::TickPlan plan;
+            br.Think(obs, plan, nullptr);
+            const bool empty = plan.walk && plan.chord == hb::CHORD_NEUTRAL && !plan.attack && plan.viewStill
+                            && plan.yawDelta == 0.0f && plan.pitchDelta == 0.0f && plan.lean == 0;
+            if (!live && empty) {
+                dead++;
+                continue;
+            }
+            if (!live) {
+                live = true;
+                lives++;
+                const int f = hb::ChordFwd(plan.chord);
+                noneOrFwd += hb::ChordSide(plan.chord) == 0 && f >= 0;
+                click += plan.attack;
+            }
+            if (liveTicks++ < 3) {
+                earlyStrafe += hb::ChordSide(plan.chord) != 0;
+            }
+        }
+        deadHist[std::min(dead, 7)]++;
+    }
+    HB_REPORT("spawn: dead ticks 2/3/4 = %.2f/%.2f/%.2f, first keys none-or-forward %.2f, click held %.2f, strafe in 3 ticks %.3f",
+              deadHist[2] / double(n), deadHist[3] / double(n), deadHist[4] / double(n), noneOrFwd / double(lives),
+              click / double(lives), earlyStrafe / (3.0 * lives));
+    HB_CHECK(lives == n);
+    HB_CHECK(deadHist[0] == 0 && deadHist[1] == 0 && deadHist[2] + deadHist[3] + deadHist[4] >= n - 2);
+    HB_CHECK(deadHist[3] > deadHist[2]);           // 23% / 39% / 38% in the recordings
+    HB_CHECK(noneOrFwd / double(lives) > 0.95);
+    HB_CHECK(click / double(lives) > 0.4 && click / double(lives) < 0.6);
+    HB_CHECK(earlyStrafe / (3.0 * lives) < 0.05);
+}
+
 static void TestTracking(const hb::ModelBundle& b, const hb::MapPrior& m)
 {
     hb::BeliefFilter bf;
@@ -220,6 +275,7 @@ int main()
         return 1;
     }
     TestNoTruthLeak(b, m);
+    TestSpawn(b, m);
     TestTracking(b, m);
     return hbtest::Finish("test_hb_belief");
 }

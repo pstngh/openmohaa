@@ -141,11 +141,11 @@ def fit_map(F, mp):
         return -(y * (z - zmax - np.log(s))).sum()
 
     beta = optimize.minimize(nll, np.zeros(nb_), method="Nelder-Mead", options={"xatol": 1e-3, "fatol": 1e-2}).x
-    # spawns: position at the spawn tick
-    sp = F[F["map"].eq(mp) & F.ev_spawn.gt(0)]
-    sp = sp.assign(px=sp.origin_x.round(0), py=sp.origin_y.round(0), pz=sp.origin_z.round(0))
+    # spawns: where each life started
+    sp = F[F["map"].eq(mp) & F.spawn_seg & F.seg_k.eq(0)]
+    sp = sp.assign(px=sp.spawn_x.round(0), py=sp.spawn_y.round(0), pz=sp.spawn_z.round(0))
     spawns = sp.groupby(["px", "py", "pz"]).agg(n=("session_id", "size"), ns=("session_id", "nunique"),
-                                                 yaw=("view_yaw", "median")).reset_index()
+                                                 yaw=("spawn_yaw", "median")).reset_index()
     spawns = spawns[(spawns.n >= 3) & (spawns.ns >= MIN_SESSIONS)]
     # empirical LOS between cells (unordered pairs), from both players' cells in duel ticks
     oix = np.floor(D.opponent_origin_x / CELL).astype("Int64")

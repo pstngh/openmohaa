@@ -99,8 +99,13 @@ static void TestBundle(hb::ModelBundle& bundle)
     HB_CHECK(hb::Sha256Hex("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 
     const hb::SharedModel& s = bundle.shared;
-    HB_CHECK(s.movement.switchLogit.v.size() == size_t(hb::CTX_COUNT * hb::NUM_CHORDS * s.movement.ageEdges.size()));
-    HB_CHECK(s.movement.transLogit.v.size() == size_t(hb::CTX_COUNT * 81));
+    const size_t nAge = s.movement.ageEdges.size();
+    HB_CHECK(s.movement.side.switchLogit.v.size() == size_t(hb::CTX_COUNT * 9) * nAge);
+    HB_CHECK(s.movement.fwd.switchLogit.v.size() == size_t(hb::CTX_COUNT * 9) * nAge);
+    HB_CHECK(s.movement.fwdNext.v.size() == size_t(hb::CTX_COUNT * 27));
+    HB_CHECK(s.movement.side.wallLogit.size() == s.movement.clearEdges.size());
+    // walls raise the chance of letting go of a key; the open bin is the reference
+    HB_CHECK(s.movement.side.wallLogit.front() > 0.0f && s.movement.side.wallLogit.back() == 0.0f);
     HB_CHECK(s.view.stillStay.size() == hb::CTX_COUNT);
     HB_CHECK(s.view.firing.Kp > s.view.idle.Kp);  // firing tracks much harder than idle
     // lean next-state rows are distributions
@@ -117,7 +122,7 @@ static void TestBundle(hb::ModelBundle& bundle)
     HB_CHECK_NEAR(b2.shared.view.noiseScale, 1.7, 1e-6);
     HB_CHECK(b2.sha256 != bundle.sha256);
     // a broken override falls back to the embedded model and says why
-    ov["shared.json"] = "{\"movement\":{\"switch\":{\"logit\":[1,2,3]}}}";
+    ov["shared.json"] = "{\"movement\":{\"keys\":{\"side\":{\"switch_logit\":[1,2,3]}}}}";
     hb::ModelBundle b3;
     HB_CHECK(!hb::LoadBundle(ov, b3, err));
     HB_CHECK(!err.empty());

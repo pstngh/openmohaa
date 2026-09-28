@@ -101,6 +101,7 @@ private:
     };
 
     void  ChooseLook(const SelfState& self, const ViewInput& in, Rng& rng);
+    void  LookAround(const SelfState& self, Rng& rng);
     void  StartFlick(float errYaw, float errPitch, float gainMedian, float gainSigma, Rng& rng);
     float NoiseStep(const NoiseModel& nm, float dist, float& state, float scale, Rng& rng);
 
@@ -127,11 +128,11 @@ private:
     float m_lookYaw     = 0.0f;
     float m_lookPitch   = 0.0f;
     float m_dwellMs     = 0.0f;
-    int   m_lastSoundMs = -100000;
     int   m_damageAtMs  = -100000;
     float m_damageYaw   = 0.0f;
     bool  m_damagePending = false;
     bool  m_wasTracking = false;
+    int   m_refractory  = 0;   // ticks before another corrective flick may start
 };
 
 } // namespace hb

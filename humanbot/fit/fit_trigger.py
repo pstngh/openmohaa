@@ -51,7 +51,8 @@ def fit_side(d, press, los):
 
 def main():
     F = H.load_dm()
-    EL = F[F.eligible]
+    # the respawn click is still held or repeated in the first live ticks (fitted in fit_keys.py as the spawn click)
+    EL = F[F.eligible & ~(F.spawn_seg & F.seg_k.lt(H.SPAWN_CLICK_TICKS))]
     TE = EL[~EL.reloading & EL.clip_ammo.gt(0) & EL.nx_attack.notna() & EL.lage.notna() & EL.known_attack]
     part = {"en_edges": EN_EDGES, "yaw_edges": YAW_EDGES, "lage_los_edges": LAGE_LOS_EDGES, "lage_hidden_edges": LAGE_HID_EDGES,
             "hold_edges": HOLD_EDGES, "gap_edges": GAP_EDGES}

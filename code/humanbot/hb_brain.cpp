@@ -57,7 +57,7 @@ void Brain::Init(const ModelBundle *bundle, const MapPrior *map, const StyleDial
     m_belief.Init(&s.belief, &s.perception, map, m_rngBelief);
     m_view.Init(&s.view);
     m_trigger.Init(&s.trigger);
-    m_mover.Init(&s.movement);
+    m_mover.Init(&s.movement, &s.spawn);
     m_nav.Init(&s.nav, map);
     m_weapon.Init(&s.weapon);
     m_navOut = NavOutput();
@@ -77,9 +77,22 @@ void Brain::SetFov(float hfovDeg, float vfovDeg)
     m_vfov = vfovDeg;
 }
 
+static int DrawIndex(const std::vector<float>& pmf, Rng& rng)
+{
+    std::vector<double> w(pmf.begin(), pmf.end());
+    return w.empty() ? 0 : rng.Categorical(w);
+}
+
 void Brain::OnSpawn(const Observation& obs)
 {
-    m_spawnMs = obs.self.timeMs;
+    const SpawnModel& sp = m_bundle->shared.spawn;
+    m_spawnMs    = obs.self.timeMs;
+    // a human client keeps sending empty usercmds for 2-4 ticks after the respawn
+    m_liveTick   = -DrawIndex(sp.deadTicksPmf, m_rngLife);
+    m_spawnChord = DrawIndex(sp.chordP, m_rngLife);
+    m_click      = false;
+    m_clickOver  = false;
+    m_attackPrev = false;
     m_view.Reset(obs.self);
     m_trigger.Reset();
     m_mover.Reset();
@@ -98,6 +111,7 @@ void Brain::OnDeath(const Observation& obs)
     m_deathMs     = obs.self.timeMs;
     m_respawnAtMs = m_deathMs + m_weapon.RespawnDelayMs(m_rngLife);
     m_clickDown   = false;
+    m_attackPrev  = false;
 }
 
 void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
@@ -141,6 +155,24 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         OnSpawn(obs);
         m_alive = true;
     }
+    const int liveTick = m_liveTick;
+    if (m_liveTick < 100000) {
+        m_liveTick++;
+    }
+    if (liveTick < 0) {
+        // the dead time after a respawn: no keys, no run bit, no mouse, no fire
+        m_belief.Update(obs, m_hfov, m_vfov);
+        plan.owner     = OWNER_BRAIN;
+        plan.walk      = true;
+        plan.viewStill = true;
+        if (diag) {
+            diag->owner = OWNER_BRAIN;
+            diag->walk  = 1;
+            diag->still = 1;
+            diag->chord = CHORD_NEUTRAL;
+        }
+        return;
+    }
 
     //
     // Belief and the focus enemy
@@ -181,7 +213,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     // Context of the previous tick (one-tick lag)
     //
     const bool reloading  = self.weaponState == 5;
-    const bool attackPrev = m_trigger.Attack();
+    const bool attackPrev = m_attackPrev;
     int        ctx;
     if (reloading) {
         ctx = CTX_RELOAD;
@@ -232,7 +264,24 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     ti.blocked      = obs.teammateInCrosshair;
     ti.releaseLogit = m_off.releaseLogit;
-    bool attack     = m_trigger.Step(ti, m_rngTrigger);
+    // the respawn click is often still held, or clicked again, in the first live ticks (it never fires);
+    // the trigger takes over for good once an enemy is seen or the clicking is over
+    const SpawnModel& sp = S.spawn;
+    const double      uc = m_rngLife.Uniform();
+    if (!m_clickOver && (detected || liveTick > static_cast<int>(sp.clickStayP.size()))) {
+        m_clickOver = true;
+    }
+    bool attack;
+    if (!m_clickOver) {
+        if (liveTick == 0) {
+            m_click = uc < sp.clickFirstP;
+        } else {
+            m_click = uc < (m_click ? sp.clickStayP[liveTick - 1] : sp.clickPressP[liveTick - 1]);
+        }
+        attack = m_click;
+    } else {
+        attack = m_trigger.Step(ti, m_rngTrigger);
+    }
 
     //
     // Weapon (a reload lets go of the trigger)
@@ -296,7 +345,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.ducked      = self.ducked;
     mi.onGround    = self.onGround;
     MoveOutput mo;
-    m_mover.Step(mi, m_off, m_rngMove, m_rngStance, mo);
+    if (liveTick == 0) {
+        m_mover.Spawn(m_spawnChord, mo);
+    } else {
+        m_mover.Step(mi, m_off, m_rngMove, m_rngStance, mo);
+    }
 
     //
     // Navigation for the next tick
@@ -330,6 +383,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     plan.command        = cmd;
     plan.navTargetValid = m_navOut.valid;
     plan.navTarget      = m_navOut.target;
+    m_attackPrev        = attack;
 
     if (diag) {
         Diag& d           = *diag;

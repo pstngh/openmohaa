@@ -54,6 +54,16 @@ Perceiver::Track& Perceiver::TrackFor(int id)
     return m_tracks.back();
 }
 
+float Perceiver::DetectProb(const PerceptionModel& p, float eccDeg, float dist, int parts, float detectMult, bool insideFov)
+{
+    float rate = p.detectRate * detectMult * std::pow(parts / static_cast<float>(NUM_PARTS), p.partExponent)
+               * std::exp(-eccDeg / p.eccScaleDeg) * std::exp(-dist / p.distScale);
+    if (!insideFov) {
+        rate *= 0.1f;
+    }
+    return 1.0f - std::exp(-rate);
+}
+
 static int PopCount(int mask)
 {
     int n = 0;
@@ -100,15 +110,11 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
             const float dpitch = std::fabs(PitchOf(d) - raw.self.viewPitch);
             const float ecc    = std::sqrt(dyaw * dyaw + dpitch * dpitch);
             const int   parts  = PopCount(e.partMask);
-            float       rate   = p.detectRate * detectMult * std::pow(parts / static_cast<float>(NUM_PARTS), p.partExponent)
-                        * std::exp(-ecc / p.eccScaleDeg) * std::exp(-dist / p.distScale);
-            // outside the fovea the frustum edge makes detection much slower
-            if (dyaw > 0.5f * hfovDeg || dpitch > 0.5f * vfovDeg) {
-                rate *= 0.1f;
-            }
-            const float pDet = 1.0f - std::exp(-rate);
+            // outside the frustum proper (partly visible at the edge) detection is much slower
+            const bool  inside = dyaw <= 0.5f * hfovDeg && dpitch <= 0.5f * vfovDeg;
+            const float pDet   = DetectProb(p, ecc, dist, parts, detectMult, inside);
             m_lastDetectP    = pDet;
-            if (!t.detected && t.lostTicks <= p.lossMemoryTicks) {
+            if (!t.detected && t.hadTarget && t.lostTicks <= p.lossMemoryTicks) {
                 // brief occlusion: the target is picked up again at once
                 t.detected = true;
             } else if (!t.detected && u < pDet) {
@@ -136,6 +142,9 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
         } else {
             if (t.lostTicks < 1000) {
                 t.lostTicks++;
+            }
+            if (t.lostTicks == 1) {
+                t.hadTarget = t.detected;
             }
             t.detected = false;
         }

@@ -18,3 +18,7 @@ endfunction()
 hb_add_test(test_hb_core ${SOURCE_DIR}/tests/humanbot/test_hb_core.cpp)
 hb_add_test(test_hb_modules ${SOURCE_DIR}/tests/humanbot/test_hb_modules.cpp)
 hb_add_test(test_hb_belief ${SOURCE_DIR}/tests/humanbot/test_hb_belief.cpp)
+
+# Replay harness (not a CTest: it needs the git-ignored exports of the private recordings)
+add_executable(hb_replay ${SOURCE_DIR}/tests/humanbot/hb_replay.cpp)
+target_link_libraries(hb_replay PRIVATE hb_core)

@@ -57,6 +57,7 @@ enum ViewMode {
     VIEW_DAMAGE,
     VIEW_SOUND,
     VIEW_HOLD,
+    VIEW_BELIEF,   // watching where the enemy is believed to be (through walls)
 };
 
 enum Intent {

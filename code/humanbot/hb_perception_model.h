@@ -49,10 +49,14 @@ public:
 
     float LastDetectP() const { return m_lastDetectP; }
 
+    // Per-tick detection probability of a target (also used by the replay harness).
+    static float DetectProb(const PerceptionModel& p, float eccDeg, float dist, int parts, float detectMult, bool insideFov);
+
 private:
     struct Track {
         int  id        = -1;
         bool detected  = false;
+        bool hadTarget = false;   // was detected when it was last lost
         int  lostTicks = 1000;
         Vec3 lastPos;
         int  lastTime  = 0;

@@ -83,7 +83,9 @@ include(basegame)
 #include(missionpack)
 include(launcher)
 
-if(BUILD_TESTING)
+# Unit tests (CI: unit-testing.yml). They run on the build machine, so cross builds
+# skip them; the release builds on MSVC skip them too.
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING AND NOT MSVC)
     include(tests/all)
 endif()
 

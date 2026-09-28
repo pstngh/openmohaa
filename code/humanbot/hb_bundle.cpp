@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #    pragma warning(pop)
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -260,52 +261,103 @@ void RequireProb(const std::vector<float>& p, const std::string& path)
     }
 }
 
+void ParseKey(const json& j, KeyModel& k, int nAge, int nClear, int nCtxAge, int changeRows, const char *path)
+{
+    const std::string p(path);
+    FillTable(Get(j, "switch_logit", path), k.switchLogit, {CTX_COUNT, 3, 3, nAge}, p + ".switch_logit");
+    k.wallLogit = Floats(Get(j, "wall_logit", path), p + ".wall_logit");
+    Require(static_cast<int>(k.wallLogit.size()) == nClear, p + ".wall_logit size");
+    k.losChangeLogit = Num(Get(j, "los_change_logit", path), p + ".los_change_logit");
+    FillTable(Get(j, "ctx_change_logit", path), k.ctxChangeLogit, {CTX_COUNT, changeRows, nCtxAge - 1}, p + ".ctx_change_logit");
+}
+
 void ParseMovement(const json& j, MovementModel& m)
 {
-    const json& sw = Get(j, "switch", "movement");
-    m.ageEdges     = Ints(Get(sw, "age_edges", "movement.switch"), "movement.switch.age_edges");
-    Require(!m.ageEdges.empty() && m.ageEdges[0] == 1, "movement.switch.age_edges must start at 1");
+    const json& kj = Get(j, "keys", "movement");
+    m.ageEdges     = Ints(Get(kj, "age_edges", "movement.keys"), "movement.keys.age_edges");
+    Require(!m.ageEdges.empty() && m.ageEdges[0] == 1, "movement.keys.age_edges must start at 1");
+    m.clearEdges  = Floats(Get(kj, "clear_edges", "movement.keys"), "movement.keys.clear_edges");
+    m.distEdges   = Floats(Get(kj, "dist_edges", "movement.keys"), "movement.keys.dist_edges");
+    m.ctxAgeEdges = Ints(Get(kj, "ctx_age_edges", "movement.keys"), "movement.keys.ctx_age_edges");
+    RequireAscending(m.clearEdges, "movement.keys.clear_edges");
+    RequireAscending(m.distEdges, "movement.keys.dist_edges");
+    Require(m.ctxAgeEdges.size() >= 2, "movement.keys.ctx_age_edges size");
     const int nAge = static_cast<int>(m.ageEdges.size());
-    FillTable(Get(sw, "logit", "movement.switch"), m.switchLogit, {CTX_COUNT, NUM_CHORDS, nAge}, "movement.switch.logit");
-    m.clearEdges = Floats(Get(sw, "clear_edges", "movement.switch"), "movement.switch.clear_edges");
-    RequireAscending(m.clearEdges, "movement.switch.clear_edges");
-    m.wallLogit = Floats(Get(sw, "wall_logit", "movement.switch"), "movement.switch.wall_logit");
-    Require(m.wallLogit.size() == m.clearEdges.size(), "movement.switch.wall_logit size");
-    m.losChangeLogit = Num(Get(sw, "los_change_logit", "movement.switch"), "movement.switch.los_change_logit");
-
-    const json& nx = Get(j, "next", "movement");
-    FillTable(Get(nx, "logit", "movement.next"), m.transLogit, {CTX_COUNT, NUM_CHORDS, NUM_CHORDS}, "movement.next.logit");
-    m.distEdges = Floats(Get(nx, "dist_edges", "movement.next"), "movement.next.dist_edges");
-    RequireAscending(m.distEdges, "movement.next.dist_edges");
-    FillTable(Get(nx, "radial", "movement.next"), m.radial, {CTX_COUNT, static_cast<int>(m.distEdges.size())}, "movement.next.radial");
-    m.radialEnemyReload = Num(Get(nx, "radial_enemy_reload", "movement.next"), "movement.next.radial_enemy_reload");
+    const int nClr = static_cast<int>(m.clearEdges.size());
+    const int nCa  = static_cast<int>(m.ctxAgeEdges.size());
+    const json& sj = Get(kj, "side", "movement.keys");
+    const json& fj = Get(kj, "fwd", "movement.keys");
+    ParseKey(sj, m.side, nAge, nClr, nCa, 2, "movement.keys.side");
+    ParseKey(fj, m.fwd, nAge, nClr, nCa, 3, "movement.keys.fwd");
+    FillTable(Get(sj, "reverse_p", "movement.keys.side"), m.reverseP, {CTX_COUNT, 3, nAge}, "movement.keys.side.reverse_p");
+    FillTable(Get(sj, "right_p", "movement.keys.side"), m.rightP, {CTX_COUNT, 3}, "movement.keys.side.right_p");
+    RequireProb(m.reverseP.v, "movement.keys.side.reverse_p");
+    RequireProb(m.rightP.v, "movement.keys.side.right_p");
+    FillTable(Get(fj, "next_logit", "movement.keys.fwd"), m.fwdNext, {CTX_COUNT, 3, 3, 3}, "movement.keys.fwd.next_logit");
+    FillTable(Get(fj, "approach", "movement.keys.fwd"), m.approach, {CTX_COUNT, static_cast<int>(m.distEdges.size())},
+              "movement.keys.fwd.approach");
+    m.approachEnemyReload = NumOr(fj, "approach_enemy_reload", 0.0f);
 
     const json& ln  = Get(j, "lean", "movement");
     m.leanAgeEdges  = Ints(Get(ln, "age_edges", "movement.lean"), "movement.lean.age_edges");
     FillTable(Get(ln, "next", "movement.lean"), m.leanNext, {2, CTX_COUNT, static_cast<int>(m.leanAgeEdges.size()), 3, 3},
               "movement.lean.next");
     RequireProb(m.leanNext.v, "movement.lean.next");
+    m.leanCtxAgeEdges = Ints(Get(ln, "ctx_age_edges", "movement.lean"), "movement.lean.ctx_age_edges");
+    Require(m.leanCtxAgeEdges.size() >= 2, "movement.lean.ctx_age_edges size");
+    FillTable(Get(ln, "ctx_change_logit", "movement.lean"), m.leanCtxChangeLogit,
+              {CTX_COUNT, 2, static_cast<int>(m.leanCtxAgeEdges.size()) - 1}, "movement.lean.ctx_change_logit");
+    m.leanCtxLogit.assign(CTX_COUNT, 0.0f);
+    if (ln.contains("ctx_logit")) {
+        m.leanCtxLogit = Floats(ln.at("ctx_logit"), "movement.lean.ctx_logit");
+        Require(m.leanCtxLogit.size() == CTX_COUNT, "movement.lean.ctx_logit size");
+    }
 
     const json& st = Get(j, "stance", "movement");
     StanceKeyModel *keys[3] = {&m.crouch, &m.jump, &m.walk};
     const char     *names[3] = {"crouch", "jump", "walk"};
     for (int i = 0; i < 3; i++) {
-        const json& k      = Get(st, names[i], "movement.stance");
+        const json& k        = Get(st, names[i], "movement.stance");
         keys[i]->pressHazard = Floats(Get(k, "press_hazard", "movement.stance"), "movement.stance.press_hazard");
         keys[i]->holdPmf     = Floats(Get(k, "hold_pmf", "movement.stance"), "movement.stance.hold_pmf");
+        keys[i]->releaseAgeEdges = Ints(Get(k, "release_age_edges", "movement.stance"), "movement.stance.release_age_edges");
+        keys[i]->releaseHazard   = Floats(Get(k, "release_hazard", "movement.stance"), "movement.stance.release_hazard");
+        Require(keys[i]->releaseAgeEdges.size() == keys[i]->releaseHazard.size() && !keys[i]->releaseHazard.empty(),
+                std::string("movement.stance.") + names[i] + ".release sizes");
+        RequireProb(keys[i]->releaseHazard, "movement.stance.release_hazard");
         Require(keys[i]->pressHazard.size() == CTX_COUNT, std::string("movement.stance.") + names[i] + ".press_hazard size");
-        Require(!keys[i]->holdPmf.empty(), std::string("movement.stance.") + names[i] + ".hold_pmf empty");
         RequireProb(keys[i]->pressHazard, "movement.stance.press_hazard");
-        RequireProb(keys[i]->holdPmf, "movement.stance.hold_pmf");
     }
-    m.vetoClearance = NumOr(j, "veto_clearance", 16.0f);
+    m.vetoClearance = NumOr(j, "veto_clearance", 0.0f);
     if (j.contains("coupling")) {
         const json& c       = j.at("coupling");
         m.navSwitchLogit    = NumOr(c, "nav_switch_logit", m.navSwitchLogit);
         m.navChoiceLogit    = NumOr(c, "nav_choice_logit", m.navChoiceLogit);
         m.wallPressureLogit = NumOr(c, "wall_pressure_logit", m.wallPressureLogit);
-        m.neutralNavLogit   = NumOr(c, "neutral_nav_logit", m.neutralNavLogit);
     }
+}
+
+void ParseSpawn(const json& j, SpawnModel& m)
+{
+    m.deadTicksPmf = Floats(Get(j, "dead_ticks_pmf", "spawn"), "spawn.dead_ticks_pmf");
+    m.chordP       = Floats(Get(j, "chord_p", "spawn"), "spawn.chord_p");
+    m.ageEdges     = Ints(Get(j, "age_edges", "spawn"), "spawn.age_edges");
+    Require(!m.deadTicksPmf.empty() && m.deadTicksPmf.size() <= 16, "spawn.dead_ticks_pmf size");
+    Require(m.chordP.size() == NUM_CHORDS, "spawn.chord_p size");
+    Require(!m.ageEdges.empty() && m.ageEdges[0] == 1, "spawn.age_edges must start at 1");
+    RequireProb(m.deadTicksPmf, "spawn.dead_ticks_pmf");
+    RequireProb(m.chordP, "spawn.chord_p");
+    const int nAge = static_cast<int>(m.ageEdges.size());
+    FillTable(Get(j, "side_switch_p", "spawn"), m.sideSwitchP, {2, nAge}, "spawn.side_switch_p");
+    FillTable(Get(j, "fwd_switch_p", "spawn"), m.fwdSwitchP, {3, nAge}, "spawn.fwd_switch_p");
+    RequireProb(m.sideSwitchP.v, "spawn.side_switch_p");
+    RequireProb(m.fwdSwitchP.v, "spawn.fwd_switch_p");
+    m.clickFirstP = Num(Get(j, "click_first_p", "spawn"), "spawn.click_first_p");
+    m.clickStayP  = Floats(Get(j, "click_stay_p", "spawn"), "spawn.click_stay_p");
+    m.clickPressP = Floats(Get(j, "click_press_p", "spawn"), "spawn.click_press_p");
+    Require(m.clickStayP.size() == m.clickPressP.size(), "spawn click sizes");
+    RequireProb(m.clickStayP, "spawn.click_stay_p");
+    RequireProb(m.clickPressP, "spawn.click_press_p");
 }
 
 void ParseNoise(const json& j, NoiseModel& n)
@@ -386,10 +438,14 @@ void ParseView(const json& j, ViewModel& v)
         v.trackFlickHazard  = NumOr(t, "track_flick_hazard", v.trackFlickHazard);
         v.lookaroundPerMin  = NumOr(t, "lookaround_per_min", v.lookaroundPerMin);
         v.preaimShare       = NumOr(t, "preaim_share", v.preaimShare);
+        v.beliefLookShare   = NumOr(t, "belief_look_share", v.beliefLookShare);
         v.travelShare       = NumOr(t, "travel_share", v.travelShare);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);
+        v.pitchOffsetFiring = NumOr(t, "pitch_offset_firing", v.pitchOffsetFiring);
+        v.pitchOffsetIdle   = NumOr(t, "pitch_offset_idle", v.pitchOffsetIdle);
+        v.flickRefractoryTicks = static_cast<int>(NumOr(t, "flick_refractory_ticks", static_cast<float>(v.flickRefractoryTicks)));
     }
 }
 
@@ -513,6 +569,7 @@ void ParseShared(const json& j, SharedModel& m)
 {
     m.version = static_cast<int>(Num(Get(j, "version", ""), "version"));
     Require(m.version == 1, "unsupported shared model version");
+    ParseSpawn(Get(j, "spawn", ""), m.spawn);
     ParseMovement(Get(j, "movement", ""), m.movement);
     ParseView(Get(j, "view", ""), m.view);
     ParseTrigger(Get(j, "trigger", ""), m.trigger);
