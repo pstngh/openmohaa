@@ -43,7 +43,8 @@ Verified:
   clearance) cost more than the arena's world, so arena think times understate the engine's.
   On macOS a mostly idle server runs on the efficiency cores and reads 2-3x slower.
 
-`humanbot_selftest` still FAILs on wall pressure: see "Wall contact" under Known gaps.
+`humanbot_selftest 180` PASSes on the VPS since the wall reflex (wall pressure 0.5 per bot-minute
+over all bots, 47-52 us per bot): see "Wall contact" below.
 
 The VPS runs the test server as the systemd service `openmohaa-humanbot` (UDP 12403; binaries
 in `~linuxuser/moh-humanbot`, home `~linuxuser/moh-humanbot-home`, source
@@ -146,23 +147,37 @@ Debugging:
   ```
   It prints bot vs human for every shared statistic. `--bots 16 --load` checks the think budget.
 
-## Wall contact (engine, the biggest tell found so far)
+## Wall contact (engine)
 
-Measured from the logger's own columns, the same way for people (practice maps) and bots
-(dm/crnodoors and dm/main, 2 bots):
+The first live runs showed the biggest tell so far: the bots ran into walls. Measured from the
+logger's own columns, the same way for people and bots (2 bots per map, same seed):
 
-| | people | bots before | bots now |
-|---|---|---|---|
-| wall contacts per minute (a key into a wall < 8 u, moving < 5 u a tick) | 5.4 | 44 | 36 |
-| of those, held 500 ms or more, per minute | 0.2 | 2.8-3.9 | 2.9-3.3 |
-| time within 16 u of a wall | 26-28% | 58-60% | 56% |
-| a key into the wall while that close | 10-17% | 42-43% | 38-39% |
+| per map: bots before -> now (people) | crnodoors | main | vents | downladder |
+|---|---|---|---|---|
+| time within 16 u of a wall | 54% -> 25% (26%) | 63% -> 37% (28%) | 61% -> 36% (33%) | 56% -> 37% (22%) |
+| touching a wall | 28% -> 6% (5%) | 29% -> 10% (7%) | 36% -> 8% (9%) | 33% -> 10% (4%) |
+| wall contacts per minute | 44 -> 5.3 (4.6) | 44 -> 5.3 (5.5) | 39 -> 5.6 (7.7) | 38 -> 8.8 (3.4) |
+| of those held 500 ms or more, per minute | 3.9 -> 0.2 (0.1) | 2.8 -> 0.2 (0.3) | 1.4 -> 0.05 (0.4) | 2.6 -> 0.6 (0.04) |
 
-`fit_keys.py` now fits how walls shift what a key changes to (`choice_wall_logit`) and letting
-go of a diagonal (`diag_wall_logit`); that is the "now" column. Most of the gap is where the
-bots walk: they hug walls twice as much as people, and their keys point into the wall more
-because their view is not steered along the corridor the way a person's mouse is. Next:
-navigation (path offset from walls, corner cutting) and coupling the hidden view to the route.
+What did it, in order of effect:
+- **The wall reflex** (`hb_movement.cpp` `WallAhead`, `wall_reflex_ms` 300 and `wall_reflex_logit`
+  4 in the model's couplings, set by hand in the engine): a held key whose wall is reached within
+  300 ms at the current speed is let go of (the forward key only lets go, it never backs off), and
+  no new key presses into a wall the bot touches. The key processes are fitted on people who steer
+  along walls with the mouse; they barely react to walls, and the bots lacked the anticipation.
+  The bot's clearance probes retry 2 u higher when they start in solid, and the reflex stands down
+  when every probe is blocked (it froze the bots before that).
+- **Walls in the fitted key choice** (`fit_keys.py`: `choice_wall_logit`, `diag_wall_logit`).
+- **Wall steering** (`humanbot_adapter.cpp`, `g_humanbot_wall_steer`): the navmesh is built for a
+  1 u agent, so its corners lie inside the player's box; walls push the route sideways.
+- **The route look** (`hb_view.cpp`): on the move the view also looks down the route (and follows
+  it as it turns), not only with a diffuse belief.
+
+Still off: the bots move 60-70% of the time (people 77-84%; the reflex costs 4-7 points: after
+letting go at a wall a bot can idle before the next key, where a person turns along the wall), and
+on the move they hold the forward key less (35-45%, people 67-75%) because their view is on the
+believed enemy more than on the route. In the arena the reflex costs about a point of the
+statistics within 25% (retreats at 96-224 u, already a gap, grow).
 
 ## Known gaps (arena, two average-style bots)
 
@@ -184,8 +199,10 @@ navigation (path offset from walls, corner cutting) and coupling the hidden view
   `claude/funny-cray-e3yyih`.
 - Visibility cells are 32 u, not 64.
 - Movement is two coupled keys (strafe and forward) instead of one chord model.
-- Walls veto no key; only drops deeper than 240 u do. Walls shift fitted odds instead: of
-  letting go (in the key's direction and along a diagonal) and of what a key changes to.
+- Walls veto no fitted key; drops deeper than 240 u do. Walls shift fitted odds instead (of
+  letting go, in the key's direction and along a diagonal, and of what a key changes to), and the
+  hand-set wall reflex lets go of keys before the bot hits a wall and vetoes pressing into one it
+  touches.
 - Engage urgency is 0: bots do not push forward to engage.
 - The hidden look policy, the sound precision and the pitch gain were set by hand (see the
   `calibrate.py` docstring).

@@ -30,8 +30,11 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
      while the enemy is hidden.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
-     lean, and crouch/jump/walk.
-   - `hb_nav`: where to go (hunt, hold, cover); `hb_weapon`: reloads and weapon switches.
+     lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
+     wall reflex lets go of a key before the bot runs into the wall (people see walls coming).
+   - `hb_nav`: where to go (hunt, hold, cover); `hb_weapon`: reloads and weapon switches. The
+     adapter keeps the navmesh route off the walls (`g_humanbot_wall_steer`), and on the move the
+     view also looks down the route.
    - `hb_style`: the dials of this bot.
 3. **Usercmds.** `hb_substep` turns the tick's decision into 4 usercmds (`g_humanbot_substeps`).
    Keys are digital, key changes land on one sub-step, the view moves along the flick's
