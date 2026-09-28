@@ -1,0 +1,30 @@
+# Names for g_humanbot_disguise 1, one per line (# starts a comment). Generic handles
+# only: never a real player's name. Copy to main/humanbot/names.txt to use your own list.
+Kestrel
+Mortimer
+sgt.Rook
+Havoc
+Juniper
+Tallboy
+Brisk
+Cobalt
+Fennec
+Grinder
+Halcyon
+IronLung
+Jackdaw
+Kilroy
+Lamplight
+Marauder
+Nettle
+Outrider
+Pilgrim
+Quartz
+Ranger_7
+Sawtooth
+Thistle
+Umber
+Vesper
+Wardog
+Yarrow
+Zephyr

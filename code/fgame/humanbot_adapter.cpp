@@ -463,8 +463,21 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan)
 
 void HumanBotAdapter::SetOwner(Player *p, int owner)
 {
+    static const char *const OWNER_NAMES[] = {"brain", "ladder", "door", "recovery", "dead", "manual", "spectator"};
     if (owner != m_owner) {
         G_MoveLogBotEvent("bot_owner", p, NULL, owner, p->origin);
+        if (g_humanbot_debug && g_humanbot_debug->integer && owner != hb::OWNER_DEAD && m_owner != hb::OWNER_DEAD) {
+            // the stock code taking over (or handing back) is what to watch in a live test
+            gi.Printf(
+                "humanbot: %s %s -> %s at (%.0f %.0f %.0f)\n",
+                p->client ? p->client->pers.netname : "?",
+                m_owner >= 0 && m_owner <= hb::OWNER_SPECTATOR ? OWNER_NAMES[m_owner] : "?",
+                owner >= 0 && owner <= hb::OWNER_SPECTATOR ? OWNER_NAMES[owner] : "?",
+                p->origin.x,
+                p->origin.y,
+                p->origin.z
+            );
+        }
         m_owner = owner;
     }
 }
