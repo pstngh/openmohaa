@@ -1103,16 +1103,19 @@ void G_HumanBotResetCounters()
     }
 }
 
-// Self-test verdict: no stuck bout over 2 s, fewer than one 500 ms wall-pressure
-// bout per bot-minute, no keyboard violation and a mean think time within budget.
+// Self-test verdict: no stuck bout over 2 s, no keyboard violation and a mean think time
+// within budget for every bot, and fewer than one 500 ms wall-pressure bout per bot-minute
+// over all bots (as hb_arena counts it: one bout of one bot in a one-minute test is no verdict).
 bool G_HumanBotReportCounters(float minutes)
 {
-    bool pass = s_adapters.NumObjects() >= 1;
+    bool pass     = s_adapters.NumObjects() >= 1;
+    int  pressure = 0;
     for (int i = 1; i <= s_adapters.NumObjects(); i++) {
         HumanBotAdapter *a = s_adapters.ObjectAt(i);
         Player          *p = a->GetPlayer();
         const float      pressurePerMin = minutes > 0.0f ? a->PressureBouts() / minutes : 0.0f;
-        const bool       ok = a->StuckBouts() == 0 && pressurePerMin < 1.0f && a->KbdViolations() == 0 && a->MeanThinkUs() <= 150.0f;
+        const bool       ok = a->StuckBouts() == 0 && a->KbdViolations() == 0 && a->MeanThinkUs() <= 150.0f;
+        pressure += a->PressureBouts();
         gi.Printf(
             "  %-20s %s  stuck>2s %d  pressure>500ms %.2f/min  kbd %d  think %.0f us (max %d)  %s\n",
             p && p->client ? p->client->pers.netname : "?",
@@ -1128,8 +1131,13 @@ bool G_HumanBotReportCounters(float minutes)
     }
     if (s_adapters.NumObjects() < 1) {
         gi.Printf("  no human bots were running\n");
+        return false;
     }
-    return pass;
+    const float botMinutes = minutes * s_adapters.NumObjects();
+    const float perBotMin  = botMinutes > 0.0f ? pressure / botMinutes : 0.0f;
+    const bool  pressureOk = perBotMin < 1.0f;
+    gi.Printf("  all bots             pressure>500ms %.2f/bot-min  %s\n", perBotMin, pressureOk ? "ok" : "FAIL");
+    return pass && pressureOk;
 }
 
 void HB_ListBots()

@@ -67,7 +67,8 @@ In the console, check:
      under `~/.local/share/openmohaa/main/humanbot/vis/`.
 
    The test then runs a 60 s bot game. It ends with one line per bot (stuck bouts, wall
-   pressure, keyboard violations, think time) and `humanbot_selftest: PASS`.
+   pressure, keyboard violations, think time), the wall pressure over all bots and
+   `humanbot_selftest: PASS`.
 3. `humanbot_list` shows each bot's style family, seed and drawn dials.
 
 Please send the console log if anything reads FAIL, MISSING or MISMATCH.
