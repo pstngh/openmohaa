@@ -80,7 +80,7 @@ def build():
         "belief": {"particles": 256, "neg_detect": 0.85, "ess_resample": 0.5, "jitter": 10.0, "move_boost": 1.0,
                    "sound_sigma_scale": 1.0, "spawn_min_dist": 256.0},
         "nav": {"hold_hazard": 0.02, "hold_median_ms": 1500.0, "hold_sigma": 0.7, "spawn_push_ms": 2500.0, "hunt_urgency": 0.8,
-                "engage_urgency": 0.25, "reload_urgency": 0.4, "waypoint_reach": 48.0, "repath_ms": 1000.0},
+                "engage_urgency": 0.0, "reload_urgency": 0.4, "waypoint_reach": 48.0, "repath_ms": 1000.0},
         "presentation": {"ping_median_ms": 45.0, "ping_sigma": 0.45, "ping_drift_ar": 0.995, "ping_jitter_ms": 4.0,
                          "join_delay_median_ms": 6000.0, "join_delay_sigma": 0.6},
     }

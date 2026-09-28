@@ -22,3 +22,9 @@ hb_add_test(test_hb_belief ${SOURCE_DIR}/tests/humanbot/test_hb_belief.cpp)
 # Replay harness (not a CTest: it needs the git-ignored exports of the private recordings)
 add_executable(hb_replay ${SOURCE_DIR}/tests/humanbot/hb_replay.cpp)
 target_link_libraries(hb_replay PRIVATE hb_core)
+
+# Closed-loop arena: bots on the real player movement (pm_harness) in a box world
+add_executable(hb_arena ${SOURCE_DIR}/tests/humanbot/hb_arena.cpp)
+target_link_libraries(hb_arena PRIVATE hb_core pm_harness)
+add_test(NAME test_hb_arena COMMAND hb_arena --test --seconds 120)
+set_tests_properties(test_hb_arena PROPERTIES TIMEOUT 600)

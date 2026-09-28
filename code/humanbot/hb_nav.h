@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #pragma once
 
+#include <vector>
+
 #include "hb_belief.h"
 #include "hb_map.h"
 #include "hb_model.h"
@@ -66,6 +68,8 @@ public:
 private:
     Vec3 PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng);
     Vec3 PickCover(const SelfState& self, const Vec3& threat) const;
+    // Direction of the next route-graph cell toward target (when the engine gives no steering).
+    bool RouteYaw(const SelfState& self, const Vec3& target, float& yaw);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -74,6 +78,10 @@ private:
     int             m_goalUntilMs   = 0;
     Vec3            m_goal;
     bool            m_goalValid     = false;
+    // shortest-path tree toward the last route target
+    int                m_treeTarget = -1;
+    std::vector<int>   m_next;
+    std::vector<float> m_dist;
 };
 
 } // namespace hb
