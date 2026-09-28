@@ -31,11 +31,24 @@ Verified:
 - `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 58% of 195
-  statistics (median relative error 0.20; four seeds of 900 s).
+  statistics (median relative error 0.20; four seeds of 900 s, in the build container). On
+  macOS the same model scores 53%; with the wall terms of 2026-09-28, 55% (median 0.22).
 - 16 bots take 112 us per bot per tick; the budget is 150.
 
-**Not verified: the engine glue has never run.** It only compiles and builds in CI. The
-container that built it had no game data. The first real run is the smoke test below.
+**The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
+- the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
+  on dm/crnodoors and the visibility table is built and cached;
+- no stuck bout over 2 s and no keyboard violation, with 2 and with 16 bots;
+- think time on the VPS (2 bots): 58-67 us per bot per tick. The engine's traces (sight,
+  clearance) cost more than the arena's world, so arena think times understate the engine's.
+  On macOS a mostly idle server runs on the efficiency cores and reads 2-3x slower.
+
+`humanbot_selftest` still FAILs on wall pressure: see "Wall contact" under Known gaps.
+
+The VPS runs the test server as the systemd service `openmohaa-humanbot` (UDP 12403; binaries
+in `~linuxuser/moh-humanbot`, home `~linuxuser/moh-humanbot-home`, source
+`~linuxuser/openmohaa-humanbot-src`). The owner's normal server there (`openmohaa`, 12203) is
+not part of this work: never touch it.
 
 ## The task now: the test server
 
@@ -133,6 +146,24 @@ Debugging:
   ```
   It prints bot vs human for every shared statistic. `--bots 16 --load` checks the think budget.
 
+## Wall contact (engine, the biggest tell found so far)
+
+Measured from the logger's own columns, the same way for people (practice maps) and bots
+(dm/crnodoors and dm/main, 2 bots):
+
+| | people | bots before | bots now |
+|---|---|---|---|
+| wall contacts per minute (a key into a wall < 8 u, moving < 5 u a tick) | 5.4 | 44 | 36 |
+| of those, held 500 ms or more, per minute | 0.2 | 2.8-3.9 | 2.9-3.3 |
+| time within 16 u of a wall | 26-28% | 58-60% | 56% |
+| a key into the wall while that close | 10-17% | 42-43% | 38-39% |
+
+`fit_keys.py` now fits how walls shift what a key changes to (`choice_wall_logit`) and letting
+go of a diagonal (`diag_wall_logit`); that is the "now" column. Most of the gap is where the
+bots walk: they hug walls twice as much as people, and their keys point into the wall more
+because their view is not steered along the corridor the way a person's mouse is. Next:
+navigation (path offset from walls, corner cutting) and coupling the hidden view to the route.
+
 ## Known gaps (arena, two average-style bots)
 
 - **Aim at a sighting:** 13 deg off vs people's 5, so the first shot comes at 250 ms vs 150. People
@@ -153,7 +184,8 @@ Debugging:
   `claude/funny-cray-e3yyih`.
 - Visibility cells are 32 u, not 64.
 - Movement is two coupled keys (strafe and forward) instead of one chord model.
-- Walls veto no key; only drops deeper than 240 u do.
+- Walls veto no key; only drops deeper than 240 u do. Walls shift fitted odds instead: of
+  letting go (in the key's direction and along a diagonal) and of what a key changes to.
 - Engage urgency is 0: bots do not push forward to engage.
 - The hidden look policy, the sound precision and the pitch gain were set by hand (see the
   `calibrate.py` docstring).
