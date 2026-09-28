@@ -15,8 +15,9 @@ steps (additive, multiplicative or on the logit scale) until the bot matches the
 all loops step together from the same runs. Values in tuning.json that no loop owns are kept:
 the hidden look policy (shares, dwell, re-aim), the sound precision and the pitch gain were set
 by hand from arena and replay runs (the error at a sighting and the hidden view barely respond
-to them one at a time), and the release shift stays 0 because a uniform shift cannot hold fire
-on target without also spraying far off it. The couplings of assemble_model.py are set there by
+to them one at a time), and the uniform release shift stays 0 because it cannot hold fire on
+target without also spraying far off it: the release is tilted instead, near and far from the
+target and at taps, by three loops (the arena fires with the game's spread since 2026-09-28). The couplings of assemble_model.py are set there by
 hand; the wall reflex among them was set in the engine (the arena has too few walls to see it). Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
 statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset.
@@ -135,6 +136,16 @@ def pooled_loops(shared):
              shared["trigger"].get("tuning", {}).get("press_los_logit", 0.0)),
         Loop("hidden_fire_logit", ["trigger", "tuning", "hidden_fire_logit"], "add", "arena", ["trigger.hold_hidden"],
              -3.0, 3.0, shared["trigger"].get("tuning", {}).get("hidden_fire_logit", 0.0)),
+        # the release with the enemy in sight, tilted near and far from the target, and the taps (the arena
+        # has the game's spread: a spray far off the target also widens the rounds that follow)
+        Loop("release_near_logit", ["trigger", "tuning", "release_near_logit"], "add", "arena",
+             ["trigger.release_los.0-1", "trigger.release_los.1-2", "trigger.release_los.2-3", "trigger.release_los.3-4",
+              "trigger.release_los.4-6"], -3.0, 3.0, shared["trigger"].get("tuning", {}).get("release_near_logit", 0.0)),
+        Loop("release_far_logit", ["trigger", "tuning", "release_far_logit"], "add", "arena",
+             ["trigger.release_los.6-10", "trigger.release_los.10-1000"], -3.0, 3.0,
+             shared["trigger"].get("tuning", {}).get("release_far_logit", 0.0)),
+        Loop("release_tap_logit", ["trigger", "tuning", "release_tap_logit"], "add", "arena", ["trigger.tap_share"],
+             -3.0, 3.0, shared["trigger"].get("tuning", {}).get("release_tap_logit", 0.0)),
     ]
     mv = shared["movement"]
     lean0 = mv["lean"].get("ctx_logit", [0.0] * 5)
