@@ -12,7 +12,11 @@ when the brain closes the loop. calibrate.py sets them by matching statistics of
 
 Each loop ties one parameter to one statistic with a monotone relation and takes damped
 steps (additive, multiplicative or on the logit scale) until the bot matches the human value;
-all loops step together from the same runs. Stage "dials" sweeps each style dial's internal
+all loops step together from the same runs. Values in tuning.json that no loop owns are kept:
+the hidden look policy (shares, dwell, re-aim), the sound precision and the pitch gain were set
+by hand from arena and replay runs (the error at a sighting and the hidden view barely respond
+to them one at a time), and the release shift stays 0 because a uniform shift cannot hold fire
+on target without also spraying far off it. Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
 statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset.
 
@@ -124,7 +128,7 @@ def pooled_loops(shared):
              view["aim_height"]["firing"], stat_kind="diff"),
         Loop("aim_height.idle", ["view", "aim_height", "idle"], "add", "arena", ["aim.height.idle"], 0.45, 0.8,
              view["aim_height"]["idle"], stat_kind="diff"),
-        # perception and trigger: reaction to a sighting, fire without sight, prefire at corners
+        # trigger: the press with the enemy in sight, and fire without sight
         Loop("press_los_logit", ["trigger", "tuning", "press_los_logit"], "add", "arena",
              ["trigger.press_los_near.0", "trigger.press_los_near.50-100", "trigger.press_los_near.150-250"], -3.0, 3.0,
              shared["trigger"].get("tuning", {}).get("press_los_logit", 0.0)),
