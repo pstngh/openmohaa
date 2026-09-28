@@ -54,6 +54,7 @@ struct MoveInput {
     float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;
     bool  ducked         = false;
+    bool  enemyDead      = false;   // no living enemy known (after a kill): lean context LEAN_CTX_DEAD
     bool  onGround       = true;
     bool  allowJump      = true;
 };
@@ -94,12 +95,13 @@ public:
 
 private:
     float NavAlign(const MoveInput& in, int chord) const;
-    float NavGain(const MoveInput& in, bool sideKey, int veto) const;
+    float NavGain(const MoveInput& in, bool sideKey, int veto, int side) const;
     float CtxChange(const KeyModel& k, int row, int ctx) const;
     int   LedgeMask(const MoveInput& in) const;
     void  StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p);
-    void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, Rng& rng, int& fwd, float& p);
-    void  StepLean(const MoveInput& in, const StyleOffsets& style, Rng& rng);
+    void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, int side, double u1, Rng& rng, int& fwd,
+                  float& p);
+    void  StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng);
     void  StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out);
 
     float SpawnLogit(const Table& t, int row, int age) const;
@@ -117,6 +119,7 @@ private:
     int                  m_ctx        = -1;
     int                  m_ctxAge     = 10000;
     int                  m_crouchAge  = 0;   // ticks held, 0 = released
+    int                  m_crouchedTicks = 0;  // ticks crouched on the ground (crouch toggles)
     int                  m_jumpAge    = 0;
     int                  m_walkAge    = 0;
 };

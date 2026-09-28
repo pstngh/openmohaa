@@ -46,8 +46,8 @@ def build():
         "movement": {
             "keys": {k: keys[k] for k in ["age_edges", "clear_edges", "dist_edges", "ctx_age_edges", "side", "fwd"]},
             "lean": {k: mv["lean"][k] for k in ["age_edges", "next", "ctx_age_edges", "ctx_change_logit"]},
-            "stance": {k: {"press_hazard": v["press_hazard"], "hold_pmf": v["hold_pmf"],
-                           "release_age_edges": v["release_age_edges"], "release_hazard": v["release_hazard"]}
+            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "hold_pmf", "release_age_edges", "release_hazard",
+                                                "up_age_edges", "up_hazard"] if kk in v}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0},
@@ -125,8 +125,8 @@ def default_calibration():
             "aim_error_fight_deg": {"x": [lo["aim_error_fight_deg"], pooled["aim_error_fight_deg"], hi["aim_error_fight_deg"]],
                                     "y": [lo["aim_error_fight_deg"] / pooled["aim_error_fight_deg"], 1.0,
                                           hi["aim_error_fight_deg"] / pooled["aim_error_fight_deg"]]},
-            "reaction_ms": {"x": [lo["reaction_ms"], pooled["reaction_ms"], hi["reaction_ms"]],
-                            "y": [pooled["reaction_ms"] / lo["reaction_ms"], 1.0, pooled["reaction_ms"] / hi["reaction_ms"]]},
+            # press hazard logit with the enemy in sight: faster reactions press sooner
+            "reaction_ms": {"x": [lo["reaction_ms"], pooled["reaction_ms"], hi["reaction_ms"]], "y": [0.8, 0.0, -0.8]},
         },
     }
 

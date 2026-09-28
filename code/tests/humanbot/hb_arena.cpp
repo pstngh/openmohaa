@@ -31,6 +31,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //   hb_arena [--bots N] [--seconds S] [--seed N] [--substeps K] [--layout pillars|open]
 //            [--override shared.json] [--reference human_reference.json] [--pooled] [--test] [--load]
+//            [--offset name=value ...] [--quiet]
+//
+// The statistics are those of humanbot/eval/metrics.py (arena_metrics.h) under the
+// keys of human_reference.json. --offset replaces one style offset of every bot
+// (diag_logit, reverse_logit, hold_scale, lean_logit, jump_mult, crouch_mult,
+// walk_mult, release_logit, aim_height_firing, noise_scale, detect_mult, reaction_logit): the dial
+// sweeps of humanbot/fit/calibrate.py. --quiet prints only the JSON line.
 
 #include "hb_brain.h"
 #include "hb_bundle.h"
@@ -40,6 +47,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_substep.h"
 
 #include "pm_runner.h"
+
+#include "arena_metrics.h"
 
 #include <algorithm>
 #include <chrono>
@@ -74,7 +83,32 @@ struct Options {
     bool        pooled = false;  // every bot plays the pooled (average human) style
     bool        test = false;
     bool        load = false;
+    bool        quiet = false;
+    std::vector<std::pair<std::string, float>> offsets;
 };
+
+bool SetOffset(hb::StyleOffsets& o, const std::string& name, float v)
+{
+    struct Field {
+        const char *name;
+        float hb::StyleOffsets::*member;
+    };
+    static const Field FIELDS[] = {
+        {"diag_logit", &hb::StyleOffsets::diagLogit},       {"reverse_logit", &hb::StyleOffsets::reverseLogit},
+        {"hold_scale", &hb::StyleOffsets::holdScale},       {"lean_logit", &hb::StyleOffsets::leanLogit},
+        {"jump_mult", &hb::StyleOffsets::jumpMult},         {"crouch_mult", &hb::StyleOffsets::crouchMult},
+        {"walk_mult", &hb::StyleOffsets::walkMult},         {"release_logit", &hb::StyleOffsets::releaseLogit},
+        {"aim_height_firing", &hb::StyleOffsets::aimHeightFiring}, {"noise_scale", &hb::StyleOffsets::noiseScale},
+        {"detect_mult", &hb::StyleOffsets::detectMult},     {"reaction_logit", &hb::StyleOffsets::reactionLogit},
+    };
+    for (const Field& f : FIELDS) {
+        if (name == f.name) {
+            o.*(f.member) = v;
+            return true;
+        }
+    }
+    return false;
+}
 
 //
 // World: a closed room with pillars and cover
@@ -241,16 +275,8 @@ struct Bot {
     bool  prevYawValid = false;
 
     // metrics (duel mask: alive with a living opponent; contexts from the logger's true centroid ray)
+    std::vector<arena::Life> lives;   // one per spawn: the frame rows and shots of that life
     long long ticksAlive = 0, ticksHidden = 0, stillHidden = 0, ticksFight = 0, stillFight = 0;
-    long long ctxTicks[hb::CTX_COUNT] = {};
-    long long chordTicks[hb::CTX_COUNT][hb::NUM_CHORDS] = {};
-    long long leanTicks[hb::CTX_COUNT] = {};
-    long long mouseStill[hb::CTX_COUNT] = {};
-    long long standStill[hb::CTX_COUNT] = {};
-    long long revN[hb::CTX_COUNT] = {}, revY[hb::CTX_COUNT] = {};
-    std::vector<float> yawByCtx[hb::CTX_COUNT];
-    int       prevSide = 0, prevCtx = 0;
-    bool      prevDuel = false;
     int       shots = 0, hits = 0, kills = 0, deaths = 0;
     int       stuckBouts = 0, pressureBouts = 0, maxStuckMs = 0;
     std::vector<float> yawSpeed;
@@ -320,6 +346,7 @@ private:
     void Fire(Bot& b);
     void Measure(Bot& b);
     std::map<std::string, double> Metrics() const;
+    arena::Frame                  Row(const Bot& b, const Bot *opp) const;
     void CompareReference(const std::map<std::string, double>& M) const;
 
     Options                        m_o;
@@ -351,6 +378,13 @@ Arena::Arena(const Options& o, const hb::ModelBundle& b)
         const uint64_t seed = o.seed * 1000003ull + static_cast<uint64_t>(i);
         const hb::Rng  root(seed);
         bot.brain.Init(&b, &m_prior, bot.dials, seed, o.substeps);
+        if (!o.offsets.empty()) {
+            hb::StyleOffsets off = bot.brain.Offsets();
+            for (const auto& kv : o.offsets) {
+                SetOffset(off, kv.first, kv.second);
+            }
+            bot.brain.SetOffsets(off);
+        }
         bot.perceiver.Init(&b.shared.perception, root.Derive(hb::STREAM_PERCEPTION));
         bot.sub.Init(o.substeps);
         bot.rngSub   = root.Derive(hb::STREAM_SUBSTEP);
@@ -398,6 +432,7 @@ void Arena::Respawn(Bot& b)
     b.wallMs    = 0.0f;
     b.prevYawValid = false;
     b.sub.Reset(b.pm.ps.viewangles[YAW], b.pm.ps.viewangles[PITCH]);
+    b.lives.emplace_back();
 }
 
 void Arena::Decide(Bot& b, float hfov, float vfov)
@@ -423,6 +458,8 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     ei.walking     = b.pm.onGround;
     ei.frametimeMs = static_cast<float>(FRAME_MS);
     self.eye       = hb::ComputeEye(b.eye, ei);
+    self.aimEye    = LogEye(b);
+    self.aimEyeValid = true;
     self.health    = b.health;
     self.onGround  = b.pm.onGround;
     self.ducked    = (b.pm.ps.pm_flags & PMF_DUCKED) != 0;
@@ -554,6 +591,9 @@ void Arena::Move(Bot& b)
         }
         if (click && m_now - b.diedAt >= 1000) {
             Respawn(b);
+            // the click was the dead player's: the new life's first row has no usercmd yet
+            // (like the logger, which does not log the dead player's clicks)
+            b.cmds.clear();
         }
         return;
     }
@@ -639,13 +679,17 @@ void Arena::Fire(Bot& b)
     snd.sourceId = b.id;
     snd.origin   = eye;
     m_soundsNext.push_back(snd);
-    if (tr.entityNum < 0 || tr.entityNum >= static_cast<int>(m_bots.size())) {
+    arena::Shot shot;
+    shot.t = m_now;
+    for (const Bot& o : m_bots) {
+        shot.eligible = shot.eligible || (&o != &b && o.alive);
+    }
+    shot.hit = tr.entityNum >= 0 && tr.entityNum < static_cast<int>(m_bots.size()) && m_bots[tr.entityNum].alive;
+    b.lives.back().shots.push_back(shot);
+    if (!shot.hit) {
         return;
     }
     Bot& t = m_bots[tr.entityNum];
-    if (!t.alive) {
-        return;
-    }
     const float hitZ   = tr.endpos[2] - t.pm.ps.origin[2];
     const float damage = hitZ > 0.83f * BodyHeight(t) ? 60.0f : 20.0f;
     b.hits++;
@@ -666,11 +710,79 @@ void Arena::Fire(Bot& b)
     }
 }
 
+// The logger's row of a living bot: opponent columns from the unleaned eye and the view
+// angles to the nearest living enemy's centroid.
+arena::Frame Arena::Row(const Bot& b, const Bot *opp) const
+{
+    arena::Frame f;
+    const hb::SubCmd *c = b.cmds.empty() ? nullptr : &b.cmds.back();
+    f.t         = m_now;
+    f.eligible  = opp != nullptr;
+    f.attack    = c && c->attack;
+    f.reloading = m_now < b.reloadEnd;
+    f.clip      = b.clip;
+    f.chord     = c ? c->chord : hb::CHORD_NEUTRAL;
+    f.side      = hb::ChordSide(f.chord);
+    f.fwd       = hb::ChordFwd(f.chord);
+    f.lean      = c ? c->lean : 0;
+    f.jump      = c && c->jump;
+    f.crouch    = c && c->crouch;
+    f.run       = !c || !c->walk;
+    f.speed     = PmSpeedXY(b.pm);
+    const float yaw = b.pm.ps.viewangles[YAW], pitch = b.pm.ps.viewangles[PITCH];
+    f.yawD      = b.prevYawValid ? hb::Wrap180(yaw - b.prevYaw) : NAN;
+    if (opp) {
+        const hb::Vec3 eye = LogEye(b);
+        const hb::Vec3 cen = Origin(*opp) + hb::Vec3(0, 0, 0.5f * (opp->pm.mins[2] + opp->pm.maxs[2]));
+        const hb::Vec3 fwd = hb::AnglesForward(pitch, yaw);
+        const hb::Vec3 d   = cen - eye;
+        const float    len = std::max(0.001f, d.length());
+        f.los       = Visible(m_world, eye, cen, b.id, opp->id);
+        f.aimErr    = std::acos(hb::Clamp(fwd.dot(d) / len, -1.0f, 1.0f)) * TO_DEG;
+        f.aimYawErr = hb::Wrap180(hb::YawOf(d) - yaw);
+        const hb::Vec3 rel = Origin(*opp) - Origin(b);
+        f.distXY    = rel.lengthXY();
+        f.distXYZ   = rel.length();
+        f.halfW     = std::atan2(15.0f, std::max(1.0f, f.distXYZ)) * TO_DEG;
+        if (f.distXY > 0.001f) {
+            f.approach = (b.pm.ps.velocity[0] * rel.x + b.pm.ps.velocity[1] * rel.y) / f.distXY;
+        }
+        const float fxy = fwd.x * fwd.x + fwd.y * fwd.y;
+        if (fxy > 1e-6f) {
+            const float tH   = (d.x * fwd.x + d.y * fwd.y) / fxy;
+            const float rayZ = eye.z + tH * fwd.z;
+            const float z0   = opp->pm.ps.origin[2] + opp->pm.mins[2];
+            f.height         = (rayZ - z0) / std::max(0.001f, opp->pm.maxs[2] - opp->pm.mins[2]);
+        }
+        const vec3_t s    = {eye.x, eye.y, eye.z};
+        const vec3_t e    = {eye.x + fwd.x * 8192.0f, eye.y + fwd.y * 8192.0f, eye.z + fwd.z * 8192.0f};
+        const vec3_t zero = {0, 0, 0};
+        trace_t      tr;
+        m_world.Trace(&tr, s, zero, zero, e, b.id, MASK_SHOT);
+        f.onBody = tr.entityNum == opp->id;
+    }
+    f.ctx = f.reloading ? arena::CTX_RELOAD
+          : (f.los ? (f.attack ? arena::CTX_LOS_FIRE : arena::CTX_LOS_NOFIRE)
+                   : (f.attack ? arena::CTX_HIDDEN_FIRE : arena::CTX_HIDDEN_NOFIRE));
+    f.viewMode  = b.diag.view_mode;
+    f.flick     = b.diag.flick != 0;
+    f.still     = b.plan.viewStill;
+    f.detected  = b.diag.detected != 0;
+    f.navIntent = b.diag.nav_intent;
+    f.aimH      = b.diag.aim_height;
+    f.errPitch  = b.diag.view_err_pitch;
+    f.errYaw    = b.diag.view_err_yaw;
+    if (opp && b.diag.belief_spread > 0.0f) {
+        const float dx = opp->pm.ps.origin[0] - b.diag.belief_x, dy = opp->pm.ps.origin[1] - b.diag.belief_y;
+        f.beliefErr    = std::sqrt(dx * dx + dy * dy);
+    }
+    return f;
+}
+
 void Arena::Measure(Bot& b)
 {
     if (!b.alive) {
         b.prevYawValid = false;
-        b.prevDuel     = false;
         return;
     }
     // the nearest living enemy, like the logger's opponent columns
@@ -686,47 +798,25 @@ void Arena::Measure(Bot& b)
             opp  = &o;
         }
     }
-    const float yaw    = b.pm.ps.viewangles[YAW];
-    const float yawD   = b.prevYawValid ? std::fabs(hb::Wrap180(yaw - b.prevYaw)) : -1.0f;
-    b.prevYaw          = yaw;
-    b.prevYawValid     = true;
+    const arena::Frame f = Row(b, opp);
+    b.lives.back().rows.push_back(f);
+    b.prevYaw      = b.pm.ps.viewangles[YAW];
+    b.prevYawValid = true;
     if (!opp) {
-        b.prevDuel = false;
         return;
     }
     b.ticksAlive++;
-    const hb::Vec3 cen    = Origin(*opp) + hb::Vec3(0, 0, 0.5f * BodyHeight(*opp));
-    const bool     los    = Visible(m_world, LogEye(b), cen, b.id, opp->id);
-    const bool     attack = !b.cmds.empty() && b.cmds.back().attack;
-    const int      ctx    = m_now < b.reloadEnd ? hb::CTX_RELOAD
-                          : (los ? (attack ? hb::CTX_LOS_FIRE : hb::CTX_LOS_NOFIRE) : (attack ? hb::CTX_HIDDEN_FIRE : hb::CTX_HIDDEN_NOFIRE));
-    const int      chord  = b.cmds.empty() ? hb::CHORD_NEUTRAL : b.cmds.back().chord;
-    b.ctxTicks[ctx]++;
-    b.chordTicks[ctx][chord]++;
-    b.leanTicks[ctx] += !b.cmds.empty() && b.cmds.back().lean != 0;
-    b.standStill[ctx] += PmSpeedXY(b.pm) < 5.0f;
-    if (yawD >= 0.0f) {
-        b.yawSpeed.push_back(yawD * (1000.0f / FRAME_MS));
-        b.yawByCtx[ctx].push_back(yawD * (1000.0f / FRAME_MS));
-        b.mouseStill[ctx] += yawD < 0.01f;
+    if (std::isfinite(f.yawD)) {
+        b.yawSpeed.push_back(std::fabs(f.yawD) * (1000.0f / FRAME_MS));
     }
-    // how strafes end, in the context of the tick before the change
-    const int side = hb::ChordSide(chord);
-    if (b.prevDuel && b.prevSide != 0 && side != b.prevSide) {
-        b.revN[b.prevCtx]++;
-        b.revY[b.prevCtx] += side == -b.prevSide;
-    }
-    b.prevSide = side;
-    b.prevCtx  = ctx;
-    b.prevDuel = true;
-    if (!b.diag.detected && !attack) {
+    if (!b.diag.detected && !f.attack) {
         b.ticksHidden++;
         b.stillHidden += b.plan.viewStill;
-        if (!los && b.diag.belief_spread > 0.0f) {
+        if (!f.los && b.diag.belief_spread > 0.0f) {
             const float dx = opp->pm.ps.origin[0] - b.diag.belief_x, dy = opp->pm.ps.origin[1] - b.diag.belief_y;
             b.beliefErr.push_back(std::sqrt(dx * dx + dy * dy));
         }
-    } else if (los) {
+    } else if (f.los) {
         b.ticksFight++;
         b.stillFight += b.plan.viewStill;
     }
@@ -773,54 +863,13 @@ float Quantile(std::vector<float> v, double q)
     return v[std::min(v.size() - 1, static_cast<size_t>(q * static_cast<double>(v.size())))];
 }
 
-static const char *const CTX_NAMES[hb::CTX_COUNT] = {"hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"};
-
 std::map<std::string, double> Arena::Metrics() const
 {
-    std::map<std::string, double> M;
-    long long ctx[hb::CTX_COUNT] = {}, chords[hb::CTX_COUNT][hb::NUM_CHORDS] = {}, lean[hb::CTX_COUNT] = {};
-    long long mouse[hb::CTX_COUNT] = {}, stand[hb::CTX_COUNT] = {}, revN[hb::CTX_COUNT] = {}, revY[hb::CTX_COUNT] = {};
-    std::vector<float> yaw[hb::CTX_COUNT];
+    std::vector<arena::Life> lives;
     for (const Bot& b : m_bots) {
-        for (int c = 0; c < hb::CTX_COUNT; c++) {
-            ctx[c] += b.ctxTicks[c];
-            lean[c] += b.leanTicks[c];
-            mouse[c] += b.mouseStill[c];
-            stand[c] += b.standStill[c];
-            revN[c] += b.revN[c];
-            revY[c] += b.revY[c];
-            yaw[c].insert(yaw[c].end(), b.yawByCtx[c].begin(), b.yawByCtx[c].end());
-            for (int k = 0; k < hb::NUM_CHORDS; k++) {
-                chords[c][k] += b.chordTicks[c][k];
-            }
-        }
+        lives.insert(lives.end(), b.lives.begin(), b.lives.end());
     }
-    long long tot = 0, leanAll = 0, standAll = 0;
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        tot += ctx[c];
-        leanAll += lean[c];
-        standAll += stand[c];
-    }
-    auto share = [](long long a, long long n) { return n > 0 ? static_cast<double>(a) / n : NAN; };
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        const std::string n = CTX_NAMES[c];
-        const long long*  k = chords[c];
-        M["movement.context_share." + n]      = share(ctx[c], tot);
-        M["movement.chord." + n + ".pure_strafe"] = share(k[3] + k[5], ctx[c]);
-        M["movement.chord." + n + ".fwd_diag"]    = share(k[6] + k[8], ctx[c]);
-        M["movement.chord." + n + ".forward"]     = share(k[7], ctx[c]);
-        M["movement.chord." + n + ".neutral"]     = share(k[4], ctx[c]);
-        M["movement.chord." + n + ".back_any"]    = share(k[0] + k[1] + k[2], ctx[c]);
-        M["movement.strafe_reverse." + n]     = share(revY[c], revN[c]);
-        M["movement.still." + n]              = share(stand[c], ctx[c]);
-        M["view.mouse_still." + n]            = share(mouse[c], static_cast<long long>(yaw[c].size()));
-        M["view.yaw_speed." + n + ".p50"]     = Quantile(yaw[c], 0.5);
-        M["view.yaw_speed." + n + ".p99"]     = Quantile(yaw[c], 0.99);
-    }
-    M["movement.lean.all"]      = share(leanAll, tot);
-    M["movement.lean.los_fire"] = share(lean[hb::CTX_LOS_FIRE], ctx[hb::CTX_LOS_FIRE]);
-    M["movement.still.all"]     = share(standAll, tot);
-    return M;
+    return arena::Compute(lives);
 }
 
 // Bot and human side by side for every statistic both have.
@@ -851,7 +900,6 @@ bool Arena::Report()
     const double minutes = m_o.seconds / 60.0;
     std::vector<float> yaws, errs;
     long long hidden = 0, still = 0, fight = 0, stillF = 0, shots = 0, hits = 0, kills = 0, kbd = 0;
-    long long ctx[hb::CTX_COUNT] = {}, chords[hb::CTX_COUNT][hb::NUM_CHORDS] = {}, lean[hb::CTX_COUNT] = {};
     int       stuck = 0, pressure = 0, maxStuck = 0;
     double    us = 0.0;
     long long usN = 0;
@@ -873,13 +921,6 @@ bool Arena::Report()
         us += b.thinkUs;
         usN += b.thinkN;
         usMax = std::max(usMax, b.thinkMax);
-        for (int c = 0; c < hb::CTX_COUNT; c++) {
-            ctx[c] += b.ctxTicks[c];
-            lean[c] += b.leanTicks[c];
-            for (int k = 0; k < hb::NUM_CHORDS; k++) {
-                chords[c][k] += b.chordTicks[c][k];
-            }
-        }
     }
     const double botMinutes    = minutes * static_cast<double>(m_bots.size());
     const float  yawP99        = Quantile(yaws, 0.99);
@@ -897,28 +938,6 @@ bool Arena::Report()
     j << ",\"kills_per_bot_min\":" << kills / botMinutes;
     j << ",\"belief_err_p50\":" << Quantile(errs, 0.5) << ",\"belief_err_p90\":" << Quantile(errs, 0.9);
     j << ",\"think_us_mean\":" << meanUs << ",\"think_us_max\":" << usMax << ",\"kbd_violations\":" << kbd;
-    j << ",\"ctx_share\":[";
-    long long ctxTot = 0;
-    for (long long c : ctx) {
-        ctxTot += c;
-    }
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        j << (c ? "," : "") << (ctxTot ? static_cast<double>(ctx[c]) / ctxTot : 0.0);
-    }
-    j << "],\"fwd_share_by_ctx\":[";
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        const long long f = chords[c][6] + chords[c][7] + chords[c][8];
-        j << (c ? "," : "") << (ctx[c] ? static_cast<double>(f) / ctx[c] : 0.0);
-    }
-    j << "],\"neutral_by_ctx\":[";
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        j << (c ? "," : "") << (ctx[c] ? static_cast<double>(chords[c][4]) / ctx[c] : 0.0);
-    }
-    j << "],\"lean_by_ctx\":[";
-    for (int c = 0; c < hb::CTX_COUNT; c++) {
-        j << (c ? "," : "") << (ctx[c] ? static_cast<double>(lean[c]) / ctx[c] : 0.0);
-    }
-    j << "]";
     // the same statistics as humanbot/eval (human_reference.json keys)
     std::map<std::string, double> M = Metrics();
     j << ",\"metrics\":{";
@@ -929,7 +948,7 @@ bool Arena::Report()
     }
     j << "}}";
     std::printf("%s\n", j.str().c_str());
-    if (!m_o.reference.empty()) {
+    if (!m_o.reference.empty() && !m_o.quiet) {
         CompareReference(M);
     }
 
@@ -986,6 +1005,17 @@ int main(int argc, char **argv)
             o.test = true;
         } else if (a == "--load") {
             o.load = true;
+        } else if (a == "--quiet") {
+            o.quiet = true;
+        } else if (a == "--offset") {
+            const std::string kv = next();
+            const size_t      eq = kv.find('=');
+            hb::StyleOffsets  probe;
+            if (eq == std::string::npos || !SetOffset(probe, kv.substr(0, eq), 0.0f)) {
+                std::fprintf(stderr, "bad --offset %s\n", kv.c_str());
+                return 2;
+            }
+            o.offsets.emplace_back(kv.substr(0, eq), static_cast<float>(std::atof(kv.c_str() + eq + 1)));
         } else {
             std::fprintf(stderr, "unknown option %s\n", a.c_str());
             return 2;

@@ -580,6 +580,7 @@ static void RunMovement(const std::vector<const Replay *>& data, const ModelBund
                 }
                 in.onGround = ground[t] > 0.5f;
                 in.ducked   = ducked[t] > 0.5f;
+                in.enemyDead = !(oal[t] > 0.5f);
                 MoveOutput mo;
                 mv.Step(in, style, rm, rs, mo);
                 s.chord[t + 1]  = mo.chord;

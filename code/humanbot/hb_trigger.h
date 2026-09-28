@@ -45,6 +45,7 @@ struct TriggerInput {
     bool  anticipate     = false;  // an exposure is expected in the crosshair right now
     bool  blocked        = false;  // a teammate is in the crosshair
     float releaseLogit   = 0.0f;   // style: burst length
+    float pressLogit     = 0.0f;   // style: reaction (press hazard with LOS)
 };
 
 class Trigger

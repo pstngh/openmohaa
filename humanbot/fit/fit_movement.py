@@ -3,6 +3,10 @@
 The movement keys themselves are fitted by fit_keys.py. Lean is a 3-state
 semi-Markov chain coupled to the strafe side; crouch, jump and walk are key
 processes with a press hazard by context and a release hazard by hold age.
+Crouch is a toggle in this engine (a press while standing ducks, 99.9%; the next
+press, or a jump press, stands up, 98%), so its press hazard is fitted on
+standing ticks and a stand-up hazard by crouched age ends each dip (people
+crouch 3.5% of the time, in dips of about 350 ms).
 Everything is computed on the duel mask, on unbroken segments, from ticks whose
 run start is observed (every life starts with 2-4 ticks of empty usercmds while
 the client catches up with the respawn, so segment-start runs are censored).
@@ -24,22 +28,38 @@ def bin_index(x, edges):
     return np.clip(np.searchsorted(np.asarray(edges), np.asarray(x, float), side="right") - 1, 0, len(edges) - 1)
 
 
-def fit_lean(EL):
+LEAN_CTX_DEAD = len(H.CONTEXTS)   # sixth lean context: the opponent is dead (30% of the recorded rows)
+
+
+def lean_contexts(F):
+    """Context per row for the lean chain: the duel contexts on eligible rows, LEAN_CTX_DEAD while the
+    opponent is dead (people lean far less then: 27% vs 59%), -1 elsewhere (not fitted)."""
+    dead = ~F.eligible & ~F.opp_alive.fillna(False).astype(bool)
+    return np.where(F.eligible, F.ctx_i, np.where(dead, LEAN_CTX_DEAD, -1))
+
+
+def fit_lean(F, EL):
     """Lean as a 3-state semi-Markov chain coupled to the strafe side.
 
     next-state probabilities P(l' | l, age bin, ctx, strafe relation). For l == 0 the relation
     is the strafe side (none/left/right) and l' is drawn directly; for l != 0 it is
-    none/agree/disagree and l' is stay / release / switch side.
+    none/agree/disagree and l' is stay / release / switch side. The relation uses the side key
+    of the same tick as l' (people switch lean and strafe together: conditioning on the side
+    of the tick before loses the coupling, 60% instead of 80% agreement in a teacher-forced
+    replay), and every row is used, with the opponent-dead time as a context of its own (a
+    lean carried out of it into the next fight is the chain's, not the eligible rows').
     """
-    d = EL[EL.known_lean & EL.nx_lean.notna()].copy()
+    F = F.assign(lctx=lean_contexts(F))
+    d = F[F.known_lean & F.nx_lean.notna() & F.nx_side.notna() & F.lctx.ge(0)].copy()
     l = d.lean.to_numpy().astype(int)
     nl = d.nx_lean.to_numpy().astype(int)
-    side = d.side.to_numpy().astype(int)
+    side = d.nx_side.to_numpy().astype(int)
     # side sign convention: side +1 = right key; lean +1 = right
     rel = np.where(l == 0, side + 1, np.where(side == 0, 0, np.where(side == l, 1, 2)))
     ab = bin_index(d.age_lean, AGE_EDGES)
-    ctx = d.ctx_i.to_numpy()
-    out = np.zeros((2, len(H.CONTEXTS), len(AGE_EDGES), 3, 3))   # [state none/leaning][ctx][age][rel][outcome]
+    ctx = d.lctx.to_numpy()
+    nctx = len(H.CONTEXTS) + 1
+    out = np.zeros((2, nctx, len(AGE_EDGES), 3, 3))   # [state none/leaning][ctx][age][rel][outcome]
     # outcome for none: 0 lean left, 1 stay none, 2 lean right; for leaning: 0 stay, 1 release, 2 switch side
     oc = np.where(l == 0, nl + 1, np.where(nl == l, 0, np.where(nl == 0, 1, 2)))
     st = (l != 0).astype(int)
@@ -47,24 +67,25 @@ def fit_lean(EL):
     pooled = df.groupby(["st", "rel", "oc"]).size().unstack(fill_value=0)
     byc = df.groupby(["st", "ctx", "ab", "rel", "oc"]).size().unstack(fill_value=0)
     for s in (0, 1):
-        for c in range(len(H.CONTEXTS)):
+        for c in range(nctx):
             for b in range(len(AGE_EDGES)):
                 for r in range(3):
                     prior = pooled.loc[(s, r)].to_numpy(float) if (s, r) in pooled.index else np.ones(3)
                     prior = (prior + 1) / (prior + 1).sum()
                     cnt = byc.loc[(s, c, b, r)].to_numpy(float) if (s, c, b, r) in byc.index else np.zeros(3)
                     out[s, c, b, r] = (cnt + 15 * prior) / (cnt.sum() + 15)
-    # reaction to a context change: logit offset of leaving the current lean state
+    # reaction to a context change (duel contexts): logit offset of leaving the current lean state
     base_leave = np.array([1.0 - out[st_, c_, b_, r_, 1 if st_ == 0 else 0] for st_, c_, b_, r_ in zip(st, ctx, ab, rel)])
     leave = np.where(st == 0, oc != 1, oc != 0).astype(float)
     cab = bin_index(d.age_ctx, CTX_AGE_EDGES)
-    code = np.where(cab < len(CTX_AGE_EDGES) - 1, (ctx * 2 + st) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
+    code = np.where((cab < len(CTX_AGE_EDGES) - 1) & (ctx < LEAN_CTX_DEAD), (ctx * 2 + st) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
     b0, co = H.fit_logistic([code], leave, [len(H.CONTEXTS) * 2 * (len(CTX_AGE_EDGES) - 1)], l2=2.0,
                             offset=H.logit(base_leave))
     lean_change = co[0].reshape(len(H.CONTEXTS), 2, len(CTX_AGE_EDGES) - 1)
     return {"age_edges": AGE_EDGES, "next": out.round(5), "ctx_age_edges": CTX_AGE_EDGES,
             "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4),
-            "doc": "next[state][ctx][age][rel][outcome]; state 0 none: rel = strafe side (0 left key, 1 none, 2 right key), "
+            "doc": "next[state][ctx][age][rel][outcome]; ctx 0-4 the duel contexts, 5 the opponent dead; rel from the "
+                   "side key of the next tick; state 0 none: rel = strafe side (0 left key, 1 none, 2 right key), "
                    "outcome 0 lean left / 1 none / 2 lean right; state 1 leaning: rel 0 no strafe / 1 agree / 2 disagree, "
                    "outcome 0 stay / 1 release / 2 switch side"}
 
@@ -91,17 +112,40 @@ def complete_runs(F, col):
     return t
 
 
+UP_AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41]   # ticks crouched (lower edges)
+
+
+def fit_stand_up(F, g, first):
+    """Hazard of the press that ends a crouch (crouch or jump key) by ticks crouched on the ground."""
+    duck = F.ducked.astype(bool) & F.on_ground.astype(bool)
+    seg = [F.session_id, F.client_id, F.seg]
+    rid = (duck != duck.groupby(seg, sort=False).shift()).cumsum()
+    age = duck.groupby(rid).cumcount() + 1
+    press = F.crouch_key & g.crouch_key.shift().where(~(first & F.spawn_seg), False).eq(False)
+    press |= F.jump_key & g.jump_key.shift().where(~(first & F.spawn_seg), False).eq(False)
+    first_run = rid.groupby(seg, sort=False).transform("min")
+    known = rid.ne(first_run) | F.spawn_seg
+    D = pd.DataFrame({"age": age, "up": press})[duck & F.eligible & known]
+    b = bin_index(D.age, UP_AGE_EDGES)
+    k = D.groupby(b).up.agg(["sum", "size"]).reindex(range(len(UP_AGE_EDGES))).fillna(0)
+    prior = k["sum"].sum() / max(k["size"].sum(), 1)
+    return ((k["sum"] + 5 * prior) / (k["size"] + 5)).to_numpy()
+
+
 def fit_stance(F, EL):
     """Press hazards (per tick, by context) and hold-length pmfs for crouch, jump and walk keys."""
     out = {}
     F = F.assign(walk_key=F.run.eq(0))
     g = F.groupby(["session_id", "client_id", "seg"], sort=False)
     first = g.cumcount().eq(0)
+    standing = ~F.ducked.astype(bool) & F.on_ground.astype(bool)
     for key, col in [("crouch", "crouch_key"), ("jump", "jump_key"), ("walk", "walk_key")]:
         # before the first live tick of a respawn every key was up (empty usercmds)
         prev = g[col].shift().where(~(first & F.spawn_seg), False)
         start = F[col] & prev.eq(False)
         idle = prev.eq(False)
+        if key == "crouch":
+            idle &= standing      # a press while crouched stands up: that is the stand-up hazard
         E = F.assign(_s=start, _idle=idle)
         E = E[E.eligible & E._idle]
         haz = E.groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
@@ -124,6 +168,9 @@ def fit_stance(F, EL):
         rel = ((k["sum"] + 5 * prior) / (k["size"] + 5)).to_numpy()
         out[key] = {"press_hazard": haz.round(6), "hold_pmf": hold_pmf(runs.ms, cap), "hold_ms_median": float(runs.ms.median()),
                     "release_age_edges": rel_edges, "release_hazard": rel.round(5)}
+        if key == "crouch":
+            out[key]["up_age_edges"] = UP_AGE_EDGES
+            out[key]["up_hazard"] = fit_stand_up(F, g, first).round(5)
     return out
 
 
@@ -132,7 +179,7 @@ def main():
     EL = F[F.eligible]
     # People press keys toward a wall they are touching about as often as in the open (forward 3.2% vs
     # 3.6% per tick) and slide along it, so walls veto nothing; only ledges deep enough to hurt do.
-    part = {"lean": fit_lean(EL), "stance": fit_stance(F, EL), "veto_clearance": 0.0}
+    part = {"lean": fit_lean(F, EL), "stance": fit_stance(F, EL), "veto_clearance": 0.0}
     p = H.write_part("movement", part)
     print("wrote", p)
     for k, v in part["stance"].items():

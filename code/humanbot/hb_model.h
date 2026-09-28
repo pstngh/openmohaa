@@ -42,6 +42,10 @@ enum Context {
     CTX_COUNT
 };
 
+// The lean chain has a sixth context: no living enemy (the time after a kill).
+constexpr int LEAN_CTX_DEAD  = CTX_COUNT;
+constexpr int LEAN_CTX_COUNT = CTX_COUNT + 1;
+
 constexpr int NUM_CHORDS    = 9;
 constexpr int CHORD_NEUTRAL = 4;
 
@@ -95,6 +99,10 @@ struct StanceKeyModel {
     std::vector<float> holdPmf;          // hold length in ticks (index 0 = 1 tick), complete holds only
     std::vector<int>   releaseAgeEdges;  // lower edges of hold-age bins, ticks
     std::vector<float> releaseHazard;    // per tick while held, by hold age (survival estimate)
+    // Toggle keys (crouch): pressHazard applies while standing; a press while crouched stands up,
+    // with this hazard by ticks crouched. Empty for keys that act while held.
+    std::vector<int>   upAgeEdges;
+    std::vector<float> upHazard;
 };
 
 // One movement key (the side key or the forward key) as a semi-Markov process.
@@ -125,6 +133,10 @@ struct MovementModel {
     std::vector<int> leanCtxAgeEdges;
     Table            leanCtxChangeLogit;  // [ctx][state 0 none / 1 leaning][ctx age bin < last]: leave the state
     std::vector<float> leanCtxLogit;      // calibrated per-context shift of leaning (on +, off -)
+    std::vector<float> sideCtxLogit;      // calibrated per-context strafe habit (press from neutral +)
+    std::vector<float> fwdCtxLogit;       // calibrated per-context forward habit (toward forward +)
+    float              reverseLogit = 0.0f;  // calibrated shift of reversing (vs letting go) a strafe
+    float              walkMult     = 1.0f;  // calibrated walk press hazard multiplier
 
     StanceKeyModel crouch;
     StanceKeyModel jump;
@@ -191,6 +203,14 @@ struct ViewModel {
     float biasScale          = 0.0f;
     float pitchOffsetFiring  = 0.0f;   // degrees added to the aim pitch (+ = lower), firing
     float pitchOffsetIdle    = 0.0f;
+    float hiddenNoiseScale   = 1.0f;   // view noise x this without a tracked enemy
+    float trackGainScale     = 1.0f;   // yaw error and target-motion gains x this while tracking (attenuated fit)
+    float beliefFollowDeg    = 0.0f;   // a belief look re-aims once the believed position moved this far
+    float hiddenReaimDeg     = 0.0f;   // without a visible enemy, a view this far off its look target re-aims
+    float hiddenReaimHazard  = 0.0f;   //   with a quick turn (a saccade), this chance per tick (0 = off)
+    float stillLogit[CTX_COUNT] = {};  // per-context shift of the still gate (enter and stay)
+    float pitchGainScale     = 1.0f;   // pitch error gain x the fitted one (the fit is attenuated: people's
+                                       // intended aim height varies, the regression sees it as error)
     int   flickRefractoryTicks = 2;
     float acquireMinHalfW    = 1.5f;   // corrective saccade when the error exceeds this many half-widths
     float acquireHazard      = 0.35f;  // per tick once detected
@@ -227,6 +247,8 @@ struct TriggerModel {
     // calibrated
     float anticipationLogit = 1.0f;   // hidden press, when an exposure is predicted within ~300 ms
     float hiddenFireLogit   = 0.0f;   // overall shift of the hidden press hazard
+    float pressLosLogit     = 0.0f;   // calibrated shift of the press hazard with LOS
+    float releaseLosLogit   = 0.0f;   // calibrated shift of the release hazard with LOS
 };
 
 struct WeaponModel {

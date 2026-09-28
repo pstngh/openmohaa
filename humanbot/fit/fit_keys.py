@@ -9,6 +9,11 @@ change and a recent context change. What it changes to:
            from none, left or right (P(right) by context and forward key);
   forward: a categorical over the other two states, tilted toward or away from
            the enemy by distance (approach), with the side key as context.
+The per-context habits (calibrate.py, movement.habit) correct what a first-order
+chain driven by recorded contexts cannot reach within short contexts (people take
+~1 s to get onto forward after a reload starts: 35% forward at the first tick, 70%
+after 17 ticks; a longer context-change window fits that but loses the stop on
+first sight).
 Everything is fitted on unbroken segments of the duel mask, from ticks whose
 run start is observed.
 """
@@ -24,7 +29,7 @@ import hbdata as H  # noqa: E402
 AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41, 81, 161, 241]  # lower edges, ticks; long no-strafe runs keep slowing down
 CLEAR_EDGES = [0.0, 8.0, 16.0, 32.0, 64.0, 127.9]
 DIST_EDGES = [0.0, 96.0, 160.0, 288.0, 512.0, 768.0]
-CTX_AGE_EDGES = [1, 2, 3, 5]
+CTX_AGE_EDGES = [1, 2, 3, 5]          # ticks since the context changed; the last bin (5+) is the reference
 NC = len(H.CONTEXTS)
 
 

@@ -57,7 +57,8 @@ struct StyleOffsets {
     float releaseLogit    = 0.0f;  // trigger release hazard shift (burst length)
     float aimHeightFiring = 0.44f;
     float noiseScale      = 1.0f;  // aim noise multiplier (skill)
-    float detectMult      = 1.0f;  // detection-rate multiplier (skill)
+    float detectMult      = 1.0f;  // detection-rate multiplier
+    float reactionLogit   = 0.0f;  // press hazard shift with the enemy in sight (reaction skill)
 };
 
 // Draws a bot's dials. family < 0 draws the family from the recorded mix

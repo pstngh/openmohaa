@@ -300,7 +300,7 @@ void ParseMovement(const json& j, MovementModel& m)
 
     const json& ln  = Get(j, "lean", "movement");
     m.leanAgeEdges  = Ints(Get(ln, "age_edges", "movement.lean"), "movement.lean.age_edges");
-    FillTable(Get(ln, "next", "movement.lean"), m.leanNext, {2, CTX_COUNT, static_cast<int>(m.leanAgeEdges.size()), 3, 3},
+    FillTable(Get(ln, "next", "movement.lean"), m.leanNext, {2, LEAN_CTX_COUNT, static_cast<int>(m.leanAgeEdges.size()), 3, 3},
               "movement.lean.next");
     RequireProb(m.leanNext.v, "movement.lean.next");
     m.leanCtxAgeEdges = Ints(Get(ln, "ctx_age_edges", "movement.lean"), "movement.lean.ctx_age_edges");
@@ -308,6 +308,21 @@ void ParseMovement(const json& j, MovementModel& m)
     FillTable(Get(ln, "ctx_change_logit", "movement.lean"), m.leanCtxChangeLogit,
               {CTX_COUNT, 2, static_cast<int>(m.leanCtxAgeEdges.size()) - 1}, "movement.lean.ctx_change_logit");
     m.leanCtxLogit.assign(CTX_COUNT, 0.0f);
+    m.sideCtxLogit.assign(CTX_COUNT, 0.0f);
+    m.fwdCtxLogit.assign(CTX_COUNT, 0.0f);
+    if (j.contains("habit")) {
+        const json& h = j.at("habit");
+        if (h.contains("side_ctx_logit")) {
+            m.sideCtxLogit = Floats(h.at("side_ctx_logit"), "movement.habit.side_ctx_logit");
+            Require(m.sideCtxLogit.size() == CTX_COUNT, "movement.habit.side_ctx_logit size");
+        }
+        m.reverseLogit = NumOr(h, "reverse_logit", m.reverseLogit);
+        m.walkMult     = NumOr(h, "walk_mult", m.walkMult);
+        if (h.contains("fwd_ctx_logit")) {
+            m.fwdCtxLogit = Floats(h.at("fwd_ctx_logit"), "movement.habit.fwd_ctx_logit");
+            Require(m.fwdCtxLogit.size() == CTX_COUNT, "movement.habit.fwd_ctx_logit size");
+        }
+    }
     if (ln.contains("ctx_logit")) {
         m.leanCtxLogit = Floats(ln.at("ctx_logit"), "movement.lean.ctx_logit");
         Require(m.leanCtxLogit.size() == CTX_COUNT, "movement.lean.ctx_logit size");
@@ -327,6 +342,13 @@ void ParseMovement(const json& j, MovementModel& m)
         RequireProb(keys[i]->releaseHazard, "movement.stance.release_hazard");
         Require(keys[i]->pressHazard.size() == CTX_COUNT, std::string("movement.stance.") + names[i] + ".press_hazard size");
         RequireProb(keys[i]->pressHazard, "movement.stance.press_hazard");
+        if (k.contains("up_hazard")) {
+            keys[i]->upAgeEdges = Ints(Get(k, "up_age_edges", "movement.stance"), "movement.stance.up_age_edges");
+            keys[i]->upHazard   = Floats(Get(k, "up_hazard", "movement.stance"), "movement.stance.up_hazard");
+            Require(keys[i]->upAgeEdges.size() == keys[i]->upHazard.size() && !keys[i]->upHazard.empty(),
+                    std::string("movement.stance.") + names[i] + ".up sizes");
+            RequireProb(keys[i]->upHazard, "movement.stance.up_hazard");
+        }
     }
     m.vetoClearance = NumOr(j, "veto_clearance", 0.0f);
     if (j.contains("coupling")) {
@@ -445,6 +467,19 @@ void ParseView(const json& j, ViewModel& v)
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);
         v.pitchOffsetFiring = NumOr(t, "pitch_offset_firing", v.pitchOffsetFiring);
         v.pitchOffsetIdle   = NumOr(t, "pitch_offset_idle", v.pitchOffsetIdle);
+        v.pitchGainScale    = NumOr(t, "pitch_gain_scale", v.pitchGainScale);
+        v.hiddenNoiseScale  = NumOr(t, "hidden_noise_scale", v.hiddenNoiseScale);
+        v.trackGainScale    = NumOr(t, "track_gain_scale", v.trackGainScale);
+        v.beliefFollowDeg   = NumOr(t, "belief_follow_deg", v.beliefFollowDeg);
+        v.hiddenReaimDeg    = NumOr(t, "hidden_reaim_deg", v.hiddenReaimDeg);
+        v.hiddenReaimHazard = NumOr(t, "hidden_reaim_hazard", v.hiddenReaimHazard);
+        if (t.contains("still_logit")) {
+            const std::vector<float> sl = Floats(t.at("still_logit"), "view.tuning.still_logit");
+            Require(sl.size() == CTX_COUNT, "view.tuning.still_logit size");
+            for (int c = 0; c < CTX_COUNT; c++) {
+                v.stillLogit[c] = sl[c];
+            }
+        }
         v.flickRefractoryTicks = static_cast<int>(NumOr(t, "flick_refractory_ticks", static_cast<float>(v.flickRefractoryTicks)));
     }
 }
@@ -482,6 +517,8 @@ void ParseTrigger(const json& j, TriggerModel& t)
     if (j.contains("tuning")) {
         t.anticipationLogit = NumOr(j.at("tuning"), "anticipation_logit", t.anticipationLogit);
         t.hiddenFireLogit   = NumOr(j.at("tuning"), "hidden_fire_logit", t.hiddenFireLogit);
+        t.pressLosLogit     = NumOr(j.at("tuning"), "press_los_logit", t.pressLosLogit);
+        t.releaseLosLogit   = NumOr(j.at("tuning"), "release_los_logit", t.releaseLosLogit);
     }
 }
 

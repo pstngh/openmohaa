@@ -34,6 +34,9 @@ static constexpr float MAX_RATE_DEG  = 60.0f;   // per tick outside flicks
 static constexpr float PITCH_LIMIT   = 85.0f;
 static constexpr float BODY_HALF_W   = 15.0f;
 static constexpr float DIFFUSE_SPREAD = 600.0f;  // belief spread (units) beyond which it no longer points anywhere
+// A look along a direction (route, hold, look-around, damage) aims at a point this far away, so the
+// bot's own motion does not turn the view (people keep a direction while running, not a point 10 m away).
+static constexpr float DIR_LOOK_DIST  = 4000.0f;
 
 static float MinJerk(float tau)
 {
@@ -179,13 +182,13 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
             break;
         }
     case 2:
-        m_lookPoint      = eye + YawDir(in.navYaw) * 400.0f;
+        m_lookPoint      = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
         m_lookPointValid = true;
         m_lookMode       = VIEW_TRAVEL;
         m_dwellMs *= 0.7f;
         break;
     default:
-        m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * 400.0f;
+        m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * DIR_LOOK_DIST;
         m_lookPointValid = true;
         m_lookMode       = VIEW_HOLD;
         break;
@@ -197,7 +200,7 @@ void ViewControl::LookAround(const SelfState& self, Rng& rng)
     const ViewModel& p    = *m_p;
     const float      mag  = static_cast<float>(rng.Uniform(45.0, 150.0));
     const float      sign = rng.Bernoulli(0.5) ? 1.0f : -1.0f;
-    m_lookPoint           = self.eye + YawDir(self.viewYaw + sign * mag) * 400.0f;
+    m_lookPoint           = self.eye + YawDir(self.viewYaw + sign * mag) * DIR_LOOK_DIST;
     m_lookPointValid      = true;
     m_lookMode            = VIEW_LOOKAROUND;
     m_dwellMs             = static_cast<float>(0.6 * p.lookDwellMedianMs * rng.LogNormal(1.0, p.lookDwellSigma));
@@ -238,7 +241,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         }
         if (m_damagePending && self.timeMs >= m_damageAtMs) {
             m_damagePending  = false;
-            m_lookPoint      = eye + YawDir(m_damageYaw) * 400.0f;
+            m_lookPoint      = eye + YawDir(m_damageYaw) * DIR_LOOK_DIST;
             m_lookPointValid = true;
             m_lookMode       = VIEW_DAMAGE;
             m_dwellMs        = 900.0f;
@@ -246,7 +249,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         } else if (in.firing) {
             // spraying at a hidden enemy: the view stays where it points, no new look starts
             if (m_wasTracking || !m_lookPointValid) {
-                m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * 400.0f;
+                m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * DIR_LOOK_DIST;
                 m_lookPointValid = true;
                 m_lookMode       = VIEW_HOLD;
                 m_dwellMs        = p.lookDwellMedianMs;
@@ -260,8 +263,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 LookAround(self, rng);
                 newLook = true;
             } else if (m_lookMode == VIEW_BELIEF && in.belief && in.belief->valid && !in.belief->dead) {
-                // keep following the believed position as it moves
-                m_lookPoint = in.belief->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+                // follow the believed position as it moves, in steps once it moved far enough
+                const Vec3 want = in.belief->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+                if (p.beliefFollowDeg <= 0.0f || std::fabs(Wrap180(YawOf(want - eye) - YawOf(m_lookPoint - eye))) > p.beliefFollowDeg) {
+                    m_lookPoint = want;
+                }
             }
         }
         m_wasTracking = false;
@@ -274,8 +280,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const float dist   = std::max(1.0f, d.length());
     const float dxy2   = std::max(1.0f, d.x * d.x + d.y * d.y);
     const float tYaw   = YawOf(d);
-    // people keep the crosshair slightly low, more so at range (a small constant angle)
-    const float tPitch = PitchOf(d) + (in.track ? (in.firing ? p.pitchOffsetFiring : p.pitchOffsetIdle) : 0.0f);
+    // The recorded aim heights are measured from the unleaned eye (a lean lowers the camera by up
+    // to 7 u), so the pitch aims from there; the yaw aims from the camera like people do.
+    const Vec3  dp     = self.aimEyeValid ? aim - self.aimEye : d;
+    const float tPitch = PitchOf(dp) + (in.track ? (in.firing ? p.pitchOffsetFiring : p.pitchOffsetIdle) : 0.0f);
     const float errYaw   = Wrap180(tYaw - self.viewYaw);
     const float errPitch = tPitch - self.viewPitch;
     // angular velocity of the target direction caused by my motion and by the target's
@@ -334,6 +342,9 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             }
         } else if (newLook && angErr > p.flickDeg) {
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
+        } else if (p.hiddenReaimHazard > 0.0f && angErr > p.hiddenReaimDeg && uFlick < p.hiddenReaimHazard) {
+            // the view drifted off what it watches (own motion, the believed position moved): re-aim in one turn
+            StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
         }
     }
 
@@ -378,9 +389,9 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         if (in.acquisition && offTarget) {
             m_still = false;
         } else if (m_still) {
-            m_still = uStill < p.stillStay[ctx];
+            m_still = uStill < Sigmoid(Logit(p.stillStay[ctx]) + p.stillLogit[ctx]);
         } else {
-            m_still = uStill < p.stillEnter[ctx];
+            m_still = uStill < Sigmoid(Logit(p.stillEnter[ctx]) + p.stillLogit[ctx]);
         }
         if (m_still) {
             out.still      = true;
@@ -391,12 +402,14 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         } else {
             const YawController&   c  = in.firing ? p.firing : p.idle;
             const PitchController& pc = in.firing ? p.pitchFiring : p.pitchIdle;
-            const float            ns = in.noiseScale * p.noiseScale;
+            // without a visible enemy the hand rests: the noise fitted while tracking is too lively
+            const float            ns = in.noiseScale * p.noiseScale * (in.track ? 1.0f : p.hiddenNoiseScale);
             const float noise  = NoiseStep(c.noise, dist, m_noise, ns, rng);
             const float pnoise = NoiseStep(pc.noise, dist, m_pnoise, ns, rng);
-            float rate = c.rho * m_rate + c.Kp * m_err[1] + c.Kself * wself + c.Kopp * m_wopp[3] + c.bias * p.biasScale + noise;
+            const float g = in.track ? p.trackGainScale : 1.0f;
+            float rate = c.rho * m_rate + c.Kp * g * m_err[1] + c.Kself * wself + c.Kopp * g * m_wopp[3] + c.bias * p.biasScale + noise;
             const float tpRate = m_tpitch[2] - m_tpitch[3];
-            float prate = pc.rho * m_prate + pc.Kp * m_perr[0] + pc.Kt * tpRate + pc.bias * p.biasScale + pnoise;
+            float prate = pc.rho * m_prate + pc.Kp * p.pitchGainScale * m_perr[0] + pc.Kt * tpRate + pc.bias * p.biasScale + pnoise;
             rate  = Clamp(rate, -MAX_RATE_DEG, MAX_RATE_DEG);
             prate = Clamp(prate, -0.5f * MAX_RATE_DEG, 0.5f * MAX_RATE_DEG);
             out.yawDelta   = rate;

@@ -54,6 +54,8 @@ public:
 
     const StyleDials&   Dials() const { return m_dials; }
     const StyleOffsets& Offsets() const { return m_off; }
+    // Test harnesses only: replace the offsets derived from the dials (dial calibration sweeps).
+    void                SetOffsets(const StyleOffsets& off) { m_off = off; }
     const BeliefFilter& Belief() const { return m_belief; }
     uint64_t            Seed() const { return m_seed; }
 
