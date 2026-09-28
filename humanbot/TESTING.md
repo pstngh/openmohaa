@@ -7,17 +7,32 @@ in the test harnesses so far (`code/tests/humanbot`, `code/tests/pmove`); the en
 (`code/fgame/humanbot_*.cpp`) runs for the first time on your server. Steps 2 and 3 are
 there to catch that early.
 
-## 1. Build
+## Where to run it
 
-On Linux (the tests below are native, not for MSVC or cross builds):
+On the Linux server (VPS) where you recorded the human duels, then play from your Mac as
+usual. This keeps the practice maps, settings and machine the same as in the human recordings
+the bots are compared with. It is also the platform CI builds and tests. Everything the bot
+does happens on the server, so your ping changes only how the game feels to you, not the bot.
+The 16-bot soak test can then run for hours without tying up your Mac. The recordings, the fork
+and Python stay on your Mac: copy the telemetry over for steps 4 and 5.
+
+A Mac-only setup also works if you no longer have the server. The fork builds on macOS (CI
+does it), but you run the dedicated server and your client side by side on one machine, and
+these steps are written for Linux.
+
+## 1. Build (on the server)
 
 ```sh
-sudo apt-get install -y cmake ninja-build clang lld flex bison libsdl2-dev libopenal-dev libcurl4-openssl-dev
+sudo apt-get install -y git cmake ninja-build clang lld flex bison libcurl4-openssl-dev
+git clone -b claude/funny-cray-e3yyih https://github.com/pstngh/openmohaa.git && cd openmohaa
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENT=OFF
 cmake --build build
 (cd build && ctest --output-on-failure)     # 8 tests, under a minute
-cmake --install build --prefix /path/to/mohaa
 ```
+
+Nothing needs installing. `build/RelWithDebInfo/omohaaded` loads the `game.so` next to it and
+reads the game data from `fs_basepath`, so your current server install stays as it is, and you
+can switch back by starting the old binary.
 
 `ctest` runs the brain's statistical unit tests, the Pmove sub-step test and the telemetry
 header test. It also runs two arena tests on the real player movement code:
@@ -27,12 +42,17 @@ header test. It also runs two arena tests on the real player movement code:
 
 ## 2. Smoke test (5 minutes)
 
-Copy `humanbot/server/duel.cfg` and `humanbot/server/soak.cfg` into the game's `main/`
-folder, then start the server with the duel configuration:
+Copy `humanbot/server/duel.cfg` and `humanbot/server/soak.cfg` into the server's data folder
+(`~/.local/share/openmohaa/main/`, or the game's `main/`). Then start the server with the
+duel configuration, pointing `fs_basepath` at the MOHAA folder that holds `main/` with the
+game's pak files and the practice maps:
 
 ```sh
-./omohaaded +set com_target_game 0 +exec duel.cfg
+build/RelWithDebInfo/omohaaded +set fs_basepath /path/to/mohaa +set com_target_game 0 +exec duel.cfg
 ```
+
+The server listens on the usual port (12203 UDP); connect from your Mac as you did for the
+recorded duels.
 
 In the console, check:
 
@@ -44,7 +64,7 @@ In the console, check:
    - map prior `recorded human prior, checksum ok` on the four practice maps (`derived from
      the navmesh` on any other map);
    - visibility `ready`. It is built in the background the first time a map loads and cached
-     under `main/humanbot/vis/`.
+     under `~/.local/share/openmohaa/main/humanbot/vis/`.
 
    The test then runs a 60 s bot game. It ends with one line per bot (stuck bouts, wall
    pressure, keyboard violations, think time) and `humanbot_selftest: PASS`.
@@ -56,8 +76,9 @@ Please send the console log if anything reads FAIL, MISSING or MISMATCH.
 
 `duel.cfg` records everything. It pins the settings that must match the human recordings:
 `sv_fps 20`, free-for-all, normal physics (`sv_runspeed 250`, `sv_dmspeedmult 1`,
-`sv_gravity 800`) and one bot. Telemetry goes to `main/telemetry/segments/`, one capture per
-hour or 512 MB. Then:
+`sv_gravity 800`) and one bot. Telemetry goes to
+`~/.local/share/openmohaa/main/telemetry/segments/` on the server, one capture per hour or
+512 MB. Then:
 
 1. Join the server and play the bot 1v1 on the practice maps (`map dm/crnodoors`,
    `map dm/main`, `map dm/vents`, `map dm/downladder`). Play with an SMG, as in the
@@ -76,14 +97,20 @@ hour or 512 MB. Then:
    ladders, how it gets unstuck (the stock bot code takes over for a moment), and whether it
    behaves sanely on other maps and game types.
 
-## 4. Pack and push the captures
+## 4. Pack and push the captures (on your Mac)
+
+Copy the duel telemetry from the server, then pack it in your checkout of the fork:
 
 ```sh
+scp -r you@server:.local/share/openmohaa/main/telemetry ./duel-telemetry
 python3 -m pip install -r humanbot/eval/requirements.txt
-python3 humanbot/tools/pack_capture.py /path/to/mohaa/main/telemetry --out humanbot/captures
-(cd humanbot/captures && sha256sum -c SHA256SUMS)
+python3 humanbot/tools/pack_capture.py ./duel-telemetry --out humanbot/captures
+(cd humanbot/captures && shasum -a 256 -c SHA256SUMS)
 git add humanbot/captures && git commit -m "Add bot-eval captures" && git push
 ```
+
+Move or delete the server's `telemetry/` folder once it is packed, so the next session starts
+clean (and the soak test's bot-only captures never mix in).
 
 `pack_capture.py` checks every file (schema 13, the build's columns, bot rows present) and
 writes ZIPs named `DATE_pstN_bot-eval_schema13_<sha12>.zip` of at most 25 MiB each. Only your
@@ -105,10 +132,10 @@ analysis scripts on the bot captures. It writes `humanbot/eval/reports/<stem>/re
 
 Your own rows are reported separately (`pstN@vsbot`), never pooled with the bots.
 
-## 6. Soak test (a few hours, unattended)
+## 6. Soak test (a few hours, unattended, on the server)
 
 ```sh
-./omohaaded +set com_target_game 0 +exec soak.cfg
+build/RelWithDebInfo/omohaaded +set fs_basepath /path/to/mohaa +set com_target_game 0 +exec soak.cfg
 ```
 
 `soak.cfg` runs 16 bots and no humans on the stock DM maps, with a map change every
