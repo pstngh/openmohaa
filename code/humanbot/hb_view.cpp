@@ -340,6 +340,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     out.targetPitch = tPitch;
     out.errYaw      = errYaw;
     out.errPitch    = errPitch;
+    out.aimValid    = in.track && in.detected;
+    out.targetYawRate = wself + wopp;
+    out.halfWidthDeg  = std::atan(BODY_HALF_W / dist) * RAD2DEG;
+    out.halfHeightDeg = std::atan(0.4f * in.bodyHeight / dist) * RAD2DEG;
     out.aimHeight   = m_aimH;
 
     // flick decisions

@@ -48,6 +48,7 @@ cvar_t *g_humanbot_model_dir;
 cvar_t *g_humanbot_families;
 cvar_t *g_humanbot_debug;
 cvar_t *g_humanbot_wall_steer;
+cvar_t *g_humanbot_skill;
 
 //
 // Model
@@ -712,7 +713,8 @@ void HumanBotAdapter::Prepare()
     m_headHit     = false;
 
     hb::Observation obs;
-    m_perceiver.Process(raw, hfov, vfov, m_brain.Offsets().detectMult, obs);
+    m_brain.SetSkillBoost(g_humanbot_skill ? g_humanbot_skill->value : 0.0f);
+    m_perceiver.Process(raw, hfov, vfov, m_brain.DetectMult(), obs);
 
     //
     // Decisions
@@ -917,6 +919,7 @@ void G_HumanBotInit(void)
     g_humanbot_families  = gi.Cvar_Get("g_humanbot_families", "", 0);
     g_humanbot_debug     = gi.Cvar_Get("g_humanbot_debug", "0", 0);
     g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "1", 0);
+    g_humanbot_skill     = gi.Cvar_Get("g_humanbot_skill", "0", 0);
 
     if (!s_inited) {
         std::string error;

@@ -56,6 +56,7 @@ extern cvar_t *g_humanbot_model_dir;
 extern cvar_t *g_humanbot_families;
 extern cvar_t *g_humanbot_debug;
 extern cvar_t *g_humanbot_wall_steer;
+extern cvar_t *g_humanbot_skill;
 
 // The active model, or nullptr when it failed to load (the stock bots then run).
 const hb::ModelBundle *HB_Bundle();
