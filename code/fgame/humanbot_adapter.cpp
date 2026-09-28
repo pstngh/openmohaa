@@ -47,6 +47,7 @@ cvar_t *g_humanbot_disguise;
 cvar_t *g_humanbot_model_dir;
 cvar_t *g_humanbot_families;
 cvar_t *g_humanbot_debug;
+cvar_t *g_humanbot_wall_steer;
 
 //
 // Model
@@ -177,7 +178,7 @@ private:
     void ChooseStyle();
     void Join(Player *p);
     void Track(Player *p, const hb::SelfState& self);
-    void Steering(Player *p, const hb::TickPlan& plan);
+    void Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self);
     void Owners(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
     bool Opponent(Player *self, Player *other) const;
     bool TeammateInCrosshair(Player *p, const HbView& view) const;
@@ -420,8 +421,41 @@ void HumanBotAdapter::Track(Player *p, const hb::SelfState& self)
     m_lastOrigin = p->origin;
 }
 
-// Navigation mesh path toward the brain's goal: the direction of its next corner.
-void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan)
+// People walk down the middle of a corridor and take corners wide (26% of their time within 16 u
+// of a wall). The navigation mesh is built for a 1 u agent, so its corners lie about 10 u from the
+// walls, inside the player's 15 u box: a bot heading for them scrapes every wall on the way. Walls
+// closer than this push the route direction sideways, away from them (only the part across the
+// route, so they never turn the bot back).
+// g_humanbot_wall_steer scales the push (0 = off).
+static const float WALL_STEER_MARGIN = 32.0f;
+
+static float WallSteerYaw(float routeYaw, float viewYaw, const float clearance[hb::NUM_CHORDS])
+{
+    const float gain = g_humanbot_wall_steer ? g_humanbot_wall_steer->value : 0.0f;
+    if (gain <= 0.0f) {
+        return routeYaw;
+    }
+    const float px = std::cos(DEG2RAD(routeYaw));
+    const float py = std::sin(DEG2RAD(routeYaw));
+    float       rx = 0.0f, ry = 0.0f;
+    for (int c = 0; c < hb::NUM_CHORDS; c++) {
+        if (c == hb::CHORD_NEUTRAL || clearance[c] >= WALL_STEER_MARGIN) {
+            continue;
+        }
+        // the probes are box traces: clearance is the gap between the box and the wall
+        const float w = (WALL_STEER_MARGIN - clearance[c]) / WALL_STEER_MARGIN;
+        const float a = DEG2RAD(viewYaw + hb::Mover::ChordAngle(c));
+        rx -= w * std::cos(a);
+        ry -= w * std::sin(a);
+    }
+    const float along = rx * px + ry * py;
+    rx -= along * px;
+    ry -= along * py;
+    return RAD2DEG(std::atan2(py + gain * ry, px + gain * rx));
+}
+
+// Navigation mesh path toward the brain's goal: the direction of its next corner, kept off the walls.
+void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self)
 {
     if (!plan.navTargetValid || plan.owner == hb::OWNER_DEAD) {
         m_steerValid = false;
@@ -453,7 +487,7 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan)
         dir.z      = 0.0f;
         if (dir.normalize() > 0.0f) {
             m_steerValid = true;
-            m_steerYaw   = dir.toYaw();
+            m_steerYaw   = WallSteerYaw(dir.toYaw(), self.viewYaw, self.clearance);
             m_pathLen    = (goal - p->origin).length();
             return;
         }
@@ -717,7 +751,7 @@ void HumanBotAdapter::Prepare()
         }
     }
 
-    Steering(p, plan);
+    Steering(p, plan, raw.self);
     m_lastChord = m_cmds.empty() ? hb::CHORD_NEUTRAL : m_cmds.back().chord;
     m_lastClear = m_lastChord == hb::CHORD_NEUTRAL ? 128.0f : raw.self.clearance[m_lastChord];
 
@@ -878,6 +912,7 @@ void G_HumanBotInit(void)
     g_humanbot_model_dir = gi.Cvar_Get("g_humanbot_model_dir", "", 0);
     g_humanbot_families  = gi.Cvar_Get("g_humanbot_families", "", 0);
     g_humanbot_debug     = gi.Cvar_Get("g_humanbot_debug", "0", 0);
+    g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "1", 0);
 
     if (!s_inited) {
         std::string error;
