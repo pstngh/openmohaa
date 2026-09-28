@@ -54,6 +54,11 @@ public:
 
     const StyleDials&   Dials() const { return m_dials; }
     const StyleOffsets& Offsets() const { return m_off; }
+
+    // The server's difficulty (g_humanbot_skill): 0 = as fitted to the recorded players; higher is
+    // sharper than they were (less aim noise, tighter tracking, quicker reactions and spotting).
+    void  SetSkillBoost(float boost) { m_skillBoost = boost < 0.0f ? 0.0f : (boost > 3.0f ? 3.0f : boost); }
+    float DetectMult() const;
     // Test harnesses only: replace the offsets derived from the dials (dial calibration sweeps).
     void                SetOffsets(const StyleOffsets& off) { m_off = off; }
     const BeliefFilter& Belief() const { return m_belief; }
@@ -67,6 +72,7 @@ private:
     const MapPrior    *m_map    = nullptr;
     StyleDials         m_dials;
     StyleOffsets       m_off;
+    float              m_skillBoost = 0.0f;
     uint64_t           m_seed = 0;
     int                m_substeps = 4;
     float              m_hfov = 96.4f;

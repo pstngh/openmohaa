@@ -38,6 +38,13 @@ static constexpr float BODY_HALF_W       = 15.0f;
 // (the next round would leave within 100 ms, before the view moved).
 static constexpr int   HEAD_HIT_CHEST_MS = 300;
 static constexpr int   HEAD_HIT_PAUSE_MS = 100;
+// g_humanbot_skill, per unit: aim noise x e^-0.5, press logit +0.7 (reaction), detection rate x e^0.5,
+// and a round the crosshair would send off the body skipped with chance 0.5 (people fire when on target:
+// 30% of their rounds leave on the body against 20% of their frames; the bots' rounds do not)
+static constexpr float BOOST_NOISE    = 0.5f;
+static constexpr float BOOST_GATE     = 0.5f;   // chance per unit to skip a round with the crosshair off the body
+static constexpr float BOOST_REACTION = 0.7f;
+static constexpr float BOOST_DETECT   = 0.5f;
 
 void Brain::Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps)
 {
@@ -117,6 +124,11 @@ void Brain::OnDeath(const Observation& obs)
     m_respawnAtMs = m_deathMs + m_weapon.RespawnDelayMs(m_rngLife);
     m_clickDown   = false;
     m_attackPrev  = false;
+}
+
+float Brain::DetectMult() const
+{
+    return m_off.detectMult * std::exp(BOOST_DETECT * m_skillBoost);
 }
 
 void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
@@ -272,7 +284,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     ti.blocked      = obs.teammateInCrosshair || now - m_headHitMs < HEAD_HIT_PAUSE_MS;
     ti.releaseLogit = m_off.releaseLogit;
-    ti.pressLogit   = m_off.reactionLogit;
+    ti.pressLogit   = m_off.reactionLogit + BOOST_REACTION * m_skillBoost;
     // the respawn click is often still held, or clicked again, in the first live ticks (it never fires);
     // the trigger takes over for good once an enemy is seen or the clicking is over
     const SpawnModel& sp = S.spawn;
@@ -329,7 +341,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     vi.aimHeightFiring = m_off.aimHeightFiring;
     // the owner's rule (people land two headshots in a row in 3% of their kills; the bots should not)
     vi.chestOnly = now - m_headHitMs < HEAD_HIT_CHEST_MS;
-    vi.noiseScale      = m_off.noiseScale;
+    vi.noiseScale      = m_off.noiseScale * std::exp(-BOOST_NOISE * m_skillBoost);
     ViewOutput vo;
     m_view.Step(self, vi, m_rngView, vo);
 
@@ -394,6 +406,16 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     plan.pitchDelta = vo.pitchDelta;
     plan.viewStill  = vo.still;
     plan.flickShaped = vo.flick;
+    if (vo.aimValid && m_skillBoost > 0.0f) {
+        plan.fireGate    = std::min(1.0f, BOOST_GATE * m_skillBoost);
+        plan.gateYaw     = vo.targetYaw;
+        plan.gateYawRate = vo.targetYawRate;
+        plan.gatePitch   = vo.targetPitch;
+        plan.gateHalfW   = vo.halfWidthDeg;
+        plan.gateHalfH   = vo.halfHeightDeg;
+        // never past a block (a teammate in the crosshair, the pause after a head hit) or an empty weapon
+        plan.gateMayPress = ti.canFire && !ti.blocked && los;
+    }
     for (int k = 0; k < 8; k++) {
         plan.flickFrac[k] = vo.flickFrac[k];
     }

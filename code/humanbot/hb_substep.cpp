@@ -154,6 +154,22 @@ void Substepper::Build(const TickPlan& plan, float curYaw, float curPitch, Rng& 
         c.pitch = curPitch + plan.pitchDelta * cum;
     }
     m_prev = out[K - 1];
+    // g_humanbot_skill's fire gate: skip the rounds the crosshair would send off the body (the
+    // intended trigger state above carries over; draws only while the gate is on)
+    if (plan.fireGate > 0.0f) {
+        for (int k = 0; k < K; k++) {
+            SubCmd& c = out[k];
+            if (!c.attack && !plan.gateMayPress) {
+                continue;
+            }
+            const float tYaw = plan.gateYaw + plan.gateYawRate * static_cast<float>(k + 1) / static_cast<float>(K);
+            const bool  off  = std::fabs(Wrap180(c.yaw - tYaw)) > plan.gateHalfW || std::fabs(c.pitch - plan.gatePitch) > plan.gateHalfH;
+            // fire when on the body, hold off when off it (people time their rounds this way)
+            if (c.attack == off && rng.Uniform() < plan.fireGate) {
+                c.attack = !off;
+            }
+        }
+    }
 }
 
 bool Substepper::CheckContract(const std::vector<SubCmd>& cmds)

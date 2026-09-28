@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // bouts, yaw speed, hidden stillness, firing, belief error, think time) and,
 // with --test, fails when one is out of range.
 //
-//   hb_arena [--bots N] [--seconds S] [--seed N] [--substeps K] [--layout pillars|open]
+//   hb_arena [--bots N] [--seconds S] [--seed N] [--substeps K] [--layout pillars|open] [--skill S]
 //            [--override shared.json] [--reference human_reference.json] [--pooled] [--test] [--load]
 //            [--offset name=value ...] [--quiet]
 //
@@ -78,6 +78,8 @@ struct Options {
     uint64_t    seed     = 1;
     int         substeps = 4;
     std::string layout   = "pillars";
+    float       skill    = 0.0f;   // g_humanbot_skill
+    bool        skillFirst = false; // only the first bot gets it (a strength test against the others)
     std::string overrideFile;
     std::string reference;   // human_reference.json: print bot and human side by side
     bool        pooled = false;  // every bot plays the pooled (average human) style
@@ -576,7 +578,8 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
 
     const auto      tBrain = std::chrono::steady_clock::now();
     hb::Observation obs;
-    b.perceiver.Process(raw, hfov, vfov, b.brain.Offsets().detectMult, obs);
+    b.brain.SetSkillBoost(!m_o.skillFirst || b.id == 0 ? m_o.skill : 0.0f);
+    b.perceiver.Process(raw, hfov, vfov, b.brain.DetectMult(), obs);
     b.brain.SetFov(hfov, vfov);
     b.brain.Think(obs, b.plan, &b.diag);
     b.sub.Build(b.plan, self.viewYaw, self.viewPitch, b.rngSub, b.cmds);
@@ -970,6 +973,12 @@ bool Arena::Report()
     j << ",\"shots_per_bot_min\":" << shots / botMinutes << ",\"hit_share\":" << (shots ? static_cast<double>(hits) / shots : 0.0);
     j << ",\"kills_per_bot_min\":" << kills / botMinutes;
     j << ",\"head_share\":" << (hits ? static_cast<double>(headHits) / hits : 0.0) << ",\"double_heads\":" << doubleHeads;
+    j << ",\"per_bot\":[";
+    for (size_t i = 0; i < m_bots.size(); i++) {
+        const Bot& b = m_bots[i];
+        j << (i ? "," : "") << "{\"kills\":" << b.kills << ",\"deaths\":" << b.deaths << ",\"shots\":" << b.shots << ",\"hits\":" << b.hits << "}";
+    }
+    j << "]";
     j << ",\"belief_err_p50\":" << Quantile(errs, 0.5) << ",\"belief_err_p90\":" << Quantile(errs, 0.9);
     j << ",\"think_us_mean\":" << meanUs << ",\"brain_us_mean\":" << (usN ? brainUs / usN : 0.0) << ",\"think_us_max\":" << usMax
       << ",\"kbd_violations\":" << kbd;
@@ -1030,6 +1039,10 @@ int main(int argc, char **argv)
             o.seed = std::strtoull(next().c_str(), nullptr, 10);
         } else if (a == "--substeps") {
             o.substeps = std::max(1, std::min(8, std::atoi(next().c_str())));
+        } else if (a == "--skill") {
+            o.skill = static_cast<float>(std::atof(next().c_str()));
+        } else if (a == "--skill-first") {
+            o.skillFirst = true;
         } else if (a == "--layout") {
             o.layout = next();
         } else if (a == "--override") {

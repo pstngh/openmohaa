@@ -250,6 +250,15 @@ struct TickPlan {
     int   command     = CMD_NONE;
     bool  navTargetValid = false;
     Vec3  navTarget;
+    // the fire gate of g_humanbot_skill: a round with the crosshair off the body is skipped with
+    // fireGate (0 = off); the target direction at the tick's start and its change over the tick
+    float fireGate     = 0.0f;
+    float gateYaw      = 0.0f;
+    float gateYawRate  = 0.0f;
+    float gatePitch    = 0.0f;
+    float gateHalfW    = 0.0f;
+    float gateHalfH    = 0.0f;
+    bool  gateMayPress = false;   // the gate may also start a round with the crosshair on the body
 };
 
 // One usercmd of a tick (hb_substep).

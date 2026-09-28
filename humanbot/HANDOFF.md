@@ -217,6 +217,12 @@ statistics within 25% (retreats at 96-224 u, already a gap, grow).
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).
 - The upstream Unit Tests workflow builds without the client; it could not find SDL2 on this fork.
+- **`g_humanbot_skill` (the owner's difficulty, read live; 0 = as fitted).** Per unit: aim noise
+  x e^-0.5, press logit +0.7, detection rate x e^0.5, and a fire gate: at each sub-step a round is
+  skipped with the crosshair off the body, or started with it on, with chance 0.5 per unit (capped
+  at 1). People fire on target (30% of their rounds against 20% of their frames); the bots do not.
+  Bot against bot in the arena it barely shows (the boosted bot wins 54% of kills at 2, 52% at 0):
+  the owner judges it in play. The owner beat 3 bots 23-4 at 0.
 - **The owner's rule: no two headshots in a row.** After one of its rounds hits a head, a bot aims at
   the chest for 300 ms and holds its fire for the first 100 ms (`hb_brain.cpp`, `hb_view.cpp`).
   People do land two in a row (3.2% of their kills); the owner does not want the bots to.

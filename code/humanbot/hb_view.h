@@ -76,6 +76,10 @@ struct ViewOutput {
     float targetPitch = 0.0f;
     float errYaw      = 0.0f;
     float errPitch    = 0.0f;
+    bool  aimValid      = false;  // tracking a perceived enemy: the fields below are meaningful
+    float targetYawRate = 0.0f;   // the target direction's yaw change over this tick (degrees)
+    float halfWidthDeg  = 0.0f;   // the body's angular half-width and half-height
+    float halfHeightDeg = 0.0f;
     float noiseYaw    = 0.0f;
     float aimHeight   = 0.0f;
     float flickAmp    = 0.0f;
