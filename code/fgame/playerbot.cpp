@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "weaputils.h"
 #include "windows.h"
 #include "g_bot.h"
+#include "humanbot_adapter.h"
 
 // We assume that we have limited access to the server-side
 // and that most logic come from the playerstate_s structure
@@ -45,6 +46,8 @@ BotController::botfunc_t BotController::botfuncs[MAX_BOT_FUNCTIONS];
 
 BotController::BotController()
 {
+    m_humanBot = NULL;
+
     if (LoadingSavegame) {
         return;
     }
@@ -81,6 +84,9 @@ BotController::BotController()
 
 BotController::~BotController()
 {
+    G_HumanBotDestroy(m_humanBot);
+    m_humanBot = NULL;
+
     if (controlledEnt) {
         controlledEnt->delegate_gotKill.Remove(delegateHandle_gotKill);
         controlledEnt->delegate_killed.Remove(delegateHandle_killed);
@@ -1205,6 +1211,8 @@ void BotController::Spawned(void)
     ClearEnemy();
     m_iCuriousTime   = 0;
     m_botCmd.buttons = 0;
+
+    G_HumanBotSpawned(m_humanBot);
 }
 
 void BotController::Think()
@@ -1219,9 +1227,37 @@ void BotController::Think()
     G_ClientThink(controlledEnt->edict, &ucmd, &eyeinfo);
 }
 
+void BotController::AttachHumanBot()
+{
+    if (!m_humanBot && controlledEnt) {
+        m_humanBot = G_HumanBotCreate(this, controlledEnt);
+    }
+}
+
+void BotController::PrepareThink()
+{
+    // the stock bot decides and moves in one go (CommitThink)
+    G_HumanBotPrepare(m_humanBot);
+}
+
+void BotController::CommitThink()
+{
+    if (m_humanBot) {
+        G_HumanBotCommit(m_humanBot);
+    } else {
+        Think();
+    }
+}
+
 void BotController::Killed(const Event& ev)
 {
     Entity *attacker;
+
+    if (m_humanBot) {
+        // a human keeps their model and loadout; the brain clicks to respawn
+        G_HumanBotKilled(m_humanBot);
+        return;
+    }
 
     // send the respawn buttons
     if (!(m_botCmd.buttons & BUTTON_ATTACKLEFT)) {
@@ -1265,6 +1301,12 @@ void BotController::GotKill(const Event& ev)
 {
     ClearEnemy();
     m_iCuriousTime = 0;
+
+    if (m_humanBot) {
+        // bots never chat or taunt
+        G_HumanBotGotKill(m_humanBot, ev.NumArgs() >= 1 ? ev.GetEntity(1) : NULL);
+        return;
+    }
 
     if (g_bot_instamsg_chance->integer && level.inttime >= m_iNextTauntTime && (rand() % g_bot_instamsg_chance->integer) == 0) {
         //
@@ -1314,6 +1356,7 @@ BotController *BotControllerManager::createController(Player *player)
 {
     BotController *controller = new BotController();
     controller->setControlledEntity(player);
+    controller->AttachHumanBot();
 
     controllers.AddObject(controller);
 
@@ -1390,8 +1433,17 @@ void BotControllerManager::ThinkControllers()
         }
     }
 
+    // Every bot first perceives and decides on the same world snapshot,
+    // then all of them send their usercmds.
+    G_HumanBotBeginFrame();
+
     for (i = 1; i <= controllers.NumObjects(); i++) {
         BotController *controller = controllers.ObjectAt(i);
-        controller->Think();
+        controller->PrepareThink();
+    }
+
+    for (i = 1; i <= controllers.NumObjects(); i++) {
+        BotController *controller = controllers.ObjectAt(i);
+        controller->CommitThink();
     }
 }

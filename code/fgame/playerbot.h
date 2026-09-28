@@ -35,6 +35,7 @@ typedef struct nodeAttract_s {
 } nodeAttract_t;
 
 class BotController;
+class HumanBotAdapter;
 
 class BotMovement
 {
@@ -198,6 +199,9 @@ private:
     int m_iNextTauntTime;
     int m_iLastFireTime;
 
+    // Human-imitation brain (NULL: the stock bot runs)
+    HumanBotAdapter *m_humanBot;
+
 private:
     DelegateHandle delegateHandle_gotKill;
     DelegateHandle delegateHandle_killed;
@@ -272,6 +276,11 @@ public:
     void SendCommand(const char *text);
 
     void Think();
+    // Two-phase frame of the human bots: decide on the shared snapshot, then send the usercmds.
+    void PrepareThink();
+    void CommitThink();
+    void AttachHumanBot();
+    bool IsHumanBot() const { return m_humanBot != NULL; }
 
     void Spawned(void);
 

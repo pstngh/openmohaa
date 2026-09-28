@@ -575,6 +575,8 @@ typedef struct gameExport_s {
     /** Add more information related to game */
     unsigned int (*GetNumSimulatedPlayers)();
     const char * (*GetSimulatedPlayersSkill)();
+    /** Ping to list for a client in server queries (a disguised bot), or -1 to use the server's own */
+    int (*GetClientDisplayPing)(int clientNum);
 
     //
     // global variables shared between game and server

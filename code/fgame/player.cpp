@@ -55,6 +55,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "fixedturret.h"
 #include "clientvote.h"
 #include "movement_telemetry.h"
+#include "humanbot_adapter.h"
 
 const Vector power_color(0.0, 1.0, 0.0);
 const Vector acolor(1.0, 1.0, 1.0);
@@ -3134,6 +3135,7 @@ void Player::Killed(Event *ev)
     location     = ev->GetInteger(10);
 
     G_MoveLogDeath(this, attacker, meansofdeath, location);
+    G_HumanBotDeath(this);
 
     if (attacker && inflictor) {
         Obituary(attacker, inflictor, meansofdeath, location);

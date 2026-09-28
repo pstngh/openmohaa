@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_bot.h"
 #include "navigation_recast_load.h"
 #include "movement_telemetry.h"
+#include "humanbot_adapter.h"
 
 #include "../corepp/tiki.h"
 
@@ -279,6 +280,7 @@ void G_InitGame(int levelTime, int randomSeed)
     Director.Reset();
     Actor::Init();
     G_BotInit();
+    G_HumanBotInit();
 
     sv_numtraces   = 0;
     sv_numpmtraces = 0;
@@ -350,6 +352,7 @@ void G_ShutdownGame()
     gi.Printf("==== ShutdownGame ====\n");
 
     G_MoveLogShutdown();
+    G_HumanBotShutdown();
 
     // write all the client session data so we can get it back
     G_WriteSessionData();
@@ -603,6 +606,7 @@ void G_RunFrame(int levelTime, int frameTime)
             start           = clock();
         }
 
+        G_HumanBotFrame();
         G_BotFrame();
 
         for (edict = active_edicts.next; edict != &active_edicts; edict = edict->next) {
@@ -1250,6 +1254,7 @@ void G_Cleanup(qboolean samemap)
     gi.Printf("==== CleanupGame ====\n");
 
     G_MoveLogShutdown();
+    G_HumanBotShutdown();
 
     G_WriteSessionData();
 
@@ -1717,8 +1722,9 @@ extern "C" game_export_t *GetGameAPI(game_import_t *import)
     globals.SpawnEntities    = G_SpawnEntities;
     globals.TIKI_Orientation = G_TIKI_Orientation;
 
-    globals.GetNumSimulatedPlayers   = G_GetNumBots;
+    globals.GetNumSimulatedPlayers   = G_HumanBotNumSimulatedPlayers;
     globals.GetSimulatedPlayersSkill = G_GetBotSkill;
+    globals.GetClientDisplayPing     = G_HumanBotDisplayPing;
 
     return &globals;
 }

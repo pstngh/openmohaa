@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "debuglines.h"
 #include "g_spawn.h"
 #include "movement_telemetry.h"
+#include "humanbot_adapter.h"
 
 Event EV_Weapon_Shoot("shoot", EV_DEFAULT, "S", "mode", "Shoot the weapon", EV_NORMAL);
 Event EV_Weapon_DoneRaising(
@@ -1442,6 +1443,9 @@ void Weapon::Shoot(Event *ev)
 
     if (firetype[mode] != FT_LANDMINE || CanPlaceLandmine(pos, owner)) {
         G_MoveLogShot(owner, this, (int)mode, pos, forward);
+        if (firetype[mode] != FT_MELEE && firetype[mode] != FT_LANDMINE) {
+            G_HumanBotEmitSound(owner, owner ? owner->centroid : pos, HB_SOUND_GUNFIRE, 3000.0f);
+        }
 
         if (m_fFireSpreadMultAmount[mode] != 0.0f) {
             float fTime = level.time - m_fFireSpreadMultTime[mode];
@@ -3027,6 +3031,7 @@ void Weapon::StartReloading(void)
     }
 
     G_MoveLogReload(owner, this);
+    G_HumanBotEmitSound(owner, owner->centroid, HB_SOUND_RELOAD, 600.0f);
 
     if (SetWeaponAnim("reload", EV_Weapon_DoneReloading)) {
         weaponstate = WEAPON_RELOADING;

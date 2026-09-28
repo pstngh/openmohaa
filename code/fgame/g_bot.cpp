@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "entity.h"
 #include "playerbot.h"
 #include "g_bot.h"
+#include "humanbot_adapter.h"
 
 static saved_bot_t *saved_bots     = NULL;
 static unsigned int num_saved_bots = 0;
@@ -458,6 +459,9 @@ gentity_t *G_AddBot(const bot_info_t *info)
 
     if (info && info->name) {
         Q_strncpyz(botName, info->name, sizeof(botName));
+    } else if (G_HumanBotDisguiseName(clientNum)) {
+        // test mode: a human-looking name
+        Q_strncpyz(botName, G_HumanBotDisguiseName(clientNum), sizeof(botName));
     } else {
         const unsigned int num = sv_sharedbots->integer ? clientNum : clientNum - maxclients->integer;
 

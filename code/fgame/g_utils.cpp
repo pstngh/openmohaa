@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "g_local.h"
+#include "humanbot_adapter.h"
 #include "g_utils.h"
 #include "ctype.h"
 #include "worldspawn.h"
@@ -1808,6 +1809,9 @@ void G_BroadcastAIEvent(Entity *originator, Vector origin, int iType, float radi
     }
 
     assert(originator);
+
+    // footsteps, impacts and doors for the human bots' ears
+    G_HumanBotAIEvent(originator, origin, iType, radius);
 
     r2            = Square(radius);
     iNumSentients = SentientList.NumObjects();
