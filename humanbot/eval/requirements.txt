@@ -1,0 +1,6 @@
+# Same pins as openmohaa-movement/analysis/requirements.txt (the reference analysis these tools run)
+numpy>=2.4
+pandas>=3.0
+pyarrow>=25
+scipy>=1.17
+matplotlib>=3.11

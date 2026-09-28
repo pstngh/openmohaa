@@ -1,0 +1,4 @@
+# Private working caches of the evaluation (bot-eval caches, human script outputs): never commit
+cache/
+# the root .gitignore ignores build*; this script belongs in the repository
+!build_human_reference.py

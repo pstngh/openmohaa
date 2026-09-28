@@ -1,0 +1,55 @@
+name: "Human-bot Python checks"
+
+# Python tooling of the human-imitation bots (humanbot/): the embedded model is in sync, the
+# privacy guard passes, and the evaluation tools' unit tests pass.
+#
+# The private openmohaa-movement repository (human captures, alias list and the unchanged
+# reference analysis scripts) is not available here, so CI covers what works without it:
+#   - check_no_raw_data.py runs every rule except the human-alias scan, which needs the
+#     private alias list and is skipped with a warning;
+#   - the unit tests cover load_bot_captures.py (with its local copy of read_meta/read_csv),
+#     the statistics machinery of metrics.py (weighted quantiles, family reweighting, block
+#     bootstrap, tell ranking), compare.py without the analysis (capture summary, bot roster,
+#     drawn dials), pack_capture.py and check_no_raw_data.py on synthetic captures.
+# The bot-vs-human statistics themselves (compare.py) need features.parquet from the data
+# repo's analysis scripts; those tests are skipped here and run where openmohaa-movement is
+# checked out next to the fork (or $HB_MOVEMENT_REPO points to it).
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  humanbot-python:
+    name: "Human-bot tooling (Python 3.11)"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+        cache-dependency-path: humanbot/eval/requirements.txt
+
+    - name: Install dependencies
+      run: python -m pip install -r humanbot/eval/requirements.txt
+
+    - name: Embedded model is in sync
+      run: python humanbot/tools/embed_model.py --check
+
+    - name: No raw human data in the fork
+      run: python humanbot/tools/check_no_raw_data.py
+
+    - name: Evaluation tool tests
+      run: python -m unittest discover -s humanbot/eval/tests -v
