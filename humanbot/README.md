@@ -66,7 +66,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `g_humanbot_fov` / `g_humanbot_aspect` | 80 / 1.778 | the bot's field of view (Hor+) |
 | `g_humanbot_seed` | 0 | 0: new styles every run; any other value repeats them |
 | `g_humanbot_families` | "" | family weights "presser strafer stopper"; "" is the recorded mix |
-| `g_humanbot_disguise` | 0 | 1: names from `humanbot/names.txt`, a realistic ping, listed as players (off: labelled bots) |
+| `g_humanbot_disguise` | 0 | 1: names from `main/humanbot/names.txt` (else a built-in list), a realistic ping, listed as players (off: labelled bots) |
 | `g_humanbot_model_dir` | "" | game-relative directory with `shared.json` / `styles.json` / `calibration.json` merge patches and `maps/<map>.json` |
 | `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the stock code (ladder, door, stuck recovery) |
 

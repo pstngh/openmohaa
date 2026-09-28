@@ -70,7 +70,8 @@ struct HbWorldStatus {
     bool        navmesh     = false;  // the engine navigation mesh is valid
     bool        prior       = false;  // a map prior is in use
     bool        embedded    = false;  // it is a recorded human prior (else derived from the navmesh)
-    bool        checksumOk  = false;
+    bool        recorded    = false;  // a recorded human prior exists for this map
+    bool        checksumOk  = false;  // and its checksum matches this map file
     int         cells       = 0;
     int         snapped     = 0;      // cells whose centre lies on the navmesh
     int         spawns      = 0;
