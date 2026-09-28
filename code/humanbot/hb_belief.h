@@ -128,6 +128,8 @@ private:
     std::vector<int>   m_touched;
     std::vector<int>   m_kTo;
     std::vector<float> m_kW;
+    std::vector<double> m_kWd;     // Predict's move weights (reused: no allocation per particle)
+    std::vector<int>    m_order;   // Inject's particle order
     std::vector<Particle> m_scratch;
 };
 
