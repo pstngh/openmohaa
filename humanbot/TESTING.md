@@ -77,8 +77,9 @@ Please send the console log if anything reads FAIL, MISSING or MISMATCH.
 `duel.cfg` records everything. It pins the settings that must match the human recordings:
 `sv_fps 20`, free-for-all, normal physics (`sv_runspeed 250`, `sv_dmspeedmult 1`,
 `sv_gravity 800`) and one bot. Telemetry goes to
-`~/.local/share/openmohaa/main/telemetry/segments/` on the server, one capture per hour or
-512 MB. Then:
+`~/.local/share/openmohaa/main/telemetry/segments/` on the server. It records only while a
+human is connected (`g_movelog_need_human`), so every visit is a capture of its own, and a
+new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
 
 1. Join the server and play the bot 1v1 on the practice maps (`map dm/crnodoors`,
    `map dm/main`, `map dm/vents`, `map dm/downladder`). Play with an SMG, as in the

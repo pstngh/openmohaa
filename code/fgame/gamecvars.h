@@ -138,6 +138,10 @@ extern cvar_t *g_movelog;
 extern cvar_t *g_movelog_max_mb;
 /** Optional per-capture telemetry duration limit in seconds. Zero is unlimited. */
 extern cvar_t *g_movelog_max_seconds;
+/** At a capture limit: 0 stops recording, 1 goes on in a fresh segment. */
+extern cvar_t *g_movelog_rollover;
+/** 1 records only while a human is connected; each visit is its own capture. */
+extern cvar_t *g_movelog_need_human;
 
 extern cvar_t *g_showtokens;
 extern cvar_t *g_showopcodes;

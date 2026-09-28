@@ -26,7 +26,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // (one row per player per 50 ms server frame), telemetry/movement_events.csv
 // and telemetry/movement_meta.txt (one INI section per session). With
 // g_movelog_max_mb or g_movelog_max_seconds set, a capture goes to fresh files
-// under telemetry/segments/ and stops at the limit.
+// under telemetry/segments/ and stops at the limit (with g_movelog_rollover, the
+// next capture starts right away). With g_movelog_need_human, recording pauses
+// while no human is connected and every visit is a capture of its own.
 //
 // The recorder deliberately does not mutate game state and never calls a
 // random-number function.
@@ -231,6 +233,23 @@ static bool PlayerIsBot(Player *player)
     return IsRecordablePlayer(player) && G_IsBot(player->edict);
 }
 
+// With g_movelog_need_human set, nothing is recorded while no human is connected: a bot
+// server left running records the visits, not days of bots alone.
+static bool WaitingForHuman()
+{
+    if (!g_movelog_need_human || !g_movelog_need_human->integer) {
+        return false;
+    }
+    for (int i = 0; i < game.maxclients; ++i) {
+        gentity_t *edict = &g_entities[i];
+        // SVF_BOT is set as a bot connects; G_IsBot only knows it once its controller exists
+        if (edict->inuse && edict->client && !(edict->r.svFlags & SVF_BOT) && !G_IsBot(edict)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static const char *TraceEntityClass(const trace_t& trace)
 {
     if (trace.fraction >= 1.0f && !trace.startsolid) {
@@ -405,7 +424,8 @@ static Player *FindNearestOpponent(Player *player)
     Player          *nearest         = NULL;
     float            nearestDistance = 0.0f;
     const teamtype_t team            = player->GetTeam();
-    const bool       hasTeam         = team == TEAM_ALLIES || team == TEAM_AXIS;
+    // free-for-all players also join axis or allies (for the model only): everyone is an enemy
+    const bool       hasTeam         = (team == TEAM_ALLIES || team == TEAM_AXIS) && g_gametype->integer > GT_FFA;
 
     for (int i = 0; i < game.maxclients; ++i) {
         gentity_t *edict = &g_entities[i];
@@ -721,6 +741,9 @@ static bool EnsureOpen()
     }
     if (framesFile && eventsFile) {
         return true;
+    }
+    if (WaitingForHuman()) {
+        return false;
     }
 
     if (!captureActive) {
@@ -1120,10 +1143,17 @@ static void StopCaptureAtLimit(const char *eventName)
 {
     const Vector zero(0.0f, 0.0f, 0.0f);
     AppendEventRow(eventName, NULL, NULL, "", -1, 0.0f, 0.0f, 0.0f, -1, -1, zero, zero, zero, NULL);
-    gi.Printf("g_movelog: reached configured telemetry limit (%s); disabling recording\n", eventName);
+    const bool rollover = g_movelog_rollover && g_movelog_rollover->integer;
+    gi.Printf(
+        "g_movelog: reached configured telemetry limit (%s); %s\n",
+        eventName,
+        rollover ? "going on in a fresh segment" : "disabling recording"
+    );
     CloseTelemetrySession();
     ResetCaptureState();
-    gi.cvar_set("g_movelog", "0");
+    if (!rollover) {
+        gi.cvar_set("g_movelog", "0");
+    }
 }
 
 static void RotateTelemetryIfNeeded()
@@ -1180,6 +1210,14 @@ void G_MoveLogFrame()
 {
     if (!g_movelog || !g_movelog->integer) {
         if (framesFile || eventsFile || captureActive) {
+            G_MoveLogShutdown();
+        }
+        return;
+    }
+    if (WaitingForHuman()) {
+        // the last human left: close the capture; the next visit starts a fresh one
+        if (framesFile || eventsFile || captureActive) {
+            gi.Printf("g_movelog: no human connected; recording pauses until one joins\n");
             G_MoveLogShutdown();
         }
         return;
