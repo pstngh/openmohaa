@@ -26,7 +26,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - `hb_perception_model`: detection by eccentricity, distance and visible parts.
    - `hb_belief`: a particle filter over each enemy's position, driven by sights, sounds and
      looking where the enemy is not.
-   - `hb_trigger`: press and release hazards by aim error, time since sight and hold age.
+   - `hb_trigger`: press and release hazards by aim error, time since sight and hold age. After a
+     head hit of its own the bot pauses and aims at the chest (the owner's rule: no two headshots
+     in a row).
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
      while the enemy is hidden.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;

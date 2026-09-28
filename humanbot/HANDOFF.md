@@ -186,8 +186,13 @@ statistics within 25% (retreats at 96-224 u, already a gap, grow).
   never peek. The likely next feature is corner clearing: slow before an exposure and pre-aim it.
 - **Close range:** firing at under 128 u, aim error is 21 deg vs 14. Turn speed in fights is
   p99 620 deg/s vs 300.
-- **Trigger:** bots keep firing with the crosshair more than 10 body half-widths off 11% of the time;
-  people do it 4%.
+- **Trigger and spread (2026-09-28):** against the owner the bot hit 15% of its rounds (people 20%)
+  with its crosshair on the body more often than people: MOHAA widens the SMG spread 0.3 a round
+  (reset after 250 ms without one), and the bot sprayed. The arena now fires with the game's spread,
+  and three calibrated loops tilt the release (`release_near_logit`, `release_far_logit`,
+  `release_tap_logit`). In the engine (bot vs bot, 4 maps) the spread at firing fell from 1.26 to
+  1.02 (people 1.23) and the kills a minute rose 16%. Still off: the near and tap loops pull
+  against each other (near-target release 1.5x people's, taps 34% vs 45%).
 - **Retreats:** bots back off in fights at 100-300 u twice as often as people.
 - **Seeing the enemy without firing:** people stand still 31% of that time, bots 13%.
 - **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
@@ -212,3 +217,6 @@ statistics within 25% (retreats at 96-224 u, already a gap, grow).
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).
 - The upstream Unit Tests workflow builds without the client; it could not find SDL2 on this fork.
+- **The owner's rule: no two headshots in a row.** After one of its rounds hits a head, a bot aims at
+  the chest for 300 ms and holds its fire for the first 100 ms (`hb_brain.cpp`, `hb_view.cpp`).
+  People do land two in a row (3.2% of their kills); the owner does not want the bots to.
