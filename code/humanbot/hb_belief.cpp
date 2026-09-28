@@ -77,9 +77,16 @@ void BeliefFilter::RefreshPathTree(int botCell)
     m_map->PathTreeTo(botCell, m_next, m_dist);
 }
 
+// A duel's single track gets the full particle count; with several enemies listed each track gets
+// half (three tracks cost 1.5 duel tracks, the 16-bot budget).
+int BeliefFilter::ParticlesPerTrack(const Observation& obs) const
+{
+    return obs.enemies.size() > 1 ? std::max(64, m_p->particles / 2) : m_p->particles;
+}
+
 void BeliefFilter::SeedFromPrior(TrackState& t, const Observation& obs, bool avoidVisible)
 {
-    const int n = m_p->particles;
+    const int n = ParticlesPerTrack(obs);
     t.parts.assign(n, Particle());
     if (!m_map || m_map->NumCells() == 0) {
         // no map knowledge: a broad ring around the bot
@@ -93,7 +100,9 @@ void BeliefFilter::SeedFromPrior(TrackState& t, const Observation& obs, bool avo
         return;
     }
     const int botCell = m_map->CellAt(obs.self.origin);
-    std::vector<double> w(m_map->NumCells());
+    // cumulative weights, so each particle is one binary search (256 draws over thousands of cells)
+    std::vector<double> cdf(m_map->NumCells());
+    double              sum = 0.0;
     for (int c = 0; c < m_map->NumCells(); c++) {
         const MapCell& mc = m_map->cells[c];
         double         v  = mc.occTotal + 1.0;
@@ -103,11 +112,12 @@ void BeliefFilter::SeedFromPrior(TrackState& t, const Observation& obs, bool avo
         if ((mc.center - obs.self.origin).lengthXY() < m_p->spawnMinDist) {
             v *= 0.05;
         }
-        w[c] = v;
+        sum += v;
+        cdf[c] = sum;
     }
     const float half = 0.45f * m_map->cellSize;
     for (Particle& p : t.parts) {
-        p.cell = m_rng.Categorical(w);
+        p.cell = m_rng.CategoricalCdf(cdf);
         p.pos  = m_map->cells[p.cell].center
               + Vec3(static_cast<float>(m_rng.Uniform(-half, half)), static_cast<float>(m_rng.Uniform(-half, half)), 0.0f);
         p.w = 1.0f / n;
@@ -146,7 +156,7 @@ void BeliefFilter::SeedFromSpawns(TrackState& t, const Observation& obs)
             }
         }
     }
-    const int n = m_p->particles;
+    const int n = ParticlesPerTrack(obs);
     t.parts.assign(n, Particle());
     for (Particle& p : t.parts) {
         const MapSpawn& s = m_map->spawns[spots[m_rng.Categorical(w)].idx];
@@ -418,7 +428,7 @@ void BeliefFilter::Normalise(TrackState& t, const Observation& obs)
     }
 }
 
-void BeliefFilter::Summarise(TrackState& t, const Observation& obs)
+void BeliefFilter::Summarise(TrackState& t, const Observation& obs, bool exposures)
 {
     BeliefEstimate& e = t.est;
     // weighted mean and spread
@@ -487,7 +497,7 @@ void BeliefFilter::Summarise(TrackState& t, const Observation& obs)
     // exposure points: first cell visible from the bot on each particle's way toward it
     e.nExposure   = 0;
     e.visibleSoon = 0.0f;
-    if (!m_map || !obs.self.alive) {
+    if (!exposures || !m_map || !obs.self.alive) {
         return;
     }
     const int botCell = m_map->CellAt(obs.self.origin);
@@ -648,18 +658,36 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         }
     }
 
-    // sounds and damage have no identity: give each to the track that explains it best
+    // sounds and damage have no identity: give each to the track that explains it best. People
+    // follow a few sounds at a time, not a battle's worth: the nearest MAX_HEARD_SOUNDS of a frame count
+    // (a duel never has more), and the track is chosen on every 4th particle (an unbiased estimate).
+    const SoundObs *heard[MAX_HEARD_SOUNDS];
+    int             nHeard = 0;
     for (const SoundObs& s : obs.sounds) {
-        int    best = -1;
-        double bl   = 0.0;
+        if (nHeard < MAX_HEARD_SOUNDS) {
+            heard[nHeard++] = &s;
+        } else {
+            int far = 0;
+            for (int k = 1; k < nHeard; k++) {
+                far = heard[k]->dist > heard[far]->dist ? k : far;
+            }
+            if (s.dist < heard[far]->dist) {
+                heard[far] = &s;
+            }
+        }
+    }
+    for (int h = 0; h < nHeard; h++) {
+        const SoundObs& s    = *heard[h];
+        int             best = -1;
+        double          bl   = 0.0;
         for (size_t i = 0; i < m_tracks.size(); i++) {
             TrackState& t = m_tracks[i];
             if (t.est.dead || t.est.detected) {
                 continue;
             }
             double l = 0.0;
-            for (const Particle& p : t.parts) {
-                l += p.w * SoundLikelihood(p, s, obs);
+            for (size_t j = 0; j < t.parts.size(); j += 4) {
+                l += t.parts[j].w * SoundLikelihood(t.parts[j], s, obs);
             }
             if (l > bl) {
                 bl   = l;
@@ -688,15 +716,6 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         }
     }
 
-    for (TrackState& t : m_tracks) {
-        if (!t.est.detected && !t.est.dead) {
-            Summarise(t, obs);
-        } else if (t.est.detected) {
-            Summarise(t, obs);
-            t.est.mode = t.est.lastSeenPos;
-        }
-    }
-
     // focus: whoever is visible, else the most recent threat
     m_focus = -1;
     int bestT = -2000000000;
@@ -712,6 +731,18 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         if (key > bestT) {
             bestT   = key;
             m_focus = static_cast<int>(i);
+        }
+    }
+
+    // only the focus track's exposure points are used (view, trigger anticipation): the others
+    // skip the path walks
+    for (size_t i = 0; i < m_tracks.size(); i++) {
+        TrackState& t = m_tracks[i];
+        if (!t.est.detected && !t.est.dead) {
+            Summarise(t, obs, static_cast<int>(i) == m_focus);
+        } else if (t.est.detected) {
+            Summarise(t, obs, static_cast<int>(i) == m_focus);
+            t.est.mode = t.est.lastSeenPos;
         }
     }
 }

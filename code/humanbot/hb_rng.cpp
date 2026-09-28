@@ -65,6 +65,7 @@ void Rng::Seed(uint64_t seed)
 {
     uint64_t st = seed;
     m_seed      = seed;
+    m_hasSpare  = false;
     for (int i = 0; i < 4; i++) {
         m_s[i] = SplitMix64(st);
     }
@@ -116,12 +117,20 @@ bool Rng::Bernoulli(double p)
 
 double Rng::Normal()
 {
+    if (m_hasSpare) {
+        m_hasSpare = false;
+        return m_spare;
+    }
     double u1 = Uniform();
     double u2 = Uniform();
     if (u1 < 1e-300) {
         u1 = 1e-300;
     }
-    return std::sqrt(-2.0 * std::log(u1)) * std::cos(6.283185307179586 * u2);
+    const double r = std::sqrt(-2.0 * std::log(u1));
+    const double a = 6.283185307179586 * u2;
+    m_spare        = r * std::sin(a);
+    m_hasSpare     = true;
+    return r * std::cos(a);
 }
 
 double Rng::Normal(double mean, double sd)
@@ -232,6 +241,32 @@ int Rng::Categorical(const double *weights, int n)
 int Rng::Categorical(const std::vector<double>& weights)
 {
     return Categorical(weights.data(), static_cast<int>(weights.size()));
+}
+
+int Rng::CategoricalCdf(const std::vector<double>& cdf)
+{
+    const int n = static_cast<int>(cdf.size());
+    if (n == 0) {
+        return 0;
+    }
+    if (cdf.back() <= 0.0) {
+        return UniformInt(n);
+    }
+    const double r  = Uniform() * cdf.back();
+    int          lo = 0, hi = n - 1;
+    // the first index whose cumulative weight exceeds r (zero weights are never picked)
+    while (lo < hi) {
+        const int mid = (lo + hi) / 2;
+        if (cdf[mid] > r) {
+            hi = mid;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    while (lo > 0 && cdf[lo] <= cdf[lo - 1]) {
+        lo--;
+    }
+    return lo;
 }
 
 double Rng::FromQuantiles(const std::vector<double>& probs, const std::vector<double>& values)
