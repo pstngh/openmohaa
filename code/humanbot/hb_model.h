@@ -148,6 +148,11 @@ struct MovementModel {
     float navSwitchLogit      = 1.0f;   // switch logit per unit of misalignment x urgency
     float navChoiceLogit      = 1.5f;   // choice logit per unit of alignment x urgency
     float wallPressureLogit   = 2.0f;   // switch logit while pushing into a wall
+    // the wall reflex (set by hand, 0 = off): a held key whose wall is closer than this many ms at
+    // the current speed (or touching) is let go of with this logit, and no new key presses into a
+    // wall the bot touches
+    float wallReflexMs        = 0.0f;
+    float wallReflexLogit     = 0.0f;
 };
 
 struct NoiseModel {

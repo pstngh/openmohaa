@@ -32,6 +32,7 @@ namespace hb
 
 static constexpr float LEDGE_VETO_DEPTH = 240.0f;
 static constexpr float VETO_LOGIT       = 4.0f;
+static constexpr float WALL_TOUCH       = 4.0f;    // units: the box is touching the wall (the wall reflex)
 
 static int Bit(int chord)
 {
@@ -118,15 +119,44 @@ int Mover::LedgeMask(const MoveInput& in) const
 // veto clearance. People do keep holding a key into a wall (they slide along
 // it), so walls only shift fitted odds: of letting go (in the key's direction,
 // and along the diagonal) and of what a key changes to (ChordWall).
+// Every probe blocked: the box starts in solid, and the probes say nothing about where the walls
+// are. The wall reflex then stands down (it would freeze the bot); the stuck recovery frees it.
+static bool ProbesBlind(const MoveInput& in)
+{
+    for (int c = 0; c < NUM_CHORDS; c++) {
+        if (c != CHORD_NEUTRAL && in.clearance[c] >= WALL_TOUCH) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int Mover::VetoMask(const MoveInput& in) const
 {
-    int mask = LedgeMask(in);
+    int         mask  = LedgeMask(in);
+    const bool  reflex = m_p->wallReflexMs > 0.0f && !ProbesBlind(in);
+    const float touch  = reflex ? std::max(m_p->vetoClearance, WALL_TOUCH) : m_p->vetoClearance;
     for (int c = 0; c < NUM_CHORDS; c++) {
-        if (c != CHORD_NEUTRAL && in.clearance[c] < m_p->vetoClearance) {
+        if (c != CHORD_NEUTRAL && in.clearance[c] < touch) {
             mask |= Bit(c);
         }
     }
     return mask;
+}
+
+// The wall reflex. People see a wall coming and let go of the key before they hit it; the key
+// processes, fitted on people who steer along walls with the mouse, barely react to walls (the
+// bots touched walls 7x as often). A held key's wall counts when it is reached within
+// wallReflexMs at the current speed along the key's direction, or touched.
+bool Mover::WallAhead(const MoveInput& in, int chord) const
+{
+    if (m_p->wallReflexMs <= 0.0f || chord == CHORD_NEUTRAL || ProbesBlind(in)) {
+        return false;
+    }
+    const float a     = ChordAngle(chord) * DEG2RAD;   // + = left
+    const float v     = in.velFwd * std::cos(a) - in.velRight * std::sin(a);
+    const float reach = std::max(v, 0.0f) * m_p->wallReflexMs * 0.001f + WALL_TOUCH;
+    return in.clearance[chord] < reach;
 }
 
 // How well a chord goes where the bot wants to travel: 1 straight there, -1 straight away, 0 standing.
@@ -191,6 +221,10 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
             // a diagonal into a wall reads open in both key directions
             z += ChordWall(m.side.diagWallLogit, m, in, MakeChord(m_fwd, m_side));
         }
+        // a diagonal into a corner lets go of the strafe, as people do
+        if (WallAhead(in, MakeChord(0, m_side)) || (m_fwd != 0 && WallAhead(in, MakeChord(m_fwd, m_side)))) {
+            z += m.wallReflexLogit;
+        }
         if (in.wallPressMs > 0.0f) {
             z += m.wallPressureLogit * Clamp(in.wallPressMs / 350.0f, 0.0f, 1.0f);
         }
@@ -251,6 +285,8 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
 {
     const MovementModel& m  = *m_p;
     const int            ab = BinIndex(m_fwdAge, m.ageEdges);
+    // a wall ahead: let go of the key (a person stops pressing into it, and does not back off)
+    const bool wallAhead = m_fwd != 0 && WallAhead(in, MakeChord(m_fwd, 0));
 
     float z = m_fwdSpawn ? SpawnLogit(m_spawn->fwdSwitchP, m_fwd + 1, m_fwdAge) : NAN;
     if (std::isnan(z)) {
@@ -260,6 +296,9 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         z += m.fwd.wallLogit[BinIndex(in.clearance[MakeChord(m_fwd, 0)], m.clearEdges)];
         if (side != 0) {
             z += ChordWall(m.fwd.diagWallLogit, m, in, MakeChord(m_fwd, side));
+        }
+        if (wallAhead) {
+            z += m.wallReflexLogit;
         }
         if (in.wallPressMs > 0.0f) {
             z += m.wallPressureLogit * Clamp(in.wallPressMs / 350.0f, 0.0f, 1.0f);
@@ -298,7 +337,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     double      zz[3];
     double      zmax = -1e30;
     for (int to = -1; to <= 1; to++) {
-        if (to == m_fwd || (to != 0 && (veto & Bit(MakeChord(to, 0))))) {
+        if (to == m_fwd || (to != 0 && (veto & Bit(MakeChord(to, 0)))) || (wallAhead && to == -m_fwd)) {
             zz[to + 1] = -1e30;
             continue;
         }

@@ -367,6 +367,8 @@ void ParseMovement(const json& j, MovementModel& m)
         m.navSwitchLogit    = NumOr(c, "nav_switch_logit", m.navSwitchLogit);
         m.navChoiceLogit    = NumOr(c, "nav_choice_logit", m.navChoiceLogit);
         m.wallPressureLogit = NumOr(c, "wall_pressure_logit", m.wallPressureLogit);
+        m.wallReflexMs      = NumOr(c, "wall_reflex_ms", m.wallReflexMs);
+        m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);
     }
 }
 

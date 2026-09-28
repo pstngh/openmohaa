@@ -343,6 +343,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         mi.drop[c]      = self.drop[c];
     }
     mi.wallPressMs = self.wallPressMs;
+    {
+        const float y = self.viewYaw * DEG2RAD;
+        mi.velFwd     = self.velocity.x * std::cos(y) + self.velocity.y * std::sin(y);
+        mi.velRight   = self.velocity.x * std::sin(y) - self.velocity.y * std::cos(y);
+    }
     mi.ducked      = self.ducked;
     mi.enemyDead   = !enemyAlive;
     mi.onGround    = self.onGround;

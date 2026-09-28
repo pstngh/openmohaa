@@ -50,7 +50,10 @@ def build():
                                                 "up_age_edges", "up_hazard"] if kk in v}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
-            "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0},
+            # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:
+            # 300 ms brings the bots to the people's wall contact (touching a wall 6-9% of the time, people 6%)
+            "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0,
+                         "wall_reflex_ms": 300.0, "wall_reflex_logit": 4.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
                                          "click_first_p", "click_stay_p", "click_press_p"]},
