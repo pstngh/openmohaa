@@ -116,7 +116,8 @@ int Mover::LedgeMask(const MoveInput& in) const
 
 // Chords a new key press may not go toward: ledges and walls closer than the
 // veto clearance. People do keep holding a key into a wall (they slide along
-// it), so walls only raise the fitted hazard of letting go.
+// it), so walls only shift fitted odds: of letting go (in the key's direction,
+// and along the diagonal) and of what a key changes to (ChordWall).
 int Mover::VetoMask(const MoveInput& in) const
 {
     int mask = LedgeMask(in);
@@ -156,6 +157,15 @@ float Mover::NavGain(const MoveInput& in, bool sideKey, int veto, int side) cons
     return best > -1.5f ? best - cur : 0.0f;
 }
 
+// A fitted wall term by the clearance of a chord's direction (0 for neutral, or when the model has none).
+static float ChordWall(const std::vector<float>& logit, const MovementModel& m, const MoveInput& in, int chord)
+{
+    if (logit.empty() || chord == CHORD_NEUTRAL) {
+        return 0.0f;
+    }
+    return logit[BinIndex(in.clearance[chord], m.clearEdges)];
+}
+
 float Mover::CtxChange(const KeyModel& k, int row, int ctx) const
 {
     const int cb = BinIndex(m_ctxAge, m_p->ctxAgeEdges);
@@ -177,6 +187,10 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     }
     if (m_side != 0) {
         z += m.side.wallLogit[BinIndex(in.clearance[MakeChord(0, m_side)], m.clearEdges)];
+        if (m_fwd != 0) {
+            // a diagonal into a wall reads open in both key directions
+            z += ChordWall(m.side.diagWallLogit, m, in, MakeChord(m_fwd, m_side));
+        }
         if (in.wallPressMs > 0.0f) {
             z += m.wallPressureLogit * Clamp(in.wallPressMs / 350.0f, 0.0f, 1.0f);
         }
@@ -217,6 +231,8 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     if (in.navValid && in.urgency > 0.0f) {
         za += m.navChoiceLogit * in.urgency * (NavAlign(in, MakeChord(m_fwd, a)) - NavAlign(in, MakeChord(m_fwd, b)));
     }
+    // people do not start a key into a wall they are touching
+    za += ChordWall(m.side.choiceWallLogit, m, in, MakeChord(m_fwd, a)) - ChordWall(m.side.choiceWallLogit, m, in, MakeChord(m_fwd, b));
     const bool vetoA = a != 0 && (veto & Bit(MakeChord(0, a))) != 0;
     const bool vetoB = b != 0 && (veto & Bit(MakeChord(0, b))) != 0;
     int        pick  = u2 < Sigmoid(za) ? a : b;
@@ -242,6 +258,9 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     }
     if (m_fwd != 0) {
         z += m.fwd.wallLogit[BinIndex(in.clearance[MakeChord(m_fwd, 0)], m.clearEdges)];
+        if (side != 0) {
+            z += ChordWall(m.fwd.diagWallLogit, m, in, MakeChord(m_fwd, side));
+        }
         if (in.wallPressMs > 0.0f) {
             z += m.wallPressureLogit * Clamp(in.wallPressMs / 350.0f, 0.0f, 1.0f);
         }
@@ -290,6 +309,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         if (in.navValid && in.urgency > 0.0f) {
             v += m.navChoiceLogit * in.urgency * NavAlign(in, MakeChord(to, side));
         }
+        v += ChordWall(m.fwd.choiceWallLogit, m, in, MakeChord(to, side));
         zz[to + 1] = v;
         zmax       = std::max(zmax, v);
     }

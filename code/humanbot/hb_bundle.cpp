@@ -267,6 +267,17 @@ void ParseKey(const json& j, KeyModel& k, int nAge, int nClear, int nCtxAge, int
     FillTable(Get(j, "switch_logit", path), k.switchLogit, {CTX_COUNT, 3, 3, nAge}, p + ".switch_logit");
     k.wallLogit = Floats(Get(j, "wall_logit", path), p + ".wall_logit");
     Require(static_cast<int>(k.wallLogit.size()) == nClear, p + ".wall_logit size");
+    // optional: models fitted before these terms leave walls out of diagonals and choices
+    k.diagWallLogit.clear();
+    k.choiceWallLogit.clear();
+    if (j.contains("diag_wall_logit")) {
+        k.diagWallLogit = Floats(j.at("diag_wall_logit"), p + ".diag_wall_logit");
+        Require(static_cast<int>(k.diagWallLogit.size()) == nClear, p + ".diag_wall_logit size");
+    }
+    if (j.contains("choice_wall_logit")) {
+        k.choiceWallLogit = Floats(j.at("choice_wall_logit"), p + ".choice_wall_logit");
+        Require(static_cast<int>(k.choiceWallLogit.size()) == nClear, p + ".choice_wall_logit size");
+    }
     k.losChangeLogit = Num(Get(j, "los_change_logit", path), p + ".los_change_logit");
     FillTable(Get(j, "ctx_change_logit", path), k.ctxChangeLogit, {CTX_COUNT, changeRows, nCtxAge - 1}, p + ".ctx_change_logit");
 }

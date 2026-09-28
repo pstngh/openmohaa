@@ -3,12 +3,15 @@
 The side key (left/none/right) and the forward key (back/none/forward) are two
 coupled semi-Markov processes, like the two fingers that press them. Each key
 has its own hold age; its hazard of changing depends on the context, its own
-state and age, the other key's state, walls in its direction, a fresh LOS
-change and a recent context change. What it changes to:
+state and age, the other key's state, walls in its direction (and along the
+diagonal while both keys are held), a fresh LOS change and a recent context
+change. What it changes to:
   side:    from a strafe, reverse or let go (P(reverse) by context, forward key, age);
            from none, left or right (P(right) by context and forward key);
   forward: a categorical over the other two states, tilted toward or away from
-           the enemy by distance (approach), with the side key as context.
+           the enemy by distance (approach), with the side key as context;
+  both:    shifted by the clearance of the chord each option makes (people do not
+           start a key into a wall they are touching).
 The per-context habits (calibrate.py, movement.habit) correct what a first-order
 chain driven by recorded contexts cannot reach within short contexts (people take
 ~1 s to get onto forward after a reload starts: 35% forward at the first tick, 70%
@@ -59,6 +62,59 @@ def offsets(base_logit, y, extra_codes, sizes, l2=2.0):
     return b0, co
 
 
+# clearance column of each chord ((fwd + 1) * 3 + (side + 1)); neutral has no direction (open)
+CHORD_CLEAR = ["clear_back_left", "clear_back", "clear_back_right", "clear_left", None, "clear_right",
+               "clear_front_left", "clear_front", "clear_front_right"]
+OPEN_BIN = len(CLEAR_EDGES) - 1
+
+
+def chord_clear_bin(d, fwd, side):
+    """Clearance bin in the direction of chord (fwd, side), per row; the open bin for neutral or unknown."""
+    fwd = np.asarray(fwd, int)
+    side = np.asarray(side, int)
+    chord = (fwd + 1) * 3 + (side + 1)
+    out = np.full(len(d), OPEN_BIN)
+    for c, col in enumerate(CHORD_CLEAR):
+        m = chord == c
+        if col is None or not m.any():
+            continue
+        v = d[col].to_numpy(float)[m]
+        out[m] = np.where(np.isnan(v), OPEN_BIN, bidx(np.nan_to_num(v, nan=128.0), CLEAR_EDGES))
+    return out
+
+
+def diag_wall_codes(d, fwd, side):
+    """While both keys are held: the clearance bin along the diagonal (open = -1, the reference)."""
+    b = chord_clear_bin(d, fwd, side)
+    both = (np.asarray(fwd) != 0) & (np.asarray(side) != 0)
+    return np.where(both & (b != OPEN_BIN), b, -1)
+
+
+def fit_choice_wall(offset, y, bin_a, bin_b, l2=1.0):
+    """Binary choice a vs b with a known offset: logit = offset + w[bin_a] - w[bin_b] (the open bin is 0).
+
+    People do not start a key toward a wall they are touching; the fitted tables of what a key
+    changes to ignore walls, so this is the wall's share of the choice, by clearance bin.
+    """
+    from scipy import optimize
+    nw = OPEN_BIN
+    y = np.asarray(y, float)
+
+    def f(w):
+        wf = np.r_[w, 0.0]
+        z = offset + wf[bin_a] - wf[bin_b]
+        p = H.sigmoid(z)
+        ll = (y * np.log(p + 1e-12) + (1 - y) * np.log(1 - p + 1e-12)).sum()
+        r = p - y
+        g = np.zeros(nw + 1)
+        np.add.at(g, bin_a, r)
+        np.add.at(g, bin_b, -r)
+        return -ll + l2 * (w ** 2).sum(), g[:nw] + 2 * l2 * w
+
+    res = optimize.minimize(f, np.zeros(nw), jac=True, method="L-BFGS-B", options={"maxiter": 2000})
+    return np.r_[res.x, 0.0]
+
+
 def fit_side(EL):
     d = EL[EL.known_side & EL.nx_side.notna()].copy()
     s = d.side.to_numpy().astype(int) + 1
@@ -77,7 +133,10 @@ def fit_side(EL):
     losc = (d.lage.fillna(1e9).to_numpy() <= 50).astype(int)
     cab = bidx(d.age_ctx, CTX_AGE_EDGES)
     cc = np.where(cab < len(CTX_AGE_EDGES) - 1, (ctx * 2 + (s != 1)) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
-    b0, co = offsets(base, ch, [wb, losc, cc], [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1)])
+    # a diagonal into a wall reads open in both key directions: its own clearance
+    dw = diag_wall_codes(d, f - 1, s - 1)
+    b0, co = offsets(base, ch, [wb, losc, cc, dw],
+                     [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN])
     P_logit = H.logit(P) + b0 + co[1][0]
     # what a strafe changes to: P(reverse) [ctx][fwd][age]; from none: P(right) [ctx][fwd]
     e = d[ch == 1]
@@ -91,7 +150,15 @@ def fit_side(EL):
                      [ectx[from_strafe], ef[from_strafe], eab[from_strafe]], (NC, 3, len(AGE_EDGES)), [0, 2])
     rt = (e.nx_side.to_numpy() == 1).astype(float)
     L = shrunk_table(rt[~from_strafe], np.ones((~from_strafe).sum()), [ectx[~from_strafe], ef[~from_strafe]], (NC, 3), [0])
+    # the wall's share of the choice, over the tables: a = reverse (from a strafe) or right (from none),
+    # b = let go or left; each by the clearance of the chord it makes with the forward key held
+    a = np.where(from_strafe, -es, 1)
+    b = np.where(from_strafe, 0, -1)
+    y = np.where(from_strafe, rev, rt)
+    off = np.where(from_strafe, H.logit(R[ectx, ef, eab]), H.logit(L[ectx, ef]))
+    choice = fit_choice_wall(off, y, chord_clear_bin(e, ef - 1, a), chord_clear_bin(e, ef - 1, b))
     return {"switch_logit": P_logit.round(4), "wall_logit": np.r_[co[0], 0.0].round(4),
+            "diag_wall_logit": np.r_[co[3], 0.0].round(4), "choice_wall_logit": choice.round(4),
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 2, len(CTX_AGE_EDGES) - 1).round(4),
             "reverse_p": R.round(5), "right_p": L.round(5)}
@@ -113,9 +180,12 @@ def fit_fwd(EL):
     losc = (d.lage.fillna(1e9).to_numpy() <= 50).astype(int)
     cab = bidx(d.age_ctx, CTX_AGE_EDGES)
     cc = np.where(cab < len(CTX_AGE_EDGES) - 1, (ctx * 3 + f) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
-    b0, co = offsets(base, ch, [wb, losc, cc], [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1)])
+    dw = diag_wall_codes(d, f - 1, s - 1)
+    b0, co = offsets(base, ch, [wb, losc, cc, dw],
+                     [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN])
     P_logit = H.logit(P) + b0 + co[1][0]
     # destination: logits T[ctx][from][side][to] + approach[ctx][dist] * (to - from) * cos(bearing)
+    #              + wall[clearance bin of the chord (to, side)]
     e = d[ch == 1]
     ef = e.fwd.to_numpy().astype(int) + 1
     es = e.side.to_numpy().astype(int) + 1
@@ -128,18 +198,21 @@ def fit_fwd(EL):
     nD = len(DIST_EDGES)
     from scipy import optimize
     nT = NC * 27
+    nW = OPEN_BIN
     alt = np.arange(3)[None, :]
     mask = alt != ef[:, None]
     dirv = (alt - ef[:, None]) * cosb[:, None]          # change in approach for each candidate
     rows = np.arange(len(e))
+    CB = np.stack([chord_clear_bin(e, np.full(len(e), t - 1), es - 1) for t in range(3)], axis=1)
 
     def unpack(w):
-        return w[:nT].reshape(NC, 3, 3, 3), w[nT:nT + NC * nD].reshape(NC, nD), w[-1]
+        return (w[:nT].reshape(NC, 3, 3, 3), w[nT:nT + NC * nD].reshape(NC, nD), w[nT + NC * nD],
+                np.r_[w[nT + NC * nD + 1:], 0.0])
 
     def nll(w):
-        T, Ap, Ar = unpack(w)
+        T, Ap, Ar, Wf = unpack(w)
         k = Ap[ectx, db] + Ar * rel
-        Z = T[ectx, ef, es, :] + k[:, None] * dirv
+        Z = T[ectx, ef, es, :] + k[:, None] * dirv + Wf[CB]
         Z = np.where(mask, Z, -np.inf)
         Zm = Z.max(1, keepdims=True)
         E_ = np.exp(Z - Zm)
@@ -154,15 +227,22 @@ def fit_fwd(EL):
         gk = (G * dirv).sum(1)
         gA = np.zeros((NC, nD))
         np.add.at(gA, (ectx, db), gk)
+        gW = np.zeros(nW + 1)
+        Gm = np.where(mask, G, 0.0)
+        np.add.at(gW, CB.ravel(), Gm.ravel())
         lam = 0.05
-        return -ll + lam * (T ** 2).sum(), np.r_[(gT + 2 * lam * T).ravel(), gA.ravel(), (gk * rel).sum()]
+        Wv = Wf[:nW]
+        return (-ll + lam * (T ** 2).sum() + (Wv ** 2).sum(),
+                np.r_[(gT + 2 * lam * T).ravel(), gA.ravel(), (gk * rel).sum(), gW[:nW] + 2 * Wv])
 
-    res = optimize.minimize(nll, np.zeros(nT + NC * nD + 1), jac=True, method="L-BFGS-B", options={"maxiter": 3000})
-    T, Ap, Ar = unpack(res.x)
+    res = optimize.minimize(nll, np.zeros(nT + NC * nD + 1 + nW), jac=True, method="L-BFGS-B",
+                            options={"maxiter": 3000})
+    T, Ap, Ar, Wf = unpack(res.x)
     for c in range(NC):
         for fr in range(3):
             T[c, fr, :, fr] = -30.0
     return {"switch_logit": P_logit.round(4), "wall_logit": np.r_[co[0], 0.0].round(4),
+            "diag_wall_logit": np.r_[co[3], 0.0].round(4), "choice_wall_logit": Wf.round(4),
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 3, len(CTX_AGE_EDGES) - 1).round(4),
             "next_logit": T.round(4), "approach": Ap.round(4), "approach_enemy_reload": round(float(Ar), 4)}
@@ -231,6 +311,9 @@ def main():
     print("side switch p, LOS fire, strafe right, fwd none, by age:", sig(np.array(part["side"]["switch_logit"])[3, 2, 1, :6]).round(3))
     print("P(reverse) LOS fire fwd none by age:", np.array(part["side"]["reverse_p"])[3, 1, :6].round(3))
     print("fwd approach coef [ctx][dist]:\n", np.array(part["fwd"]["approach"]).round(2))
+    for k in ["side", "fwd"]:
+        print(f"{k}: wall {part[k]['wall_logit']}  diagonal wall {part[k]['diag_wall_logit']}  "
+              f"choice wall {part[k]['choice_wall_logit']}  (clearance bins {CLEAR_EDGES})")
 
 
 if __name__ == "__main__":

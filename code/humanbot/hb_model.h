@@ -109,6 +109,8 @@ struct StanceKeyModel {
 struct KeyModel {
     Table              switchLogit;    // side: [ctx][side+1][fwd+1][age bin]; forward: [ctx][fwd+1][side+1][age bin]
     std::vector<float> wallLogit;      // by clearance bin in the key's direction (last = open)
+    std::vector<float> diagWallLogit;  // while both keys are held: by clearance bin along the diagonal (empty = none)
+    std::vector<float> choiceWallLogit; // what a change goes to: by clearance bin of the chord it makes (empty = none)
     float              losChangeLogit = 0.0f;
     Table              ctxChangeLogit; // side: [ctx][strafing][ctx age bin]; forward: [ctx][fwd+1][ctx age bin]
 };

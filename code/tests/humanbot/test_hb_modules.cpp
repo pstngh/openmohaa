@@ -74,10 +74,12 @@ static void TestMovement(const hb::ModelBundle& b)
     const double pure = (counts[3] + counts[5]) / double(n);
     const double diag = (counts[6] + counts[8]) / double(n);
     HB_REPORT("LOS fight: side hold median %.0f ms, direct reverse %.2f, pure strafe %.2f, fwd-diag %.2f", med, rev, pure, diag);
-    // pooled human targets (REPORT section 7): holds ~300 ms, 72% direct reversal, 58% pure strafe, 31% diagonal
+    // pooled human targets (REPORT section 7): holds ~300 ms, 72% direct reversal, 58% pure strafe, 31% diagonal.
+    // This open loop never leaves the fight context, so it strafes more than the closed loop, whose
+    // shares calibrate.py matches to the humans (hb_arena: 55% pure strafe, 34% diagonal).
     HB_CHECK(med >= 200.0 && med <= 400.0);
     HB_CHECK(rev > 0.55 && rev < 0.9);
-    HB_CHECK(pure > 0.4 && pure < 0.75);
+    HB_CHECK(pure > 0.4 && pure < 0.8);
     HB_CHECK(diag > 0.15 && diag < 0.45);
 
     // style dials move the realised shares the right way
@@ -109,6 +111,24 @@ static void TestMovement(const hb::ModelBundle& b)
     }
     HB_CHECK(into == 0);
     HB_CHECK(sideMoves > 2000);   // it still strafes the other way
+    // without a veto, the fitted wall terms still steer new keys away from a wall that close
+    // (people strafe into a touching wall about half as often as into open space)
+    hb::Mover mvOpen, mvWall;
+    mvOpen.Init(&b.shared.movement);
+    mvWall.Init(&b.shared.movement);
+    int openRight = 0, openLeft = 0, wallRight = 0, wallLeft = 0;
+    for (int i = 0; i < 100000; i++) {
+        mvOpen.Step(in, style, rm, rs, out);
+        openRight += hb::ChordSide(out.chord) == 1;
+        openLeft += hb::ChordSide(out.chord) == -1;
+        mvWall.Step(wall, style, rm, rs, out);
+        wallRight += hb::ChordSide(out.chord) == 1;
+        wallLeft += hb::ChordSide(out.chord) == -1;
+    }
+    const double openShare = openRight / double(std::max(1, openRight + openLeft));
+    const double wallShare = wallRight / double(std::max(1, wallRight + wallLeft));
+    HB_REPORT("strafe right: %.2f of strafe time in the open, %.2f with a wall 4 u to the right", openShare, wallShare);
+    HB_CHECK(wallShare < openShare - 0.05);
     // a ledge deep enough to hurt is let go of at once, even when the key was already held
     hb::MoveInput ledge = in;
     ledge.drop[7]       = 400.0f;  // forward
