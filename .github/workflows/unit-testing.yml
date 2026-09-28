@@ -34,3 +34,48 @@ jobs:
           exit 1
         fi
         exit $status
+
+  # The C++ tests of the human-imitation bots (cmake/tests): the brain, the telemetry
+  # headers and the Pmove sub-steps. They need no client, so the build skips it and
+  # does not depend on SDL2 or OpenAL.
+  ctest:
+    name: "Running C++ unit tests (human-imitation bots)"
+    runs-on: ubuntu-latest
+    environment: "testing"
+
+    steps:
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      name: Install required packages
+      with:
+        packages: flex bison ninja-build cmake clang
+        version: "${{ runner.os }}-${{ runner.arch }}-unittest-v2"
+
+    - uses: actions/checkout@v4
+      with:
+        path: 'source'
+
+    - name: Settings
+      working-directory: ${{github.workspace}}
+      run: |
+        echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+        echo "CMAKE_PARAM=--log-level=VERBOSE \
+        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
+        -DBUILD_CLIENT=OFF" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}
+      run: |
+        cmake -B ./build ${{ env.CMAKE_PARAM }} ./source
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      run: |
+        cmake --build ${{github.workspace}}/build --config Debug --parallel
+
+    - name: Test
+      working-directory: ${{github.workspace}}
+      run: |
+        cd "${{github.workspace}}/build"
+        ctest -C Debug --output-on-failure
