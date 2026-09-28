@@ -43,6 +43,7 @@ static const float PART_BOX_HEIGHT[hb::NUM_PARTS] = {0.9f, 0.72f, 0.6f, 0.48f, 0
 
 static const int   SIGHT_MASK       = MASK_SHOT & ~CONTENTS_TRIGGER;
 static const float CLEARANCE_RANGE  = 128.0f;  // the logger's clearance probe
+static const float CLEARANCE_LIFT   = 2.0f;
 static const float DROP_PROBE_AHEAD = 32.0f;
 static const float DROP_PROBE_DEPTH = 320.0f;
 
@@ -250,9 +251,14 @@ void HB_FillClearance(Player *player, float viewYaw, float clearance[hb::NUM_CHO
         }
         Vector dir;
         ChordDirection(c, viewYaw, dir);
-        const Vector  end = player->origin + dir * CLEARANCE_RANGE;
-        const trace_t tr  = G_Trace(player->origin, player->mins, player->maxs, end, player, worldMask, qfalse, "HumanBot clear");
-        clearance[c]      = tr.startsolid ? 0.0f : tr.fraction * CLEARANCE_RANGE;
+        const Vector end = player->origin + dir * CLEARANCE_RANGE;
+        trace_t      tr  = G_Trace(player->origin, player->mins, player->maxs, end, player, worldMask, qfalse, "HumanBot clear");
+        if (tr.startsolid) {
+            // a box resting a hair into the floor or a step starts in solid; lifted, it sees the walls
+            const Vector lift(0.0f, 0.0f, CLEARANCE_LIFT);
+            tr = G_Trace(player->origin + lift, player->mins, player->maxs, end + lift, player, worldMask, qfalse, "HumanBot clear");
+        }
+        clearance[c] = tr.startsolid ? 0.0f : tr.fraction * CLEARANCE_RANGE;
         if (dropPhase < 0 || (c & 1) != dropPhase) {
             continue;
         }
