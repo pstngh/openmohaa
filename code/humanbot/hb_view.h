@@ -61,6 +61,7 @@ struct ViewInput {
     const std::vector<SoundObs>  *sounds = nullptr;
     const std::vector<DamageObs> *damage = nullptr;
     float aimHeightFiring = 0.44f;  // style
+    bool  chestOnly       = false;  // right after a head hit of ours: aim at the chest (the owner's rule)
     float noiseScale      = 1.0f;   // style (skill) x pooled tuning
 };
 

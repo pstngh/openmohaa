@@ -1528,7 +1528,7 @@ void Sentient::ArmorDamage(Event *ev)
 
     G_MoveLogDamage(this, attacker, damage, healthBefore, health, meansofdeath, location, position, direction);
     if (health < healthBefore) {
-        G_HumanBotDamage(this, attacker, healthBefore - health, position, direction, meansofdeath);
+        G_HumanBotDamage(this, attacker, healthBefore - health, position, direction, meansofdeath, location);
     }
 
     // Set means of death

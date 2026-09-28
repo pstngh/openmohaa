@@ -158,6 +158,7 @@ public:
     void Spawned();
     void Killed();
     void GotKill(Entity *victim);
+    void HeadHit() { m_headHit = true; }
 
     void Reinit();
 
@@ -232,6 +233,7 @@ private:
     int m_ladderGoalTime = -100000;
 
     int m_gotKillOf = -1;
+    bool m_headHit  = false;
     int m_focusId   = -1;
     int m_pingMs    = 0;
 
@@ -706,6 +708,8 @@ void HumanBotAdapter::Prepare()
     raw.deaths    = s_deathsTick;
     raw.gotKillOf = m_gotKillOf;
     m_gotKillOf   = -1;
+    raw.headHit   = m_headHit;
+    m_headHit     = false;
 
     hb::Observation obs;
     m_perceiver.Process(raw, hfov, vfov, m_brain.Offsets().detectMult, obs);
@@ -1108,9 +1112,20 @@ void G_HumanBotAIEvent(Entity *source, const Vector& origin, int aiEventType, fl
 }
 
 void G_HumanBotDamage(
-    Sentient *victim, Entity *attacker, float damage, const Vector& position, const Vector& direction, int meansOfDeath
+    Sentient *victim, Entity *attacker, float damage, const Vector& position, const Vector& direction, int meansOfDeath,
+    int location
 )
 {
+    // our bullet in an enemy's head: the bot sees the hit like a player does (the owner's rule acts on it)
+    if (s_inited && attacker && attacker != victim && victim && victim->IsSubclassOfPlayer()
+        && (location == HITLOC_HEAD || location == HITLOC_HELMET)) {
+        for (int i = 1; i <= s_adapters.NumObjects(); i++) {
+            HumanBotAdapter *a = s_adapters.ObjectAt(i);
+            if (a->GetPlayer() == attacker) {
+                a->HeadHit();
+            }
+        }
+    }
     // falls and the world are no threat to turn toward
     if (!s_inited || !victim || !victim->IsSubclassOfPlayer() || !attacker || attacker == victim
         || !attacker->IsSubclassOfSentient()) {

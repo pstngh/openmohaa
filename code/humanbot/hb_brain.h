@@ -93,6 +93,7 @@ private:
     int  m_respawnAtMs   = 0;
     bool m_clickDown     = false;
     int  m_killMs        = -1000000;
+    int  m_headHitMs     = -1000000;   // our last bullet in an enemy's head
     bool m_los           = false;
     int  m_lageMs        = 100000;
     bool m_detected      = false;

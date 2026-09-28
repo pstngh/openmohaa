@@ -33,6 +33,11 @@ static constexpr int   TRACK_MEMORY_MS   = 350;   // keep tracking a just-lost e
 static constexpr int   ACQUISITION_TICKS = 10;
 static constexpr int   CLICK_RETRY_MS    = 600;
 static constexpr float BODY_HALF_W       = 15.0f;
+// The owner's rule: no two headshots in a row. After a head hit the bot aims at the chest for
+// HEAD_HIT_CHEST_MS and holds its fire for the first HEAD_HIT_PAUSE_MS, while the view comes down
+// (the next round would leave within 100 ms, before the view moved).
+static constexpr int   HEAD_HIT_CHEST_MS = 300;
+static constexpr int   HEAD_HIT_PAUSE_MS = 100;
 
 void Brain::Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps)
 {
@@ -199,6 +204,9 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     if (obs.gotKillOf >= 0) {
         m_killMs = now;
     }
+    if (obs.headHit) {
+        m_headHitMs = now;
+    }
 
     // logger-equivalent LOS with the focus enemy (frustum gated) and its age
     const bool los = detected && fe->centroidLos;
@@ -262,7 +270,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
             }
         }
     }
-    ti.blocked      = obs.teammateInCrosshair;
+    ti.blocked      = obs.teammateInCrosshair || now - m_headHitMs < HEAD_HIT_PAUSE_MS;
     ti.releaseLogit = m_off.releaseLogit;
     ti.pressLogit   = m_off.reactionLogit;
     // the respawn click is often still held, or clicked again, in the first live ticks (it never fires);
@@ -319,6 +327,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     vi.sounds          = &obs.sounds;
     vi.damage          = &obs.damage;
     vi.aimHeightFiring = m_off.aimHeightFiring;
+    // the owner's rule (people land two headshots in a row in 3% of their kills; the bots should not)
+    vi.chestOnly = now - m_headHitMs < HEAD_HIT_CHEST_MS;
     vi.noiseScale      = m_off.noiseScale;
     ViewOutput vo;
     m_view.Step(self, vi, m_rngView, vo);

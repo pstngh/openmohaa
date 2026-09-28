@@ -132,5 +132,6 @@ void G_HumanBotDamage(
     float         damage,
     const Vector& position,
     const Vector& direction,
-    int           meansOfDeath
+    int           meansOfDeath,
+    int           location
 );

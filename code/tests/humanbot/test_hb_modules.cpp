@@ -353,6 +353,18 @@ static void TestView(const hb::ModelBundle& b)
     HB_REPORT("static target at 400 u: median |yaw error| %.2f deg", med);
     HB_CHECK(med < 5.0f);
 
+    // the owner's rule: right after a head hit the aim is at the chest at once, even for a style
+    // that aims high
+    in.aimHeightFiring = 0.9f;
+    for (int t = 0; t < 20; t++) {
+        vc.Step(self, in, r, out);
+    }
+    HB_CHECK(out.aimHeight > 0.8f);
+    in.chestOnly = true;
+    vc.Step(self, in, r, out);
+    HB_CHECK(out.aimHeight <= 0.5f);
+    in.chestOnly = false;
+
     // hidden and idle: the mouse is often exactly still
     self.viewYaw = 0.0f;
     vc.Reset(self);
