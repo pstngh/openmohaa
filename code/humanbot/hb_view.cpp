@@ -37,6 +37,8 @@ static constexpr float DIFFUSE_SPREAD = 600.0f;  // belief spread (units) beyond
 // A look along a direction (route, hold, look-around, damage) aims at a point this far away, so the
 // bot's own motion does not turn the view (people keep a direction while running, not a point 10 m away).
 static constexpr float DIR_LOOK_DIST  = 4000.0f;
+// A route look re-aims once the route turned this far from it.
+static constexpr float TRAVEL_FOLLOW_DEG = 15.0f;
 
 static float MinJerk(float tau)
 {
@@ -132,7 +134,9 @@ float ViewControl::NoiseStep(const NoiseModel& nm, float dist, float& state, flo
 // Where to look without a visible enemy. People keep their view close to where they
 // believe the enemy is (5-10 degrees for the first seconds after losing sight, about
 // 20 later), mostly by watching that position or the corner it will come out of.
-// With a diffuse belief they look along their route; with nothing better they keep
+// On the move they also look along their route, belief or not: a third of the time
+// they move hidden, they move within 30 degrees of their view, and so walk forward
+// down the corridor rather than sideways along it. With nothing better they keep
 // looking where they look. Sounds reach the view through the belief; look-arounds
 // are a separate hazard.
 void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rng)
@@ -150,7 +154,7 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
     if (hasExposure) {
         w[1] = p.preaimShare;
     }
-    if (in.moving && in.navValid && !focused) {
+    if (in.moving && in.navValid) {
         w[2] = p.travelShare;
     }
     w[3] = std::max(0.02, 1.0 - w[0] - w[1] - w[2]);
@@ -267,6 +271,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 const Vec3 want = in.belief->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
                 if (p.beliefFollowDeg <= 0.0f || std::fabs(Wrap180(YawOf(want - eye) - YawOf(m_lookPoint - eye))) > p.beliefFollowDeg) {
                     m_lookPoint = want;
+                }
+            } else if (m_lookMode == VIEW_TRAVEL && in.moving && in.navValid) {
+                // look down the route as it turns, in steps, like a person following a corridor
+                if (std::fabs(Wrap180(in.navYaw - YawOf(m_lookPoint - eye))) > TRAVEL_FOLLOW_DEG) {
+                    m_lookPoint = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
                 }
             }
         }
