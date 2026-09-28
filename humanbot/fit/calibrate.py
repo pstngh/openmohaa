@@ -16,7 +16,8 @@ all loops step together from the same runs. Values in tuning.json that no loop o
 the hidden look policy (shares, dwell, re-aim), the sound precision and the pitch gain were set
 by hand from arena and replay runs (the error at a sighting and the hidden view barely respond
 to them one at a time), and the release shift stays 0 because a uniform shift cannot hold fire
-on target without also spraying far off it. Stage "dials" sweeps each style dial's internal
+on target without also spraying far off it. The couplings of assemble_model.py are set there by
+hand; the wall reflex among them was set in the engine (the arena has too few walls to see it). Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
 statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset.
 

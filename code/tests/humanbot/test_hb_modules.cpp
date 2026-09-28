@@ -129,6 +129,45 @@ static void TestMovement(const hb::ModelBundle& b)
     const double wallShare = wallRight / double(std::max(1, wallRight + wallLeft));
     HB_REPORT("strafe right: %.2f of strafe time in the open, %.2f with a wall 4 u to the right", openShare, wallShare);
     HB_CHECK(wallShare < openShare - 0.05);
+    // the wall reflex: a strafe toward a wall reached within the reflex time is let go of at once
+    hb::MovementModel reflex = b.shared.movement;
+    reflex.wallReflexMs      = 200.0f;
+    reflex.wallReflexLogit   = 4.0f;
+    hb::MovementModel noReflex = b.shared.movement;
+    noReflex.wallReflexMs      = 0.0f;
+    hb::MoveInput coming     = in;
+    coming.clearance[5]      = 30.0f;   // right: 30 u away ...
+    coming.clearance[2]      = 30.0f;
+    coming.clearance[8]      = 30.0f;
+    coming.velRight          = 240.0f;  // ... reached in 125 ms
+    int heldOn = 0, heldOff = 0;
+    for (int i = 0; i < 2000; i++) {
+        hb::Mover on, off;
+        on.Init(&reflex);
+        off.Init(&noReflex);
+        on.SetKeys(0, 1);
+        off.SetKeys(0, 1);
+        on.Step(coming, style, rm, rs, out);
+        heldOn += hb::ChordSide(out.chord) == 1;
+        off.Step(coming, style, rm, rs, out);
+        heldOff += hb::ChordSide(out.chord) == 1;
+    }
+    HB_REPORT("strafe held one more tick toward a wall 125 ms away: %.2f with the reflex, %.2f without", heldOn / 2000.0,
+              heldOff / 2000.0);
+    HB_CHECK(heldOn < heldOff - 500);
+    // every probe blocked (the box starts in solid): the reflex stands down and the bot still moves
+    hb::MoveInput blind = in;
+    for (int c = 0; c < hb::NUM_CHORDS; c++) {
+        blind.clearance[c] = 0.0f;
+    }
+    hb::Mover mvBlind;
+    mvBlind.Init(&reflex);
+    int moving = 0;
+    for (int i = 0; i < 20000; i++) {
+        mvBlind.Step(blind, style, rm, rs, out);
+        moving += out.chord != hb::CHORD_NEUTRAL;
+    }
+    HB_CHECK(moving > 10000);
     // a ledge deep enough to hurt is let go of at once, even when the key was already held
     hb::MoveInput ledge = in;
     ledge.drop[7]       = 400.0f;  // forward

@@ -53,6 +53,8 @@ struct MoveInput {
     float clearance[9]   = {128, 128, 128, 128, 128, 128, 128, 128, 128};
     float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;
+    float velFwd         = 0.0f;    // own velocity in the view frame, units/s
+    float velRight       = 0.0f;
     bool  ducked         = false;
     bool  enemyDead      = false;   // no living enemy known (after a kill): lean context LEAN_CTX_DEAD
     bool  onGround       = true;
@@ -92,6 +94,7 @@ public:
     static float ChordAngle(int chord);
     // Chords a new key press may not go toward (walls closer than the veto clearance, ledges).
     int          VetoMask(const MoveInput& in) const;
+    bool         WallAhead(const MoveInput& in, int chord) const;
 
 private:
     float NavAlign(const MoveInput& in, int chord) const;
