@@ -3593,7 +3593,7 @@ void CL_Init( void ) {
 
 	cl_timedemo = Cvar_Get ("timedemo", "0", 0);
 	cl_timedemoLog = Cvar_Get ("cl_timedemoLog", "", CVAR_ARCHIVE);
-	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
+	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "1", CVAR_ARCHIVE);
 	cl_aviFrameRate = Cvar_Get ("cl_aviFrameRate", "25", CVAR_ARCHIVE);
 	cl_aviMotionJpeg = Cvar_Get ("cl_aviMotionJpeg", "1", CVAR_ARCHIVE);
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
@@ -3604,7 +3604,7 @@ void CL_Init( void ) {
 	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "140", CVAR_ARCHIVE);
 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0);
 
-	cl_maxpackets = Cvar_Get ("cl_maxpackets", "30", CVAR_ARCHIVE );
+	cl_maxpackets = Cvar_Get ("cl_maxpackets", "125", CVAR_ARCHIVE );
 	cl_packetdup = Cvar_Get ("cl_packetdup", "1", CVAR_ARCHIVE );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE );
