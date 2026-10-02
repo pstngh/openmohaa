@@ -90,7 +90,7 @@ new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
    - `g_humanbot_seed 0` (the default) draws a new style every run. Set a number (for example
      `g_humanbot_seed 7`) to meet the same styles again.
    - `g_humanbot_families "1 0 0"` gives only pressers; `"0 1 0"` strafers, `"0 0 1"` stoppers.
-     The default is the recorded mix, about 50/33/17.
+     The default is the recorded mix, about 20/40/40.
    - `addbotstyle strafer` adds one bot of a family (`kick` or `removebot` to drop one).
    - `g_humanbot_disguise 1` gives the bots names and a ping, and lists them as players. Use it
      for a blind test with a friend. The names come from `main/humanbot/names.txt` (copy

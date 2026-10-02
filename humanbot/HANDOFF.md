@@ -5,7 +5,7 @@ For a Claude Code session picking this work up. The state is as of 2026-09-28.
 ## What this is
 
 The bots of this fork (github.com/pstngh/openmohaa, public) run one data-fitted, stochastic brain
-learned from six recorded players (346 player-minutes of 1v1 SMG duels). They move, aim, fire and
+learned from five recorded people (397 player-minutes of 1v1 SMG duels). They move, aim, fire and
 look like those players. Each bot draws a style family (presser, strafer, stopper), then its own
 dials. Read [README.md](README.md) for how it works and [TESTING.md](TESTING.md) for the test
 procedure.
