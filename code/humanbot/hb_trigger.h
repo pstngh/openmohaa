@@ -48,6 +48,9 @@ struct TriggerInput {
     float pressLogit     = 0.0f;   // style: reaction (press hazard with LOS)
 };
 
+// 0 up to HIDDEN_LATE_FROM_MS since sight, 1 from HIDDEN_LATE_FULL_MS, linear in log time between
+float HiddenLateRamp(int lageMs);
+
 class Trigger
 {
 public:

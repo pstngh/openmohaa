@@ -324,6 +324,29 @@ static void TestTrigger(const hb::ModelBundle& b)
     const float relSight = tr.ReleaseProb(in, 4);
     in.releaseLogit      = -1.5f;
     HB_CHECK(tr.ReleaseProb(in, 4) < 0.5f * relSight);
+    // fire into cover fades with the time since sight (people lose track of the enemy), unless the enemy is
+    // expected in the crosshair right now
+    HB_CHECK(hb::HiddenLateRamp(0) == 0.0f && hb::HiddenLateRamp(500) == 0.0f);
+    HB_CHECK(hb::HiddenLateRamp(2000) > 0.4f && hb::HiddenLateRamp(2000) < 0.6f);
+    HB_CHECK(hb::HiddenLateRamp(8000) == 1.0f && hb::HiddenLateRamp(100000) == 1.0f);
+    hb::TriggerModel plain = b.shared.trigger, faded = b.shared.trigger;
+    plain.hiddenLateLogit  = 0.0f;
+    faded.hiddenLateLogit  = -2.0f;
+    hb::Trigger tp, tf;
+    tp.Init(&plain);
+    tf.Init(&faded);
+    h.hiddenYawErr = 3.0f;
+    for (const int ms : {300, 10000}) {
+        h.lageMs     = ms;
+        h.anticipate = false;
+        if (ms < 500) {
+            HB_CHECK(tf.PressProb(h, 20) == tp.PressProb(h, 20));
+        } else {
+            HB_CHECK(tf.PressProb(h, 20) < 0.3f * tp.PressProb(h, 20));
+        }
+        h.anticipate = true;
+        HB_CHECK(tf.PressProb(h, 20) == tp.PressProb(h, 20));
+    }
 }
 
 // Running out: the pistol (even an empty one: it bashes), back to the primary when it has rounds again, and a weapon

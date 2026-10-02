@@ -24,14 +24,22 @@ brains no geometry (hb_arena --no-corners: exposures without corners); on its pi
 would turn the hidden view more than on the recorded maps, and the loops of the hidden view's
 noise and stillness would make up for it. The uniform release shift stays 0 because it cannot hold fire on
 target without also spraying far off it: the release is tilted instead, near and far from the
-target and at taps, by three loops (the arena fires with the game's spread since 2026-09-28). The couplings of assemble_model.py are set there by
+target and at taps, by three loops (the arena fires with the game's spread since 2026-09-28). The tap
+tilt acts in sight and is matched on the holds begun in sight. Fire into cover is matched by the time
+since a body part was last on screen: the overall hidden shift on the first second, a fade
+(hidden_late_logit) on the later bins. The boost of the hidden press when an exposure is expected in the
+crosshair (anticipation_logit 5, which the fade leaves out) was set by hand from bot captures on the
+practice maps: in the arena a loop on the fire held before the first visible part ran it from 2 to its
+bound 5 and moved that share 11% -> 13%, while on the recorded maps 5 brought the prefire after 2-5 s
+hidden from 10% to 17% (people 26%). The couplings of assemble_model.py are set there by
 hand; the wall reflex among them was set in the engine (the arena has too few walls to see it). Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
 statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset. A
 dial whose sweep spans less than a third of the human range is left inert, flat at its neutral
 offset: hold_angle (2026-10-02; offsets -2..2 move the share parked on the appearance point
 0.27-0.32, people 0.22-0.53. They do move the view onto the corner, but the parked share is
-bounded by how often the belief picks the right corner).
+bounded by how often the belief picks the right corner). The burst dial counts the bursts begun in sight
+and is relative to the pooled bot, like the skills (RELATIVE_DIALS).
 
 Usage: calibrate.py [--stage pooled|dials|all] [--iters 8] [--seeds 1,2,3,4] [--seconds 900]
                     [--build DIR] [--replay-data DIR] [--dry-run]
@@ -143,21 +151,31 @@ def pooled_loops(shared):
              view["aim_height"]["idle"], stat_kind="diff"),
         # trigger: the press with the enemy in sight, and fire without sight. "Without sight" is the trigger's
         # own: no body part visible (people's fire at a partly visible enemy is fire in sight; on the centroid
-        # ray it counted as hidden, and the loop made the bots fire at enemies they could not see instead)
+        # ray it counted as hidden, and the loop made the bots fire at enemies they could not see instead).
+        # Fire into cover is matched by the time since a part was last on screen: in the first second by the
+        # overall shift, later by the fade (people lose track of the enemy; the bots spend more of their time
+        # long after sight, so matching the overall share would make them fire into cover too early)
         Loop("press_los_logit", ["trigger", "tuning", "press_los_logit"], "add", "arena",
              ["trigger.press_los_near.0", "trigger.press_los_near.50-100", "trigger.press_los_near.150-250"], -3.0, 3.0,
              shared["trigger"].get("tuning", {}).get("press_los_logit", 0.0)),
         Loop("hidden_fire_logit", ["trigger", "tuning", "hidden_fire_logit"], "add", "arena",
-             ["perception.fire_held_no_part"], -3.0, 3.0, shared["trigger"].get("tuning", {}).get("hidden_fire_logit", 0.0)),
+             ["perception.fire_held_no_part.0-500ms", "perception.fire_held_no_part.500-1000ms"], -3.0, 3.0,
+             shared["trigger"].get("tuning", {}).get("hidden_fire_logit", 0.0)),
+        Loop("hidden_late_logit", ["trigger", "tuning", "hidden_late_logit"], "add", "arena",
+             ["perception.fire_held_no_part.1000-2000ms", "perception.fire_held_no_part.2000-5000ms",
+              "perception.fire_held_no_part.gt5000ms"], -4.0, 1.0,
+             shared["trigger"].get("tuning", {}).get("hidden_late_logit", 0.0)),
         # the release with the enemy in sight, tilted near and far from the target, and the taps (the arena
-        # has the game's spread: a spray far off the target also widens the rounds that follow)
+        # has the game's spread: a spray far off the target also widens the rounds that follow). The tap tilt
+        # acts in sight only, so it is matched on the holds begun in sight: on all holds it made up for the
+        # bots' fewer holds begun in cover (people tap 59% of those) with too many taps in sight
         Loop("release_near_logit", ["trigger", "tuning", "release_near_logit"], "add", "arena",
              ["trigger.release_los.0-1", "trigger.release_los.1-2", "trigger.release_los.2-3", "trigger.release_los.3-4",
               "trigger.release_los.4-6"], -3.0, 3.0, shared["trigger"].get("tuning", {}).get("release_near_logit", 0.0)),
         Loop("release_far_logit", ["trigger", "tuning", "release_far_logit"], "add", "arena",
              ["trigger.release_los.6-10", "trigger.release_los.10-1000"], -3.0, 3.0,
              shared["trigger"].get("tuning", {}).get("release_far_logit", 0.0)),
-        Loop("release_tap_logit", ["trigger", "tuning", "release_tap_logit"], "add", "arena", ["trigger.tap_share"],
+        Loop("release_tap_logit", ["trigger", "tuning", "release_tap_logit"], "add", "arena", ["perception.tap_share.in_sight"],
              -3.0, 3.0, shared["trigger"].get("tuning", {}).get("release_tap_logit", 0.0)),
     ]
     mv = shared["movement"]
@@ -299,11 +317,16 @@ DIAL_SWEEPS = {
     "jumps_per_min": ("jump_mult", "dial.jumps_per_min", [0.1, 0.3, 0.6, 1.0, 2.0, 4.0, 8.0]),
     "crouch_per_min": ("crouch_mult", "dial.crouch_per_min", [0.1, 0.3, 0.6, 1.0, 2.0, 4.0, 8.0]),
     "walk_hidden": ("walk_mult", "dial.walk_hidden", [0.0, 0.3, 0.6, 1.0, 2.0, 4.0, 8.0]),
-    "burst_median": ("release_logit", "dial.burst_median", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]),
+    "burst_median": ("release_logit", "dial.burst_median", [-3.0, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]),
     "aim_height_firing": ("aim_height_firing", "dial.aim_height_firing", [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6]),
     "hold_angle": ("hold_logit", "dial.hold_angle", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]),
 }
 SKILL_NEUTRAL = {"aim_error_fight_deg": 1.0, "reaction_ms": 0.0}   # the pooled bot's offsets
+# Style dials that are relative to the pooled bot, like the skills (their neutral offsets). The burst length counts
+# the bursts begun in sight, and such a burst is cut where sight ends: the arena's sightings are shorter than on the
+# recorded maps, so no release offset gets its pooled bot past ~5.3 rounds (people 4-8). A bot drawn x% above the
+# average person bursts x% longer than the pooled bot.
+RELATIVE_DIALS = {"burst_median": 0.0}
 SKILL_SWEEPS = {
     "aim_error_fight_deg": ("noise_scale", "skill.aim_error_fight_deg", [0.4, 0.6, 0.8, 1.0, 1.3, 1.7, 2.2]),
     "reaction_ms": ("reaction_logit", "skill.reaction_ms", [-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 3.0]),
@@ -399,7 +422,8 @@ def calibrate_dials(runner: Runner, log: list, only=()):
             # pre-aimed than on the recorded maps, so absolute aim error and reaction targets would push
             # every bot to an extreme; a bot drawn x% faster than the average human reacts x% faster
             # than the pooled bot
-            scale = (SKILL_NEUTRAL[name], styles["pooled"][name]) if group == "skill" else None
+            scale = ((SKILL_NEUTRAL[name], styles["pooled"][name]) if group == "skill"
+                     else (RELATIVE_DIALS[name], styles["pooled"][name]) if name in RELATIVE_DIALS else None)
             c = dial_curve(grid, realised, styles["min"][name], styles["max"][name], scale=scale,
                            neutral=NEUTRAL_OFFSET.get(offset))
             log.append({"dial": name, "offset": offset, "grid": grid, "realised": realised, "curve": c})

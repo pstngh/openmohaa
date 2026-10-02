@@ -44,6 +44,9 @@ COLS = KEY + ["schema", "map", "seg", "seg_t", "seg_len", "eligible", "person", 
               "view_pitch", "speed_xy", "eye_x", "eye_y", "eye_z", "origin_x", "origin_y", "origin_z", "distance_xyz",
               "ev_shot", "reloading", "clip_ammo"] + BOX
 LOOK = 40                    # ticks of hidden history kept (2 s), as perception_all.py
+# fire into cover by the time since a body part was last on screen, ms
+NO_PART_SINCE = [(0, 500, "0-500ms"), (500, 1000, "500-1000ms"), (1000, 2000, "1000-2000ms"), (2000, 5000, "2000-5000ms"),
+                 (5000, np.inf, "gt5000ms")]
 CURVE_TICKS = [-10, -4, -2, 0, 2, 4]       # the error curve from the first part, ticks
 CORNER_2S_TICKS = [-40, -20, -10, 0]       # the corner curve on sightings hidden >= 2 s, ticks
 MOHAA_ENV = "MOHAA_DIR"
@@ -113,6 +116,7 @@ class Tables:
     CT: pd.DataFrame = None                # control ticks: fully hidden, still hidden 500 ms later
     T: pd.DataFrame = None                 # eligible ticks with the visibility classes
     Sh: pd.DataFrame = None                # eligible SMG shot ticks
+    Ho: pd.DataFrame = None                # complete attack holds, by what was on screen when they began
     curve2s: dict = field(default_factory=dict)   # tick -> yaw to the corner, sightings hidden >= 2 s with a corner
     eye: dict = field(default_factory=dict)
     column: str = "rebuilt"
@@ -307,12 +311,27 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     # fire held at an enemy no part of which is visible, while the weapon could fire (the trigger's hidden side)
     Tk["no_part_loaded"] = ~p_vis & ~F.reloading.to_numpy(bool)[el] & (F.clip_ammo.to_numpy()[el] > 0)
     Tk["attack"] = F.attack.to_numpy(bool)[el]
+    # time since a body part was last on screen (0 on the first tick without one); NaN when none was in this segment
+    novp = Q.run_ending(~vp)
+    Tk["no_part_since_ms"] = np.where((novp > 0) & (novp <= Q.pos), (novp - 1) * 50.0, np.nan)[el]
     shot = F.smg_shot_los.notna().to_numpy()[el]
     Sh = pd.DataFrame({"row": Tk.row.to_numpy()[shot], "hit": F.hit.to_numpy()[el][shot],
                        "cls": np.select([c_vis[shot], p_vis[shot]], ["centre_visible", "part_only"], "no_part")})
+    # complete attack holds (behavior.py runs: not touching a segment edge, every tick eligible) begun with rounds
+    # in the clip and no reload (people also click while reloading or empty, which never fires), by what was on
+    # screen when they began
+    att = F.attack.to_numpy(bool)
+    hl = Q.run_from(att)
+    loaded = ~F.reloading.to_numpy(bool) & (F.clip_ammo.to_numpy() > 0)
+    first = att & (Q.pos >= 1) & ~np.r_[False, att[:-1]] & (np.arange(N) + hl - 1 < Q.last_row) & (Q.run_from(att & el) == hl) & loaded
+    Ho = pd.DataFrame({"row": np.flatnonzero(first), "tap": hl[first] <= 2, "in_sight": vp[first]})
+    # bursts: rounds exactly 100 ms apart (combat.py), each burst labelled by its first round
+    bkey = F.block.to_numpy()[Sh.row.to_numpy()]
+    bms = F.session_ms.to_numpy()[Sh.row.to_numpy()]
+    Sh["burst"] = np.cumsum(np.r_[True, (bkey[1:] != bkey[:-1]) | (np.diff(bms) != 100)])
     say(f"perception: {len(P)} part sightings, {len(Cs)} centroid sightings, {int(P.corner_found.sum())} corners "
         f"({column} column)")
-    T = Tables(F=F[KEY + ["person", "name", "capture_date"]].copy(), P=P, Cs=Cs, CT=CT, T=Tk, Sh=Sh,
+    T = Tables(F=F[KEY + ["person", "name", "capture_date"]].copy(), P=P, Cs=Cs, CT=CT, T=Tk, Sh=Sh, Ho=Ho,
                curve2s={"ticks": curve2s, "rows": rows2s},
                eye=EYE, column=column)
     return T
@@ -346,7 +365,22 @@ def register(D, T: Tables, prefix: str = "perception"):
     m = T.T.no_part_loaded.to_numpy()
     D.add_ratio(f"{pre}.fire_held_no_part", "Fire held with no body part of the enemy visible (loaded, not reloading)", sec,
                 "share", bt[m], T.T.attack.to_numpy()[m])
+    since = T.T.no_part_since_ms.to_numpy()
+    for lo, hi, lab in NO_PART_SINCE:
+        mm = m & (since >= lo) & (since < hi)
+        D.add_ratio(f"{pre}.fire_held_no_part.{lab}", f"Fire held with no body part visible, {lab} after one was last on screen",
+                    sec, "share", bt[mm], T.T.attack.to_numpy()[mm])
+    bh = blk(T.Ho.row)
+    for flag, lab in ((True, "in_sight"), (False, "no_part")):
+        mm = (T.Ho.in_sight == flag).to_numpy()
+        D.add_ratio(f"{pre}.tap_share.{lab}", f"Attack holds begun loaded that are taps (<=100 ms), with {'a body part' if flag else 'no body part'} "
+                    "visible", sec, "share", bh[mm], T.Ho.tap.to_numpy()[mm])
     bs = blk(T.Sh.row)
+    first = ~T.Sh.burst.duplicated().to_numpy()
+    n = T.Sh.groupby("burst").size().to_numpy()
+    ins = T.Sh.cls.ne("no_part").to_numpy()[first]
+    D.add_quant(f"{pre}.burst_in_sight", "Shots per burst whose first round left with a body part visible", sec, "shots",
+                bs[first][ins], n[ins], (("p50", .5), ("p90", .9)))
     for c, lab in (("part_only", "a part on screen, centroid hidden"), ("centre_visible", "centroid visible")):
         m = T.Sh.cls.eq(c).to_numpy()
         D.add_ratio(f"{pre}.smg_hit.{c}", f"SMG shots that hit, {lab}", sec, "share", bs[m], T.Sh.hit.to_numpy()[m], perf=True)

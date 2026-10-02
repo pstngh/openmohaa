@@ -6,7 +6,9 @@ duels). It moves, aims, fires and looks the way those players did. Each bot draw
 family (presser, strafer or stopper), then its own dials and skill within that family. There is
 no neural net: the brain is small semi-Markov processes, controllers and hazards fitted on the
 recordings, plus a particle filter for where the enemy might be. The stock code still handles
-ladders, doors and getting unstuck, for a moment each time.
+doors and getting unstuck, for a moment each time. Ladders are climbed by a simple rule: the
+forward key held and the view up or down the ladder, as people climb, toward the end nearer the
+bot's goal.
 
 The owner's test procedure is in [TESTING.md](TESTING.md).
 
@@ -29,8 +31,10 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - `hb_trigger`: press and release hazards by aim error, time since sight and hold age. "In
      sight" means a body part perceived, and the clock runs from when the parts came on screen, as
      people's reaction does. A style's burst length acts only in sight: fire at an enemy out of
-     sight is let go of as people let go of it. After a head hit of its own the bot pauses and aims
-     at the chest (the owner's rule: no two headshots in a row).
+     sight is let go of as people let go of it. Fire into cover fades with the time since sight, as
+     people lose track of the enemy, except at an enemy expected in the crosshair right now (people
+     prefire corners). After a head hit of its own the bot pauses and aims at the chest (the
+     owner's rule: no two headshots in a row).
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
      while the enemy is hidden. With only parts of the enemy showing, it aims at a visible part.
      While the enemy is hidden it pre-aims the corner the believed enemy would come out from:
@@ -46,9 +50,10 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
      first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
      the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route.
-   - `hb_style`: the dials of this bot. The hold-or-clear dial (how early a bot parks on a
-     corner, and how readily it stops for one) is wired in but inert: no offset of it changes how
-     often a bot waits on the point the enemy appears at.
+   - `hb_style`: the dials of this bot. The burst length counts the bursts begun in sight, and
+     is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
+     on a corner, and how readily it stops for one) is wired in but inert: no offset of it changes
+     how often a bot waits on the point the enemy appears at.
 3. **Usercmds.** `hb_substep` turns the tick's decision into 4 usercmds (`g_humanbot_substeps`).
    Keys are digital, key changes land on one sub-step, the view moves along the flick's
    minimum-jerk profile, and eye info goes out like a client's. The server runs them through the
@@ -84,7 +89,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `g_humanbot_families` | "" | family weights "presser strafer stopper"; "" is the recorded mix |
 | `g_humanbot_disguise` | 0 | 1: names from `main/humanbot/names.txt` (else a built-in list), a realistic ping, listed as players (off: labelled bots) |
 | `g_humanbot_model_dir` | "" | game-relative directory with `shared.json` / `styles.json` / `calibration.json` merge patches and `maps/<map>.json` |
-| `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the stock code (ladder, door, stuck recovery) |
+| `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the climb, door and stuck-recovery code |
 
 Commands:
 - `addbotstyle <presser|strafer|stopper|random> [name]`
@@ -118,14 +123,17 @@ attenuated, the look policy and sound precision were never recorded, and the mod
 
 - open loop, on the recorded traces (`hb_replay`): lean, strafe and forward habits per context;
 - closed loop, in the arena (`hb_arena`, two pooled bots, fixed seeds): stillness, turn speeds,
-  tracking gain, aim noise, aim heights, press hazard and hidden fire (fire held with no body part
-  of the enemy visible, the trigger's own meaning of out of sight).
+  tracking gain, aim noise, aim heights, press hazard, the release tilts and hidden fire (fire held
+  with no body part of the enemy visible, the trigger's own meaning of out of sight, matched by the
+  time since a part was last on screen: an overall shift for the first second, a fade after it).
 
 It then sweeps each style dial's internal offset in the arena and writes the monotone curves
 from dial target to offset. A dial whose sweep spans less than a third of the human range stays
-at its neutral offset (`hold_angle`). The two skills (aim error, reaction) are relative to the
-pooled bot. The corner pre-aim's look policy (`preaim_*`) is set by hand from bot captures on the
-practice maps, scored with `compare.py`: the arena's pillars are not the recorded maps.
+at its neutral offset (`hold_angle`). The two skills (aim error, reaction) and the burst length
+are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`) and the boost of
+fire into cover at an enemy expected in the crosshair (`anticipation_logit`) are set by hand from
+bot captures on the practice maps, scored with `compare.py`: the arena's pillars are not the
+recorded maps.
 
 ## Privacy
 

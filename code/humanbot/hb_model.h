@@ -264,6 +264,11 @@ struct TriggerModel {
     // calibrated
     float anticipationLogit = 1.0f;   // hidden press, when an exposure is predicted within ~300 ms
     float hiddenFireLogit   = 0.0f;   // overall shift of the hidden press hazard
+    // Calibrated fade of the hidden press with the time since sight (HiddenLateRamp), except when an exposure is
+    // anticipated. The fitted hazard takes people's aim error to the true enemy, which grows as they lose track of
+    // it; the bot's input is its error to its own belief, which stays small, so without this the bots kept firing
+    // into cover long after sight.
+    float hiddenLateLogit   = 0.0f;
     float pressLosLogit     = 0.0f;   // calibrated shift of the press hazard with LOS
     float releaseLosLogit   = 0.0f;   // calibrated shift of the release hazard with LOS
     // Calibrated tilts of the release with LOS. The fitted release by aim error comes out too flat in
@@ -275,6 +280,9 @@ struct TriggerModel {
 };
 
 constexpr float RELEASE_FAR_HALF_WIDTHS = 6.0f;
+// hiddenLateLogit ramps in linearly in log time: none up to 500 ms since sight, in full from 8 s
+constexpr float HIDDEN_LATE_FROM_MS = 500.0f;
+constexpr float HIDDEN_LATE_FULL_MS = 8000.0f;
 
 struct WeaponModel {
     std::vector<int>    postKillRoundEdges;  // lower edges of rounds-left bins
