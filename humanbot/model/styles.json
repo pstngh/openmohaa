@@ -18,34 +18,34 @@
  "families": [
   {
    "name": "presser",
-   "weight": 0.5,
-   "people": 3,
+   "weight": 0.2,
+   "people": 1,
    "centre": {
-    "fwd_diag_fight": 0.5104,
-    "reverse_share": 0.8071,
-    "side_hold_ms": 316.667,
-    "lean_fight": 0.9325,
-    "jumps_per_min": 0.5303,
-    "crouch_per_min": 2.3942,
-    "walk_hidden": 0.0162,
-    "burst_median": 6.5556,
-    "aim_height_firing": 0.3773
+    "fwd_diag_fight": 0.5138,
+    "reverse_share": 0.8083,
+    "side_hold_ms": 333.333,
+    "lean_fight": 0.9337,
+    "jumps_per_min": 0.5553,
+    "crouch_per_min": 2.1542,
+    "walk_hidden": 0.0114,
+    "burst_median": 6.3333,
+    "aim_height_firing": 0.39
    },
    "spread": {
-    "fwd_diag_fight": 0.0558,
-    "reverse_share": 0.0318,
-    "side_hold_ms": 35.3553,
-    "lean_fight": 0.0325,
-    "jumps_per_min": 0.5517,
-    "crouch_per_min": 1.3038,
-    "walk_hidden": 0.0223,
-    "burst_median": 0.7328,
-    "aim_height_firing": 0.0345
+    "fwd_diag_fight": 0.0285,
+    "reverse_share": 0.0242,
+    "side_hold_ms": 25.2763,
+    "lean_fight": 0.0271,
+    "jumps_per_min": 0.508,
+    "crouch_per_min": 0.9802,
+    "walk_hidden": 0.0197,
+    "burst_median": 0.6236,
+    "aim_height_firing": 0.0287
    }
   },
   {
    "name": "strafer",
-   "weight": 0.3333,
+   "weight": 0.4,
    "people": 2,
    "centre": {
     "fwd_diag_fight": 0.099,
@@ -59,42 +59,42 @@
     "aim_height_firing": 0.4933
    },
    "spread": {
-    "fwd_diag_fight": 0.0468,
-    "reverse_share": 0.0298,
-    "side_hold_ms": 40.8248,
-    "lean_fight": 0.1004,
-    "jumps_per_min": 2.1986,
-    "crouch_per_min": 4.3477,
-    "walk_hidden": 0.0194,
-    "burst_median": 1.1844,
-    "aim_height_firing": 0.0417
+    "fwd_diag_fight": 0.0437,
+    "reverse_share": 0.0274,
+    "side_hold_ms": 43.4613,
+    "lean_fight": 0.0999,
+    "jumps_per_min": 2.1987,
+    "crouch_per_min": 4.3545,
+    "walk_hidden": 0.0197,
+    "burst_median": 1.2304,
+    "aim_height_firing": 0.0447
    }
   },
   {
    "name": "stopper",
-   "weight": 0.1667,
-   "people": 1,
+   "weight": 0.4,
+   "people": 2,
    "centre": {
-    "fwd_diag_fight": 0.0962,
-    "reverse_share": 0.1624,
-    "side_hold_ms": 225.0,
-    "lean_fight": 0.9011,
-    "jumps_per_min": 2.305,
-    "crouch_per_min": 2.1753,
-    "walk_hidden": 0.0304,
+    "fwd_diag_fight": 0.084,
+    "reverse_share": 0.3297,
+    "side_hold_ms": 212.5,
+    "lean_fight": 0.8697,
+    "jumps_per_min": 3.6873,
+    "crouch_per_min": 6.9356,
+    "walk_hidden": 0.068,
     "burst_median": 3.0,
-    "aim_height_firing": 0.481
+    "aim_height_firing": 0.491
    },
    "spread": {
-    "fwd_diag_fight": 0.0331,
-    "reverse_share": 0.0269,
-    "side_hold_ms": 20.4124,
-    "lean_fight": 0.0291,
-    "jumps_per_min": 0.5079,
-    "crouch_per_min": 0.9495,
-    "walk_hidden": 0.0193,
-    "burst_median": 0.527,
-    "aim_height_firing": 0.0237
+    "fwd_diag_fight": 0.0333,
+    "reverse_share": 0.2378,
+    "side_hold_ms": 30.8446,
+    "lean_fight": 0.0521,
+    "jumps_per_min": 2.0197,
+    "crouch_per_min": 6.803,
+    "walk_hidden": 0.0568,
+    "burst_median": 0.6236,
+    "aim_height_firing": 0.032
    }
   }
  ],
@@ -117,8 +117,8 @@
   "side_hold_ms": 350.0,
   "lean_fight": 0.9588,
   "jumps_per_min": 5.6573,
-  "crouch_per_min": 11.4703,
-  "walk_hidden": 0.052,
+  "crouch_per_min": 11.6958,
+  "walk_hidden": 0.1056,
   "burst_median": 7.0,
   "aim_height_firing": 0.54,
   "aim_error_fight_deg": 6.534,
@@ -127,35 +127,35 @@
  "weapon_mix": [
   {
    "name": "thompson",
-   "weight": 0.5,
+   "weight": 0.4167,
    "mean": 0.0665,
    "sd": 0.0582
   },
   {
    "name": "split",
-   "weight": 0.0,
-   "mean": 0.5,
-   "sd": 0.08
+   "weight": 0.1667,
+   "mean": 0.4947,
+   "sd": 0.0966
   },
   {
    "name": "mp40",
-   "weight": 0.5,
+   "weight": 0.4167,
    "mean": 0.958,
    "sd": 0.0639
   }
  ],
  "pooled": {
-  "fwd_diag_fight": 0.3026,
-  "reverse_share": 0.5729,
-  "side_hold_ms": 301.452,
-  "lean_fight": 0.8075,
-  "jumps_per_min": 1.7446,
-  "crouch_per_min": 4.0069,
-  "walk_hidden": 0.0178,
-  "burst_median": 5.3821,
-  "aim_height_firing": 0.4356,
-  "aim_error_fight_deg": 5.2991,
-  "reaction_ms": 160.273,
-  "mp40_share": 0.5111
+  "fwd_diag_fight": 0.3,
+  "reverse_share": 0.5831,
+  "side_hold_ms": 298.004,
+  "lean_fight": 0.8184,
+  "jumps_per_min": 1.9017,
+  "crouch_per_min": 4.4066,
+  "walk_hidden": 0.0224,
+  "burst_median": 5.2047,
+  "aim_height_firing": 0.4408,
+  "aim_error_fight_deg": 5.3133,
+  "reaction_ms": 152.581,
+  "mp40_share": 0.5091
  }
 }

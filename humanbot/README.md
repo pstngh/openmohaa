@@ -1,7 +1,7 @@
 # Human-imitation bots
 
 The deathmatch bots of this fork do not use the stock bot's decision code. Every bot runs one
-data-fitted, stochastic brain learned from six recorded players (346 player-minutes of 1v1 SMG
+data-fitted, stochastic brain learned from five recorded people (397 player-minutes of 1v1 SMG
 duels). It moves, aims, fires and looks the way those players did. Each bot draws a style
 family (presser, strafer or stopper), then its own dials and skill within that family. There is
 no neural net: the brain is small semi-Markov processes, controllers and hazards fitted on the
