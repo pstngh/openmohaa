@@ -805,7 +805,11 @@ bool LoadMapPrior(const std::string& text, const std::string& overrideText, MapP
         }
         MapPrior m;
         m.name     = Get(j, "map", "map").get<std::string>();
-        m.checksum = static_cast<int32_t>(static_cast<int64_t>(Num(Get(j, "checksum", "map"), "map.checksum")));
+        // as an integer: a float keeps 24 bits, and most map checksums need all 32 (sv_mapChecksum is compared
+        // exactly, and a rounded checksum sends the bots to the navmesh-derived map)
+        const json& sum = Get(j, "checksum", "map");
+        Require(sum.is_number_integer(), "map.checksum must be an integer");
+        m.checksum = static_cast<int32_t>(sum.get<int64_t>());
         m.cellSize = Num(Get(j, "cell_size", "map"), "map.cell_size");
         Require(m.cellSize >= 8.0f, "map.cell_size too small");
         const json&        cj   = Get(j, "cells", "map");

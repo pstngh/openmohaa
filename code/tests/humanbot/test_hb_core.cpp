@@ -133,6 +133,9 @@ static void TestBundle(hb::ModelBundle& bundle)
 
 static void TestMaps()
 {
+    // the practice maps' BSP header checksums (sv_mapChecksum), which the engine glue compares exactly
+    const std::map<std::string, int32_t> sums = {{"maps/dm_crnodoors.json", -17593952}, {"maps/dm_main.json", 832297909},
+                                                 {"maps/dm_vents.json", 1765529479}, {"maps/dm_downladder.json", -1474374008}};
     int nmaps = 0;
     for (const std::string& name : hb::EmbeddedNames()) {
         if (name.compare(0, 5, "maps/") != 0) {
@@ -144,6 +147,7 @@ static void TestMaps()
         HB_CHECK(hb::LoadMapPrior(hb::EmbeddedText(name), "", m, err));
         HB_CHECK(m.NumCells() > 100);
         HB_CHECK(m.checksum != 0);
+        HB_CHECK(sums.count(name) && sums.at(name) == m.checksum);
         // every cell finds itself
         int self = 0;
         for (int c = 0; c < m.NumCells(); c++) {
