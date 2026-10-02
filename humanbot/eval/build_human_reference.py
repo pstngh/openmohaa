@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pooled human reference for the bot evaluation: humanbot/eval/human_reference.json.
 
-Usage: build_human_reference.py [--movement-repo PATH] [--analysis-cache DIR] [--reuse] [--n-boot 200]
+Usage: build_human_reference.py [--movement-repo PATH] [--analysis-cache DIR] [--moh-dir DIR] [--reuse] [--n-boot 200]
 
 Needs the private openmohaa-movement repository. The human analysis cache (frames/events/
 features.parquet built by its load_captures.py + common.py) is taken from
@@ -9,6 +9,12 @@ features.parquet built by its load_captures.py + common.py) is taken from
 captures when missing. A private work dir humanbot/eval/cache/human/ (git-ignored) links
 those files, and the unchanged scripts (combat, lives, acquisition, aim_model, engagements,
 behavior, styles) run there; --reuse keeps earlier outputs.
+
+The perception statistics (perception.py: pre-aim, the corner and the reaction timed from the first visible
+body part, REPORT section 14) need the rebuilt body-part column: vis_parts.parquet in the analysis cache, with
+the data repo's results/vis_parts.json and perception_all.json, or else its unchanged vis_parts.py is run here.
+Both need a MOHAA folder with the practice maps (--moh-dir or $MOHAA_DIR, read only); without one the
+perception statistics are left out.
 
 Written (pooled aggregates only, no alias, no per-person value):
   metrics      every metrics.py statistic over all human duel blocks (player x session):
@@ -18,7 +24,8 @@ Written (pooled aggregates only, no alias, no per-person value):
                the within-person threshold (largest z-distance between two captures of one
                person) and the between-person distances (min / median)
   cohort       duel minutes, blocks, sessions, people (counts)
-The script checks that its pooled statistics reproduce the scripts' JSON before writing.
+The script checks that its pooled statistics reproduce the scripts' JSON (and perception_all.json) before
+writing.
 """
 from __future__ import annotations
 
@@ -35,11 +42,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import metrics as M  # noqa: E402
+import perception as PC  # noqa: E402
 from hbeval import (EVAL_CACHE, HUMAN_REFERENCE, human_analysis_cache, import_analysis_module, log, repo_arg,  # noqa: E402
                     repo_revision, run_analysis, write_json)
 
 SCRIPTS = ["combat.py", "lives.py", "acquisition.py", "aim_model.py", "engagements.py", "behavior.py", "styles.py"]
 LINKED = ["frames.parquet", "events.parquet", "features.parquet", "meta.json"]
+PERCEPTION_RESULTS = ["vis_parts.json", "perception_all.json"]
 
 
 def style_frame(styles_json: Path) -> pd.DataFrame:
@@ -70,15 +79,39 @@ def style_cloud(fpt: pd.DataFrame, person_of) -> dict:
                      "styles.py. Two captures of the same person are at most within_person_max_distance apart."}
 
 
+def link(src: Path, dst: Path):
+    if dst.is_symlink() or dst.exists():
+        if dst.is_symlink() and dst.resolve() == src.resolve():
+            return
+        dst.unlink()
+    os.symlink(src.resolve(), dst)
+
+
 def work_dir(src: Path, work: Path):
     work.mkdir(parents=True, exist_ok=True)
     for f in LINKED:
-        dst = work / f
-        if dst.is_symlink() or dst.exists():
-            if dst.is_symlink() and dst.resolve() == (src / f).resolve():
-                continue
-            dst.unlink()
-        os.symlink((src / f).resolve(), dst)
+        link(src / f, work / f)
+
+
+def perception_inputs(src: Path, work: Path, results: Path, repo: Path, moh) -> str | None:
+    """Links (or rebuilds) the body-part column and the data repo's perception results; None when ready."""
+    if PC.mohaa_dir(moh) is None:
+        return "no MOHAA folder (--moh-dir or $MOHAA_DIR)"
+    results.mkdir(parents=True, exist_ok=True)
+    have = (src / "vis_parts.parquet").exists() and (repo / "analysis" / "results" / "vis_parts.json").exists()
+    if have:
+        link(src / "vis_parts.parquet", work / "vis_parts.parquet")
+        link(repo / "analysis" / "results" / "vis_parts.json", results / "vis_parts.json")
+    else:
+        log("no vis_parts.parquet in the analysis cache: running the data repo's vis_parts.py")
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", NUMBA_CACHE_DIR=str(EVAL_CACHE / "numba"))
+        with open(results / "vis_parts.log", "w") as fh:
+            subprocess.run([sys.executable, str(repo / "analysis" / "vis_parts.py"), str(work), str(results), str(PC.mohaa_dir(moh))],
+                           check=True, stdout=fh, stderr=subprocess.STDOUT, env=env, cwd=str(repo))
+    pa = repo / "analysis" / "results" / "perception_all.json"
+    if pa.exists():
+        link(pa, results / "perception_all.json")
+    return PC.available(work, results, moh)
 
 
 def main(argv=None):
@@ -86,6 +119,7 @@ def main(argv=None):
     ap.add_argument("--movement-repo")
     ap.add_argument("--analysis-cache", help="data-repo cache with features.parquet (default $HB_ANALYSIS_CACHE or "
                                              "humanbot/cache/analysis)")
+    ap.add_argument("--moh-dir", help="MOHAA folder with main/ (the practice maps, read only); default $MOHAA_DIR")
     ap.add_argument("--work", default=str(EVAL_CACHE / "human"))
     ap.add_argument("--reuse", action="store_true", help="keep existing script outputs in the work dir")
     ap.add_argument("--n-boot", type=int, default=M.N_BOOT)
@@ -109,13 +143,20 @@ def main(argv=None):
     if todo:
         log(f"running {', '.join(todo)} on {work}")
         run_analysis(work, results, todo, repo, quiet=False)
-    D = M.prepare(work, results)
+    why = perception_inputs(src, work, results, repo, a.moh_dir)
+    if why:
+        log(f"perception statistics left out: {why}")
+    D = M.prepare(work, results, moh_dir=a.moh_dir)
     allm = M.summarize(D, np.ones(D.nb, bool), n_boot=a.n_boot)
     pairs = M.validate(allm, results)
     bad = M.mismatches(pairs)
-    log(f"validation against the scripts' JSON: {len(pairs)} statistics checked, {len(bad)} differ")
-    for b in bad:
+    ppairs = PC.validate(allm, results)
+    pbad = PC.mismatches(ppairs)
+    log(f"validation against the scripts' JSON: {len(pairs)} statistics checked, {len(bad)} differ; "
+        f"against perception_all.json: {len(ppairs)} checked, {len(pbad)} differ")
+    for b in bad + pbad:
         log("  differs:", b)
+    bad = bad + pbad
     common = import_analysis_module("common", repo)
     person = common.PERSON
     cloud = style_cloud(style_frame(results / "styles.json"), lambda n: person.get(n, n))
@@ -123,15 +164,17 @@ def main(argv=None):
     EL_rows = np.asarray(D.rows)
     out = {
         "version": 1,
-        "about": "Pooled human 1v1 duel reference (openmohaa-movement REPORT section 11 acceptance statistics) for "
-                 "humanbot/eval/compare.py. Aggregates over all humans only: no alias, no per-person value.",
+        "about": "Pooled human 1v1 duel reference (openmohaa-movement REPORT section 11 acceptance statistics, and "
+                 "section 14's pre-aim, corner and reaction from the first visible body part) for humanbot/eval/compare.py. "
+                 "Aggregates over all humans only: no alias, no per-person value.",
         "generated": dt.date.today().isoformat(),
         "generator": "humanbot/eval/build_human_reference.py",
         "analysis_revision": repo_revision(repo),
         "bootstrap": {"n_boot": a.n_boot, "seed": 0, "block": "player x session", "ci": [2.5, 97.5]},
         "cohort": {"duel_minutes": float(EL_rows.sum() / 1200), "blocks": int((EL_rows > 0).sum()),
                    "sessions": int(len(set(D.sessions()[EL_rows > 0]))), "people": int(len(set(per[EL_rows > 0])))},
-        "validation": {"checked": len(pairs), "differ": len(bad)},
+        "validation": {"checked": len(pairs) + len(ppairs), "differ": len(bad),
+                       "perception_all_checked": len(ppairs)},
         "metrics": {},
         "style_cloud": cloud,
     }

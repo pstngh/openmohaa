@@ -19,11 +19,13 @@ time matches target weights (humanbot/model/styles.json).
 Kinds: ratio (sum of numerators / sum of denominators), quantile (weighted, pandas' linear
 interpolation when weights are 1) and custom (occupancy concentration per map).
 
-prepare(cache, results) -> MetricData; summarize(data, block_mask, ...) -> {metric: stats};
+prepare(cache, results, moh_dir) -> MetricData; summarize(data, block_mask, ...) -> {metric: stats};
+the "perception.*" statistics (perception.py: pre-aim, corners and reaction from the first visible body
+part) are added when the cache has the data repo's rebuilt body-part column and moh_dir the practice maps;
 dials(data, persons) -> realised style dials (humanbot/fit/fit_styles.py definitions);
 validate(stats of every block, results dir) -> [(metric, ours, script's)].
 
-CLI (debugging): metrics.py CACHE [RESULTS] [--persons NAME ...] prints the statistics of the
+CLI (debugging): metrics.py CACHE [RESULTS] [--persons NAME ...] [--moh-dir DIR] prints the statistics of the
 chosen persons' blocks (default: every block) and the check against the scripts' JSON.
 """
 from __future__ import annotations
@@ -241,7 +243,7 @@ def runs(V: pd.DataFrame, col: str) -> pd.DataFrame:
     return t
 
 
-def prepare(cache: Path, results: Path | None = None, verbose: bool = True) -> MetricData:
+def prepare(cache: Path, results: Path | None = None, verbose: bool = True, moh_dir=None) -> MetricData:
     cache = Path(cache)
     D = MetricData()
     say = print if verbose else (lambda *a, **k: None)
@@ -263,6 +265,15 @@ def prepare(cache: Path, results: Path | None = None, verbose: bool = True) -> M
     view(D, V, EL)
     space(D, EL)
     tables(D, cache, V)
+    if results is not None:
+        import perception as PC
+        why = PC.available(cache, Path(results), moh_dir)
+        if why is None:
+            T = PC.tables(cache, Path(results), moh_dir, verbose=verbose)
+            PC.register(D, T)
+            D.extra["perception"] = T
+        else:
+            D.notes.append(f"perception statistics skipped: {why}")
     D.finalize()
     return D
 
@@ -915,8 +926,9 @@ def main(argv=None):
     ap.add_argument("results", nargs="?")
     ap.add_argument("--persons", nargs="*", help="only these persons' blocks (default: all)")
     ap.add_argument("--n-boot", type=int, default=N_BOOT)
+    ap.add_argument("--moh-dir", help="MOHAA folder with the practice maps (perception statistics); default $MOHAA_DIR")
     a = ap.parse_args(argv)
-    D = prepare(Path(a.cache), a.results)
+    D = prepare(Path(a.cache), a.results, moh_dir=a.moh_dir)
     mask = np.isin(D.persons(), a.persons) if a.persons else np.ones(D.nb, bool)
     S = summarize(D, mask, n_boot=a.n_boot)
     for name, m in D.metrics.items():
