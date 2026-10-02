@@ -225,6 +225,16 @@ struct ViewModel {
     float lookaroundPerMin   = 6.0f;   // look-arounds (a turn away and back) per minute without a visible enemy
     float beliefLookShare    = 0.6f;   // of hidden look decisions with a focused belief: watch the believed position
     float preaimShare        = 0.3f;   // of hidden look decisions: watch the corner it will come out of
+    // corner pre-aim: the crosshair waits on the edge of cover the believed enemy would come out from,
+    // this far onto the cover side and below the line to its head (people: 1.8 and 2.7 deg, REPORT 14)
+    float preaimCoverDeg     = 1.8f;
+    float preaimBelowDeg     = 2.7f;
+    float preaimHazard       = 0.0f;   // per tick x the imminence of the exposures: turn onto a corner (0 = off)
+    float preaimWeight       = 0.0f;   // a look decision's weight of the corners, per unit of imminence
+    float preaimHorizonMs    = 1000.0f;  // an exposure weighs exp(-eta / horizon) in the imminence (style x)
+    float preaimFlickDeg     = 3.0f;   // a corner is turned onto in one flick from this far off: a deliberate
+                                       // turn like people's, not the idle controller's drift
+    float preaimSelfComp     = 1.0f;   // share of the bot's own motion the view takes out while on a corner
     float travelShare        = 0.25f;
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
@@ -366,6 +376,7 @@ enum Dial {
     DIAL_WALK,
     DIAL_BURST,
     DIAL_AIM_HEIGHT,
+    DIAL_HOLD_ANGLE,   // hold or clear an angle: crosshair parked on where the enemy will appear, 500 ms early
     DIAL_COUNT
 };
 

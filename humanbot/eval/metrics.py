@@ -773,7 +773,7 @@ def summarize(D: MetricData, mask, fam=None, targets=None, n_boot: int = N_BOOT,
 # ====================================================================== style dials (fit_styles.py definitions)
 
 DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min", "walk_hidden",
-         "burst_median", "aim_height_firing", "aim_error_fight_deg", "reaction_ms", "mp40_share"]
+         "burst_median", "aim_height_firing", "hold_angle", "aim_error_fight_deg", "reaction_ms", "mp40_share"]
 
 
 def dials(D: MetricData, persons) -> dict:
@@ -815,6 +815,11 @@ def dials(D: MetricData, persons) -> dict:
             a = acq[acq.person.eq(p)]
             clean = a[~a.attack_before.astype(bool) & (a.err0_total > 2 * a.half_w)]
             r["reaction_ms"] = clean.t_first_attack_press.median() if len(clean) else np.nan
+        r["hold_angle"] = np.nan
+        if "perception" in D.extra:
+            ps = D.extra["perception"].P
+            ps = ps[ps.person.eq(p)]
+            r["hold_angle"] = float(ps.held.mean()) if len(ps) else np.nan
         out[p] = r
     return out
 

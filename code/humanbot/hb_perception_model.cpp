@@ -97,10 +97,15 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
         if (!e.alive) {
             t.detected  = false;
             t.lostTicks = 1000;
+            t.onScreen  = false;
             continue;
         }
         // Defensive: positions are only meaningful for visible parts.
         const bool visible = e.partMask != 0 && e.inFov;
+        if (visible && !t.onScreen) {
+            t.onScreenSince = raw.self.timeMs;
+        }
+        t.onScreen = visible;
         EnemyObs   o;
         o.id         = e.id;
         o.bodyHeight = e.bodyHeight;
@@ -137,6 +142,7 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
                 o.reloading   = e.reloading;
                 o.firing      = e.firing;
                 o.detectP     = pDet;
+                o.visibleMs   = raw.self.timeMs - t.onScreenSince;
                 t.lastPos     = e.centroid;
                 t.lastTime    = raw.self.timeMs;
             }

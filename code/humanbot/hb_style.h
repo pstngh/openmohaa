@@ -59,6 +59,7 @@ struct StyleOffsets {
     float noiseScale      = 1.0f;  // aim noise multiplier (skill)
     float detectMult      = 1.0f;  // detection-rate multiplier
     float reactionLogit   = 0.0f;  // press hazard shift with the enemy in sight (reaction skill)
+    float angleHold       = 1.0f;  // hold or clear an angle: x the corner pre-aim horizon and the hold hazard near exposures
 };
 
 // Draws a bot's dials. family < 0 draws the family from the recorded mix

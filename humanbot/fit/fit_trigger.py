@@ -3,13 +3,17 @@
 All hazards are estimated on unbroken segments of the duel mask, excluding reloads
 and empty clips, as additive logits:
 
-  with LOS   press   = b + E[err bin] + L[time since LOS gain bin] + G[time since release bin] + D * damaged
-             release = b + E[err bin] + L[time since LOS gain bin] + A[hold age bin]
-  hidden     press   = b + Y[|yaw err| bin] + L[time since LOS loss bin] + G[gap bin] + D * damaged
-             release = b + Y[|yaw err| bin] + L[time since LOS loss, 50 ms steps] + A[hold age bin]
+  in sight   press   = b + E[err bin] + L[time since sight bin] + G[time since release bin] + D * damaged
+             release = b + E[err bin] + L[time since sight bin] + A[hold age bin]
+  hidden     press   = b + Y[|yaw err| bin] + L[time since sight loss bin] + G[gap bin] + D * damaged
+             release = b + Y[|yaw err| bin] + L[time since sight loss, 50 ms steps] + A[hold age bin]
 
-Error with LOS is in opponent body half-widths; hidden, it is the yaw error to the
-(unseen) opponent, which the bot replaces with the error to its belief.
+"In sight" is a body part of the opponent on screen (the data repo's rebuilt ext_vis_parts),
+not the centroid ray: people's reaction runs from the first visible part (REPORT section 14),
+they fire at visible parts, and the bot's own sight is its perceived parts. Its clock (`vage`)
+starts when the parts come on screen. Error in sight is to the centroid in opponent body
+half-widths; hidden, it is the yaw error to the (unseen) opponent, which the bot replaces
+with the error to its belief.
 """
 import sys
 from pathlib import Path
@@ -32,7 +36,7 @@ def fit_side(d, press, los):
         y = 1.0 - y
     err_codes = H.binidx(d.en, EN_EDGES) if los else H.binidx(d.aim_yaw_error.abs(), YAW_EDGES)
     lage_edges = LAGE_LOS_EDGES if los else LAGE_HID_EDGES
-    lage = H.binidx(d.lage, lage_edges)
+    lage = H.binidx(d.vage, lage_edges)
     age = H.binidx(d.age_attack, GAP_EDGES if press else HOLD_EDGES)
     dmg = (d.ev_dmg_taken.to_numpy() > 0).astype(int)
     codes = [err_codes, lage, age]
@@ -53,13 +57,14 @@ def main():
     F = H.load_dm()
     # the respawn click is still held or repeated in the first live ticks (fitted in fit_keys.py as the spawn click)
     EL = F[F.eligible & ~(F.spawn_seg & F.seg_k.lt(H.SPAWN_CLICK_TICKS))]
-    TE = EL[~EL.reloading & EL.clip_ammo.gt(0) & EL.nx_attack.notna() & EL.lage.notna() & EL.known_attack]
+    TE = EL[~EL.reloading & EL.clip_ammo.gt(0) & EL.nx_attack.notna() & EL.vage.notna() & EL.known_attack]
     part = {"en_edges": EN_EDGES, "yaw_edges": YAW_EDGES, "lage_los_edges": LAGE_LOS_EDGES, "lage_hidden_edges": LAGE_HID_EDGES,
             "hold_edges": HOLD_EDGES, "gap_edges": GAP_EDGES}
-    part["press_los"] = fit_side(TE[~TE.attack & TE.line_of_sight.eq(1)], True, True)
-    part["release_los"] = fit_side(TE[TE.attack & TE.line_of_sight.eq(1)], False, True)
-    part["press_hidden"] = fit_side(TE[~TE.attack & TE.line_of_sight.eq(0)], True, False)
-    part["release_hidden"] = fit_side(TE[TE.attack & TE.line_of_sight.eq(0)], False, False)
+    part["press_los"] = fit_side(TE[~TE.attack & TE.vis.eq(1)], True, True)
+    part["release_los"] = fit_side(TE[TE.attack & TE.vis.eq(1)], False, True)
+    part["press_hidden"] = fit_side(TE[~TE.attack & TE.vis.eq(0)], True, False)
+    part["release_hidden"] = fit_side(TE[TE.attack & TE.vis.eq(0)], False, False)
+    part["sight"] = "a body part on screen (rebuilt ext_vis_parts); the clock runs from when the parts came on screen"
     H.write_part("trigger", part)
     for k in ["press_los", "release_los", "press_hidden", "release_hidden"]:
         v = part[k]

@@ -49,6 +49,8 @@ public:
     void Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps);
     void SetMap(const MapPrior *map);
     void SetFov(float hfovDeg, float vfovDeg);
+    // The map's geometry for the corners of the believed paths (nullptr: exposures without corners).
+    void SetWorld(const WorldQuery *world) { m_belief.SetWorld(world); }
 
     void Think(const Observation& obs, TickPlan& plan, Diag *diag);
 
@@ -102,6 +104,8 @@ private:
     int  m_headHitMs     = -1000000;   // our last bullet in an enemy's head
     bool m_los           = false;
     int  m_lageMs        = 100000;
+    bool m_vis           = false;  // the trigger's sight: a body part of the focus enemy perceived
+    int  m_vageMs        = 100000; // since that changed; a sighting counts from when the parts came on screen
     bool m_detected      = false;
     int  m_acqTicks      = 1000;
     int  m_focusId       = -1;

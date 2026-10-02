@@ -67,7 +67,15 @@ def build():
             "aim_height": {"idle": 0.66, "firing": 0.44, "sd": 0.08},
             "tuning": {"noise_scale": 1.0, "bias_scale": 0.0, "acquire_min_halfw": 1.5, "acquire_hazard": 0.35,
                        "track_flick_hazard": 0.25, "lookaround_per_min": 6.0, "belief_look_share": 0.6, "preaim_share": 0.3, "travel_share": 0.25,
-                       "look_dwell_median_ms": 900.0, "look_dwell_sigma": 0.6, "damage_turn_delay_ms": 100.0},
+                       "look_dwell_median_ms": 900.0, "look_dwell_sigma": 0.6, "damage_turn_delay_ms": 100.0,
+                       # corner pre-aim: people wait a median 1.8 deg onto the cover side of the edge and 2.7 deg below
+                       # it 500 ms before the enemy shows (REPORT section 14); how strongly a look decision favours a
+                       # corner coming up (weight), how readily a look is broken off for one (hazard) and the horizon
+                       # (when an exposure counts as coming up) have no recorded counterpart. calibrate.py tunes them.
+                       "preaim_cover_deg": 1.8, "preaim_below_deg": 2.7, "preaim_hazard": 0.1, "preaim_weight": 5.0,
+                       "preaim_horizon_ms": 1000.0,
+                       # turning onto a corner is a flick from 3 deg off, the smallest turn of the recorded main sequence
+                       "preaim_flick_deg": 3.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "press_los", "release_los", "press_hidden", "release_hidden"]},
@@ -95,6 +103,15 @@ def build():
     cal = MODEL / "calibration.json"
     if not cal.exists():
         cal.write_text(json.dumps(default_calibration(), indent=1))
+    else:
+        # a dial new to styles.json gets its placeholder curve until calibrate.py sweeps it
+        c = json.loads(cal.read_text())
+        dflt = default_calibration()
+        missing = [k for k in dflt["dial"] if k not in c.get("dial", {})]
+        if missing:
+            c.setdefault("dial", {}).update({k: dflt["dial"][k] for k in missing})
+            cal.write_text(json.dumps(c, indent=1) + "\n")
+            print("calibration.json: placeholder curves for", ", ".join(missing), "(run calibrate.py --stage dials)")
     print("wrote", MODEL / "shared.json", (MODEL / "shared.json").stat().st_size, "bytes")
 
 
@@ -123,6 +140,8 @@ def default_calibration():
                             "y": [lo["walk_hidden"] / pooled["walk_hidden"], 1.0, hi["walk_hidden"] / pooled["walk_hidden"]]},
             "burst_median": lin("burst_median", 0.8, -0.6),
             "aim_height_firing": {"x": [lo["aim_height_firing"], hi["aim_height_firing"]], "y": [lo["aim_height_firing"], hi["aim_height_firing"]]},
+            # hold or clear: the log multiplier of the corner pre-aim horizon and of the hold hazard near exposures
+            "hold_angle": lin("hold_angle", -1.0, 1.0),
         },
         "skill": {
             "aim_error_fight_deg": {"x": [lo["aim_error_fight_deg"], pooled["aim_error_fight_deg"], hi["aim_error_fight_deg"]],

@@ -156,19 +156,20 @@ These captures contain bots only: do not pack them with the duel captures.
 The model matches the human duels within 25% on 58% of 195 statistics. These are furthest off,
 and what to look for in the live test:
 
-- **Aim at the moment of a sighting.** The bots are 13.2 degrees off when the enemy appears;
-  people are 5.2 degrees off. People mostly see the enemy where they already aim, because they
-  peek into their own crosshair. The bots hear and track hidden enemies about as well as people,
-  but do not yet peek. The first shot therefore comes later (250 ms after a clean sighting vs
-  150), and fewer early shots hit.
-- **Close-range tracking.** Firing at under 128 u, the bots' aim error is 21 degrees (people
-  14). They also turn faster in fights (p99 620 deg/s vs 300).
+- **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
+  wait on the edge of cover it comes out from. The bots now pre-aim that corner too, but pick
+  the one the enemy comes out of less often. Bot against bot on the practice maps they are 10.2
+  degrees off at the first visible body part (people 5.2; 11.6 before the pre-aim). The first
+  shot therefore comes later (250 ms after a clean sighting vs 150), and fewer early shots hit.
+- **Close-range tracking.** Firing at under 128 u, the bots' aim error is 19 degrees (people
+  14). They also turn faster in fights (p99 620 deg/s vs 305).
 - **Trigger far off target.** Bots keep firing with the crosshair more than 10 body
   half-widths off 11% of the time (people 4%).
 - **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
   people.
-- **Stillness while seeing the enemy without firing.** People stand still 31% of that time,
-  bots 13%.
+- **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
+  bots 11% in the arena. On the practice maps it swings between captures, and some bots stand
+  facing a visible enemy without firing for long stretches.
 - **The arena is not a recorded map.** Its context mix differs (more hidden time, fewer
   fights), so statistics tied to the map (fight distances, time in fights) can only be judged
   on your captures.

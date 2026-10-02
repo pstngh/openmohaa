@@ -15,12 +15,23 @@ steps (additive, multiplicative or on the logit scale) until the bot matches the
 all loops step together from the same runs. Values in tuning.json that no loop owns are kept:
 the hidden look policy (shares, dwell, re-aim), the sound precision and the pitch gain were set
 by hand from arena and replay runs (the error at a sighting and the hidden view barely respond
-to them one at a time), and the uniform release shift stays 0 because it cannot hold fire on
+to them one at a time). The corner pre-aim's part of that policy (preaim_*: how strongly a look
+decision favours a corner coming up, how readily a look breaks off for one, the horizon, the
+offsets onto the cover side and below) was set by hand from bot captures on the practice maps,
+scored with compare.py: corners are geometry, and the arena's pillars are not the recorded maps.
+The arena runs of the pooled loops and of every dial sweep but hold_angle's therefore give the
+brains no geometry (hb_arena --no-corners: exposures without corners); on its pillars the corners
+would turn the hidden view more than on the recorded maps, and the loops of the hidden view's
+noise and stillness would make up for it. The uniform release shift stays 0 because it cannot hold fire on
 target without also spraying far off it: the release is tilted instead, near and far from the
 target and at taps, by three loops (the arena fires with the game's spread since 2026-09-28). The couplings of assemble_model.py are set there by
 hand; the wall reflex among them was set in the engine (the arena has too few walls to see it). Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
-statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset.
+statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset. A
+dial whose sweep spans less than a third of the human range is left inert, flat at its neutral
+offset: hold_angle (2026-10-02; offsets -2..2 move the share parked on the appearance point
+0.27-0.32, people 0.22-0.53. They do move the view onto the corner, but the parked share is
+bounded by how often the belief picks the right corner).
 
 Usage: calibrate.py [--stage pooled|dials|all] [--iters 8] [--seeds 1,2,3,4] [--seconds 900]
                     [--build DIR] [--replay-data DIR] [--dry-run]
@@ -176,13 +187,13 @@ class Runner:
         self.work = workdir
         self.ref = {k: v["value"] for k, v in json.loads(REFERENCE.read_text())["metrics"].items()}
 
-    def arena_metrics(self, patch: dict, extra=()):
+    def arena_metrics(self, patch: dict, extra=(), corners=False):
         f = self.work / "patch.json"
         f.write_text(json.dumps(patch))
 
         def one(seed):
             cmd = [str(self.arena), "--seconds", str(self.seconds), "--bots", "2", "--pooled", "--seed", str(seed),
-                   "--quiet", "--override", str(f), *extra]
+                   "--quiet", "--override", str(f), *extra, *(() if corners else ("--no-corners",))]
             out = subprocess.run(cmd, capture_output=True, text=True, check=False).stdout
             return json.loads(out.splitlines()[0])["metrics"]
 
@@ -288,6 +299,7 @@ DIAL_SWEEPS = {
     "walk_hidden": ("walk_mult", "dial.walk_hidden", [0.0, 0.3, 0.6, 1.0, 2.0, 4.0, 8.0]),
     "burst_median": ("release_logit", "dial.burst_median", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]),
     "aim_height_firing": ("aim_height_firing", "dial.aim_height_firing", [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6]),
+    "hold_angle": ("hold_logit", "dial.hold_angle", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]),
 }
 SKILL_NEUTRAL = {"aim_error_fight_deg": 1.0, "reaction_ms": 0.0}   # the pooled bot's offsets
 SKILL_SWEEPS = {
@@ -315,11 +327,21 @@ def isotonic(y, increasing=True):
     return out if increasing else [-v for v in out]
 
 
-def dial_curve(offsets, stats, lo, hi, n=7, scale=None):
+# the offset of a bot that does not shift the pooled model (logits 0, multipliers 1)
+NEUTRAL_OFFSET = {"diag_logit": 0.0, "reverse_logit": 0.0, "hold_scale": 1.0, "lean_logit": 0.0, "jump_mult": 1.0,
+                  "crouch_mult": 1.0, "walk_mult": 1.0, "release_logit": 0.0, "hold_logit": 0.0, "noise_scale": 1.0,
+                  "reaction_logit": 0.0}
+MIN_REACH = 1 / 3   # a sweep must span this share of the human range to be inverted
+
+
+def dial_curve(offsets, stats, lo, hi, n=7, scale=None, neutral=None):
     """Monotone curve dial target -> offset from a sweep: isotonic fit of the statistic over the offset
     grid, inverted on n targets spanning the human range [lo, hi] (clamped to what the sweep reached).
     With scale=(neutral offset, human pooled value) the target is relative: a dial x asks for the
-    statistic the bot shows at the neutral offset times x / pooled."""
+    statistic the bot shows at the neutral offset times x / pooled. A sweep that spans less than
+    MIN_REACH of the targets' range cannot tell the offsets apart: inverting its noise would send the
+    bots to the grid's ends, so with a neutral offset the curve is flat there (the dial is inert: every
+    bot behaves like the pooled bot on it)."""
     pts = [(o, s) for o, s in zip(offsets, stats) if math.isfinite(s)]
     if len(pts) < 3:
         return None
@@ -335,24 +357,27 @@ def dial_curve(offsets, stats, lo, hi, n=7, scale=None):
         if not inc and fit[k] >= fit[k - 1]:
             fit[k] = fit[k - 1] - 1e-6
     xs = [lo + (hi - lo) * k / (n - 1) for k in range(n)]
-    targets = xs
+    target = lambda x: x  # noqa: E731
     if scale is not None:
         neutral, pooled = scale
         k0 = min(range(len(o)), key=lambda k: abs(o[k] - neutral))
-        targets = [fit[k0] * x / pooled for x in xs]
-    ys = []
-    for x in targets:
+        target = lambda x: fit[k0] * x / pooled  # noqa: E731
+
+    def invert(x):
         f, oo = (fit, o) if inc else (fit[::-1], o[::-1])
         if x <= f[0]:
-            ys.append(oo[0])
-        elif x >= f[-1]:
-            ys.append(oo[-1])
-        else:
-            j = next(k for k in range(1, len(f)) if f[k] >= x)
-            t = (x - f[j - 1]) / (f[j] - f[j - 1])
-            ys.append(oo[j - 1] + t * (oo[j] - oo[j - 1]))
-    return {"x": [round(v, 4) for v in xs], "y": [round(v, 4) for v in ys],
-            "sweep": {"offset": o, "realised": [round(v, 4) for v in s]}}
+            return oo[0]
+        if x >= f[-1]:
+            return oo[-1]
+        j = next(k for k in range(1, len(f)) if f[k] >= x)
+        t = (x - f[j - 1]) / (f[j] - f[j - 1])
+        return oo[j - 1] + t * (oo[j] - oo[j - 1])
+
+    reach = (max(fit) - min(fit)) / max(abs(target(hi) - target(lo)), 1e-12)
+    sweep = {"offset": o, "realised": [round(v, 4) for v in s], "reach": round(reach, 3)}
+    if reach < MIN_REACH and neutral is not None:
+        return {"x": [round(lo, 4), round(hi, 4)], "y": [neutral, neutral], "sweep": sweep, "flat": True}
+    return {"x": [round(v, 4) for v in xs], "y": [round(invert(target(x)), 4) for x in xs], "sweep": sweep}
 
 
 def calibrate_dials(runner: Runner, log: list, only=()):
@@ -365,16 +390,22 @@ def calibrate_dials(runner: Runner, log: list, only=()):
                 continue
             realised = []
             for v in grid:
-                m = runner.arena_metrics(tuning, extra=("--offset", f"{offset}={v}"))
+                # holding or clearing an angle is about corners: its sweep is the one run with the arena's geometry
+                m = runner.arena_metrics(tuning, extra=("--offset", f"{offset}={v}"), corners=name == "hold_angle")
                 realised.append(m.get(stat, float("nan")))
             # skills are relative to the average: the arena's fights are longer and its sightings less
             # pre-aimed than on the recorded maps, so absolute aim error and reaction targets would push
             # every bot to an extreme; a bot drawn x% faster than the average human reacts x% faster
             # than the pooled bot
             scale = (SKILL_NEUTRAL[name], styles["pooled"][name]) if group == "skill" else None
-            c = dial_curve(grid, realised, styles["min"][name], styles["max"][name], scale=scale)
+            c = dial_curve(grid, realised, styles["min"][name], styles["max"][name], scale=scale,
+                           neutral=NEUTRAL_OFFSET.get(offset))
             log.append({"dial": name, "offset": offset, "grid": grid, "realised": realised, "curve": c})
             print(f"{group} {name}: {offset} {grid} -> {[round(r, 3) for r in realised]}", flush=True)
+            if c and c["sweep"]["reach"] < MIN_REACH:
+                print(f"  {name}: the sweep spans {c['sweep']['reach']:.0%} of the human range: "
+                      + (f"inert (flat at the neutral {offset} {c['y'][0]})" if c.get("flat") else "inverted anyway (no neutral offset)"),
+                      flush=True)
             if c:
                 cal[group][name] = {"x": c["x"], "y": c["y"]}
     cal["about"] = ("Monotone curves from a style dial target (the human-measured statistic, fit_styles.py "

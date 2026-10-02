@@ -86,6 +86,7 @@ struct Frame {
     float viewYaw = NAN, viewPitch = NAN;
     P3    eye, leye, cen;     // unleaned (logger) eye, leaned eye, the opponent's centroid
     P3    oppParts[5];        // the opponent's head, chest, belly, pelvis and feet
+    float targetYaw = NAN, targetPitch = NAN;   // the view controller's target (diagnostics)
 };
 
 struct Shot {
@@ -336,6 +337,16 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
             if (!el[i]) {
                 continue;
             }
+            A.R("diag.perception.sightings_per_min", 0.0, 1.0 / 1200.0);
+            if (r[i].viewMode == 2 && std::isfinite(r[i].targetYaw)) {
+                A.V("diag.preaim.view_to_target", std::fabs(Wrap180d(r[i].targetYaw - r[i].viewYaw)));
+                A.R("diag.preaim.flick", r[i].flick);
+                A.R("diag.preaim.still", r[i].still);
+                if (i > 0 && r[i - 1].viewMode == 2 && std::isfinite(r[i - 1].targetYaw)) {
+                    A.R("diag.preaim.target_jump5", std::fabs(Wrap180d(r[i].targetYaw - r[i - 1].targetYaw)) > 5.0);
+                }
+                A.R("diag.preaim.entry", i > 0 && r[i - 1].viewMode != 2);
+            }
             const bool cvis = r[i].los, pvis = r[i].visParts > 0;
             A.R("perception.part_only_share", pvis && !cvis);
             if (r[i].shot) {
@@ -370,6 +381,30 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
             }
             const int  hb   = hidBefore[i];
             const int  bout = std::min(vpFrom[i], POST);
+            A.R("diag.perception.sightings_per_min", 1.0, 0.0);
+            {
+                // the view's mode on the tick before the first part, and the error at the part by mode
+                const std::string md = std::to_string(r[i - 1].viewMode);
+                A.V("diag.perception.err0.mode." + md, err(i));
+                A.V("diag.perception.yaw0.mode." + md, std::fabs(yerr(i)));
+                {
+                    // vertical: the view's pitch against the line to the centroid (+ = centroid below the crosshair)
+                    const Frame& f0 = r[i];
+                    const double dz = f0.cen.z - f0.eye.z, dh = std::hypot(f0.cen.x - f0.eye.x, f0.cen.y - f0.eye.y);
+                    A.V("diag.perception.pitch0.mode." + md, -std::atan2(dz, dh) * 180.0 / PERC_PI - f0.viewPitch);
+                }
+                const Frame& g = r[i - 1];
+                if (std::isfinite(g.targetYaw)) {
+                    // where the view was headed vs where it was, and vs where the enemy showed
+                    const P3& c  = r[i].cen;
+                    const double cy = std::atan2(c.y - g.eye.y, c.x - g.eye.x) * 180.0 / PERC_PI;
+                    A.V("diag.perception.view_to_target.mode." + md, std::fabs(Wrap180d(g.targetYaw - g.viewYaw)));
+                    A.V("diag.perception.target_to_enemy.mode." + md, std::fabs(Wrap180d(g.targetYaw - cy)));
+                }
+                for (int mm : {0, 1, 2, 3, 4, 5, 6, 7, 8}) {
+                    A.R("diag.perception.mode_share." + std::to_string(mm), r[i - 1].viewMode == mm);
+                }
+            }
             const bool pre  = att[i - 1];
             const double e0 = err(i);
             for (int t : {-500, -200, -100, 0, 100, 200}) {
@@ -458,6 +493,7 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
                 }
             }
             if (bestCross > 1e8) {
+                A.R("diag.perception.corner_found", 0.0);
                 continue;
             }
             double frac = 1.0;
@@ -474,6 +510,7 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
                 frac = hi;
             }
             const P3 K = Lerp(f0.leye, H, frac);
+            A.R("diag.perception.corner_found", 1.0);
             A.V("perception.corner.distance", std::sqrt((K.x - f0.leye.x) * (K.x - f0.leye.x) + (K.y - f0.leye.y) * (K.y - f0.leye.y)
                                                         + (K.z - f0.leye.z) * (K.z - f0.leye.z)));
             for (int k : {-40, -20, -10, 0}) {
@@ -496,6 +533,9 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
                 }
                 const double side = Wrap180d(yA - yK) > 0 ? 1.0 : (Wrap180d(yA - yK) < 0 ? -1.0 : 0.0);
                 const double lead = -yK * side;
+                A.V("diag.perception.lead_m500.mode." + std::to_string(g.viewMode), lead);
+                A.V("diag.perception.cornyaw_m500.mode." + std::to_string(g.viewMode), std::fabs(yK));
+                A.R("diag.perception.m500_mode_share." + std::to_string(g.viewMode), 1.0);
                 A.V("perception.corner.yaw.m500", std::fabs(yK));
                 A.V("perception.corner.angle.m500", tK);
                 A.V("perception.corner.pitch.m500", pK);
@@ -978,6 +1018,16 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
         quants(std::string("perception.corner.") + k, {{"", .5}});
     }
     quants("perception.corner.distance", {{"p50", .5}});
+    quants("diag.preaim.view_to_target", {{"p25", .25}, {"p50", .5}, {"p75", .75}, {"p90", .9}});
+    for (int mm : {0, 1, 2, 3, 4, 5, 6, 7, 8}) {
+        quants("diag.perception.err0.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.view_to_target.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.yaw0.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.lead_m500.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.cornyaw_m500.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.pitch0.mode." + std::to_string(mm), {{"", .5}});
+        quants("diag.perception.target_to_enemy.mode." + std::to_string(mm), {{"", .5}});
+    }
     for (int t : {-2000, -1000, -500, 0}) {
         quants("perception.corner_2s.yaw." + std::to_string(t) + "ms", {{"", .5}});
     }

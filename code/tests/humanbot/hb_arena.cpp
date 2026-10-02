@@ -30,14 +30,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // with --test, fails when one is out of range.
 //
 //   hb_arena [--bots N] [--seconds S] [--seed N] [--substeps K] [--layout pillars|open] [--skill S]
-//            [--override shared.json] [--reference human_reference.json] [--pooled] [--test] [--load]
+//            [--override shared.json] [--reference human_reference.json] [--pooled] [--test] [--load] [--no-corners]
 //            [--offset name=value ...] [--quiet]
 //
 // The statistics are those of humanbot/eval/metrics.py (arena_metrics.h) under the
 // keys of human_reference.json. --offset replaces one style offset of every bot
 // (diag_logit, reverse_logit, hold_scale, lean_logit, jump_mult, crouch_mult,
-// walk_mult, release_logit, aim_height_firing, noise_scale, detect_mult, reaction_logit): the dial
-// sweeps of humanbot/fit/calibrate.py. --quiet prints only the JSON line.
+// walk_mult, release_logit, aim_height_firing, noise_scale, detect_mult, reaction_logit, hold_logit): the dial
+// sweeps of humanbot/fit/calibrate.py. --quiet prints only the JSON line. --no-corners gives the brains no
+// geometry (exposures without corners, as in hb_replay). HB_ARENA_TRACE=<ms> prints bot 0's view each tick
+// until then (mode, target and view yaw, flick, lean, eye, the watched exposure).
 
 #include "hb_brain.h"
 #include "hb_bundle.h"
@@ -86,6 +88,7 @@ struct Options {
     bool        test = false;
     bool        load = false;
     bool        quiet = false;
+    bool        noCorners = false;   // no geometry for the brains: exposures without corners (as hb_replay)
     std::vector<std::pair<std::string, float>> offsets;
 };
 
@@ -103,6 +106,11 @@ bool SetOffset(hb::StyleOffsets& o, const std::string& name, float v)
         {"aim_height_firing", &hb::StyleOffsets::aimHeightFiring}, {"noise_scale", &hb::StyleOffsets::noiseScale},
         {"detect_mult", &hb::StyleOffsets::detectMult},     {"reaction_logit", &hb::StyleOffsets::reactionLogit},
     };
+    if (name == "hold_logit") {
+        // the hold-or-clear dial's offset is a log multiplier (hb_style.cpp)
+        o.angleHold = std::exp(v);
+        return true;
+    }
     for (const Field& f : FIELDS) {
         if (name == f.name) {
             o.*(f.member) = v;
@@ -111,6 +119,24 @@ bool SetOffset(hb::StyleOffsets& o, const std::string& name, float v)
     }
     return false;
 }
+
+// The arena's boxes for the brains' corner traces; bodies never block (as in the engine glue).
+class ArenaWorldQuery : public hb::WorldQuery
+{
+public:
+    explicit ArenaWorldQuery(const PmWorld& w)
+        : m_w(w)
+    {}
+    bool Clear(const hb::Vec3& a, const hb::Vec3& b) const override
+    {
+        const vec3_t s = {a.x, a.y, a.z};
+        const vec3_t e = {b.x, b.y, b.z};
+        return m_w.LineOfSight(s, e, ENTITYNUM_NONE, ENTITYNUM_NONE, PM_MASK_SIGHT & ~CONTENTS_BODY);
+    }
+
+private:
+    const PmWorld& m_w;
+};
 
 //
 // World: a closed room with pillars and cover
@@ -368,6 +394,7 @@ private:
     hb::MapPrior                   m_prior;
     std::vector<std::vector<float>> m_spawns;
     std::vector<Bot>               m_bots;
+    ArenaWorldQuery                m_query{m_world};
     std::vector<hb::RawSound>      m_sounds, m_soundsNext;
     std::vector<int>               m_deaths, m_deathsNext;
     int                            m_now = 0;
@@ -391,6 +418,9 @@ Arena::Arena(const Options& o, const hb::ModelBundle& b)
         const uint64_t seed = o.seed * 1000003ull + static_cast<uint64_t>(i);
         const hb::Rng  root(seed);
         bot.brain.Init(&b, &m_prior, bot.dials, seed, o.substeps);
+        if (!o.noCorners) {
+            bot.brain.SetWorld(&m_query);
+        }
         if (!o.offsets.empty()) {
             hb::StyleOffsets off = bot.brain.Offsets();
             for (const auto& kv : o.offsets) {
@@ -841,6 +871,8 @@ arena::Frame Arena::Row(const Bot& b, const Bot *opp) const
     f.aimH      = b.diag.aim_height;
     f.errPitch  = b.diag.view_err_pitch;
     f.errYaw    = b.diag.view_err_yaw;
+    f.targetYaw   = b.diag.view_target_yaw;
+    f.targetPitch = b.diag.view_target_pitch;
     if (opp && b.diag.belief_spread > 0.0f) {
         const float dx = opp->pm.ps.origin[0] - b.diag.belief_x, dy = opp->pm.ps.origin[1] - b.diag.belief_y;
         f.beliefErr    = std::sqrt(dx * dx + dy * dy);
@@ -869,6 +901,11 @@ void Arena::Measure(Bot& b)
     }
     const arena::Frame f = Row(b, opp);
     b.lives.back().rows.push_back(f);
+    if (std::getenv("HB_ARENA_TRACE") && b.id == 0 && m_now < std::atoi(std::getenv("HB_ARENA_TRACE"))) {
+        std::fprintf(stderr, "t %6d mode %d tgt %7.1f view %7.1f flick %d lean %+d eye %6.0f %6.0f expo %6.0f %6.0f det %d\n", m_now,
+                     b.diag.view_mode, b.diag.view_target_yaw, f.viewYaw, b.diag.flick, b.diag.lean, f.leye.x, f.leye.y,
+                     b.diag.exposure_x, b.diag.exposure_y, b.diag.detected);
+    }
     b.prevYaw      = b.pm.ps.viewangles[YAW];
     b.prevYawValid = true;
     if (!opp) {
@@ -1099,6 +1136,8 @@ int main(int argc, char **argv)
             o.test = true;
         } else if (a == "--load") {
             o.load = true;
+        } else if (a == "--no-corners") {
+            o.noCorners = true;
         } else if (a == "--quiet") {
             o.quiet = true;
         } else if (a == "--offset") {

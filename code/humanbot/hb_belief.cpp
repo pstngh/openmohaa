@@ -32,6 +32,15 @@ namespace hb
 static constexpr int   RESPAWN_MIN_MS    = 1600;   // earliest recorded respawn after a death
 static constexpr int   DEAD_RECKON_TICKS = 8;      // follow the last seen velocity this long
 static constexpr float CHEST_HEIGHT      = 56.0f;
+// Corners are traced at the height of a standing enemy's head (0.9 of 94 u): people's first visible part is
+// the head in 87% of sightings. A corner is reused while the eye stays within CORNER_REUSE_DIST of where it
+// was traced; at most CORNERS_PER_TICK new ones are traced per tick (about 20 sight traces each).
+static constexpr float CORNER_HEAD_Z     = 84.0f;
+static constexpr float CORNER_REUSE_DIST = 24.0f;
+static constexpr int   CORNERS_PER_TICK  = 2;
+static constexpr int   CORNER_CACHE      = 8;
+static constexpr int   PATH_FWD          = 2;      // cells past the exposure tried when it is hidden from the true eye
+static constexpr float CORNER_MIN_DIST   = 96.0f;  // nearer corners are not watched (their direction swings)
 
 void BeliefFilter::Init(const BeliefModel *params, const PerceptionModel *perception, const MapPrior *map, const Rng& rng)
 {
@@ -46,6 +55,7 @@ void BeliefFilter::SetMap(const MapPrior *map)
 {
     m_map      = map;
     m_treeCell = -2;
+    m_corners.clear();
     for (TrackState& t : m_tracks) {
         t.initialised = false;
     }
@@ -56,6 +66,127 @@ void BeliefFilter::Reset()
     m_tracks.clear();
     m_focus    = -1;
     m_treeCell = -2;
+    m_corners.clear();
+}
+
+bool BeliefFilter::FindCorner(const Vec3& eye, const int *path, int n, Vec3& point, float& open) const
+{
+    // head points along the path, from the enemy's side toward the bot
+    Vec3 pts[PATH_BACK + 1 + PATH_FWD];
+    int  m = 0, j = -1;
+    for (int k = 0; k < n; k++) {
+        if (path[k] >= 0) {
+            if (k == PATH_BACK) {
+                j = m;   // the exposure cell
+            }
+            pts[m++] = m_map->cells[path[k]].center + Vec3(0.0f, 0.0f, CORNER_HEAD_Z);
+        }
+    }
+    if (m < 2 || j < 0) {
+        return false;
+    }
+    // the step where the path crosses out of cover, as seen from this eye: start at the exposure cell and
+    // walk back while it is visible, or on toward the bot while it is hidden
+    const bool vj  = m_world->Clear(eye, pts[j]);
+    int        hid = -1;
+    if (vj) {
+        for (int k = j - 1; k >= 0; k--) {
+            if (!m_world->Clear(eye, pts[k])) {
+                hid = k;
+                break;
+            }
+        }
+    } else {
+        for (int k = j + 1; k < m; k++) {
+            if (m_world->Clear(eye, pts[k])) {
+                hid = k - 1;
+                break;
+            }
+        }
+    }
+    if (hid < 0 || hid + 1 >= m) {
+        return false;
+    }
+    const Vec3 a = pts[hid], b = pts[hid + 1];
+    float      lo = 0.0f, hi = 1.0f;
+    for (int it = 0; it < 7; it++) {
+        const float mid = 0.5f * (lo + hi);
+        if (m_world->Clear(eye, a + (b - a) * mid)) {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    const Vec3 h = a + (b - a) * lo;   // the last hidden point of the head
+    // where the line to it first meets the map: the edge of the cover
+    float flo = 0.0f, fhi = 1.0f;
+    for (int it = 0; it < 9; it++) {
+        const float mid = 0.5f * (flo + fhi);
+        if (m_world->Clear(eye, eye + (h - eye) * mid)) {
+            flo = mid;
+        } else {
+            fhi = mid;
+        }
+    }
+    point = eye + (h - eye) * fhi;
+    const float side = Wrap180(YawOf(b - eye) - YawOf(point - eye));
+    open             = side >= 0.0f ? 1.0f : -1.0f;
+    // a corner right beside the bot (it walks along the wall it would watch) swings with every step: none
+    return (point - eye).lengthXY() > CORNER_MIN_DIST;
+}
+
+void BeliefFilter::Corners(BeliefEstimate& e, const Observation& obs, const int (*paths)[PATH_BACK + 1])
+{
+    const int now    = obs.self.timeMs;
+    int       traced = 0;
+    for (int i = 0; i < e.nExposure; i++) {
+        e.cornerValid[i] = false;
+        // one corner per exposure cell from where the eye is (the heaviest path into it decides which, when traced)
+        const int key = paths[i][PATH_BACK];
+        CornerCache *hit = nullptr;
+        for (CornerCache& c : m_corners) {
+            if (c.cell == key && (c.eye - obs.self.eye).length() < CORNER_REUSE_DIST) {
+                hit = &c;
+                break;
+            }
+        }
+        if (!hit) {
+            if (traced >= CORNERS_PER_TICK) {
+                continue;
+            }
+            traced++;
+            // the path into the exposure, and on toward the bot when the exposure is hidden from the true eye
+            int path[PATH_BACK + 1 + PATH_FWD];
+            for (int k = 0; k <= PATH_BACK; k++) {
+                path[k] = paths[i][k];
+            }
+            int c = key;
+            for (int k = 0; k < PATH_FWD; k++) {
+                c                     = c >= 0 ? m_next[c] : -1;
+                path[PATH_BACK + 1 + k] = c;
+            }
+            CornerCache entry;
+            entry.cell   = key;
+            entry.eye    = obs.self.eye;
+            entry.valid  = FindCorner(obs.self.eye, path, PATH_BACK + 1 + PATH_FWD, entry.point, entry.open);
+            if (static_cast<int>(m_corners.size()) < CORNER_CACHE) {
+                m_corners.push_back(entry);
+                hit = &m_corners.back();
+            } else {
+                hit = &m_corners[0];
+                for (CornerCache& cc : m_corners) {
+                    if (cc.usedMs < hit->usedMs) {
+                        hit = &cc;
+                    }
+                }
+                *hit = entry;
+            }
+        }
+        hit->usedMs      = now;
+        e.cornerValid[i] = hit->valid;
+        e.corner[i]      = hit->point;
+        e.cornerOpen[i]  = hit->open;
+    }
 }
 
 int BeliefFilter::FindTrack(int enemyId) const
@@ -511,6 +642,8 @@ void BeliefFilter::Summarise(TrackState& t, const Observation& obs, bool exposur
         int   cell;
         float mass;
         float eta;
+        float bestW;
+        int   back[PATH_BACK + 1];   // the heaviest particle's last cells before the exposure, and the exposure
     };
     std::vector<Exp> ex;
     const float      speed = std::max(100.0f, m_map->hiddenMoveSpeed);
@@ -521,7 +654,15 @@ void BeliefFilter::Summarise(TrackState& t, const Observation& obs, bool exposur
         int   c    = p.cell;
         float path = 0.0f;
         int   hit  = -1;
+        int   back[PATH_BACK + 1];
+        for (int k = 0; k <= PATH_BACK; k++) {
+            back[k] = -1;
+        }
         for (int step = 0; step < 48 && c >= 0; step++) {
+            for (int k = 0; k < PATH_BACK; k++) {
+                back[k] = back[k + 1];
+            }
+            back[PATH_BACK] = c;
             if (m_map->Visibility(botCell, c) >= 0.5f) {
                 hit = c;
                 break;
@@ -542,23 +683,42 @@ void BeliefFilter::Summarise(TrackState& t, const Observation& obs, bool exposur
             if (x.cell == hit) {
                 x.eta = (x.eta * x.mass + eta * p.w) / (x.mass + p.w);
                 x.mass += p.w;
+                if (p.w > x.bestW) {
+                    x.bestW = p.w;
+                    for (int k = 0; k <= PATH_BACK; k++) {
+                        x.back[k] = back[k];
+                    }
+                }
                 found = true;
                 break;
             }
         }
         if (!found) {
-            ex.push_back(Exp{hit, p.w, eta});
+            Exp x{hit, p.w, eta, p.w, {}};
+            for (int k = 0; k <= PATH_BACK; k++) {
+                x.back[k] = back[k];
+            }
+            ex.push_back(x);
         }
         if (eta < 300.0f) {
             e.visibleSoon += p.w;
         }
     }
     std::sort(ex.begin(), ex.end(), [](const Exp& a, const Exp& b) { return a.mass > b.mass; });
+    int paths[MAX_EXPOSURE][PATH_BACK + 1];
     for (size_t i = 0; i < ex.size() && e.nExposure < MAX_EXPOSURE; i++) {
         e.exposure[e.nExposure]      = m_map->cells[ex[i].cell].center;
         e.exposureMass[e.nExposure]  = ex[i].mass;
         e.exposureEtaMs[e.nExposure] = ex[i].eta;
+        e.exposureCell[e.nExposure]  = ex[i].cell;
+        e.cornerValid[e.nExposure]   = false;
+        for (int k = 0; k <= PATH_BACK; k++) {
+            paths[e.nExposure][k] = ex[i].back[k];
+        }
         e.nExposure++;
+    }
+    if (m_world && e.nExposure > 0) {
+        Corners(e, obs, paths);
     }
 }
 
