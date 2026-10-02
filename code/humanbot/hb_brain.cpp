@@ -113,6 +113,8 @@ void Brain::OnSpawn(const Observation& obs)
     m_navOut    = NavOutput();
     m_los       = false;
     m_lageMs    = 100000;
+    m_vis       = false;
+    m_vageMs    = 100000;
     m_detected  = false;
     m_acqTicks  = 1000;
     m_clickDown = false;
@@ -220,13 +222,22 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         m_headHitMs = now;
     }
 
-    // logger-equivalent LOS with the focus enemy (frustum gated) and its age
+    // logger-equivalent LOS with the focus enemy (frustum gated) and its age: the contexts of the
+    // movement and view models
     const bool los = detected && fe->centroidLos;
     if (los != m_los) {
         m_los    = los;
         m_lageMs = 0;
     } else {
         m_lageMs = std::min(m_lageMs + TICK_MS, 100000);
+    }
+    // the trigger's sight: any body part perceived. Its clock starts when the parts came on screen, as
+    // people's reaction is timed from the first visible part (REPORT section 14), not when the bot noticed
+    if (detected != m_vis) {
+        m_vis    = detected;
+        m_vageMs = detected ? std::max(0, fe->visibleMs) : 0;
+    } else {
+        m_vageMs = std::min(m_vageMs + TICK_MS, 100000);
     }
 
     //
@@ -249,8 +260,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     TriggerInput ti;
     ti.canFire = (self.weaponState == 0 || self.weaponState == 1) && self.clipAmmo > 0 && !self.switching
               && self.weaponClass != WEAPON_CLASS_NONE && self.weaponClass != WEAPON_CLASS_GRENADE;
-    ti.los    = los;
-    ti.lageMs = m_lageMs;
+    ti.los    = m_vis;
+    ti.lageMs = m_vageMs;
     float enemyDist = 1000.0f;
     Vec3  enemyFeet;
     bool  enemyKnown = false;
@@ -276,7 +287,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     ti.damaged = !obs.damage.empty();
     if (fb && !detected && fb->valid && !fb->dead && fb->visibleSoon > 0.25f) {
         for (int i = 0; i < fb->nExposure; i++) {
-            const Vec3 d = fb->exposure[i] + Vec3(0.0f, 0.0f, 56.0f) - self.eye;
+            // the corner it comes out from when known, else where it would stand
+            const Vec3 d = (fb->cornerValid[i] ? fb->corner[i] : fb->exposure[i] + Vec3(0.0f, 0.0f, 56.0f)) - self.eye;
             if (fb->exposureEtaMs[i] < 400.0f && std::fabs(Wrap180(YawOf(d) - self.viewYaw)) < 8.0f) {
                 ti.anticipate = true;
             }
@@ -328,6 +340,21 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         vi.enemyFeet  = enemyFeet;
         vi.enemyVel   = fe->vel;
         vi.bodyHeight = fe->bodyHeight;
+        if (!fe->centroidLos && fe->partMask) {
+            // the body's middle is behind cover: aim at the visible part nearest the wanted height
+            const float want = (attackPrev ? m_off.aimHeightFiring : S.view.aimHeightIdle) * fe->bodyHeight;
+            float       best = 1e9f;
+            for (int k = 0; k < NUM_PARTS; k++) {
+                if (fe->partMask & (1 << k)) {
+                    const float dz = std::fabs(fe->partPos[k].z - enemyFeet.z - want);
+                    if (dz < best) {
+                        best         = dz;
+                        vi.aimPart   = fe->partPos[k];
+                        vi.aimPartValid = true;
+                    }
+                }
+            }
+        }
     } else if (recentlyLost) {
         vi.enemyFeet = fb->mode;
         vi.enemyVel  = fb->lastSeenVel;
@@ -342,6 +369,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     // the owner's rule (people land two headshots in a row in 3% of their kills; the bots should not)
     vi.chestOnly = now - m_headHitMs < HEAD_HIT_CHEST_MS;
     vi.noiseScale      = m_off.noiseScale * std::exp(-BOOST_NOISE * m_skillBoost);
+    vi.angleHold       = m_off.angleHold;
     ViewOutput vo;
     m_view.Step(self, vi, m_rngView, vo);
 
@@ -390,6 +418,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     ni.reloading    = reloading;
     ni.msSinceSpawn = now - m_spawnMs;
     ni.msSinceKill  = now - m_killMs;
+    ni.angleHold    = m_off.angleHold;
     m_nav.Step(self, ni, m_rngNav, m_navOut);
 
     //
@@ -441,9 +470,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
             d.belief_spread = fb->spread;
             d.belief_ess    = fb->ess;
             if (fb->nExposure > 0) {
-                d.exposure_x    = fb->exposure[0].x;
-                d.exposure_y    = fb->exposure[0].y;
-                d.exposure_z    = fb->exposure[0].z;
+                // the corner of the heaviest exposure when traced, else its cell
+                const Vec3& x   = fb->cornerValid[0] ? fb->corner[0] : fb->exposure[0];
+                d.exposure_x    = x.x;
+                d.exposure_y    = x.y;
+                d.exposure_z    = x.z;
                 d.exposure_mass = fb->exposureMass[0];
             }
         }

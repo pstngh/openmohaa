@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hbdata as H  # noqa: E402
 
 STYLE_DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min",
-               "walk_hidden", "burst_median", "aim_height_firing"]
+               "walk_hidden", "burst_median", "aim_height_firing", "hold_angle"]
 SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
@@ -80,11 +80,23 @@ def reactions(F):
     return R.groupby(["name", "cap"]).t.median()
 
 
+def hold_angles():
+    """Hold or clear an angle (REPORT section 14): the share of part sightings with the crosshair parked within
+    5 deg of where the enemy will appear, 500 ms before the first part, per alias x capture. Definitions of the
+    data repo's perception_all.py on its rebuilt body-part column (humanbot/eval/perception.py)."""
+    sys.path.insert(0, str(H.HB_ROOT / "eval"))
+    import perception as PC
+    T = PC.tables(H.analysis_cache(), H.movement_repo() / "analysis" / "results", None, verbose=False, corners=False)
+    P = T.P.assign(name=T.F.name.to_numpy()[T.P.row], cap=T.F.capture_date.to_numpy()[T.P.row])
+    return P.groupby(["name", "cap"]).held.mean()
+
+
 def dial_table(F, E):
     EL = F[F.eligible]
     rows = {}
     bmed = bursts(E, F)
     react = reactions(F)
+    holds = hold_angles()
     for (name, cap), d in EL.groupby(["name", "capture_date"]):
         full = F[F.name.eq(name) & F.capture_date.eq(cap)]
         lf = d[d.ctx.eq("los_fire")]
@@ -103,6 +115,7 @@ def dial_table(F, E):
             "walk_hidden": hid.run.eq(0).mean(),
             "burst_median": float(bmed.get((name, cap), np.nan)),
             "aim_height_firing": lf.aim_height_fraction.median(),
+            "hold_angle": float(holds.get((name, cap), np.nan)),
             "mp40_share": d.weapon.eq("MP40").sum() / max(1, smg.sum()),
             "aim_error_fight_deg": lf.aim_total_error.median(),
             "reaction_ms": float(react.get((name, cap), np.nan)),

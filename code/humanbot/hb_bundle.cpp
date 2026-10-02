@@ -54,7 +54,8 @@ namespace hb
 {
 
 const char *const DIAL_NAMES[DIAL_COUNT] = {"fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min",
-                                            "crouch_per_min", "walk_hidden", "burst_median", "aim_height_firing"};
+                                            "crouch_per_min", "walk_hidden", "burst_median", "aim_height_firing",
+                                            "hold_angle"};
 const char *const SKILL_NAMES[SKILL_COUNT]   = {"aim_error_fight_deg", "reaction_ms"};
 const char *const FAMILY_NAMES[FAMILY_COUNT] = {"presser", "strafer", "stopper"};
 
@@ -473,6 +474,13 @@ void ParseView(const json& j, ViewModel& v)
         v.trackFlickHazard  = NumOr(t, "track_flick_hazard", v.trackFlickHazard);
         v.lookaroundPerMin  = NumOr(t, "lookaround_per_min", v.lookaroundPerMin);
         v.preaimShare       = NumOr(t, "preaim_share", v.preaimShare);
+        v.preaimCoverDeg    = NumOr(t, "preaim_cover_deg", v.preaimCoverDeg);
+        v.preaimBelowDeg    = NumOr(t, "preaim_below_deg", v.preaimBelowDeg);
+        v.preaimHazard      = NumOr(t, "preaim_hazard", v.preaimHazard);
+        v.preaimWeight      = NumOr(t, "preaim_weight", v.preaimWeight);
+        v.preaimHorizonMs   = NumOr(t, "preaim_horizon_ms", v.preaimHorizonMs);
+        v.preaimFlickDeg    = NumOr(t, "preaim_flick_deg", v.preaimFlickDeg);
+        v.preaimSelfComp    = NumOr(t, "preaim_self_comp", v.preaimSelfComp);
         v.beliefLookShare   = NumOr(t, "belief_look_share", v.beliefLookShare);
         v.travelShare       = NumOr(t, "travel_share", v.travelShare);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);

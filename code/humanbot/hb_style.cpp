@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_math.h"
 #include "hb_rng.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -94,6 +95,7 @@ StyleOffsets ComputeOffsets(const StyleDials& dials, const Calibration& calib, c
     o.walkMult        = Clamp(calib.dial[DIAL_WALK].Eval(dials.dial[DIAL_WALK]), 0.0f, 10.0f);
     o.releaseLogit    = calib.dial[DIAL_BURST].Eval(dials.dial[DIAL_BURST]);
     o.aimHeightFiring = Clamp(calib.dial[DIAL_AIM_HEIGHT].Eval(dials.dial[DIAL_AIM_HEIGHT]), 0.2f, 0.8f);
+    o.angleHold       = std::exp(Clamp(calib.dial[DIAL_HOLD_ANGLE].Eval(dials.dial[DIAL_HOLD_ANGLE]), -3.0f, 3.0f));
     o.noiseScale      = Clamp(calib.skill[SKILL_AIM_ERROR].Eval(dials.skill[SKILL_AIM_ERROR]), 0.3f, 3.0f);
     // the time to the first shot after a sighting is set by the trigger, not by detection
     // (a detection sweep in the arena moves it by less than 30 ms)

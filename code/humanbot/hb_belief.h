@@ -26,6 +26,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // (conditioned on where the bot is); cells the bot is looking at and would see
 // lose weight; sightings collapse the cloud; sounds and damage reweight it; a
 // kill re-seeds it on the spawn points the FFA spawn rule would pick.
+//
+// Exposures are where a particle's way toward the bot first enters the bot's
+// view (the cell visibility table). With the map's geometry (WorldQuery) each
+// one gets its corner: the edge of cover the enemy would come out from, found
+// like the data repo's corner check, by tracing the believed path at head
+// height from the bot's eye to where it crosses out of cover, then the line to
+// its last hidden point to where it first meets the map.
 
 #pragma once
 
@@ -41,6 +48,7 @@ namespace hb
 
 constexpr int MAX_TRACKS   = 3;
 constexpr int MAX_EXPOSURE = 4;
+constexpr int PATH_BACK    = 3;   // cells of the believed path kept before an exposure
 constexpr int MAX_HEARD_SOUNDS   = 3;   // sounds followed per frame (the nearest)
 
 struct BeliefEstimate {
@@ -60,6 +68,10 @@ struct BeliefEstimate {
     Vec3  exposure[MAX_EXPOSURE]; // where the enemy would first become visible (feet)
     float exposureMass[MAX_EXPOSURE] = {};
     float exposureEtaMs[MAX_EXPOSURE] = {};
+    int   exposureCell[MAX_EXPOSURE] = {};
+    bool  cornerValid[MAX_EXPOSURE] = {};
+    Vec3  corner[MAX_EXPOSURE];          // the edge of cover it would come out from, on the line to its head
+    float cornerOpen[MAX_EXPOSURE] = {}; // +1: it comes out on the corner's left as the bot sees it, -1: right
     Vec3  lastSeenPos;
     Vec3  lastSeenVel;
     int   lastThreatMs = -1000000;  // last time this enemy was seen, heard or hurt us
@@ -70,6 +82,7 @@ class BeliefFilter
 public:
     void Init(const BeliefModel *params, const PerceptionModel *perception, const MapPrior *map, const Rng& rng);
     void SetMap(const MapPrior *map);
+    void SetWorld(const WorldQuery *world) { m_world = world; }
     void Reset();
 
     // Runs one tick. `enemyIds` is the list of enemies that exist (scoreboard).
@@ -81,6 +94,11 @@ public:
 
     // Track index of the focus enemy: the most recent threat (-1 when none).
     int Focus() const { return m_focus; }
+
+    // The corner of a believed path seen from eye: path holds map cells from the enemy's side toward the bot
+    // (-1 = none), the exposure at index PATH_BACK; point is where the line to the path's last hidden point (at
+    // head height) first meets the map, open the side it comes out on (+1 left). Public for the unit tests.
+    bool FindCorner(const Vec3& eye, const int *path, int n, Vec3& point, float& open) const;
 
 private:
     struct Particle {
@@ -113,10 +131,22 @@ private:
     int  ParticlesPerTrack(const Observation& obs) const;
     void RefreshPathTree(int botCell);
     float SoundLikelihood(const Particle& p, const SoundObs& s, const Observation& obs) const;
+    void Corners(BeliefEstimate& e, const Observation& obs, const int (*paths)[PATH_BACK + 1]);
+
+    struct CornerCache {
+        int   cell   = -1;   // the exposure cell
+        Vec3  eye;
+        bool  valid  = false;
+        Vec3  point;
+        float open   = 0.0f;
+        int   usedMs = 0;
+    };
 
     const BeliefModel     *m_p   = nullptr;
     const PerceptionModel *m_perc = nullptr;
     const MapPrior        *m_map = nullptr;
+    const WorldQuery      *m_world = nullptr;
+    std::vector<CornerCache> m_corners;
     Rng                    m_rng;
     std::vector<TrackState> m_tracks;
     int                    m_focus = -1;

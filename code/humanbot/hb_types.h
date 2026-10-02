@@ -25,7 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // hold only what a human could see or hear: body-part positions are set only
 // for parts that are actually visible, and sounds and damage carry their true
 // source, which hb::PerceptionModel turns into noisy human-like observations.
-// hb::Brain receives only the noisy Observation, never a hidden position.
+// hb::Brain receives only the noisy Observation, never a hidden position. The
+// one other thing it may ask is whether the map's geometry blocks a line of
+// sight (WorldQuery): players are never traced, so no answer depends on where
+// an enemy is.
 
 #pragma once
 
@@ -104,6 +107,19 @@ enum Command {
     CMD_RELOAD,
     CMD_PRIMARY,  // switch to the primary (SMG) weapon
     CMD_PISTOL,   // switch to the pistol
+};
+
+//
+// The map's static geometry, for the brain's own line-of-sight questions (where would an enemy on
+// a believed path come out of cover). Implemented by the engine glue and the test harnesses. Bodies
+// are never traced: a trace stopped by a hidden enemy would give its position away.
+//
+class WorldQuery
+{
+public:
+    virtual ~WorldQuery() = default;
+    // True when nothing of the map blocks sight from a to b.
+    virtual bool Clear(const Vec3& a, const Vec3& b) const = 0;
 };
 
 //
@@ -199,6 +215,7 @@ struct EnemyObs {
     bool  reloading   = false;
     bool  firing      = false;
     float detectP     = 0.0f;
+    int   visibleMs   = 0;       // since a body part of it came on screen (while detected): the reaction clock
 };
 
 struct SoundObs {

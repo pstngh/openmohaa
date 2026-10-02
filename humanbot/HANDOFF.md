@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-09-28.
+For a Claude Code session picking this work up. The state is as of 2026-10-02.
 
 ## What this is
 
@@ -31,13 +31,20 @@ Verified:
 - `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 58% of 195
-  statistics (median relative error 0.20; four seeds of 900 s, in the build container). On
-  macOS the same model scores 53%; with the wall terms of 2026-09-28, 55% (median 0.22).
-- 16 bots take 112 us per bot per tick; the budget is 150.
+  statistics (median relative error 0.17), and on 49% of the 43 pre-aim statistics (median
+  0.26); four seeds of 900 s, model `c29371288` of 2026-10-02 on a Linux workstation. On
+  2026-09-28 it was 58% (0.20) in the build container and 53-55% on macOS.
+- 16 bots take 90 us per bot per tick on that workstation (112 in the build container); the
+  budget is 150.
+- On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim"
+  below.
 
 **The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
 - the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
-  on dm/crnodoors and the visibility table is built and cached;
+  on dm/crnodoors and the visibility table is built and cached. Until `fabcc2d7` (2026-10-02)
+  dm/main, dm/vents and dm/downladder rejected their recorded prior (its checksum was read as a
+  float) and ran on a navmesh-derived map whose visibility never finished: the live runs of
+  09-28 and the baseline report on those three maps had no recorded prior;
 - no stuck bout over 2 s and no keyboard violation, with 2 and with 16 bots;
 - think time on the VPS (2 bots): 58-67 us per bot per tick. The engine's traces (sight,
   clearance) cost more than the arena's world, so arena think times understate the engine's.
@@ -179,13 +186,74 @@ on the move they hold the forward key less (35-45%, people 67-75%) because their
 believed enemy more than on the route. In the arena the reflex costs about a point of the
 statistics within 25% (retreats at 96-224 u, already a gap, grow).
 
-## Known gaps (arena, two average-style bots)
+## Corner pre-aim (2026-10-02)
 
-- **Aim at a sighting:** 13 deg off vs people's 5, so the first shot comes at 250 ms vs 150. People
-  peek into their own crosshair; the bots hear and track hidden enemies as well as people do but
-  never peek. The likely next feature is corner clearing: slow before an exposure and pre-aim it.
-- **Close range:** firing at under 128 u, aim error is 21 deg vs 14. Turn speed in fights is
-  p99 620 deg/s vs 300.
+People mostly see the enemy where they already aim: 500 ms before the first visible body part
+their crosshair is a median 5.8 deg from the edge of cover the enemy comes out from, on its cover
+side (the data repo's REPORT section 14). The bots now do the same:
+- `hb_belief` gives each exposure (where a believed path first enters the bot's view) its corner:
+  from the bot's eye it traces the believed path at head height to where it crosses out of cover,
+  then the line to its last hidden point to where it meets the map. The traces ask the map only
+  (`WorldQuery`, `CONTENTS_BODY` left out), so no answer depends on a hidden enemy. Corners are
+  cached per exposure cell, at most 2 new ones per tick, none nearer than 96 u.
+- `hb_view` weighs look decisions toward a corner by its imminence (belief mass x
+  exp(-eta / 1 s); `preaim_weight` 60) and breaks other looks off for one (`preaim_hazard` 0.3).
+  The view waits 1.8 deg onto the cover side and 2.7 deg below (people's medians), turns onto it
+  in one flick from 3 deg off, follows the corner as it is re-traced, and holds it with the
+  tracking gain and full own-motion compensation. The fitted still gate keeps working there.
+- The trigger's sight is any perceived body part, timed from when the parts came on screen
+  (`fit_trigger.py` on the rebuilt `ext_vis_parts`), and with only parts showing the view aims at
+  a visible part.
+
+The `preaim_*` policy was set by hand on real-map captures, because the arena's pillars are not
+the recorded maps. Each capture was 8 dedicated servers, 2 per practice map (seeds 101-108),
+2 bots each, at `timescale 10` for 240 s (about 40 game-minutes), scored with `compare.py
+--moh-dir`. The weight saturates near 20; a hazard of 1.0 is no better than 0.3. A rule that
+stood the still gate down while the view was over 3 deg off its corner made the hidden view three
+times as lively as people's (yaw speed p50 24 vs 8 deg/s, mouse still 21% vs 32%) for no pre-aim
+gain, and was removed.
+
+Final check on held-out seeds 201-208 (`eval/reports/2026-10-02_preaim_realmaps`):
+
+| practice maps, bot vs bot | people | baseline (`2ba0b347`) | prior fix only | now |
+|---|---|---|---|---|
+| aim error at the first visible part | 5.2 deg | 11.6 | 10.7 | 10.2 |
+| crosshair from the corner, 500 ms before | 5.8 deg | 16.2 | 13.4 | 8.2 |
+| out past the corner on the open side (+), 500 ms before | -1.8 deg | +7.6 | +7.0 | +2.0 |
+| closer to the corner than to the hidden enemy | 80% | 35% | 33% | 57% |
+| from the corner 1 s before (hidden 2 s) | 5.8 deg | 18.0 | 16.4 | 9.0 |
+| view turn toward the appearance in the last 500 ms | 13.0 deg | 2.7 | 2.2 | 7.1 |
+| first press after a clean sighting, mean | 232 ms | 301 | 274 | 253 |
+| hidden yaw speed p50 / mouse still while hidden | 8.1 / 32% | 4.3 / 39% | 7.2 / 33% | 11.2 / 33% |
+| other 219 statistics within 25% (median rel. error) | | 39% (0.33) | 44% (0.31) | 45% (0.30) |
+| the 43 pre-aim statistics within 25% (median) | | 23% (0.43) | 30% (0.48) | 40% (0.29) |
+
+To make such a capture: per server, a cfg with `sv_fps 20`, `g_gametype 1`, `fraglimit 0`,
+`timelimit 0`, `sv_runspeed 250`, `sv_dmspeedmult 1`, `sv_gravity 800`, `sv_maxbots 2`,
+`g_humanbot_seed N`, `g_movelog 1`, `g_movelog_need_human 0`, `sv_cheats 1`, `timescale 10` and
+the map. Start `omohaaded` with its own `fs_homepath` and `net_port`, stop it after 240 s, then run
+`compare.py <home>/main/telemetry ... --moh-dir <mohaa>`. A merge patch in
+`g_humanbot_model_dir` tries a parameter without a rebuild. Run one `compare.py` at a time:
+`behavior.py` got OOM-killed with two at once.
+
+## Known gaps (two average-style bots; "real maps" = the report above)
+
+- **Aim at a sighting:** 10.2 deg off at the first visible part vs people's 5.2, and the first press
+  comes at 250 ms vs 150. The bots pre-aim corners now but pick the one the enemy comes out of
+  less often: closer to the corner than to the enemy 57% vs 80%. An ad-hoc check on the tuning
+  captures found them within 4 deg of the true corner at the onset 33% of the time vs 53%, and
+  their error given that distance matching people's. The next lever is which exposures the belief
+  offers, not the view. Downstream of it: 32% of sightings start with fire already held (people 23%),
+  the first hit lands 300 ms after the first part (250), and 49% of part sightings end without a
+  hit (28%).
+- **Partial exposure:** the enemy shows only parts (centroid hidden) 5.1% of duel time vs 10.5%,
+  and bots hit 12% of their rounds there vs 22%. Bots rarely peek with part of the body.
+- **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
+  hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
+  by under a sixth of the human range (0.22-0.53); the bots' parked share is set by the corner
+  choice above. `calibrate.py` leaves any such dial at its neutral offset.
+- **Close range:** firing at under 128 u, aim error is 19 deg vs 14 (real maps 20). Turn speed in
+  fights is p99 620 deg/s vs 305 (real maps 710).
 - **Trigger and spread (2026-09-28):** against the owner the bot hit 15% of its rounds (people 20%)
   with its crosshair on the body more often than people: MOHAA widens the SMG spread 0.3 a round
   (reset after 250 ms without one), and the bot sprayed. The arena now fires with the game's spread,
@@ -193,10 +261,15 @@ statistics within 25% (retreats at 96-224 u, already a gap, grow).
   `release_tap_logit`). In the engine (bot vs bot, 4 maps) the spread at firing fell from 1.26 to
   1.02 (people 1.23) and the kills a minute rose 16%. Still off: the near and tap loops pull
   against each other (near-target release 1.5x people's, taps 34% vs 45%).
-- **Retreats:** bots back off in fights at 100-300 u twice as often as people.
-- **Seeing the enemy without firing:** people stand still 31% of that time, bots 13%.
+- **Retreats:** bots back off in fights at 100-300 u twice as often as people (real maps 15-23%
+  of fight ticks at 96-288 u vs 5-10%).
+- **Seeing the enemy without firing:** people stand still 30% of that time. In the arena bots stand
+  still 11%; on the real maps it swings between captures from 15% to 76% (62% in the report above),
+  and that context takes 3-15% of duel time vs 7%. Some bots stand facing a visible enemy without
+  firing for long stretches. Not investigated.
 - **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
-  shares) are judged on real captures only.
+  shares, the corners: crosshair from the corner 11.9 deg in the arena vs 8.2 on the maps) are
+  judged on real captures only.
 
 ## Deviations from the original plan
 
@@ -210,7 +283,9 @@ statistics within 25% (retreats at 96-224 u, already a gap, grow).
   touches.
 - Engage urgency is 0: bots do not push forward to engage.
 - The hidden look policy, the sound precision and the pitch gain were set by hand (see the
-  `calibrate.py` docstring).
+  `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
+  captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners
+  (`hb_arena --no-corners`).
 - The reaction skill shifts the trigger's press hazard instead of the detection rate. Both skills
   are relative to the average bot.
 - AFK behavior is not modelled.

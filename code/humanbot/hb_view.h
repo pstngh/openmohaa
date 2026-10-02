@@ -27,8 +27,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Student-t noise sized as a lateral miss at the target. Large errors are
 // closed by main-sequence flicks with a human overshoot rate; a still gate
 // holds the mouse exactly still like people do. Without a visible enemy the
-// view pre-aims where the belief says the enemy will appear, looks around, or
-// looks ahead along the route.
+// view pre-aims the corner the believed enemy would come out from (more and
+// earlier as an exposure becomes imminent; a holding style earlier than a
+// clearing one), watches the believed position, looks around, or looks ahead
+// along the route.
 
 #pragma once
 
@@ -63,6 +65,9 @@ struct ViewInput {
     float aimHeightFiring = 0.44f;  // style
     bool  chestOnly       = false;  // right after a head hit of ours: aim at the chest (the owner's rule)
     float noiseScale      = 1.0f;   // style (skill) x pooled tuning
+    float angleHold       = 1.0f;   // style (hold or clear an angle): x the pre-aim horizon
+    bool  aimPartValid    = false;  // only parts of the tracked enemy show (its centroid is behind cover):
+    Vec3  aimPart;                  //   aim at this visible part
 };
 
 struct ViewOutput {
@@ -83,6 +88,7 @@ struct ViewOutput {
     float noiseYaw    = 0.0f;
     float aimHeight   = 0.0f;
     float flickAmp    = 0.0f;
+    float imminence   = 0.0f;   // belief mass expected to come out at a corner soon (exp(-eta / horizon))
 };
 
 class ViewControl
@@ -105,7 +111,9 @@ private:
         float tMs      = 0.0f;
     };
 
-    void  ChooseLook(const SelfState& self, const ViewInput& in, Rng& rng);
+    void  ChooseLook(const SelfState& self, const ViewInput& in, const double *preW, double imminence, Rng& rng);
+    void  PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng);
+    Vec3  CornerAim(const Vec3& eye, const Vec3& corner, float open) const;
     void  LookAround(const SelfState& self, Rng& rng);
     void  StartFlick(float errYaw, float errPitch, float gainMedian, float gainSigma, Rng& rng);
     float NoiseStep(const NoiseModel& nm, float dist, float& state, float scale, Rng& rng);
@@ -138,6 +146,7 @@ private:
     bool  m_damagePending = false;
     bool  m_wasTracking = false;
     int   m_refractory  = 0;   // ticks before another corrective flick may start
+    int   m_preaimCell  = -1;  // the exposure whose corner is watched (VIEW_PREAIM)
 };
 
 } // namespace hb

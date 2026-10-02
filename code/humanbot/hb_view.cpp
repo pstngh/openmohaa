@@ -41,6 +41,9 @@ static constexpr float DIR_LOOK_DIST  = 4000.0f;
 static constexpr float CHEST_AIM_H = 0.5f;
 // A route look re-aims once the route turned this far from it.
 static constexpr float TRAVEL_FOLLOW_DEG = 15.0f;
+// A watched corner follows its own refinements (re-traced from a moved eye) up to this far; a bigger change is
+// another edge, which waits for the next look decision.
+static constexpr float PREAIM_FOLLOW_DEG = 4.0f;
 
 static float MinJerk(float tau)
 {
@@ -85,6 +88,34 @@ void ViewControl::Reset(const SelfState& self)
     m_damagePending  = false;
     m_wasTracking    = false;
     m_refractory     = 0;
+    m_preaimCell     = -1;
+}
+
+// The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
+Vec3 ViewControl::CornerAim(const Vec3& eye, const Vec3& corner, float open) const
+{
+    const Vec3  d    = corner - eye;
+    const float dist = std::max(1.0f, d.length());
+    const float yaw  = YawOf(d) - open * m_p->preaimCoverDeg;
+    const float pit  = PitchOf(d) + m_p->preaimBelowDeg;
+    return eye + AnglesForward(pit, yaw) * dist;
+}
+
+// Turn onto the corner of one of the exposures, drawn by weight w (the imminence terms); the corner already
+// watched weighs more.
+void ViewControl::PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng)
+{
+    const BeliefEstimate *b = in.belief;
+    double                ww[MAX_EXPOSURE];
+    for (int i = 0; i < b->nExposure; i++) {
+        ww[i] = w[i] * (b->exposureCell[i] == m_preaimCell ? 3.0 : 1.0);
+    }
+    const int i      = rng.Categorical(ww, b->nExposure);
+    m_lookPoint      = CornerAim(self.eye, b->corner[i], b->cornerOpen[i]);
+    m_lookPointValid = true;
+    m_lookMode       = VIEW_PREAIM;
+    m_preaimCell     = b->exposureCell[i];
+    m_dwellMs        = static_cast<float>(m_p->lookDwellMedianMs * rng.LogNormal(1.0, m_p->lookDwellSigma));
 }
 
 float ViewControl::FlickDurationMs(float amplitude) const
@@ -141,7 +172,7 @@ float ViewControl::NoiseStep(const NoiseModel& nm, float dist, float& state, flo
 // down the corridor rather than sideways along it. With nothing better they keep
 // looking where they look. Sounds reach the view through the belief; look-arounds
 // are a separate hazard.
-void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rng)
+void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const double *preW, double imminence, Rng& rng)
 {
     const ViewModel&      p    = *m_p;
     const Vec3&           eye  = self.eye;
@@ -154,7 +185,8 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
         w[0] = p.beliefLookShare;
     }
     if (hasExposure) {
-        w[1] = p.preaimShare;
+        // the corner of an exposure coming up wins over watching the believed position through the wall
+        w[1] = p.preaimShare + p.preaimWeight * imminence;
     }
     if (in.moving && in.navValid) {
         w[2] = p.travelShare;
@@ -172,6 +204,11 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
         break;
     case 1:
         {
+            if (imminence > 0.0) {
+                // the corners of the exposures coming up, by their imminence
+                PreaimCorner(self, in, preW, rng);
+                break;
+            }
             const float beliefYaw = YawOf(b->mode - eye);
             double      ew[MAX_EXPOSURE];
             for (int i = 0; i < b->nExposure; i++) {
@@ -182,9 +219,11 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, Rng& rn
                 ew[i] = b->exposureMass[i] * std::exp(-b->exposureEtaMs[i] / 2500.0 - db * db) * (dl < 20.0f ? 3.0 : 1.0);
             }
             const int i      = rng.Categorical(ew, b->nExposure);
-            m_lookPoint      = b->exposure[i] + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+            m_lookPoint      = b->cornerValid[i] ? CornerAim(eye, b->corner[i], b->cornerOpen[i])
+                                                 : b->exposure[i] + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
             m_lookPointValid = true;
             m_lookMode       = VIEW_PREAIM;
+            m_preaimCell     = b->exposureCell[i];
             break;
         }
     case 2:
@@ -220,6 +259,20 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const double uStill = rng.Uniform();
     const double uFlick = rng.Uniform();
     const double uLook  = rng.Uniform();
+    const double uPre   = rng.Uniform();
+
+    // the imminence of the exposures with a corner: belief mass expected to come out there soon
+    double     preW[MAX_EXPOSURE] = {};
+    const auto *bel = in.belief;
+    if (bel && bel->valid && !bel->dead && !in.track) {
+        const double horizon = std::max(50.0, static_cast<double>(p.preaimHorizonMs) * in.angleHold);
+        for (int i = 0; i < bel->nExposure; i++) {
+            if (bel->cornerValid[i]) {
+                preW[i] = bel->exposureMass[i] * std::exp(-bel->exposureEtaMs[i] / horizon);
+                out.imminence += static_cast<float>(preW[i]);
+            }
+        }
+    }
 
     const Vec3& eye = self.eye;
     Vec3        aim;
@@ -234,7 +287,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             m_aimH = std::min(m_aimH, CHEST_AIM_H);
         }
         m_aimH += (hWant - m_aimH) * 0.35f;
-        aim  = in.enemyFeet + Vec3(0.0f, 0.0f, m_aimH * in.bodyHeight);
+        aim  = in.aimPartValid ? in.aimPart : in.enemyFeet + Vec3(0.0f, 0.0f, m_aimH * in.bodyHeight);
         tvel = in.enemyVel;
         out.mode      = VIEW_TRACK;
         m_wasTracking = true;
@@ -267,8 +320,23 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             }
         } else {
             m_dwellMs -= TICK_MS;
+            if (m_lookMode == VIEW_PREAIM && bel) {
+                // the watched corner is traced again as the eye moves: follow it, but not onto another edge
+                for (int i = 0; i < bel->nExposure; i++) {
+                    if (bel->exposureCell[i] == m_preaimCell && bel->cornerValid[i]) {
+                        const Vec3 a = CornerAim(eye, bel->corner[i], bel->cornerOpen[i]);
+                        if (std::fabs(Wrap180(YawOf(a - eye) - YawOf(m_lookPoint - eye))) < PREAIM_FOLLOW_DEG) {
+                            m_lookPoint = a;
+                        }
+                    }
+                }
+            }
             if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid) {
-                ChooseLook(self, in, rng);
+                ChooseLook(self, in, preW, out.imminence, rng);
+                newLook = true;
+            } else if (m_lookMode != VIEW_PREAIM && out.imminence > 0.0f && uPre < p.preaimHazard * out.imminence) {
+                // an exposure is coming up: turn onto its corner
+                PreaimCorner(self, in, preW, rng);
                 newLook = true;
             } else if (m_lookMode != VIEW_LOOKAROUND && uLook < p.lookaroundPerMin / 1200.0f) {
                 LookAround(self, rng);
@@ -360,7 +428,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             if ((offTarget || std::fabs(errYaw) > p.flickDeg) && uFlick < hz) {
                 StartFlick(errYaw, errPitch, p.flickGainMedian, p.flickGainSigma, rng);
             }
-        } else if (newLook && angErr > p.flickDeg) {
+        } else if (newLook && angErr > (m_lookMode == VIEW_PREAIM ? p.preaimFlickDeg : p.flickDeg)) {
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
         } else if (p.hiddenReaimHazard > 0.0f && angErr > p.hiddenReaimDeg && uFlick < p.hiddenReaimHazard) {
             // the view drifted off what it watches (own motion, the believed position moved): re-aim in one turn
@@ -426,8 +494,12 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             const float            ns = in.noiseScale * p.noiseScale * (in.track ? 1.0f : p.hiddenNoiseScale);
             const float noise  = NoiseStep(c.noise, dist, m_noise, ns, rng);
             const float pnoise = NoiseStep(pc.noise, dist, m_pnoise, ns, rng);
-            const float g = in.track ? p.trackGainScale : 1.0f;
-            float rate = c.rho * m_rate + c.Kp * g * m_err[1] + c.Kself * wself + c.Kopp * g * m_wopp[3] + c.bias * p.biasScale + noise;
+            // a watched corner is held like a target: the tracking gain closes the gap the bot's motion opens
+            const bool  corner = !in.track && m_lookMode == VIEW_PREAIM;
+            const float g      = in.track || corner ? p.trackGainScale : 1.0f;
+            // waiting on a corner, the view holds the point against the bot's own motion
+            const float ks = corner ? p.preaimSelfComp : c.Kself;
+            float rate = c.rho * m_rate + c.Kp * g * m_err[1] + ks * wself + c.Kopp * g * m_wopp[3] + c.bias * p.biasScale + noise;
             const float tpRate = m_tpitch[2] - m_tpitch[3];
             float prate = pc.rho * m_prate + pc.Kp * p.pitchGainScale * m_perr[0] + pc.Kt * tpRate + pc.bias * p.biasScale + pnoise;
             rate  = Clamp(rate, -MAX_RATE_DEG, MAX_RATE_DEG);

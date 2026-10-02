@@ -79,13 +79,78 @@ static bool SameDiag(const hb::Diag& a, const hb::Diag& b)
     return true;
 }
 
-// The enemy walks somewhere hidden; `variant` changes where.
-static void RunHidden(const hb::ModelBundle& b, const hb::MapPrior& m, int variant, std::vector<hb::TickPlan>& plans,
-                      std::vector<hb::Diag>& diags)
+// A wall in the plane x = 0 for y <= 0, of any height: a corner at the origin.
+class WallWorld : public hb::WorldQuery
 {
+public:
+    bool Clear(const hb::Vec3& a, const hb::Vec3& b) const override
+    {
+        if ((a.x < 0.0f) == (b.x < 0.0f)) {
+            return true;
+        }
+        const float y = a.y + (b.y - a.y) * (0.0f - a.x) / (b.x - a.x);
+        return y > 0.0f;
+    }
+};
+
+// The map's own cell visibility as geometry: corners appear wherever the believed paths come into view.
+class TableWorld : public hb::WorldQuery
+{
+public:
+    explicit TableWorld(const hb::MapPrior& m)
+        : m_m(m)
+    {}
+    bool Clear(const hb::Vec3& a, const hb::Vec3& b) const override
+    {
+        const int ca = m_m.CellAt(a - hb::Vec3(0, 0, 60)), cb = m_m.CellAt(b - hb::Vec3(0, 0, 80));
+        return ca < 0 || cb < 0 || m_m.Visibility(ca, cb) >= 0.5f;
+    }
+
+private:
+    const hb::MapPrior& m_m;
+};
+
+// From west of the wall, a path running north on its east side comes out where the line from the eye
+// passes the wall's end: the corner is the wall's edge, and the open side is north (left as seen from the eye).
+static void TestCorner(const hb::ModelBundle& b)
+{
+    hb::MapPrior m;
+    for (int k = 0; k < 6; k++) {
+        hb::MapCell c;
+        c.center = hb::Vec3(100.0f, -200.0f + 70.0f * k, 0.0f);
+        m.cells.push_back(c);
+    }
+    WallWorld        w;
+    hb::BeliefFilter f;
+    f.Init(&b.shared.belief, &b.shared.perception, &m, hb::Rng(7));
+    f.SetWorld(&w);
+    const hb::Vec3 eye(-300.0f, -100.0f, 60.0f);
+    // cells 1-3 behind the wall from this eye, 4 (the exposure) in the open, then 5
+    const int path[hb::PATH_BACK + 3] = {1, 2, 3, 4, 5, -1};
+    hb::Vec3  k;
+    float     open = 0.0f;
+    const bool ok  = f.FindCorner(eye, path, hb::PATH_BACK + 3, k, open);
+    HB_REPORT("corner at (%.1f, %.1f, %.1f), open %+.0f", k.x, k.y, k.z, open);
+    HB_CHECK(ok);
+    HB_CHECK(std::fabs(k.x) < 2.0f && std::fabs(k.y) < 4.0f);
+    HB_CHECK(open > 0.0f);
+    // an exposure that is still hidden from the true eye: the path is followed on toward the bot
+    const int late[hb::PATH_BACK + 3] = {0, 1, 2, 3, 4, 5};
+    HB_CHECK(f.FindCorner(eye, late, hb::PATH_BACK + 3, k, open) && std::fabs(k.y) < 4.0f);
+    // no crossing out of cover along the path: no corner
+    const int hidden[hb::PATH_BACK + 3] = {0, 1, 2, 3, -1, -1};
+    HB_CHECK(!f.FindCorner(eye, hidden, hb::PATH_BACK + 3, k, open));
+}
+
+// The enemy walks somewhere hidden; `variant` changes where. With a world the brain traces corners.
+static int RunHidden(const hb::ModelBundle& b, const hb::MapPrior& m, int variant, std::vector<hb::TickPlan>& plans,
+                     std::vector<hb::Diag>& diags, const hb::WorldQuery *world = nullptr)
+{
+    int cornerTicks = 0;
     hb::Brain     br;
     hb::Perceiver pc;
     br.Init(&b, &m, hb::SampleStyle(b.style, -1, 99), 1234, 4);
+    br.SetWorld(world);
     pc.Init(&b.shared.perception, hb::Rng(99).Derive(hb::STREAM_PERCEPTION));
     hb::RawInput raw = BaseInput(m);
     for (int t = 0; t < 600; t++) {
@@ -107,15 +172,29 @@ static void RunHidden(const hb::ModelBundle& b, const hb::MapPrior& m, int varia
         diags.push_back(d);
         raw.self.viewYaw   = hb::Wrap180(raw.self.viewYaw + plan.yawDelta);
         raw.self.viewPitch = raw.self.viewPitch + plan.pitchDelta;
+        const int f = br.Belief().Focus();
+        if (f >= 0) {
+            const hb::BeliefEstimate& e = br.Belief().Track(f);
+            bool any = false;
+            for (int i = 0; i < e.nExposure; i++) {
+                any = any || e.cornerValid[i];
+            }
+            cornerTicks += any;
+        }
     }
+    return cornerTicks;
 }
 
-static void TestNoTruthLeak(const hb::ModelBundle& b, const hb::MapPrior& m)
+static void TestNoTruthLeak(const hb::ModelBundle& b, const hb::MapPrior& m, const hb::WorldQuery *world = nullptr)
 {
     std::vector<hb::TickPlan> p0, p1;
     std::vector<hb::Diag>     d0, d1;
-    RunHidden(b, m, 0, p0, d0);
-    RunHidden(b, m, 1, p1, d1);
+    const int corners = RunHidden(b, m, 0, p0, d0, world);
+    RunHidden(b, m, 1, p1, d1, world);
+    if (world) {
+        HB_REPORT("hidden run with the map's geometry: a corner on %d of %d ticks", corners, static_cast<int>(p0.size()));
+        HB_CHECK(corners > 0);
+    }
     int firstDiff = -1;
     for (size_t t = 0; t < p0.size(); t++) {
         if (!SamePlan(p0[t], p1[t]) || !SameDiag(d0[t], d1[t])) {
@@ -275,6 +354,10 @@ int main()
         return 1;
     }
     TestNoTruthLeak(b, m);
+    // the corner traces ask the map only: still nothing of the hidden truth gets in
+    TableWorld w(m);
+    TestNoTruthLeak(b, m, &w);
+    TestCorner(b);
     TestSpawn(b, m);
     TestTracking(b, m);
     return hbtest::Finish("test_hb_belief");

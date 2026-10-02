@@ -46,6 +46,7 @@ struct NavInput {
     bool                  reloading = false;
     int                   msSinceSpawn = 1000000;
     int                   msSinceKill  = 1000000;
+    float                 angleHold    = 1.0f;     // style (hold or clear an angle): x the hold hazard with an exposure coming up
 };
 
 struct NavOutput {

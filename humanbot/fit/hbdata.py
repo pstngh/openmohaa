@@ -97,21 +97,36 @@ def load_dm(cols=None) -> pd.DataFrame:
     Adds ctx, next-tick values (nx_*), ages (age_*, ticks, 1 on the first tick of
     a run), known_* (the run's start is observed: it did not start at a segment
     edge, or the segment starts with a respawn) and `lage` (ms since
-    line_of_sight last changed, or since the respawn; NaN when unobserved). The
-    empty usercmds right after each respawn are dropped (drop_spawn_dead_time).
+    line_of_sight last changed, or since the respawn; NaN when unobserved). `vis`
+    is 1 while a body part of the opponent is on screen (the data repo's rebuilt
+    ext_vis_parts, vis_parts.parquet; 0 outside the duel mask) and `vage` the ms
+    since it changed, the way `lage` follows line_of_sight. The empty usercmds
+    right after each respawn are dropped (drop_spawn_dead_time).
     """
     cache = ensure_features()
     src = cache / "features.parquet"
-    seq = CACHE / "dm_seq_v6.parquet"
+    seq = CACHE / "dm_seq_v7.parquet"
     if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
         return pd.read_parquet(seq)
     F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])
     F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
+    F = attach_vis_parts(F, cache)
     F = drop_spawn_dead_time(F)
     add_sequences(F)
     if cols is None:
         CACHE.mkdir(parents=True, exist_ok=True)
         F.to_parquet(seq, index=False)
+    return F
+
+
+def attach_vis_parts(F: pd.DataFrame, cache: Path) -> pd.DataFrame:
+    """`vis`: a body part of the opponent on screen (the rebuilt column of the data repo's vis_parts.py)."""
+    p = cache / "vis_parts.parquet"
+    if not p.exists():
+        raise SystemExit(f"{p} missing: run the data repo's analysis/vis_parts.py (it needs the MOHAA folder)")
+    V = pd.read_parquet(p, columns=["session_id", "client_id", "session_ms", "vis_parts_rebuilt"])
+    F = F.merge(V, on=["session_id", "client_id", "session_ms"], how="left", validate="one_to_one")
+    F["vis"] = (F.pop("vis_parts_rebuilt").fillna(0).gt(0) & F.eligible).astype("int8")
     return F
 
 
@@ -151,7 +166,7 @@ def add_sequences(F: pd.DataFrame) -> None:
                          ["reload", "los_fire", "los_nofire", "hidden_fire"], "hidden_nofire")
     F["ctx_i"] = F.ctx.map({c: i for i, c in enumerate(CONTEXTS)}).astype("int8")
     first_tick = g.cumcount().eq(0)
-    for c in ["action", "side", "fwd", "lean", "attack", "crouch_key", "jump_key", "run", "line_of_sight"]:
+    for c in ["action", "side", "fwd", "lean", "attack", "crouch_key", "jump_key", "run", "line_of_sight", "vis"]:
         if c not in F:
             continue
         F["nx_" + c] = g[c].shift(-1)
@@ -168,6 +183,9 @@ def add_sequences(F: pd.DataFrame) -> None:
     F.loc[crun.eq(crun_first), "age_ctx"] = 10000   # context started before the segment: treat as old
     F["lage"] = (F["age_line_of_sight"] - 1) * TICK_MS
     F.loc[~F["known_line_of_sight"], "lage"] = np.nan
+    if "vis" in F:
+        F["vage"] = (F["age_vis"] - 1) * TICK_MS
+        F.loc[~F["known_vis"], "vage"] = np.nan
     F["en"] = F.aim_total_error / F.tgt_half_w_deg
 
 

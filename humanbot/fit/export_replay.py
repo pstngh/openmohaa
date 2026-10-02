@@ -26,7 +26,7 @@ COLS = [
     # identity / sequence
     "seg_key", "spawn_seg", "t_ms", "eligible", "person_id",
     # context and inputs
-    "ctx_i", "line_of_sight", "lage", "attack", "reloading", "clip_ammo", "clip_size", "weapon_ready",
+    "ctx_i", "line_of_sight", "lage", "vis", "vage", "attack", "reloading", "clip_ammo", "clip_size", "weapon_ready",
     "action", "side", "fwd", "lean", "crouch_key", "jump_key", "run", "ducked", "on_ground",
     "en", "aim_yaw_error", "aim_pitch_error", "aim_total_error", "tgt_half_w_deg", "aim_height_fraction",
     "crosshair_on_opponent", "distance_xy", "distance_xyz", "relative_bearing", "opp_reloading",
@@ -65,7 +65,8 @@ def main():
     persons = {p: i for i, p in enumerate(sorted(F.person.unique()))}
     out = pd.DataFrame({
         "seg_key": seg_key, "spawn_seg": F.spawn_seg.astype(float), "t_ms": F.session_ms, "eligible": F.eligible.astype(float), "person_id": F.person.map(persons),
-        "ctx_i": F.ctx_i, "line_of_sight": F.line_of_sight, "lage": F.lage.fillna(-1), "attack": F.attack.astype(float),
+        "ctx_i": F.ctx_i, "line_of_sight": F.line_of_sight, "lage": F.lage.fillna(-1), "vis": F.vis.astype(float),
+        "vage": F.vage.fillna(-1), "attack": F.attack.astype(float),
         "reloading": F.reloading.astype(float), "clip_ammo": F.clip_ammo, "clip_size": F.clip_size,
         "weapon_ready": F.weapon_state.isin([0, 1]).astype(float),
         "action": F.action, "side": F.side, "fwd": F.fwd, "lean": F.lean, "crouch_key": F.crouch_key.astype(float),

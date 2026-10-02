@@ -177,7 +177,8 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         // hold where people hold, more readily when the enemy is expected soon
         float hz = p.holdHazard;
         if (b && b->valid && b->visibleSoon > 0.2f) {
-            hz *= 3.0f;
+            // a holding style stops for the angle, a clearing one walks into it
+            hz *= 3.0f * in.angleHold;
         }
         if (m_map) {
             const int c = m_map->CellAt(self.origin);

@@ -703,7 +703,8 @@ static void RunTrigger(const std::vector<const Replay *>& data, const ModelBundl
         const Replay& r = *data[f];
         bot[f].assign(r.nrows, 0);
         hum[f].assign(r.nrows, 0);
-        const float *att = r.C("attack"), *los = r.C("line_of_sight"), *lage = r.C("lage"), *en = r.C("en");
+        // the trigger's sight is a body part on screen, its clock from when the parts came on screen (fit_trigger.py)
+        const float *att = r.C("attack"), *los = r.C("vis"), *lage = r.C("vage"), *en = r.C("en");
         const float *yaw = r.C("aim_yaw_error"), *rel = r.C("reloading"), *clip = r.C("clip_ammo"), *ready = r.C("weapon_ready");
         const float *dmg = r.C("ev_dmg_taken"), *oal = r.C("opp_alive");
         for (int i = 0; i < r.nrows; i++) {

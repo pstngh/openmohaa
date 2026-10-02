@@ -60,6 +60,8 @@ private:
         int  lostTicks = 1000;
         Vec3 lastPos;
         int  lastTime  = 0;
+        bool onScreen  = false;   // a part was on screen last tick
+        int  onScreenSince = 0;   // when the parts came on screen
     };
 
     Track& TrackFor(int id);

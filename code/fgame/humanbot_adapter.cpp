@@ -249,6 +249,23 @@ private:
 
 static Container<HumanBotAdapter *> s_adapters;
 
+// The map's geometry for the brain's own questions (the corners of believed paths). Players never block:
+// CONTENTS_BODY is left out of the mask, so no answer depends on where an enemy stands.
+class HbWorldQuery : public hb::WorldQuery
+{
+public:
+    bool Clear(const hb::Vec3& a, const hb::Vec3& b) const override
+    {
+        const Vector s(a.x, a.y, a.z), e(b.x, b.y, b.z);
+        return G_SightTrace(
+            s, vec_zero, vec_zero, e, (Entity *)NULL, (Entity *)NULL, (MASK_SHOT & ~CONTENTS_TRIGGER) & ~CONTENTS_BODY,
+            qfalse, "HumanBot corner"
+        );
+    }
+};
+
+static HbWorldQuery s_worldQuery;
+
 HumanBotAdapter *HB_AdapterFor(const Player *player)
 {
     for (int i = 1; i <= s_adapters.NumObjects(); i++) {
@@ -273,6 +290,7 @@ HumanBotAdapter::HumanBotAdapter(BotController *controller, Player *player)
     const uint64_t    seed     = hb::HashString(seedText.c_str());
     const hb::Rng root(seed);
     m_brain.Init(&b, HB_WorldPrior(), m_dials, seed, m_substeps);
+    m_brain.SetWorld(&s_worldQuery);
     m_perceiver.Init(&b.shared.perception, root.Derive(hb::STREAM_PERCEPTION));
     m_sub.Init(m_substeps);
     m_rngSub     = root.Derive(hb::STREAM_SUBSTEP);
@@ -298,6 +316,7 @@ void HumanBotAdapter::Reinit()
     const hb::Rng root(seed);
     m_dials = hb::SampleStyle(b.style, m_dials.family, m_dials.seed);
     m_brain.Init(&b, HB_WorldPrior(), m_dials, seed, m_substeps);
+    m_brain.SetWorld(&s_worldQuery);
     m_perceiver.Init(&b.shared.perception, root.Derive(hb::STREAM_PERCEPTION));
     m_ping.Init(&b.shared.presentation, m_rngPresent);
     m_prior = HB_WorldPrior();
