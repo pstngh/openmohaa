@@ -29,7 +29,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // life and has every row eligible (a living opponent). The acquisition
 // statistics follow the data repo's acquisition.py and the style dials
 // ("dial.*", "skill.*") humanbot/fit/fit_styles.py. "diag.*" keys are brain
-// diagnostics with no human counterpart.
+// diagnostics with no human counterpart. The "perception.*" statistics are
+// humanbot/eval/perception.py's (the data repo's perception_all.py): sightings
+// timed from the first visible body part, the view while the enemy is hidden,
+// and the corner it comes out from, traced through the arena's own geometry.
 
 #pragma once
 
@@ -37,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <climits>
 #include <cmath>
 #include <cstdio>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -47,6 +51,10 @@ namespace arena
 const int NCTX = 5;
 static const char *const CTX_NAMES[NCTX] = {"hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"};
 enum { CTX_HIDDEN_NOFIRE, CTX_HIDDEN_FIRE, CTX_LOS_NOFIRE, CTX_LOS_FIRE, CTX_RELOAD };
+
+struct P3 {
+    float x = NAN, y = NAN, z = NAN;
+};
 
 struct Frame {
     int   t         = 0;      // ms
@@ -71,6 +79,13 @@ struct Frame {
     int  navIntent = -1;
     float aimH = NAN, errPitch = NAN, errYaw = NAN;   // wanted aim height, view error to the controller's target
     float beliefErr = NAN;                            // belief mode to the true position (u), hidden rows
+    // body-part perception (perception.py)
+    int   visParts  = 0;      // the opponent's parts inside the frustum and unoccluded from the leaned eye
+    bool  shot      = false;  // a round of ours left this tick
+    bool  hit       = false;  // and hit the opponent
+    float viewYaw = NAN, viewPitch = NAN;
+    P3    eye, leye, cen;     // unleaned (logger) eye, leaned eye, the opponent's centroid
+    P3    oppParts[5];        // the opponent's head, chest, belly, pelvis and feet
 };
 
 struct Shot {
@@ -197,7 +212,309 @@ std::vector<Run> Runs(const std::vector<Frame>& r, Get get)
     return out;
 }
 
-inline Metrics Compute(const std::vector<Life>& lives)
+const double PERC_PI = 3.14159265358979323846;
+
+// Sight through the arena's geometry, bodies ignored (perception.py traces the map only).
+using SightFn = std::function<bool(const P3& from, const P3& to)>;
+
+inline double Wrap180d(double a)
+{
+    a = std::fmod(a + 180.0, 360.0);
+    if (a < 0.0) {
+        a += 360.0;
+    }
+    return a - 180.0;
+}
+
+inline double NanMedian(std::vector<double> v)
+{
+    v.erase(std::remove_if(v.begin(), v.end(), [](double x) { return !std::isfinite(x); }), v.end());
+    return Quantile(v, 0.5);
+}
+
+struct Basis {
+    double f[3], l[3], u[3];
+};
+
+inline Basis ViewBasis(double pitchDeg, double yawDeg)
+{
+    const double p = pitchDeg * PERC_PI / 180.0, y = yawDeg * PERC_PI / 180.0;
+    Basis        b = {{std::cos(p) * std::cos(y), std::cos(p) * std::sin(y), -std::sin(p)},
+                      {-std::sin(y), std::cos(y), 0.0},
+                      {std::sin(p) * std::cos(y), std::sin(p) * std::sin(y), std::cos(p)}};
+    return b;
+}
+
+inline bool InFrustum(const P3& eye, const P3& q, const Basis& b, double tanH, double tanV)
+{
+    const double d[3] = {q.x - eye.x, q.y - eye.y, q.z - eye.z};
+    const double x    = d[0] * b.f[0] + d[1] * b.f[1] + d[2] * b.f[2];
+    return x > 1.0 && std::fabs(d[0] * b.l[0] + d[1] * b.l[1] + d[2] * b.l[2]) <= x * tanH
+        && std::fabs(d[0] * b.u[0] + d[1] * b.u[1] + d[2] * b.u[2]) <= x * tanV;
+}
+
+inline P3 Lerp(const P3& a, const P3& b, double t)
+{
+    P3 o;
+    o.x = static_cast<float>(a.x + t * (b.x - a.x));
+    o.y = static_cast<float>(a.y + t * (b.y - a.y));
+    o.z = static_cast<float>(a.z + t * (b.z - a.z));
+    return o;
+}
+
+// total angle, yaw and pitch (deg) from the view of row f (leaned eye) to p; pitch + = p below the crosshair
+inline void AnglesTo(const Frame& f, const P3& p, double& tot, double& yaw, double& pit)
+{
+    const Basis  b    = ViewBasis(f.viewPitch, f.viewYaw);
+    const double d[3] = {p.x - f.leye.x, p.y - f.leye.y, p.z - f.leye.z};
+    const double len  = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    tot = len > 0 ? std::acos(std::max(-1.0, std::min(1.0, (d[0] * b.f[0] + d[1] * b.f[1] + d[2] * b.f[2]) / len))) * 180.0 / PERC_PI
+                  : NAN;
+    yaw = Wrap180d(std::atan2(d[1], d[0]) * 180.0 / PERC_PI - f.viewYaw);
+    pit = std::atan2(-d[2], std::hypot(d[0], d[1])) * 180.0 / PERC_PI - f.viewPitch;
+}
+
+// humanbot/eval/perception.py on arena lives (one life = one segment). Values go into A under the same keys.
+inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& sight, double tanH, double tanV)
+{
+    const int PRE = 10, HOLD = 6, POST = 30, LOOK = 40;
+    for (const Life& L : lives) {
+        const std::vector<Frame>& r = L.rows;
+        const int                 n = static_cast<int>(r.size());
+        if (n < PRE + HOLD) {
+            continue;
+        }
+        std::vector<char> el(n), los(n), vp(n), hid(n), hidC(n), att(n), close(n), on(n), hitv(n), shotv(n);
+        for (int i = 0; i < n; i++) {
+            const Frame& f = r[i];
+            el[i]    = f.eligible;
+            los[i]   = f.eligible && f.los;
+            vp[i]    = f.eligible && f.visParts > 0;
+            hid[i]   = el[i] && !los[i] && !vp[i];
+            hidC[i]  = el[i] && !los[i];
+            att[i]   = f.attack;
+            close[i] = f.eligible && f.aimErr <= f.halfW + 1.5f;
+            on[i]    = f.eligible && f.onBody;
+            hitv[i]  = f.eligible && f.hit;
+            shotv[i] = f.eligible && f.shot;
+        }
+        auto runEnd = [n](const std::vector<char>& c) {
+            std::vector<int> o(n, 0);
+            for (int i = 0; i < n; i++) {
+                o[i] = c[i] ? (i > 0 ? o[i - 1] : 0) + 1 : 0;
+            }
+            return o;
+        };
+        auto runFrom = [n](const std::vector<char>& c) {
+            std::vector<int> o(n, 0);
+            for (int i = n - 1; i >= 0; i--) {
+                o[i] = c[i] ? (i + 1 < n ? o[i + 1] : 0) + 1 : 0;
+            }
+            return o;
+        };
+        auto before = [&](const std::vector<char>& c) {
+            std::vector<int> e = runEnd(c), o(n, 0);
+            for (int i = 1; i < n; i++) {
+                o[i] = e[i - 1];
+            }
+            return o;
+        };
+        auto err  = [&](int i) { return i >= 0 && i < n && el[i] ? static_cast<double>(r[i].aimErr) : NAN; };
+        auto yerr = [&](int i) { return i >= 0 && i < n && el[i] ? static_cast<double>(r[i].aimYawErr) : NAN; };
+        auto firstIn = [&](const std::vector<char>& c, int i, int bout) {
+            for (int k = 0; k < std::min(POST, bout); k++) {
+                if (i + k < n && c[i + k]) {
+                    return k * 50.0;
+                }
+            }
+            return static_cast<double>(NAN);
+        };
+        const std::vector<int> hidBefore = before(hid), vpFrom = runFrom(vp), losFrom = runFrom(los);
+        const std::vector<int> hidCBefore = before(hidC), vpBefore = before(vp), hidFrom = runFrom(hid);
+        // visibility of the duel time and the shots
+        for (int i = 0; i < n; i++) {
+            if (!el[i]) {
+                continue;
+            }
+            const bool cvis = r[i].los, pvis = r[i].visParts > 0;
+            A.R("perception.part_only_share", pvis && !cvis);
+            if (r[i].shot) {
+                if (cvis) {
+                    A.R("perception.smg_hit.centre_visible", r[i].hit);
+                } else if (pvis) {
+                    A.R("perception.smg_hit.part_only", r[i].hit);
+                }
+            }
+            // control: fully hidden ticks still hidden 500 ms later
+            if (hid[i] && hidFrom[i] >= 11 && i + 10 < n) {
+                const Frame& g  = r[i];
+                const P3&    c  = r[i + 10].cen;
+                const double fy = std::fabs(Wrap180d(std::atan2(c.y - g.eye.y, c.x - g.eye.x) * 180.0 / PERC_PI - g.viewYaw));
+                A.R("perception.preaim.control_closer_to_future", fy < std::fabs(yerr(i)));
+            }
+        }
+        // centroid sightings: was a part on screen first?
+        for (int i = 1; i < n; i++) {
+            if (hidCBefore[i] >= PRE && los[i] && losFrom[i] >= HOLD) {
+                const int vb = vpBefore[i];
+                A.R("perception.centroid_sighting_part_first", vb > 0);
+                if (vb > 0) {
+                    A.V("perception.part_lead", vb * 50.0);
+                }
+            }
+        }
+        // part sightings
+        for (int i = PRE; i < n; i++) {
+            if (!(hidBefore[i] >= PRE && vp[i] && vpFrom[i] >= HOLD)) {
+                continue;
+            }
+            const int  hb   = hidBefore[i];
+            const int  bout = std::min(vpFrom[i], POST);
+            const bool pre  = att[i - 1];
+            const double e0 = err(i);
+            for (int t : {-500, -200, -100, 0, 100, 200}) {
+                A.V("perception.error_from_part." + std::to_string(t) + "ms", err(i + t / 50));
+            }
+            A.R("perception.reaction.attack_before", pre);
+            const bool clean = !pre && e0 > 2.0 * r[i].halfW;
+            if (clean) {
+                const double tp = firstIn(att, i, bout);
+                A.V("perception.reaction.clean_first_press", tp);
+                if (std::isfinite(tp)) {
+                    A.R("perception.reaction.clean_first_press_mean", tp);
+                }
+                A.V("perception.reaction.clean_t_close", firstIn(close, i, bout));
+            }
+            const double th = firstIn(hitv, i, bout);
+            A.V("perception.reaction.first_hit", th);
+            A.R("perception.reaction.no_hit", !std::isfinite(th));
+            // the hidden window: 500 ms before the first part (always inside the hidden run)
+            const P3& ap     = r[i].cen;
+            auto      appear = [&](int k) {
+                const Frame& g = r[i + k];
+                return std::fabs(Wrap180d(std::atan2(ap.y - g.eye.y, ap.x - g.eye.x) * 180.0 / PERC_PI - g.viewYaw));
+            };
+            const double e5 = yerr(i - 10), a5 = appear(-10);
+            const double dv = Wrap180d(r[i].viewYaw - r[i - 10].viewYaw);
+            const double sg = e5 > 0 ? 1.0 : (e5 < 0 ? -1.0 : 0.0);
+            A.V("perception.preaim.yaw_to_enemy.m500", std::fabs(e5));
+            A.V("perception.preaim.yaw_to_appearance.m500", a5);
+            A.R("perception.preaim.parked.m500", a5 <= 5.0);
+            A.R("perception.preaim.closer_to_appearance.m500", a5 < std::fabs(e5));
+            A.V("perception.preaim.view_turn_toward", sg * dv);
+            A.V("perception.preaim.view_turn_abs", std::fabs(dv));
+            std::vector<double> sp;
+            for (int k = -8; k <= -5; k++) {
+                sp.push_back(r[i + k].speed);
+            }
+            A.V("perception.preaim.speed_m400_m200", NanMedian(sp));
+            sp.clear();
+            for (int k = -40; k <= -21; k++) {
+                if (k >= -hb && i + k >= 0) {
+                    sp.push_back(r[i + k].speed);
+                }
+            }
+            A.V("perception.preaim.speed_m2000_m1000", NanMedian(sp));
+            if (!sight) {
+                continue;
+            }
+            // the corner: from the leaned eye at the first part, each part visible then traced back along the
+            // enemy's last 500 ms to its last occluded tick; the crossing is bisected, the first part out marks
+            // the exit, and the corner is where the ray to its occluded side first hits the geometry
+            const Frame& f0 = r[i];
+            const Basis  b0 = ViewBasis(f0.viewPitch, f0.viewYaw);
+            double       bestCross = 1e9;
+            P3           H;
+            for (int j = 0; j < 5; j++) {
+                const P3& q0 = f0.oppParts[j];
+                if (!InFrustum(f0.leye, q0, b0, tanH, tanV) || !sight(f0.leye, q0)) {
+                    continue;
+                }
+                int bstar = -1;
+                for (int bk = 1; bk <= PRE; bk++) {
+                    if (!sight(f0.leye, r[i - bk].oppParts[j])) {
+                        bstar = bk;
+                        break;
+                    }
+                }
+                if (bstar < 0) {
+                    continue;
+                }
+                const P3& a = r[i - bstar].oppParts[j];
+                const P3& c = r[i - bstar + 1].oppParts[j];
+                double    lo = 0.0, hi = 1.0;
+                for (int it = 0; it < 14; it++) {
+                    const double mid = 0.5 * (lo + hi);
+                    if (sight(f0.leye, Lerp(a, c, mid))) {
+                        hi = mid;
+                    } else {
+                        lo = mid;
+                    }
+                }
+                const double cross = -bstar + 0.5 * (lo + hi);
+                if (cross < bestCross) {
+                    bestCross = cross;
+                    H         = Lerp(a, c, lo);
+                }
+            }
+            if (bestCross > 1e8) {
+                continue;
+            }
+            double frac = 1.0;
+            if (!sight(f0.leye, H)) {
+                double lo = 0.0, hi = 1.0;
+                for (int it = 0; it < 24; it++) {
+                    const double mid = 0.5 * (lo + hi);
+                    if (sight(f0.leye, Lerp(f0.leye, H, mid))) {
+                        lo = mid;
+                    } else {
+                        hi = mid;
+                    }
+                }
+                frac = hi;
+            }
+            const P3 K = Lerp(f0.leye, H, frac);
+            A.V("perception.corner.distance", std::sqrt((K.x - f0.leye.x) * (K.x - f0.leye.x) + (K.y - f0.leye.y) * (K.y - f0.leye.y)
+                                                        + (K.z - f0.leye.z) * (K.z - f0.leye.z)));
+            for (int k : {-40, -20, -10, 0}) {
+                if (k < -hb) {
+                    continue;
+                }
+                const Frame& g = r[i + k];
+                double       tK, yK, pK, tA, yA, pA, tE, yE, pE;
+                AnglesTo(g, K, tK, yK, pK);
+                AnglesTo(g, ap, tA, yA, pA);
+                AnglesTo(g, g.cen, tE, yE, pE);
+                if (hb >= LOOK) {
+                    A.V("perception.corner_2s.yaw." + std::to_string(k * 50) + "ms", std::fabs(yK));
+                }
+                if (k == 0) {
+                    A.V("perception.corner.angle.0ms", tK);
+                }
+                if (k != -10) {
+                    continue;
+                }
+                const double side = Wrap180d(yA - yK) > 0 ? 1.0 : (Wrap180d(yA - yK) < 0 ? -1.0 : 0.0);
+                const double lead = -yK * side;
+                A.V("perception.corner.yaw.m500", std::fabs(yK));
+                A.V("perception.corner.angle.m500", tK);
+                A.V("perception.corner.pitch.m500", pK);
+                A.V("perception.corner.lead.m500", lead);
+                A.V("perception.corner.yaw_to_appearance.m500", std::fabs(yA));
+                A.V("perception.corner.yaw_to_enemy.m500", std::fabs(yE));
+                if (std::isfinite(tK)) {
+                    A.R("perception.corner.within5.m500", tK <= 5.0);
+                    A.R("perception.corner.closer_than_enemy.m500", std::fabs(yK) < std::fabs(yE));
+                    A.R("perception.corner.cover_side.m500", lead < -2.0);
+                    A.R("perception.corner.on_edge.m500", std::fabs(lead) <= 2.0);
+                    A.R("perception.corner.open_side.m500", lead > 2.0);
+                }
+            }
+        }
+    }
+}
+
+inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nullptr, double tanH = 0.0, double tanV = 0.0)
 {
     static const char *const GROUP_NAMES[5] = {"pure_strafe", "fwd_diag", "forward", "neutral", "back_any"};
     auto                     group = [](int chord) {
@@ -560,6 +877,8 @@ inline Metrics Compute(const std::vector<Life>& lives)
         }
     }
 
+    Perception(lives, A, sight, tanH, tanV);
+
     Metrics M;
     auto    share = [](long long a, long long d) { return d > 0 ? static_cast<double>(a) / static_cast<double>(d) : NAN; };
     long long stillAll = 0, leanAll = 0;
@@ -642,6 +961,27 @@ inline Metrics Compute(const std::vector<Life>& lives)
         quants(std::string("view.turn_peak.") + lab, {{"p50", .5}});
     }
 
+    // perception.py: pre-aim, the corner and the reaction from the first visible part
+    for (int t : {-500, -200, -100, 0, 100, 200}) {
+        quants("perception.error_from_part." + std::to_string(t) + "ms", {{"", .5}});
+    }
+    quants("perception.part_lead", {{"p50", .5}});
+    quants("perception.reaction.clean_first_press", {{"p50", .5}});
+    quants("perception.reaction.clean_t_close", {{"p50", .5}});
+    quants("perception.reaction.first_hit", {{"p50", .5}});
+    for (const char *k : {"yaw_to_enemy.m500", "yaw_to_appearance.m500", "view_turn_toward", "view_turn_abs", "speed_m400_m200",
+                          "speed_m2000_m1000"}) {
+        quants(std::string("perception.preaim.") + k, {{"", .5}});
+    }
+    for (const char *k : {"yaw.m500", "angle.m500", "pitch.m500", "lead.m500", "yaw_to_appearance.m500", "yaw_to_enemy.m500",
+                          "angle.0ms"}) {
+        quants(std::string("perception.corner.") + k, {{"", .5}});
+    }
+    quants("perception.corner.distance", {{"p50", .5}});
+    for (int t : {-2000, -1000, -500, 0}) {
+        quants("perception.corner_2s.yaw." + std::to_string(t) + "ms", {{"", .5}});
+    }
+
     // the style dials (fit_styles.py definitions)
     M["dial.fwd_diag_fight"] = M["movement.chord.los_fire.fwd_diag"];
     quants("movement.side_hold.all", {{"p50", .5}});
@@ -654,6 +994,7 @@ inline Metrics Compute(const std::vector<Life>& lives)
     quants("dial.aim_height_firing", {{"", .5}});
     quants("skill.aim_error_fight_deg", {{"", .5}});
     M["skill.reaction_ms"] = M["acquisition.clean_first_press.p50"];
+    M["dial.hold_angle"]   = M["perception.preaim.parked.m500"];
     return M;
 }
 

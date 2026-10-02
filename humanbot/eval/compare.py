@@ -2,7 +2,7 @@
 """Compare bot-eval captures with the pooled human reference.
 
 Usage: compare.py CAPTURE... [--name STEM] [--out-dir DIR] [--reuse] [--no-private] [--skip-analysis]
-                  [--n-boot 200] [--date YYYY-MM-DD] [--movement-repo PATH] [--reference JSON]
+                  [--n-boot 200] [--date YYYY-MM-DD] [--movement-repo PATH] [--reference JSON] [--moh-dir DIR]
 
 CAPTURE is a bot-eval ZIP, a directory of ZIPs or a logger telemetry directory. Writes
 humanbot/eval/reports/<capture stem>/report.md and report.json (--out-dir to change;
@@ -20,6 +20,10 @@ several captures are reported together under a combined stem):
       gap (bots - humans) / sqrt(SE_bots^2 + SE_humans^2)
 The owner's rows (pstN@vsbot) are never pooled with the bots; they are reported
 separately, with the owner's results against the bots.
+
+With a MOHAA folder (--moh-dir or $MOHAA_DIR, read only) the "perception.*" statistics (pre-aim, the corner,
+the reaction from the first visible part: perception.py) are scored too, on the body-part column the bots'
+own perception logged (ext_vis_parts); the corners are traced through the practice maps' BSPs.
 
 Pipeline: load_bot_captures.py -> humanbot/eval/cache/bot/<stem>/ (git-ignored) -> the
 data repo's unchanged common.py, combat.py, lives.py, acquisition.py, aim_model.py,
@@ -85,6 +89,8 @@ def fmt(v, unit):
         return f"{v:.2f}/min"
     if unit == "u":
         return f"{v:.0f} u"
+    if unit == "u/s":
+        return f"{v:.0f} u/s"
     if unit == "s":
         return f"{v:.1f} s"
     return f"{v:.3g}"
@@ -401,7 +407,7 @@ def _notes(L, R):
 # ------------------------------------------------------------------ main
 
 def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True, reuse=False, n_boot=200,
-        skip_analysis=False, repo=None, date=None, cache_root=None) -> Path:
+        skip_analysis=False, repo=None, date=None, cache_root=None, moh_dir=None) -> Path:
     stem = stem_of(inputs, name)
     cache = Path(cache_root or EVAL_CACHE / "bot") / stem
     results = cache / "results"
@@ -440,7 +446,11 @@ def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True
             failed = {k: v for k, v in timing.items() if isinstance(v, str)}
             for k, v in failed.items():
                 R["notes"].append(f"analysis/{k} {v} (log in {results / 'logs'}); its statistics are missing")
-        D = M.prepare(cache, results)
+        D = M.prepare(cache, results, moh_dir=moh_dir)
+        if "perception" in D.extra:
+            R["notes"].append("perception statistics on the bots' logged body-part column (ext_vis_parts: their own "
+                              "perception); the people's are on the data repo's rebuilt column, accepted against the "
+                              "logged one on 2026-09-28")
         per = D.persons()
         fam = np.array([family_of(p) for p in per], dtype=object)
         is_bot = np.array([p.startswith(BOT_PREFIX) for p in per])
@@ -512,9 +522,10 @@ def main(argv=None):
     ap.add_argument("--n-boot", type=int, default=200)
     ap.add_argument("--date", help="capture date for logger directories")
     ap.add_argument("--movement-repo")
+    ap.add_argument("--moh-dir", help="MOHAA folder with the practice maps (perception statistics); default $MOHAA_DIR")
     a = ap.parse_args(argv)
     run(a.captures, a.name, a.out_dir, a.reference, not a.no_private, a.reuse, a.n_boot, a.skip_analysis,
-        repo_arg(a.movement_repo), a.date)
+        repo_arg(a.movement_repo), a.date, moh_dir=a.moh_dir)
 
 
 if __name__ == "__main__":

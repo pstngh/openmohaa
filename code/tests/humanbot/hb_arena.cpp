@@ -269,6 +269,7 @@ struct Bot {
     int   lastHitMs   = -100000;
     int   lastHitId   = -1;
     bool  lastHitHead = false;
+    hb::Vec3 eyeOfs;                 // leaned eye - origin at the last decision (perception rows)
 
     std::vector<hb::RawDamage> damageIn;
     std::vector<hb::SubCmd>    cmds;
@@ -371,6 +372,7 @@ private:
     std::vector<int>               m_deaths, m_deathsNext;
     int                            m_now = 0;
     hb::Rng                        m_rng;
+    float                          m_tanH = 0.0f, m_tanV = 0.0f;   // the bots' frustum
 };
 
 Arena::Arena(const Options& o, const hb::ModelBundle& b)
@@ -469,6 +471,7 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     ei.walking     = b.pm.onGround;
     ei.frametimeMs = static_cast<float>(FRAME_MS);
     self.eye       = hb::ComputeEye(b.eye, ei);
+    b.eyeOfs       = self.eye - self.origin;
     self.aimEye    = LogEye(b);
     self.aimEyeValid = true;
     self.health    = b.health;
@@ -793,7 +796,40 @@ arena::Frame Arena::Row(const Bot& b, const Bot *opp) const
         trace_t      tr;
         m_world.Trace(&tr, s, zero, zero, e, b.id, MASK_SHOT);
         f.onBody = tr.entityNum == opp->id;
+        // body-part perception: the opponent's parts in the frustum and unoccluded from the leaned eye
+        hb::Vec3 parts[hb::NUM_PARTS];
+        Parts(*opp, parts);
+        const hb::Vec3 leye = Origin(b) + b.eyeOfs;
+        hb::Vec3       vf, vl;
+        hb::ForwardLeft(hb::Wrap180(pitch), yaw, vf, vl);
+        const hb::Vec3 vu(vl.y * vf.z - vl.z * vf.y, vl.z * vf.x - vl.x * vf.z, vl.x * vf.y - vl.y * vf.x);
+        for (int k = 0; k < hb::NUM_PARTS; k++) {
+            const hb::Vec3 dk = parts[k] - leye;
+            const float    x  = dk.dot(vf);
+            if (x > 1.0f && std::fabs(dk.dot(vl)) <= x * m_tanH && std::fabs(dk.dot(vu)) <= x * m_tanV
+                && Visible(m_world, leye, parts[k], b.id, opp->id)) {
+                f.visParts++;
+            }
+        }
+        auto p3 = [](const hb::Vec3& v) {
+            arena::P3 o;
+            o.x = v.x;
+            o.y = v.y;
+            o.z = v.z;
+            return o;
+        };
+        f.eye  = p3(eye);
+        f.leye = p3(leye);
+        f.cen  = p3(cen);
+        for (int k = 0; k < 4; k++) {
+            f.oppParts[k] = p3(parts[k]);
+        }
+        f.oppParts[4] = p3((parts[hb::PART_LFOOT] + parts[hb::PART_RFOOT]) * 0.5f);
+        f.hit         = b.lastHitMs == m_now && b.lastHitId == opp->id;
     }
+    f.viewYaw   = yaw;
+    f.viewPitch = hb::Wrap180(pitch);
+    f.shot      = b.firing;
     f.ctx = f.reloading ? arena::CTX_RELOAD
           : (f.los ? (f.attack ? arena::CTX_LOS_FIRE : arena::CTX_LOS_NOFIRE)
                    : (f.attack ? arena::CTX_HIDDEN_FIRE : arena::CTX_HIDDEN_NOFIRE));
@@ -863,6 +899,8 @@ void Arena::Run()
         vfov           = 2.0f * std::atan(tv) * TO_DEG;
         hfov           = 2.0f * std::atan(tv * (16.0f / 9.0f)) * TO_DEG;
     }
+    m_tanH = std::tan(0.5f * hfov * TO_RAD);
+    m_tanV = std::tan(0.5f * vfov * TO_RAD);
     PmWorldScope scope(m_world);
     const int    frames = m_o.seconds * 1000 / FRAME_MS;
     for (int f = 0; f < frames; f++) {
@@ -902,7 +940,13 @@ std::map<std::string, double> Arena::Metrics() const
     for (const Bot& b : m_bots) {
         lives.insert(lives.end(), b.lives.begin(), b.lives.end());
     }
-    return arena::Compute(lives);
+    // corners are traced through the boxes only: the bodies stand where the run ended
+    const arena::SightFn sight = [this](const arena::P3& a, const arena::P3& c) {
+        const vec3_t s = {a.x, a.y, a.z};
+        const vec3_t e = {c.x, c.y, c.z};
+        return m_world.LineOfSight(s, e, ENTITYNUM_NONE, ENTITYNUM_NONE, PM_MASK_SIGHT & ~CONTENTS_BODY);
+    };
+    return arena::Compute(lives, sight, m_tanH, m_tanV);
 }
 
 // Bot and human side by side for every statistic both have.

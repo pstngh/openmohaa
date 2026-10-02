@@ -21,7 +21,8 @@ interpolation when weights are 1) and custom (occupancy concentration per map).
 
 prepare(cache, results, moh_dir) -> MetricData; summarize(data, block_mask, ...) -> {metric: stats};
 the "perception.*" statistics (perception.py: pre-aim, corners and reaction from the first visible body
-part) are added when the cache has the data repo's rebuilt body-part column and moh_dir the practice maps;
+part) are added when moh_dir has the practice maps, on the data repo's rebuilt body-part column when the cache
+has an accepted one (people), else on the logged one (bot captures, schema 13);
 dials(data, persons) -> realised style dials (humanbot/fit/fit_styles.py definitions);
 validate(stats of every block, results dir) -> [(metric, ours, script's)].
 
@@ -267,9 +268,10 @@ def prepare(cache: Path, results: Path | None = None, verbose: bool = True, moh_
     tables(D, cache, V)
     if results is not None:
         import perception as PC
-        why = PC.available(cache, Path(results), moh_dir)
+        column = PC.column_for(cache, Path(results))
+        why = PC.available(cache, Path(results), moh_dir, column)
         if why is None:
-            T = PC.tables(cache, Path(results), moh_dir, verbose=verbose)
+            T = PC.tables(cache, Path(results), moh_dir, column=column, verbose=verbose)
             PC.register(D, T)
             D.extra["perception"] = T
         else:
