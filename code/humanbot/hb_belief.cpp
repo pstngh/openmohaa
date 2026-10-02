@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace hb
 {
 
-static constexpr int   RESPAWN_MIN_MS    = 1600;   // earliest recorded respawn after a death
+// A dead enemy comes back at the spawn the game picks when it clicks, by where the living players are then (the FFA
+// rule, SeedFromSpawns): the belief draws it at people's median respawn delay (2.45 s), from where the bot is by then.
+static constexpr int   RESPAWN_SEED_MS   = 2450;
 static constexpr int   DEAD_RECKON_TICKS = 8;      // follow the last seen velocity this long
 static constexpr float CHEST_HEIGHT      = 56.0f;
 // Corners are traced at the height of a standing enemy's head (0.9 of 94 u): people's first visible part is
@@ -771,7 +773,7 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         if (died) {
             e.dead         = true;
             e.seenThisLife = false;
-            t.deadUntilMs  = now + RESPAWN_MIN_MS;
+            t.deadUntilMs  = now + RESPAWN_SEED_MS;
         }
         if (e.dead && now >= t.deadUntilMs) {
             e.dead = false;

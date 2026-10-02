@@ -1,4 +1,4 @@
-"""Pre-aim, corner and reaction statistics timed from the first visible body part.
+"""Pre-aim, corner and reaction statistics timed from the first visible body part, and the encounters.
 
 The definitions are those of openmohaa-movement's analysis/perception_all.py (REPORT sections 13 and 14). The
 sighting machinery (sightings.py), the body-part geometry (parts.py) and the sight tracer (bsp.py) are the data
@@ -17,6 +17,10 @@ Two visibility columns:
 Every statistic is reduced to per-block values (a block is one player in one session) so that metrics.py's block
 bootstrap and compare.py treat them like every other statistic. The appearance point and the corner come from
 the future: they are analysis devices for scoring, never bot inputs.
+
+The encounter statistics ("perception.encounter.*", encounters()) are not in perception_all.py: how often a body
+part comes on screen, the spells with none on screen between sightings, the time from both alive to the first part,
+and how far a player gets in 2 s while none is on screen.
 
   tables(cache, results, moh_dir) -> Tables     per-sighting and per-tick tables (needs the MOHAA folder for corners)
   register(D, T)                                 adds the "perception.*" metrics to a metrics.MetricData
@@ -49,6 +53,7 @@ NO_PART_SINCE = [(0, 500, "0-500ms"), (500, 1000, "500-1000ms"), (1000, 2000, "1
                  (5000, np.inf, "gt5000ms")]
 CURVE_TICKS = [-10, -4, -2, 0, 2, 4]       # the error curve from the first part, ticks
 CORNER_2S_TICKS = [-40, -20, -10, 0]       # the corner curve on sightings hidden >= 2 s, ticks
+NEVER_MS = 1e6                             # the first sight of a duel sequence that ended first (arena_metrics.h too)
 MOHAA_ENV = "MOHAA_DIR"
 
 
@@ -118,6 +123,7 @@ class Tables:
     Sh: pd.DataFrame = None                # eligible SMG shot ticks
     Ho: pd.DataFrame = None                # complete attack holds, by what was on screen when they began
     curve2s: dict = field(default_factory=dict)   # tick -> yaw to the corner, sightings hidden >= 2 s with a corner
+    enc: dict = field(default_factory=dict)       # encounters(): hidden spells, first sights, 2 s travel
     eye: dict = field(default_factory=dict)
     column: str = "rebuilt"
 
@@ -308,12 +314,15 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     c_vis = F.line_of_sight.eq(1).to_numpy()[el]
     p_vis = vparts[el] > 0
     Tk["part_only"] = p_vis & ~c_vis
+    Tk["part_vis"] = p_vis
     # fire held at an enemy no part of which is visible, while the weapon could fire (the trigger's hidden side)
     Tk["no_part_loaded"] = ~p_vis & ~F.reloading.to_numpy(bool)[el] & (F.clip_ammo.to_numpy()[el] > 0)
     Tk["attack"] = F.attack.to_numpy(bool)[el]
     # time since a body part was last on screen (0 on the first tick without one); NaN when none was in this segment
     novp = Q.run_ending(~vp)
     Tk["no_part_since_ms"] = np.where((novp > 0) & (novp <= Q.pos), (novp - 1) * 50.0, np.nan)[el]
+    En = encounters(Q, el, vp, col("origin_x"), col("origin_y"))
+    Tk["onset"] = En.pop("onset")[el]
     shot = F.smg_shot_los.notna().to_numpy()[el]
     Sh = pd.DataFrame({"row": Tk.row.to_numpy()[shot], "hit": F.hit.to_numpy()[el][shot],
                        "cls": np.select([c_vis[shot], p_vis[shot]], ["centre_visible", "part_only"], "no_part")})
@@ -332,9 +341,38 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     say(f"perception: {len(P)} part sightings, {len(Cs)} centroid sightings, {int(P.corner_found.sum())} corners "
         f"({column} column)")
     T = Tables(F=F[KEY + ["person", "name", "capture_date"]].copy(), P=P, Cs=Cs, CT=CT, T=Tk, Sh=Sh, Ho=Ho,
-               curve2s={"ticks": curve2s, "rows": rows2s},
+               curve2s={"ticks": curve2s, "rows": rows2s}, enc=En,
                eye=EYE, column=column)
     return T
+
+
+def encounters(Q, el, vp, x, y) -> dict:
+    """How often and how long the players meet. A duel sequence is a run of duel ticks inside a segment (one life):
+    both players alive. Every run of ticks with a body part on screen is a sighting (`onset` marks its first tick); a
+    hidden spell is a run with none on screen between two sightings of the same sequence; the first sight is the time
+    from the start of a sequence (a spawn, the enemy's or one's own) to its first part on screen, never (NEVER_MS) when the
+    sequence ended first; the 2 s travel is the net horizontal distance from a duel tick with no part on screen to
+    the same player 2 s later in the same sequence (every 10th tick of a segment)."""
+    N = len(vp)
+    idx = np.arange(N)
+    prev_vp = np.r_[False, vp[:-1]] & (Q.pos >= 1)
+    prev_el = np.r_[False, el[:-1]] & (Q.pos >= 1)
+    onset = vp & ~prev_vp
+    hid = el & ~vp
+    hrun = Q.run_from(hid)
+    hs = np.flatnonzero(hid & prev_vp)
+    end = hs + hrun[hs]
+    ok = (end <= Q.last_row[hs]) & vp[np.minimum(end, N - 1)]
+    erun = Q.run_from(el)
+    ss = np.flatnonzero(el & (Q.pos >= 0) & ~prev_el)
+    nxt = np.minimum.accumulate(np.where(vp, idx, N)[::-1])[::-1]
+    first = nxt[ss]
+    seen = first < ss + erun[ss]
+    tr = np.flatnonzero(hid & (erun > 40) & (Q.pos % 10 == 0))
+    return {"onset": onset,
+            "spell_row": hs[ok], "spell_ms": hrun[hs[ok]] * 50.0,
+            "seq_row": ss, "first_sight_ms": np.where(seen, (first - ss) * 50.0, NEVER_MS),
+            "travel_row": tr, "travel_2s": np.hypot(x[tr + 40] - x[tr], y[tr + 40] - y[tr])}
 
 
 # ---------------------------------------------------------------------- metrics
@@ -362,6 +400,19 @@ def register(D, T: Tables, prefix: str = "perception"):
     bt = blk(T.T.row)
     D.add_ratio(f"{pre}.part_only_share", "Share of duel time with a body part on screen and the centroid hidden", sec, "share",
                 bt, T.T.part_only.to_numpy())
+    # encounters: how often a body part comes on screen, the spells with none between sightings, the time from both
+    # alive to the first part, and how far a player gets in 2 s with none on screen
+    D.add_ratio(f"{pre}.encounter.part_on_screen", "Share of duel time with a body part of the enemy on screen", sec, "share",
+                bt, T.T.part_vis.to_numpy())
+    D.add_ratio(f"{pre}.encounter.sightings_per_min", "Sightings (a body part coming on screen) per minute of duel time", sec,
+                "per_min", bt, T.T.onset.to_numpy(), np.full(len(bt), 1 / 1200))
+    En = T.enc
+    D.add_quant(f"{pre}.encounter.hidden_spell", "Spell with no body part on screen between two sightings", sec, "ms",
+                blk(En["spell_row"]), En["spell_ms"], (("p50", .5), ("p75", .75), ("p90", .9)))
+    D.add_quant(f"{pre}.encounter.first_sight", "Time from both alive to the first body part on screen", sec, "ms",
+                blk(En["seq_row"]), En["first_sight_ms"], (("p50", .5), ("p75", .75)))
+    D.add_quant(f"{pre}.encounter.travel_2s_hidden", "Net distance covered in 2 s from a tick with no body part on screen", sec,
+                "u", blk(En["travel_row"]), En["travel_2s"], (("p50", .5), ("p25", .25)))
     m = T.T.no_part_loaded.to_numpy()
     D.add_ratio(f"{pre}.fire_held_no_part", "Fire held with no body part of the enemy visible (loaded, not reloading)", sec,
                 "share", bt[m], T.T.attack.to_numpy()[m])

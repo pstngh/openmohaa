@@ -130,7 +130,9 @@ python3 humanbot/eval/compare.py humanbot/captures/<zip>... --moh-dir /path/to/m
 `--moh-dir` (or `$MOHAA_DIR`) is the MOHAA folder with the practice maps; it is only read. With it the
 report also scores the pre-aim statistics (`perception.*`: the aim error at the first visible body part,
 the reaction timed from it, and where the crosshair waits while the enemy is hidden, against the edge of
-cover it comes out from), on the body parts the bots' own perception logged.
+cover it comes out from) and the encounters (`perception.encounter.*`: how often a body part of the
+enemy comes on screen, the hides between sightings, the time from both alive to the first sight, the
+ground covered while the enemy is hidden), on the body parts the bots' own perception logged.
 
 With the private `openmohaa-movement` checkout next to the fork, this runs its unchanged
 analysis scripts on the bot captures. It writes `humanbot/eval/reports/<stem>/report.md` with:
@@ -154,27 +156,30 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 60% of 195 statistics. These are furthest off,
-and what to look for in the live test:
+The model matches the human duels within 25% on 58% of 195 statistics in the arena (on the practice
+maps, bot against bot, about half of all statistics). These are furthest off, and what to look for in
+the live test:
 
 - **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
   wait on the edge of cover it comes out from. The bots now pre-aim that corner too, but pick
-  the one the enemy comes out of less often. Bot against bot on the practice maps they are 10.2
-  degrees off at the first visible body part (people 5.2; 11.6 before the pre-aim). The first
-  shot therefore comes later (250 ms after a clean sighting vs 150), and fewer early shots hit.
+  the one the enemy comes out of less often. Bot against bot on the practice maps they are 11-12
+  degrees off at the first visible body part (people 5.2). The first shot therefore comes later
+  (200-250 ms after a clean sighting vs 150), and fewer early shots hit.
 - **Close-range tracking.** Firing at under 128 u, the bots' aim error is 19 degrees (people
   14). They also turn faster in fights (p99 620 deg/s vs 305).
 - **Trigger far off target.** Bots keep firing with the crosshair more than 10 body
   half-widths off 9% of the time (people 5%).
-- **Fewer encounters.** Bot against bot on the practice maps the bots see each other half as
-  often as people do (people duel by peeking out again and again). So more of their fire goes
-  into cover, and their bursts are shorter overall (median 3-4 rounds vs 5) although a burst
-  begun in sight is nearly people's (5 rounds vs 6). Fire into cover fades as people's does: 5 s
-  after the enemy was last on screen they hold fire 6% of that time (people 4%).
+- **Encounters.** Since 2026-10-02 the bots go after the enemy: their keys follow their route,
+  they chase for a second after losing sight, move on right after a kill, and expect a killed enemy
+  back at the spawn the game picks. Bot against bot on the practice maps they now see each other 28
+  times a minute (people 33; before 16) and have the enemy on screen a third of the time, as people
+  do. Still short: they cover less ground while the enemy is hidden, and walk forward or sideways
+  where people run on the forward diagonal; their view turns more than people's while the enemy is
+  hidden. Tell us if they look like they patrol, or turn their view too much.
 - **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
-  people.
+  people, and approach half as often (on the practice maps; in the open arena they do as people).
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
-  bots 11-15%. (Bots that stood frozen in front of an enemy for minutes had run out of
+  bots 8-11%. (Bots that stood frozen in front of an enemy for minutes had run out of
   ammunition; since 2026-10-02 they fire into cover like people and rarely run dry. One that
   does closes in and hits with the pistol butt.)
 - **Ladders.** Since 2026-10-02 a bot that stalls on a ladder (another bot in the way) turns

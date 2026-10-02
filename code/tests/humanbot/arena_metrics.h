@@ -402,6 +402,41 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
             }
         }
         endBurst();
+        // encounters (perception.py encounters()): every run of a part on screen is a sighting; a hidden spell is a run
+        // with none on screen between two of them; the first sight is timed from the start of a duel sequence (both
+        // alive), never (1e6 ms) when it ended first; the travel is the net distance in 2 s from a tick with none on
+        // screen (every 10th tick of the life; the unleaned eye is above the origin)
+        {
+            std::vector<char> hidP(n);
+            for (int i = 0; i < n; i++) {
+                hidP[i] = el[i] && !vp[i];
+            }
+            const std::vector<int> elFrom = runFrom(el), hidPFrom = runFrom(hidP);
+            for (int i = 0; i < n; i++) {
+                if (!el[i]) {
+                    continue;
+                }
+                A.R("perception.encounter.part_on_screen", vp[i]);
+                A.R("perception.encounter.sightings_per_min", vp[i] && !(i > 0 && vp[i - 1]), 1.0 / 1200.0);
+                if (hidP[i] && i > 0 && vp[i - 1] && i + hidPFrom[i] < n && vp[i + hidPFrom[i]]) {
+                    A.V("perception.encounter.hidden_spell", hidPFrom[i] * 50.0);
+                }
+                if (i == 0 || !el[i - 1]) {
+                    double first = 1e6;
+                    for (int k = 0; k < elFrom[i]; k++) {
+                        if (vp[i + k]) {
+                            first = k * 50.0;
+                            break;
+                        }
+                    }
+                    A.V("perception.encounter.first_sight", first);
+                }
+                if (hidP[i] && elFrom[i] > 40 && i % 10 == 0) {
+                    A.V("perception.encounter.travel_2s_hidden",
+                        std::hypot(r[i + 40].eye.x - r[i].eye.x, r[i + 40].eye.y - r[i].eye.y));
+                }
+            }
+        }
         // centroid sightings: was a part on screen first?
         for (int i = 1; i < n; i++) {
             if (hidCBefore[i] >= PRE && los[i] && losFrom[i] >= HOLD) {
@@ -1074,6 +1109,9 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
     for (int t : {-2000, -1000, -500, 0}) {
         quants("perception.corner_2s.yaw." + std::to_string(t) + "ms", {{"", .5}});
     }
+    quants("perception.encounter.hidden_spell", {{"p50", .5}, {"p75", .75}, {"p90", .9}});
+    quants("perception.encounter.first_sight", {{"p50", .5}, {"p75", .75}});
+    quants("perception.encounter.travel_2s_hidden", {{"p50", .5}, {"p25", .25}});
 
     // the style dials (fit_styles.py definitions)
     M["dial.fwd_diag_fight"] = M["movement.chord.los_fire.fwd_diag"];

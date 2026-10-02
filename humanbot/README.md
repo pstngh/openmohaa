@@ -27,7 +27,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
 2. **Brain** (`code/humanbot`, engine-independent):
    - `hb_perception_model`: detection by eccentricity, distance and visible parts.
    - `hb_belief`: a particle filter over each enemy's position, driven by sights, sounds and
-     looking where the enemy is not.
+     looking where the enemy is not. A killed enemy is expected back at the spawn point the game
+     would pick for it (the free-for-all rule: far from the living players), at people's median
+     respawn delay.
    - `hb_trigger`: press and release hazards by aim error, time since sight and hold age. "In
      sight" means a body part perceived, and the clock runs from when the parts came on screen, as
      people's reaction does. A style's burst length acts only in sight: fire at an enemy out of
@@ -41,11 +43,17 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      `hb_belief` traces, from the bot's eye through the map's geometry, where the believed path
      crosses out of cover. The view waits a little onto the cover side of that edge and below it,
      turns onto it as an exposure comes up, and holds it against the bot's own motion; the mouse
-     still rests there as often as people's. The geometry query never traces a player.
+     still rests there as often as people's. The geometry query never traces a player. On the
+     move it turns to a route that lies behind it rather than walking backwards, and it looks
+     anew when a killed enemy is expected back.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
      lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
      wall reflex lets go of a key before the bot runs into the wall (people see walls coming).
-   - `hb_nav`: where to go (hunt, hold, cover); `hb_weapon`: reloads and weapon switches (the
+   - `hb_nav`: where to go (hunt, hold, cover, and after the enemy for a second once it is out of
+     sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
+     follow the route with a strength set on the practice maps, so that the bots cover ground and
+     meet about as often as people do. After a kill a bot moves on within half a second, as people
+     run. `hb_weapon`: reloads and weapon switches (the
      pistol when the primary is empty, back to the primary when it has rounds again, a weapon drawn
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
      first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
@@ -130,10 +138,13 @@ attenuated, the look policy and sound precision were never recorded, and the mod
 It then sweeps each style dial's internal offset in the arena and writes the monotone curves
 from dial target to offset. A dial whose sweep spans less than a third of the human range stays
 at its neutral offset (`hold_angle`). The two skills (aim error, reaction) and the burst length
-are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`) and the boost of
-fire into cover at an enemy expected in the crosshair (`anticipation_logit`) are set by hand from
-bot captures on the practice maps, scored with `compare.py`: the arena's pillars are not the
-recorded maps.
+are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`), the boost of
+fire into cover at an enemy expected in the crosshair (`anticipation_logit`), how strongly the keys
+follow the route (`nav_switch_logit`, `nav_choice_logit`), the pull toward the enemy for the second
+after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`) and the turn to a route
+behind the view (`route_turn_hazard`, `travel_follow_deg`) are set by hand from bot captures on the practice maps, scored with
+`compare.py`: the arena's pillars are not the recorded maps (in the open arena the bots already
+cover as much ground as people; on the maps the walls stop them).
 
 ## Privacy
 

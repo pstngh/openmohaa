@@ -39,8 +39,8 @@ static constexpr float DIFFUSE_SPREAD = 600.0f;  // belief spread (units) beyond
 static constexpr float DIR_LOOK_DIST  = 4000.0f;
 // The chest, as a fraction of the body height from the feet (the head starts near 0.83).
 static constexpr float CHEST_AIM_H = 0.5f;
-// A route look re-aims once the route turned this far from it.
-static constexpr float TRAVEL_FOLLOW_DEG = 15.0f;
+// On the move, a route this far off the view is behind it (routeTurnHazard).
+static constexpr float ROUTE_TURN_DEG = 100.0f;
 // A watched corner follows its own refinements (re-traced from a moved eye) up to this far; a bigger change is
 // another edge, which waits for the next look decision.
 static constexpr float PREAIM_FOLLOW_DEG = 4.0f;
@@ -89,6 +89,7 @@ void ViewControl::Reset(const SelfState& self)
     m_wasTracking    = false;
     m_refractory     = 0;
     m_preaimCell     = -1;
+    m_beliefDead     = false;
 }
 
 // The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
@@ -278,6 +279,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     Vec3        aim;
     Vec3        tvel;
     bool        newLook = false;
+    // the belief of a dead enemy came back (it respawned somewhere): people turn toward where it will come from at
+    // once, not when their current look runs out
+    const bool reborn = p.respawnRelook > 0.5f && m_beliefDead && bel && bel->valid && !bel->dead;
+    m_beliefDead      = bel && bel->valid && bel->dead;
 
     if (in.track) {
         float hWant = in.firing ? in.aimHeightFiring : p.aimHeightIdle;
@@ -331,13 +336,21 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                     }
                 }
             }
-            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid) {
+            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn) {
                 ChooseLook(self, in, preW, out.imminence, rng);
                 newLook = true;
             } else if (m_lookMode != VIEW_PREAIM && out.imminence > 0.0f && uPre < p.preaimHazard * out.imminence) {
                 // an exposure is coming up: turn onto its corner
                 PreaimCorner(self, in, preW, rng);
                 newLook = true;
+            } else if (m_lookMode != VIEW_TRAVEL && in.moving && in.navValid && p.routeTurnHazard > 0.0f
+                       && std::fabs(Wrap180(in.navYaw - self.viewYaw)) > ROUTE_TURN_DEG && rng.Uniform() < p.routeTurnHazard) {
+                // the route turned away behind the view: people turn to it rather than walk backwards
+                m_lookPoint      = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
+                m_lookPointValid = true;
+                m_lookMode       = VIEW_TRAVEL;
+                m_dwellMs        = static_cast<float>(0.7 * p.lookDwellMedianMs * rng.LogNormal(1.0, p.lookDwellSigma));
+                newLook          = true;
             } else if (m_lookMode != VIEW_LOOKAROUND && uLook < p.lookaroundPerMin / 1200.0f) {
                 LookAround(self, rng);
                 newLook = true;
@@ -349,7 +362,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 }
             } else if (m_lookMode == VIEW_TRAVEL && in.moving && in.navValid) {
                 // look down the route as it turns, in steps, like a person following a corridor
-                if (std::fabs(Wrap180(in.navYaw - YawOf(m_lookPoint - eye))) > TRAVEL_FOLLOW_DEG) {
+                if (std::fabs(Wrap180(in.navYaw - YawOf(m_lookPoint - eye))) > p.travelFollowDeg) {
                     m_lookPoint = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
                 }
             }

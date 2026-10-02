@@ -32,7 +32,10 @@ crosshair (anticipation_logit 5, which the fade leaves out) was set by hand from
 practice maps: in the arena a loop on the fire held before the first visible part ran it from 2 to its
 bound 5 and moved that share 11% -> 13%, while on the recorded maps 5 brought the prefire after 2-5 s
 hidden from 10% to 17% (people 26%). The couplings of assemble_model.py are set there by
-hand; the wall reflex among them was set in the engine (the arena has too few walls to see it). Stage "dials" sweeps each style dial's internal
+hand; the wall reflex among them was set in the engine (the arena has too few walls to see it), and how
+strongly the keys follow the route, the pull toward the enemy in a fight (engage_urgency), the pause after a
+kill and the turn to a route behind the view on practice-map captures (in the arena the bots already cover
+as much ground as people: there the walls do not stop them). Stage "dials" sweeps each style dial's internal
 offset in the arena (every bot pooled but for that offset), measures the realised dial
 statistic (fit_styles.py definitions) and writes the monotone curve dial target -> offset. A
 dial whose sweep spans less than a third of the human range is left inert, flat at its neutral

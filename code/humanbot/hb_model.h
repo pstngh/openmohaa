@@ -236,6 +236,9 @@ struct ViewModel {
                                        // turn like people's, not the idle controller's drift
     float preaimSelfComp     = 1.0f;   // share of the bot's own motion the view takes out while on a corner
     float travelShare        = 0.25f;
+    float travelFollowDeg    = 15.0f;  // a route look re-aims once the route turned this far from it
+    float routeTurnHazard    = 0.0f;   // per tick on the move: turn to a route that lies behind the view (0 = off)
+    float respawnRelook      = 0.0f;   // 1: a new look decision when the belief of a dead enemy comes back (its respawn)
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
     float damageTurnDelayMs  = 100.0f;
@@ -331,10 +334,11 @@ struct NavModel {
     float holdSigma         = 0.7f;
     float spawnPushMs       = 2500.0f;
     float huntUrgency       = 0.8f;
-    float engageUrgency     = 0.25f;
+    float engageUrgency     = 0.25f;  // toward the enemy for the second after losing sight (none while it is perceived)
     float reloadUrgency     = 0.4f;
     float waypointReach     = 48.0f;
     float repathMs          = 1000.0f;
+    float postKillMs        = 1500.0f;  // after a kill the bot stays where it is this long (urgency ~0)
 };
 
 struct PresentationModel {

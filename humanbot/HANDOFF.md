@@ -30,18 +30,20 @@ Built and pushed:
 Verified:
 - `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 60% of 195
-  statistics (median relative error 0.18), and on 41% of the 44 pre-aim statistics (median
-  0.30); eight seeds of 900 s, model `b0d2364e5fe2` of 2026-10-02 on a Linux workstation. Four
-  seeds are not enough to compare two models: any four of the same eight runs range over 52-63%
-  (see "Fire into cover, bursts and ladders"). With eight seeds the corner pre-aim's model
-  (`c29371288`) and the out-of-ammunition one (`8d64ab93b`) both score 59%.
-  The arena's pooled bots carry no style shift, so the out-of-ammunition fix below shows on the
-  practice maps, not here.
+- In the arena, two average-style bots are within 25% of the human value on 58% of 195
+  statistics (median relative error 0.18; 60% before the encounter changes), and on 51% of the
+  53 perception statistics other than the encounter ones (median 0.25; 49% before); eight seeds
+  of 900 s, model `ea388d30bdbc` of 2026-10-02 on a Linux workstation. The arena is not the
+  maps: in its open pillars the stronger route coupling makes the bots cover more ground than
+  people (see "Encounters"). Four seeds are not enough to compare two models: any four of the
+  same eight runs range over 52-63% (see "Fire into cover, bursts and ladders"). With eight seeds
+  the corner pre-aim's model (`c29371288`) and the out-of-ammunition one (`8d64ab93b`) both
+  score 59%. The arena's pooled bots carry no style shift, so the out-of-ammunition fix below
+  shows on the practice maps, not here.
 - 16 bots take 85-90 us per bot per tick on that workstation (112 in the build container); the
   budget is 150.
 - On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim",
-  "Out of ammunition" and "Fire into cover, bursts and ladders" below.
+  "Out of ammunition", "Fire into cover, bursts and ladders" and "Encounters" below.
 
 **The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
 - the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
@@ -374,27 +376,134 @@ hidden and still. The per-tick release with the centroid visible is now 1.5x peo
 also counts an enemy behind the bot; on the trigger's own sight (a body part on screen) the release
 per tick is 2.2% against people's 2.5% (before 1.6%), and it follows people's by hold age.
 
+## Encounters (2026-10-02)
+
+On the practice maps the bots saw each other (a body part on screen) 15-16 times a minute of duel time
+against people's 33, and had the enemy on screen 15% of that time against 34%. Diagnosed on the
+captures of `9ece1afc` (seeds 201-208 and 401-408) against the people, with git-ignored scripts that
+also drew a top-down picture per map of where people and bots spend time and meet (BSP brush sections
+at a height, pooled occupancy, sighting onsets).
+
+**What it was.**
+- **Not distance: walls.** Hidden, the bots were *nearer* each other than people (median 430 u vs
+  509), but with a clear line between their bodies 13.5% of duel time against 25.5%.
+- **Both phases.** From both alive to the first part on screen: median 3.4-3.7 s vs 1.35 s. After
+  that the bots were hidden 72% of the time vs 42%, and a hide was longer than 5 s in 9.4% of
+  cases vs 0.8% (p90 4.7-5.0 s vs 1.75 s).
+- **They did not travel.** With no enemy part on screen they got a median 64-70 u further in 2 s
+  (people 158), stood still for more than 1 s 2.75 times a minute (people 0.67) and held the
+  forward key 18% of that time (people 41%). In the open arena they cover people's distance: on the
+  maps the walls stop them. The keys followed the route only weakly (`nav_*_logit` 1.0 / 1.5, set by
+  hand): of their moving hunting ticks 41% went within 45 deg of the route. And their view was on
+  the believed enemy through a wall (in that look mode the crosshair met a wall 75 u away; people's
+  median 287 u), so the forward key ran into walls, the wall reflex and the fitted wall terms let go,
+  and they strafed along corridors (velocity 89 deg off the view; people 41).
+- **No chase.** At the end of a sighting people close on each other at 48 u/s, the bots at 7: the
+  engage urgency was 0, and a hide of more than 3 s followed 14% of the bots' sightings (people 3%).
+- **After a kill** they stood 1.5 s (`POST_KILL_MS`) and then walked (124-136 u/s); people run from
+  0.5 s on (236 u/s, forward held 85% of the time).
+- **A belief bug.** The perceiver left a dead enemy out of the observation, so the belief dropped its
+  track as gone and seeded the respawned enemy from the occupancy prior, anywhere on the map. The
+  spawn rule in `hb_belief` (`SeedFromSpawns`) never ran in a game. 0.5-1 s after the enemy
+  respawned, the survivor's view was 50 deg off it (people 22).
+- **Peeking follows.** The part-only time (4% vs 10.5%) was about people's share of the time on
+  screen: few sightings, not a lack of peeking. Over time with no part on screen the occupancy
+  pictures show bots lingering near spawns and in pockets (dm/vents' lower centre, the dm/downladder
+  junction, the middle of dm/main) where people use the corridors and central rooms. People spend
+  14% of their dm/main time in its lower room (it has a spawn point); the bots almost never.
+- **The belief long after sight.** The window "2-4 s since seen" of `belief.*` (metrics.py counts
+  within a life) is 75% time after the enemy respawned for people; as the bots kill more, it fills the
+  same way, and that statistic follows the respawn behaviour more than the hidden view.
+
+**What changed.**
+- Evaluation: `perception.encounter.*` (perception.py `encounters()`, `arena_metrics.h`, the human
+  reference; no existing value changed): sightings per minute, part on screen, the hidden spell
+  between two sightings (p50/p75/p90), the time from both alive to the first part (p50/p75; a
+  sequence that ends unseen counts as never), and the net distance covered in 2 s from a tick with no
+  part on screen (p25/p50).
+- `hb_perception_model`: a dead enemy stays listed, unseen. The belief draws it back at the spawn the
+  game would pick (FFA rule, from where the bot is) at people's median respawn delay, 2.45 s
+  (`RESPAWN_SEED_MS`; it was 1.6 s, the earliest respawn, and a bot that moves by then gets it wrong),
+  and the view takes a new look decision then (`respawn_relook`).
+- Route following (`nav_switch_logit` 3.0, `nav_choice_logit` 4.5): set on the maps. Encounters stop
+  growing at that strength (in the sweep, 4.0 gave 26.9 sightings a minute against 26.6), and more makes the bots walk with
+  the enemy out of view more often.
+- `engage_urgency` 0.65, for the second after losing sight only: in the first second after the enemy
+  left the screen the bots close in at 31-34 u/s (people 31; before 8). While the enemy is perceived
+  there is no pull: with it in sight too, every bot pressed forward like the presser family (the
+  arena sweep of the fight forward-diagonal dial spanned 0.44-0.67, people's styles 0.07-0.58), and
+  it moved the fights' statistics away from the style dials.
+- `post_kill_ms` 500 (was 1500): a bot moves on half a second after a kill.
+- The view: the route look follows the route direction smoothed over about 0.3 s (the next path
+  corner's direction swings round as a corner is passed) and re-aims once it turned 30 deg
+  (`travel_follow_deg`; 15 made the route look turn at a median 87 deg/s); on the move a route more
+  than 100 deg off the view is turned to (`route_turn_hazard` 0.2 per tick): with the keys following
+  the route the bots walked backwards 10% of their hidden time (people 6%; with it 7-8%).
+- `calibrate.py --stage pooled` (10 iterations) and `--stage dials` were rerun.
+
+Tried and dropped (single captures, seeds 201-208): the wall reflex off (17 sightings a minute, but
+walls touched 33% of the time vs 9%), no holding (20), looking down the route instead of at a
+believed position behind a wall (the view turned away from the enemy, encounters unchanged), keys
+that treat any direction within 45 deg of the route as aligned (more pure strafing on the maps), and
+leaving the side key out of the post-sight pull (fewer re-peeks: 24.5 a minute).
+
+Practice maps, bot vs bot (`eval/reports/2026-10-02_encounters_realmaps`): "before" is `9ece1afc`
+re-scored with the new statistics, "now" this model; seeds 201-208, in brackets the held-out 401-408:
+
+| | people | before | now |
+|---|---|---|---|
+| sightings (a part coming on screen) per minute of duel time | 33.3 | 15.1 (16.1) | 27.8 (28.4) |
+| duel time with a part on screen | 34% | 15% (16%) | 33% (33%) |
+| ... only parts (the centroid hidden) | 10.5% | 3.8% (4.0%) | 6.3% (6.1%) |
+| hidden spell between sightings p50 / p90 | 400 / 1750 ms | 500 / 5000 (550 / 4800) | 350 / 1800 (350 / 1700) |
+| both alive to the first part p50 / p75 | 1.35 / 1.9 s | 3.7 / 8.7 (3.4 / 7.7) | 1.9 / 3.45 (1.85 / 3.35) |
+| net distance in 2 s with no part on screen p50 | 158 u | 64 (70) | 103 (101) |
+| closing speed in the first second after losing sight | 31 u/s | 8 (6) | 34 (31) |
+| speed 0.5-1.5 s after a kill p50 | 236 u/s | 124 (124) | 144 (144) |
+| view to the respawned enemy, 0.5-1 s after its respawn | 22 deg | 50 (50) | 38 (36) |
+| life length p50 | 7.1 s | 23.5 (23.1) | 12.4 (12.4) |
+| accuracy | 19% | 9.9% (9.9%) | 15.3% (14.7%) |
+| fire held with no part visible (all of that time) | 17.3% | 11.3% (11.9%) | 15.2% (15.7%) |
+| encounter statistics within 25% (of 9) | | 11% (0%) | 67% (67%) |
+| other 219 statistics within 25% (median) | | 48% (0.27) (50%, 0.25) | 50% (0.25) (49%, 0.27) |
+| pre-aim statistics within 25% (of 44, median) | | 48% (0.26) (41%, 0.27) | 52% (0.23) (55%, 0.23) |
+
+Statistics that crossed the 25% line (201-208). Gained: the firefight share of duel time (7% -> 18%,
+people 17.6%) and the hidden share, accuracy, decisive fights ending in a kill, fire held with the
+centroid hidden and with no part visible, prefire before the first part, stillness, walking, reloads
+with the enemy dead, the speed before a sighting. Lost: the hidden view turns faster (yaw speed p50
+10 -> 20 deg/s, people 8: it moves more and keeps more of its own motion out of the aim), the forward
+key alone (hidden 8% -> 19%, people 12%: people travel on the forward diagonal, 30%, which the walls
+deny the bots, 13%), decisive fights last longer (p50 1.4 -> 1.95 s, people 1.25), strafes in a
+firefight are shorter (p25 150 -> 100 ms, people 200), and the view 4-8 s after sight is further from
+the enemy (within 30 deg 62% -> 51%, people 76%). Think time with 16 bots in the arena: 78-79 us per
+bot per tick (85-86 before); no bot was stuck for more than 1.7 s on the maps.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
-- **Aim at a sighting:** 10.2 deg off at the first visible part vs people's 5.2, and the first press
-  comes at 250 ms vs 150. The bots pre-aim corners now but pick the one the enemy comes out of
-  less often: closer to the corner than to the enemy 57% vs 80%. An ad-hoc check on the tuning
+- **Aim at a sighting:** 11.5-11.9 deg off at the first visible part vs people's 5.2 (10.2 before
+  "Encounters": the bots now meet more often on the move), and the first press after a clean
+  sighting comes at 200-250 ms vs 150. The bots pre-aim corners but pick the one the enemy comes out
+  of less often: closer to the corner than to the enemy 53-56% vs 80%. An ad-hoc check on the tuning
   captures found them within 4 deg of the true corner at the onset 33% of the time vs 53%, and
   their error given that distance matching people's. The next lever is which exposures the belief
-  offers, not the view. Downstream of it: the first hit lands 300 ms after the first part (250),
-  and 49% of part sightings end without a hit (28%). Prefire is short after long hides: after 2-5 s
-  hidden the bots already hold fire at 17% of the sightings vs 26% (16-18% of all part sightings vs
-  23%); their anticipation of where and when the enemy comes out is the limit.
-- **Partial exposure:** the enemy shows only parts (centroid hidden) 5.1% of duel time vs 10.5%,
-  and bots hit 12% of their rounds there vs 22%. Bots rarely peek with part of the body. They fire
-  at such views as often as people (64% of that time vs 61%), so the centroid-based hidden fire
-  (`trigger.hold_hidden` 13% vs 24.5%) is low for want of these views, not the trigger.
-- **Encounters:** bots meet the enemy half as often as people (18 part sightings a minute vs 33 on
-  the practice maps, 350 ms long vs 450): people duel by peeking. The time mix follows: bots spend
-  half of their time with no part visible more than 5 s after sight (people 15%), fire in sight
-  7% of duel time vs 18%, and their bursts are more often begun in cover. Statistics pooled over
-  that mix (all fire into cover, the overall burst length, the contexts) stay off even where the
-  behaviour at a given time since sight matches.
+  offers, not the view. Downstream of it: the first hit lands 350 ms after the first part (250),
+  and 35% of part sightings end without a hit (28%; 45% before "Encounters"). Prefire is short after
+  long hides: the bots hold fire before the first part at 20% of the part sightings vs 23%; their
+  anticipation of where and when the enemy comes out is the limit.
+- **Partial exposure:** the enemy shows only parts (centroid hidden) 6.1-6.3% of duel time vs 10.5%
+  (4% before "Encounters"), and bots hit 12% of their rounds there vs 22%. It is about people's
+  share of the time on screen: the bots see the enemy less often, not peek less. They fire at such
+  views as often as people, so the centroid-based hidden fire (`trigger.hold_hidden` 19% vs 24.5%,
+  13% before) is low for want of these views, not the trigger.
+- **Encounters** (see "Encounters"): 28 sightings a minute vs 33, the enemy on screen 33% of duel
+  time vs 34%. Still short: the ground covered with the enemy out of sight (103 u in 2 s vs 158;
+  people travel on the forward diagonal with the view about 40 deg off their path, the bots press
+  forward alone or strafe), the time from both alive to the first part (1.9 s vs 1.35), the run
+  after a kill (144 u/s vs 236), the view 1-4 s after the enemy respawned (39-49 deg off it vs 17;
+  the belief is within 7 deg, the view is on corners), and dm/main's lower room, where people spend
+  14% of their time and the bots almost none (the server's spawn rule rarely puts them there and
+  their routes do not lead there). Lives are 12 s vs 7.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
   by under a sixth of the human range (0.22-0.53); the bots' parked share is set by the corner
@@ -409,16 +518,22 @@ per tick is 2.2% against people's 2.5% (before 1.6%), and it follows people's by
   1.02 (people 1.23) and the kills a minute rose 16%. Since the tap loop is matched on the holds
   begun in sight (see "Fire into cover, bursts and ladders") the near and tap loops no longer pull
   against each other.
-- **Retreats:** bots back off in fights at 100-300 u twice as often as people (real maps 15-23%
-  of fight ticks at 96-288 u vs 5-10%).
-- **Seeing the enemy without firing:** people stand still 30% of that time, bots 15% on the real
-  maps and 11% in the arena. The long freezes were bots out of ammunition (see above).
+- **Retreats:** bots back off in fights at 100-300 u twice as often as people (real maps 14-23%
+  of fight ticks at 96-288 u vs 5-10%) and approach half as often (18-22% at 224-288 u vs 38%). In
+  the arena the same bots approach and retreat like people: it is the maps. A pull toward the enemy
+  in sight closed the gap (39% / 7%) but made every bot press forward like the presser family, so
+  the pull acts only for the second after losing sight (see "Encounters").
+- **Seeing the enemy without firing:** people stand still 30% of that time, bots 8-9% on the real
+  maps (14% before "Encounters") and 11% in the arena. The long freezes were bots out of ammunition (see above).
 - **Fire into cover:** it fades with the time since sight like people's (more than 5 s after the
-  parts were last on screen 5.7-6.4% of that time vs 4.3%; before 12%), but over all such time it is
-  11-12% vs 17% (the encounters above).
-- **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 3-4 vs 5
-  (the encounters above). The burst dial works (per bot, realised against drawn, correlation
-  0.70-0.79) but is relative: no offset makes the arena's pooled bot burst past 5.5 rounds.
+  parts were last on screen 6.4-6.8% of that time vs 4.3%); over all such time it is 15-16% vs 17%
+  (11-12% before "Encounters").
+- **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
+  burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
+  relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.
+- **The hidden view turns too much:** yaw speed with the enemy hidden p50 20 deg/s vs 8 (10 before
+  "Encounters"), p99 830 vs 545. The bots move more and keep their own motion out of the aim on a
+  corner; the route look follows a smoothed route.
 - **Ladders** are climbed as people climb them, with a watchdog (see above). People never took the
   dm/vents ladder in the recorded duels; the bots take it when the navmesh route goes up it.
 - **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
@@ -435,7 +550,9 @@ per tick is 2.2% against people's 2.5% (before 1.6%), and it follows people's by
   letting go, in the key's direction and along a diagonal, and of what a key changes to), and the
   hand-set wall reflex lets go of keys before the bot hits a wall and vetoes pressing into one it
   touches.
-- Engage urgency is 0: bots do not push forward to engage.
+- Engage urgency 0.65 acts only for the second after losing sight: in sight the fitted keys and the style
+  dials move the bot. The route coupling, the engage urgency, the pause after a kill (0.5 s) and the turn
+  to a route behind the view were set by hand on practice-map captures (see "Encounters").
 - The hidden look policy, the sound precision and the pitch gain were set by hand (see the
   `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
   captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners

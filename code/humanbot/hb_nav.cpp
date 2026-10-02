@@ -30,7 +30,6 @@ namespace hb
 {
 
 static constexpr int ENGAGE_MEMORY_MS = 1000;
-static constexpr int POST_KILL_MS     = 1500;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
 {
@@ -150,8 +149,10 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     if (in.detected || recentlySeen) {
         m_intent    = INTENT_ENGAGE;
         out.target  = in.detected ? in.enemyPos : b->mode;
-        // out of ammunition the only weapon left is the bash: close in
-        out.urgency = in.outOfAmmo ? 1.0f : p.engageUrgency;
+        // out of ammunition the only weapon left is the bash: close in. In sight the fitted keys and the style move
+        // the bot (how much it presses forward is a style dial); the pull is for the second after losing sight,
+        // when people go after the enemy
+        out.urgency = in.outOfAmmo ? 1.0f : in.detected ? 0.0f : p.engageUrgency;
         m_goalValid = false;
     } else if (in.reloading && b && b->valid && !b->dead) {
         m_intent    = INTENT_RELOAD_COVER;
@@ -166,7 +167,7 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         }
         out.target  = m_goal;
         out.urgency = 1.0f;
-    } else if (in.msSinceKill < POST_KILL_MS) {
+    } else if (in.msSinceKill < p.postKillMs) {
         m_intent    = INTENT_POST_KILL;
         out.target  = self.origin;
         out.urgency = 0.15f;
