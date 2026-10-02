@@ -25,8 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // and decide on the same world snapshot (Prepare), then send their usercmds
 // (Commit): K sub-step commands per frame with digital keys, like a human
 // client. The brain (code/humanbot) only ever sees the noisy observations built
-// by the perception glue; stock bot code runs only for ladders, doors and
-// unstuck recovery.
+// by the perception glue; stock bot code runs only for doors and unstuck
+// recovery, and ladders are climbed by a fixed rule (Ladder()).
 
 #include "humanbot_internal.h"
 #include "playerbot.h"
@@ -182,6 +182,7 @@ private:
     void Track(Player *p, const hb::SelfState& self);
     void Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self);
     void Owners(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
+    void Ladder(Player *p, const HbView& view, const Vector& goal, hb::TickPlan& plan);
     bool Opponent(Player *self, Player *other) const;
     bool TeammateInCrosshair(Player *p, const HbView& view) const;
     void SetOwner(Player *p, int owner);
@@ -231,7 +232,16 @@ private:
     int m_owner          = hb::OWNER_BRAIN;
     int m_recoveryUntil  = 0;
     int m_useUntil       = 0;
-    int m_ladderGoalTime = -100000;
+
+    // the climb in progress (Ladder())
+    int   m_ladderSince    = 0;
+    int   m_ladderDir      = 1;
+    bool  m_ladderReversed = false;
+    float m_ladderPitch    = 0.0f;
+    float m_ladderMoveZ    = 0.0f;
+    int   m_ladderMoveTime = 0;
+    int   m_ladderPatience = 0;
+    bool  m_ladderJumped   = false;
 
     int m_gotKillOf = -1;
     bool m_headHit  = false;
@@ -543,7 +553,72 @@ static int SignKey(int v)
     return v > 20 ? 1 : (v < -20 ? -1 : 0);
 }
 
-// The only times stock code writes movement: ladders, doors and recovery.
+// A climb, as people climb (obj/obj_team2, 81 climbs up and 7 down; nobody took a ladder in the dm/vents
+// duels): the forward key held, the view up the ladder (pitch p50 -54 deg) or down it (+70), toward the
+// end nearer the brain's goal. On forward the ladder's state machine climbs up unless the view is more
+// than 30 deg down, and down when it is; it gets off at either end the same way.
+// Nothing in the recordings says what to do when the climb stalls, so this is set by hand: a bot that
+// has not moved 8 u for 1.5-3 s turns back once (two bots meeting on the ladder, or one standing on the
+// climber's head, blocked each other for minutes), and jumps off the second time or after 30 s.
+static const float LADDER_PROGRESS_Z   = 8.0f;
+static const int   LADDER_PATIENCE_MS  = 1500;
+static const int   LADDER_GIVE_UP_MS   = 30000;
+
+void HumanBotAdapter::Ladder(Player *p, const HbView& view, const Vector& goal, hb::TickPlan& plan)
+{
+    const int now = level.inttime;
+    if (!m_ladderSince) {
+        m_ladderSince    = std::max(now, 1);
+        m_ladderDir      = goal.z >= p->origin.z ? 1 : -1;
+        m_ladderReversed = false;
+        m_ladderJumped   = false;
+        m_ladderMoveZ    = p->origin.z;
+        m_ladderMoveTime = now;
+        m_ladderPatience = LADDER_PATIENCE_MS + static_cast<int>(m_rngPresent.Uniform() * LADDER_PATIENCE_MS);
+        m_ladderPitch    = 0.0f;
+    }
+    if (std::fabs(p->origin.z - m_ladderMoveZ) > LADDER_PROGRESS_Z) {
+        m_ladderMoveZ    = p->origin.z;
+        m_ladderMoveTime = now;
+    }
+    bool jump = false;
+    if (now - m_ladderMoveTime > m_ladderPatience || now - m_ladderSince > LADDER_GIVE_UP_MS) {
+        if (!m_ladderReversed && now - m_ladderSince <= LADDER_GIVE_UP_MS) {
+            m_ladderDir      = -m_ladderDir;
+            m_ladderReversed = true;
+            m_ladderMoveTime = now;
+            m_ladderPitch    = 0.0f;
+        } else {
+            // the state machine leaves on a jump press, not a held jump
+            jump = !m_ladderJumped;
+        }
+    }
+    m_ladderJumped = jump;
+    if (m_ladderPitch == 0.0f) {
+        m_ladderPitch = m_ladderDir > 0 ? Q_clamp_float(static_cast<float>(m_rngPresent.Normal(-54.0, 8.0)), -70.0f, -35.0f)
+                                        : Q_clamp_float(static_cast<float>(m_rngPresent.Normal(66.0, 6.0)), 45.0f, 80.0f);
+    }
+
+    float   wantYaw = view.yaw;
+    Entity *ladder  = p->GetLadder();
+    if (ladder && ladder->isSubclassOf(FuncLadder)) {
+        wantYaw = static_cast<FuncLadder *>(ladder)->getFacingAngles()[YAW];
+    }
+    plan.chord       = hb::MakeChord(1, 0);
+    plan.jump        = jump;
+    plan.crouch      = false;
+    plan.lean        = 0;
+    plan.use         = false;
+    plan.attack      = false;
+    plan.bash        = false;
+    plan.yawDelta    = Q_clamp_float(AngleNormalize180(wantYaw - view.yaw), -30.0f, 30.0f);
+    plan.pitchDelta  = Q_clamp_float(m_ladderPitch - view.pitch, -20.0f, 20.0f);
+    plan.viewStill   = false;
+    plan.flickShaped = false;
+}
+
+// The only times the brain's movement is overridden: ladders (Ladder()), and the stock code for doors and
+// recovery.
 void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan)
 {
     if (plan.owner == hb::OWNER_DEAD || !self.alive) {
@@ -553,31 +628,12 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
     }
     const Vector goal = plan.navTargetValid ? Vector(plan.navTarget.x, plan.navTarget.y, plan.navTarget.z) : p->origin;
 
-    // ladder: the stock movement and rotation, snapped to digital keys
     if (self.onLadder) {
-        BotMovement& movement = m_controller->GetMovement();
-        if (level.inttime - m_ladderGoalTime > 1000 || !movement.IsMoving()) {
-            movement.MoveTo(goal);
-            m_ladderGoalTime = level.inttime;
-        }
-        usercmd_t cmd;
-        memset(&cmd, 0, sizeof(cmd));
-        movement.MoveThink(cmd);
-        Vector want = movement.GetCurrentPathDirection().toAngles();
-        want.x      = Q_clamp_float(AngleNormalize180(want.x), -80.0f, 80.0f);
-        plan.chord      = hb::MakeChord(SignKey(cmd.forwardmove), SignKey(cmd.rightmove));
-        plan.jump       = cmd.upmove > 0;
-        plan.crouch     = false;
-        plan.lean       = 0;
-        plan.attack     = false;
-        plan.bash       = false;
-        plan.yawDelta   = Q_clamp_float(AngleNormalize180(want.y - view.yaw), -30.0f, 30.0f);
-        plan.pitchDelta = Q_clamp_float(want.x - view.pitch, -20.0f, 20.0f);
-        plan.viewStill  = false;
-        plan.flickShaped = false;
+        Ladder(p, view, goal, plan);
         SetOwner(p, hb::OWNER_LADDER);
         return;
     }
+    m_ladderSince = 0;
 
     // recovery: after 1 s of wall pressure or 1.5 s without progress, stock
     // AvoidPath moves the bot for 750 ms (the brain keeps the view)
@@ -908,6 +964,7 @@ void HumanBotAdapter::Spawned()
     m_wallMs        = 0.0f;
     m_recoveryUntil = 0;
     m_useUntil      = 0;
+    m_ladderSince   = 0;
     m_eye           = hb::EyeState();
     m_steerValid    = false;
     if (m_player) {
