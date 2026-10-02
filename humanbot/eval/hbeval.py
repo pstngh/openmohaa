@@ -121,7 +121,7 @@ def run_analysis(cache: Path, results: Path, scripts=None, repo: Path | None = N
     results.mkdir(parents=True, exist_ok=True)
     logs = results / "logs"
     logs.mkdir(exist_ok=True)
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MPLBACKEND="Agg")
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MPLBACKEND="Agg", NUMBA_CACHE_DIR=str(EVAL_CACHE / "numba"))
     timing = {}
     for s in scripts or ANALYSIS_SCRIPTS:
         args = [sys.executable, str(repo / "analysis" / s), str(cache)]

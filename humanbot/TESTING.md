@@ -123,8 +123,13 @@ private data repository. `check_no_raw_data.py` (run in CI) refuses anything els
 ## 5. Compare with the human duels
 
 ```sh
-python3 humanbot/eval/compare.py humanbot/captures/<zip>...     # --movement-repo PATH if not ../openmohaa-movement
+python3 humanbot/eval/compare.py humanbot/captures/<zip>... --moh-dir /path/to/mohaa   # --movement-repo PATH if not ../openmohaa-movement
 ```
+
+`--moh-dir` (or `$MOHAA_DIR`) is the MOHAA folder with the practice maps; it is only read. With it the
+report also scores the pre-aim statistics (`perception.*`: the aim error at the first visible body part,
+the reaction timed from it, and where the crosshair waits while the enemy is hidden, against the edge of
+cover it comes out from), on the body parts the bots' own perception logged.
 
 With the private `openmohaa-movement` checkout next to the fork, this runs its unchanged
 analysis scripts on the bot captures. It writes `humanbot/eval/reports/<stem>/report.md` with:

@@ -1,11 +1,18 @@
 """Pre-aim, corner and reaction statistics timed from the first visible body part.
 
-The definitions are those of openmohaa-movement's analysis/perception_all.py (REPORT sections 13 and 14),
-computed on the body-part column its unchanged vis_parts.py rebuilds from the practice-map geometry
-(<cache>/vis_parts.parquet, accepted in <results>/vis_parts.json). The sighting machinery (sightings.py), the
-body-part geometry (parts.py) and the sight tracer (bsp.py) are the data repo's own modules, imported by path;
-what is reimplemented here, with the same definitions, is only the per-sighting tables and the corner trace of
-perception_all.py, which is a script. validate() checks the pooled point estimates against perception_all.json.
+The definitions are those of openmohaa-movement's analysis/perception_all.py (REPORT sections 13 and 14). The
+sighting machinery (sightings.py), the body-part geometry (parts.py) and the sight tracer (bsp.py) are the data
+repo's own modules, imported by path; what is reimplemented here, with the same definitions, is only the
+per-sighting tables and the corner trace of perception_all.py, which is a script. validate() checks the pooled
+point estimates against perception_all.json.
+
+Two visibility columns:
+  * "rebuilt" (people): the column the data repo's unchanged vis_parts.py rebuilds from the practice-map geometry
+    (<cache>/vis_parts.parquet, accepted in <results>/vis_parts.json), with its key-modelled leaned eye and lean;
+  * "logged" (bots, schema 13): what the logger recorded, ext_vis_parts from the leaned eye origin + ext_eye_ofs,
+    and ext_lean_angle. For a bot that is exactly its own perception. It is the column the people's rebuild was
+    accepted against on 2026-09-28 (vis_parts_acceptance.md). The rebuild itself is not used on bot captures:
+    there it fails the same acceptance test (its onsets come early; the bots' eyes are not the people's).
 
 Every statistic is reduced to per-block values (a block is one player in one session) so that metrics.py's block
 bootstrap and compare.py treat them like every other statistic. The appearance point and the corner come from
@@ -32,7 +39,7 @@ from hbeval import EVAL_CACHE, import_analysis_module, movement_repo
 KEY = ["session_id", "client_id", "session_ms"]
 SMG = ["MP40", "Thompson"]
 BOX = ["bbox_min_x", "bbox_min_y", "bbox_min_z", "bbox_max_x", "bbox_max_y", "bbox_max_z"]
-COLS = KEY + ["schema", "map", "seg", "seg_t", "seg_len", "eligible", "person", "opponent_id", "line_of_sight",
+COLS = KEY + ["schema", "map", "seg", "seg_t", "seg_len", "eligible", "person", "name", "capture_date", "opponent_id", "line_of_sight",
               "aim_total_error", "aim_yaw_error", "tgt_half_w_deg", "crosshair_on_opponent", "attack", "view_yaw",
               "view_pitch", "speed_xy", "eye_x", "eye_y", "eye_z", "origin_x", "origin_y", "origin_z", "distance_xyz",
               "ev_shot"] + BOX
@@ -51,19 +58,45 @@ def mohaa_dir(explicit=None) -> Path | None:
 
 
 def _modules(repo=None):
-    # numba caches its compiled kernels next to the source unless told otherwise: keep the data repo untouched
-    os.environ.setdefault("NUMBA_CACHE_DIR", str(EVAL_CACHE / "numba"))
+    # numba caches its compiled kernels next to the source unless told otherwise: keep the data repo untouched.
+    # The modules load here under private names, so their kernels must not share a cache with the data repo's
+    # scripts run as subprocesses (EVAL_CACHE / "numba"), which load bsp.py as plain "bsp".
+    os.environ["NUMBA_CACHE_DIR"] = str(EVAL_CACHE / "numba_inproc")
     repo = repo or movement_repo()
     return SimpleNamespace(common=import_analysis_module("common", repo), sightings=import_analysis_module("sightings", repo),
                            parts=import_analysis_module("parts", repo), bsp=import_analysis_module("bsp", repo))
 
 
-def available(cache: Path, results: Path, moh) -> str | None:
+def eye_params(results: Path | None = None) -> dict:
+    """The eye model of the data repo's vis_parts.py (results/vis_parts.json; default: its committed results):
+    R and k place the roll of a leaning body's upper parts."""
+    for c in ([Path(results) / "vis_parts.json"] if results else []) + (
+            [movement_repo() / "analysis" / "results" / "vis_parts.json"] if movement_repo() else []):
+        if c.exists():
+            return json.loads(c.read_text())["eye_model"]["params"]
+    raise FileNotFoundError("vis_parts.json (the eye model) not found")
+
+
+def column_for(cache: Path, results: Path) -> str:
+    """"rebuilt" when the cache has an accepted rebuilt column, else "logged" (schema-13 captures)."""
+    vp = Path(results) / "vis_parts.json"
+    if (Path(cache) / "vis_parts.parquet").exists() and vp.exists():
+        if (json.loads(vp.read_text()).get("decision") or {}).get("column_used_for_analysis") == "keys_lean_parts":
+            return "rebuilt"
+    return "logged"
+
+
+def available(cache: Path, results: Path, moh, column: str = "rebuilt") -> str | None:
     """None when the tables can be built, else why not."""
     if movement_repo() is None:
         return "openmohaa-movement is not available"
     if mohaa_dir(moh) is None:
         return f"no MOHAA folder (pass --moh-dir or set ${MOHAA_ENV}): the corner trace needs the practice-map BSPs"
+    if column == "logged":
+        F = pd.read_parquet(Path(cache) / "features.parquet", columns=["eligible", "schema"])
+        if not F.eligible.any() or F.loc[F.eligible, "schema"].min() < 13:
+            return "the logged body-part column needs schema-13 captures (ext_vis_parts)"
+        return None
     if not (Path(cache) / "vis_parts.parquet").exists() or not (Path(results) / "vis_parts.json").exists():
         return "vis_parts.parquet / vis_parts.json missing (run the data repo's vis_parts.py on this cache)"
     vp = json.loads((Path(results) / "vis_parts.json").read_text())
@@ -85,8 +118,10 @@ class Tables:
     column: str = "rebuilt"
 
 
-def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bool = True) -> Tables:
-    """perception_all.py's events() on one visibility column ("rebuilt", or "logged" ext_vis_parts on schema 13)."""
+def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bool = True, corners: bool = True) -> Tables:
+    """perception_all.py's events() on one visibility column: "rebuilt" (vis_parts.py), or "logged" (ext_vis_parts,
+    with the logged leaned eye and lean angle; schema 13). corners=False skips the corner trace (no MOHAA folder
+    needed; the corner columns are then NaN)."""
     say = print if verbose else (lambda *a, **k: None)
     cache, results = Path(cache), Path(results)
     mods = _modules()
@@ -94,12 +129,16 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     Seqmod = mods.sightings
     PRE, HOLD, POST = Seqmod.PRE, Seqmod.HOLD, Seqmod.POST
     view_basis, in_frustum, part_points = mods.parts.view_basis, mods.parts.in_frustum, mods.parts.part_points
-    VP = json.loads((results / "vis_parts.json").read_text())
-    EYE = VP["eye_model"]["params"]
-    cols = COLS + (["ext_vis_parts"] if column == "logged" else [])
-    F = pd.read_parquet(cache / "features.parquet", columns=cols)
+    EYE = eye_params(results if column == "rebuilt" else None)
+    logged = ["ext_vis_parts", "ext_lean_angle", "ext_eye_ofs_x", "ext_eye_ofs_y", "ext_eye_ofs_z"]
+    F = pd.read_parquet(cache / "features.parquet", columns=COLS + (logged if column == "logged" else []))
     F = F.sort_values(KEY, kind="stable").reset_index(drop=True)
-    F = F.merge(pd.read_parquet(cache / "vis_parts.parquet"), on=KEY, how="left", validate="one_to_one")
+    if column == "logged":
+        # the logged leaned eye and lean; the roll pivot sits R under the stance's eye (the unleaned view height)
+        F = F.assign(leye_x=F.origin_x + F.ext_eye_ofs_x, leye_y=F.origin_y + F.ext_eye_ofs_y,
+                     leye_z=F.origin_z + F.ext_eye_ofs_z, lean_sim=F.ext_lean_angle, eye_h=F.eye_z - F.origin_z)
+    else:
+        F = F.merge(pd.read_parquet(cache / "vis_parts.parquet"), on=KEY, how="left", validate="one_to_one")
     F["block"] = F.session_id.astype(str) + "|" + F.client_id.astype(str)
     N = len(F)
     el = F.eligible.to_numpy()
@@ -139,7 +178,7 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     los, att, yerr = C.los, C.att, C.yerr
     lean_abs = np.abs(col("lean_sim"))
     ks = list(range(-LOOK, 1))
-    MAPS = {m: mods.bsp.Map(mods.bsp.PakFS(mohaa_dir(moh)), m, ck) for m, ck in mods.bsp.PRACTICE_CHECKSUMS.items()}
+    MAPS = {m: mods.bsp.Map(mods.bsp.PakFS(mohaa_dir(moh)), m, ck) for m, ck in mods.bsp.PRACTICE_CHECKSUMS.items()} if corners else {}
     mapv = F["map"].to_numpy()
     opp_lean, opp_pivot, opp_yaw = col("lean_sim")[oi], col("eye_h")[oi] - EYE["R"], vy[oi]
     pitch_v = col("view_pitch")
@@ -189,7 +228,7 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
                 hi, lo = np.where(ok, mid, hi), np.where(ok, lo, mid)
             cross_t[r, j] = -bstar[r, j] + (lo + hi) / 2
             hid_pt[r, j] = a_ + lo[:, None] * (b_ - a_)
-        found = np.isfinite(cross_t).any(1)
+        found = np.isfinite(cross_t).any(1) & bool(MAPS)
         fp = np.where(found, np.nanargmin(np.where(np.isfinite(cross_t), cross_t, np.inf), 1), 0)
         H = hid_pt[np.arange(n), fp]
         K = np.full((n, 3), np.nan)
@@ -270,7 +309,8 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
                        "cls": np.select([c_vis[shot], p_vis[shot]], ["centre_visible", "part_only"], "no_part")})
     say(f"perception: {len(P)} part sightings, {len(Cs)} centroid sightings, {int(P.corner_found.sum())} corners "
         f"({column} column)")
-    T = Tables(F=F[KEY + ["person"]].copy(), P=P, Cs=Cs, CT=CT, T=Tk, Sh=Sh, curve2s={"ticks": curve2s, "rows": rows2s},
+    T = Tables(F=F[KEY + ["person", "name", "capture_date"]].copy(), P=P, Cs=Cs, CT=CT, T=Tk, Sh=Sh,
+               curve2s={"ticks": curve2s, "rows": rows2s},
                eye=EYE, column=column)
     return T
 
@@ -291,7 +331,7 @@ def register(D, T: Tables, prefix: str = "perception"):
         rows = np.asarray(rows, dtype=np.int64)
         if not len(rows):
             return np.zeros(0, np.int64)
-        return D.block_ids_frame(F.iloc[rows].reset_index(drop=True))
+        return D.block_ids_frame(F.iloc[rows][KEY + ["person"]].reset_index(drop=True))
 
     sec, pre = "perception", prefix
     P, Cs = T.P, T.Cs
