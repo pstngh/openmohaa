@@ -31,6 +31,7 @@ namespace hb
 static constexpr int WEAPON_STATE_READY     = 0;
 static constexpr int WEAPON_STATE_FIRING    = 1;
 static constexpr int WEAPON_STATE_RELOADING = 5;
+static constexpr int UNARMED_DRAW_MS         = 1000;   // nothing in hand this long: draw a weapon
 
 void WeaponLogic::Init(const WeaponModel *params)
 {
@@ -40,8 +41,16 @@ void WeaponLogic::Init(const WeaponModel *params)
 
 void WeaponLogic::Reset()
 {
-    m_reloadAtMs = -1;
-    m_lastCmdMs  = -100000;
+    m_reloadAtMs   = -1;
+    m_lastCmdMs    = -100000;
+    m_unarmedSince = -1;
+}
+
+bool OutOfAmmo(const SelfState& self)
+{
+    // no round in the hand, and none for the primary or the pistol (people never get here: they die first)
+    const bool held = self.weaponClass != WEAPON_CLASS_NONE && (self.clipAmmo > 0 || self.reserveAmmo > 0);
+    return self.alive && !held && self.primaryAmmo <= 0 && self.pistolAmmo <= 0;
 }
 
 int WeaponLogic::RespawnDelayMs(Rng& rng) const
@@ -58,21 +67,46 @@ int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool
     const double uTac  = rng.Uniform();
     const double uDly  = rng.Uniform();
 
-    if (!self.alive || self.weaponClass == WEAPON_CLASS_NONE) {
-        m_reloadAtMs = -1;
+    if (!self.alive) {
+        m_reloadAtMs   = -1;
+        m_unarmedSince = -1;
         return CMD_NONE;
     }
+    if (self.weaponClass == WEAPON_CLASS_NONE) {
+        // nothing in hand for a while (not the moment of a respawn, nor a ladder, which puts it away): draw the
+        // primary when it has rounds, else the pistol, loaded or not (it still bashes)
+        m_reloadAtMs = -1;
+        if (m_unarmedSince < 0 || self.onLadder || self.switching) {
+            m_unarmedSince = self.onLadder || self.switching ? -1 : now;
+            return CMD_NONE;
+        }
+        if (now - m_unarmedSince >= UNARMED_DRAW_MS && now - m_lastCmdMs > 1000) {
+            if (self.primaryAmmo > 0 || self.hasPistol) {
+                m_lastCmdMs = now;
+                return self.primaryAmmo > 0 ? CMD_PRIMARY : CMD_PISTOL;
+            }
+        }
+        return CMD_NONE;
+    }
+    m_unarmedSince = -1;
     if (self.weaponState == WEAPON_STATE_RELOADING || self.switching) {
         m_reloadAtMs = -1;
         return CMD_NONE;
     }
     const bool canReload = self.clipAmmo < self.clipSize && self.reserveAmmo > 0;
 
-    // out of everything: the pistol
+    // the held weapon is out of rounds: the pistol (empty too, it still bashes: OutOfAmmo)
     if (self.clipAmmo == 0 && self.reserveAmmo == 0 && self.hasPistol && self.weaponClass != WEAPON_CLASS_PISTOL
         && now - m_lastCmdMs > 1000) {
         m_lastCmdMs = now;
         return CMD_PISTOL;
+    }
+    // back to the primary once it has rounds again (a weapon or ammunition picked up): at once when the pistol is
+    // empty, else out of a fight
+    if (self.weaponClass == WEAPON_CLASS_PISTOL && self.primaryAmmo > 0 && now - m_lastCmdMs > 1000
+        && ((self.clipAmmo == 0 && self.reserveAmmo == 0) || (!enemyDetected && !attackHeld))) {
+        m_lastCmdMs = now;
+        return CMD_PRIMARY;
     }
     if (gotKill && canReload) {
         const int   bin = BinIndex(self.clipAmmo, p.postKillRoundEdges);

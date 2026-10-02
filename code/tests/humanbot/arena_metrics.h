@@ -349,6 +349,9 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
             }
             const bool cvis = r[i].los, pvis = r[i].visParts > 0;
             A.R("perception.part_only_share", pvis && !cvis);
+            if (!pvis && !r[i].reloading && r[i].clip > 0) {
+                A.R("perception.fire_held_no_part", r[i].attack);
+            }
             if (r[i].shot) {
                 if (cvis) {
                     A.R("perception.smg_hit.centre_visible", r[i].hit);

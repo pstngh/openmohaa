@@ -37,14 +37,14 @@ namespace hb
 
 struct TriggerInput {
     bool  canFire        = false;  // weapon ready, rounds in the clip, alive
-    bool  los            = false;  // logger-equivalent centroid LOS, frustum gated
-    int   lageMs         = 0;      // since `los` last changed
+    bool  los            = false;  // in sight: a body part of the focus enemy perceived
+    int   lageMs         = 0;      // since `los` last changed (a sighting counts from when the parts came on screen)
     float errHalfWidths  = 100.0f; // with LOS: aim error / opponent body half-width
     float hiddenYawErr   = 180.0f; // hidden: |yaw error| to the believed enemy position
     bool  damaged        = false;  // hit this tick
     bool  anticipate     = false;  // an exposure is expected in the crosshair right now
     bool  blocked        = false;  // a teammate is in the crosshair
-    float releaseLogit   = 0.0f;   // style: burst length
+    float releaseLogit   = 0.0f;   // style: burst length (in sight only)
     float pressLogit     = 0.0f;   // style: reaction (press hazard with LOS)
 };
 

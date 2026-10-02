@@ -153,7 +153,7 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 58% of 195 statistics. These are furthest off,
+The model matches the human duels within 25% on 55% of 195 statistics. These are furthest off,
 and what to look for in the live test:
 
 - **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
@@ -168,8 +168,11 @@ and what to look for in the live test:
 - **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
   people.
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
-  bots 11% in the arena. On the practice maps it swings between captures, and some bots stand
-  facing a visible enemy without firing for long stretches.
+  bots 11-15%. (Bots that stood frozen in front of an enemy for minutes had run out of
+  ammunition; since 2026-10-02 they fire into cover as often as people and rarely run dry. One
+  that does closes in and hits with the pistol butt.)
+- **Ladders on dm/vents.** A bot can hang on a ladder for a while (once 17 minutes) while the
+  stock ladder code has it.
 - **The arena is not a recorded map.** Its context mix differs (more hidden time, fewer
   fights), so statistics tied to the map (fight distances, time in fights) can only be judged
   on your captures.

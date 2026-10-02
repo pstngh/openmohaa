@@ -340,6 +340,69 @@ static void TestTracking(const hb::ModelBundle& b, const hb::MapPrior& m)
     HB_CHECK(nearest < 300.0f);
 }
 
+// Out of ammunition (people never are: they die first) the bot closes in and bashes with the pistol, a tap at a time,
+// once the enemy is in reach with the crosshair on it. With rounds left it shoots and never bashes.
+static void TestOutOfAmmo(const hb::ModelBundle& b, const hb::MapPrior& m)
+{
+    struct Result {
+        int   bashes = 0, doubles = 0, fires = 0;
+        float urgency = 0.0f;
+    };
+    auto run = [&](float dist, bool dry) {
+        hb::Brain br;
+        br.Init(&b, &m, hb::SampleStyle(b.style, -1, 7), 77, 4);
+        hb::Observation obs;
+        hb::SelfState&  s = obs.self;
+        s.alive       = true;
+        s.spectator   = false;
+        s.origin      = m.cells[m.NumCells() / 2].center;
+        s.eye         = s.origin + hb::Vec3(0, 0, 82);
+        s.health      = 100;
+        s.weaponState = 0;
+        s.hasPistol   = true;
+        s.weaponClass = hb::WEAPON_CLASS_PISTOL;
+        s.clipSize    = 7;
+        s.clipAmmo    = dry ? 0 : 7;
+        s.reserveAmmo = dry ? 0 : 50;
+        s.pistolAmmo  = s.clipAmmo + s.reserveAmmo;
+        hb::EnemyObs e;
+        e.id          = 1;
+        e.detected    = true;
+        e.visParts    = hb::NUM_PARTS;
+        e.partMask    = (1 << hb::NUM_PARTS) - 1;
+        e.centroidLos = true;
+        e.pos         = s.eye + hb::Vec3(dist, 0, -40);
+        for (int k = 0; k < hb::NUM_PARTS; k++) {
+            e.partPos[k] = e.pos;
+        }
+        obs.enemies.push_back(e);
+        s.viewYaw   = hb::YawOf(e.pos - s.eye);
+        s.viewPitch = hb::PitchOf(e.pos - s.eye);
+        Result        r;
+        bool          prev = false;
+        hb::TickPlan  plan;
+        hb::Diag      d;
+        for (int t = 0; t < 200; t++) {
+            s.timeMs                  = 1000 + t * 50;
+            obs.enemies[0].visibleMs  = t * 50;
+            br.Think(obs, plan, &d);
+            r.bashes  += plan.bash;
+            r.doubles += plan.bash && prev;
+            prev       = plan.bash;
+            r.fires   += t >= 20 && plan.attack;   // the first live ticks may repeat the respawn click
+            r.urgency  = d.nav_urgency;
+        }
+        return r;
+    };
+    const Result nearDry = run(70.0f, true), farDry = run(400.0f, true), nearLoaded = run(70.0f, false);
+    HB_REPORT("out of ammunition: %d bash taps in 10 s at 70 u (%d on consecutive ticks), %d at 400 u (nav urgency %.1f); "
+              "loaded: %d bashes, %d ticks firing", nearDry.bashes, nearDry.doubles, farDry.bashes, farDry.urgency,
+              nearLoaded.bashes, nearLoaded.fires);
+    HB_CHECK(nearDry.bashes > 20 && nearDry.doubles == 0 && nearDry.fires == 0);
+    HB_CHECK(farDry.bashes == 0 && farDry.urgency > 0.99f);
+    HB_CHECK(nearLoaded.bashes == 0 && nearLoaded.fires > 0);
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -360,5 +423,6 @@ int main()
     TestCorner(b);
     TestSpawn(b, m);
     TestTracking(b, m);
+    TestOutOfAmmo(b, m);
     return hbtest::Finish("test_hb_belief");
 }

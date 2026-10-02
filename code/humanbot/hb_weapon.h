@@ -34,6 +34,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace hb
 {
 
+// Out of ammunition: nothing in hand can fire and neither the primary nor the pistol has a round left.
+bool OutOfAmmo(const SelfState& self);
+
 class WeaponLogic
 {
 public:
@@ -51,6 +54,7 @@ private:
     const WeaponModel *m_p         = nullptr;
     int                m_reloadAtMs = -1;
     int                m_lastCmdMs  = -100000;
+    int                m_unarmedSince = -1;   // since when nothing is in hand (-1: armed)
 };
 
 } // namespace hb

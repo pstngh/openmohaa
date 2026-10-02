@@ -217,12 +217,22 @@ void HB_FillSelf(Player *player, const HbView& view, hb::SelfState& self)
     self.reserveAmmo = weapon ? weapon->AmmoAvailable(FIRE_PRIMARY) : 0;
     self.switching   = player->GetNewActiveWeapon() != NULL && player->GetNewActiveWeapon() != weapon;
     self.hasPistol   = false;
+    self.primaryAmmo = 0;
+    self.pistolAmmo  = 0;
     const Container<int>& inventory = player->getInventory();
     for (int i = 1; i <= inventory.NumObjects(); i++) {
         Entity *item = G_GetEntity(inventory.ObjectAt(i));
-        if (item && item->IsSubclassOfWeapon() && (static_cast<Weapon *>(item)->GetWeaponClass() & ::WEAPON_CLASS_PISTOL)) {
-            self.hasPistol = true;
-            break;
+        if (!item || !item->IsSubclassOfWeapon()) {
+            continue;
+        }
+        Weapon   *w    = static_cast<Weapon *>(item);
+        const int wc   = w->GetWeaponClass();
+        const int ammo = std::max(0, w->ClipAmmo(FIRE_PRIMARY)) + std::max(0, w->AmmoAvailable(FIRE_PRIMARY));
+        if (wc & ::WEAPON_CLASS_PISTOL) {
+            self.hasPistol  = true;
+            self.pistolAmmo = std::max(self.pistolAmmo, ammo);
+        } else if (wc & (::WEAPON_CLASS_SMG | ::WEAPON_CLASS_RIFLE | ::WEAPON_CLASS_MG | ::WEAPON_CLASS_HEAVY)) {
+            self.primaryAmmo = std::max(self.primaryAmmo, ammo);
         }
     }
 }

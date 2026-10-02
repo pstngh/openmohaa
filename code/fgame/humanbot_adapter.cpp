@@ -570,6 +570,7 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
         plan.crouch     = false;
         plan.lean       = 0;
         plan.attack     = false;
+        plan.bash       = false;
         plan.yawDelta   = Q_clamp_float(AngleNormalize180(want.y - view.yaw), -30.0f, 30.0f);
         plan.pitchDelta = Q_clamp_float(want.x - view.pitch, -20.0f, 20.0f);
         plan.viewStill  = false;
@@ -813,6 +814,9 @@ void HumanBotAdapter::Commit()
     case hb::CMD_PRIMARY:
         {
             const Container<int>& inventory = p->getInventory();
+            Weapon *const         active    = p->GetActiveWeapon(WEAPON_MAIN);
+            // with nothing loaded in hand, the pistol is drawn even when it is empty: it still bashes
+            const bool forBash = m_command == hb::CMD_PISTOL && (!active || !active->HasAmmo(FIRE_PRIMARY));
             for (int i = 1; i <= inventory.NumObjects(); i++) {
                 Entity *item = G_GetEntity(inventory.ObjectAt(i));
                 if (!item || !item->IsSubclassOfWeapon()) {
@@ -822,7 +826,7 @@ void HumanBotAdapter::Commit()
                 const int wc   = w->GetWeaponClass();
                 const bool want = m_command == hb::CMD_PISTOL ? (wc & ::WEAPON_CLASS_PISTOL) != 0
                                                               : (wc & (::WEAPON_CLASS_SMG | ::WEAPON_CLASS_RIFLE | ::WEAPON_CLASS_MG | ::WEAPON_CLASS_HEAVY)) != 0;
-                if (want && w != p->GetActiveWeapon(WEAPON_MAIN) && w->HasAmmo(FIRE_PRIMARY)) {
+                if (want && w != active && (w->HasAmmo(FIRE_PRIMARY) || forBash)) {
                     p->useWeapon(w, WEAPON_MAIN);
                     break;
                 }
@@ -852,6 +856,9 @@ void HumanBotAdapter::Commit()
         if (c.attack) {
             buttons |= BUTTON_ATTACKLEFT;
         }
+        if (c.bash) {
+            buttons |= BUTTON_ATTACKRIGHT;
+        }
         if (!c.walk) {
             buttons |= BUTTON_RUN;
         }
@@ -864,7 +871,7 @@ void HumanBotAdapter::Commit()
             buttons |= BUTTON_LEAN_RIGHT;
         }
         // CL_CmdButtons: any key down (the walk key included) sets both bits
-        if (u.forwardmove || u.rightmove || u.upmove || c.attack || c.use || c.lean || c.walk) {
+        if (u.forwardmove || u.rightmove || u.upmove || c.attack || c.bash || c.use || c.lean || c.walk) {
             buttons |= BUTTON_ANY | BUTTON_MOUSE;
         }
         u.buttons   = static_cast<unsigned short>(buttons);

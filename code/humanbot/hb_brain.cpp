@@ -38,6 +38,10 @@ static constexpr float BODY_HALF_W       = 15.0f;
 // (the next round would leave within 100 ms, before the view moved).
 static constexpr int   HEAD_HIT_CHEST_MS = 300;
 static constexpr int   HEAD_HIT_PAUSE_MS = 100;
+// Out of ammunition the bot closes in and bashes with the pistol (DM reach 96 u from its middle, plus the box of
+// the victim): within this distance, centre to centre, and with the crosshair this near the body (half-widths).
+static constexpr float BASH_REACH           = 100.0f;
+static constexpr float BASH_AIM_HALF_WIDTHS = 1.5f;
 // g_humanbot_skill, per unit: aim noise x e^-0.5, press logit +0.7 (reaction), detection rate x e^0.5,
 // and a round the crosshair would send off the body skipped with chance 0.5 (people fire when on target:
 // 30% of their rounds leave on the body against 20% of their frames; the bots' rounds do not)
@@ -118,6 +122,7 @@ void Brain::OnSpawn(const Observation& obs)
     m_detected  = false;
     m_acqTicks  = 1000;
     m_clickDown = false;
+    m_bashPrev  = false;
 }
 
 void Brain::OnDeath(const Observation& obs)
@@ -208,6 +213,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         }
     }
     const bool detected = fe && fe->detected;
+    const bool dry      = OutOfAmmo(self);
     if (detected && (!m_detected || (fb && fb->enemyId != m_focusId))) {
         m_acqTicks = 0;
     } else if (m_acqTicks < 1000) {
@@ -419,6 +425,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     ni.msSinceSpawn = now - m_spawnMs;
     ni.msSinceKill  = now - m_killMs;
     ni.angleHold    = m_off.angleHold;
+    ni.outOfAmmo    = dry;
     m_nav.Step(self, ni, m_rngNav, m_navOut);
 
     //
@@ -427,6 +434,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     plan.owner      = OWNER_BRAIN;
     plan.chord      = mo.chord;
     plan.attack     = attack;
+    // out of ammunition (people never are: they die first) the pistol bashes, a tap at a time, with the enemy in
+    // reach and the crosshair on it
+    plan.bash = dry && detected && self.weaponClass == WEAPON_CLASS_PISTOL && !self.switching && !m_bashPrev
+             && (fe->pos - self.origin).lengthXY() < BASH_REACH && ti.errHalfWidths < BASH_AIM_HALF_WIDTHS;
+    m_bashPrev = plan.bash;
     plan.lean       = mo.lean;
     plan.crouch     = mo.crouch;
     plan.jump       = mo.jump;

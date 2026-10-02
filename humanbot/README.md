@@ -28,8 +28,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      looking where the enemy is not.
    - `hb_trigger`: press and release hazards by aim error, time since sight and hold age. "In
      sight" means a body part perceived, and the clock runs from when the parts came on screen, as
-     people's reaction does. After a head hit of its own the bot pauses and aims at the chest (the
-     owner's rule: no two headshots in a row).
+     people's reaction does. A style's burst length acts only in sight: fire at an enemy out of
+     sight is let go of as people let go of it. After a head hit of its own the bot pauses and aims
+     at the chest (the owner's rule: no two headshots in a row).
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
      while the enemy is hidden. With only parts of the enemy showing, it aims at a visible part.
      While the enemy is hidden it pre-aims the corner the believed enemy would come out from:
@@ -40,9 +41,11 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
      lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
      wall reflex lets go of a key before the bot runs into the wall (people see walls coming).
-   - `hb_nav`: where to go (hunt, hold, cover); `hb_weapon`: reloads and weapon switches. The
-     adapter keeps the navmesh route off the walls (`g_humanbot_wall_steer`), and on the move the
-     view also looks down the route.
+   - `hb_nav`: where to go (hunt, hold, cover); `hb_weapon`: reloads and weapon switches (the
+     pistol when the primary is empty, back to the primary when it has rounds again, a weapon drawn
+     when nothing is in hand). Out of ammunition altogether, which people never are (they die
+     first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
+     the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route.
    - `hb_style`: the dials of this bot. The hold-or-clear dial (how early a bot parks on a
      corner, and how readily it stops for one) is wired in but inert: no offset of it changes how
      often a bot waits on the point the enemy appears at.
@@ -115,7 +118,8 @@ attenuated, the look policy and sound precision were never recorded, and the mod
 
 - open loop, on the recorded traces (`hb_replay`): lean, strafe and forward habits per context;
 - closed loop, in the arena (`hb_arena`, two pooled bots, fixed seeds): stillness, turn speeds,
-  tracking gain, aim noise, aim heights, press hazard and hidden fire.
+  tracking gain, aim noise, aim heights, press hazard and hidden fire (fire held with no body part
+  of the enemy visible, the trigger's own meaning of out of sight).
 
 It then sweeps each style dial's internal offset in the arena and writes the monotone curves
 from dial target to offset. A dial whose sweep spans less than a third of the human range stays

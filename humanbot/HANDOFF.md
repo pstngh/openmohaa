@@ -30,14 +30,16 @@ Built and pushed:
 Verified:
 - `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 58% of 195
-  statistics (median relative error 0.17), and on 49% of the 43 pre-aim statistics (median
-  0.26); four seeds of 900 s, model `c29371288` of 2026-10-02 on a Linux workstation. On
-  2026-09-28 it was 58% (0.20) in the build container and 53-55% on macOS.
-- 16 bots take 90 us per bot per tick on that workstation (112 in the build container); the
+- In the arena, two average-style bots are within 25% of the human value on 55% of 195
+  statistics (median relative error 0.21), and on 45% of the 44 pre-aim statistics (median
+  0.29); four seeds of 900 s, model `8d64ab93b` of 2026-10-02 on a Linux workstation (the corner
+  pre-aim's `c29371288`: 58%, 0.17; on 2026-09-28 58% in the build container, 53-55% on macOS).
+  The arena's pooled bots carry no style shift, so the out-of-ammunition fix below shows on the
+  practice maps, not here.
+- 16 bots take 85-90 us per bot per tick on that workstation (112 in the build container); the
   budget is 150.
 - On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim"
-  below.
+  and "Out of ammunition" below.
 
 **The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
 - the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
@@ -236,7 +238,50 @@ the map. Start `omohaaded` with its own `fs_homepath` and `net_port`, stop it af
 `g_humanbot_model_dir` tries a parameter without a rebuild. Run one `compare.py` at a time:
 `behavior.py` got OOM-killed with two at once.
 
-## Known gaps (two average-style bots; "real maps" = the report above)
+## Out of ammunition (2026-10-02)
+
+On the practice maps bots stood still facing a visible enemy for minutes (62% of the time they saw
+the enemy without firing, people 30%). These were standoffs: both bots of a pair out of every round,
+SMG and pistol, with nothing left to do. People never run dry (0.0% of their duel time: they die
+first). The bots were dry 10% of their duel time and held a pistol 23% of it (people 1.8%). They
+emptied the loadout firing at enemies they could not see (fire held with no body part visible 34%
+of that time, people 17%), over lives three times as long as people's. Two calibrated shifts did it:
+- **The burst-length dial** (`burst_median`, -1.47 logit at the pooled value) also lengthened the
+  release of fire into cover. The arena's pooled bot carries no dial shift, so no loop saw it. It now
+  acts in sight only (`hb_trigger.cpp`). Its arena sweep then spans 19% of the human range: the dial
+  worked through fire into cover. `calibrate.py` leaves it inert, and every bot bursts like the
+  pooled one.
+- **`hidden_fire_logit`** was calibrated against fire held without the centroid ray. That counts
+  people's fire at partly visible enemies, while the trigger's "hidden" means no body part visible.
+  The loop now targets `perception.fire_held_no_part` (new in the human reference: 17.3%); the value
+  went from 0.77 to 0.37.
+
+People give no data on running dry, so the fallback is set by hand (`hb_weapon.cpp` `OutOfAmmo`,
+`hb_brain.cpp`, `hb_nav.cpp`). With nothing in hand that fires and no round for the primary or the
+pistol, the bot draws the pistol even when it is empty, closes in (urgency 1, no holding) and bashes:
+the secondary attack, a tap at a time, within 100 u with the crosshair within 1.5 half-widths. The DM
+pistol bash reaches 96 u, does 35 damage and needs no ammunition; people bash only with pistols. A
+bot also goes back to the primary once it has rounds again, and draws a weapon after 1 s with nothing
+in hand (never on a ladder). With a test patch that makes the bots spray until they run dry
+(dm/vents), the dry bots moved 75% of the time and bashed 121 times: 11 hits, 3 kills.
+
+Practice maps, bot vs bot, seeds 201-208 (`eval/reports/2026-10-02_outofammo_realmaps`; in brackets
+the held-out seeds 301-308):
+
+| | people | before (`b48d6868`) | now |
+|---|---|---|---|
+| fire held with no body part visible | 17.3% | 34% | 17.6% (17.5%) |
+| ... more than 5 s after the parts were last on screen | 4.3% | 29% | 12% (12%) |
+| duel time out of ammunition, a weapon in hand | 0% | 10.4% | 0.03% (0.05%) |
+| holding a pistol | 1.8% | 23% | 1.1% (1.3%) |
+| standoffs of 20 s or more | | 28 | 0 (0) |
+| still while seeing the enemy without firing | 30% | 62% | 15% (14%) |
+| accuracy | 19% | 6.4% | 8.6% (8.5%) |
+| burst p50 / attack hold p50 / taps | 5 / 150 ms / 44% | 5 / 350 / 24% | 3 / 200 / 34% (3 / 200 / 36%) |
+| other 219 statistics within 25% (median) | | 45% (0.30) | 52% (0.25) (52%, 0.24) |
+| pre-aim statistics within 25% (median) | | 40% (0.29) | 52% (0.23) (50%, 0.25) |
+
+## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 10.2 deg off at the first visible part vs people's 5.2, and the first press
   comes at 250 ms vs 150. The bots pre-aim corners now but pick the one the enemy comes out of
@@ -263,10 +308,17 @@ the map. Start `omohaaded` with its own `fs_homepath` and `net_port`, stop it af
   against each other (near-target release 1.5x people's, taps 34% vs 45%).
 - **Retreats:** bots back off in fights at 100-300 u twice as often as people (real maps 15-23%
   of fight ticks at 96-288 u vs 5-10%).
-- **Seeing the enemy without firing:** people stand still 30% of that time. In the arena bots stand
-  still 11%; on the real maps it swings between captures from 15% to 76% (62% in the report above),
-  and that context takes 3-15% of duel time vs 7%. Some bots stand facing a visible enemy without
-  firing for long stretches. Not investigated.
+- **Seeing the enemy without firing:** people stand still 30% of that time, bots 15% on the real
+  maps and 11% in the arena. The long freezes were bots out of ammunition (see above).
+- **Fire into cover long after sight:** more than 5 s after the parts were last on screen bots hold
+  fire 12% of that time vs 4%, and fire 39 rounds a minute 2 s or more after sight vs 8. Overall
+  their fire into cover now matches people's (17.6% vs 17.3%), so the shift is right on average and
+  the decay with time since sight is what's off.
+- **Burst length:** the median burst is 3 rounds vs 5 (the burst dial is inert). The holds and taps
+  are nearer people's than before (200 ms vs 150, taps 34% vs 44%).
+- **Ladders (stock code):** on dm/vents some climbs hang for 10-60 s, and once a bot hung motionless
+  for 17 minutes under `OWNER_LADDER` with its weapon put away (the ladder code holsters it). Most
+  climbs take 5-8 s. Not investigated.
 - **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
   shares, the corners: crosshair from the corner 11.9 deg in the arena vs 8.2 on the maps) are
   judged on real captures only.
@@ -286,6 +338,8 @@ the map. Start `omohaaded` with its own `fs_homepath` and `net_port`, stop it af
   `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
   captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners
   (`hb_arena --no-corners`).
+- Two style dials are inert: `hold_angle` and `burst_median` (their arena sweeps span under a third
+  of the human range). The out-of-ammunition fallback (pistol bash) is set by hand.
 - The reaction skill shifts the trigger's press hazard instead of the detection rate. Both skills
   are relative to the average bot.
 - AFK behavior is not modelled.
