@@ -77,13 +77,15 @@ float Trigger::ReleaseProb(const TriggerInput& in, int holdTicks) const
         z = s.bias + s.err[BinIndex(in.errHalfWidths, t.enEdges)] + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageLosEdges)]
           + s.age[BinIndex(holdTicks, t.holdEdges)] + t.releaseLosLogit
           + (in.errHalfWidths >= RELEASE_FAR_HALF_WIDTHS ? t.releaseFarLogit : t.releaseNearLogit)
-          + (holdTicks <= 2 ? t.releaseTapLogit : 0.0f);
+          + (holdTicks <= 2 ? t.releaseTapLogit : 0.0f) + in.releaseLogit;
     } else {
+        // the style's burst length is a firefight habit: fire at an enemy out of sight is let go of as
+        // people let go of it (with it, the bots held such fire 2.3x as long and ran out of ammunition)
         const TriggerSide& s = t.releaseHidden;
         z = s.bias + s.err[BinIndex(in.hiddenYawErr, t.yawEdges)]
           + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageHiddenEdges)] + s.age[BinIndex(holdTicks, t.holdEdges)];
     }
-    return Sigmoid(z + in.releaseLogit);
+    return Sigmoid(z);
 }
 
 bool Trigger::Step(const TriggerInput& in, Rng& rng)

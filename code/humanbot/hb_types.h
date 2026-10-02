@@ -149,6 +149,8 @@ struct SelfState {
     int   clipSize      = 0;
     int   reserveAmmo   = 0;
     bool  hasPistol     = false;
+    int   primaryAmmo   = 0;      // rounds left for the primary weapon (clip + reserve), held or not
+    int   pistolAmmo    = 0;      // rounds left for the pistol (clip + reserve), held or not
     bool  switching     = false;  // weapon change in progress
     float clearance[9]  = {128, 128, 128, 128, 128, 128, 128, 128, 128};  // per chord direction, <= 128
     float drop[9]       = {};     // floor drop 32 u ahead per chord direction (0 = level)
@@ -254,6 +256,7 @@ struct TickPlan {
     int   owner       = OWNER_BRAIN;
     int   chord       = 4;
     bool  attack      = false;
+    bool  bash        = false;   // secondary attack: a melee bash with the pistol (out of ammunition only)
     int   lean        = 0;       // -1 left, 0 none, 1 right
     bool  crouch      = false;
     bool  jump        = false;
@@ -283,6 +286,7 @@ struct SubCmd {
     int   serverTimeOffset = 0;  // ms relative to the tick's server time (<= 0, last = 0)
     int   chord   = 4;
     bool  attack  = false;
+    bool  bash    = false;
     int   lean    = 0;
     bool  crouch  = false;
     bool  jump    = false;

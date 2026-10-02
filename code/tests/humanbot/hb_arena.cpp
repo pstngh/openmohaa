@@ -512,6 +512,7 @@ void Arena::Decide(Bot& b, float hfov, float vfov)
     self.clipAmmo    = b.clip;
     self.clipSize    = 32;
     self.reserveAmmo = b.reserve;
+    self.primaryAmmo = b.clip + b.reserve;   // the SMG only: no pistol, no bash in the arena
     // clearance in the chord directions (the logger's probe)
     for (int c = 0; c < hb::NUM_CHORDS; c++) {
         if (c == hb::CHORD_NEUTRAL) {

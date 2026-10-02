@@ -3105,6 +3105,20 @@
    "n_blocks": 72,
    "reliable": true
   },
+  "perception.fire_held_no_part": {
+   "label": "Fire held with no body part of the enemy visible (loaded, not reloading)",
+   "section": "perception",
+   "unit": "share",
+   "kind": "ratio",
+   "performance": false,
+   "value": 0.173126,
+   "lo": 0.158035,
+   "hi": 0.191844,
+   "se": 0.00901165,
+   "n": 250956.0,
+   "n_blocks": 71,
+   "reliable": true
+  },
   "perception.smg_hit.part_only": {
    "label": "SMG shots that hit, a part on screen, centroid hidden",
    "section": "perception",

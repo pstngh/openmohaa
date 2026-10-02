@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_substep.h"
 #include "hb_test.h"
 #include "hb_trigger.h"
+#include "hb_weapon.h"
 #include "hb_view.h"
 
 #include <algorithm>
@@ -313,6 +314,71 @@ static void TestTrigger(const hb::ModelBundle& b)
     const float pAligned = tr.PressProb(h, 20);
     h.hiddenYawErr       = 120.0f;
     HB_CHECK(pAligned > 4.0f * tr.PressProb(h, 20));
+    // the style's burst length shifts the release in sight only: fire into cover is let go of as people let go of it
+    // (shifted too, the bots held it 2.3x as long as people and ran out of ammunition)
+    h.hiddenYawErr        = 3.0f;
+    const float relHidden = tr.ReleaseProb(h, 4);
+    h.releaseLogit        = -1.5f;
+    HB_CHECK(tr.ReleaseProb(h, 4) == relHidden);
+    in.releaseLogit      = 0.0f;
+    const float relSight = tr.ReleaseProb(in, 4);
+    in.releaseLogit      = -1.5f;
+    HB_CHECK(tr.ReleaseProb(in, 4) < 0.5f * relSight);
+}
+
+// Running out: the pistol (even an empty one: it bashes), back to the primary when it has rounds again, and a weapon
+// drawn when nothing is in hand (never on a ladder, which puts it away).
+static void TestWeapon(const hb::ModelBundle& b)
+{
+    hb::WeaponLogic w;
+    w.Init(&b.shared.weapon);
+    hb::Rng       r(3);
+    hb::SelfState s;
+    s.alive       = true;
+    s.timeMs      = 10000;
+    s.hasPistol   = true;
+    s.weaponState = 0;
+    auto run = [&](int ticks, bool detected) {
+        int cmd = hb::CMD_NONE;
+        for (int t = 0; t < ticks && cmd == hb::CMD_NONE; t++) {
+            s.timeMs += 50;
+            cmd = w.Step(s, false, true, detected, false, r);
+        }
+        return cmd;
+    };
+    // nothing in hand: after a second the primary, or the pistol when the primary is empty; never on a ladder
+    s.weaponClass = hb::WEAPON_CLASS_NONE;
+    s.primaryAmmo = 200;
+    s.pistolAmmo  = 7;
+    s.onLadder    = true;
+    HB_CHECK(run(60, false) == hb::CMD_NONE);
+    s.onLadder = false;
+    HB_CHECK(run(10, false) == hb::CMD_NONE);   // not at once: a respawn passes through no weapon too
+    HB_CHECK(run(30, false) == hb::CMD_PRIMARY);
+    w.Reset();
+    s.primaryAmmo = 0;
+    s.pistolAmmo  = 0;
+    HB_CHECK(run(40, false) == hb::CMD_PISTOL);
+    // the primary is out of rounds and so is the pistol: out of ammunition, draw the pistol anyway
+    w.Reset();
+    s.weaponClass = hb::WEAPON_CLASS_SMG;
+    s.clipAmmo    = 0;
+    s.reserveAmmo = 0;
+    HB_CHECK(hb::OutOfAmmo(s));
+    HB_CHECK(run(1, true) == hb::CMD_PISTOL);
+    // the empty pistol in hand and rounds for the primary again: back to it, fight or not
+    w.Reset();
+    s.weaponClass = hb::WEAPON_CLASS_PISTOL;
+    s.primaryAmmo = 60;
+    HB_CHECK(!hb::OutOfAmmo(s));
+    HB_CHECK(run(1, true) == hb::CMD_PRIMARY);
+    // a loaded pistol stays in a fight, and goes back to the primary out of it
+    w.Reset();
+    s.clipAmmo    = 5;
+    s.reserveAmmo = 20;
+    s.pistolAmmo  = 25;
+    HB_CHECK(run(20, true) == hb::CMD_NONE);
+    HB_CHECK(run(1, false) == hb::CMD_PRIMARY);
 }
 
 static void TestView(const hb::ModelBundle& b)
@@ -485,6 +551,7 @@ int main()
     TestMovement(b);
     TestStance(b);
     TestTrigger(b);
+    TestWeapon(b);
     TestView(b);
     TestSubsteps();
     TestEye();

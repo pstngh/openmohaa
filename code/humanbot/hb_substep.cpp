@@ -61,6 +61,7 @@ void Substepper::Build(const TickPlan& plan, float curYaw, float curPitch, Rng& 
     if (!m_valid) {
         m_prev.chord  = plan.chord;
         m_prev.attack = plan.attack;
+        m_prev.bash   = plan.bash;
         m_prev.lean   = plan.lean;
         m_prev.crouch = plan.crouch;
         m_prev.jump   = plan.jump;
@@ -101,6 +102,8 @@ void Substepper::Build(const TickPlan& plan, float curYaw, float curPitch, Rng& 
     const int atFwd  = ChangeAt(pf != nf, K, uFwd);
     const int atSide = ChangeAt(ps != ns, K, uSide);
     const int atAtt  = ChangeAt(m_prev.attack != plan.attack, K, uAtt);
+    // the bash (out of ammunition only, never with the trigger) shares the trigger's timing draw
+    const int atBash = ChangeAt(m_prev.bash != plan.bash, K, uAtt);
     const int atLean = ChangeAt(m_prev.lean != plan.lean, K, uLean);
     const int atCr   = ChangeAt(m_prev.crouch != plan.crouch, K, uCr);
     const int atJmp  = ChangeAt(m_prev.jump != plan.jump, K, uJmp);
@@ -138,6 +141,7 @@ void Substepper::Build(const TickPlan& plan, float curYaw, float curPitch, Rng& 
         SubCmd& c = out[k];
         c.chord   = MakeChord(k >= atFwd ? nf : pf, k >= atSide ? ns : ps);
         c.attack  = k >= atAtt ? plan.attack : m_prev.attack;
+        c.bash    = k >= atBash ? plan.bash : m_prev.bash;
         c.lean    = k >= atLean ? plan.lean : m_prev.lean;
         c.crouch  = k >= atCr ? plan.crouch : m_prev.crouch;
         c.jump    = k >= atJmp ? plan.jump : m_prev.jump;

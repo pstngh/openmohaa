@@ -42,7 +42,7 @@ BOX = ["bbox_min_x", "bbox_min_y", "bbox_min_z", "bbox_max_x", "bbox_max_y", "bb
 COLS = KEY + ["schema", "map", "seg", "seg_t", "seg_len", "eligible", "person", "name", "capture_date", "opponent_id", "line_of_sight",
               "aim_total_error", "aim_yaw_error", "tgt_half_w_deg", "crosshair_on_opponent", "attack", "view_yaw",
               "view_pitch", "speed_xy", "eye_x", "eye_y", "eye_z", "origin_x", "origin_y", "origin_z", "distance_xyz",
-              "ev_shot"] + BOX
+              "ev_shot", "reloading", "clip_ammo"] + BOX
 LOOK = 40                    # ticks of hidden history kept (2 s), as perception_all.py
 CURVE_TICKS = [-10, -4, -2, 0, 2, 4]       # the error curve from the first part, ticks
 CORNER_2S_TICKS = [-40, -20, -10, 0]       # the corner curve on sightings hidden >= 2 s, ticks
@@ -304,6 +304,9 @@ def tables(cache: Path, results: Path, moh, column: str = "rebuilt", verbose: bo
     c_vis = F.line_of_sight.eq(1).to_numpy()[el]
     p_vis = vparts[el] > 0
     Tk["part_only"] = p_vis & ~c_vis
+    # fire held at an enemy no part of which is visible, while the weapon could fire (the trigger's hidden side)
+    Tk["no_part_loaded"] = ~p_vis & ~F.reloading.to_numpy(bool)[el] & (F.clip_ammo.to_numpy()[el] > 0)
+    Tk["attack"] = F.attack.to_numpy(bool)[el]
     shot = F.smg_shot_los.notna().to_numpy()[el]
     Sh = pd.DataFrame({"row": Tk.row.to_numpy()[shot], "hit": F.hit.to_numpy()[el][shot],
                        "cls": np.select([c_vis[shot], p_vis[shot]], ["centre_visible", "part_only"], "no_part")})
@@ -340,6 +343,9 @@ def register(D, T: Tables, prefix: str = "perception"):
     bt = blk(T.T.row)
     D.add_ratio(f"{pre}.part_only_share", "Share of duel time with a body part on screen and the centroid hidden", sec, "share",
                 bt, T.T.part_only.to_numpy())
+    m = T.T.no_part_loaded.to_numpy()
+    D.add_ratio(f"{pre}.fire_held_no_part", "Fire held with no body part of the enemy visible (loaded, not reloading)", sec,
+                "share", bt[m], T.T.attack.to_numpy()[m])
     bs = blk(T.Sh.row)
     for c, lab in (("part_only", "a part on screen, centroid hidden"), ("centre_visible", "centroid visible")):
         m = T.Sh.cls.eq(c).to_numpy()

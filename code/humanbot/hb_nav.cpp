@@ -150,7 +150,8 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     if (in.detected || recentlySeen) {
         m_intent    = INTENT_ENGAGE;
         out.target  = in.detected ? in.enemyPos : b->mode;
-        out.urgency = p.engageUrgency;
+        // out of ammunition the only weapon left is the bash: close in
+        out.urgency = in.outOfAmmo ? 1.0f : p.engageUrgency;
         m_goalValid = false;
     } else if (in.reloading && b && b->valid && !b->dead) {
         m_intent    = INTENT_RELOAD_COVER;
@@ -169,6 +170,12 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         m_intent    = INTENT_POST_KILL;
         out.target  = self.origin;
         out.urgency = 0.15f;
+    } else if (in.outOfAmmo && b && b->valid && !b->dead) {
+        // out of ammunition: go where the enemy is believed to be, no holding an angle with an empty gun
+        m_intent    = INTENT_HUNT;
+        out.target  = b->mode;
+        out.urgency = 1.0f;
+        m_goalValid = false;
     } else if (now < m_holdUntilMs) {
         m_intent    = INTENT_HOLD;
         out.target  = self.origin;

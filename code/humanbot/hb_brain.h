@@ -100,6 +100,7 @@ private:
     int  m_deathMs       = 0;
     int  m_respawnAtMs   = 0;
     bool m_clickDown     = false;
+    bool m_bashPrev      = false;  // a bash tap went out last tick (out of ammunition)
     int  m_killMs        = -1000000;
     int  m_headHitMs     = -1000000;   // our last bullet in an enemy's head
     bool m_los           = false;

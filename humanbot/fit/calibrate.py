@@ -141,12 +141,14 @@ def pooled_loops(shared):
              view["aim_height"]["firing"], stat_kind="diff"),
         Loop("aim_height.idle", ["view", "aim_height", "idle"], "add", "arena", ["aim.height.idle"], 0.45, 0.8,
              view["aim_height"]["idle"], stat_kind="diff"),
-        # trigger: the press with the enemy in sight, and fire without sight
+        # trigger: the press with the enemy in sight, and fire without sight. "Without sight" is the trigger's
+        # own: no body part visible (people's fire at a partly visible enemy is fire in sight; on the centroid
+        # ray it counted as hidden, and the loop made the bots fire at enemies they could not see instead)
         Loop("press_los_logit", ["trigger", "tuning", "press_los_logit"], "add", "arena",
              ["trigger.press_los_near.0", "trigger.press_los_near.50-100", "trigger.press_los_near.150-250"], -3.0, 3.0,
              shared["trigger"].get("tuning", {}).get("press_los_logit", 0.0)),
-        Loop("hidden_fire_logit", ["trigger", "tuning", "hidden_fire_logit"], "add", "arena", ["trigger.hold_hidden"],
-             -3.0, 3.0, shared["trigger"].get("tuning", {}).get("hidden_fire_logit", 0.0)),
+        Loop("hidden_fire_logit", ["trigger", "tuning", "hidden_fire_logit"], "add", "arena",
+             ["perception.fire_held_no_part"], -3.0, 3.0, shared["trigger"].get("tuning", {}).get("hidden_fire_logit", 0.0)),
         # the release with the enemy in sight, tilted near and far from the target, and the taps (the arena
         # has the game's spread: a spray far off the target also widens the rounds that follow)
         Loop("release_near_logit", ["trigger", "tuning", "release_near_logit"], "add", "arena",
