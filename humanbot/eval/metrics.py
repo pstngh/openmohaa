@@ -783,7 +783,6 @@ def dials(D: MetricData, persons) -> dict:
     S = runs(V, "side")
     S = S[S.val.ne(0)]
     S["person"] = V.person.to_numpy()[S["first"].to_numpy()]
-    shots = D.extra.get("shots")
     acq = D.extra.get("acquisitions")
     out = {}
     for p in persons:
@@ -808,18 +807,20 @@ def dials(D: MetricData, persons) -> dict:
              "aim_error_fight_deg": lf.aim_total_error.median(),
              "reaction_ms": np.nan,
              "mp40_share": d.weapon.eq("MP40").sum() / max(1, smg.sum())}
-        if shots is not None:
-            b = shots[shots.person.eq(p)].drop_duplicates("burst_id")
-            r["burst_median"] = b.burst_len.median() if len(b) else np.nan
         if acq is not None:
             a = acq[acq.person.eq(p)]
             clean = a[~a.attack_before.astype(bool) & (a.err0_total > 2 * a.half_w)]
             r["reaction_ms"] = clean.t_first_attack_press.median() if len(clean) else np.nan
         r["hold_angle"] = np.nan
         if "perception" in D.extra:
-            ps = D.extra["perception"].P
-            ps = ps[ps.person.eq(p)]
+            T = D.extra["perception"]
+            ps = T.P[T.P.person.eq(p)]
             r["hold_angle"] = float(ps.held.mean()) if len(ps) else np.nan
+            # the bursts begun with a body part visible (perception.burst_in_sight)
+            sh = T.Sh[T.F.person.to_numpy()[T.Sh.row.to_numpy()] == p]
+            g = sh.groupby("burst")
+            n = g.size()[g.cls.first().ne("no_part")]
+            r["burst_median"] = float(n.median()) if len(n) else np.nan
         out[p] = r
     return out
 

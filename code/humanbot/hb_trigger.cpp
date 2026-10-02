@@ -24,8 +24,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_trigger.h"
 #include "hb_math.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace hb
 {
+
+float HiddenLateRamp(int lageMs)
+{
+    const float ms = static_cast<float>(lageMs);
+    if (ms <= HIDDEN_LATE_FROM_MS) {
+        return 0.0f;
+    }
+    return std::min(1.0f, std::log(ms / HIDDEN_LATE_FROM_MS) / std::log(HIDDEN_LATE_FULL_MS / HIDDEN_LATE_FROM_MS));
+}
 
 void Trigger::Init(const TriggerModel *params)
 {
@@ -61,8 +73,11 @@ float Trigger::PressProb(const TriggerInput& in, int gapTicks) const
         if (in.damaged) {
             z += s.damaged;
         }
+        // an enemy expected in the crosshair right now has not been lost track of: no fade then
         if (in.anticipate) {
             z += t.anticipationLogit;
+        } else {
+            z += t.hiddenLateLogit * HiddenLateRamp(in.lageMs);
         }
     }
     return Sigmoid(z);

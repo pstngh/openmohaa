@@ -29,7 +29,7 @@
     "jumps_per_min": 0.5553,
     "crouch_per_min": 2.1542,
     "walk_hidden": 0.0114,
-    "burst_median": 6.3333,
+    "burst_median": 6.8333,
     "aim_height_firing": 0.39,
     "hold_angle": 0.2341
    },
@@ -41,7 +41,7 @@
     "jumps_per_min": 0.508,
     "crouch_per_min": 0.9802,
     "walk_hidden": 0.0197,
-    "burst_median": 0.6236,
+    "burst_median": 0.5963,
     "aim_height_firing": 0.0287,
     "hold_angle": 0.025
    }
@@ -58,7 +58,7 @@
     "jumps_per_min": 4.1447,
     "crouch_per_min": 7.4275,
     "walk_hidden": 0.0125,
-    "burst_median": 4.75,
+    "burst_median": 5.75,
     "aim_height_firing": 0.4933,
     "hold_angle": 0.2826
    },
@@ -70,7 +70,7 @@
     "jumps_per_min": 2.1987,
     "crouch_per_min": 4.3545,
     "walk_hidden": 0.0197,
-    "burst_median": 1.2304,
+    "burst_median": 1.2168,
     "aim_height_firing": 0.0447,
     "hold_angle": 0.0568
    }
@@ -87,7 +87,7 @@
     "jumps_per_min": 3.6873,
     "crouch_per_min": 6.9356,
     "walk_hidden": 0.068,
-    "burst_median": 3.0,
+    "burst_median": 4.0,
     "aim_height_firing": 0.491,
     "hold_angle": 0.4472
    },
@@ -99,7 +99,7 @@
     "jumps_per_min": 2.0197,
     "crouch_per_min": 6.803,
     "walk_hidden": 0.0568,
-    "burst_median": 0.6236,
+    "burst_median": 0.5963,
     "aim_height_firing": 0.032,
     "hold_angle": 0.1161
    }
@@ -113,7 +113,7 @@
   "jumps_per_min": 0.289,
   "crouch_per_min": 0.8978,
   "walk_hidden": 0.0,
-  "burst_median": 3.0,
+  "burst_median": 4.0,
   "aim_height_firing": 0.352,
   "hold_angle": 0.2204,
   "aim_error_fight_deg": 4.0775,
@@ -127,7 +127,7 @@
   "jumps_per_min": 5.6573,
   "crouch_per_min": 11.6958,
   "walk_hidden": 0.1056,
-  "burst_median": 7.0,
+  "burst_median": 8.0,
   "aim_height_firing": 0.54,
   "hold_angle": 0.5274,
   "aim_error_fight_deg": 6.534,
@@ -161,7 +161,7 @@
   "jumps_per_min": 1.9017,
   "crouch_per_min": 4.4066,
   "walk_hidden": 0.0224,
-  "burst_median": 5.2047,
+  "burst_median": 5.9534,
   "aim_height_firing": 0.4408,
   "hold_angle": 0.2943,
   "aim_error_fight_deg": 5.3133,

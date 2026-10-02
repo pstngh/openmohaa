@@ -79,7 +79,7 @@ def build():
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "press_los", "release_los", "press_hidden", "release_hidden"]},
-                    "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0}},
+                    "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0, "hidden_late_logit": 0.0}},
         "weapon": {"post_kill_round_edges": wp["post_kill_round_edges"], "post_kill_reload_p": wp["post_kill_reload_p"],
                    "post_kill_delay": wp["post_kill_delay"], "respawn": wp["respawn"],
                    "tactical_hazard": 0.004, "tactical_clip_frac": 0.5, "pistol_switch_per_min": 0.1},

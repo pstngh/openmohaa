@@ -332,6 +332,20 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
         };
         const std::vector<int> hidBefore = before(hid), vpFrom = runFrom(vp), losFrom = runFrom(los);
         const std::vector<int> hidCBefore = before(hidC), vpBefore = before(vp), hidFrom = runFrom(hid);
+        std::vector<char>      novp(n);
+        for (int i = 0; i < n; i++) {
+            novp[i] = !vp[i];
+        }
+        const std::vector<int> novpEnd = runEnd(novp);
+        // bursts: rounds exactly 100 ms apart, each counted from its first round
+        int burstLen = 0, lastShot = -100;
+        bool burstSight = false;
+        auto endBurst = [&]() {
+            if (burstLen > 0 && burstSight) {
+                A.V("perception.burst_in_sight", burstLen);
+            }
+            burstLen = 0;
+        };
         // visibility of the duel time and the shots
         for (int i = 0; i < n; i++) {
             if (!el[i]) {
@@ -351,6 +365,26 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
             A.R("perception.part_only_share", pvis && !cvis);
             if (!pvis && !r[i].reloading && r[i].clip > 0) {
                 A.R("perception.fire_held_no_part", r[i].attack);
+                // since a part was last on screen in this life (perception.py NO_PART_SINCE)
+                if (novpEnd[i] <= i) {
+                    const double since = (novpEnd[i] - 1) * 50.0;
+                    const char  *lab   = since < 500.0    ? "0-500ms"
+                                       : since < 1000.0   ? "500-1000ms"
+                                       : since < 2000.0   ? "1000-2000ms"
+                                       : since < 5000.0   ? "2000-5000ms"
+                                                          : "gt5000ms";
+                    A.R(std::string("perception.fire_held_no_part.") + lab, r[i].attack);
+                }
+            }
+            if (shotv[i]) {
+                if (burstLen > 0 && lastShot == i - 2) {
+                    burstLen++;
+                } else {
+                    endBurst();
+                    burstLen   = 1;
+                    burstSight = pvis;
+                }
+                lastShot = i;
             }
             if (r[i].shot) {
                 if (cvis) {
@@ -367,6 +401,7 @@ inline void Perception(const std::vector<Life>& lives, Acc& A, const SightFn& si
                 A.R("perception.preaim.control_closer_to_future", fy < std::fabs(yerr(i)));
             }
         }
+        endBurst();
         // centroid sightings: was a part on screen first?
         for (int i = 1; i < n; i++) {
             if (hidCBefore[i] >= PRE && los[i] && losFrom[i] >= HOLD) {
@@ -788,6 +823,11 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
             if (run.val) {
                 A.V("trigger.attack_hold", ms);
                 A.R("trigger.tap_share", ms <= 100.0);
+                // holds begun loaded, by what was on screen when they began (perception.py)
+                const Frame& h0 = r[run.first];
+                if (h0.clip > 0 && !h0.reloading) {
+                    A.R(h0.visParts > 0 ? "perception.tap_share.in_sight" : "perception.tap_share.no_part", ms <= 100.0);
+                }
             } else {
                 A.V("trigger.attack_gap", ms);
             }
@@ -1043,7 +1083,9 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
     M["dial.jumps_per_min"]    = minutes > 0 ? jumpFs / minutes : NAN;
     M["dial.crouch_per_min"]   = minutes > 0 ? crouchFs / minutes : NAN;
     M["dial.walk_hidden"]      = M["movement.walk.hidden_nofire"];
-    M["dial.burst_median"]     = M["trigger.burst_length.p50"];
+    // bursts that start in sight: the dial shifts the release in sight only (hb_trigger.cpp)
+    quants("perception.burst_in_sight", {{"p50", .5}, {"p90", .9}});
+    M["dial.burst_median"]     = M["perception.burst_in_sight.p50"];
     quants("dial.aim_height_firing", {{"", .5}});
     quants("skill.aim_error_fight_deg", {{"", .5}});
     M["skill.reaction_ms"] = M["acquisition.clean_first_press.p50"];

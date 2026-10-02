@@ -538,6 +538,7 @@ void ParseTrigger(const json& j, TriggerModel& t)
     if (j.contains("tuning")) {
         t.anticipationLogit = NumOr(j.at("tuning"), "anticipation_logit", t.anticipationLogit);
         t.hiddenFireLogit   = NumOr(j.at("tuning"), "hidden_fire_logit", t.hiddenFireLogit);
+        t.hiddenLateLogit   = NumOr(j.at("tuning"), "hidden_late_logit", t.hiddenLateLogit);
         t.pressLosLogit     = NumOr(j.at("tuning"), "press_los_logit", t.pressLosLogit);
         t.releaseLosLogit   = NumOr(j.at("tuning"), "release_los_logit", t.releaseLosLogit);
         t.releaseNearLogit  = NumOr(j.at("tuning"), "release_near_logit", t.releaseNearLogit);

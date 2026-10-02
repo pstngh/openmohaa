@@ -41,17 +41,19 @@ def edges_per_min(d, col):
 
 
 def bursts(events, F):
-    """Median burst length (consecutive 100 ms SMG shots) per alias x capture, eligible shots only."""
+    """Median burst length (consecutive 100 ms SMG shots, eligible shots only) per alias x capture, over the bursts
+    whose first round left with a body part of the enemy on screen (perception.burst_in_sight). The dial shifts the
+    release in sight only; fire into cover is let go of as people let go of it, whatever the style."""
     S = events[events.event.eq("shot") & events.actor_bot.eq(0) & events.weapon.isin(["MP40", "Thompson"])]
     S = S.rename(columns={"actor_id": "client_id"})
-    fk = F.set_index(["session_id", "client_id", "session_ms"])[["eligible", "name", "capture_date"]]
+    fk = F.set_index(["session_id", "client_id", "session_ms"])[["eligible", "name", "capture_date", "vis"]]
     m = fk.reindex(pd.MultiIndex.from_frame(S[["session_id", "client_id", "session_ms"]]))
-    S = S.assign(el=m.eligible.to_numpy(), name=m.name.to_numpy(), cap=m.capture_date.to_numpy())
+    S = S.assign(el=m.eligible.to_numpy(), name=m.name.to_numpy(), cap=m.capture_date.to_numpy(), vis=m.vis.to_numpy())
     S = S[S.el.eq(True)].sort_values(["session_id", "client_id", "session_ms"])
     gap = S.groupby(["session_id", "client_id"]).session_ms.diff()
     S["bid"] = (~gap.eq(100)).cumsum()
-    b = S.groupby("bid").agg(n=("session_ms", "size"), name=("name", "first"), cap=("cap", "first"))
-    return b.groupby(["name", "cap"]).n.median()
+    b = S.groupby("bid").agg(n=("session_ms", "size"), name=("name", "first"), cap=("cap", "first"), vis=("vis", "first"))
+    return b[b.vis.eq(1)].groupby(["name", "cap"]).n.median()
 
 
 def reactions(F):

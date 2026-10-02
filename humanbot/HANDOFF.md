@@ -30,16 +30,18 @@ Built and pushed:
 Verified:
 - `ctest` passes 8/8, with both GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 55% of 195
-  statistics (median relative error 0.21), and on 45% of the 44 pre-aim statistics (median
-  0.29); four seeds of 900 s, model `8d64ab93b` of 2026-10-02 on a Linux workstation (the corner
-  pre-aim's `c29371288`: 58%, 0.17; on 2026-09-28 58% in the build container, 53-55% on macOS).
+- In the arena, two average-style bots are within 25% of the human value on 60% of 195
+  statistics (median relative error 0.18), and on 41% of the 44 pre-aim statistics (median
+  0.30); eight seeds of 900 s, model `b0d2364e5fe2` of 2026-10-02 on a Linux workstation. Four
+  seeds are not enough to compare two models: any four of the same eight runs range over 52-63%
+  (see "Fire into cover, bursts and ladders"). With eight seeds the corner pre-aim's model
+  (`c29371288`) and the out-of-ammunition one (`8d64ab93b`) both score 59%.
   The arena's pooled bots carry no style shift, so the out-of-ammunition fix below shows on the
   practice maps, not here.
 - 16 bots take 85-90 us per bot per tick on that workstation (112 in the build container); the
   budget is 150.
-- On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim"
-  and "Out of ammunition" below.
+- On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim",
+  "Out of ammunition" and "Fire into cover, bursts and ladders" below.
 
 **The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
 - the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
@@ -107,8 +109,9 @@ lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
 4. **Movement.**
    - Usercmds go through `G_ClientThink` 4 times per frame (`Commit`, `g_humanbot_substeps`).
    - Look for jitter, bots standing still, or bots stuck on doors and ladders.
-   - The stock code takes over for ladders and doors, and for 750 ms when a bot is stuck for
-     1.5 s or pushes into a wall for 1 s. `g_humanbot_debug 1` prints every hand-off.
+   - The stock code takes over for doors, and for 750 ms when a bot is stuck for 1.5 s or
+     pushes into a wall for 1 s. Ladders are climbed by the adapter's own rule (`Ladder()` in
+     `humanbot_adapter.cpp`). `g_humanbot_debug 1` prints every hand-off.
 5. **Perception.**
    - Sight uses the skeleton tags "Bip01 Head/Spine2/Spine1/Pelvis/L Foot/R Foot", with a bbox
      fallback (`humanbot_perception.cpp`).
@@ -250,7 +253,8 @@ of that time, people 17%), over lives three times as long as people's. Two calib
   release of fire into cover. The arena's pooled bot carries no dial shift, so no loop saw it. It now
   acts in sight only (`hb_trigger.cpp`). Its arena sweep then spans 19% of the human range: the dial
   worked through fire into cover. `calibrate.py` leaves it inert, and every bot bursts like the
-  pooled one.
+  pooled one. (It now counts the bursts begun in sight and works again: see "Fire into cover,
+  bursts and ladders".)
 - **`hidden_fire_logit`** was calibrated against fire held without the centroid ray. That counts
   people's fire at partly visible enemies, while the trigger's "hidden" means no body part visible.
   The loop now targets `perception.fire_held_no_part` (new in the human reference: 17.3%); the value
@@ -281,6 +285,95 @@ the held-out seeds 301-308):
 | other 219 statistics within 25% (median) | | 45% (0.30) | 52% (0.25) (52%, 0.24) |
 | pre-aim statistics within 25% (median) | | 40% (0.29) | 52% (0.23) (50%, 0.25) |
 
+## Fire into cover, bursts and ladders (2026-10-02)
+
+Four things, scored on the practice maps (seeds 201-208, held-out 401-408) and in the arena.
+
+**Ladders.** On dm/vents a bot could hang on the 464 u ladder for minutes. Two deadlocks did it:
+- two bots on the ladder at once, one climbing up and one down: the ladder's state machine climbs
+  only with room above or below, so each blocked the other until the capture ended;
+- a bot that walked into the shaft from the top fell onto the head of one climbing. Every step off
+  that head was a drop of more than 240 u, which the brain vetoes, and the climber could not climb
+  through it: 17 minutes in one capture.
+
+The stock code also climbed backwards (the back key, the view 52 deg down). People hold forward and
+look up the ladder (pitch p50 -54 deg) or down it (+70) (obj/obj_team2: 81 climbs up, 7 down;
+nobody took a ladder in the dm/vents duels). The adapter now climbs that way, toward the end nearer
+the brain's goal (`Ladder()` in `humanbot_adapter.cpp`). A bot that has not moved 8 u for 1.5-3 s
+turns back once and jumps off the second time (or after 30 s). Climbs take 5.2-6 s; none took over
+10 s on 16 dm/vents servers (8 of them with 4 bots) nor in the captures below (before: 3 of 28 over
+10 s, up to 48 s).
+
+**Fire into cover long after sight.** The fitted hidden press reads people's aim error to the true
+enemy. Long after sight people have lost track of it: 5 s on, their crosshair is a median 143 deg
+from it. The bot reads its error to its own belief, which keeps tracking the enemy (21 deg; a
+bot's fire into cover is also a sound the other bot turns to). So the bots kept firing. New
+statistics: fire held with no body part visible, by the time since one was last on screen
+(`perception.fire_held_no_part.<bin>` in perception.py, arena_metrics.h and the human reference).
+- A calibrated fade of the hidden press (`hidden_late_logit` -0.87, ramping in linearly in log time
+  from 0.5 s to 8 s since sight) is matched on the bins from 1 s on. The overall shift
+  (`hidden_fire_logit`) is matched on the first second.
+- The fade leaves out an enemy expected in the crosshair (the anticipation boost): people's late
+  fire is mostly fire at an enemy about to come out. They prefire 26% of the sightings after 2-5 s
+  hidden while holding fire 7.7% of that time. The boost (`anticipation_logit`) was set by hand to 5
+  on the practice maps (2 before). In the arena a loop on it went to its bound 5 and moved the
+  prefire from 11% to 13% only; on the maps 5 took the prefire after 2-5 s hidden from 10% to 17%.
+
+**Burst length.** The median burst of 3 rounds (people 5) was not the trigger in sight: bursts begun
+in sight were 5 rounds (people 6), bursts begun in cover 3 (people 3). The bots' bursts were mostly
+fire into cover (26% of them begun in sight, people 61%), because the bots meet the enemy half as
+often (18 sightings a minute against 33; see "Known gaps").
+- The burst dial now measures what it shifts: the bursts begun in sight (`perception.burst_in_sight`;
+  fit_styles.py, `metrics.dials`, the arena's `dial.burst_median`). People's values are 4-8.
+- The dial is relative to the pooled bot, like the skills (`RELATIVE_DIALS` in calibrate.py). Such a
+  burst ends where sight ends, and the arena's sightings are short, so no offset takes the pooled
+  bot past 5.5 rounds there. Its sweep spans half the human range (19% before). On the practice maps
+  the realised burst of the 16 bots now follows the drawn one: correlation 0.70, and 0.79 on the
+  held-out seeds. Before, every bot burst about 5 rounds whatever it drew.
+- The tap tilt is matched on the holds begun in sight with rounds in the clip
+  (`perception.tap_share.in_sight`, people 15%). On all holds it made up for the bots' fewer holds
+  into cover with too many taps in sight (19%), and the near-target release loop sat on its bound
+  against it. They no longer pull against each other: `release_tap_logit` 3.0 -> 0.29,
+  `release_near_logit` -2.94 -> -1.48.
+
+**The arena check (58% -> 55% with 6c4fe13b) was seed noise.** Arena builds of `b48d6868` and
+`6c4fe13b` reproduce the saved runs exactly. With seeds 5-8 added, both score 59% of 195 (any four
+of the eight seeds: 56-61% and 52-63%); the median relative error rose from 0.17 to 0.19. Of the
+19 statistics that crossed the 25% line, 14 moved by less than 3 standard errors of the seed spread.
+The other five all come from the lower hidden shift: lost were fire held with the centroid hidden
+(`trigger.hold_hidden` 20% -> 16%, people 24.5%), the late hidden press on the centroid ray and the
+share of time hidden without fire; gained the stillness and the hidden press at 0.5-1 s. Bots fire at an enemy showing only parts as often as people (64% of that time
+vs 61%) but see one a third as often (4% of duel time vs 12%): partial exposure, not the trigger.
+
+Practice maps, bot vs bot (`eval/reports/2026-10-02_trigger_ladder_realmaps`). "Before" is
+`6c4fe13b` on seeds 201-208 (held-out 301-308 in brackets), "now" this model on 201-208 (held-out
+401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| fire held with no part visible, 0-0.5 s after a part was on screen | 43% | 47% (46%) | 48% (48%) |
+| ... 0.5-1 s | 26% | 31% (29%) | 29% (29%) |
+| ... 1-2 s | 20% | 27% (27%) | 21% (22%) |
+| ... 2-5 s | 7.7% | 16% (15%) | 9.2% (9.1%) |
+| ... more than 5 s | 4.3% | 12% (12%) | 5.7% (6.4%) |
+| ... all | 17.3% | 17.6% (17.4%) | 11.3% (11.9%) |
+| fire held before the first visible part | 23% | 20% (20%) | 16% (18%) |
+| burst p50 / p90 | 5 / 12 | 3 / 10 (3 / 10) | 4 / 11 (3 / 10) |
+| ... bursts begun in sight | 6 / 13 | 5 / 15 (5 / 16) | 5 / 14 (5 / 14) |
+| taps of the holds begun in sight | 15% | 19% (21%) | 14% (17%) |
+| burst dial, realised vs drawn: correlation over 16 bots | | 0.21 (0.18) | 0.70 (0.79) |
+| accuracy | 19% | 8.6% (8.5%) | 9.9% (9.9%) |
+| ladder climbs over 10 s / longest climb | | 3 / 12 s (0 / 9 s) | 0 / 5 s (0 / 6 s) |
+| other 219 statistics within 25% (median) | | 52% (0.25) (52%, 0.24) | 48% (0.27) (50%, 0.25) |
+| pre-aim statistics within 25% (median) | | 52% (0.23) (50%, 0.25) | 48% (0.26) (41%, 0.27) |
+
+The overall fire into cover is now below people's, though each bin matches: the bots spend half of
+their time with no part visible more than 5 s after sight (people 15%), where people hardly fire.
+The same time mix moves the shares within 25% by 2-4 points: less time firing into cover, more time
+hidden and still. The per-tick release with the centroid visible is now 1.5x people's, but that ray
+also counts an enemy behind the bot; on the trigger's own sight (a body part on screen) the release
+per tick is 2.2% against people's 2.5% (before 1.6%), and it follows people's by hold age.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 10.2 deg off at the first visible part vs people's 5.2, and the first press
@@ -288,11 +381,20 @@ the held-out seeds 301-308):
   less often: closer to the corner than to the enemy 57% vs 80%. An ad-hoc check on the tuning
   captures found them within 4 deg of the true corner at the onset 33% of the time vs 53%, and
   their error given that distance matching people's. The next lever is which exposures the belief
-  offers, not the view. Downstream of it: 32% of sightings start with fire already held (people 23%),
-  the first hit lands 300 ms after the first part (250), and 49% of part sightings end without a
-  hit (28%).
+  offers, not the view. Downstream of it: the first hit lands 300 ms after the first part (250),
+  and 49% of part sightings end without a hit (28%). Prefire is short after long hides: after 2-5 s
+  hidden the bots already hold fire at 17% of the sightings vs 26% (16-18% of all part sightings vs
+  23%); their anticipation of where and when the enemy comes out is the limit.
 - **Partial exposure:** the enemy shows only parts (centroid hidden) 5.1% of duel time vs 10.5%,
-  and bots hit 12% of their rounds there vs 22%. Bots rarely peek with part of the body.
+  and bots hit 12% of their rounds there vs 22%. Bots rarely peek with part of the body. They fire
+  at such views as often as people (64% of that time vs 61%), so the centroid-based hidden fire
+  (`trigger.hold_hidden` 13% vs 24.5%) is low for want of these views, not the trigger.
+- **Encounters:** bots meet the enemy half as often as people (18 part sightings a minute vs 33 on
+  the practice maps, 350 ms long vs 450): people duel by peeking. The time mix follows: bots spend
+  half of their time with no part visible more than 5 s after sight (people 15%), fire in sight
+  7% of duel time vs 18%, and their bursts are more often begun in cover. Statistics pooled over
+  that mix (all fire into cover, the overall burst length, the contexts) stay off even where the
+  behaviour at a given time since sight matches.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
   by under a sixth of the human range (0.22-0.53); the bots' parked share is set by the corner
@@ -304,21 +406,21 @@ the held-out seeds 301-308):
   (reset after 250 ms without one), and the bot sprayed. The arena now fires with the game's spread,
   and three calibrated loops tilt the release (`release_near_logit`, `release_far_logit`,
   `release_tap_logit`). In the engine (bot vs bot, 4 maps) the spread at firing fell from 1.26 to
-  1.02 (people 1.23) and the kills a minute rose 16%. Still off: the near and tap loops pull
-  against each other (near-target release 1.5x people's, taps 34% vs 45%).
+  1.02 (people 1.23) and the kills a minute rose 16%. Since the tap loop is matched on the holds
+  begun in sight (see "Fire into cover, bursts and ladders") the near and tap loops no longer pull
+  against each other.
 - **Retreats:** bots back off in fights at 100-300 u twice as often as people (real maps 15-23%
   of fight ticks at 96-288 u vs 5-10%).
 - **Seeing the enemy without firing:** people stand still 30% of that time, bots 15% on the real
   maps and 11% in the arena. The long freezes were bots out of ammunition (see above).
-- **Fire into cover long after sight:** more than 5 s after the parts were last on screen bots hold
-  fire 12% of that time vs 4%, and fire 39 rounds a minute 2 s or more after sight vs 8. Overall
-  their fire into cover now matches people's (17.6% vs 17.3%), so the shift is right on average and
-  the decay with time since sight is what's off.
-- **Burst length:** the median burst is 3 rounds vs 5 (the burst dial is inert). The holds and taps
-  are nearer people's than before (200 ms vs 150, taps 34% vs 44%).
-- **Ladders (stock code):** on dm/vents some climbs hang for 10-60 s, and once a bot hung motionless
-  for 17 minutes under `OWNER_LADDER` with its weapon put away (the ladder code holsters it). Most
-  climbs take 5-8 s. Not investigated.
+- **Fire into cover:** it fades with the time since sight like people's (more than 5 s after the
+  parts were last on screen 5.7-6.4% of that time vs 4.3%; before 12%), but over all such time it is
+  11-12% vs 17% (the encounters above).
+- **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 3-4 vs 5
+  (the encounters above). The burst dial works (per bot, realised against drawn, correlation
+  0.70-0.79) but is relative: no offset makes the arena's pooled bot burst past 5.5 rounds.
+- **Ladders** are climbed as people climb them, with a watchdog (see above). People never took the
+  dm/vents ladder in the recorded duels; the bots take it when the navmesh route goes up it.
 - **The arena is not a recorded map.** Statistics tied to map geometry (fight distances, context
   shares, the corners: crosshair from the corner 11.9 deg in the arena vs 8.2 on the maps) are
   judged on real captures only.
@@ -338,8 +440,10 @@ the held-out seeds 301-308):
   `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
   captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners
   (`hb_arena --no-corners`).
-- Two style dials are inert: `hold_angle` and `burst_median` (their arena sweeps span under a third
-  of the human range). The out-of-ammunition fallback (pistol bash) is set by hand.
+- One style dial is inert: `hold_angle` (its arena sweep spans under a third of the human range).
+  The burst dial counts the bursts begun in sight and is relative to the pooled bot, like the
+  skills. The out-of-ammunition fallback (pistol bash), the ladder climb and its watchdog, and the
+  anticipation boost of the hidden press (`anticipation_logit` 5) are set by hand.
 - The reaction skill shifts the trigger's press hazard instead of the detection rate. Both skills
   are relative to the average bot.
 - AFK behavior is not modelled.

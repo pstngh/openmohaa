@@ -97,8 +97,9 @@ new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
      `humanbot/server/names.txt` there), or a built-in list.
 3. Watch for what feels wrong and note the time (the `session_ms` in the telemetry makes it
    easy to find again). Things the tests cannot judge: the bot's line through doors and
-   ladders, how it gets unstuck (the stock bot code takes over for a moment), and whether it
-   behaves sanely on other maps and game types.
+   ladders (it climbs with the forward key and the view up or down the ladder, as people do),
+   how it gets unstuck (the stock bot code takes over for a moment), and whether it behaves
+   sanely on other maps and game types.
 
 ## 4. Pack and push the captures (on your Mac)
 
@@ -153,7 +154,7 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 55% of 195 statistics. These are furthest off,
+The model matches the human duels within 25% on 60% of 195 statistics. These are furthest off,
 and what to look for in the live test:
 
 - **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
@@ -164,15 +165,20 @@ and what to look for in the live test:
 - **Close-range tracking.** Firing at under 128 u, the bots' aim error is 19 degrees (people
   14). They also turn faster in fights (p99 620 deg/s vs 305).
 - **Trigger far off target.** Bots keep firing with the crosshair more than 10 body
-  half-widths off 11% of the time (people 4%).
+  half-widths off 9% of the time (people 5%).
+- **Fewer encounters.** Bot against bot on the practice maps the bots see each other half as
+  often as people do (people duel by peeking out again and again). So more of their fire goes
+  into cover, and their bursts are shorter overall (median 3-4 rounds vs 5) although a burst
+  begun in sight is nearly people's (5 rounds vs 6). Fire into cover fades as people's does: 5 s
+  after the enemy was last on screen they hold fire 6% of that time (people 4%).
 - **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
   people.
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
   bots 11-15%. (Bots that stood frozen in front of an enemy for minutes had run out of
-  ammunition; since 2026-10-02 they fire into cover as often as people and rarely run dry. One
-  that does closes in and hits with the pistol butt.)
-- **Ladders on dm/vents.** A bot can hang on a ladder for a while (once 17 minutes) while the
-  stock ladder code has it.
+  ammunition; since 2026-10-02 they fire into cover like people and rarely run dry. One that
+  does closes in and hits with the pistol butt.)
+- **Ladders.** Since 2026-10-02 a bot that stalls on a ladder (another bot in the way) turns
+  back, and jumps off if it stalls again. Tell us if a bot still hangs on one.
 - **The arena is not a recorded map.** Its context mix differs (more hidden time, fewer
   fights), so statistics tied to the map (fight distances, time in fights) can only be judged
   on your captures.
