@@ -89,6 +89,8 @@ private:
     Navigator    m_nav;
     WeaponLogic  m_weapon;
     NavOutput    m_navOut;
+    float        m_lookRouteYaw   = 0.0f;   // the route direction the view looks along: smoothed (ROUTE_LOOK_ALPHA)
+    bool         m_lookRouteValid = false;
 
     bool m_alive         = false;
     int  m_spawnMs       = 0;

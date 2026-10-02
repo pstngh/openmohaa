@@ -49,6 +49,9 @@ static constexpr float BOOST_NOISE    = 0.5f;
 static constexpr float BOOST_GATE     = 0.5f;   // chance per unit to skip a round with the crosshair off the body
 static constexpr float BOOST_REACTION = 0.7f;
 static constexpr float BOOST_DETECT   = 0.5f;
+// The route the view looks along is smoothed (time constant ~0.3 s): the next path corner's direction swings round
+// as a corner is passed, and people look down the corridor, not at the next corner.
+static constexpr float ROUTE_LOOK_ALPHA = 0.15f;
 
 void Brain::Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps)
 {
@@ -115,6 +118,7 @@ void Brain::OnSpawn(const Observation& obs)
     m_nav.Reset();
     m_weapon.Reset();
     m_navOut    = NavOutput();
+    m_lookRouteValid = false;
     m_los       = false;
     m_lageMs    = 100000;
     m_vis       = false;
@@ -368,7 +372,15 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     vi.belief          = fb;
     vi.moving          = self.velocity.lengthXY() > 50.0f;
     vi.navValid        = m_navOut.valid && m_navOut.urgency > 0.2f;
-    vi.navYaw          = m_navOut.desiredYaw;
+    if (!vi.navValid) {
+        m_lookRouteValid = false;
+    } else if (!m_lookRouteValid) {
+        m_lookRouteYaw   = m_navOut.desiredYaw;
+        m_lookRouteValid = true;
+    } else {
+        m_lookRouteYaw = Wrap180(m_lookRouteYaw + ROUTE_LOOK_ALPHA * Wrap180(m_navOut.desiredYaw - m_lookRouteYaw));
+    }
+    vi.navYaw          = m_lookRouteValid ? m_lookRouteYaw : m_navOut.desiredYaw;
     vi.sounds          = &obs.sounds;
     vi.damage          = &obs.damage;
     vi.aimHeightFiring = m_off.aimHeightFiring;

@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "hb_bundle.h"
 #include "hb_eye_math.h"
 #include "hb_movement.h"
+#include "hb_perception_model.h"
 #include "hb_substep.h"
 #include "hb_test.h"
 #include "hb_trigger.h"
@@ -563,6 +564,23 @@ static void TestEye()
     HB_CHECK(hb::EyeOffsetByte(500.0f) == 127);
 }
 
+// A dead enemy stays listed, unseen, so the belief keeps its track through the death (and draws it back at the spawns).
+static void TestPerceiverDead(const hb::ModelBundle& b)
+{
+    hb::Perceiver pc;
+    pc.Init(&b.shared.perception, hb::Rng(7));
+    hb::RawInput raw;
+    raw.self.alive = true;
+    hb::RawEnemy e;
+    e.id    = 3;
+    e.alive = false;
+    raw.enemies.push_back(e);
+    hb::Observation obs;
+    pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+    HB_CHECK(obs.enemies.size() == 1);
+    HB_CHECK(!obs.enemies.empty() && obs.enemies[0].id == 3 && !obs.enemies[0].detected);
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -578,5 +596,6 @@ int main()
     TestView(b);
     TestSubsteps();
     TestEye();
+    TestPerceiverDead(b);
     return hbtest::Finish("test_hb_modules");
 }

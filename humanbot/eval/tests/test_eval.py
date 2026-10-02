@@ -221,6 +221,39 @@ class TestMetricsCore(unittest.TestCase):
         self.assertFalse(rows["b"]["tell"])
 
 
+class TestEncounters(unittest.TestCase):
+    class Seq:
+        """The two segment helpers of the data repo's sightings.Seq that encounters() uses (one segment per list)."""
+
+        def __init__(self, lengths):
+            self.pos = np.concatenate([np.arange(n) for n in lengths])
+            self.last_row = np.concatenate([np.full(n, s + n - 1) for s, n in zip(np.cumsum([0] + lengths[:-1]), lengths)])
+            self.N = len(self.pos)
+
+        def run_from(self, c):
+            out = np.zeros(self.N, int)
+            for i in range(self.N - 1, -1, -1):
+                out[i] = (out[i + 1] + 1 if i < self.last_row[i] else 1) if c[i] else 0
+            return out
+
+    def test_sightings_spells_first_sight_and_travel(self):
+        import perception as PC
+        # one life: hidden 5 ticks, a part on screen 3, hidden 4 (a spell), on screen 2, hidden 50 (ends unseen)
+        vp = np.array([0] * 5 + [1] * 3 + [0] * 4 + [1] * 2 + [0] * 50, bool)
+        # a second life that never sees the enemy
+        vp = np.r_[vp, np.zeros(30, bool)]
+        Q = self.Seq([64, 30])
+        el = np.ones(len(vp), bool)
+        x = np.arange(len(vp)) * 5.0            # 100 u/s along x
+        E = PC.encounters(Q, el, vp, x, np.zeros(len(vp)))
+        self.assertEqual(np.flatnonzero(E["onset"]).tolist(), [5, 12])
+        self.assertEqual(E["spell_ms"].tolist(), [200.0])                    # the last hidden run is censored
+        self.assertEqual(E["first_sight_ms"].tolist(), [250.0, PC.NEVER_MS])
+        # every 10th tick of a life with no part on screen and 2 s of the sequence left
+        self.assertEqual(E["travel_row"].tolist(), [0, 10, 20])
+        np.testing.assert_allclose(E["travel_2s"], 200.0)
+
+
 class TestCompare(unittest.TestCase):
     def test_smoke_without_analysis(self):
         out = compare.run([ZIP], out_dir=TMP / "report_smoke", skip_analysis=True, cache_root=TMP / "cmp_cache")

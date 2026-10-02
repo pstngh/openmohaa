@@ -51,8 +51,11 @@ def build():
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:
-            # 300 ms brings the bots to the people's wall contact (touching a wall 6-9% of the time, people 6%)
-            "coupling": {"nav_switch_logit": 1.0, "nav_choice_logit": 1.5, "wall_pressure_logit": 2.0,
+            # 300 ms brings the bots to the people's wall contact (touching a wall 6-9% of the time, people 6%).
+            # How strongly the keys follow the route (nav_*) was set on practice-map captures (2026-10-02,
+            # "Encounters" in HANDOFF.md): at 1.0 / 1.5 the bots covered 64 u in 2 s with no enemy part on screen
+            # (people 158) and met half as often; 3.0 / 4.5 gives 111 u, more adds little (4.0: 126 u)
+            "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "wall_pressure_logit": 2.0,
                          "wall_reflex_ms": 300.0, "wall_reflex_logit": 4.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
@@ -75,7 +78,14 @@ def build():
                        "preaim_cover_deg": 1.8, "preaim_below_deg": 2.7, "preaim_hazard": 0.1, "preaim_weight": 5.0,
                        "preaim_horizon_ms": 1000.0,
                        # turning onto a corner is a flick from 3 deg off, the smallest turn of the recorded main sequence
-                       "preaim_flick_deg": 3.0},
+                       "preaim_flick_deg": 3.0,
+                       # set on practice-map captures: a route behind the view is turned to (people walk backwards 6%
+                       # of their hidden time; the bots 10% once their keys followed the route), and the respawn of a
+                       # dead enemy is a new look decision (people face it within 22 deg 0.5-1 s after it)
+                       "route_turn_hazard": 0.2, "respawn_relook": 1.0,
+                       # a route look re-aims once the route turned 30 deg (15 chased the path corners: the view turned
+                       # 3x as fast as people's while hidden)
+                       "travel_follow_deg": 30.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "press_los", "release_los", "press_hidden", "release_hidden"]},
@@ -90,8 +100,14 @@ def build():
                        "damage_sigma_deg": 20.0},
         "belief": {"particles": 256, "neg_detect": 0.85, "ess_resample": 0.5, "jitter": 10.0, "move_boost": 1.0,
                    "sound_sigma_scale": 1.0, "spawn_min_dist": 256.0},
+        # engage_urgency (the pull toward the enemy for the second after losing sight; none while it is perceived, where
+        # the fitted keys and the style dials move the bot) and post_kill_ms (how long a bot stays put after a kill)
+        # were set on practice-map captures: in the first second after the enemy left the screen people close in at
+        # 31 u/s (urgency 0: 6 u/s; 0.65: 31 u/s), and they run from 0.5 s after a kill (236 u/s, forward held 85%
+        # of the time). Pulling in sight too made every bot press forward like the presser family.
         "nav": {"hold_hazard": 0.02, "hold_median_ms": 1500.0, "hold_sigma": 0.7, "spawn_push_ms": 2500.0, "hunt_urgency": 0.8,
-                "engage_urgency": 0.0, "reload_urgency": 0.4, "waypoint_reach": 48.0, "repath_ms": 1000.0},
+                "engage_urgency": 0.65, "reload_urgency": 0.4, "waypoint_reach": 48.0, "repath_ms": 1000.0,
+                "post_kill_ms": 500.0},
         "presentation": {"ping_median_ms": 45.0, "ping_sigma": 0.45, "ping_drift_ar": 0.995, "ping_jitter_ms": 4.0,
                          "join_delay_median_ms": 6000.0, "join_delay_sigma": 0.6},
     }

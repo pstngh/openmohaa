@@ -483,6 +483,9 @@ void ParseView(const json& j, ViewModel& v)
         v.preaimSelfComp    = NumOr(t, "preaim_self_comp", v.preaimSelfComp);
         v.beliefLookShare   = NumOr(t, "belief_look_share", v.beliefLookShare);
         v.travelShare       = NumOr(t, "travel_share", v.travelShare);
+        v.respawnRelook     = NumOr(t, "respawn_relook", v.respawnRelook);
+        v.routeTurnHazard   = NumOr(t, "route_turn_hazard", v.routeTurnHazard);
+        v.travelFollowDeg   = NumOr(t, "travel_follow_deg", v.travelFollowDeg);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);
@@ -615,6 +618,7 @@ void ParseNav(const json& j, NavModel& n)
     n.reloadUrgency = NumOr(j, "reload_urgency", n.reloadUrgency);
     n.waypointReach = NumOr(j, "waypoint_reach", n.waypointReach);
     n.repathMs      = NumOr(j, "repath_ms", n.repathMs);
+    n.postKillMs    = NumOr(j, "post_kill_ms", n.postKillMs);
 }
 
 void ParsePresentation(const json& j, PresentationModel& p)

@@ -98,6 +98,12 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
             t.detected  = false;
             t.lostTicks = 1000;
             t.onScreen  = false;
+            // still listed, unseen: the belief keeps its track through the death (the kill feed marks it dead, and it
+            // comes back at the spawns the game would pick). Unlisted, the track was dropped as gone and the
+            // respawned enemy believed anywhere on the map.
+            EnemyObs o;
+            o.id = e.id;
+            out.enemies.push_back(o);
             continue;
         }
         // Defensive: positions are only meaningful for visible parts.

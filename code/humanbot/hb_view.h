@@ -147,6 +147,7 @@ private:
     bool  m_wasTracking = false;
     int   m_refractory  = 0;   // ticks before another corrective flick may start
     int   m_preaimCell  = -1;  // the exposure whose corner is watched (VIEW_PREAIM)
+    bool  m_beliefDead  = false;  // the focus belief was of a dead enemy last tick
 };
 
 } // namespace hb

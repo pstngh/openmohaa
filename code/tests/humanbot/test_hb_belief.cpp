@@ -331,6 +331,12 @@ static void TestTracking(const hb::ModelBundle& b, const hb::MapPrior& m)
         obs.self.timeMs += 50;
         bf.Update(obs, 96.4f, 64.4f);
     }
+    // drawn at people's median respawn delay (2.45 s), from where the bot is then
+    HB_CHECK(bf.Track(0).dead);
+    for (int t = 0; t < 10; t++) {
+        obs.self.timeMs += 50;
+        bf.Update(obs, 96.4f, 64.4f);
+    }
     HB_CHECK(!bf.Track(0).dead);
     float nearest = 1e9f;
     for (const hb::MapSpawn& sp : m.spawns) {
