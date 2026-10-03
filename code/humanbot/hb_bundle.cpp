@@ -444,6 +444,14 @@ void ParseView(const json& j, ViewModel& v)
     Require(v.stillEnter.size() == CTX_COUNT && v.stillStay.size() == CTX_COUNT, "view.still size");
     RequireProb(v.stillEnter, "view.still.enter");
     RequireProb(v.stillStay, "view.still.stay");
+    if (st.contains("enter_standing")) {
+        v.stillEnterStanding = Floats(Get(st, "enter_standing", "view.still"), "view.still.enter_standing");
+        v.stillStayStanding  = Floats(Get(st, "stay_standing", "view.still"), "view.still.stay_standing");
+        Require(v.stillEnterStanding.size() == CTX_COUNT && v.stillStayStanding.size() == CTX_COUNT, "view.still standing size");
+        RequireProb(v.stillEnterStanding, "view.still.enter_standing");
+        RequireProb(v.stillStayStanding, "view.still.stay_standing");
+        v.standingSpeed = NumOr(st, "standing_speed", v.standingSpeed);
+    }
     const json& ms = Get(j, "main_sequence", "view");
     Require(ms.is_array() && !ms.empty(), "view.main_sequence empty");
     v.mainSequence.clear();

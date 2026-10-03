@@ -9,8 +9,9 @@ humanbot/eval/reports/<capture stem>/report.md and report.json (--out-dir to cha
 several captures are reported together under a combined stem):
 
   (a) pooled bots vs pooled humans for every metrics.py statistic, with 95% block-bootstrap
-      CIs; the bots are reweighted so their style-family mix of duel time matches
-      humanbot/model/styles.json (presser / strafer / stopper weights)
+      CIs; the bots are reweighted so their style-family mix of duel time matches the people's
+      (humanbot/model/styles.json minutes_share: the human reference pools people over their duel
+      minutes, and one family holds half of them; the draw weights give each person alike)
   (b) per bot: dial recovery (realised dial - drawn dial of its bot_style event, as % of the
       human range max - min in styles.json) and the styles.py fingerprint checks (features
       outside the human min-max, z-distance to the human cloud centre, and with the private
@@ -275,7 +276,7 @@ def write_markdown(path: Path, R: dict):
     fm = R.get("family_mix")
     if fm:
         L.append("")
-        L.append("Family mix of bot duel time (observed → reweighted to the styles.json targets): " + ", ".join(
+        L.append("Family mix of bot duel time (observed → reweighted to the people's mix of duel time): " + ", ".join(
             f"{k} {100 * v:.0f}% → {100 * fm['targets_used'].get(k, v):.0f}%" for k, v in fm["observed"].items()) + ".")
     if R.get("analysis") is None:
         L.append("")
@@ -351,7 +352,8 @@ def write_markdown(path: Path, R: dict):
     L.append("")
     L.append("## All statistics")
     L.append("")
-    L.append("Pooled bots are reweighted to the human family mix; humans and the owner are pooled over their duel time. "
+    L.append("Pooled bots are reweighted to the people's family mix of duel time; humans and the owner are pooled over "
+             "their duel time. "
              "▲ marks a tell. n = units (ticks, runs, shots, sightings, ...) over the blocks.")
     sec = None
     for name, r in A["pooled"].items():
@@ -421,7 +423,8 @@ def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True
         summary = LB.load(inputs, cache, date, repo)
     roster = summary["roster"]
     styles = load_styles()
-    targets = {f["name"]: float(f["weight"]) for f in styles["families"]}
+    # the human reference pools people over their minutes: the bots' family mix is matched to that, not to the draw
+    targets = {f["name"]: float(f.get("minutes_share", f["weight"])) for f in styles["families"]}
     R = {"version": 1, "stem": stem, "generated": dt.date.today().isoformat(),
          "capture": {k: summary[k] for k in ("captures", "sessions", "maps", "capture_dates", "frames", "events")},
          "bots": [], "notes": list(summary.get("notes", []))}

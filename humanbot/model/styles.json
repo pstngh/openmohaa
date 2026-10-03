@@ -21,6 +21,7 @@
    "name": "presser",
    "weight": 0.2,
    "people": 1,
+   "minutes_share": 0.4957,
    "centre": {
     "fwd_diag_fight": 0.5138,
     "reverse_share": 0.8083,
@@ -50,6 +51,7 @@
    "name": "strafer",
    "weight": 0.4,
    "people": 2,
+   "minutes_share": 0.2477,
    "centre": {
     "fwd_diag_fight": 0.099,
     "reverse_share": 0.4753,
@@ -79,6 +81,7 @@
    "name": "stopper",
    "weight": 0.4,
    "people": 2,
+   "minutes_share": 0.2566,
    "centre": {
     "fwd_diag_fight": 0.084,
     "reverse_share": 0.3297,

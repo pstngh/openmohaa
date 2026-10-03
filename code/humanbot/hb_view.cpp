@@ -489,10 +489,14 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         const int ctx = ClampI(in.ctx, 0, CTX_COUNT - 1);
         if (in.acquisition && offTarget) {
             m_still = false;
-        } else if (m_still) {
-            m_still = uStill < Sigmoid(Logit(p.stillStay[ctx]) + p.stillLogit[ctx]);
         } else {
-            m_still = uStill < Sigmoid(Logit(p.stillEnter[ctx]) + p.stillLogit[ctx]);
+            // people who stop moving mostly stop turning too
+            const bool standing = !p.stillEnterStanding.empty() && self.velocity.lengthXY() < p.standingSpeed;
+            if (m_still) {
+                m_still = uStill < Sigmoid(Logit((standing ? p.stillStayStanding : p.stillStay)[ctx]) + p.stillLogit[ctx]);
+            } else {
+                m_still = uStill < Sigmoid(Logit((standing ? p.stillEnterStanding : p.stillEnter)[ctx]) + p.stillLogit[ctx]);
+            }
         }
         if (m_still) {
             out.still      = true;
@@ -507,11 +511,22 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             const float            ns = in.noiseScale * p.noiseScale * (in.track ? 1.0f : p.hiddenNoiseScale);
             const float noise  = NoiseStep(c.noise, dist, m_noise, ns, rng);
             const float pnoise = NoiseStep(pc.noise, dist, m_pnoise, ns, rng);
-            // a watched corner is held like a target: the tracking gain closes the gap the bot's motion opens
-            const bool  corner = !in.track && m_lookMode == VIEW_PREAIM;
-            const float g      = in.track || corner ? p.trackGainScale : 1.0f;
-            // waiting on a corner, the view holds the point against the bot's own motion
-            const float ks = corner ? p.preaimSelfComp : c.Kself;
+            // a watched corner is held like a target as the enemy is expected out of it (the tracking gain closes the
+            // gap the bot's motion opens; people's crosshair is a median 5.8 deg from it 500 ms before), else looked at
+            // like any point: holding near corners while running past them turned the hidden view 2-3x as fast as
+            // people's (corners at a median 170 u sweep past at 22 deg/s)
+            float g  = in.track ? p.trackGainScale : 1.0f;
+            float ks = c.Kself;
+            if (!in.track && m_lookMode == VIEW_PREAIM && bel && bel->valid && !bel->dead) {
+                const double horizon = std::max(50.0, static_cast<double>(p.preaimHorizonMs) * in.angleHold);
+                for (int i = 0; i < bel->nExposure; i++) {
+                    if (bel->exposureCell[i] == m_preaimCell) {
+                        const float imm = static_cast<float>(std::exp(-bel->exposureEtaMs[i] / horizon));
+                        g  = 1.0f + (p.trackGainScale - 1.0f) * imm;
+                        ks = c.Kself + (p.preaimSelfComp - c.Kself) * imm;
+                    }
+                }
+            }
             float rate = c.rho * m_rate + c.Kp * g * m_err[1] + ks * wself + c.Kopp * g * m_wopp[3] + c.bias * p.biasScale + noise;
             const float tpRate = m_tpitch[2] - m_tpitch[3];
             float prate = pc.rho * m_prate + pc.Kp * p.pitchGainScale * m_perr[0] + pc.Kt * tpRate + pc.bias * p.biasScale + pnoise;

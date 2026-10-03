@@ -42,13 +42,17 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      While the enemy is hidden it pre-aims the corner the believed enemy would come out from:
      `hb_belief` traces, from the bot's eye through the map's geometry, where the believed path
      crosses out of cover. The view waits a little onto the cover side of that edge and below it,
-     turns onto it as an exposure comes up, and holds it against the bot's own motion; the mouse
-     still rests there as often as people's. The geometry query never traces a player. On the
-     move it turns to a route that lies behind it rather than walking backwards, and it looks
-     anew when a killed enemy is expected back.
+     turns onto it as an exposure comes up, and holds it against the bot's own motion as the enemy
+     is expected out of it (a corner watched with nothing expected soon is looked at like any
+     point). The mouse rests as often as people's, more while the bot stands still, as people's
+     does. The geometry query never traces a player. On the move it turns to a route that lies
+     behind it rather than walking backwards, and it looks anew when a killed enemy is expected
+     back.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
      lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
-     wall reflex lets go of a key before the bot runs into the wall (people see walls coming).
+     wall reflex keeps the bot off the wall in the direction it goes (people see walls coming): it
+     lets go of the key that leaves the more open direction, or adds a strafe so the bot slides
+     along the wall, as people slide (a diagonal down a corridor is left alone).
    - `hb_nav`: where to go (hunt, hold, cover, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
      follow the route with a strength set on the practice maps, so that the bots cover ground and
@@ -58,8 +62,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
      first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
      the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route.
-   - `hb_style`: the dials of this bot. The burst length counts the bursts begun in sight, and
-     is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
+   - `hb_style`: the dials of this bot. The fight-diagonal dial sets how readily a strafe gains
+     the forward key (a low-diagonal style presses forward less, not back more). The burst length
+     counts the bursts begun in sight, and is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
      on a corner, and how readily it stops for one) is wired in but inert: no offset of it changes
      how often a bot waits on the point the enemy appears at.
 3. **Usercmds.** `hb_substep` turns the tick's decision into 4 usercmds (`g_humanbot_substeps`).
@@ -141,8 +146,8 @@ at its neutral offset (`hold_angle`). The two skills (aim error, reaction) and t
 are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`), the boost of
 fire into cover at an enemy expected in the crosshair (`anticipation_logit`), how strongly the keys
 follow the route (`nav_switch_logit`, `nav_choice_logit`), the pull toward the enemy for the second
-after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`) and the turn to a route
-behind the view (`route_turn_hazard`, `travel_follow_deg`) are set by hand from bot captures on the practice maps, scored with
+after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route
+behind the view (`route_turn_hazard`, `travel_follow_deg`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
 `compare.py`: the arena's pillars are not the recorded maps (in the open arena the bots already
 cover as much ground as people; on the maps the walls stop them).
 

@@ -96,6 +96,25 @@ static void TestMovement(const hb::ModelBundle& b)
         diag2 += out.chord == 6 || out.chord == 8;
     }
     HB_CHECK(diag2 / 100000.0 > diag + 0.05);
+    // a low diagonal habit presses forward less while strafing, not back more (as a tilt of the forward key's
+    // choice it made such styles back off twice as often as people of those styles)
+    hb::StyleOffsets lowDiag;
+    lowDiag.diagLogit = -2.7f;
+    hb::Mover mvBase, mvLow;
+    mvBase.Init(&b.shared.movement);
+    mvLow.Init(&b.shared.movement);
+    int backBase = 0, backLow = 0, diagLow = 0;
+    for (int i = 0; i < 100000; i++) {
+        mvBase.Step(in, style, rm, rs, out);
+        backBase += hb::ChordFwd(out.chord) == -1;
+        mvLow.Step(in, lowDiag, rm, rs, out);
+        backLow += hb::ChordFwd(out.chord) == -1;
+        diagLow += out.chord == 6 || out.chord == 8;
+    }
+    HB_REPORT("low diagonal habit: diagonal %.3f (pooled %.3f), back key %.3f (pooled %.3f)", diagLow / 100000.0, diag,
+              backLow / 100000.0, backBase / 100000.0);
+    HB_CHECK(diagLow / 100000.0 < diag - 0.03);
+    HB_CHECK(backLow < backBase * 1.3 + 200);
 
     // people keep pressing toward walls they touch, so the fitted model vetoes none; with a
     // veto clearance set, a key is never pressed toward a wall that close
@@ -158,6 +177,60 @@ static void TestMovement(const hb::ModelBundle& b)
     HB_REPORT("strafe held one more tick toward a wall 125 ms away: %.2f with the reflex, %.2f without", heldOn / 2000.0,
               heldOff / 2000.0);
     HB_CHECK(heldOn < heldOff - 500);
+    // only the direction the bot goes counts: a diagonal down a corridor, its forward and strafe directions facing
+    // the walls 40 u away but the diagonal open, keeps both keys (people walk corridors so)
+    hb::MoveInput corridor = in;
+    corridor.ctx           = hb::CTX_HIDDEN_NOFIRE;
+    corridor.clearance[7]  = 40.0f;   // forward
+    corridor.clearance[3]  = 40.0f;   // left
+    corridor.velFwd        = 170.0f;  // forward-left at 240 u/s
+    corridor.velRight      = -170.0f;
+    hb::MoveInput open = corridor;
+    open.clearance[7]  = 128.0f;
+    open.clearance[3]  = 128.0f;
+    int keptCorridor = 0, keptOpen = 0;
+    for (int i = 0; i < 2000; i++) {
+        hb::Mover a, o;
+        a.Init(&reflex);
+        o.Init(&reflex);
+        a.SetKeys(1, -1);
+        o.SetKeys(1, -1);
+        a.Step(corridor, style, rm, rs, out);
+        keptCorridor += out.chord == 6;
+        o.Step(open, style, rm, rs, out);
+        keptOpen += out.chord == 6;
+    }
+    HB_REPORT("diagonal kept one more tick down a corridor: %.2f (in the open %.2f)", keptCorridor / 2000.0, keptOpen / 2000.0);
+    HB_CHECK(keptCorridor > keptOpen - 100);
+    // forward into a wall with the front-left diagonal open: the bot slides along it (adds the strafe) and keeps
+    // forward, where people turn forward into a diagonal; with no diagonal open it lets go
+    hb::MoveInput ahead = corridor;
+    ahead.clearance[7]  = 20.0f;   // forward: reached in 83 ms
+    ahead.clearance[8]  = 20.0f;   // forward-right blocked too
+    ahead.clearance[3]  = 128.0f;
+    ahead.clearance[6]  = 128.0f;  // forward-left open
+    ahead.velFwd        = 240.0f;
+    ahead.velRight      = 0.0f;
+    hb::MoveInput boxed = ahead;
+    boxed.clearance[6]  = 20.0f;
+    int slid = 0, stopped = 0, boxedFwd = 0;
+    for (int i = 0; i < 2000; i++) {
+        hb::Mover a, x;
+        a.Init(&reflex);
+        x.Init(&reflex);
+        a.SetKeys(1, 0);
+        x.SetKeys(1, 0);
+        a.Step(ahead, style, rm, rs, out);
+        slid += out.chord == 6;
+        stopped += hb::ChordFwd(out.chord) != 1;
+        x.Step(boxed, style, rm, rs, out);
+        boxedFwd += hb::ChordFwd(out.chord) == 1;
+    }
+    HB_REPORT("forward into a wall: slid %.2f, let go %.2f; with no diagonal open forward kept %.2f", slid / 2000.0,
+              stopped / 2000.0, boxedFwd / 2000.0);
+    HB_CHECK(slid > 1000);
+    HB_CHECK(stopped < 400);
+    HB_CHECK(boxedFwd < 1000);
     // every probe blocked (the box starts in solid): the reflex stands down and the bot still moves
     hb::MoveInput blind = in;
     for (int c = 0; c < hb::NUM_CHORDS; c++) {
@@ -471,16 +544,25 @@ static void TestView(const hb::ModelBundle& b)
     h.ctx    = hb::CTX_HIDDEN_NOFIRE;
     h.firing = false;
     h.belief = &be;
-    int still = 0;
-    for (int t = 0; t < 20000; t++) {
-        vc.Step(self, h, r, out);
-        still += out.still;
-        self.viewYaw   = hb::Wrap180(self.viewYaw + out.yawDelta);
-        self.viewPitch = hb::Clamp(self.viewPitch + out.pitchDelta, -85.0f, 85.0f);
-        self.timeMs += 50;
+    // people who stop moving mostly stop turning too (hidden: 75% of standing ticks, about 20% on the move)
+    for (const float speed : {0.0f, 200.0f}) {
+        self.velocity = hb::Vec3(speed, 0.0f, 0.0f);
+        int still     = 0;
+        for (int t = 0; t < 20000; t++) {
+            vc.Step(self, h, r, out);
+            still += out.still;
+            self.viewYaw   = hb::Wrap180(self.viewYaw + out.yawDelta);
+            self.viewPitch = hb::Clamp(self.viewPitch + out.pitchDelta, -85.0f, 85.0f);
+            self.timeMs += 50;
+        }
+        HB_REPORT("hidden at %.0f u/s: still share %.2f", speed, still / 20000.0);
+        if (speed > 0.0f) {
+            HB_CHECK(still / 20000.0 > 0.1 && still / 20000.0 < 0.5);
+        } else {
+            HB_CHECK(still / 20000.0 > 0.5 && still / 20000.0 < 0.9);
+        }
     }
-    HB_REPORT("hidden: still share %.2f", still / 20000.0);
-    HB_CHECK(still / 20000.0 > 0.15 && still / 20000.0 < 0.5);
+    self.velocity = hb::Vec3();
 }
 
 static void TestSubsteps()
