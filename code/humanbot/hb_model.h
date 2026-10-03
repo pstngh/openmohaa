@@ -148,9 +148,9 @@ struct MovementModel {
     float navSwitchLogit      = 1.0f;   // switch logit per unit of misalignment x urgency
     float navChoiceLogit      = 1.5f;   // choice logit per unit of alignment x urgency
     float wallPressureLogit   = 2.0f;   // switch logit while pushing into a wall
-    // the wall reflex (set by hand, 0 = off): a held key whose wall is closer than this many ms at
-    // the current speed (or touching) is let go of with this logit, and no new key presses into a
-    // wall the bot touches
+    // the wall reflex (set by hand, 0 = off): when the held chord's wall is closer than this many ms
+    // at the current speed (or touching), a key is let go of (or a strafe added to slide along the
+    // wall) with this logit, and no new key presses into a wall the bot touches
     float wallReflexMs        = 0.0f;
     float wallReflexLogit     = 0.0f;
 };
@@ -194,8 +194,11 @@ struct ViewModel {
     PitchController pitchIdle;
     float           flickDeg = 12.0f;
 
-    std::vector<float> stillEnter;  // per context
-    std::vector<float> stillStay;   // per context
+    std::vector<float> stillEnter;  // per context, on the move
+    std::vector<float> stillStay;   // per context, on the move
+    std::vector<float> stillEnterStanding;  // per context, standing (empty: as on the move)
+    std::vector<float> stillStayStanding;
+    float              standingSpeed = 1.0f;  // u/s: slower is standing
 
     std::vector<MainSequenceRow> mainSequence;
     float                        flickGainMedian = 0.92f;
@@ -234,7 +237,8 @@ struct ViewModel {
     float preaimHorizonMs    = 1000.0f;  // an exposure weighs exp(-eta / horizon) in the imminence (style x)
     float preaimFlickDeg     = 3.0f;   // a corner is turned onto in one flick from this far off: a deliberate
                                        // turn like people's, not the idle controller's drift
-    float preaimSelfComp     = 1.0f;   // share of the bot's own motion the view takes out while on a corner
+    float preaimSelfComp     = 1.0f;   // share of the bot's own motion the view takes out on a corner the enemy
+                                       //   is expected out of now (the fitted share when none is expected soon)
     float travelShare        = 0.25f;
     float travelFollowDeg    = 15.0f;  // a route look re-aims once the route turned this far from it
     float routeTurnHazard    = 0.0f;   // per tick on the move: turn to a route that lies behind the view (0 = off)

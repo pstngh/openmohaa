@@ -97,6 +97,8 @@ public:
     bool         WallAhead(const MoveInput& in, int chord) const;
 
 private:
+    float WallMargin(const MoveInput& in, int chord) const;
+    void  Reflex(const MoveInput& in, int veto);
     float NavAlign(const MoveInput& in, int chord) const;
     float NavGain(const MoveInput& in, bool sideKey, int veto, int side) const;
     float CtxChange(const KeyModel& k, int row, int ctx) const;
@@ -125,6 +127,11 @@ private:
     int                  m_crouchedTicks = 0;  // ticks crouched on the ground (crouch toggles)
     int                  m_jumpAge    = 0;
     int                  m_walkAge    = 0;
+    // this tick's wall reflex (Reflex): let go of the side key, of the forward key, or slide along the
+    // wall with a strafe toward this side (0 = none)
+    bool                 m_reflexSide = false;
+    bool                 m_reflexFwd  = false;
+    int                  m_slideSide  = 0;
 };
 
 } // namespace hb

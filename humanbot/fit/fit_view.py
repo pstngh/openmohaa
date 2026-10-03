@@ -105,17 +105,24 @@ def fit_controllers(F):
     return out
 
 
+STANDING_SPEED = 1.0   # u/s: below it a player stands (people's mouse rests 75% of such hidden ticks, 19-31% on the move)
+
+
 def fit_still(F):
-    g = F.groupby(["session_id", "client_id", "seg"], sort=False)
+    """Two-state still gate (the mouse rests or moves) per context, for a player on the move and for one standing:
+    people who stop moving mostly stop turning too (hidden, standing: still 75% of ticks; moving: about 20%)."""
     ys = F.yaw_d.abs() < 0.01
     nx = ys.astype(float).groupby([F.session_id, F.client_id, F.seg], sort=False).shift(-1)
-    E = F.assign(ys=ys, nx=nx)
+    E = F.assign(ys=ys, nx=nx, standing=F.speed_xy < STANDING_SPEED)
     E = E[E.eligible & E.yaw_d.notna() & E.nx.notna()]
-    t = E.groupby(["ctx_i", "ys"]).nx.mean().unstack()
-    enter = t[False].reindex(range(len(H.CONTEXTS))).to_numpy(float)
-    stay = t[True].reindex(range(len(H.CONTEXTS))).to_numpy(float)
-    share = E.groupby("ctx_i").ys.mean().reindex(range(len(H.CONTEXTS))).to_numpy(float)
-    return {"enter": enter.round(5), "stay": stay.round(5), "share": share.round(5)}
+    out = {}
+    for name, d in [("", E[~E.standing]), ("_standing", E[E.standing])]:
+        t = d.groupby(["ctx_i", "ys"]).nx.mean().unstack()
+        out["enter" + name] = t[False].reindex(range(len(H.CONTEXTS))).to_numpy(float).round(5)
+        out["stay" + name] = t[True].reindex(range(len(H.CONTEXTS))).to_numpy(float).round(5)
+    out["standing_speed"] = STANDING_SPEED
+    out["share"] = E.groupby("ctx_i").ys.mean().reindex(range(len(H.CONTEXTS))).to_numpy(float).round(5)
+    return out
 
 
 def fit_flicks(F):

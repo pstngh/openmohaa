@@ -63,7 +63,8 @@ def build():
         "view": {
             "firing": vw["firing"], "idle": vw["idle"], "pitch_firing": vw["pitch_firing"], "pitch_idle": vw["pitch_idle"],
             "flick_deg": vw["flick_deg"],
-            "still": {"enter": vw["still"]["enter"], "stay": vw["still"]["stay"]},
+            # the still gate on the move, and standing (people who stop moving mostly stop turning too)
+            "still": {k: vw["still"][k] for k in ["enter", "stay", "enter_standing", "stay_standing", "standing_speed"]},
             "main_sequence": [{k: r[k] for k in ["amp_lo", "amp_med", "ticks_med", "ticks_sigma"]} for r in vw["main_sequence"]],
             # corrective flicks land at 0.84-0.97x the error and overshoot 34-46% of the time (REPORT section 4)
             "flick_gain": {"median": 0.92, "sigma": 0.25},
@@ -83,9 +84,9 @@ def build():
                        # of their hidden time; the bots 10% once their keys followed the route), and the respawn of a
                        # dead enemy is a new look decision (people face it within 22 deg 0.5-1 s after it)
                        "route_turn_hazard": 0.2, "respawn_relook": 1.0,
-                       # a route look re-aims once the route turned 30 deg (15 chased the path corners: the view turned
-                       # 3x as fast as people's while hidden)
-                       "travel_follow_deg": 30.0},
+                       # a route look re-aims once the route turned 60 deg (15 chased the path corners: the view turned
+                       # 3x as fast as people's while hidden; at 30 the route look still flicked 15 times a hidden minute)
+                       "travel_follow_deg": 60.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "press_los", "release_los", "press_hidden", "release_hidden"]},

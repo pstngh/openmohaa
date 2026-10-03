@@ -141,7 +141,9 @@ analysis scripts on the bot captures. It writes `humanbot/eval/reports/<stem>/re
 - (b) each bot's dial recovery (its realised style against the style it drew);
 - (c) the tells: the statistics whose bot and human CIs do not overlap, largest first.
 
-Your own rows are reported separately (`pstN@vsbot`), never pooled with the bots.
+Your own rows are reported separately (`pstN@vsbot`), never pooled with the bots. The pooled bots
+are reweighted so their style families have the people's share of the recorded minutes (half of
+them are the presser's), as the human numbers pool people over their minutes.
 
 ## 6. Soak test (a few hours, unattended, on the server)
 
@@ -156,9 +158,9 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 58% of 195 statistics in the arena (on the practice
-maps, bot against bot, about half of all statistics). These are furthest off, and what to look for in
-the live test:
+The model matches the human duels within 25% on 55% of 195 statistics in the arena (on the practice
+maps, bot against bot, 57-59% of all statistics). These are furthest off, and what to look for in the
+live test:
 
 - **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
   wait on the edge of cover it comes out from. The bots now pre-aim that corner too, but pick
@@ -171,13 +173,15 @@ the live test:
   half-widths off 9% of the time (people 5%).
 - **Encounters.** Since 2026-10-02 the bots go after the enemy: their keys follow their route,
   they chase for a second after losing sight, move on right after a kill, and expect a killed enemy
-  back at the spawn the game picks. Bot against bot on the practice maps they now see each other 28
-  times a minute (people 33; before 16) and have the enemy on screen a third of the time, as people
-  do. Still short: they cover less ground while the enemy is hidden, and walk forward or sideways
-  where people run on the forward diagonal; their view turns more than people's while the enemy is
-  hidden. Tell us if they look like they patrol, or turn their view too much.
-- **Retreats at mid range.** Bots back off in fights at 100-300 u about twice as often as
-  people, and approach half as often (on the practice maps; in the open arena they do as people).
+  back at the spawn the game picks. Bot against bot on the practice maps they now see each other
+  29-31 times a minute (people 33) and have the enemy on screen a third of the time, as
+  people do. They also run corridors on the forward diagonal as people do and slide along walls
+  instead of stopping at them (touching a wall as often as people). Still short: they cover less
+  ground while the enemy is hidden (about three quarters of people's), and their view turns about
+  twice as much as people's while the enemy is hidden. Tell us if they look like they patrol, stop
+  at walls, or turn their view too much.
+- **Backing off in fights at close range.** Bots back off at 150-300 u about twice as often as
+  people: their crosshair trails the enemy, so a sidestep also moves them away from it.
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
   bots 8-11%. (Bots that stood frozen in front of an enemy for minutes had run out of
   ammunition; since 2026-10-02 they fire into cover like people and rarely run dry. One that

@@ -179,7 +179,10 @@ def main():
                 within.append(d.var(ddof=1))
         within = np.sqrt(pd.concat(within, axis=1).mean(axis=1))
         spread = np.sqrt(between.fillna(0) ** 2 + within ** 2)
+        # weight: the chance a bot draws the family (each person alike); minutes_share: the family's share of the
+        # recorded duel minutes, the mix of the pooled human reference (compare.py reweights the bots to it)
         out["families"].append({"name": f, "weight": round(len(people) / n_people, 4), "people": int(len(people)),
+                                "minutes_share": round(float(num.minutes[T.family.eq(f)].sum() / num.minutes.sum()), 4),
                                 "centre": {k: round(float(centre[k]), 4) for k in STYLE_DIALS},
                                 "spread": {k: round(float(spread[k]), 4) for k in STYLE_DIALS}})
     out["min"] = {k: round(float(num[k].min()), 4) for k in STYLE_DIALS + SKILL_DIALS}

@@ -144,19 +144,71 @@ int Mover::VetoMask(const MoveInput& in) const
     return mask;
 }
 
-// The wall reflex. People see a wall coming and let go of the key before they hit it; the key
-// processes, fitted on people who steer along walls with the mouse, barely react to walls (the
-// bots touched walls 7x as often). A held key's wall counts when it is reached within
-// wallReflexMs at the current speed along the key's direction, or touched.
+// The wall reflex. People see a wall coming and do not run into it; the key processes, fitted on
+// people who steer along walls with the mouse, barely react to walls (the bots touched walls 7x as
+// often). A chord's wall counts when it is reached within wallReflexMs at the current speed along the
+// chord's direction, or touched.
 bool Mover::WallAhead(const MoveInput& in, int chord) const
 {
     if (m_p->wallReflexMs <= 0.0f || chord == CHORD_NEUTRAL || ProbesBlind(in)) {
         return false;
     }
+    return WallMargin(in, chord) < 0.0f;
+}
+
+// How far beyond the reflex's reach a chord's wall lies (negative: reached within wallReflexMs, or touched).
+float Mover::WallMargin(const MoveInput& in, int chord) const
+{
     const float a     = ChordAngle(chord) * DEG2RAD;   // + = left
     const float v     = in.velFwd * std::cos(a) - in.velRight * std::sin(a);
     const float reach = std::max(v, 0.0f) * m_p->wallReflexMs * 0.001f + WALL_TOUCH;
-    return in.clearance[chord] < reach;
+    return in.clearance[chord] - reach;
+}
+
+// What the wall reflex does this tick, from last tick's keys. Only the direction the bot goes counts: a
+// diagonal down a corridor has walls ahead of both its keys' own directions (people walk corridors so, the view
+// about 40 deg off the path), and letting go of a key for those made the bots zig-zag and stop. People slide
+// along a wall instead of stopping at it: a diagonal into a wall lets go of the key whose own direction is the
+// more open, and forward into a wall adds a strafe toward the more open front diagonal (people turn forward
+// into a diagonal there, 217 per 1000 ticks, and stop 32).
+void Mover::Reflex(const MoveInput& in, int veto)
+{
+    m_reflexSide = false;
+    m_reflexFwd  = false;
+    m_slideSide  = 0;
+    if (!WallAhead(in, MakeChord(m_fwd, m_side))) {
+        return;
+    }
+    if (m_fwd != 0 && m_side != 0) {
+        const float mf = WallMargin(in, MakeChord(m_fwd, 0));
+        const float ms = WallMargin(in, MakeChord(0, m_side));
+        if (mf < 0.0f && ms < 0.0f) {
+            m_reflexSide = true;
+            m_reflexFwd  = true;
+        } else if (mf >= ms) {
+            m_reflexSide = true;
+        } else {
+            m_reflexFwd = true;
+        }
+    } else if (m_fwd == 1) {
+        float best = 0.0f;
+        for (int s = -1; s <= 1; s += 2) {
+            const int c = MakeChord(1, s);
+            if (veto & Bit(c)) {
+                continue;
+            }
+            const float mg = WallMargin(in, c);
+            if (mg >= best) {
+                best        = mg;
+                m_slideSide = s;
+            }
+        }
+        m_reflexFwd = m_slideSide == 0;
+    } else if (m_fwd != 0) {
+        m_reflexFwd = true;
+    } else {
+        m_reflexSide = true;
+    }
 }
 
 // How well a chord goes where the bot wants to travel: 1 straight there, -1 straight away, 0 standing.
@@ -221,8 +273,7 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
             // a diagonal into a wall reads open in both key directions
             z += ChordWall(m.side.diagWallLogit, m, in, MakeChord(m_fwd, m_side));
         }
-        // a diagonal into a corner lets go of the strafe, as people do
-        if (WallAhead(in, MakeChord(0, m_side)) || (m_fwd != 0 && WallAhead(in, MakeChord(m_fwd, m_side)))) {
+        if (m_reflexSide) {
             z += m.wallReflexLogit;
         }
         if (in.wallPressMs > 0.0f) {
@@ -231,6 +282,10 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         if (ledge & Bit(MakeChord(0, m_side))) {
             z += VETO_LOGIT;
         }
+    }
+    if (m_side == 0 && m_slideSide != 0) {
+        // forward into a wall: slide along it
+        z += m.wallReflexLogit;
     }
     if (in.losChanged) {
         z += m.side.losChangeLogit;
@@ -270,7 +325,9 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     const bool vetoA = a != 0 && (veto & Bit(MakeChord(0, a))) != 0;
     const bool vetoB = b != 0 && (veto & Bit(MakeChord(0, b))) != 0;
     int        pick  = u2 < Sigmoid(za) ? a : b;
-    if (vetoA && vetoB) {
+    if (m_side == 0 && m_slideSide != 0) {
+        pick = (veto & Bit(MakeChord(0, m_slideSide))) != 0 ? 0 : m_slideSide;
+    } else if (vetoA && vetoB) {
         pick = 0;
     } else if (pick == a && vetoA) {
         pick = b;
@@ -286,7 +343,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     const MovementModel& m  = *m_p;
     const int            ab = BinIndex(m_fwdAge, m.ageEdges);
     // a wall ahead: let go of the key (a person stops pressing into it, and does not back off)
-    const bool wallAhead = m_fwd != 0 && WallAhead(in, MakeChord(m_fwd, 0));
+    const bool wallAhead = m_reflexFwd;
 
     float z = m_fwdSpawn ? SpawnLogit(m_spawn->fwdSwitchP, m_fwd + 1, m_fwdAge) : NAN;
     if (std::isnan(z)) {
@@ -322,17 +379,16 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     if (in.navValid && in.urgency > 0.0f) {
         z += m.navSwitchLogit * in.urgency * (NavGain(in, false, veto, side) - 0.3f);
     }
-    p   = Sigmoid(z);
-    fwd = m_fwd;
-    if (u1 >= p) {
-        return;
-    }
 
     // the next state: a categorical over the other two, tilted toward or away from the enemy by distance
     float k = m.approach.At(in.ctx, BinIndex(in.enemyDist, m.distEdges));
     if (in.enemyReloading) {
         k += m.approachEnemyReload;
     }
+    // the diagonal habit as a rate: how readily a strafe gains the forward key (from none or from back), the other
+    // way keeping its fitted rate. As a tilt of the choice it made a low-diagonal style press back instead of
+    // forward (from none while strafing: back 57-62% of the presses, people of those styles 22-34%)
+    const bool  rateHabit = side != 0 && m_fwd != 1;
     const float cosb = in.enemyKnown ? std::cos(in.enemyBearing * DEG2RAD) : 0.0f;
     double      zz[3];
     double      zmax = -1e30;
@@ -343,7 +399,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         }
         double v = m.fwdNext.At(in.ctx, m_fwd + 1, side + 1, to + 1) + k * static_cast<float>(to - m_fwd) * cosb;
         if (to == 1) {
-            v += m.fwdCtxLogit[in.ctx] + (side != 0 ? 0.5f * style.diagLogit : 0.0f);
+            v += m.fwdCtxLogit[in.ctx];
         }
         if (in.navValid && in.urgency > 0.0f) {
             v += m.navChoiceLogit * in.urgency * NavAlign(in, MakeChord(to, side));
@@ -352,13 +408,26 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         zz[to + 1] = v;
         zmax       = std::max(zmax, v);
     }
+    double w[3];
+    double wsum = 0.0;
+    for (int i = 0; i < 3; i++) {
+        w[i] = zz[i] <= -1e29 ? 0.0 : std::exp(zz[i] - zmax);
+        wsum += w[i];
+    }
+    p = Sigmoid(z);
+    if (rateHabit && wsum > 0.0 && w[2] > 0.0) {
+        const double q  = w[2] / wsum;
+        const double kh = std::exp(0.5 * style.diagLogit);
+        p               = static_cast<float>(std::min(0.999, p * (q * kh + (1.0 - q))));
+        w[2] *= kh;
+    }
+    fwd = m_fwd;
+    if (u1 >= p) {
+        return;
+    }
     if (zmax <= -1e29) {
         fwd = 0;
         return;
-    }
-    double w[3];
-    for (int i = 0; i < 3; i++) {
-        w[i] = zz[i] <= -1e29 ? 0.0 : std::exp(zz[i] - zmax);
     }
     fwd = rng.Categorical(w, 3) - 1;
 }
@@ -509,6 +578,7 @@ void Mover::Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, R
     const int ledge = LedgeMask(in);
     const int veto  = VetoMask(in);
     out.vetoMask    = veto;
+    Reflex(in, veto);
 
     // both keys decide on last tick's state, like two fingers
     int   side, fwd;
