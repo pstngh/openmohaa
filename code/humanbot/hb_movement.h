@@ -132,6 +132,7 @@ private:
     bool                 m_reflexSide = false;
     bool                 m_reflexFwd  = false;
     int                  m_slideSide  = 0;
+    bool                 m_slideFwd   = false;  // a strafe into a wall: add forward and run along it
 };
 
 } // namespace hb

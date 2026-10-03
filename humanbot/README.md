@@ -44,15 +44,18 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      crosses out of cover. The view waits a little onto the cover side of that edge and below it,
      turns onto it as an exposure comes up, and holds it against the bot's own motion as the enemy
      is expected out of it (a corner watched with nothing expected soon is looked at like any
-     point). The mouse rests as often as people's, more while the bot stands still, as people's
+     point). A corner the bot runs past, whose direction its own motion sweeps faster than 90
+     degrees a second, is passed: the view keeps its direction instead of following it round. The
+     mouse rests as often as people's, more while the bot stands still, as people's
      does. The geometry query never traces a player. On the move it turns to a route that lies
      behind it rather than walking backwards, and it looks anew when a killed enemy is expected
      back.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
      lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
      wall reflex keeps the bot off the wall in the direction it goes (people see walls coming): it
-     lets go of the key that leaves the more open direction, or adds a strafe so the bot slides
-     along the wall, as people slide (a diagonal down a corridor is left alone).
+     lets go of the key that leaves the more open direction, adds a strafe to forward or forward to
+     a strafe so the bot runs along the wall on the diagonal, as people do (a diagonal down a
+     corridor is left alone).
    - `hb_nav`: where to go (hunt, hold, cover, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
      follow the route with a strength set on the practice maps, so that the bots cover ground and
@@ -136,7 +139,7 @@ attenuated, the look policy and sound precision were never recorded, and the mod
 
 - open loop, on the recorded traces (`hb_replay`): lean, strafe and forward habits per context;
 - closed loop, in the arena (`hb_arena`, two pooled bots, fixed seeds): stillness, turn speeds,
-  tracking gain, aim noise, aim heights, press hazard, the release tilts and hidden fire (fire held
+  tracking gain, aim noise (not the hidden view's, which the arena's look turns would set), aim heights, press hazard, the release tilts and hidden fire (fire held
   with no body part of the enemy visible, the trigger's own meaning of out of sight, matched by the
   time since a part was last on screen: an overall shift for the first second, a fade after it).
 
@@ -147,7 +150,8 @@ are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`), t
 fire into cover at an enemy expected in the crosshair (`anticipation_logit`), how strongly the keys
 follow the route (`nav_switch_logit`, `nav_choice_logit`), the pull toward the enemy for the second
 after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route
-behind the view (`route_turn_hazard`, `travel_follow_deg`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
+behind the view (`route_turn_hazard`, `travel_follow_deg`), the corner passed rather than watched
+(`preaim_pass_dps`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
 `compare.py`: the arena's pillars are not the recorded maps (in the open arena the bots already
 cover as much ground as people; on the maps the walls stop them).
 

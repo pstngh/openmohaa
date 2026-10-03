@@ -2,29 +2,29 @@
  "movement": {
   "habit": {
    "fwd_ctx_logit": [
-    0.0321,
-    0.179,
-    -0.0539,
-    -0.2126,
-    0.967
+    0.0206,
+    0.1279,
+    0.0037,
+    -0.3372,
+    0.8995
    ],
-   "reverse_logit": 0.2389,
+   "reverse_logit": 0.2368,
    "side_ctx_logit": [
-    -0.2544,
-    0.9463,
-    -0.7902,
-    2.5816,
-    -0.1362
+    -0.2512,
+    0.949,
+    -0.7545,
+    2.5918,
+    -0.142
    ],
    "walk_mult": 2.159
   },
   "lean": {
    "ctx_logit": [
-    -0.3894,
-    2.2042,
-    -0.7746,
-    0.5067,
-    -0.3653
+    -0.403,
+    2.2257,
+    -0.728,
+    0.5291,
+    -0.3456
    ]
   }
  },
@@ -36,18 +36,18 @@
  "trigger": {
   "tuning": {
    "anticipation_logit": 5.0,
-   "hidden_fire_logit": 0.1254,
-   "hidden_late_logit": -0.8154,
-   "press_los_logit": 0.3166,
-   "release_far_logit": 0.6194,
+   "hidden_fire_logit": 0.1498,
+   "hidden_late_logit": -0.825,
+   "press_los_logit": 0.3058,
+   "release_far_logit": 0.6862,
    "release_los_logit": 0.0,
-   "release_near_logit": -1.1527,
-   "release_tap_logit": -0.3073
+   "release_near_logit": -1.1137,
+   "release_tap_logit": -0.2682
   }
  },
  "view": {
   "aim_height": {
-   "firing": 0.3746,
+   "firing": 0.3714,
    "idle": 0.45
   },
   "tuning": {
@@ -57,17 +57,17 @@
    "hidden_reaim_hazard": 0.05,
    "look_dwell_median_ms": 2000.0,
    "lookaround_per_min": 3.0,
-   "noise_scale": 1.2666,
+   "noise_scale": 1.2252,
    "pitch_gain_scale": 3.0,
    "preaim_hazard": 0.3,
    "preaim_share": 0.1,
    "preaim_weight": 60.0,
    "still_logit": [
-    0.6791,
-    -0.2368,
+    0.6602,
+    -0.2431,
     3.0,
     -3.0,
-    0.5225
+    0.4716
    ],
    "track_gain_scale": 2.5
   }

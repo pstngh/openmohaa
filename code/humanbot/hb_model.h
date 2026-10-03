@@ -242,6 +242,8 @@ struct ViewModel {
     float travelShare        = 0.25f;
     float travelFollowDeg    = 15.0f;  // a route look re-aims once the route turned this far from it
     float routeTurnHazard    = 0.0f;   // per tick on the move: turn to a route that lies behind the view (0 = off)
+    float preaimPassDps      = 0.0f;   // on the move, a corner whose direction the bot's own motion sweeps faster than
+                                       //   this (deg/s) is passed, not watched (0 = off)
     float respawnRelook      = 0.0f;   // 1: a new look decision when the belief of a dead enemy comes back (its respawn)
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;

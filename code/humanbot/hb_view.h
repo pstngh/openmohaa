@@ -111,6 +111,8 @@ private:
         float tMs      = 0.0f;
     };
 
+    // On the move, a corner the bot's own motion sweeps past faster than preaimPassDps.
+    bool  PassingCorner(const SelfState& self, const ViewInput& in, const Vec3& corner) const;
     void  ChooseLook(const SelfState& self, const ViewInput& in, const double *preW, double imminence, Rng& rng);
     void  PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng);
     Vec3  CornerAim(const Vec3& eye, const Vec3& corner, float open) const;

@@ -113,6 +113,7 @@ private:
         std::vector<Particle> parts;
         int                   deadUntilMs   = 0;
         int                   lostTick      = 0;     // ticks since the last sighting
+        int                   modeCell      = -1;    // the cell whose neighbourhood is the mode (MODE_KEEP)
         bool                  initialised   = false;
     };
 

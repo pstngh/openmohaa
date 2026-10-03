@@ -43,6 +43,10 @@ static constexpr int   CORNERS_PER_TICK  = 2;
 static constexpr int   CORNER_CACHE      = 8;
 static constexpr int   PATH_FWD          = 2;      // cells past the exposure tried when it is hidden from the true eye
 static constexpr float CORNER_MIN_DIST   = 96.0f;  // nearer corners are not watched (their direction swings)
+// The mode stays where it is while its neighbourhood holds this share of the densest one's mass. Taken afresh every
+// tick it hopped between the places a spread cloud could be (jumps of more than 200 u 39 times a hidden minute, 42%
+// of them back within 2 s), and the goal, the chase and the belief look followed it (now 24-27 such jumps).
+static constexpr float MODE_KEEP         = 0.5f;
 
 void BeliefFilter::Init(const BeliefModel *params, const PerceptionModel *perception, const MapPrior *map, const Rng& rng)
 {
@@ -220,6 +224,7 @@ int BeliefFilter::ParticlesPerTrack(const Observation& obs) const
 void BeliefFilter::SeedFromPrior(TrackState& t, const Observation& obs, bool avoidVisible)
 {
     const int n = ParticlesPerTrack(obs);
+    t.modeCell  = -1;
     t.parts.assign(n, Particle());
     if (!m_map || m_map->NumCells() == 0) {
         // no map knowledge: a broad ring around the bot
@@ -259,6 +264,7 @@ void BeliefFilter::SeedFromPrior(TrackState& t, const Observation& obs, bool avo
 
 void BeliefFilter::SeedFromSpawns(TrackState& t, const Observation& obs)
 {
+    t.modeCell = -1;
     if (!m_map || m_map->spawns.empty()) {
         SeedFromPrior(t, obs, true);
         return;
@@ -611,6 +617,16 @@ void BeliefFilter::Summarise(TrackState& t, const Observation& obs, bool exposur
                 best  = c;
             }
         }
+        if (t.modeCell >= 0 && t.modeCell < m_map->NumCells() && t.modeCell != best) {
+            float m = m_cellMass[t.modeCell];
+            for (int k = m_map->rStart[t.modeCell]; k < m_map->rStart[t.modeCell + 1]; k++) {
+                m += m_cellMass[m_map->rTo[k]];
+            }
+            if (m >= MODE_KEEP * bestM) {
+                best = t.modeCell;
+            }
+        }
+        t.modeCell = best;
         if (best >= 0) {
             const Vec3& bc = m_map->cells[best].center;
             Vec3        mm;
@@ -809,6 +825,7 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
             }
             e.mode    = e.lastSeenPos;
             e.modeVel = e.lastSeenVel;
+            t.modeCell = c;
             e.spread  = 8.0f;
             e.ess     = 1.0f;
         } else if (!e.dead) {
