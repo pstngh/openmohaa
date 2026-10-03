@@ -81,9 +81,17 @@ def build():
                        # turning onto a corner is a flick from 3 deg off, the smallest turn of the recorded main sequence
                        "preaim_flick_deg": 3.0,
                        # set on practice-map captures: a route behind the view is turned to (people walk backwards 6%
-                       # of their hidden time; the bots 10% once their keys followed the route), and the respawn of a
-                       # dead enemy is a new look decision (people face it within 22 deg 0.5-1 s after it)
-                       "route_turn_hazard": 0.2, "respawn_relook": 1.0,
+                       # of their hidden time; the bots 10% once their keys followed the route; at 0.2 a tick these
+                       # turns, 117 deg at the median, came 11 times a hidden minute and the bots made 18 turns of
+                       # 90 deg or more a minute against people's 5), and the respawn of a dead enemy is a new look
+                       # decision (people face it within 22 deg 0.5-1 s after it)
+                       "route_turn_hazard": 0.05, "respawn_relook": 1.0,
+                       # a corner the bot's own motion sweeps past faster than this (deg/s) is passed, not watched:
+                       # held at full own-motion compensation, the corners the bots ran past were the largest part of
+                       # their hidden view's turning (16 deg/s at the median, people 8). 45 brought it to people's but
+                       # halved the view's turn toward the enemy in the last 500 ms before a sighting (10 -> 5 deg,
+                       # people 13); 90 keeps three quarters of that turn (practice maps)
+                       "preaim_pass_dps": 90.0,
                        # a route look re-aims once the route turned 60 deg (15 chased the path corners: the view turned
                        # 3x as fast as people's while hidden; at 30 the route look still flicked 15 times a hidden minute)
                        "travel_follow_deg": 60.0},

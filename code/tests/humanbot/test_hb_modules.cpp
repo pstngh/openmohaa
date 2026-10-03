@@ -97,7 +97,9 @@ static void TestMovement(const hb::ModelBundle& b)
     }
     HB_CHECK(diag2 / 100000.0 > diag + 0.05);
     // a low diagonal habit presses forward less while strafing, not back more (as a tilt of the forward key's
-    // choice it made such styles back off twice as often as people of those styles)
+    // choice it made such styles back off twice as often as people of those styles: back key 2.25x the pooled bot's).
+    // Less forward leaves more time for the fitted presses from none, back among them: 1.3x with the tuning of
+    // 2026-10-02, 1.5x since the forward habit was recalibrated with the strafe slide at walls (2026-10-03)
     hb::StyleOffsets lowDiag;
     lowDiag.diagLogit = -2.7f;
     hb::Mover mvBase, mvLow;
@@ -114,7 +116,7 @@ static void TestMovement(const hb::ModelBundle& b)
     HB_REPORT("low diagonal habit: diagonal %.3f (pooled %.3f), back key %.3f (pooled %.3f)", diagLow / 100000.0, diag,
               backLow / 100000.0, backBase / 100000.0);
     HB_CHECK(diagLow / 100000.0 < diag - 0.03);
-    HB_CHECK(backLow < backBase * 1.3 + 200);
+    HB_CHECK(backLow < backBase * 1.6 + 200);
 
     // people keep pressing toward walls they touch, so the fitted model vetoes none; with a
     // veto clearance set, a key is never pressed toward a wall that close
@@ -231,6 +233,31 @@ static void TestMovement(const hb::ModelBundle& b)
     HB_CHECK(slid > 1000);
     HB_CHECK(stopped < 400);
     HB_CHECK(boxedFwd < 1000);
+    // a strafe into a wall with the front diagonal on its side open: the bot adds forward and runs along the wall
+    // (people add forward there more often than the bots stopped), where with that diagonal blocked it lets go
+    hb::MoveInput side = coming;
+    side.clearance[8]  = 128.0f;   // forward-right open
+    side.clearance[7]  = 128.0f;
+    int sideSlid = 0, sideOff = 0, comingSlid = 0;
+    for (int i = 0; i < 4000; i++) {
+        hb::Mover a, o, x;
+        a.Init(&reflex);
+        o.Init(&noReflex);
+        x.Init(&reflex);
+        a.SetKeys(0, 1);
+        o.SetKeys(0, 1);
+        x.SetKeys(0, 1);
+        a.Step(side, style, rm, rs, out);
+        sideSlid += out.chord == 8;
+        o.Step(side, style, rm, rs, out);
+        sideOff += out.chord == 8;
+        x.Step(coming, style, rm, rs, out);
+        comingSlid += out.chord == 8;
+    }
+    HB_REPORT("strafe into a wall: forward added %.3f with the front diagonal open (%.3f without the reflex), %.3f with it blocked",
+              sideSlid / 4000.0, sideOff / 4000.0, comingSlid / 4000.0);
+    HB_CHECK(sideSlid > 4 * sideOff + 100);
+    HB_CHECK(comingSlid * 4 < sideSlid);
     // every probe blocked (the box starts in solid): the reflex stands down and the bot still moves
     hb::MoveInput blind = in;
     for (int c = 0; c < hb::NUM_CHORDS; c++) {

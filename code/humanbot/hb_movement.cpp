@@ -169,13 +169,16 @@ float Mover::WallMargin(const MoveInput& in, int chord) const
 // diagonal down a corridor has walls ahead of both its keys' own directions (people walk corridors so, the view
 // about 40 deg off the path), and letting go of a key for those made the bots zig-zag and stop. People slide
 // along a wall instead of stopping at it: a diagonal into a wall lets go of the key whose own direction is the
-// more open, and forward into a wall adds a strafe toward the more open front diagonal (people turn forward
-// into a diagonal there, 217 per 1000 ticks, and stop 32).
+// more open, forward into a wall adds a strafe toward the more open front diagonal (people turn forward
+// into a diagonal there, 217 per 1000 ticks, and stop 32), and a strafe into a wall adds forward when the front
+// diagonal on its side is open (people add forward in 22% of their key changes there and stop in 28%; letting go,
+// the bots stopped in 49%, and they stood at walls 5% of their hidden time against people's 3%).
 void Mover::Reflex(const MoveInput& in, int veto)
 {
     m_reflexSide = false;
     m_reflexFwd  = false;
     m_slideSide  = 0;
+    m_slideFwd   = false;
     if (!WallAhead(in, MakeChord(m_fwd, m_side))) {
         return;
     }
@@ -206,6 +209,8 @@ void Mover::Reflex(const MoveInput& in, int veto)
         m_reflexFwd = m_slideSide == 0;
     } else if (m_fwd != 0) {
         m_reflexFwd = true;
+    } else if (!(veto & Bit(MakeChord(1, m_side))) && WallMargin(in, MakeChord(1, m_side)) >= 0.0f) {
+        m_slideFwd = true;
     } else {
         m_reflexSide = true;
     }
@@ -364,6 +369,10 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
             z += VETO_LOGIT;
         }
     }
+    if (m_slideFwd) {
+        // a strafe into a wall: run along it on the diagonal
+        z += m.wallReflexLogit;
+    }
     if (in.losChanged) {
         z += m.fwd.losChangeLogit;
     }
@@ -427,6 +436,10 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     }
     if (zmax <= -1e29) {
         fwd = 0;
+        return;
+    }
+    if (m_slideFwd && w[2] > 0.0) {
+        fwd = 1;
         return;
     }
     fwd = rng.Categorical(w, 3) - 1;

@@ -102,6 +102,20 @@ Vec3 ViewControl::CornerAim(const Vec3& eye, const Vec3& corner, float open) con
     return eye + AnglesForward(pit, yaw) * dist;
 }
 
+// Running past a corner people keep a direction rather than the corner: the bots held corners while they ran
+// past them (a third of their corner time was on corners within 120 u, the view turning at 33 deg/s there) and
+// turned their hidden view twice as fast as people. A corner straight ahead stays put in the view; one beside
+// the way sweeps past at v_perp / dist.
+bool ViewControl::PassingCorner(const SelfState& self, const ViewInput& in, const Vec3& corner) const
+{
+    if (!in.moving || m_p->preaimPassDps <= 0.0f) {
+        return false;
+    }
+    const Vec3  d     = corner - self.eye;
+    const float sweep = std::fabs(d.y * self.velocity.x - d.x * self.velocity.y) / std::max(1.0f, d.x * d.x + d.y * d.y) * RAD2DEG;
+    return sweep > m_p->preaimPassDps;
+}
+
 // Turn onto the corner of one of the exposures, drawn by weight w (the imminence terms); the corner already
 // watched weighs more.
 void ViewControl::PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng)
@@ -218,6 +232,20 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const d
                 // the corner already watched weighs more
                 const float dl = std::fabs(Wrap180(ey - lookYaw));
                 ew[i] = b->exposureMass[i] * std::exp(-b->exposureEtaMs[i] / 2500.0 - db * db) * (dl < 20.0f ? 3.0 : 1.0);
+                if (b->cornerValid[i] && PassingCorner(self, in, b->corner[i])) {
+                    ew[i] = 0.0;
+                }
+            }
+            double ewSum = 0.0;
+            for (int k = 0; k < b->nExposure; k++) {
+                ewSum += ew[k];
+            }
+            if (ewSum <= 0.0) {
+                // only corners being passed: keep looking where the view points
+                m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * DIR_LOOK_DIST;
+                m_lookPointValid = true;
+                m_lookMode       = VIEW_HOLD;
+                break;
             }
             const int i      = rng.Categorical(ew, b->nExposure);
             m_lookPoint      = b->cornerValid[i] ? CornerAim(eye, b->corner[i], b->cornerOpen[i])
@@ -268,7 +296,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     if (bel && bel->valid && !bel->dead && !in.track) {
         const double horizon = std::max(50.0, static_cast<double>(p.preaimHorizonMs) * in.angleHold);
         for (int i = 0; i < bel->nExposure; i++) {
-            if (bel->cornerValid[i]) {
+            if (bel->cornerValid[i] && !PassingCorner(self, in, bel->corner[i])) {
                 preW[i] = bel->exposureMass[i] * std::exp(-bel->exposureEtaMs[i] / horizon);
                 out.imminence += static_cast<float>(preW[i]);
             }
@@ -335,6 +363,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                         }
                     }
                 }
+            }
+            if (m_lookMode == VIEW_PREAIM && PassingCorner(self, in, m_lookPoint)) {
+                // running past the watched corner: keep its direction, not the point
+                m_lookPoint = eye + AnglesForward(self.viewPitch, YawOf(m_lookPoint - eye)) * DIR_LOOK_DIST;
+                m_lookMode  = VIEW_HOLD;
             }
             if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn) {
                 ChooseLook(self, in, preW, out.imminence, rng);

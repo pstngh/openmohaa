@@ -158,13 +158,14 @@ These captures contain bots only: do not pack them with the duel captures.
 
 ## Known gaps (from the closed-loop arena, two pooled bots)
 
-The model matches the human duels within 25% on 55% of 195 statistics in the arena (on the practice
-maps, bot against bot, 57-59% of all statistics). These are furthest off, and what to look for in the
+The model matches the human duels within 25% on 51% of 195 statistics in the arena (on the practice
+maps, bot against bot, 53-57% of all statistics). These are furthest off, and what to look for in the
 live test:
 
 - **Aim at the moment of a sighting.** People mostly see the enemy where they already aim: they
   wait on the edge of cover it comes out from. The bots now pre-aim that corner too, but pick
-  the one the enemy comes out of less often. Bot against bot on the practice maps they are 11-12
+  the one the enemy comes out of less often, and since 2026-10-03 they let a corner they run
+  past go by instead of following it round. Bot against bot on the practice maps they are 11.5-12
   degrees off at the first visible body part (people 5.2). The first shot therefore comes later
   (200-250 ms after a clean sighting vs 150), and fewer early shots hit.
 - **Close-range tracking.** Firing at under 128 u, the bots' aim error is 19 degrees (people
@@ -176,10 +177,11 @@ live test:
   back at the spawn the game picks. Bot against bot on the practice maps they now see each other
   29-31 times a minute (people 33) and have the enemy on screen a third of the time, as
   people do. They also run corridors on the forward diagonal as people do and slide along walls
-  instead of stopping at them (touching a wall as often as people). Still short: they cover less
-  ground while the enemy is hidden (about three quarters of people's), and their view turns about
-  twice as much as people's while the enemy is hidden. Tell us if they look like they patrol, stop
-  at walls, or turn their view too much.
+  instead of stopping at them (touching a wall as often as people); since 2026-10-03 a strafe that
+  meets a wall turns into the forward diagonal along it, as people's does. Still short: they cover
+  less ground while the enemy is hidden (about nine tenths of people's), and their view turns about
+  1.4 times as fast as people's while the enemy is hidden. Tell us if they look like they patrol,
+  stop at walls, or turn their view too much.
 - **Backing off in fights at close range.** Bots back off at 150-300 u about twice as often as
   people: their crosshair trails the enemy, so a sidestep also moves them away from it.
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,

@@ -13,12 +13,13 @@ when the brain closes the loop. calibrate.py sets them by matching statistics of
 Each loop ties one parameter to one statistic with a monotone relation and takes damped
 steps (additive, multiplicative or on the logit scale) until the bot matches the human value;
 all loops step together from the same runs. Values in tuning.json that no loop owns are kept:
-the hidden look policy (shares, dwell, re-aim), the sound precision and the pitch gain were set
-by hand from arena and replay runs (the error at a sighting and the hidden view barely respond
-to them one at a time). The corner pre-aim's part of that policy (preaim_*: how strongly a look
-decision favours a corner coming up, how readily a look breaks off for one, the horizon, the
-offsets onto the cover side and below) was set by hand from bot captures on the practice maps,
-scored with compare.py: corners are geometry, and the arena's pillars are not the recorded maps.
+the hidden look policy (shares, dwell, re-aim), the hidden view's noise (see pooled_loops), the
+sound precision and the pitch gain were set by hand from arena and replay runs (the error at a
+sighting and the hidden view barely respond to them one at a time). The corner pre-aim's part
+of that policy (preaim_*: how strongly a look decision favours a corner coming up, how readily a
+look breaks off for one, the horizon, the offsets onto the cover side and below) was set by hand
+from bot captures on the practice maps, scored with compare.py: corners are geometry, and the
+arena's pillars are not the recorded maps.
 The arena runs of the pooled loops and of every dial sweep but hold_angle's therefore give the
 brains no geometry (hb_arena --no-corners: exposures without corners); on its pillars the corners
 would turn the hidden view more than on the recorded maps, and the loops of the hidden view's
@@ -139,9 +140,12 @@ def pooled_loops(shared):
     for i, c in enumerate(CONTEXTS):
         L.append(Loop(f"still_logit.{c}", ["view", "tuning", "still_logit", i], "logit", "arena", [f"view.mouse_still.{c}"],
                       -3.0, 3.0, still0[i]))
+    # The hand's noise without a visible enemy (hidden_noise_scale) is no longer looped: it was matched on the median
+    # hidden yaw speed of the arena without corners, which the look turns set more than the noise (+45% noise for
+    # +0.9 deg/s). Once the bots stopped turning back to their route (2026-10-03), that view calmed by 0.5 deg/s and the
+    # loop raised the noise from 0.125 to 0.18; on the recorded maps, where corners turn the view, it raised the hidden
+    # yaw speed from 10.9-11.6 to 12-12.8 deg/s (people 8.1). It stays at its last looped value in tuning.json.
     L += [
-        Loop("hidden_noise_scale", ["view", "tuning", "hidden_noise_scale"], "mult", "arena",
-             ["view.yaw_speed.hidden_nofire.p50"], 0.05, 2.0, tun.get("hidden_noise_scale", 1.0), stat_kind="ratio"),
         Loop("track_gain_scale", ["view", "tuning", "track_gain_scale"], "mult", "arena",
              ["aim.error_firing.0-128", "aim.error_firing.128-192", "aim.error_firing.192-256"], 0.5, 2.5,
              tun.get("track_gain_scale", 1.0), sign=-1, gain=0.6, stat_kind="ratio"),
