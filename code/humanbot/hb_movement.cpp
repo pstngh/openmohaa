@@ -31,6 +31,14 @@ namespace hb
 {
 
 static constexpr float LEDGE_VETO_DEPTH = 240.0f;
+// Out of a nook (set by hand on practice-map captures, 2026-10-04): a bot travelling somewhere (hunting or out of the
+// spawn, route urgency at least UNSTICK_URGENCY), that has held no key for UNSTICK_TICKS and whose route runs into a wall
+// it touches takes the open chord nearest the route. Standing with walls around, the route pull leans away from every
+// open direction and the fitted keys start ever more slowly the longer one stands: on dm/brownffa the bots stood like
+// that for seconds (frozen over 2 s 1.8 times a minute, people 0.3). Not after an enemy just lost: people hold the
+// corner it went out of sight at.
+static constexpr int   UNSTICK_TICKS    = 20;
+static constexpr float UNSTICK_URGENCY  = 0.5f;
 static constexpr float VETO_LOGIT       = 4.0f;
 static constexpr float WALL_TOUCH       = 4.0f;    // units: the box is touching the wall (the wall reflex)
 
@@ -267,6 +275,31 @@ float Mover::CtxChange(const KeyModel& k, int row, int ctx) const
     return k.ctxChangeLogit.At(ctx, row, cb);
 }
 
+// With the enemy hidden, how readily a key changes by how far away it is believed to be: the farther, the longer people
+// keep forward held and the less readily they start a strafe (row: side key strafing or not, -1 for the forward key).
+float Mover::HidDist(const KeyModel& k, int row, int fwd, const MoveInput& in) const
+{
+    if (k.hidDistLogit.v.empty() || !in.enemyKnown || (in.ctx != CTX_HIDDEN_NOFIRE && in.ctx != CTX_HIDDEN_FIRE)) {
+        return 0.0f;
+    }
+    const int b = BinIndex(in.enemyDist, m_p->hidDistEdges);
+    return row < 0 ? k.hidDistLogit.At(fwd + 1, b) : k.hidDistLogit.At(row, fwd + 1, b);
+}
+
+// How firmly the keys follow the route: the urgency, more so the farther away the enemy is believed to be while it is
+// hidden (people run to a far fight and strafe and peek near one). Not while pressing into a wall: three times the
+// pull outweighed letting go of a key held into it (in the arena bots pushed against pillars for seconds).
+float Mover::NavPull(const MoveInput& in) const
+{
+    const MovementModel& m = *m_p;
+    float                k = in.urgency;
+    if (m.navFarMult != 1.0f && m.navFarDist > m.navFarNear && in.enemyKnown && in.wallPressMs <= 0.0f
+        && (in.ctx == CTX_HIDDEN_NOFIRE || in.ctx == CTX_HIDDEN_FIRE)) {
+        k *= 1.0f + (m.navFarMult - 1.0f) * Clamp((in.enemyDist - m.navFarNear) / (m.navFarDist - m.navFarNear), 0.0f, 1.0f);
+    }
+    return k;
+}
+
 void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p)
 {
     const MovementModel& m     = *m_p;
@@ -306,13 +339,14 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         z += m.side.losChangeLogit;
     }
     z += CtxChange(m.side, m_side != 0 ? 1 : 0, in.ctx);
+    z += HidDist(m.side, m_side != 0 ? 1 : 0, m_fwd, in);
     // the calibrated strafe habit only shortens or stretches the pauses between strafes: how strafes
     // end (hold length, reverse or let go) stays as fitted
     if (m_side == 0) {
         z += m.sideCtxLogit[in.ctx];
     }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * in.urgency * (NavGain(in, true, veto, m_side) - 0.3f);
+        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, true, veto, m_side) - 0.3f);
     }
     p    = Sigmoid(z);
     side = m_side;
@@ -339,7 +373,7 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         }
     }
     if (in.navValid && in.urgency > 0.0f) {
-        za += m.navChoiceLogit * in.urgency * (NavAlign(in, MakeChord(m_fwd, a)) - NavAlign(in, MakeChord(m_fwd, b)));
+        za += m.navChoiceLogit * NavPull(in) * (NavAlign(in, MakeChord(m_fwd, a)) - NavAlign(in, MakeChord(m_fwd, b)));
     }
     // people do not start a key into a wall they are touching
     za += ChordWall(m.side.choiceWallLogit, m, in, MakeChord(m_fwd, a)) - ChordWall(m.side.choiceWallLogit, m, in, MakeChord(m_fwd, b));
@@ -393,6 +427,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         z += m.fwd.losChangeLogit;
     }
     z += CtxChange(m.fwd, m_fwd + 1, in.ctx);
+    z += HidDist(m.fwd, -1, m_fwd, in);
     // the calibrated forward habit pulls toward forward; letting go of forward stays as fitted
     if (m_fwd != 1) {
         z += m.fwdCtxLogit[in.ctx];
@@ -402,7 +437,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         z -= 0.5f * style.diagLogit;
     }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * in.urgency * (NavGain(in, false, veto, side) - 0.3f);
+        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, false, veto, side) - 0.3f);
     }
 
     // the next state: a categorical over the other two, tilted toward or away from the enemy by distance
@@ -427,7 +462,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
             v += m.fwdCtxLogit[in.ctx];
         }
         if (in.navValid && in.urgency > 0.0f) {
-            v += m.navChoiceLogit * in.urgency * NavAlign(in, MakeChord(to, side));
+            v += m.navChoiceLogit * NavPull(in) * NavAlign(in, MakeChord(to, side));
         }
         v += ChordWall(m.fwd.choiceWallLogit, m, in, MakeChord(to, side));
         zz[to + 1] = v;
@@ -661,6 +696,26 @@ void Mover::Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, R
     float ps, pf;
     StepSide(in, style, ledge, veto, us1, us2, side, ps);
     StepFwd(in, style, ledge, veto, m_side, uf1, moveRng, fwd, pf);
+    // out of a nook (UNSTICK_*): standing, wanting to go, the route into a touched wall: the open chord nearest the route
+    if (side == 0 && fwd == 0 && m_side == 0 && m_fwd == 0 && in.travelling && in.navValid && in.urgency >= UNSTICK_URGENCY
+        && std::min(m_sideAge, m_fwdAge) >= UNSTICK_TICKS) {
+        int bestAll = -1, bestOpen = -1;
+        for (int c = 0; c < NUM_CHORDS; c++) {
+            if (c == CHORD_NEUTRAL) {
+                continue;
+            }
+            if (bestAll < 0 || NavAlign(in, c) > NavAlign(in, bestAll)) {
+                bestAll = c;
+            }
+            if (!(veto & Bit(c)) && (bestOpen < 0 || NavAlign(in, c) > NavAlign(in, bestOpen))) {
+                bestOpen = c;
+            }
+        }
+        if (bestAll >= 0 && (veto & ~ledge & Bit(bestAll)) && bestOpen >= 0) {
+            fwd  = bestOpen / 3 - 1;
+            side = bestOpen % 3 - 1;
+        }
+    }
     // a diagonal both keys allow may still lead over a ledge: let go of forward first
     if (ledge & Bit(MakeChord(fwd, side))) {
         if (!(ledge & Bit(MakeChord(0, side)))) {

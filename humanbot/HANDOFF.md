@@ -31,12 +31,13 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 50% of 195
-  statistics (median relative error 0.25; 48% before "Hits from an unseen enemy" and before "The lean follows the
+- In the arena, two average-style bots are within 25% of the human value on 48% of 195
+  statistics (median relative error 0.27; 50% and 0.25 before "The practice areas of the objective maps"; 48% before
+  "Hits from an unseen enemy" and before "The lean follows the
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `697feb684ecf` of 2026-10-04 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `30d7e11d39a2` of 2026-10-04 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -52,6 +53,8 @@ Verified:
   "Out of ammunition", "Fire into cover, bursts and ladders", "Encounters", "Movement on the
   maps" and "Travel and the hidden view" below. Since "Movement on the maps" compare.py weights the bots' style families like the
   people's duel minutes (half presser), not like the draw (a fifth): earlier reports used the draw.
+- On dm/brownffa and dm/flag, the practice areas of obj/obj_team4 and V2, bot against bot, measured like the data
+  repository's report section 15: see "The practice areas of the objective maps".
 
 **The engine glue runs** (first live runs, 2026-09-28, on macOS and on the VPS):
 - the model loads, bots join and fight, the navmesh is valid, the map prior reads "checksum ok"
@@ -906,6 +909,127 @@ The five checks of "What the owner saw" and the lean (`obs5.py`) stay where they
 55% (56%), 56% / 52% before; no statistic crossed 25% for the worse in both seed sets. In the arena (eight seeds) 50%
 of 195 (48%).
 
+## The practice areas of the objective maps: dm/brownffa and dm/flag (2026-10-04)
+
+The owner's games of 2026-10-04 with a friend (two people, no bots) are a training capture in openmohaa-movement
+(`828edef`), whose report section 15 compares the practice maps with the same ground in the team matches: dm/brownffa
+is the Bridge of obj/obj_team4, dm/flag part of V2 (obj/obj_team2). Bot against bot on those two maps (8 servers, 4 per
+map, 240 s at `timescale 10`; seeds 201-208 and 401-408) was measured with section 15's own code (`cohorts.py`),
+people's side reproducing the report's numbers (git-ignored scripts in `humanbot/cache/move_wip/s8/`: `quickbf.sh`
+the captures, `s15.py` section 15 for people and bots, `final_bf.py` the table below, `where.py` and `fig_report.py`
+the pictures, `spawnrun.py` the first seconds of a life, `viewoff.py`, `stillbouts.py`, `motion_dir.py`, `respawn.py`,
+`behind2.py` the diagnoses, `crossed.py` and `arena_score.py` the checks).
+
+**The style fit first.** `fit_styles.py` now applies the data repository's rule: a person needs 10 duel minutes
+(`common.MIN_PERSON_DUEL_MIN`) and a capture row 5 (`MIN_ROW_DUEL_MIN`) to stand for a style. The friend's 1.5 duel
+minutes and the owner's 1.4-minute dm/downladder game of 10-04 count only in the minute-weighted pooled values. The
+families, centres, spreads and ranges are as before (the same five people); a refit with 10-04 moves the four duel
+maps by seed noise (281 statistics within 25%: 54% and 55% against 55% and 56%, none crossed the line for the worse in
+both seed sets, the owner's five checks unchanged; `move_wip/reports/r1_*` against `hf_*`).
+
+**What the bots did differently.**
+1. **They left the practice ground.** The practice maps hold the whole objective map; people play only the area. With
+   no recorded prior, the bots had a navmesh map of the whole objective map (cells of 384 u on dm/brownffa, 256 u on
+   dm/flag) and hunted all over it: 87% and 98% of their time on ground people never used, two bots in sight of each
+   other 0.1-0.2 times a minute (people 13.5-15.7), 1.5-3 minutes from a spawn to the first sight (people 2.1-2.3 s).
+2. **They did not run to the fight.** After a spawn people turn down the walkway and run with forward held (65-84% of
+   the 1-2.5 s after it), meeting the enemy about 2 s later. The bots shuffled about the spawn pocket. With the enemy out
+   of sight people on these maps hold forward 76-78% of the time they move, the bots 36-45%, strafing sideways most of
+   the rest (their motion 75-89 deg off their view, people's 40). People's data shows the rule behind it, on every
+   practice map: the farther away the enemy, the longer people keep forward held and the less readily they start a
+   strafe (with forward held they let go of it at 9% a tick within 300 u of the enemy, 5% at 300-500, under 3% beyond
+   700 u; the duel maps and dm/brownffa and dm/flag give the same rates). The key model had no distance at all.
+3. **They froze for seconds.** With the enemy hidden they stood still over 2 s 1.8 times a minute on dm/brownffa
+   (people 0.3) and 0.7 on dm/flag (0.3). 60% of that time a bot stood pressed against walls on three sides (spawn
+   pockets, stair corners) with its route running into a wall it touched: it would not press into it, the route pull
+   leant away from every open direction, and the fitted keys start ever more slowly the longer one stands.
+4. **Fights:** within every style the bots back off about three times as often as people (9-13% of firing time with
+   the enemy in sight, people 2-6%), as on the duel maps (see "Known gaps"). How hard they push is the style mix (half
+   of people's time here is the owner, a presser). Not changed.
+5. **Aim at a sighting:** 15-16 deg off at the first visible part against people's 4-5 (12 on the duel maps). Not
+   changed (see "Known gaps").
+
+**What changed.**
+- `fit_maps.py`: recorded priors for dm/brownffa and dm/flag (`AREA_MAPS`) from people's rows with the duel
+  definitions without the map list (both alive, normal physics, as section 15). dm/flag is one recorded session and
+  dm/brownffa mostly one, so on those maps a cell or spawn needs two player-sessions (two people, or one person in two
+  sessions) instead of two sessions: 369 and 242 cells of 32 u. The friend's movement is in them as per-cell counts,
+  like everyone's in the other maps; the owner agreed. `hbdata.py` loads `human_duel` and `normal_physics`
+  (`dm_seq_v8`).
+- `fit_keys.py`: with the enemy hidden, an offset of each key's change rate by distance (`hid_dist_logit`,
+  `HID_DIST_EDGES` 0/300/500/700/1000 u; side key by strafing and the forward key, forward key by its state), fitted on
+  the duel maps. `hb_movement` (`HidDist`) applies it with the distance to the believed position.
+- `hb_movement`: with the enemy hidden the route pull grows with that distance, x1 within 500 u to x3 from 900 u
+  (`nav_far_*` in the couplings, set by hand on captures of all six maps). People's rate by distance is the same on
+  every practice map, but the far pull stands in for something else on dm/brownffa and dm/flag (the sideways gait
+  below), and the duel maps' hidden fights sit at 250-450 u: with the ramp at 300 to 700 u the duel bots stood with the
+  enemy hidden 15% of that time (22% before, people 22.5%), fought in sight more (22% of duel time, people 18%) and
+  five statistics crossed 25% for the worse in both seed sets. From a spawn to the first sight on dm/brownffa /
+  dm/flag (people 2.3 / 2.1 s): without the far pull 7.9-9.2 / 7.5-8.9 s, ramp 300-700 u 4.4-4.7 / 5.6-6.0 s,
+  500-900 u 6.0 / 5.6-7.1 s, 600-1000 u 6.7-7.4 / 6.4-7.8 s; on the duel maps 500-900 and 600-1000 were the same
+  within seed noise (`move_wip/s8/` `bn*_`, `n*_` and `patch_n*.json`). The far pull gives way while the bot presses
+  into a wall (`MoveInput::wallPressMs`): three times the pull outweighed letting go of a key held into it, and in the
+  arena the bots pushed against pillars (wall-pressure bouts 0.03-0.23 a bot-minute and one stuck 2.15 s in eight
+  seeds; none before or with it off). On the maps the pushes of a second or more the engine hands to the stock code
+  doubled on dm/crnodoors and dm/flag with the first ramp (to 0.09-0.10 a bot-minute); now 0-0.06 as before.
+- `hb_movement`: out of a nook. A bot travelling somewhere (hunting or out of the spawn, route urgency 0.5 or more,
+  `MoveInput::travelling`), that has held no key for a second and whose best direction for its route runs into a wall
+  it touches takes the open chord nearest the route (`UNSTICK_*`, set by hand). Not after an enemy just lost: with the
+  rule there too, the duel bots stood still for a second or more right after losing sight a third as often (0.04 a
+  fight-minute against 0.11; people hold the corner the enemy went out of sight at); now 0.08-0.11.
+- `calibrate.py`: the strafe and forward habits with the enemy hidden re-looped (`--only habit.side.hidden,
+  habit.fwd.hidden`; the distance term acts only there: a full habit run drifted the in-sight loops on noise and the
+  bots stood still in fights half as often as before, 0.18 bouts over 1 s a fight-minute against 0.28-0.37, people 0.64).
+- Unit tests: the six priors and their checksums (`test_hb_core`), the distance term, the way out of a nook and the
+  far pull giving way at a wall (`test_hb_modules`); the open-loop pure-strafe band widened to 0.83 (0.80, under 0.8 by a hair before).
+
+Tried and dropped: the fight-diagonal style dial at the strength people's styles show in each context. The dial is
+measured in fights; across the five people its difference shows at 0.52 of that with the enemy hidden, 0.87 firing
+into cover, 0.77 in sight not firing and 0.22 reloading (logit slopes of the share of strafing time with forward held).
+Scaled so (and its curve re-swept down to -5), the strafer and stopper bots held forward out of sight 2-3 points more
+on dm/brownffa and dm/flag, but on the duel maps the bots, the pressers most, stood still in fights half as often
+(still bouts over 1 s 0.15 a fight-minute against 0.32; with the scale off 0.28; people 0.64). A route look weighted up with the believed distance (`travel_far_share` 2: no change, the corner
+pre-aim and the turn to noises take most of the hidden view); without the turn to noises, with fewer holds
+(`hold_hazard` 0.005) or with a doubled route pull at every distance (single half-size captures: 7.0-8.8, 5.2-6.2 and
+4.0-5.1 s from a spawn to the first sight; forward held 38-44% in every variant).
+
+dm/brownffa and dm/flag, bot vs bot (`move_wip/s8/final_bf.py`; seeds 201-208, in brackets 401-408; "before" is
+`cab9e163`, one seed set; "pull off" the final tree with `nav_far_mult` 1):
+
+| | people | before | pull off | now |
+|---|---|---|---|---|
+| dm/brownffa: time on ground people never used | 0 | 87% | 7% (9%) | 5% (5%) |
+| ... two bots in sight of each other, a minute | 13.5 | 0.1 | 4.0 (4.0) | 5.9 (5.8) |
+| ... from a spawn to the first sight (median) | 2.3 s | 89 s | 9.2 s (7.9) | 6.0 s (6.0) |
+| ... standing over 2 s with the enemy hidden, a minute | 0.30 | 2.35 | 1.06 (0.52) | 0.80 (0.37) |
+| dm/flag: time on ground people never used | 0 | 98.5% | 14% (10%) | 10% (8%) |
+| ... two bots in sight of each other, a minute | 15.7 | 0.2 | 4.5 (4.3) | 5.5 (5.1) |
+| ... from a spawn to the first sight (median) | 2.1 s | 178 s | 7.5 s (8.9) | 5.6 s (7.1) |
+| ... standing over 2 s with the enemy hidden, a minute | 0.34 | 1.83 | 0.56 (0.79) | 0.26 (0.50) |
+
+With the ramp at 300 to 700 u: 7.8-8.2 and 5.5-6.0 sightings a minute, 0.16-0.37 and 0.21-0.42 stands over 2 s.
+
+
+The four duel maps (`move_wip/reports/fin_*` against `hf_*`, the model of "Hits from an unseen enemy"): 281
+statistics within 25% 56% (52%), 55% (56%) before; one crossed for the worse in both seed sets (the view's turn toward
+a corner's appearance within 500 ms, 13-15 deg against 12-12.5, people 10) and one for the better. The owner's checks
+(`obs5.py`) stay where they were: leans at walls, crouches, the turn to a noise behind (faced within 1 s 51% (52%),
+52.5% (49%) before), with two small drifts also seen with the far pull off: reloads begun with the enemy on screen 1.55
+(1.33) a minute alive against 1.47 (1.23), people 0.3, and still bouts over 1 s in fights 0.29 (0.27) a fight-minute
+against 0.37 (0.28), people 0.64. Standing with the enemy hidden 18% (18%) of that time (22%, people 22.5%), in sight
+firing 21% of duel time (19%, people 18%). In the arena (eight seeds) 48% of 195 within 25% (50%), no stuck bout.
+
+
+**Still off on these maps.** The sideways gait: with the enemy hidden the bots hold forward 33-42% of the time they
+move (people 72.5-74.5%) and move 73-89 deg off their view (people 40). The far pull was meant to make up for it and
+could not without spoiling the duel maps; the next step is the gait itself. Their route lies behind the view 30% of that
+time (in a turn to a noise the route is behind 36% of it), the hunt goal hops (they reach the believed position, the
+belief moves on and the goal with it: goal jumps of 200 u or more 27-33 times a minute, on the duel maps too), and a
+quarter of their hidden movement is in a hold with no route at all, where the fitted keys wander. People look toward
+the enemy (18 deg off it at the median, the bots 34) and run on the forward diagonal toward it. On dm/flag a tenth of
+the bots' time is on a loop people never used: the navmesh route between the two spawns is shorter through it, and the
+route is the navmesh's, not the prior's. Crouching: 4-6 presses a minute against 3.6 (dm/brownffa) and 2.0 (dm/flag).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -939,6 +1063,12 @@ of 195 (48%).
   Lives are 10-11 s vs 7. The hidden diagonal is 28-30% vs 30% (per family the strafer and stopper bots
   21-23% and 19-21% vs 24% and 18.5%; 15-18% before "Travel and the hidden view"); forward alone 14% vs
   12%, standing 14-15% vs 22.5%.
+- **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps"): the bots meet 5-6
+  times a minute vs 13.5-15.7 and take 5.6-7 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they
+  move sideways (forward held 33-42% of the time they move vs 73%, motion 73-89 deg off the view vs 40), their hunt
+  goal hops as the belief moves, and on dm/flag a tenth of their time is on a loop people never use (the navmesh
+  route between the spawns). They stand over 2 s with the enemy hidden 0.26-0.8 times a minute vs 0.3. Fights there:
+  back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
   by under a sixth of the human range (0.22-0.53); the bots' parked share is set by the corner
@@ -1035,6 +1165,14 @@ of 195 (48%).
 - A hit from an enemy not in sight turns the view toward where it is felt, from any angle (before 2026-10-04 only
   hits felt more than 60 deg off: a hand-set gate). Maps without a recorded prior get coarser cells when they would
   have more than 3000 (hand-set: the visibility table's size and build time).
+- With the enemy hidden the route pull grows with its believed distance (x1 within 500 u, x3 from 900 u: `nav_far_*`,
+  hand-set on all six maps, see "The practice areas of the objective maps") and gives way while the bot presses into a
+  wall. A bot travelling with its route into a wall it touches, that has held no key for a second, takes the open
+  chord nearest the route (`UNSTICK_*`, hand-set). The keys' change rates with the enemy hidden have a fitted distance
+  term (`hid_dist_logit`).
+- A person needs 10 duel minutes and a capture row 5 to stand for a style (the data repository's rule); shorter games
+  count only in the pooled values. The priors of dm/brownffa and dm/flag need two player-sessions per cell or spawn
+  (two people, or one person in two sessions) instead of two sessions: each map is one or two recorded sessions.
 - The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
   the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others
   keep their curves (a re-sweep redraws the arena's noise).

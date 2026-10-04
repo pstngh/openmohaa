@@ -51,15 +51,19 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      behind it rather than walking backwards, and it looks anew when a killed enemy is expected
      back.
    - `hb_movement`: the side key and the forward key as two coupled semi-Markov processes;
-     lean, and crouch/jump/walk. Walls shift the fitted odds of what a key changes to, and a
+     lean, and crouch/jump/walk. With the enemy out of sight, how readily each key changes depends on
+     how far away the bot believes it is, as people's do: the farther, the longer they keep forward
+     held and the less readily they start a strafe. Walls shift the fitted odds of what a key changes to, and a
      wall reflex keeps the bot off the wall in the direction it goes (people see walls coming): it
      lets go of the key that leaves the more open direction, adds a strafe to forward or forward to
      a strafe so the bot runs along the wall on the diagonal, as people do (a diagonal down a
-     corridor is left alone).
+     corridor is left alone). A bot that wants to go somewhere but has stood a second with its route
+     running into a wall it touches takes the open direction nearest its route.
    - `hb_nav`: where to go (hunt, hold, cover, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
      follow the route with a strength set on the practice maps, so that the bots cover ground and
-     meet about as often as people do. After a kill a bot moves on within half a second, as people
+     meet about as often as people do; with the enemy hidden the pull grows with its believed distance
+     (people run to a far fight). After a kill a bot moves on within half a second, as people
      run. `hb_weapon`: reloads and weapon switches (the
      pistol when the primary is empty, back to the primary when it has rounds again, a weapon drawn
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
@@ -95,7 +99,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `code/tests/pmove/` | `pm_harness`: the real `Pmove()` in a box world, as the server runs it. |
 | `humanbot/fit/` | Fitting scripts. They need the private recordings; `run_fits.sh` runs them all. `calibrate.py` does the closed-loop calibration. |
 | `humanbot/model/` | `shared.json`, the pooled model; `styles.json`, the anonymous style distribution; `calibration.json`, the dial curves; `tuning.json`, the calibrated pooled parameters. |
-| `humanbot/maps/` | Map priors of the four practice maps (aggregate occupancy, routes, spawns). Other maps get a prior derived from the navmesh. |
+| `humanbot/maps/` | Map priors of the practice maps (aggregate occupancy, routes, spawns): the four duel maps, and dm/brownffa and dm/flag (practice areas of obj/obj_team4 and V2 that hold the whole objective map; people play only the area). Other maps get a prior derived from the navmesh. |
 | `humanbot/eval/` | Evaluation: `compare.py`, `metrics.py`, `load_bot_captures.py`, `human_reference.json` (pooled human statistics with CIs). |
 | `humanbot/tools/` | `pack_capture.py`, bot-eval ZIPs; `check_no_raw_data.py`, the privacy guard; `embed_model.py`, which writes `hb_embedded.cpp`. |
 | `humanbot/server/` | `duel.cfg`, `soak.cfg`, `names.txt`. |
@@ -134,7 +138,8 @@ The fits read the recordings through the data repository's unchanged analysis co
 - `fit_movement.py`: lean and stance;
 - `fit_trigger.py`, `fit_view.py`, `fit_weapon.py`;
 - `fit_maps.py`: priors;
-- `fit_styles.py`: families and dials.
+- `fit_styles.py`: families and dials (a person needs 10 duel minutes, a capture 5, to stand for a style: the
+  data repository's rule; shorter games count only in the pooled values).
 
 `assemble_model.py` merges the parts with `tuning.json` into `shared.json`. `embed_model.py`
 then writes the embedded copy, which CI checks is in sync.
@@ -154,7 +159,8 @@ from dial target to offset. A dial whose sweep spans less than a third of the hu
 at its neutral offset (`hold_angle`). The two skills (aim error, reaction) and the burst length
 are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`), the boost of
 fire into cover at an enemy expected in the crosshair (`anticipation_logit`), how strongly the keys
-follow the route (`nav_switch_logit`, `nav_choice_logit`), the pull toward the enemy for the second
+follow the route (`nav_switch_logit`, `nav_choice_logit`, and how that grows with the believed distance,
+`nav_far_*`), the pull toward the enemy for the second
 after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route
 behind the view (`route_turn_hazard`, `travel_follow_deg`), the corner passed rather than watched
 (`preaim_pass_dps`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with

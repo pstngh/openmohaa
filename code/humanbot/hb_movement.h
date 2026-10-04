@@ -50,6 +50,7 @@ struct MoveInput {
     bool  navValid       = false;
     float navBearing     = 0.0f;    // desired travel direction relative to the view, + = left
     float urgency        = 0.0f;    // 0 = no preference, 1 = must travel
+    bool  travelling     = false;   // going somewhere (hunting, out of the spawn), not after an enemy just lost
     float clearance[9]   = {128, 128, 128, 128, 128, 128, 128, 128, 128};
     float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;
@@ -103,6 +104,8 @@ private:
     float NavAlign(const MoveInput& in, int chord) const;
     float NavGain(const MoveInput& in, bool sideKey, int veto, int side) const;
     float CtxChange(const KeyModel& k, int row, int ctx) const;
+    float HidDist(const KeyModel& k, int row, int fwd, const MoveInput& in) const;
+    float NavPull(const MoveInput& in) const;
     int   LedgeMask(const MoveInput& in) const;
     void  StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p);
     void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, int side, double u1, Rng& rng, int& fwd,

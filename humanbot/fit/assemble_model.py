@@ -44,7 +44,7 @@ def build():
         "contexts": H.CONTEXTS,
         "chords": H.CHORDS,
         "movement": {
-            "keys": {k: keys[k] for k in ["age_edges", "clear_edges", "dist_edges", "ctx_age_edges", "side", "fwd"]},
+            "keys": {k: keys[k] for k in ["age_edges", "clear_edges", "dist_edges", "ctx_age_edges", "hid_dist_edges", "side", "fwd"]},
             "lean": {**{k: mv["lean"][k] for k in ["age_edges", "next", "ctx_age_edges", "ctx_change_logit"]},
                      # The lean's side by the walls beside (fit_movement.fit_lean_wall: -0.41 away from a flat wall,
                      # +0.51 toward an edge just ahead, with the chain as offset) changed the bots' lean little: on
@@ -62,9 +62,17 @@ def build():
             # 300 ms brings the bots to the people's wall contact (touching a wall 6-9% of the time, people 6%).
             # How strongly the keys follow the route (nav_*) was set on practice-map captures (2026-10-02,
             # "Encounters" in HANDOFF.md): at 1.0 / 1.5 the bots covered 64 u in 2 s with no enemy part on screen
-            # (people 158) and met half as often; 3.0 / 4.5 gives 111 u, more adds little (4.0: 126 u)
-            "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "wall_pressure_logit": 2.0,
-                         "wall_reflex_ms": 300.0, "wall_reflex_logit": 4.0},
+            # (people 158) and met half as often; 3.0 / 4.5 gives 111 u, more adds little (4.0: 126 u).
+            # With the enemy hidden the pull grows with its believed distance, x1 within 500 u to x3 from 900 u
+            # (nav_far_*), set on captures of all six practice maps (2026-10-04): people run to a far fight (they hold
+            # forward 48% of the time with the enemy within 300 u, 80% at 500-1000 u) and the bots, on the longer
+            # dm/brownffa and dm/flag, took 7.5-9 s from a spawn to the first sight (people 2.1-2.3); 500-900 u gives
+            # 5.6-7 s. Ramped from 300 to 700 u (4.4-6 s) it cost the duel maps, whose hidden fights sit at 250-450 u:
+            # the bots stood a third less with the enemy hidden than people and fought more; from 600 to 1000 u the duel
+            # maps were the same as now and dm/brownffa lost most of the gain
+            "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "nav_far_mult": 3.0, "nav_far_near": 500.0,
+                         "nav_far_dist": 900.0, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
+                         "wall_reflex_logit": 4.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
                                          "click_first_p", "click_stay_p", "click_press_p"]},

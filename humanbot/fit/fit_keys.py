@@ -12,6 +12,11 @@ change. What it changes to:
            the enemy by distance (approach), with the side key as context;
   both:    shifted by the clearance of the chord each option makes (people do not
            start a key into a wall they are touching).
+With the enemy out of sight, how readily each key changes also depends on how far away it is
+(hid_dist_logit, by the key's state and HID_DIST_EDGES): the farther the enemy, the longer people
+keep forward held (they let go of it at 9% a tick within 300 u, under 3% beyond 700 u) and the less
+readily they start a strafe. The bot uses the distance to where it believes the enemy is. Fitted on
+the duel maps, the same rates come out on dm/brownffa and dm/flag.
 The per-context habits (calibrate.py, movement.habit) correct what a first-order
 chain driven by recorded contexts cannot reach within short contexts (people take
 ~1 s to get onto forward after a reload starts: 35% forward at the first tick, 70%
@@ -32,6 +37,8 @@ import hbdata as H  # noqa: E402
 AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41, 81, 161, 241]  # lower edges, ticks; long no-strafe runs keep slowing down
 CLEAR_EDGES = [0.0, 8.0, 16.0, 32.0, 64.0, 127.9]
 DIST_EDGES = [0.0, 96.0, 160.0, 288.0, 512.0, 768.0]
+HID_DIST_EDGES = [0.0, 300.0, 500.0, 700.0, 1000.0]   # the enemy hidden: distance bins of the keys' change rates
+HIDDEN_CTX = [0, 1]                                    # hidden_nofire, hidden_fire
 CTX_AGE_EDGES = [1, 2, 3, 5]          # ticks since the context changed; the last bin (5+) is the reference
 # ticks since the last strafe ended (lower edges): a strafe pressed after one tick of none goes the other way 95-98% of
 # the time, after two 80%, later about as often as not
@@ -69,6 +76,14 @@ def offsets(base_logit, y, extra_codes, sizes, l2=2.0):
 CHORD_CLEAR = ["clear_back_left", "clear_back", "clear_back_right", "clear_left", None, "clear_right",
                "clear_front_left", "clear_front", "clear_front_right"]
 OPEN_BIN = len(CLEAR_EDGES) - 1
+
+
+def hid_dist_codes(d, row, nrow):
+    """With the enemy hidden and its distance known: code row * nbins + distance bin, else -1."""
+    nb = len(HID_DIST_EDGES)
+    ok = np.isin(d.ctx_i.to_numpy(), HIDDEN_CTX) & d.has_opp.to_numpy().astype(bool) & d.distance_xy.notna().to_numpy()
+    db = bidx(d.distance_xy.fillna(0).to_numpy(), HID_DIST_EDGES)
+    return np.where(ok, np.asarray(row) * nb + db, -1), nrow * nb
 
 
 def chord_clear_bin(d, fwd, side):
@@ -138,8 +153,10 @@ def fit_side(EL):
     cc = np.where(cab < len(CTX_AGE_EDGES) - 1, (ctx * 2 + (s != 1)) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
     # a diagonal into a wall reads open in both key directions: its own clearance
     dw = diag_wall_codes(d, f - 1, s - 1)
-    b0, co = offsets(base, ch, [wb, losc, cc, dw],
-                     [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN])
+    # the enemy hidden: by its distance, with or without a strafe held and by the forward key
+    hd, nhd = hid_dist_codes(d, (s != 1) * 3 + f, 6)
+    b0, co = offsets(base, ch, [wb, losc, cc, dw, hd],
+                     [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd])
     P_logit = H.logit(P) + b0 + co[1][0]
     # what a strafe changes to: P(reverse) [ctx][fwd][age]; from none: P(right) [ctx][fwd]
     e = d[ch == 1]
@@ -171,7 +188,8 @@ def fit_side(EL):
             "diag_wall_logit": np.r_[co[3], 0.0].round(4), "choice_wall_logit": choice.round(4),
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 2, len(CTX_AGE_EDGES) - 1).round(4),
-            "reverse_p": R.round(5), "right_p": L.round(5), "opposite_gap_edges": OPP_GAP_EDGES, "opposite_p": O.round(5)}
+            "reverse_p": R.round(5), "right_p": L.round(5), "opposite_gap_edges": OPP_GAP_EDGES, "opposite_p": O.round(5),
+            "hid_dist_logit": co[4].reshape(2, 3, len(HID_DIST_EDGES)).round(4)}
 
 
 def fit_fwd(EL):
@@ -191,8 +209,10 @@ def fit_fwd(EL):
     cab = bidx(d.age_ctx, CTX_AGE_EDGES)
     cc = np.where(cab < len(CTX_AGE_EDGES) - 1, (ctx * 3 + f) * (len(CTX_AGE_EDGES) - 1) + cab, -1)
     dw = diag_wall_codes(d, f - 1, s - 1)
-    b0, co = offsets(base, ch, [wb, losc, cc, dw],
-                     [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN])
+    # the enemy hidden: by its distance and the forward key's state
+    hd, nhd = hid_dist_codes(d, f, 3)
+    b0, co = offsets(base, ch, [wb, losc, cc, dw, hd],
+                     [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd])
     P_logit = H.logit(P) + b0 + co[1][0]
     # destination: logits T[ctx][from][side][to] + approach[ctx][dist] * (to - from) * cos(bearing)
     #              + wall[clearance bin of the chord (to, side)]
@@ -255,7 +275,8 @@ def fit_fwd(EL):
             "diag_wall_logit": np.r_[co[3], 0.0].round(4), "choice_wall_logit": Wf.round(4),
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 3, len(CTX_AGE_EDGES) - 1).round(4),
-            "next_logit": T.round(4), "approach": Ap.round(4), "approach_enemy_reload": round(float(Ar), 4)}
+            "next_logit": T.round(4), "approach": Ap.round(4), "approach_enemy_reload": round(float(Ar), 4),
+            "hid_dist_logit": co[4].reshape(3, len(HID_DIST_EDGES)).round(4)}
 
 
 SPAWN_AGE_EDGES = [1, 2, 3, 5, 9, 21, 41, 81]    # ticks since the first live tick; the last edge ends the spawn run
@@ -312,7 +333,7 @@ def main():
     F["last_strafe"] = F.side.where(F.side != 0).groupby(key, sort=False).ffill().groupby(key, sort=False).shift(1)
     EL = F[F.eligible]
     part = {"age_edges": AGE_EDGES, "clear_edges": CLEAR_EDGES, "dist_edges": DIST_EDGES, "ctx_age_edges": CTX_AGE_EDGES,
-            "side": fit_side(EL), "fwd": fit_fwd(EL)}
+            "hid_dist_edges": HID_DIST_EDGES, "side": fit_side(EL), "fwd": fit_fwd(EL)}
     H.write_part("keys", part)
     sp = fit_spawn(F)
     H.write_part("spawn", sp)
@@ -325,6 +346,8 @@ def main():
     print("P(reverse) LOS fire fwd none by age:", np.array(part["side"]["reverse_p"])[3, 1, :6].round(3))
     print("P(other side after a strafe) by ticks since it ended, per ctx:\n", np.array(part["side"]["opposite_p"]).round(3))
     print("fwd approach coef [ctx][dist]:\n", np.array(part["fwd"]["approach"]).round(2))
+    print("enemy hidden, by distance", HID_DIST_EDGES, "\n side [held][fwd+1]:\n", np.array(part["side"]["hid_dist_logit"]).round(2),
+          "\n fwd [fwd+1]:\n", np.array(part["fwd"]["hid_dist_logit"]).round(2))
     for k in ["side", "fwd"]:
         print(f"{k}: wall {part[k]['wall_logit']}  diagonal wall {part[k]['diag_wall_logit']}  "
               f"choice wall {part[k]['choice_wall_logit']}  (clearance bins {CLEAR_EDGES})")

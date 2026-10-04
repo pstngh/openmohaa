@@ -76,7 +76,8 @@ def ensure_features(rebuild: bool = False) -> Path:
 
 
 FRAME_COLS = [
-    "session_id", "client_id", "session_ms", "seg", "seg_start", "valid", "dm_session", "eligible", "person", "name",
+    "session_id", "client_id", "session_ms", "seg", "seg_start", "valid", "dm_session", "eligible", "human_duel", "normal_physics",
+    "person", "name",
     "capture_date", "map", "sv_mapchecksum", "line_of_sight", "attack", "reloading", "action", "side", "fwd", "lean", "lean_both",
     "crouch_key", "jump_key", "run", "ducked", "on_ground", "on_ladder", "speed_xy", "clear_move", "clear_left", "clear_right",
     "clear_front", "clear_back", "clear_front_left", "clear_front_right", "clear_back_left", "clear_back_right",
@@ -105,7 +106,7 @@ def load_dm(cols=None) -> pd.DataFrame:
     """
     cache = ensure_features()
     src = cache / "features.parquet"
-    seq = CACHE / "dm_seq_v7.parquet"
+    seq = CACHE / "dm_seq_v8.parquet"
     if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
         return pd.read_parquet(seq)
     F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])

@@ -5,6 +5,12 @@ row of the duel cohort (the within-person spread comes from people with several
 captures). People are clustered into style families; the published distribution
 keeps only family weights, centres and spreads, the human min-max of every dial and
 the skill ranges. No alias, person or per-row value is written out.
+
+Who counts as a style follows the data repo's rule for per-person tables: a person needs
+common.MIN_PERSON_DUEL_MIN (10) duel minutes over all their captures, and a capture row
+MIN_ROW_DUEL_MIN of its own to enter its person's mean, the within-person spread, the
+min-max and the weapon mix. Shorter rows (a game of a minute and a half on a duel map
+inside a session on other maps) count only in the minute-weighted pooled values.
 """
 import json
 import sys
@@ -23,6 +29,13 @@ SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
 CLUSTER_DIALS = ["fwd_diag_fight", "reverse_share", "lean_fight"]
+MIN_ROW_DUEL_MIN = 5            # a capture row's own duel minutes for its dials to stand for its person (rows: 24-41 min)
+
+
+def style_rows(T, min_person):
+    """Rows that stand for a style: their person has min_person duel minutes over all rows, the row MIN_ROW_DUEL_MIN."""
+    person_min = T.minutes.astype(float).groupby(T.person).transform("sum")
+    return (person_min >= min_person) & (T.minutes.astype(float) >= MIN_ROW_DUEL_MIN)
 
 
 def complete_side_holds(d):
@@ -184,8 +197,12 @@ def main():
     common, _ = H.import_analysis()
     E = pd.read_parquet(H.analysis_cache() / "events.parquet",
                         columns=["session_id", "session_ms", "event", "actor_id", "actor_bot", "weapon"])
-    T = dial_table(F, E)
-    num = T.drop(columns=["person"]).astype(float)
+    T_all = dial_table(F, E)
+    num_all = T_all.drop(columns=["person"]).astype(float)
+    keep = style_rows(T_all, getattr(common, "MIN_PERSON_DUEL_MIN", 10))
+    T = T_all[keep].copy()
+    num = num_all[keep]
+    print(f"style rows: {int(keep.sum())} of {len(keep)} ({num_all.minutes[~keep].sum():.1f} duel minutes only pooled)")
     P = num.groupby(T.person).apply(lambda d: d.drop(columns=["minutes"]).mean())
     lab = cluster_people(P)
     # name families by their habits: presser = most forward-diagonal, stopper = lowest reversal
@@ -226,14 +243,16 @@ def main():
     comps = [("thompson", mp[mp < 0.3]), ("split", mp[(mp >= 0.3) & (mp < 0.75)]), ("mp40", mp[mp >= 0.75])]
     out["weapon_mix"] = [{"name": nm, "weight": round(len(v) / len(mp), 4), "mean": round(float(v.mean()), 4) if len(v) else 0.5,
                           "sd": round(float(max(v.std(), 0.05)) if len(v) > 1 else 0.08, 4)} for nm, v in comps]
-    out["pooled"] = {k: round(float(np.average(num[k], weights=num.minutes)), 4) for k in STYLE_DIALS + SKILL_DIALS + ["mp40_share"]}
+    # pooled: every duel minute, as the pooled human reference (rows without a value, e.g. no burst in sight, left out)
+    out["pooled"] = {k: round(float(np.average(v, weights=num_all.minutes[v.index])), 4)
+                     for k in STYLE_DIALS + SKILL_DIALS + ["mp40_share"] for v in [num_all[k].dropna()]}
     (H.HB_ROOT / "model").mkdir(parents=True, exist_ok=True)
     (H.HB_ROOT / "model" / "styles.json").write_text(json.dumps(H.jsonable(out), indent=1))
     # private diagnostics stay in the git-ignored cache
-    T.to_csv(H.CACHE / "style_dials_by_alias_capture.csv")
+    T_all.assign(style_row=keep, family=T_all.person.map(person_family)).to_csv(H.CACHE / "style_dials_by_alias_capture.csv")
     (H.CACHE / "style_families_private.json").write_text(json.dumps(person_family.to_dict(), indent=1))
     pd.set_option("display.width", 250)
-    print(T.round(3).to_string())
+    print(T_all.assign(style_row=keep).round(3).to_string())
     print("families:", person_family.to_dict())
     print(json.dumps(H.jsonable(out["families"]), indent=0)[:3000])
 

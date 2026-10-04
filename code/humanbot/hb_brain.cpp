@@ -429,6 +429,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.navValid       = m_navOut.valid;
     mi.navBearing     = Wrap180(m_navOut.desiredYaw - self.viewYaw);
     mi.urgency        = m_navOut.urgency;
+    mi.travelling     = m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH;
     for (int c = 0; c < NUM_CHORDS; c++) {
         mi.clearance[c] = self.clearance[c];
         mi.drop[c]      = self.drop[c];

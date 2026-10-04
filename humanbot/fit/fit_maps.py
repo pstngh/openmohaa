@@ -2,7 +2,14 @@
 
 Cells are 32x32 columns split into floor levels (z clusters inside each column). A
 cell is kept only with at least MIN_ROWS duel rows from at least MIN_SESSIONS
-sessions. The transition kernel counts moves between kept cells; its dependence on
+sessions.
+
+AREA_MAPS are practice maps of objective-map areas recorded outside the duel cohort
+(dm/brownffa, the Bridge of obj/obj_team4, and dm/flag, part of V2): the whole objective
+map is in them, and people play only the area. Their rows use the duel definitions
+without the map list (both people alive, normal physics: the data repo's practice_areas.py),
+and a cell or spawn needs MIN_SESSIONS player-sessions (two people, or one person in two
+sessions): dm/flag is one recorded session, dm/brownffa mostly one. The transition kernel counts moves between kept cells; its dependence on
 where the enemy is (for belief prediction) is one coefficient per distance band:
 
   P(next = k | cell, enemy direction) ~ count(cell -> k) * exp(beta[band] * cos(dir(k) - dir(enemy)))
@@ -27,6 +34,7 @@ MIN_ROWS = 20
 MIN_SESSIONS = 2
 KERNEL_DIST_EDGES = [0.0, 384.0, 768.0]
 MAPS = ["dm/crnodoors", "dm/main", "dm/vents", "dm/downladder"]
+AREA_MAPS = ["dm/brownffa", "dm/flag"]
 
 
 def column_levels(ix, iy, z):
@@ -70,10 +78,13 @@ def nearest_level(levels, ix, iy, z):
 
 
 def fit_map(F, mp):
-    D = F[F["map"].eq(mp) & F.eligible].copy()
+    area = mp in AREA_MAPS
+    D = F[F["map"].eq(mp) & (F.human_duel & F.normal_physics if area else F.eligible)].copy()
+    # what a cell's sources count: sessions, or on an area map player-sessions
+    D["src"] = D.session_id + ":" + D.client_id.astype(str) if area else D.session_id
     ix, iy, lv, levels = cell_keys(D.origin_x.to_numpy(), D.origin_y.to_numpy(), D.origin_z.to_numpy())
     D["ix"], D["iy"], D["lv"] = ix, iy, lv
-    agg = D.groupby(["ix", "iy", "lv"]).agg(n=("session_id", "size"), ns=("session_id", "nunique"))
+    agg = D.groupby(["ix", "iy", "lv"]).agg(n=("session_id", "size"), ns=("src", "nunique"))
     kept = agg[(agg.n >= MIN_ROWS) & (agg.ns >= MIN_SESSIONS)].reset_index()
     kept["cid"] = np.arange(len(kept))
     key = {(r.ix, r.iy, r.lv): r.cid for r in kept.itertuples()}
@@ -143,8 +154,9 @@ def fit_map(F, mp):
     beta = optimize.minimize(nll, np.zeros(nb_), method="Nelder-Mead", options={"xatol": 1e-3, "fatol": 1e-2}).x
     # spawns: where each life started
     sp = F[F["map"].eq(mp) & F.spawn_seg & F.seg_k.eq(0)]
-    sp = sp.assign(px=sp.spawn_x.round(0), py=sp.spawn_y.round(0), pz=sp.spawn_z.round(0))
-    spawns = sp.groupby(["px", "py", "pz"]).agg(n=("session_id", "size"), ns=("session_id", "nunique"),
+    sp = sp.assign(px=sp.spawn_x.round(0), py=sp.spawn_y.round(0), pz=sp.spawn_z.round(0),
+                   src=sp.session_id + ":" + sp.client_id.astype(str) if area else sp.session_id)
+    spawns = sp.groupby(["px", "py", "pz"]).agg(n=("session_id", "size"), ns=("src", "nunique"),
                                                  yaw=("spawn_yaw", "median")).reset_index()
     spawns = spawns[(spawns.n >= 3) & (spawns.ns >= MIN_SESSIONS)]
     # empirical LOS between cells (unordered pairs), from both players' cells in duel ticks
@@ -182,7 +194,7 @@ def main():
     F["practice"] = F["map"].isin(MAPS)
     out_dir = H.HB_ROOT / "maps"
     out_dir.mkdir(parents=True, exist_ok=True)
-    for mp in MAPS:
+    for mp in MAPS + AREA_MAPS:
         R = fit_map(F, mp)
         p = out_dir / (mp.replace("/", "_") + ".json")
         p.write_text(json.dumps(H.jsonable(R), separators=(",", ":")))
