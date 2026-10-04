@@ -116,6 +116,8 @@ private:
     void  ChooseLook(const SelfState& self, const ViewInput& in, const double *preW, double imminence, Rng& rng);
     void  PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng);
     Vec3  CornerAim(const Vec3& eye, const Vec3& corner, float open) const;
+    // The exposure whose corner lies nearest the believed position's direction, by mass (-1: none).
+    int   CornerNearBelief(const SelfState& self, const ViewInput& in) const;
     void  LookAround(const SelfState& self, Rng& rng);
     void  StartFlick(float errYaw, float errPitch, float gainMedian, float gainSigma, Rng& rng);
     float NoiseStep(const NoiseModel& nm, float dist, float& state, float scale, Rng& rng);

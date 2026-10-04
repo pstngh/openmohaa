@@ -245,6 +245,12 @@ struct ViewModel {
     float preaimPassDps      = 0.0f;   // on the move, a corner whose direction the bot's own motion sweeps faster than
                                        //   this (deg/s) is passed, not watched (0 = off)
     float respawnRelook      = 0.0f;   // 1: a new look decision when the belief of a dead enemy comes back (its respawn)
+    float preaimFollowGeom   = 0.0f;   // 1: a watched corner is followed by where it is, whichever exposure offers it
+                                       //   (0: by its exposure cell)
+    float beliefLookCorner   = 0.0f;   // 1: a belief look watches the corner nearest the believed position's
+                                       //   direction when there is one (0: the believed position)
+    float lostAimLastSeen    = 0.0f;   // 1: right after losing sight the view holds where the enemy was last seen
+                                       //   (0: it follows the believed position on)
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
     float damageTurnDelayMs  = 100.0f;

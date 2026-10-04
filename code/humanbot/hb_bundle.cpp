@@ -492,6 +492,9 @@ void ParseView(const json& j, ViewModel& v)
         v.beliefLookShare   = NumOr(t, "belief_look_share", v.beliefLookShare);
         v.travelShare       = NumOr(t, "travel_share", v.travelShare);
         v.respawnRelook     = NumOr(t, "respawn_relook", v.respawnRelook);
+        v.lostAimLastSeen   = NumOr(t, "lost_aim_last_seen", v.lostAimLastSeen);
+        v.preaimFollowGeom  = NumOr(t, "preaim_follow_geom", v.preaimFollowGeom);
+        v.beliefLookCorner  = NumOr(t, "belief_look_corner", v.beliefLookCorner);
         v.routeTurnHazard   = NumOr(t, "route_turn_hazard", v.routeTurnHazard);
         v.preaimPassDps     = NumOr(t, "preaim_pass_dps", v.preaimPassDps);
         v.travelFollowDeg   = NumOr(t, "travel_follow_deg", v.travelFollowDeg);
