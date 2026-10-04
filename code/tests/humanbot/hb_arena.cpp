@@ -106,6 +106,8 @@ bool SetOffset(hb::StyleOffsets& o, const std::string& name, float v)
         {"aim_height_firing", &hb::StyleOffsets::aimHeightFiring}, {"noise_scale", &hb::StyleOffsets::noiseScale},
         {"detect_mult", &hb::StyleOffsets::detectMult},     {"reaction_logit", &hb::StyleOffsets::reactionLogit},
         {"counter_logit", &hb::StyleOffsets::counterLogit},
+        {"lean_switch_logit", &hb::StyleOffsets::leanSwitchLogit},
+        {"lean_drop_logit", &hb::StyleOffsets::leanDropLogit},
     };
     if (name == "hold_logit") {
         // the hold-or-clear dial's offset is a log multiplier (hb_style.cpp)

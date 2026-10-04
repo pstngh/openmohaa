@@ -464,6 +464,53 @@ static void TestLeanWall(const hb::ModelBundle& b)
     HB_CHECK(edge > flat0 + 0.1);
 }
 
+// Leaning, with the strafe turned against the lean: the style sets how readily the lean follows it across and how
+// readily it is let go of (the presser people flip it with the strafe, the strafers let go of it, the stoppers mostly
+// keep it); the lean habit no longer acts there.
+static void TestLeanSwitch(const hb::ModelBundle& b)
+{
+    auto rates = [&](float switchLogit, float dropLogit, float leanLogit, double& release) {
+        hb::Mover m;
+        m.Init(&b.shared.movement);
+        hb::StyleOffsets style;
+        style.leanSwitchLogit = switchLogit;
+        style.leanDropLogit   = dropLogit;
+        style.leanLogit       = leanLogit;
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_LOS_FIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 350.0f;
+        in.onGround   = true;
+        hb::Rng        r1(61), r2(62);
+        hb::MoveOutput out;
+        int            prevLean = 0, against = 0, switched = 0, let = 0;
+        for (int i = 0; i < 400000; i++) {
+            m.Step(in, style, r1, r2, out);
+            if (prevLean != 0 && hb::ChordSide(out.chord) == -prevLean) {
+                against++;
+                switched += out.lean == -prevLean;
+                let += out.lean == 0;
+            }
+            prevLean = out.lean;
+        }
+        release = let / double(std::max(against, 1));
+        return switched / double(std::max(against, 1));
+    };
+    double       rel0, relP, relS, relD, relH;
+    const double neutral = rates(0.0f, 0.0f, 0.0f, rel0), presser = rates(2.0f, 0.0f, 0.0f, relP);
+    const double strafer = rates(-5.0f, 0.0f, 0.0f, relS), drop = rates(0.0f, 1.5f, 0.0f, relD);
+    const double habit   = rates(0.0f, 0.0f, 2.0f, relH);
+    HB_REPORT("strafe turned against the lean, next tick: switch %.3f neutral, %.3f at +2, %.3f at -5, %.3f with a +2 lean "
+              "habit; let go %.3f neutral, %.3f with a +1.5 let-go, %.3f with a +2 lean habit",
+              neutral, presser, strafer, habit, rel0, relD, relH);
+    HB_CHECK(presser > 1.8 * neutral);
+    HB_CHECK(strafer < 0.1 * neutral);
+    HB_CHECK(relD > 2.0 * rel0);
+    // the habit holds a lean on elsewhere, not against the strafe
+    HB_CHECK(std::fabs(habit - neutral) < 0.25 * neutral);
+    HB_CHECK(std::fabs(relH - rel0) < 0.25 * rel0);
+}
+
 static void TestTrigger(const hb::ModelBundle& b)
 {
     hb::Trigger tr;
@@ -955,6 +1002,7 @@ int main()
     TestViewCorners(b);
     TestSoundTurn(b);
     TestLeanWall(b);
+    TestLeanSwitch(b);
     TestStrafeMemory(b);
     TestSubsteps();
     TestEye();

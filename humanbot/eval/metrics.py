@@ -773,7 +773,8 @@ def summarize(D: MetricData, mask, fam=None, targets=None, n_boot: int = N_BOOT,
 # ====================================================================== style dials (fit_styles.py definitions)
 
 DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min", "walk_hidden",
-         "burst_median", "aim_height_firing", "hold_angle", "counter_strafe", "aim_error_fight_deg", "reaction_ms", "mp40_share"]
+         "burst_median", "aim_height_firing", "hold_angle", "counter_strafe", "lean_switch", "lean_drop",
+         "aim_error_fight_deg", "reaction_ms", "mp40_share"]
 
 
 def counter_strafe(full):
@@ -788,6 +789,20 @@ def counter_strafe(full):
         n += int(ok.sum())
         k += int((nz[nxt[ok]] == ends[ok] + 2).sum())
     return k / n if n else np.nan
+
+
+def lean_against(full):
+    """fit_styles.py lean_switch and lean_drop: leaning, with the next tick's strafe key turned against the lean, the
+    shares of those ticks whose lean switches side with it and whose lean is let go."""
+    n = k = r = 0
+    for _, g in full.groupby(["session_id", "client_id", "seg"], sort=False):
+        ln = g.lean.to_numpy()
+        s = g.side.to_numpy()
+        m = (ln[:-1] != 0) & (s[1:] == -ln[:-1])
+        n += int(m.sum())
+        k += int((ln[1:][m] == -ln[:-1][m]).sum())
+        r += int((ln[1:][m] == 0).sum())
+    return (k / n, r / n) if n else (np.nan, np.nan)
 
 
 def dials(D: MetricData, persons) -> dict:
@@ -818,6 +833,7 @@ def dials(D: MetricData, persons) -> dict:
              "crouch_per_min": d.crouch_start_fs.sum() / max(mins, 1e-9),
              "walk_hidden": hid.run.eq(0).mean() if len(hid) else np.nan,
              "counter_strafe": counter_strafe(full),
+             **dict(zip(["lean_switch", "lean_drop"], lean_against(full))),
              "burst_median": np.nan, "aim_height_firing": lf.aim_height_fraction.median(),
              "aim_error_fight_deg": lf.aim_total_error.median(),
              "reaction_ms": np.nan,

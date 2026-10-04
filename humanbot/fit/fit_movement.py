@@ -54,12 +54,15 @@ def fit_lean(F, EL):
     l = d.lean.to_numpy().astype(int)
     nl = d.nx_lean.to_numpy().astype(int)
     side = d.nx_side.to_numpy().astype(int)
-    # side sign convention: side +1 = right key; lean +1 = right
-    rel = np.where(l == 0, side + 1, np.where(side == 0, 0, np.where(side == l, 1, 2)))
+    side0 = d.side.to_numpy().astype(int)
+    # side sign convention: side +1 = right key; lean +1 = right. Leaning, a strafe against the lean is the tick it
+    # turns so (3: people decide there, the presser flipping the lean across with it 47% of the time, the strafers
+    # letting it go 30-43%) or a tick it stays so (2: 15% and 14% a tick)
+    rel = np.where(l == 0, side + 1, np.where(side == 0, 0, np.where(side == l, 1, np.where(side0 == -l, 2, 3))))
     ab = bin_index(d.age_lean, AGE_EDGES)
     ctx = d.lctx.to_numpy()
     nctx = len(H.CONTEXTS) + 1
-    out = np.zeros((2, nctx, len(AGE_EDGES), 3, 3))   # [state none/leaning][ctx][age][rel][outcome]
+    out = np.zeros((2, nctx, len(AGE_EDGES), 4, 3))   # [state none/leaning][ctx][age][rel][outcome]
     # outcome for none: 0 lean left, 1 stay none, 2 lean right; for leaning: 0 stay, 1 release, 2 switch side
     oc = np.where(l == 0, nl + 1, np.where(nl == l, 0, np.where(nl == 0, 1, 2)))
     st = (l != 0).astype(int)
@@ -69,7 +72,7 @@ def fit_lean(F, EL):
     for s in (0, 1):
         for c in range(nctx):
             for b in range(len(AGE_EDGES)):
-                for r in range(3):
+                for r in range(4):
                     prior = pooled.loc[(s, r)].to_numpy(float) if (s, r) in pooled.index else np.ones(3)
                     prior = (prior + 1) / (prior + 1).sum()
                     cnt = byc.loc[(s, c, b, r)].to_numpy(float) if (s, c, b, r) in byc.index else np.zeros(3)
@@ -87,8 +90,8 @@ def fit_lean(F, EL):
             "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4), "wall": wall,
             "doc": "next[state][ctx][age][rel][outcome]; ctx 0-4 the duel contexts, 5 the opponent dead; rel from the "
                    "side key of the next tick; state 0 none: rel = strafe side (0 left key, 1 none, 2 right key), "
-                   "outcome 0 lean left / 1 none / 2 lean right; state 1 leaning: rel 0 no strafe / 1 agree / 2 disagree, "
-                   "outcome 0 stay / 1 release / 2 switch side"}
+                   "outcome 0 lean left / 1 none / 2 lean right (rel 3 unused); state 1 leaning: rel 0 no strafe / 1 agree / "
+                   "2 disagree (held) / 3 turned against the lean this tick, outcome 0 stay / 1 release / 2 switch side"}
 
 
 LEAN_WALL_RANGE = 96.0   # a wall closer than this at the side weighs 1 - clearance / range

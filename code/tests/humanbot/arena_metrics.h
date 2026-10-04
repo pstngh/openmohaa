@@ -698,6 +698,12 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
             const bool   prevJump = i > 0 && r[i - 1].jump, prevCrouch = i > 0 && r[i - 1].crouch;
             const bool   prevWalk = i > 0 && !r[i - 1].run;
             const bool   prevFlick = i > 0 && r[i - 1].flick;
+            // leaning, the strafe key of the next tick turns against the lean: the lean switches side with it (every
+            // row, as fit_styles.py measures it over the whole recording)
+            if (hasNext && f.lean != 0 && nx->side == -f.lean) {
+                A.R("dial.lean_switch", nx->lean == -f.lean);
+                A.R("dial.lean_drop", nx->lean == 0);
+            }
             if (!f.eligible) {
                 continue;
             }

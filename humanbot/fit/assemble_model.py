@@ -192,6 +192,10 @@ def default_calibration():
             "hold_angle": lin("hold_angle", -1.0, 1.0),
             # the logit shift of a strafe the tick after one is let go
             "counter_strafe": lin("counter_strafe", -1.5, 1.5),
+            # the logit shift of a lean switching side when the strafe key turns against it
+            "lean_switch": lin("lean_switch", -4.0, 1.0),
+            # ... and of letting it go then
+            "lean_drop": lin("lean_drop", -0.5, 1.5),
         },
         "skill": {
             "aim_error_fight_deg": {"x": [lo["aim_error_fight_deg"], pooled["aim_error_fight_deg"], hi["aim_error_fight_deg"]],
