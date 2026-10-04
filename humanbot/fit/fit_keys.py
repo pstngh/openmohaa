@@ -33,6 +33,9 @@ AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41, 81, 161, 241]  # lower edges, tick
 CLEAR_EDGES = [0.0, 8.0, 16.0, 32.0, 64.0, 127.9]
 DIST_EDGES = [0.0, 96.0, 160.0, 288.0, 512.0, 768.0]
 CTX_AGE_EDGES = [1, 2, 3, 5]          # ticks since the context changed; the last bin (5+) is the reference
+# ticks since the last strafe ended (lower edges): a strafe pressed after one tick of none goes the other way 95-98% of
+# the time, after two 80%, later about as often as not
+OPP_GAP_EDGES = [1, 2, 3, 5, 9, 21]
 NC = len(H.CONTEXTS)
 
 
@@ -150,18 +153,25 @@ def fit_side(EL):
                      [ectx[from_strafe], ef[from_strafe], eab[from_strafe]], (NC, 3, len(AGE_EDGES)), [0, 2])
     rt = (e.nx_side.to_numpy() == 1).astype(float)
     L = shrunk_table(rt[~from_strafe], np.ones((~from_strafe).sum()), [ectx[~from_strafe], ef[~from_strafe]], (NC, 3), [0])
+    # from none after a strafe: the other side, by the ticks since that strafe ended
+    ls = e.last_strafe.to_numpy(float)
+    mem = ~from_strafe & np.isfinite(ls) & (np.nan_to_num(ls) != 0)
+    opp = (e.nx_side.to_numpy() == -np.nan_to_num(ls)).astype(float)
+    gb = bidx(e.age_side, OPP_GAP_EDGES)
+    O = shrunk_table(opp[mem], np.ones(mem.sum()), [ectx[mem], gb[mem]], (NC, len(OPP_GAP_EDGES)), [1])
     # the wall's share of the choice, over the tables: a = reverse (from a strafe) or right (from none),
     # b = let go or left; each by the clearance of the chord it makes with the forward key held
     a = np.where(from_strafe, -es, 1)
     b = np.where(from_strafe, 0, -1)
     y = np.where(from_strafe, rev, rt)
-    off = np.where(from_strafe, H.logit(R[ectx, ef, eab]), H.logit(L[ectx, ef]))
+    pright = np.where(mem, np.where(np.nan_to_num(ls) < 0, O[ectx, gb], 1.0 - O[ectx, gb]), L[ectx, ef])
+    off = np.where(from_strafe, H.logit(R[ectx, ef, eab]), H.logit(pright))
     choice = fit_choice_wall(off, y, chord_clear_bin(e, ef - 1, a), chord_clear_bin(e, ef - 1, b))
     return {"switch_logit": P_logit.round(4), "wall_logit": np.r_[co[0], 0.0].round(4),
             "diag_wall_logit": np.r_[co[3], 0.0].round(4), "choice_wall_logit": choice.round(4),
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 2, len(CTX_AGE_EDGES) - 1).round(4),
-            "reverse_p": R.round(5), "right_p": L.round(5)}
+            "reverse_p": R.round(5), "right_p": L.round(5), "opposite_gap_edges": OPP_GAP_EDGES, "opposite_p": O.round(5)}
 
 
 def fit_fwd(EL):
@@ -297,6 +307,9 @@ def fit_spawn(F):
 
 def main():
     F = H.load_dm()
+    # the side of the last strafe before each tick (for a choice made from none)
+    key = [F.session_id, F.client_id, F.seg]
+    F["last_strafe"] = F.side.where(F.side != 0).groupby(key, sort=False).ffill().groupby(key, sort=False).shift(1)
     EL = F[F.eligible]
     part = {"age_edges": AGE_EDGES, "clear_edges": CLEAR_EDGES, "dist_edges": DIST_EDGES, "ctx_age_edges": CTX_AGE_EDGES,
             "side": fit_side(EL), "fwd": fit_fwd(EL)}
@@ -310,6 +323,7 @@ def main():
     sig = lambda z: 1 / (1 + np.exp(-np.asarray(z)))
     print("side switch p, LOS fire, strafe right, fwd none, by age:", sig(np.array(part["side"]["switch_logit"])[3, 2, 1, :6]).round(3))
     print("P(reverse) LOS fire fwd none by age:", np.array(part["side"]["reverse_p"])[3, 1, :6].round(3))
+    print("P(other side after a strafe) by ticks since it ended, per ctx:\n", np.array(part["side"]["opposite_p"]).round(3))
     print("fwd approach coef [ctx][dist]:\n", np.array(part["fwd"]["approach"]).round(2))
     for k in ["side", "fwd"]:
         print(f"{k}: wall {part[k]['wall_logit']}  diagonal wall {part[k]['diag_wall_logit']}  "

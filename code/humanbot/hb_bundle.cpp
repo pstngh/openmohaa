@@ -55,7 +55,7 @@ namespace hb
 
 const char *const DIAL_NAMES[DIAL_COUNT] = {"fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min",
                                             "crouch_per_min", "walk_hidden", "burst_median", "aim_height_firing",
-                                            "hold_angle"};
+                                            "hold_angle", "counter_strafe"};
 const char *const SKILL_NAMES[SKILL_COUNT]   = {"aim_error_fight_deg", "reaction_ms"};
 const char *const FAMILY_NAMES[FAMILY_COUNT] = {"presser", "strafer", "stopper"};
 
@@ -305,6 +305,12 @@ void ParseMovement(const json& j, MovementModel& m)
     FillTable(Get(sj, "right_p", "movement.keys.side"), m.rightP, {CTX_COUNT, 3}, "movement.keys.side.right_p");
     RequireProb(m.reverseP.v, "movement.keys.side.reverse_p");
     RequireProb(m.rightP.v, "movement.keys.side.right_p");
+    if (sj.contains("opposite_p")) {
+        m.oppositeGapEdges = Ints(Get(sj, "opposite_gap_edges", "movement.keys.side"), "movement.keys.side.opposite_gap_edges");
+        FillTable(sj.at("opposite_p"), m.oppositeP, {CTX_COUNT, static_cast<int>(m.oppositeGapEdges.size())},
+                  "movement.keys.side.opposite_p");
+        RequireProb(m.oppositeP.v, "movement.keys.side.opposite_p");
+    }
     FillTable(Get(fj, "next_logit", "movement.keys.fwd"), m.fwdNext, {CTX_COUNT, 3, 3, 3}, "movement.keys.fwd.next_logit");
     FillTable(Get(fj, "approach", "movement.keys.fwd"), m.approach, {CTX_COUNT, static_cast<int>(m.distEdges.size())},
               "movement.keys.fwd.approach");
@@ -335,6 +341,14 @@ void ParseMovement(const json& j, MovementModel& m)
             Require(m.fwdCtxLogit.size() == CTX_COUNT, "movement.habit.fwd_ctx_logit size");
         }
     }
+    if (ln.contains("wall")) {
+        const json& w   = ln.at("wall");
+        m.leanWallRange = NumOr(w, "range", m.leanWallRange);
+        m.leanEdgeOpen  = NumOr(w, "edge_open", m.leanEdgeOpen);
+        m.leanWallLogit = NumOr(w, "wall_logit", m.leanWallLogit);
+        m.leanEdgeLogit = NumOr(w, "edge_logit", m.leanEdgeLogit);
+        Require(m.leanWallRange > 0.0f, "movement.lean.wall.range out of range");
+    }
     if (ln.contains("ctx_logit")) {
         m.leanCtxLogit = Floats(ln.at("ctx_logit"), "movement.lean.ctx_logit");
         Require(m.leanCtxLogit.size() == CTX_COUNT, "movement.lean.ctx_logit size");
@@ -354,6 +368,12 @@ void ParseMovement(const json& j, MovementModel& m)
         RequireProb(keys[i]->releaseHazard, "movement.stance.release_hazard");
         Require(keys[i]->pressHazard.size() == CTX_COUNT, std::string("movement.stance.") + names[i] + ".press_hazard size");
         RequireProb(keys[i]->pressHazard, "movement.stance.press_hazard");
+        if (k.contains("press_hazard_fire")) {
+            keys[i]->pressHazardFire = Floats(k.at("press_hazard_fire"), "movement.stance.press_hazard_fire");
+            Require(keys[i]->pressHazardFire.size() == CTX_COUNT,
+                    std::string("movement.stance.") + names[i] + ".press_hazard_fire size");
+            RequireProb(keys[i]->pressHazardFire, "movement.stance.press_hazard_fire");
+        }
         if (k.contains("up_hazard")) {
             keys[i]->upAgeEdges = Ints(Get(k, "up_age_edges", "movement.stance"), "movement.stance.up_age_edges");
             keys[i]->upHazard   = Floats(Get(k, "up_hazard", "movement.stance"), "movement.stance.up_hazard");
@@ -501,6 +521,10 @@ void ParseView(const json& j, ViewModel& v)
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);
+        v.soundTurnP        = NumOr(t, "sound_turn_p", v.soundTurnP);
+        v.soundTurnDeg      = NumOr(t, "sound_turn_deg", v.soundTurnDeg);
+        v.soundTurnDelayMs  = NumOr(t, "sound_turn_delay_ms", v.soundTurnDelayMs);
+        v.soundTurnHoldMs   = NumOr(t, "sound_turn_hold_ms", v.soundTurnHoldMs);
         v.pitchOffsetFiring = NumOr(t, "pitch_offset_firing", v.pitchOffsetFiring);
         v.pitchOffsetIdle   = NumOr(t, "pitch_offset_idle", v.pitchOffsetIdle);
         v.pitchGainScale    = NumOr(t, "pitch_gain_scale", v.pitchGainScale);
@@ -528,6 +552,9 @@ void ParseTriggerSide(const json& j, TriggerSide& s, size_t nErr, size_t nLage, 
     s.age  = Floats(Get(j, "age", path.c_str()), path + ".age");
     Require(s.err.size() == nErr && s.lage.size() == nLage && s.age.size() == nAge, path + " table sizes");
     s.damaged = NumOr(j, "damaged", 0.0f);
+    if (j.contains("clip")) {
+        s.clip = Floats(j.at("clip"), path + ".clip");
+    }
 }
 
 void ParseTrigger(const json& j, TriggerModel& t)
@@ -550,6 +577,12 @@ void ParseTrigger(const json& j, TriggerModel& t)
                      t.gapEdges.size(), "trigger.press_hidden");
     ParseTriggerSide(Get(j, "release_hidden", "trigger"), t.releaseHidden, t.yawEdges.size(), t.lageHiddenEdges.size(),
                      t.holdEdges.size(), "trigger.release_hidden");
+    if (j.contains("clip_edges")) {
+        t.clipEdges = Floats(j.at("clip_edges"), "trigger.clip_edges");
+        RequireAscending(t.clipEdges, "trigger.clip_edges");
+    }
+    Require(t.pressLos.clip.empty() || t.pressLos.clip.size() == t.clipEdges.size(), "trigger.press_los.clip size");
+    Require(t.pressHidden.clip.empty() || t.pressHidden.clip.size() == t.clipEdges.size(), "trigger.press_hidden.clip size");
     if (j.contains("tuning")) {
         t.anticipationLogit = NumOr(j.at("tuning"), "anticipation_logit", t.anticipationLogit);
         t.hiddenFireLogit   = NumOr(j.at("tuning"), "hidden_fire_logit", t.hiddenFireLogit);
@@ -582,6 +615,17 @@ void ParseWeapon(const json& j, WeaponModel& w)
     ParseQuantiles(Get(j, "respawn", "weapon"), w.respawnProbs, w.respawnMs, "weapon.respawn");
     w.tacticalHazard     = NumOr(j, "tactical_hazard", w.tacticalHazard);
     w.tacticalClipFrac   = NumOr(j, "tactical_clip_frac", w.tacticalClipFrac);
+    if (j.contains("tactical")) {
+        const json& t       = j.at("tactical");
+        w.tacticalClipEdges = Floats(Get(t, "clip_edges", "weapon.tactical"), "weapon.tactical.clip_edges");
+        w.tacticalSeenEdges = Floats(Get(t, "seen_edges", "weapon.tactical"), "weapon.tactical.seen_edges");
+        RequireAscending(w.tacticalClipEdges, "weapon.tactical.clip_edges");
+        RequireAscending(w.tacticalSeenEdges, "weapon.tactical.seen_edges");
+        FillTable(Get(t, "hazard", "weapon.tactical"), w.tacticalTable,
+                  {static_cast<int>(w.tacticalClipEdges.size()), static_cast<int>(w.tacticalSeenEdges.size())},
+                  "weapon.tactical.hazard");
+        RequireProb(w.tacticalTable.v, "weapon.tactical.hazard");
+    }
     w.pistolSwitchPerMin = NumOr(j, "pistol_switch_per_min", w.pistolSwitchPerMin);
 }
 

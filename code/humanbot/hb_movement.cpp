@@ -49,6 +49,7 @@ void Mover::Init(const MovementModel *params, const SpawnModel *spawn)
 void Mover::Reset()
 {
     m_side      = 0;
+    m_lastSide  = 0;
     m_sideAge   = 1;
     m_fwd       = 0;
     m_fwdAge    = 1;
@@ -69,6 +70,7 @@ void Mover::Spawn(int chord, MoveOutput& out)
     Reset();
     m_fwd       = ChordFwd(chord);
     m_side      = ChordSide(chord);
+    m_lastSide  = m_side;
     m_sideSpawn = m_spawn != nullptr;
     m_fwdSpawn  = m_spawn != nullptr;
     out         = MoveOutput();
@@ -88,6 +90,9 @@ void Mover::SetKeys(int fwd, int side)
 {
     m_fwd     = ClampI(fwd, -1, 1);
     m_side    = ClampI(side, -1, 1);
+    if (m_side != 0) {
+        m_lastSide = m_side;
+    }
     m_fwdAge  = 1;
     m_sideAge = 1;
 }
@@ -271,6 +276,11 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     float z = m_sideSpawn ? SpawnLogit(m_spawn->sideSwitchP, m_side != 0 ? 1 : 0, m_sideAge) : NAN;
     if (std::isnan(z)) {
         z = m.side.switchLogit.At(in.ctx, m_side + 1, m_fwd + 1, ab);
+        if (m_side == 0 && m_sideAge == 1 && m_lastSide != 0) {
+            // the tick after a strafe was let go: how readily a strafe follows at once is a habit (people 25-73%;
+            // the stoppers turn this way rather than reverse directly)
+            z += style.counterLogit;
+        }
     }
     if (m_side != 0) {
         z += m.side.wallLogit[BinIndex(in.clearance[MakeChord(0, m_side)], m.clearEdges)];
@@ -318,9 +328,15 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         b  = 0;       // let go
         za = Logit(m.reverseP.At(in.ctx, m_fwd + 1, BinIndex(m_sideAge, m.ageEdges))) + m.reverseLogit + style.reverseLogit;
     } else {
-        a  = 1;       // right
-        b  = -1;      // left
-        za = Logit(m.rightP.At(in.ctx, m_fwd + 1));
+        a = 1;        // right
+        b = -1;       // left
+        if (m_lastSide != 0 && !m.oppositeP.v.empty()) {
+            // after a stop people press the other side: at once 95-98% of the time
+            const float opp = m.oppositeP.At(in.ctx, BinIndex(m_sideAge, m.oppositeGapEdges));
+            za              = Logit(m_lastSide < 0 ? opp : 1.0f - opp);
+        } else {
+            za = Logit(m.rightP.At(in.ctx, m_fwd + 1));
+        }
     }
     if (in.navValid && in.urgency > 0.0f) {
         za += m.navChoiceLogit * in.urgency * (NavAlign(in, MakeChord(m_fwd, a)) - NavAlign(in, MakeChord(m_fwd, b)));
@@ -445,6 +461,20 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     fwd = rng.Categorical(w, 3) - 1;
 }
 
+// People lean away from a flat wall at their side (in sight a third of their leans there go into it, the bots'
+// half) and around an edge just ahead on one side (77%, the bots' 60%).
+float Mover::LeanWallLogit(const MoveInput& in, int side) const
+{
+    const MovementModel& m = *m_p;
+    const float          c = in.clearance[MakeChord(0, side)];
+    const float          w = Clamp(1.0f - c / m.leanWallRange, 0.0f, 1.0f);
+    if (w <= 0.0f) {
+        return 0.0f;
+    }
+    const bool edge = in.clearance[MakeChord(1, side)] >= m.leanEdgeOpen;
+    return w * (m.leanWallLogit + (edge ? m.leanEdgeLogit : 0.0f));
+}
+
 void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng)
 {
     const MovementModel& m  = *m_p;
@@ -459,6 +489,8 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
     }
     // style and the calibrated per-context habit: lean on (+) / off (-)
     const float habit = style.leanLogit + (in.enemyDead ? 0.0f : m.leanCtxLogit[in.ctx]);
+    // the walls beside move the side a lean takes, not whether there is one: right minus left
+    const float wall = LeanWallLogit(in, 1) - LeanWallLogit(in, -1);
     double      p[3];
     if (m_lean == 0) {
         const int rel = side + 1;
@@ -472,6 +504,12 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
             p[0] *= s;
             p[2] *= s;
             p[1] = 1.0 - on2;
+        }
+        const double lr = p[0] + p[2];
+        if (wall != 0.0f && lr > 1e-9 && p[0] > 1e-9 && p[2] > 1e-9) {
+            const double right = Sigmoid(Logit(static_cast<float>(p[2] / lr)) + wall);
+            p[2]               = lr * right;
+            p[0]               = lr * (1.0 - right);
         }
         const int o = rng.Categorical(p, 3);
         if (o != 1) {
@@ -492,6 +530,13 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
             p[1] *= s;
             p[2] *= s;
             p[0] = stay2;
+        }
+        // stay on this side or switch to the other
+        const double ss = p[0] + p[2];
+        if (wall != 0.0f && ss > 1e-9 && p[0] > 1e-9 && p[2] > 1e-9) {
+            const double here = Sigmoid(Logit(static_cast<float>(p[0] / ss)) + static_cast<float>(m_lean) * wall);
+            p[0]              = ss * here;
+            p[2]              = ss * (1.0 - here);
         }
         const int o = rng.Categorical(p, 3);
         if (o == 0) {
@@ -528,15 +573,15 @@ static bool StepKey(const StanceKeyModel& k, int ctx, float mult, bool allowPres
 
 // Crouch toggles the stance: a press while standing ducks, the next press stands up.
 // People dip for about 350 ms; the stand-up press comes by ticks crouched.
-static bool StepToggle(const StanceKeyModel& k, int ctx, float mult, bool crouched, bool onGround, double uPress,
-                       double uRelease, int& age, int& crouchedTicks)
+static bool StepToggle(const StanceKeyModel& k, const std::vector<float>& press, int ctx, float mult, bool crouched,
+                       bool onGround, double uPress, double uRelease, int& age, int& crouchedTicks)
 {
     crouchedTicks = crouched && onGround ? crouchedTicks + 1 : 0;
     if (age > 0) {
         return StepKey(k, ctx, mult, false, uPress, uRelease, age);
     }
     const float h = crouchedTicks > 0 ? k.upHazard[BinIndex(crouchedTicks, k.upAgeEdges)]
-                                      : (onGround ? k.pressHazard[ctx] * mult : 0.0f);
+                                      : (onGround ? press[ctx] * mult : 0.0f);
     if (uPress < h) {
         age = 1;
         return true;
@@ -555,7 +600,10 @@ void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng,
     if (m.crouch.upHazard.empty()) {
         out.crouch = StepKey(m.crouch, in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
     } else {
-        out.crouch = StepToggle(m.crouch, in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr, m_crouchAge,
+        // people crouch three times as readily in the half second after a shot is heard
+        const std::vector<float>& press =
+            in.fireHeard && !m.crouch.pressHazardFire.empty() ? m.crouch.pressHazardFire : m.crouch.pressHazard;
+        out.crouch = StepToggle(m.crouch, press, in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr, m_crouchAge,
                                 m_crouchedTicks);
     }
     out.jump   = StepKey(m.jump, in.ctx, style.jumpMult, in.allowJump && in.onGround && !out.crouch, uj, ujr, m_jumpAge);
@@ -613,6 +661,9 @@ void Mover::Step(const MoveInput& in, const StyleOffsets& style, Rng& moveRng, R
         m_side      = side;
         m_sideAge   = 1;
         m_sideSpawn = false;
+        if (side != 0) {
+            m_lastSide = side;
+        }
     } else if (m_sideAge < 100000) {
         m_sideAge++;
     }

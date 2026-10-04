@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hbdata as H  # noqa: E402
 
 STYLE_DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min",
-               "walk_hidden", "burst_median", "aim_height_firing", "hold_angle"]
+               "walk_hidden", "burst_median", "aim_height_firing", "hold_angle", "counter_strafe"]
 SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
@@ -31,6 +31,21 @@ def complete_side_holds(d):
     edges = d.assign(_r=rid).groupby(["session_id", "client_id", "seg"])._r.agg(["min", "max"])
     r = r[~r.index.isin(set(edges["min"]) | set(edges["max"])) & r.el & r.v.ne(0)]
     return r.n * 50
+
+
+def counter_strafe(d):
+    """Of the strafes let go to no strafe key, the share followed by a strafe (either side) the very next tick; pauses
+    cut by a segment's end are left out. People 0.25-0.73: the stoppers turn this way more than they reverse."""
+    n = k = 0
+    for _, g in d.groupby(["session_id", "client_id", "seg"], sort=False):
+        s = g.side.to_numpy()
+        nz = np.flatnonzero(s != 0)
+        ends = np.flatnonzero((s[:-1] != 0) & (s[1:] == 0))
+        nxt = np.searchsorted(nz, ends + 2)
+        ok = nxt < len(nz)
+        n += int(ok.sum())
+        k += int((nz[nxt[ok]] == ends[ok] + 2).sum())
+    return k / n if n else np.nan
 
 
 def edges_per_min(d, col):
@@ -118,6 +133,7 @@ def dial_table(F, E):
             "burst_median": float(bmed.get((name, cap), np.nan)),
             "aim_height_firing": lf.aim_height_fraction.median(),
             "hold_angle": float(holds.get((name, cap), np.nan)),
+            "counter_strafe": counter_strafe(full),
             "mp40_share": d.weapon.eq("MP40").sum() / max(1, smg.sum()),
             "aim_error_fight_deg": lf.aim_total_error.median(),
             "reaction_ms": float(react.get((name, cap), np.nan)),

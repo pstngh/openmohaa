@@ -61,7 +61,7 @@ static bool SamePlan(const hb::TickPlan& a, const hb::TickPlan& b)
              && a.jump == b.jump && a.walk == b.walk && a.use == b.use && a.yawDelta == b.yawDelta
              && a.pitchDelta == b.pitchDelta && a.viewStill == b.viewStill && a.command == b.command
              && a.navTarget.x == b.navTarget.x && a.navTarget.y == b.navTarget.y && a.navTarget.z == b.navTarget.z;
-    for (int k = 0; k < 8; k++) {
+    for (int k = 0; k < hb::MAX_SUBSTEPS; k++) {
         same = same && a.flickFrac[k] == b.flickFrac[k];
     }
     return same;

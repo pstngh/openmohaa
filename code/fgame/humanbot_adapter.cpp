@@ -170,6 +170,8 @@ public:
     int                  Owner() const { return m_owner; }
     float                MeanThinkUs() const { return m_thinkCount ? static_cast<float>(m_thinkSum / m_thinkCount) : 0.0f; }
     int                  MaxThinkUs() const { return m_thinkMax; }
+    // the frame's usercmds through G_ClientThink (Pmove and the rest of the player's move), per frame
+    float                MeanCommitUs() const { return m_commitCount ? static_cast<float>(m_commitSum / m_commitCount) : 0.0f; }
     int                  KbdViolations() const { return m_kbdViolations; }
     int                  StuckBouts() const { return m_stuckBouts; }
     int                  PressureBouts() const { return m_pressureBouts; }
@@ -252,6 +254,8 @@ private:
     double m_thinkSum      = 0.0;
     int    m_thinkCount    = 0;
     int    m_thinkMax      = 0;
+    double m_commitSum     = 0.0;
+    int    m_commitCount   = 0;
     int    m_kbdViolations = 0;
     int    m_stuckBouts    = 0;
     int    m_pressureBouts = 0;
@@ -293,7 +297,7 @@ HumanBotAdapter::HumanBotAdapter(BotController *controller, Player *player)
 {
     const hb::ModelBundle& b = *HB_Bundle();
     ChooseStyle();
-    m_substeps = g_humanbot_substeps ? hb::ClampI(g_humanbot_substeps->integer, 1, hb::MAX_SUBSTEPS) : 4;
+    m_substeps = g_humanbot_substeps ? hb::ClampI(g_humanbot_substeps->integer, 1, hb::MAX_SUBSTEPS) : 12;
     // every bot has its own generator; the seed comes from the server seed and the style
     const std::string seedText = std::string(g_humanbot_seed ? g_humanbot_seed->string : "") + "|" + hb::StyleKey(m_dials)
                                + "|" + std::to_string(player->entnum);
@@ -366,6 +370,8 @@ void HumanBotAdapter::ResetCounters()
     m_thinkSum      = 0.0;
     m_thinkCount    = 0;
     m_thinkMax      = 0;
+    m_commitSum     = 0.0;
+    m_commitCount   = 0;
     m_kbdViolations = 0;
     m_stuckBouts    = 0;
     m_pressureBouts = 0;
@@ -816,11 +822,15 @@ void HumanBotAdapter::Prepare()
     // Sub-step usercmds and the eye each of them carries
     //
     m_sub.Build(plan, view.yaw, view.pitch, m_rngSub, m_cmds);
-    const bool kbdOk = hb::Substepper::CheckContract(m_cmds);
+    if (!plan.send) {
+        // the dead ticks after a respawn: the server takes no usercmd from a client that has not seen it yet
+        m_cmds.clear();
+    }
+    const bool kbdOk = m_cmds.empty() || hb::Substepper::CheckContract(m_cmds);
     if (!kbdOk) {
         m_kbdViolations++;
     }
-    const float frameMs = static_cast<float>(hb::TICK_MS) / static_cast<float>(m_cmds.size());
+    const float frameMs = static_cast<float>(hb::TICK_MS) / static_cast<float>(std::max<size_t>(1, m_cmds.size()));
     for (size_t k = 0; k < m_cmds.size(); k++) {
         m_eyes.push_back(HB_EyeStep(p, m_eye, m_cmds[k].yaw, m_cmds[k].pitch, frameMs));
     }
@@ -894,6 +904,7 @@ void HumanBotAdapter::Commit()
     }
 
     // the usercmds of this frame, oldest first; the last one is stamped with the frame time
+    const auto t0       = std::chrono::steady_clock::now();
     int        prevTime = p->client->ps.commandTime;
     const bool wasDead  = p->IsDead() || p->IsSpectator();
     for (size_t k = 0; k < m_cmds.size(); k++) {
@@ -948,10 +959,18 @@ void HumanBotAdapter::Commit()
             break;
         }
     }
+    if (!m_cmds.empty()) {
+        m_commitSum += static_cast<double>(
+            std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0).count()
+        );
+        m_commitCount++;
+    }
 
-    // a realistic ping only while disguised; bots otherwise show as bots
+    // a realistic ping only while disguised; bots otherwise show as bots. The brain times the respawn by it either way
+    const int ping = m_ping.Step();
+    m_brain.SetPingMs(ping);
     if (HB_DisguiseActive()) {
-        m_pingMs = m_ping.Step();
+        m_pingMs = ping;
         p->client->ps.ping = m_pingMs;
     } else {
         m_pingMs = 0;
@@ -993,7 +1012,7 @@ static bool s_inited = false;
 
 void G_HumanBotInit(void)
 {
-    g_humanbot_substeps  = gi.Cvar_Get("g_humanbot_substeps", "4", 0);
+    g_humanbot_substeps  = gi.Cvar_Get("g_humanbot_substeps", "12", 0);
     g_humanbot_fov       = gi.Cvar_Get("g_humanbot_fov", "80", 0);
     g_humanbot_aspect    = gi.Cvar_Get("g_humanbot_aspect", "1.778", 0);
     g_humanbot_seed      = gi.Cvar_Get("g_humanbot_seed", "0", 0);
@@ -1253,7 +1272,7 @@ bool G_HumanBotReportCounters(float minutes)
         const bool       ok = a->StuckBouts() == 0 && a->KbdViolations() == 0 && a->MeanThinkUs() <= 150.0f;
         pressure += a->PressureBouts();
         gi.Printf(
-            "  %-20s %s  stuck>2s %d  pressure>500ms %.2f/min  kbd %d  think %.0f us (max %d)  %s\n",
+            "  %-20s %s  stuck>2s %d  pressure>500ms %.2f/min  kbd %d  think %.0f us (max %d)  usercmds %.0f us  %s\n",
             p && p->client ? p->client->pers.netname : "?",
             hb::StyleKey(a->Dials()).c_str(),
             a->StuckBouts(),
@@ -1261,6 +1280,7 @@ bool G_HumanBotReportCounters(float minutes)
             a->KbdViolations(),
             a->MeanThinkUs(),
             a->MaxThinkUs(),
+            a->MeanCommitUs(),
             ok ? "ok" : "FAIL"
         );
         pass = pass && ok;

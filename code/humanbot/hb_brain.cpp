@@ -38,6 +38,8 @@ static constexpr float BODY_HALF_W       = 15.0f;
 // (the next round would leave within 100 ms, before the view moved).
 static constexpr int   HEAD_HIT_CHEST_MS = 300;
 static constexpr int   HEAD_HIT_PAUSE_MS = 100;
+// people crouch three times as readily in the half second after the enemy fired (fit_movement.py)
+static constexpr int   FIRE_HEARD_MS     = 500;
 // Out of ammunition the bot closes in and bashes with the pistol (DM reach 96 u from its middle, plus the box of
 // the victim): within this distance, centre to centre, and with the crosshair this near the body (half-widths).
 static constexpr float BASH_REACH           = 100.0f;
@@ -106,8 +108,12 @@ void Brain::OnSpawn(const Observation& obs)
 {
     const SpawnModel& sp = m_bundle->shared.spawn;
     m_spawnMs    = obs.self.timeMs;
-    // a human client keeps sending empty usercmds for 2-4 ticks after the respawn
-    m_liveTick   = -DrawIndex(sp.deadTicksPmf, m_rngLife);
+    // a human client's first 2-4 ticks after the respawn are empty: the spawn tick, then as many as its usercmds take
+    // to be stamped after the respawn (the server took none for 1 tick at 48 ms ping, 3 at 98 ms: openmohaa-movement
+    // usercmds.py). With its own ping known the bot sends nothing in those ticks
+    const int drawn = DrawIndex(sp.deadTicksPmf, m_rngLife);
+    m_liveTick      = m_pingMs > 0 ? -(1 + std::max(1, static_cast<int>(std::lround(1.0 + (m_pingMs - 48) / 25.0)))) : -drawn;
+    m_spawnLiveTick = m_liveTick;
     m_spawnChord = DrawIndex(sp.chordP, m_rngLife);
     m_click      = false;
     m_clickOver  = false;
@@ -188,11 +194,13 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         m_liveTick++;
     }
     if (liveTick < 0) {
-        // the dead time after a respawn: no keys, no run bit, no mouse, no fire
+        // the dead time after a respawn: no keys, no run bit, no mouse, no fire (and with the ping known, the
+        // server's view of it: no usercmd at all after the spawn tick)
         m_belief.Update(obs, m_hfov, m_vfov);
         plan.owner     = OWNER_BRAIN;
         plan.walk      = true;
         plan.viewStill = true;
+        plan.send      = m_pingMs <= 0 || liveTick == m_spawnLiveTick;
         if (diag) {
             diag->owner = OWNER_BRAIN;
             diag->walk  = 1;
@@ -230,6 +238,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     if (obs.headHit) {
         m_headHitMs = now;
+    }
+    for (const SoundObs& s : obs.sounds) {
+        if (s.type == SOUND_GUNFIRE) {
+            m_fireHeardMs = now;
+        }
     }
 
     // logger-equivalent LOS with the focus enemy (frustum gated) and its age: the contexts of the
@@ -295,6 +308,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         enemyDist       = (enemyFeet - self.origin).lengthXY();
     }
     ti.damaged = !obs.damage.empty();
+    // people spare the last rounds of a clip (and run dry in sight a quarter as often as the bots did)
+    ti.clipFill = self.clipSize > 0 ? static_cast<float>(self.clipAmmo) / self.clipSize : 1.0f;
     if (fb && !detected && fb->valid && !fb->dead && fb->visibleSoon > 0.25f) {
         for (int i = 0; i < fb->nExposure; i++) {
             // the corner it comes out from when known, else where it would stand
@@ -330,7 +345,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     // Weapon (a reload lets go of the trigger)
     //
     const bool enemyAlive = fb && fb->valid && !fb->dead;
-    const int  cmd        = m_weapon.Step(self, obs.gotKillOf >= 0, enemyAlive, detected, attack, m_rngWeapon);
+    const int  cmd        = m_weapon.Step(self, obs.gotKillOf >= 0, enemyAlive, detected, attack, m_vis ? 0 : m_vageMs, m_rngWeapon);
     if (cmd == CMD_RELOAD || cmd == CMD_PISTOL) {
         attack = false;
     }
@@ -393,6 +408,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     vi.angleHold       = m_off.angleHold;
     ViewOutput vo;
     m_view.Step(self, vi, m_rngView, vo);
+    if (vo.mode == VIEW_SOUND && m_viewMode != VIEW_SOUND) {
+        // turned to an enemy heard behind: hunt toward where it is now believed to be, not on along the old route
+        m_nav.Replan();
+    }
+    m_viewMode = vo.mode;
 
     //
     // Movement, lean and stance
@@ -421,6 +441,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     mi.ducked      = self.ducked;
     mi.enemyDead   = !enemyAlive;
+    mi.fireHeard   = now - m_fireHeardMs <= FIRE_HEARD_MS;
     mi.onGround    = self.onGround;
     MoveOutput mo;
     if (liveTick == 0) {
@@ -472,7 +493,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         // never past a block (a teammate in the crosshair, the pause after a head hit) or an empty weapon
         plan.gateMayPress = ti.canFire && !ti.blocked && los;
     }
-    for (int k = 0; k < 8; k++) {
+    for (int k = 0; k < MAX_SUBSTEPS; k++) {
         plan.flickFrac[k] = vo.flickFrac[k];
     }
     plan.command        = cmd;

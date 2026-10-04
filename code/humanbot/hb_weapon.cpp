@@ -58,7 +58,8 @@ int WeaponLogic::RespawnDelayMs(Rng& rng) const
     return static_cast<int>(rng.FromQuantiles(m_p->respawnProbs, m_p->respawnMs));
 }
 
-int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool enemyDetected, bool attackHeld, Rng& rng)
+int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool enemyDetected, bool attackHeld, int msSinceSeen,
+                      Rng& rng)
 {
     const WeaponModel& p   = *m_p;
     const int          now = self.timeMs;
@@ -129,9 +130,18 @@ int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool
         // dry clip: reload right after letting go of the trigger
         m_reloadAtMs = now + (attackHeld ? 150 : 50) + static_cast<int>(100.0 * uDly);
     }
-    if (m_reloadAtMs < 0 && canReload && enemyAlive && !enemyDetected
-        && self.clipAmmo < p.tacticalClipFrac * self.clipSize && uTac < p.tacticalHazard) {
-        m_reloadAtMs = now + 100;
+    if (m_reloadAtMs < 0 && canReload && enemyAlive && !enemyDetected && self.clipAmmo > 0 && self.clipSize > 0) {
+        // early, with the enemy out of sight: people reload readily with little left, seldom with most of the clip
+        float h;
+        if (!p.tacticalTable.v.empty()) {
+            const float fill = static_cast<float>(self.clipAmmo) / self.clipSize;
+            h = p.tacticalTable.At(BinIndex(fill, p.tacticalClipEdges), BinIndex(static_cast<float>(msSinceSeen), p.tacticalSeenEdges));
+        } else {
+            h = self.clipAmmo < p.tacticalClipFrac * self.clipSize ? p.tacticalHazard : 0.0f;
+        }
+        if (uTac < h) {
+            m_reloadAtMs = now + 100;
+        }
     }
     if (m_reloadAtMs >= 0 && now >= m_reloadAtMs) {
         m_reloadAtMs = -1;

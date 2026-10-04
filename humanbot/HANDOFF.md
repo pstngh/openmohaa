@@ -31,10 +31,11 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.24; 51% before "Corners and the lost enemy", 55% and 0.22 before
-  "Travel and the hidden view", 58% and 0.18 before "Movement on the maps", 60% before the encounter
-  changes); eight seeds of 900 s, model `872c9ac2f1c4` of 2026-10-03 on a Linux workstation. The arena is not the maps: in its open pillars
+- In the arena, two average-style bots are within 25% of the human value on 48% of 195
+  statistics (median relative error 0.27; 53% before "What the owner saw", where the turn to sounds behind costs
+  most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
+  and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
+  frame, model `7ab48ea75e87` of 2026-10-03 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -44,7 +45,8 @@ Verified:
   score 59%. The arena's pooled bots carry no style shift, so the out-of-ammunition fix below
   shows on the practice maps, not here.
 - 16 bots take 81-90 us per bot per tick on that workstation (112 in the build container); the
-  budget is 150.
+  budget is 150. In the engine with 16 bots the brain takes 113-123 us per bot (median) and the 12 usercmds 43 us
+  (see "What the owner saw").
 - On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim",
   "Out of ammunition", "Fire into cover, bursts and ladders", "Encounters", "Movement on the
   maps" and "Travel and the hidden view" below. Since "Movement on the maps" compare.py weights the bots' style families like the
@@ -114,7 +116,7 @@ lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
    - The visibility table builds 2 ms per frame and is cached in
      `~/.local/share/openmohaa/main/humanbot/vis/`.
 4. **Movement.**
-   - Usercmds go through `G_ClientThink` 4 times per frame (`Commit`, `g_humanbot_substeps`).
+   - Usercmds go through `G_ClientThink` 12 times per frame (`Commit`, `g_humanbot_substeps`).
    - Look for jitter, bots standing still, or bots stuck on doors and ladders.
    - The stock code takes over for doors, and for 750 ms when a bot is stuck for 1.5 s or
      pushes into a wall for 1 s. Ladders are climbed by the adapter's own rule (`Ladder()` in
@@ -145,6 +147,11 @@ Debugging:
   `humanbot/tools/check_no_raw_data.py` enforces this in CI.
 - **Human-fair perception.** Never give a bot an enemy's true hidden position (not even for
   evaluation feedback).
+- **Two data sources, never pooled.** `pstngh/openmohaa-demos` (checked out next to the fork) may
+  set the bot's choices: routes and map use, which fights to take, team and objective play,
+  grenades, ladders, doors. The motor layer (key timing, aim, reaction, trigger) stays fitted on
+  openmohaa-movement only. Never pool the two, and record each parameter's source in its fit. The
+  demos are on the original AA maps at 1.1x physics with about 170 ms latency.
 - **Before every push** (the Python checks need `pip install -r humanbot/eval/requirements.txt`):
   ```sh
   (cd build && ctest --output-on-failure)
@@ -718,6 +725,92 @@ corner offered as often but less often the heaviest; closer to the corner 52%), 
 change). The belief's arrival times run long (the right corner's at -500 ms has a median 872 ms against the true
 500). 68% of the bots' sightings (people 86%) need both players' movement.
 
+## What the owner saw (2026-10-03)
+
+The owner watched bot against bot on the VPS as a spectator (12:13-12:45 UTC) and saw five things. Each was checked
+in that recording (`~/moh-humanbot-home/main/telemetry/segments/1791029609_244530_*`; the screenshots' times match the
+ticks within 0.3 s by the followed bot's health) and against the recorded people (aggregates, people weighted by
+family like compare.py). Scripts in the git-ignored `humanbot/cache/move_wip/s4/` (`obs5.py` measures all five per
+capture; `lean_wall*.py`, `crouch.py`, `behind.py`, `still.py`, `reloads.py`, `strafe_lean.py`).
+
+1. **Leaning into the wall at doorways.** bot3 leaned right with a wall 15-50 u to its right (shot0004). With one
+   side walled and the other open, people's leans in sight go into a *flat* wall (the wall goes on ahead on that side)
+   35% of the time and around an *edge* just ahead (the front diagonal open) 77%; the bots 46% and 58%, every family.
+   The lean chain followed the strafe key only. Now `fit_movement.fit_lean_wall` fits a wall and an edge logit on the
+   side a lean takes (chain as offset: -0.41, +0.51) and `Mover::StepLean` shifts the side (not whether there is a
+   lean) by them; three times the wall term and an edge term of 3.74 were set on captures (`assemble_model.py`).
+   Edges are passed quickly (median 100 ms): in edge moments of a quarter second or more the bots now lean around
+   the edge like people (79% vs 76%); the rest of the gap is that people lean toward the opening before they get
+   there (66% of edge moments start leaned that way, the bots' 41%).
+2. **Strafing without leaning.** It is the strafer style: both recorded strafer-family players lean on 48% and 64%
+   of their strafing while firing (the presser, the owner, 94%; the stoppers 84-93%). The bots match by family
+   (strafers 63-72%). No change.
+3. **Crouching for no reason.** People crouch three times as readily in the half second after the enemy fired
+   (hidden 1.3 -> 4.2 a minute, firing back in sight 1.7 -> 6.0) and hardly otherwise; the bots crouched at one rate.
+   The crouch's press hazard is now fitted with and without enemy gunfire heard in the last 500 ms
+   (`press_hazard_fire`; the brain marks a heard `SOUND_GUNFIRE`).
+4. **Not turning to footsteps behind.** With an unseen enemy running or firing behind them within 1000 u, people face
+   it within a second 62% of the time and are hit first 7%; the bots 39% and 19%. The view now turns to an enemy heard
+   more than 90 deg off it (footsteps, gunfire) 150 ms after the sound (`sound_turn_*`, VIEW_SOUND), onto the corner
+   nearest the sound when the belief offers one within 45 deg, holds that way 3 s against route turns, look-arounds
+   and corners (a new sound behind re-aims), and the hunt goal is picked again. People who turn to a noise behind see
+   the enemy within 2 s 90% of the time and turn away again 2%; held only 0.9 s the bots turned away again 29% of the
+   time and the hidden view turned at 16.8 deg/s at the median.
+5. **Standing still mid-fight.** Overall the bots stand still in fights less than people (still bouts over 1 s 0.3
+   a fight-minute vs 0.6). Their long ones are a different kind: a third of them come during a reload in the
+   enemy's view (people's 5%), as at 12:31:50 when bot3 emptied its clip at bot2 and stood 2 s reloading while hit
+   from 79 to 14. The bots begin reloads with the enemy on screen five times as often (1.4-1.9 a minute alive vs
+   0.3), nearly always dry, because their fights in view last longer (sightings over 2 s 7.5% vs 2.1%). Changes,
+   all fitted: the trigger's press hazard by rounds left (`trigger.press_*.clip`: with an eighth of the clip people
+   press 2.5 times less readily in sight); the early reload with the enemy out of sight by rounds left and time since
+   sight (`weapon.tactical`, was 0.004 a tick below half a clip); and the stop between strafes: after letting go of a
+   strafe people press the other side 95-98% of the time a tick later (`keys.side.opposite_p` by the ticks since the
+   strafe ended; the bots chose a side at random), and how readily a strafe follows at once is a habit, the new style
+   dial `counter_strafe` (people 0.15-0.66; the stoppers turn this way more than they reverse directly).
+
+Practice maps, bot vs bot (`move_wip/reports/fc_*` against `vc_*`, the model of "Corners and the lost enemy"); seeds
+201-208, in brackets 401-408:
+
+| | people | before | now |
+|---|---|---|---|
+| leans in sight at a flat wall: into it | 35% | 46% (43%) | 35% (34%) |
+| ... at an edge just ahead: around it | 77% | 58% (60%) | 63% (63%) |
+| crouches a minute, hidden: quiet / after enemy fire | 2.3 / 5.4 | 3.6 / 4.6 (3.6 / 4.3) | 2.9 / 5.7 (2.6 / 5.6) |
+| enemy heard behind: faced within 1 s / hit first | 62% / 7% | 39% / 19% (39% / 20%) | 53% / 12% (49% / 15%) |
+| after a strafe let go: the next goes the other way (stoppers) | 86% | 57% | 76% (73%) |
+| reloads begun with the enemy on screen, a minute alive | 0.3 | 1.9 (1.4) | 1.6 (1.3) |
+| hidden yaw speed p50 / p99 | 8.1 / 544 deg/s | 10.7 / 692 (12.1 / 683) | 11.4 / 860 (12.0 / 815) |
+| hidden: back key held | 6.1% | 6.0% (5.7%) | 8.8% (7.6%) |
+| net distance in 2 s with no part on screen p50 | 158 u | 135 (152) | 122 (135) |
+| crosshair closer to the corner than to the enemy | 80% | 59% (57%) | 57% (58%) |
+| attack gap p50 | 400 ms | 300 (300) | 350 (350) |
+| all 281 statistics within 25% | | 56% (52%) | 55% (51%) |
+
+The costs are the sound turn's: the turns to a noise are fast flicks (hidden yaw p99 up), and while the view holds
+the noise the route is behind it, so the bots walk backwards more and cover less ground hidden. Aimed at the noise
+itself instead of its corner the crosshair was further from the corner 1 s before a sighting (24 deg vs 15 before,
+now 19-23). In the arena (eight seeds) 48% of 195 statistics are within 25% (53% before): its small open floor keeps
+the enemy audible, so the sound turns make the hidden view turn at 15.8 deg/s at the median (9.4 before).
+
+Tried and dropped: pulling a bot reloading in the enemy's view toward cover (`reload_sight_urgency` 0.65 and 1.0:
+the enemy stayed on screen 84-86% of the following 2 s, 86% before, people 63%); a quiet time of 3-6 s after a
+sound turn (hidden view 15-15.6 deg/s); holding the sound's direction without letting a new sound re-aim (the bots
+then faced an enemy behind within a second 33-35% of the time); the counter-strafe dial as the press chance itself
+rather than a shift of the fitted one (stoppers 60-63% one tick after letting go, but strafing up while hidden).
+
+### Usercmds and the respawn (2026-10-03, from the openmohaa-movement session)
+
+- People send 12.5 (250 fps) to 25 (500 fps) usercmds per 50 ms frame. `g_humanbot_substeps` is now 12 (the
+  server cfgs set 12), `MAX_SUBSTEPS` 32 (`hb_types.h`). In the engine with 16 bots (local workstation) the frame's
+  usercmds through `G_ClientThink` take 43 us per bot (18 at 4); the brain's think is unchanged (median 113-123 us
+  per bot with 16 bots; the first bot of the frame reads 250-290 us at either count, so `humanbot_selftest`'s
+  150 us check flags it with 16 bots). The arena's Pmove costs 7.5 us per bot per tick at 12. Movement on the maps
+  with the final model at 12 vs 4 usercmds: no visible difference in the five checks above; the arena 53% vs 51%.
+- After a respawn the bot sends no usercmd for as many ticks as a client at its ping (the disguise's ping model,
+  stepped always) needs to see the respawn: 1 at 48 ms, 3 at 98 ms, linear between, after the spawn tick
+  (`Brain::SetPingMs`, `TickPlan::send`). Without a ping (arena, replay) the fitted dead ticks are drawn as before.
+- Not done: a human tick covers 47-57 ms of client time (B2 of the note); the last usercmd still lands on the frame.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -773,13 +866,25 @@ change). The belief's arrival times run long (the right corner's at -500 ms has 
   dial used to push them backwards.
 - **Seeing the enemy without firing:** people stand still 30% of that time, bots 8-9% on the real
   maps (14% before "Encounters") and 11% in the arena. The long freezes were bots out of ammunition (see above).
+- **Reloading in the enemy's view:** the bots begin 1.3-1.6 reloads a minute alive with the enemy on screen vs
+  people's 0.3, nearly all with the clip run dry, and keep the enemy on screen 82-84% of the next 2 s vs 63%: their
+  fights in view last longer (the aim at a sighting above). This is what the owner saw as standing still mid-fight.
+- **Leaning toward an opening:** people already lean toward the edge they reach (66% of edge moments begin leaned
+  that way, the bots' 41%); the wall term acts once the bot is there.
+- **Turning to a noise behind** (see "What the owner saw"): 49-53% within a second vs 62%, hit first 12-15% vs 7%.
+  While the view holds the noise the route is behind it: the back key 7.6-8.8% of hidden time vs 6%, 2 s hidden
+  travel 122-135 u vs 158.
+- **Stopping between strafes (stoppers):** after letting go of a strafe the stopper bots press again a tick later
+  45-50% of the time (the dial's target 52% over all recorded maps; the stopper people on the practice maps 68%) and
+  pause a quarter second or more 27-31% vs 13%.
 - **Fire into cover:** it fades with the time since sight like people's (more than 5 s after the
   parts were last on screen 6.4-6.8% of that time vs 4.3%); over all such time it is 15-16% vs 17%
   (11-12% before "Encounters").
 - **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
   burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
   relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.
-- **The hidden view turns too much:** yaw speed with the enemy hidden p50 11.5-11.8 deg/s vs 8 (16-17
+- **The hidden view turns too much:** yaw speed with the enemy hidden p50 11.4-12 deg/s vs 8, p99 815-860 vs 545
+  since the turn to sounds behind (see "What the owner saw"); before it p50 11.5-11.8 deg/s (16-17
   before "Travel and the hidden view", 20 before "Movement on the maps"; in the arena with corners 10.7),
   p99 666-677 vs 545, 54-55 turns of 10 deg or more per hidden minute vs 46, of them 10-11 of 90 deg or
   more vs 4.6 (the remaining big ones: the turn to a route behind the view, corners coming up, look
@@ -824,6 +929,11 @@ change). The belief's arrival times run long (the right corner's at -500 ms has 
   and the pitch gain were set by hand (see the `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
   captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners
   (`hb_arena --no-corners`).
+- The lean's wall terms (three times the fitted wall logit, edge 3.74) and the turn to a sound behind (`sound_turn_*`:
+  every such sound, after 150 ms, held 3 s, onto a corner within 45 deg) were set by hand on practice-map captures
+  (see "What the owner saw"). The early reload and the trigger's rounds-left term replace hand-set values with fits.
+- The style dial `counter_strafe` (a strafe the tick after one is let go) shifts the fitted hazard at that tick; its
+  curve is swept like the others.
 - One style dial is inert: `hold_angle` (its arena sweep spans under a third of the human range).
   The burst dial counts the bursts begun in sight and is relative to the pooled bot, like the
   skills. The out-of-ammunition fallback (pistol bash), the ladder climb and its watchdog, and the

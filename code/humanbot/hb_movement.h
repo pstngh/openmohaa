@@ -57,6 +57,7 @@ struct MoveInput {
     float velRight       = 0.0f;
     bool  ducked         = false;
     bool  enemyDead      = false;   // no living enemy known (after a kill): lean context LEAN_CTX_DEAD
+    bool  fireHeard      = false;   // another player's gunfire heard in the last 500 ms (people crouch then)
     bool  onGround       = true;
     bool  allowJump      = true;
 };
@@ -107,6 +108,8 @@ private:
     void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, int side, double u1, Rng& rng, int& fwd,
                   float& p);
     void  StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng);
+    // How strongly the walls on one side (-1 left, +1 right) draw a lean to it (logit; see MovementModel).
+    float LeanWallLogit(const MoveInput& in, int side) const;
     void  StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out);
 
     float SpawnLogit(const Table& t, int row, int age) const;
@@ -132,6 +135,7 @@ private:
     bool                 m_reflexSide = false;
     bool                 m_reflexFwd  = false;
     int                  m_slideSide  = 0;
+    int                  m_lastSide   = 0;      // the side of the last strafe (kept while no strafe key is held)
     bool                 m_slideFwd   = false;  // a strafe into a wall: add forward and run along it
 };
 

@@ -82,12 +82,47 @@ def fit_lean(F, EL):
     b0, co = H.fit_logistic([code], leave, [len(H.CONTEXTS) * 2 * (len(CTX_AGE_EDGES) - 1)], l2=2.0,
                             offset=H.logit(base_leave))
     lean_change = co[0].reshape(len(H.CONTEXTS), 2, len(CTX_AGE_EDGES) - 1)
+    wall = fit_lean_wall(d, l, nl, out[st, ctx, ab, rel])
     return {"age_edges": AGE_EDGES, "next": out.round(5), "ctx_age_edges": CTX_AGE_EDGES,
-            "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4),
+            "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4), "wall": wall,
             "doc": "next[state][ctx][age][rel][outcome]; ctx 0-4 the duel contexts, 5 the opponent dead; rel from the "
                    "side key of the next tick; state 0 none: rel = strafe side (0 left key, 1 none, 2 right key), "
                    "outcome 0 lean left / 1 none / 2 lean right; state 1 leaning: rel 0 no strafe / 1 agree / 2 disagree, "
                    "outcome 0 stay / 1 release / 2 switch side"}
+
+
+LEAN_WALL_RANGE = 96.0   # a wall closer than this at the side weighs 1 - clearance / range
+LEAN_EDGE_OPEN = 96.0    # ... and is an edge to look past while the front diagonal on that side is this open
+
+
+def lean_wall_features(D):
+    """Right minus left of the side's wall closeness, and of the same while the front diagonal on that side is open."""
+    wl = np.clip(1.0 - D.clear_left.to_numpy(float) / LEAN_WALL_RANGE, 0.0, 1.0)
+    wr = np.clip(1.0 - D.clear_right.to_numpy(float) / LEAN_WALL_RANGE, 0.0, 1.0)
+    el = wl * (D.clear_front_left.to_numpy(float) >= LEAN_EDGE_OPEN)
+    er = wr * (D.clear_front_right.to_numpy(float) >= LEAN_EDGE_OPEN)
+    return np.c_[wr - wl, er - el]
+
+
+def fit_lean_wall(d, l, nl, P):
+    """The side a lean takes by the walls beside (people lean away from a flat wall at their side and around an
+    edge just ahead on one side): a logistic of ending the tick leaned right, over the rows that lean on or stay
+    leaned, with the chain's own odds of that side as offset (P: the chain's probabilities of each row)."""
+    from scipy.optimize import minimize
+    sel = (nl != 0) & np.isfinite(d.clear_left.to_numpy(float)) & np.isfinite(d.clear_right.to_numpy(float))
+    # off -> on: P = [left, none, right]; leaning: P = [stay, release, switch]
+    pr = np.where(l == 0, P[:, 2], np.where(l == 1, P[:, 0], P[:, 2])) / np.maximum(P[:, 0] + P[:, 2], 1e-9)
+    off = H.logit(np.clip(pr, 1e-6, 1 - 1e-6))[sel]
+    X = lean_wall_features(d)[sel]
+    y = (nl[sel] == 1).astype(float)
+
+    def nll(w):
+        z = off + X @ w
+        return np.sum(np.logaddexp(0.0, z) - y * z) + 0.5 * np.sum(w * w)
+
+    w = minimize(nll, np.zeros(2), method="BFGS").x
+    return {"range": LEAN_WALL_RANGE, "edge_open": LEAN_EDGE_OPEN, "wall_logit": round(float(w[0]), 4),
+            "edge_logit": round(float(w[1]), 4)}
 
 
 def hold_pmf(runs_ms, max_ticks=40):
@@ -113,6 +148,7 @@ def complete_runs(F, col):
 
 
 UP_AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41]   # ticks crouched (lower edges)
+FIRE_HEARD_TICKS = 10    # the crouch's "enemy just fired": its attack held in this many ticks up to now
 
 
 def fit_stand_up(F, g, first):
@@ -149,6 +185,14 @@ def fit_stance(F, EL):
         E = F.assign(_s=start, _idle=idle)
         E = E[E.eligible & E._idle]
         haz = E.groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+        if key == "crouch":
+            # people crouch three times as readily in the half second after the enemy fired (hidden 1.3 -> 4.2 a
+            # minute, firing back in sight 1.7 -> 6.0); without it they hardly crouch. The bot hears every shot.
+            fired = g.opp_attack_primary.transform(
+                lambda s: s.fillna(0).astype(float).rolling(FIRE_HEARD_TICKS, min_periods=1).max()).gt(0)
+            E = E.assign(_f=fired[E.index])
+            hq = E[~E._f].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+            hf = E[E._f].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
         runs = complete_runs(F, col)
         runs = runs[runs.val.eq(True)]
         cap = 240 if key == "walk" else 20
@@ -169,6 +213,8 @@ def fit_stance(F, EL):
         out[key] = {"press_hazard": haz.round(6), "hold_pmf": hold_pmf(runs.ms, cap), "hold_ms_median": float(runs.ms.median()),
                     "release_age_edges": rel_edges, "release_hazard": rel.round(5)}
         if key == "crouch":
+            out[key]["press_hazard"] = hq.round(6)
+            out[key]["press_hazard_fire"] = hf.round(6)
             out[key]["up_age_edges"] = UP_AGE_EDGES
             out[key]["up_hazard"] = fit_stand_up(F, g, first).round(5)
     return out
@@ -184,6 +230,9 @@ def main():
     print("wrote", p)
     for k, v in part["stance"].items():
         print(k, "press/min by ctx", (np.asarray(v["press_hazard"]) * 1200).round(2), "hold median", v["hold_ms_median"])
+        if "press_hazard_fire" in v:
+            print(k, "  after enemy fire", (np.asarray(v["press_hazard_fire"]) * 1200).round(2))
+    print("lean wall", part["lean"]["wall"])
 
 
 if __name__ == "__main__":

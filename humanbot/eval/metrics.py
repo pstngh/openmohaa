@@ -773,7 +773,21 @@ def summarize(D: MetricData, mask, fam=None, targets=None, n_boot: int = N_BOOT,
 # ====================================================================== style dials (fit_styles.py definitions)
 
 DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min", "walk_hidden",
-         "burst_median", "aim_height_firing", "hold_angle", "aim_error_fight_deg", "reaction_ms", "mp40_share"]
+         "burst_median", "aim_height_firing", "hold_angle", "counter_strafe", "aim_error_fight_deg", "reaction_ms", "mp40_share"]
+
+
+def counter_strafe(full):
+    """fit_styles.py counter_strafe: of the strafes let go, the share followed by a strafe the very next tick."""
+    n = k = 0
+    for _, g in full.groupby(["session_id", "client_id", "seg"], sort=False):
+        s = g.side.to_numpy()
+        nz = np.flatnonzero(s != 0)
+        ends = np.flatnonzero((s[:-1] != 0) & (s[1:] == 0))
+        nxt = np.searchsorted(nz, ends + 2)
+        ok = nxt < len(nz)
+        n += int(ok.sum())
+        k += int((nz[nxt[ok]] == ends[ok] + 2).sum())
+    return k / n if n else np.nan
 
 
 def dials(D: MetricData, persons) -> dict:
@@ -803,6 +817,7 @@ def dials(D: MetricData, persons) -> dict:
              "jumps_per_min": d.jump_start_fs.sum() / max(mins, 1e-9),
              "crouch_per_min": d.crouch_start_fs.sum() / max(mins, 1e-9),
              "walk_hidden": hid.run.eq(0).mean() if len(hid) else np.nan,
+             "counter_strafe": counter_strafe(full),
              "burst_median": np.nan, "aim_height_firing": lf.aim_height_fraction.median(),
              "aim_error_fight_deg": lf.aim_total_error.median(),
              "reaction_ms": np.nan,
