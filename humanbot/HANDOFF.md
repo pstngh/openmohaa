@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-02.
+For a Claude Code session picking this work up. The state is as of 2026-10-03.
 
 ## What this is
 
@@ -31,10 +31,10 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 51% of 195
-  statistics (median relative error 0.24; 55% and 0.22 before "Travel and the hidden view", 58% and
-  0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s, model
-  `bc6e339d9af5` of 2026-10-03 on a Linux workstation. The arena is not the maps: in its open pillars
+- In the arena, two average-style bots are within 25% of the human value on 53% of 195
+  statistics (median relative error 0.24; 51% before "Corners and the lost enemy", 55% and 0.22 before
+  "Travel and the hidden view", 58% and 0.18 before "Movement on the maps", 60% before the encounter
+  changes); eight seeds of 900 s, model `872c9ac2f1c4` of 2026-10-03 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -690,17 +690,46 @@ diagonal 42% of the time (37% before, people 31%) and approaches at 96-160 u 54%
 recorded maps the same change brought fights to people's (above). The arena's hidden yaw speed p50 is 10.7
 (10.9) with corners.
 
+## Corners and the lost enemy (2026-10-03)
+
+A diagnostic build logged every exposure and corner the belief offered, per tick (git-ignored scripts in
+`humanbot/cache/move_wip/s3/`). 500 ms before a sighting the belief's heaviest offered corner was within 5 deg of
+the corner the enemy came out of in 57% of the sightings, the view in 20%: the view, more than the belief, kept the
+bots off the right corner. Where it was instead: following the lost enemy through the wall (16% of sightings), the
+believed position through the wall (13%), holding (13%), a corner no longer offered (21%).
+
+**What changed** (`hb_view`, `hb_brain`; three view tuning switches, all 1 in `assemble_model.py`):
+- `lost_aim_last_seen`: for the 350 ms after losing sight the view aims at where the enemy was last seen, not at
+  the believed position running on with its last velocity. People hold where it vanished (their view 4-5 deg from
+  that spot over the next 400 ms while the enemy moved on to 10 deg); the bots followed it through the wall.
+- `preaim_follow_geom`: a watched corner is followed by where it is, whichever exposure offers it (the exposure
+  cells change as the cloud and the bot move).
+- `belief_look_corner`: a belief look watches the corner nearest the believed position's direction, when the belief
+  offers one, instead of the believed position through the wall. Unit test `TestViewCorners`.
+
+Practice maps (seeds 201-208 and 401-408, pooled; `move_wip/reports/vc_*` against `v2_*`): the crosshair ends
+closer to the corner than to the enemy at 58% of the sightings (53%, people 80%) and closer to where the enemy
+appears 55% (48%, people 67%); the yaw from the corner, travel and the hidden view did not move. The costs: the view
+within 30 deg of the enemy in the first 500 ms after losing it 84-87% (86-89%, people 92-93%), the first hit 400 ms
+after the first part (350). Arena, eight seeds: 53% of 195 statistics within 25% (51%).
+
+Tried and dropped: exposures from rolling the particles forward with the move kernel (64 rollouts: the right
+corner offered as often but less often the heaviest; closer to the corner 52%), a 2000 ms pre-aim horizon (no
+change). The belief's arrival times run long (the right corner's at -500 ms has a median 872 ms against the true
+500). 68% of the bots' sightings (people 86%) need both players' movement.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
   "Encounters": the bots now meet more often on the move; 10.3-11.2 before "Travel and the hidden
   view": they run more, and pass corners they run by), and the first press after a clean sighting
   comes at 200-250 ms vs 150. The bots pre-aim corners but pick the one the enemy comes out of less
-  often: closer to the corner than to the enemy 53% vs 80% (58% before passing corners), and in the
-  last 500 ms before the first part their view turns 7-7.5 deg toward the enemy vs 13 (9-10 before). An ad-hoc check on the tuning
-  captures found them within 4 deg of the true corner at the onset 33% of the time vs 53%, and
-  their error given that distance matching people's. The next lever is which exposures the belief
-  offers, not the view. Downstream of it: the first hit lands 350 ms after the first part (250),
+  often: closer to the corner than to the enemy 58% vs 80% (53% before "Corners and the lost enemy"), and
+  in the last 500 ms before the first part their view turns 7-7.5 deg toward the enemy vs 13. An ad-hoc check
+  on the tuning captures found them within 4 deg of the true corner at the onset 33% of the time vs 53%, and
+  their error given that distance matching people's. The belief offers the right corner as its heaviest in 57%
+  of sightings; within 5 deg the right corner is not offered at all in 40% (see "Corners and the lost enemy").
+  The owner judged this gap minor next to what shows in play. Downstream of it: the first hit lands 400 ms after the first part (250),
   and 35% of part sightings end without a hit (28%; 45% before "Encounters"). Prefire is short after
   long hides: the bots hold fire before the first part at 20% of the part sightings vs 23%; their
   anticipation of where and when the enemy comes out is the limit.
@@ -780,6 +809,8 @@ recorded maps the same change brought fights to people's (above). The arena's hi
   like a target (tracking gain, full own-motion compensation) in proportion to how soon the enemy is
   expected out of it, unless the bot's own motion sweeps it past faster than 90 deg/s
   (`preaim_pass_dps`): then the view keeps its direction.
+- Right after losing sight the view holds where the enemy was last seen; a belief look watches the corner
+  nearest the believed position's direction when the belief offers one (see "Corners and the lost enemy").
 - The belief's mode (the position the goal, the chase and the belief look use) keeps its cell
   neighbourhood while that holds at least half the densest one's mass.
 - compare.py weights the pooled bots' style families like the people's duel minutes

@@ -94,7 +94,14 @@ def build():
                        "preaim_pass_dps": 90.0,
                        # a route look re-aims once the route turned 60 deg (15 chased the path corners: the view turned
                        # 3x as fast as people's while hidden; at 30 the route look still flicked 15 times a hidden minute)
-                       "travel_follow_deg": 60.0},
+                       "travel_follow_deg": 60.0,
+                       # set on practice-map captures (2026-10-03, "Corners and the lost enemy" in HANDOFF.md): right
+                       # after losing sight the view holds where the enemy went out of sight (people's view stays 4-5
+                       # deg from that spot while the enemy moves on to 10 deg), a watched corner is followed by where
+                       # it is whichever exposure offers it, and a belief look watches the corner nearest the believed
+                       # position's direction. The crosshair ends closer to the corner than to the enemy at 58% of the
+                       # sightings (53% without, people 80%)
+                       "lost_aim_last_seen": 1.0, "preaim_follow_geom": 1.0, "belief_look_corner": 1.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "press_los", "release_los", "press_hidden", "release_hidden"]},

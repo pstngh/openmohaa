@@ -592,6 +592,94 @@ static void TestView(const hb::ModelBundle& b)
     self.velocity = hb::Vec3();
 }
 
+// A belief look with a corner watches the corner nearest the believed position, and a watched corner is followed by
+// where it is when another exposure cell comes to offer it.
+static void TestViewCorners(const hb::ModelBundle& b)
+{
+    hb::ViewModel vm      = b.shared.view;
+    vm.beliefLookShare    = 1.0f;   // every look decision is a belief look
+    vm.preaimShare        = 0.0f;
+    vm.preaimWeight       = 0.0f;
+    vm.preaimHazard       = 0.0f;
+    vm.travelShare        = 0.0f;
+    vm.lookaroundPerMin   = 0.0f;
+    vm.routeTurnHazard    = 0.0f;
+    vm.hiddenReaimHazard  = 0.0f;
+    hb::SelfState self;
+    self.alive = true;
+    self.eye   = hb::Vec3(0, 0, 82);
+    hb::BeliefEstimate be;
+    be.valid           = true;
+    be.spread          = 50.0f;
+    be.mode            = hb::Vec3(600, 300, 0);   // behind cover, 26.6 deg left
+    be.nExposure       = 2;
+    be.exposure[0]     = hb::Vec3(400, 200, 0);
+    be.exposure[1]     = hb::Vec3(300, -300, 0);
+    be.exposureCell[0] = 10;
+    be.exposureCell[1] = 20;
+    be.exposureMass[0] = 0.4f;   // the lighter one lies toward the believed position
+    be.exposureMass[1] = 0.6f;
+    be.exposureEtaMs[0] = be.exposureEtaMs[1] = 3000.0f;
+    be.cornerValid[0] = be.cornerValid[1] = true;
+    be.corner[0]       = hb::Vec3(400, 200, 82);
+    be.corner[1]       = hb::Vec3(300, -300, 82);
+    be.cornerOpen[0]   = 1.0f;
+    be.cornerOpen[1]   = -1.0f;
+    hb::ViewInput h;
+    h.ctx    = hb::CTX_HIDDEN_NOFIRE;
+    h.belief = &be;
+    for (const float corner : {0.0f, 1.0f}) {
+        vm.beliefLookCorner = corner;
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        self.viewYaw = 0.0f;
+        vc.Reset(self);
+        hb::Rng        r(5);
+        hb::ViewOutput out;
+        for (int t = 0; t < 20; t++) {
+            vc.Step(self, h, r, out);
+            self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+        }
+        const float cornerYaw = hb::YawOf(be.corner[0] - self.eye) - vm.preaimCoverDeg;
+        HB_REPORT("belief look, corner %.0f: mode %d, target yaw %.1f (corner %.1f, believed position %.1f)", corner, out.mode,
+                  out.targetYaw, cornerYaw, hb::YawOf(be.mode - self.eye));
+        if (corner > 0.5f) {
+            HB_CHECK(out.mode == hb::VIEW_PREAIM);
+            HB_CHECK_NEAR(out.targetYaw, cornerYaw, 0.5);
+        } else {
+            HB_CHECK(out.mode == hb::VIEW_BELIEF);
+        }
+    }
+    // the watched edge is offered by another exposure cell, a little moved: followed by geometry, kept by cell
+    vm.beliefLookCorner = 1.0f;
+    for (const float geom : {0.0f, 1.0f}) {
+        vm.preaimFollowGeom = geom;
+        vm.lookDwellMedianMs = 1e6f;   // no new look decision
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        self.viewYaw = 0.0f;
+        vc.Reset(self);
+        hb::Rng            r(5);
+        hb::ViewOutput     out;
+        hb::BeliefEstimate b2 = be;
+        for (int t = 0; t < 5; t++) {
+            vc.Step(self, h, r, out);
+        }
+        b2.exposureCell[0] = 11;
+        b2.corner[0]       = hb::Vec3(400, 210, 82);   // 1.1 deg further left
+        h.belief           = &b2;
+        vc.Step(self, h, r, out);
+        h.belief = &be;
+        const float moved = hb::YawOf(b2.corner[0] - self.eye) - vm.preaimCoverDeg;
+        HB_REPORT("follow by geometry %.0f: target yaw %.2f (the moved corner %.2f)", geom, out.targetYaw, moved);
+        if (geom > 0.5f) {
+            HB_CHECK_NEAR(out.targetYaw, moved, 0.05);
+        } else {
+            HB_CHECK(std::fabs(out.targetYaw - moved) > 0.5f);
+        }
+    }
+}
+
 static void TestSubsteps()
 {
     hb::Substepper ss;
@@ -703,6 +791,7 @@ int main()
     TestTrigger(b);
     TestWeapon(b);
     TestView(b);
+    TestViewCorners(b);
     TestSubsteps();
     TestEye();
     TestPerceiverDead(b);

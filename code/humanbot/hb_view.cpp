@@ -116,6 +116,32 @@ bool ViewControl::PassingCorner(const SelfState& self, const ViewInput& in, cons
     return sweep > m_p->preaimPassDps;
 }
 
+// People watch the corner a hidden enemy will come out of rather than its believed position through the wall: of
+// the corners the belief offered 500 ms before a sighting, the heaviest and the one nearest the believed position's
+// direction were within 5 deg of the corner the enemy came out of in 56-57% of the sightings, the view in 20%.
+int ViewControl::CornerNearBelief(const SelfState& self, const ViewInput& in) const
+{
+    const BeliefEstimate *b = in.belief;
+    if (!b || !b->valid || b->dead) {
+        return -1;
+    }
+    const float my   = YawOf(b->mode - self.eye);
+    int         best = -1;
+    double      bw   = 0.0;
+    for (int i = 0; i < b->nExposure; i++) {
+        if (!b->cornerValid[i] || PassingCorner(self, in, b->corner[i])) {
+            continue;
+        }
+        const double dy = Wrap180(YawOf(b->corner[i] - self.eye) - my) / 30.0;
+        const double w  = b->exposureMass[i] * std::exp(-dy * dy);
+        if (w > bw) {
+            bw   = w;
+            best = i;
+        }
+    }
+    return best;
+}
+
 // Turn onto the corner of one of the exposures, drawn by weight w (the imminence terms); the corner already
 // watched weighs more.
 void ViewControl::PreaimCorner(const SelfState& self, const ViewInput& in, const double *w, Rng& rng)
@@ -213,10 +239,19 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const d
     const float  lookYaw  = m_lookPointValid ? YawOf(m_lookPoint - eye) : self.viewYaw;
     switch (pick) {
     case 0:
-        m_lookPoint      = b->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
-        m_lookPointValid = true;
-        m_lookMode       = VIEW_BELIEF;
-        break;
+        {
+            const int c = p.beliefLookCorner > 0.5f ? CornerNearBelief(self, in) : -1;
+            if (c >= 0) {
+                m_lookPoint  = CornerAim(eye, b->corner[c], b->cornerOpen[c]);
+                m_lookMode   = VIEW_PREAIM;
+                m_preaimCell = b->exposureCell[c];
+            } else {
+                m_lookPoint = b->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+                m_lookMode  = VIEW_BELIEF;
+            }
+            m_lookPointValid = true;
+            break;
+        }
     case 1:
         {
             if (imminence > 0.0) {
@@ -355,13 +390,26 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             m_dwellMs -= TICK_MS;
             if (m_lookMode == VIEW_PREAIM && bel) {
                 // the watched corner is traced again as the eye moves: follow it, but not onto another edge
+                const float lookYaw = YawOf(m_lookPoint - eye);
+                int         follow  = -1;
+                float       best    = PREAIM_FOLLOW_DEG;
+                Vec3        fa;
                 for (int i = 0; i < bel->nExposure; i++) {
-                    if (bel->exposureCell[i] == m_preaimCell && bel->cornerValid[i]) {
-                        const Vec3 a = CornerAim(eye, bel->corner[i], bel->cornerOpen[i]);
-                        if (std::fabs(Wrap180(YawOf(a - eye) - YawOf(m_lookPoint - eye))) < PREAIM_FOLLOW_DEG) {
-                            m_lookPoint = a;
+                    // by geometry the edge is followed whichever exposure offers it (the exposure cells change as
+                    // the cloud and the bot move: a fifth of the sightings found the view on a corner no longer offered)
+                    if (bel->cornerValid[i] && (p.preaimFollowGeom > 0.5f || bel->exposureCell[i] == m_preaimCell)) {
+                        const Vec3  a  = CornerAim(eye, bel->corner[i], bel->cornerOpen[i]);
+                        const float dy = std::fabs(Wrap180(YawOf(a - eye) - lookYaw));
+                        if (dy < best) {
+                            best   = dy;
+                            follow = i;
+                            fa     = a;
                         }
                     }
+                }
+                if (follow >= 0) {
+                    m_lookPoint  = fa;
+                    m_preaimCell = bel->exposureCell[follow];
                 }
             }
             if (m_lookMode == VIEW_PREAIM && PassingCorner(self, in, m_lookPoint)) {

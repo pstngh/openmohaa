@@ -366,8 +366,11 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
             }
         }
     } else if (recentlyLost) {
-        vi.enemyFeet = fb->mode;
-        vi.enemyVel  = fb->lastSeenVel;
+        // people hold where the enemy went out of sight (their view 4-5 deg from it over the next 400 ms while the
+        // enemy moved on to 10 deg); the believed position runs on with the last seen velocity
+        const bool hold = S.view.lostAimLastSeen > 0.5f;
+        vi.enemyFeet = hold ? fb->lastSeenPos : fb->mode;
+        vi.enemyVel  = hold ? Vec3() : fb->lastSeenVel;
     }
     vi.belief          = fb;
     vi.moving          = self.velocity.lengthXY() > 50.0f;
