@@ -392,10 +392,14 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         m_wasTracking = true;
         m_damagePending = false;
     } else {
-        // turn toward hits from outside the central view
+        // turn toward a hit from an enemy not in sight (one in sight is tracked), wherever the hit is felt to come
+        // from. Only hits felt more than 60 deg off used to turn the view: the felt direction is +-20 deg off, and the
+        // bot sees 48 deg to each side, so a shooter just outside the view often went unanswered (the owner shot a
+        // bot from 61 deg off and its view did not move for 1.3 s). People hit by an enemy with no part of it on
+        // screen 48-75 deg off face it within half a second 87-91% of the time
         if (in.damage) {
             for (const DamageObs& d : *in.damage) {
-                if (std::fabs(Wrap180(d.yaw - self.viewYaw)) > 60.0f && (!m_damagePending || m_pendingMode != VIEW_DAMAGE)) {
+                if (!m_damagePending || m_pendingMode != VIEW_DAMAGE) {
                     m_damagePending = true;
                     m_damageAtMs    = self.timeMs + static_cast<int>(p.damageTurnDelayMs);
                     m_damageYaw     = d.yaw;
