@@ -44,7 +44,9 @@ public:
     void Reset();
 
     // Returns a Command for this tick.
-    int Step(const SelfState& self, bool gotKill, bool enemyAlive, bool enemyDetected, bool attackHeld, Rng& rng);
+    // msSinceSeen: since a part of the enemy was last on screen (0 while one is)
+    int Step(const SelfState& self, bool gotKill, bool enemyAlive, bool enemyDetected, bool attackHeld, int msSinceSeen,
+             Rng& rng);
 
     // Delay of the respawn click after death, ms.
     int  RespawnDelayMs(Rng& rng) const;

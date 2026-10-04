@@ -327,6 +327,7 @@ DIAL_SWEEPS = {
     "burst_median": ("release_logit", "dial.burst_median", [-3.0, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]),
     "aim_height_firing": ("aim_height_firing", "dial.aim_height_firing", [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6]),
     "hold_angle": ("hold_logit", "dial.hold_angle", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]),
+    "counter_strafe": ("counter_logit", "dial.counter_strafe", [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]),
 }
 SKILL_NEUTRAL = {"aim_error_fight_deg": 1.0, "reaction_ms": 0.0}   # the pooled bot's offsets
 # Style dials that are relative to the pooled bot, like the skills (their neutral offsets). The burst length counts

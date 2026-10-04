@@ -65,6 +65,9 @@ float Trigger::PressProb(const TriggerInput& in, int gapTicks) const
         if (in.damaged) {
             z += s.damaged;
         }
+        if (!s.clip.empty()) {
+            z += s.clip[BinIndex(in.clipFill, t.clipEdges)];
+        }
     } else {
         const TriggerSide& s = t.pressHidden;
         z = s.bias + s.err[BinIndex(in.hiddenYawErr, t.yawEdges)]
@@ -72,6 +75,9 @@ float Trigger::PressProb(const TriggerInput& in, int gapTicks) const
           + t.hiddenFireLogit;
         if (in.damaged) {
             z += s.damaged;
+        }
+        if (!s.clip.empty()) {
+            z += s.clip[BinIndex(in.clipFill, t.clipEdges)];
         }
         // an enemy expected in the crosshair right now has not been lost track of: no fade then
         if (in.anticipate) {

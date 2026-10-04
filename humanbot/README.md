@@ -70,10 +70,12 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      counts the bursts begun in sight, and is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
      on a corner, and how readily it stops for one) is wired in but inert: no offset of it changes
      how often a bot waits on the point the enemy appears at.
-3. **Usercmds.** `hb_substep` turns the tick's decision into 4 usercmds (`g_humanbot_substeps`).
-   Keys are digital, key changes land on one sub-step, the view moves along the flick's
-   minimum-jerk profile, and eye info goes out like a client's. The server runs them through the
-   normal `Player::ClientThink`: the bot moves with exactly the player physics.
+3. **Usercmds.** `hb_substep` turns the tick's decision into 12 usercmds (`g_humanbot_substeps`;
+   the recorded people send 12.5 at 250 fps to 25 at 500 fps). Keys are digital, key changes land
+   on one sub-step, the view moves along the flick's minimum-jerk profile, and eye info goes out
+   like a client's. The server runs them through the normal `Player::ClientThink`: the bot moves
+   with exactly the player physics. In the ticks right after a respawn it sends none, as many as a
+   client at its ping takes to see the respawn (1 at 48 ms, 3 at 98 ms).
 
 All bots decide on the same snapshot of the world (`PrepareThink`) before any of them moves
 (`CommitThink`), like clients whose packets arrive together.
@@ -99,7 +101,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 
 | Cvar | Default | |
 |---|---|---|
-| `g_humanbot_substeps` | 4 | usercmds per 50 ms frame (1-8) |
+| `g_humanbot_substeps` | 12 | usercmds per 50 ms frame (1-32) |
 | `g_humanbot_fov` / `g_humanbot_aspect` | 80 / 1.778 | the bot's field of view (Hor+) |
 | `g_humanbot_seed` | 0 | 0: new styles every run; any other value repeats them |
 | `g_humanbot_families` | "" | family weights "presser strafer stopper"; "" is the recorded mix |

@@ -78,7 +78,7 @@ struct Options {
     int         bots     = 2;
     int         seconds  = 300;
     uint64_t    seed     = 1;
-    int         substeps = 4;
+    int         substeps = 12;
     std::string layout   = "pillars";
     float       skill    = 0.0f;   // g_humanbot_skill
     bool        skillFirst = false; // only the first bot gets it (a strength test against the others)
@@ -105,6 +105,7 @@ bool SetOffset(hb::StyleOffsets& o, const std::string& name, float v)
         {"walk_mult", &hb::StyleOffsets::walkMult},         {"release_logit", &hb::StyleOffsets::releaseLogit},
         {"aim_height_firing", &hb::StyleOffsets::aimHeightFiring}, {"noise_scale", &hb::StyleOffsets::noiseScale},
         {"detect_mult", &hb::StyleOffsets::detectMult},     {"reaction_logit", &hb::StyleOffsets::reactionLogit},
+        {"counter_logit", &hb::StyleOffsets::counterLogit},
     };
     if (name == "hold_logit") {
         // the hold-or-clear dial's offset is a log multiplier (hb_style.cpp)
@@ -320,6 +321,7 @@ struct Bot {
     std::vector<float> beliefErr;
     double    thinkUs = 0.0;
     double    brainUs = 0.0;   // the brain alone (Perceiver, Brain, Substepper), without the arena's traces
+    double    moveUs  = 0.0;   // the tick's usercmds through Pmove
     long long thinkN  = 0;
     int       thinkMax = 0;
     int       kbdBad = 0;
@@ -952,7 +954,9 @@ void Arena::Run()
             Decide(b, hfov, vfov);
         }
         for (Bot& b : m_bots) {
+            const auto tm = std::chrono::steady_clock::now();
             Move(b);
+            b.moveUs += std::chrono::duration_cast<std::chrono::duration<double, std::micro>>(std::chrono::steady_clock::now() - tm).count();
         }
         for (Bot& b : m_bots) {
             Fire(b);
@@ -1016,7 +1020,7 @@ bool Arena::Report()
     std::vector<float> yaws, errs;
     long long hidden = 0, still = 0, fight = 0, stillF = 0, shots = 0, hits = 0, kills = 0, kbd = 0;
     int       stuck = 0, pressure = 0, maxStuck = 0, headHits = 0, doubleHeads = 0;
-    double    us = 0.0, brainUs = 0.0;
+    double    us = 0.0, brainUs = 0.0, moveUs = 0.0;
     long long usN = 0;
     int       usMax = 0;
     for (const Bot& b : m_bots) {
@@ -1037,6 +1041,7 @@ bool Arena::Report()
         maxStuck = std::max(maxStuck, b.maxStuckMs);
         us += b.thinkUs;
         brainUs += b.brainUs;
+        moveUs += b.moveUs;
         usN += b.thinkN;
         usMax = std::max(usMax, b.thinkMax);
     }
@@ -1062,7 +1067,8 @@ bool Arena::Report()
     }
     j << "]";
     j << ",\"belief_err_p50\":" << Quantile(errs, 0.5) << ",\"belief_err_p90\":" << Quantile(errs, 0.9);
-    j << ",\"think_us_mean\":" << meanUs << ",\"brain_us_mean\":" << (usN ? brainUs / usN : 0.0) << ",\"think_us_max\":" << usMax
+    j << ",\"think_us_mean\":" << meanUs << ",\"brain_us_mean\":" << (usN ? brainUs / usN : 0.0)
+      << ",\"move_us_mean\":" << (usN ? moveUs / usN : 0.0) << ",\"think_us_max\":" << usMax
       << ",\"kbd_violations\":" << kbd;
     // the same statistics as humanbot/eval (human_reference.json keys)
     std::map<std::string, double> M = Metrics();
@@ -1120,7 +1126,7 @@ int main(int argc, char **argv)
         } else if (a == "--seed") {
             o.seed = std::strtoull(next().c_str(), nullptr, 10);
         } else if (a == "--substeps") {
-            o.substeps = std::max(1, std::min(8, std::atoi(next().c_str())));
+            o.substeps = std::max(1, std::min(hb::MAX_SUBSTEPS, std::atoi(next().c_str())));
         } else if (a == "--skill") {
             o.skill = static_cast<float>(std::atof(next().c_str()));
         } else if (a == "--skill-first") {

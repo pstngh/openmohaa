@@ -36,7 +36,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace hb
 {
 
-constexpr int MAX_SUBSTEPS = 8;
 
 class Substepper
 {

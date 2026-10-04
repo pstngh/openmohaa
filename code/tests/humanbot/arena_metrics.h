@@ -732,6 +732,17 @@ inline Metrics Compute(const std::vector<Life>& lives, const SightFn& sight = nu
             jumpFs += f.jump && !prevJump && i > 0;
             crouchFs += f.crouch && !prevCrouch && i > 0;
 
+            // a strafe let go, then a strafe the very next tick (the counter-strafe habit); pauses cut by the life's
+            // end are left out
+            if (f.side != 0 && hasNext && nx->side == 0) {
+                int j = i + 2;
+                while (j < n && r[j].side == 0) {
+                    j++;
+                }
+                if (j < n) {
+                    A.R("dial.counter_strafe", j == i + 2);
+                }
+            }
             // how strafes end (context of the tick before the change) and the switch hazard
             if (f.side != 0 && hasNext) {
                 if (nx->side != f.side) {

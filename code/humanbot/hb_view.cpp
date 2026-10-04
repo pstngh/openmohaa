@@ -44,6 +44,9 @@ static constexpr float ROUTE_TURN_DEG = 100.0f;
 // A watched corner follows its own refinements (re-traced from a moved eye) up to this far; a bigger change is
 // another edge, which waits for the next look decision.
 static constexpr float PREAIM_FOLLOW_DEG = 4.0f;
+// a noise behind is turned to on the corner nearest its direction when one lies this close (the sound itself is
+// 10-20 deg off)
+static constexpr float SOUND_CORNER_DEG = 45.0f;
 
 static float MinJerk(float tau)
 {
@@ -134,6 +137,33 @@ int ViewControl::CornerNearBelief(const SelfState& self, const ViewInput& in) co
         }
         const double dy = Wrap180(YawOf(b->corner[i] - self.eye) - my) / 30.0;
         const double w  = b->exposureMass[i] * std::exp(-dy * dy);
+        if (w > bw) {
+            bw   = w;
+            best = i;
+        }
+    }
+    return best;
+}
+
+// The exposure whose corner lies nearest a direction (within maxDeg), by mass (-1: none).
+int ViewControl::CornerNearYaw(const SelfState& self, const ViewInput& in, float yaw, float maxDeg) const
+{
+    const BeliefEstimate *b = in.belief;
+    if (!b || !b->valid || b->dead) {
+        return -1;
+    }
+    int    best = -1;
+    double bw   = 0.0;
+    for (int i = 0; i < b->nExposure; i++) {
+        if (!b->cornerValid[i] || PassingCorner(self, in, b->corner[i])) {
+            continue;
+        }
+        const float dy = std::fabs(Wrap180(YawOf(b->corner[i] - self.eye) - yaw));
+        if (dy > maxDeg) {
+            continue;
+        }
+        const double z = dy / 30.0;
+        const double w = b->exposureMass[i] * std::exp(-z * z);
         if (w > bw) {
             bw   = w;
             best = i;
@@ -324,6 +354,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const double uFlick = rng.Uniform();
     const double uLook  = rng.Uniform();
     const double uPre   = rng.Uniform();
+    const double uSound = rng.Uniform();
 
     // the imminence of the exposures with a corner: belief mass expected to come out there soon
     double     preW[MAX_EXPOSURE] = {};
@@ -364,19 +395,42 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         // turn toward hits from outside the central view
         if (in.damage) {
             for (const DamageObs& d : *in.damage) {
-                if (std::fabs(Wrap180(d.yaw - self.viewYaw)) > 60.0f && !m_damagePending) {
+                if (std::fabs(Wrap180(d.yaw - self.viewYaw)) > 60.0f && (!m_damagePending || m_pendingMode != VIEW_DAMAGE)) {
                     m_damagePending = true;
                     m_damageAtMs    = self.timeMs + static_cast<int>(p.damageTurnDelayMs);
                     m_damageYaw     = d.yaw;
+                    m_pendingMode   = VIEW_DAMAGE;
+                }
+            }
+        }
+        // and toward an enemy heard behind: people with an unseen enemy running or firing behind them within 1000 u
+        // face it within a second 63% of the time and are hit first 7% (the bots, without this, 38% and 20%)
+        if (!m_damagePending && in.sounds && p.soundTurnP > 0.0f) {
+            for (const SoundObs& s : *in.sounds) {
+                if ((s.type == SOUND_FOOTSTEP || s.type == SOUND_GUNFIRE) && std::fabs(Wrap180(s.yaw - self.viewYaw)) > p.soundTurnDeg) {
+                    if (uSound < p.soundTurnP) {
+                        m_damagePending = true;
+                        m_damageAtMs    = self.timeMs + static_cast<int>(p.soundTurnDelayMs);
+                        m_damageYaw     = s.yaw;
+                        m_pendingMode   = VIEW_SOUND;
+                    }
+                    break;
                 }
             }
         }
         if (m_damagePending && self.timeMs >= m_damageAtMs) {
             m_damagePending  = false;
             m_lookPoint      = eye + YawDir(m_damageYaw) * DIR_LOOK_DIST;
+            if (m_pendingMode == VIEW_SOUND) {
+                // a noise behind: the corner it will come out of, when the belief offers one that way
+                const int c = CornerNearYaw(self, in, m_damageYaw, SOUND_CORNER_DEG);
+                if (c >= 0) {
+                    m_lookPoint = CornerAim(eye, bel->corner[c], bel->cornerOpen[c]);
+                }
+            }
             m_lookPointValid = true;
-            m_lookMode       = VIEW_DAMAGE;
-            m_dwellMs        = 900.0f;
+            m_lookMode       = m_pendingMode;
+            m_dwellMs        = m_pendingMode == VIEW_SOUND ? p.soundTurnHoldMs : 900.0f;
             newLook          = true;
         } else if (in.firing) {
             // spraying at a hidden enemy: the view stays where it points, no new look starts
@@ -420,11 +474,12 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn) {
                 ChooseLook(self, in, preW, out.imminence, rng);
                 newLook = true;
-            } else if (m_lookMode != VIEW_PREAIM && out.imminence > 0.0f && uPre < p.preaimHazard * out.imminence) {
+            } else if (m_lookMode != VIEW_PREAIM && m_lookMode != VIEW_SOUND && out.imminence > 0.0f
+                       && uPre < p.preaimHazard * out.imminence) {
                 // an exposure is coming up: turn onto its corner
                 PreaimCorner(self, in, preW, rng);
                 newLook = true;
-            } else if (m_lookMode != VIEW_TRAVEL && in.moving && in.navValid && p.routeTurnHazard > 0.0f
+            } else if (m_lookMode != VIEW_TRAVEL && m_lookMode != VIEW_SOUND && in.moving && in.navValid && p.routeTurnHazard > 0.0f
                        && std::fabs(Wrap180(in.navYaw - self.viewYaw)) > ROUTE_TURN_DEG && rng.Uniform() < p.routeTurnHazard) {
                 // the route turned away behind the view: people turn to it rather than walk backwards
                 m_lookPoint      = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
@@ -432,7 +487,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 m_lookMode       = VIEW_TRAVEL;
                 m_dwellMs        = static_cast<float>(0.7 * p.lookDwellMedianMs * rng.LogNormal(1.0, p.lookDwellSigma));
                 newLook          = true;
-            } else if (m_lookMode != VIEW_LOOKAROUND && uLook < p.lookaroundPerMin / 1200.0f) {
+            } else if (m_lookMode != VIEW_LOOKAROUND && m_lookMode != VIEW_SOUND && uLook < p.lookaroundPerMin / 1200.0f) {
                 LookAround(self, rng);
                 newLook = true;
             } else if (m_lookMode == VIEW_BELIEF && in.belief && in.belief->valid && !in.belief->dead) {
@@ -530,7 +585,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         }
     }
 
-    const int K = ClampI(in.substeps, 1, 8);
+    const int K = ClampI(in.substeps, 1, MAX_SUBSTEPS);
     if (m_flick.active) {
         const float t0 = m_flick.tMs;
         const float t1 = t0 + TICK_MS;

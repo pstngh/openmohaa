@@ -37,6 +37,34 @@ def quantile_table(q):
     return probs, vals
 
 
+TAC_CLIP_EDGES = [0, 0.125, 0.25, 0.5, 0.75]   # rounds left as a share of the clip (lower edges)
+TAC_SEEN_EDGES = [0, 1000]                     # ms since a part of the enemy was last on screen (lower edges)
+
+
+def fit_tactical():
+    """Reloads begun with the enemy alive and out of sight, rounds still in the clip: hazard per tick by rounds left
+    and time since sight. People reload early (0.15-0.2 a second with an eighth of the clip left, 0.01 with three
+    quarters), so they seldom meet the enemy with a near-empty clip; the bots' hand-set hazard (0.004 a tick below
+    half a clip) left them running dry in sight five times as often."""
+    F = H.load_dm()
+    key = [F.session_id, F.client_id, F.seg]
+    nxr = F.reloading.astype(float).groupby(key, sort=False).shift(-1)
+    gap = F.session_ms.groupby(key, sort=False).shift(-1) - F.session_ms
+    E = F[F.eligible & F.vis.eq(0) & ~F.reloading & F.clip_ammo.gt(0) & F.clip_ammo.lt(F.clip_size)
+          & F.weapon.isin(["MP40", "Thompson"]) & nxr.notna() & gap.eq(50)]
+    y = nxr[E.index].to_numpy()
+    cb = H.binidx(E.clip_ammo / E.clip_size, TAC_CLIP_EDGES)
+    sb = H.binidx(E.vage.fillna(1e9), TAC_SEEN_EDGES)
+    T = np.zeros((len(TAC_CLIP_EDGES), len(TAC_SEEN_EDGES)))
+    for c in range(len(TAC_CLIP_EDGES)):
+        mc = cb == c
+        prior = (y[mc].sum() + 1e-3) / (mc.sum() + 1.0)
+        for s in range(len(TAC_SEEN_EDGES)):
+            m = mc & (sb == s)
+            T[c, s] = (y[m].sum() + 200 * prior) / (m.sum() + 200)
+    return {"clip_edges": TAC_CLIP_EDGES, "seen_edges": TAC_SEEN_EDGES, "hazard": T.round(6)}
+
+
 def main():
     L = run_analysis("lives.py")
     pk = L["post_kill_reload_by_rounds_left"]
@@ -52,7 +80,8 @@ def main():
             "post_kill_delay": {"probs": dprobs, "ms": dms},
             "respawn": {"probs": rprobs, "ms": rms},
             "reload_context_pct": L["reload_context_pct"],
-            "weapon_switch_rate_per_min": L["weapon_switch_rate_per_min"]}
+            "weapon_switch_rate_per_min": L["weapon_switch_rate_per_min"],
+            "tactical": fit_tactical()}
     H.write_part("weapon", part)
     print(json.dumps(H.jsonable(part), indent=0)[:1500])
 

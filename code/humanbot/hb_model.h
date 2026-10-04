@@ -96,6 +96,7 @@ struct Table {
 
 struct StanceKeyModel {
     std::vector<float> pressHazard;      // per context, per tick while released
+    std::vector<float> pressHazardFire;  // the same in the 500 ms after another player's gunfire was heard (empty: none)
     std::vector<float> holdPmf;          // hold length in ticks (index 0 = 1 tick), complete holds only
     std::vector<int>   releaseAgeEdges;  // lower edges of hold-age bins, ticks
     std::vector<float> releaseHazard;    // per tick while held, by hold age (survival estimate)
@@ -124,6 +125,8 @@ struct MovementModel {
     KeyModel           fwd;
     Table              reverseP;     // [ctx][fwd+1][side age bin]: a strafe that ends reverses (else lets go)
     Table              rightP;       // [ctx][fwd+1]: from no strafe, right (else left)
+    std::vector<int>   oppositeGapEdges;
+    Table              oppositeP;    // [ctx][ticks since the last strafe ended]: from no strafe, the other side (empty: rightP)
     Table              fwdNext;      // [ctx][from+1][side+1][to+1] logits of the forward key's next state
     Table              approach;     // [ctx][distance bin]: logit per unit of approach (to - from) * cos(bearing)
     float              approachEnemyReload = 0.0f;
@@ -135,6 +138,13 @@ struct MovementModel {
     std::vector<int> leanCtxAgeEdges;
     Table            leanCtxChangeLogit;  // [ctx][state 0 none / 1 leaning][ctx age bin < last]: leave the state
     std::vector<float> leanCtxLogit;      // calibrated per-context shift of leaning (on +, off -)
+    // the side a lean takes by the walls beside the bot (0 = off): per side, a wall closer than leanWallRange weighs
+    // w = 1 - clearance / leanWallRange; the side's logit is leanWallLogit * w, plus leanEdgeLogit * w while the front
+    // diagonal on that side is open (an edge to look past). Fitted with the chain as offset (fit_movement.py)
+    float              leanWallRange = 96.0f;
+    float              leanEdgeOpen  = 96.0f;
+    float              leanWallLogit = 0.0f;
+    float              leanEdgeLogit = 0.0f;
     std::vector<float> sideCtxLogit;      // calibrated per-context strafe habit (press from neutral +)
     std::vector<float> fwdCtxLogit;       // calibrated per-context forward habit (toward forward +)
     float              reverseLogit = 0.0f;  // calibrated shift of reversing (vs letting go) a strafe
@@ -254,6 +264,14 @@ struct ViewModel {
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
     float damageTurnDelayMs  = 100.0f;
+    // an enemy heard (footsteps, gunfire) further than soundTurnDeg off the view, with none in sight: the view turns to
+    // the sound after soundTurnDelayMs, with this chance per tick that brings such a sound (0 = off)
+    float soundTurnP         = 0.0f;
+    float soundTurnDeg       = 90.0f;
+    float soundTurnDelayMs   = 200.0f;
+    float soundTurnHoldMs    = 900.0f;  // the view keeps the sound's direction this long: no route turn, look-around or
+                                        //   corner breaks it off (people who turn to a noise behind see the enemy within
+                                        //   2 s 90% of the time and turn away again 2%)
 };
 
 struct TriggerSide {
@@ -262,6 +280,7 @@ struct TriggerSide {
     std::vector<float> lage;
     std::vector<float> age;
     float              damaged = 0.0f;
+    std::vector<float> clip;   // press: by rounds left (TriggerModel::clipEdges), the fullest bin 0 (empty: none)
 };
 
 struct TriggerModel {
@@ -271,6 +290,7 @@ struct TriggerModel {
     std::vector<float> lageHiddenEdges;
     std::vector<int>   holdEdges;
     std::vector<int>   gapEdges;
+    std::vector<float> clipEdges;   // rounds left as a share of the clip, lower edges
     TriggerSide        pressLos;
     TriggerSide        releaseLos;
     TriggerSide        pressHidden;
@@ -306,6 +326,10 @@ struct WeaponModel {
     std::vector<double> postKillDelayMs;
     float               tacticalHazard     = 0.004f;  // per tick, enemy alive and hidden, clip below tacticalClipFrac
     float               tacticalClipFrac   = 0.5f;
+    // fitted instead (when present): per tick by rounds left (share of the clip) and ms since sight, lower edges
+    std::vector<float>  tacticalClipEdges;
+    std::vector<float>  tacticalSeenEdges;
+    Table               tacticalTable;   // [clip bin][seen bin]
     float               pistolSwitchPerMin = 0.1f;
     std::vector<double> respawnProbs;
     std::vector<double> respawnMs;
@@ -401,6 +425,7 @@ enum Dial {
     DIAL_BURST,
     DIAL_AIM_HEIGHT,
     DIAL_HOLD_ANGLE,   // hold or clear an angle: crosshair parked on where the enemy will appear, 500 ms early
+    DIAL_COUNTER,      // a strafe let go is followed by a strafe one tick later (the stoppers' quick turn)
     DIAL_COUNT
 };
 

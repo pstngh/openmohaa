@@ -60,6 +60,7 @@ struct StyleOffsets {
     float detectMult      = 1.0f;  // detection-rate multiplier
     float reactionLogit   = 0.0f;  // press hazard shift with the enemy in sight (reaction skill)
     float angleHold       = 1.0f;  // hold or clear an angle: x the corner pre-aim horizon and the hold hazard near exposures
+    float counterLogit    = 0.0f;  // shift of the chance a strafe key is pressed the tick after one is let go
 };
 
 // Draws a bot's dials. family < 0 draws the family from the recorded mix

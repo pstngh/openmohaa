@@ -45,9 +45,17 @@ def build():
         "chords": H.CHORDS,
         "movement": {
             "keys": {k: keys[k] for k in ["age_edges", "clear_edges", "dist_edges", "ctx_age_edges", "side", "fwd"]},
-            "lean": {k: mv["lean"][k] for k in ["age_edges", "next", "ctx_age_edges", "ctx_change_logit"]},
-            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "hold_pmf", "release_age_edges", "release_hazard",
-                                                "up_age_edges", "up_hazard"] if kk in v}
+            "lean": {**{k: mv["lean"][k] for k in ["age_edges", "next", "ctx_age_edges", "ctx_change_logit"]},
+                     # The lean's side by the walls beside (fit_movement.fit_lean_wall: -0.41 away from a flat wall,
+                     # +0.51 toward an edge just ahead, with the chain as offset) changed the bots' lean little: on
+                     # practice-map captures (2026-10-03) their leans in sight went into a flat wall 41% of the time
+                     # (people 35%). Three times the fitted wall term brings that to 35%; the edge's pull is set to a
+                     # net +2.5 (2.74: around an edge 61%, 3.74: 63%, people 77%; edges a quarter second or longer
+                     # 79% vs 76%: people lean toward the opening before they reach it)
+                     "wall": {**mv["lean"]["wall"], "wall_logit": round(3.0 * mv["lean"]["wall"]["wall_logit"], 4),
+                              "edge_logit": 3.74}},
+            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "hold_pmf", "release_age_edges",
+                                                "release_hazard", "up_age_edges", "up_hazard"] if kk in v}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:
@@ -101,14 +109,22 @@ def build():
                        # it is whichever exposure offers it, and a belief look watches the corner nearest the believed
                        # position's direction. The crosshair ends closer to the corner than to the enemy at 58% of the
                        # sightings (53% without, people 80%)
-                       "lost_aim_last_seen": 1.0, "preaim_follow_geom": 1.0, "belief_look_corner": 1.0},
+                       "lost_aim_last_seen": 1.0, "preaim_follow_geom": 1.0, "belief_look_corner": 1.0,
+                       # set on practice-map captures (2026-10-03): an enemy heard behind (footsteps, gunfire more than
+                       # 90 deg off the view) is turned to 150 ms after the sound, and that direction is held for 3 s
+                       # against route turns, look-arounds and corners (a new sound behind re-aims). People with an
+                       # unseen enemy running or firing behind them within 1000 u face it within a second 63% of the
+                       # time and are hit first 7%; the bots without the turn 38% and 20%. Held only 0.9 s the view
+                       # swung back to the route and turned to the next sound again (60% and 11%, but the hidden view
+                       # turned at 16.8 deg/s at the median, 10.6 before, people 8.1); held 3 s: 51%, 13%, 10.3 deg/s
+                       "sound_turn_p": 1.0, "sound_turn_delay_ms": 150.0, "sound_turn_hold_ms": 3000.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
-                                           "press_los", "release_los", "press_hidden", "release_hidden"]},
+                                           "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},
                     "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0, "hidden_late_logit": 0.0}},
         "weapon": {"post_kill_round_edges": wp["post_kill_round_edges"], "post_kill_reload_p": wp["post_kill_reload_p"],
                    "post_kill_delay": wp["post_kill_delay"], "respawn": wp["respawn"],
-                   "tactical_hazard": 0.004, "tactical_clip_frac": 0.5, "pistol_switch_per_min": 0.1},
+                   "tactical": wp["tactical"], "pistol_switch_per_min": 0.1},
         # Not measurable in the recordings (no audio, no intent); plan values, tuned by calibrate.py.
         "perception": {"detect_rate": 1.2, "ecc_scale_deg": 18.0, "dist_scale": 1400.0, "part_exponent": 0.7, "loss_memory_ticks": 3,
                        "gunfire_sigma_deg": 10.0, "gunfire_range": 3000.0, "footstep_sigma_deg": 20.0, "footstep_range": 1000.0,
@@ -174,6 +190,8 @@ def default_calibration():
             "aim_height_firing": {"x": [lo["aim_height_firing"], hi["aim_height_firing"]], "y": [lo["aim_height_firing"], hi["aim_height_firing"]]},
             # hold or clear: the log multiplier of the corner pre-aim horizon and of the hold hazard near exposures
             "hold_angle": lin("hold_angle", -1.0, 1.0),
+            # the logit shift of a strafe the tick after one is let go
+            "counter_strafe": lin("counter_strafe", -1.5, 1.5),
         },
         "skill": {
             "aim_error_fight_deg": {"x": [lo["aim_error_fight_deg"], pooled["aim_error_fight_deg"], hi["aim_error_fight_deg"]],

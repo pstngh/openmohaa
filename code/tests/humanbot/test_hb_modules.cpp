@@ -135,24 +135,33 @@ static void TestMovement(const hb::ModelBundle& b)
     }
     HB_CHECK(into == 0);
     HB_CHECK(sideMoves > 2000);   // it still strafes the other way
-    // without a veto, the fitted wall terms still steer new keys away from a wall that close
-    // (people strafe into a touching wall about half as often as into open space)
-    hb::Mover mvOpen, mvWall;
+    // without a veto, the fitted wall terms still tilt new keys away from a wall that close (people strafe into a
+    // touching wall about half as often as into open space). Since a strafe after a stop goes the other way (95-98%
+    // after one tick of none, the side's memory) the tilt is small: a wall the bot touches is what the reflex vetoes
+    hb::Mover mvOpen, mvWall, mvTouch;
     mvOpen.Init(&b.shared.movement);
     mvWall.Init(&b.shared.movement);
-    int openRight = 0, openLeft = 0, wallRight = 0, wallLeft = 0;
-    for (int i = 0; i < 100000; i++) {
+    mvTouch.Init(&b.shared.movement);
+    hb::MoveInput touch = wall;
+    touch.clearance[5]  = 1.0f;
+    touch.clearance[8]  = 1.0f;
+    int openRight = 0, openLeft = 0, wallRight = 0, wallLeft = 0, touchRight = 0;
+    for (int i = 0; i < 200000; i++) {
         mvOpen.Step(in, style, rm, rs, out);
         openRight += hb::ChordSide(out.chord) == 1;
         openLeft += hb::ChordSide(out.chord) == -1;
         mvWall.Step(wall, style, rm, rs, out);
         wallRight += hb::ChordSide(out.chord) == 1;
         wallLeft += hb::ChordSide(out.chord) == -1;
+        mvTouch.Step(touch, style, rm, rs, out);
+        touchRight += hb::ChordSide(out.chord) == 1;
     }
     const double openShare = openRight / double(std::max(1, openRight + openLeft));
     const double wallShare = wallRight / double(std::max(1, wallRight + wallLeft));
-    HB_REPORT("strafe right: %.2f of strafe time in the open, %.2f with a wall 4 u to the right", openShare, wallShare);
-    HB_CHECK(wallShare < openShare - 0.05);
+    HB_REPORT("strafe right: %.2f of strafe time in the open, %.2f with a wall 4 u to the right, %d ticks touching it",
+              openShare, wallShare, touchRight);
+    HB_CHECK(wallShare < openShare - 0.02);
+    HB_CHECK(touchRight == 0);
     // the wall reflex: a strafe toward a wall reached within the reflex time is let go of at once
     hb::MovementModel reflex = b.shared.movement;
     reflex.wallReflexMs      = 200.0f;
@@ -359,6 +368,100 @@ static void TestStance(const hb::ModelBundle& b)
     const double hunting = leanShare(false), deadOpp = leanShare(true);
     HB_REPORT("lean hidden: %.2f with a living enemy, %.2f with none", hunting, deadOpp);
     HB_CHECK(deadOpp < hunting - 0.1);
+
+    // people crouch three times as readily in the half second after a shot is heard
+    auto dipsPerMin = [&](bool fire) {
+        hb::Mover m;
+        m.Init(&b.shared.movement);
+        hb::MoveInput ci = in;
+        ci.fireHeard     = fire;
+        hb::Rng r1(31), r2(32);
+        bool    d = false, pk = false;
+        int     dipsN = 0;
+        for (int i = 0; i < 200000; i++) {
+            ci.ducked = d;
+            m.Step(ci, style, r1, r2, out);
+            if (out.crouch && !pk) {
+                dipsN += !d;
+                d = !d;
+            }
+            pk = out.crouch;
+        }
+        return dipsN / (200000.0 / 1200.0);
+    };
+    const double quiet = dipsPerMin(false), fired = dipsPerMin(true);
+    HB_REPORT("crouch dips a minute hidden: %.1f quiet, %.1f after a shot", quiet, fired);
+    HB_CHECK(fired > 2.0 * quiet);
+}
+
+// After a strafe is let go, the next strafe goes the other way (people: 95-98% after one tick of none).
+static void TestStrafeMemory(const hb::ModelBundle& b)
+{
+    hb::Mover mv;
+    mv.Init(&b.shared.movement);
+    hb::StyleOffsets style;
+    hb::MoveInput    in;
+    in.ctx          = hb::CTX_LOS_FIRE;
+    in.enemyKnown   = true;
+    in.enemyDist    = 350.0f;
+    hb::Rng        rm(51), rs(52);
+    hb::MoveOutput out;
+    int            last = 0, prevSide = 0, gap = 0, quickN = 0, quickOpp = 0;
+    for (int i = 0; i < 400000; i++) {
+        mv.Step(in, style, rm, rs, out);
+        const int side = hb::ChordSide(out.chord);
+        if (side == 0) {
+            gap += prevSide == 0;
+        } else if (prevSide == 0 && last != 0) {
+            if (gap <= 1) {
+                quickN++;
+                quickOpp += side == -last;
+            }
+        }
+        if (side != 0) {
+            last = side;
+            gap  = 0;
+        }
+        prevSide = side;
+    }
+    const double opp = quickOpp / double(std::max(quickN, 1));
+    HB_REPORT("a strafe pressed right after a stop goes the other way %.2f (%d)", opp, quickN);
+    HB_CHECK(quickN > 100 && opp > 0.85);
+}
+
+// People lean away from a flat wall at their side and around an edge just ahead on one side.
+static void TestLeanWall(const hb::ModelBundle& b)
+{
+    hb::MovementModel mm = b.shared.movement;
+    mm.leanWallLogit     = -1.0f;
+    mm.leanEdgeLogit     = 2.0f;
+    hb::StyleOffsets style;
+    auto intoWall = [&](bool edge) {
+        hb::Mover m;
+        m.Init(&mm);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_LOS_FIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 350.0f;
+        in.onGround   = true;
+        in.clearance[hb::MakeChord(0, 1)] = 10.0f;   // a wall at the right
+        in.clearance[hb::MakeChord(1, 1)] = edge ? 128.0f : 20.0f;
+        hb::Rng        r1(41), r2(42);
+        hb::MoveOutput out;
+        int            into = 0, leaned = 0;
+        for (int i = 0; i < 200000; i++) {
+            m.Step(in, style, r1, r2, out);
+            leaned += out.lean != 0;
+            into += out.lean == 1;
+        }
+        return into / double(std::max(leaned, 1));
+    };
+    const double flat = intoWall(false), edge = intoWall(true);
+    mm.leanWallLogit = mm.leanEdgeLogit = 0.0f;
+    const double flat0 = intoWall(false);
+    HB_REPORT("leans into a wall at the right: flat %.2f (no wall term %.2f), with an edge ahead %.2f", flat, flat0, edge);
+    HB_CHECK(flat < flat0 - 0.1);
+    HB_CHECK(edge > flat0 + 0.1);
 }
 
 static void TestTrigger(const hb::ModelBundle& b)
@@ -466,7 +569,7 @@ static void TestWeapon(const hb::ModelBundle& b)
         int cmd = hb::CMD_NONE;
         for (int t = 0; t < ticks && cmd == hb::CMD_NONE; t++) {
             s.timeMs += 50;
-            cmd = w.Step(s, false, true, detected, false, r);
+            cmd = w.Step(s, false, true, detected, false, detected ? 0 : 5000, r);
         }
         return cmd;
     };
@@ -503,6 +606,23 @@ static void TestWeapon(const hb::ModelBundle& b)
     s.pistolAmmo  = 25;
     HB_CHECK(run(20, true) == hb::CMD_NONE);
     HB_CHECK(run(1, false) == hb::CMD_PRIMARY);
+    // out of sight, people reload early with little left in the clip, seldom with most of it
+    auto earlyReloads = [&](int clip) {
+        int n = 0;
+        for (int k = 0; k < 400; k++) {
+            w.Reset();
+            s.weaponClass = hb::WEAPON_CLASS_SMG;
+            s.weaponState = 0;
+            s.clipSize    = 32;
+            s.clipAmmo    = clip;
+            s.reserveAmmo = 64;
+            n += run(20, false) == hb::CMD_RELOAD;   // within a second
+        }
+        return n / 400.0;
+    };
+    const double low = earlyReloads(3), full = earlyReloads(28);
+    HB_REPORT("early reload within a second, enemy out of sight: %.2f with 3 rounds left, %.2f with 28", low, full);
+    HB_CHECK(low > 0.05 && low > 4.0 * full);
 }
 
 static void TestView(const hb::ModelBundle& b)
@@ -590,6 +710,47 @@ static void TestView(const hb::ModelBundle& b)
         }
     }
     self.velocity = hb::Vec3();
+}
+
+// An enemy heard behind is turned to after the reaction delay, and the view keeps that way for the hold.
+static void TestSoundTurn(const hb::ModelBundle& b)
+{
+    hb::ViewModel vm     = b.shared.view;
+    vm.soundTurnP        = 1.0f;
+    vm.soundTurnDelayMs  = 150.0f;
+    vm.soundTurnHoldMs   = 3000.0f;
+    vm.lookaroundPerMin  = 0.0f;
+    hb::SelfState self;
+    self.alive   = true;
+    self.eye     = hb::Vec3(0, 0, 82);
+    self.viewYaw = 0.0f;
+    hb::ViewInput h;
+    h.ctx = hb::CTX_HIDDEN_NOFIRE;
+    std::vector<hb::SoundObs> sounds(1);
+    sounds[0].type = hb::SOUND_FOOTSTEP;
+    sounds[0].yaw  = 170.0f;   // behind
+    std::vector<hb::SoundObs> none;
+    hb::ViewControl vc;
+    vc.Init(&vm);
+    vc.Reset(self);
+    hb::Rng        r(9);
+    hb::ViewOutput out;
+    float          yawAt1s = 0.0f, yawAt3s = 0.0f;
+    for (int t = 0; t < 60; t++) {
+        h.sounds = t == 2 ? &sounds : &none;
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+        if (t == 21) {
+            yawAt1s = self.viewYaw;
+        }
+        if (t == 59) {
+            yawAt3s = self.viewYaw;
+        }
+    }
+    HB_REPORT("a footstep behind (170 deg): view at %.0f deg after 1 s, %.0f after 3 s", yawAt1s, yawAt3s);
+    HB_CHECK(std::fabs(hb::Wrap180(yawAt1s - 170.0f)) < 30.0f);
+    HB_CHECK(std::fabs(hb::Wrap180(yawAt3s - 170.0f)) < 30.0f);
 }
 
 // A belief look with a corner watches the corner nearest the believed position, and a watched corner is followed by
@@ -792,6 +953,9 @@ int main()
     TestWeapon(b);
     TestView(b);
     TestViewCorners(b);
+    TestSoundTurn(b);
+    TestLeanWall(b);
+    TestStrafeMemory(b);
     TestSubsteps();
     TestEye();
     TestPerceiverDead(b);

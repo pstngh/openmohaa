@@ -75,7 +75,7 @@ struct ViewOutput {
     float pitchDelta  = 0.0f;
     bool  still       = false;
     bool  flick       = false;
-    float flickFrac[8] = {};
+    float flickFrac[MAX_SUBSTEPS] = {};
     int   mode        = VIEW_TRACK;
     float targetYaw   = 0.0f;
     float targetPitch = 0.0f;
@@ -118,6 +118,8 @@ private:
     Vec3  CornerAim(const Vec3& eye, const Vec3& corner, float open) const;
     // The exposure whose corner lies nearest the believed position's direction, by mass (-1: none).
     int   CornerNearBelief(const SelfState& self, const ViewInput& in) const;
+    // The exposure whose corner lies nearest the direction yaw, within maxDeg, by mass (-1: none).
+    int   CornerNearYaw(const SelfState& self, const ViewInput& in, float yaw, float maxDeg) const;
     void  LookAround(const SelfState& self, Rng& rng);
     void  StartFlick(float errYaw, float errPitch, float gainMedian, float gainSigma, Rng& rng);
     float NoiseStep(const NoiseModel& nm, float dist, float& state, float scale, Rng& rng);
@@ -148,6 +150,7 @@ private:
     int   m_damageAtMs  = -100000;
     float m_damageYaw   = 0.0f;
     bool  m_damagePending = false;
+    int   m_pendingMode = VIEW_DAMAGE;   // the pending turn's cause: VIEW_DAMAGE or VIEW_SOUND
     bool  m_wasTracking = false;
     int   m_refractory  = 0;   // ticks before another corrective flick may start
     int   m_preaimCell  = -1;  // the exposure whose corner is watched (VIEW_PREAIM)

@@ -66,6 +66,8 @@ public:
     void Reset();
 
     void Step(const SelfState& self, const NavInput& in, Rng& rng, NavOutput& out);
+    // Pick a new hunt goal at the next step (the believed position moved: an enemy was heard behind).
+    void Replan() { m_goalValid = false; }
 
 private:
     Vec3 PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng);

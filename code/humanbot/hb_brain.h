@@ -49,6 +49,9 @@ public:
     void Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps);
     void SetMap(const MapPrior *map);
     void SetFov(float hfovDeg, float vfovDeg);
+    // The bot's own ping (ms; 0 = unknown): after a respawn the server takes no usercmd for as many ticks as a
+    // client at that ping takes to see the respawn (else the fitted dead ticks are drawn).
+    void SetPingMs(int ms) { m_pingMs = ms; }
     // The map's geometry for the corners of the believed paths (nullptr: exposures without corners).
     void SetWorld(const WorldQuery *world) { m_belief.SetWorld(world); }
 
@@ -96,6 +99,7 @@ private:
     int  m_spawnMs       = 0;
     int  m_liveTick      = 0;      // ticks since the first live tick of this life (< 0 during the dead time)
     int  m_spawnChord    = 4;      // keys already held at the first live tick
+    int  m_spawnLiveTick = 0;      // m_liveTick at the spawn tick
     bool m_click         = false;  // the respawn click still held or repeated after the spawn
     bool m_clickOver     = false;
     bool m_attackPrev    = false;  // attack actually sent last tick
@@ -105,6 +109,9 @@ private:
     bool m_bashPrev      = false;  // a bash tap went out last tick (out of ammunition)
     int  m_killMs        = -1000000;
     int  m_headHitMs     = -1000000;   // our last bullet in an enemy's head
+    int  m_fireHeardMs   = -1000000;   // another player's gunfire last heard
+    int  m_pingMs        = 0;
+    int  m_viewMode      = -1;     // the view mode of the last tick
     bool m_los           = false;
     int  m_lageMs        = 100000;
     bool m_vis           = false;  // the trigger's sight: a body part of the focus enemy perceived

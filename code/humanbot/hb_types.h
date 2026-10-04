@@ -252,6 +252,9 @@ struct Observation {
 //
 // Decisions for one 50 ms tick
 //
+// Usercmds per 50 ms server frame at most (people send 12.5 at 250 fps to 25 at 500 fps).
+constexpr int MAX_SUBSTEPS = 32;
+
 struct TickPlan {
     int   owner       = OWNER_BRAIN;
     int   chord       = 4;
@@ -265,8 +268,9 @@ struct TickPlan {
     float yawDelta    = 0.0f;    // view change over this tick, degrees
     float pitchDelta  = 0.0f;
     bool  viewStill   = false;   // mouse not moved at all this tick
-    float flickFrac[8] = {};     // optional per-substep share of yawDelta during flicks (sums to 1)
+    float flickFrac[MAX_SUBSTEPS] = {};   // optional per-substep share of yawDelta during flicks (sums to 1)
     bool  flickShaped = false;
+    bool  send        = true;    // false: no usercmd this tick (the dead ticks after a respawn)
     int   command     = CMD_NONE;
     bool  navTargetValid = false;
     Vec3  navTarget;

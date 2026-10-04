@@ -42,6 +42,7 @@ struct TriggerInput {
     float errHalfWidths  = 100.0f; // with LOS: aim error / opponent body half-width
     float hiddenYawErr   = 180.0f; // hidden: |yaw error| to the believed enemy position
     bool  damaged        = false;  // hit this tick
+    float clipFill       = 1.0f;   // rounds left / clip size
     bool  anticipate     = false;  // an exposure is expected in the crosshair right now
     bool  blocked        = false;  // a teammate is in the crosshair
     float releaseLogit   = 0.0f;   // style: burst length (in sight only)

@@ -96,6 +96,7 @@ StyleOffsets ComputeOffsets(const StyleDials& dials, const Calibration& calib, c
     o.releaseLogit    = calib.dial[DIAL_BURST].Eval(dials.dial[DIAL_BURST]);
     o.aimHeightFiring = Clamp(calib.dial[DIAL_AIM_HEIGHT].Eval(dials.dial[DIAL_AIM_HEIGHT]), 0.2f, 0.8f);
     o.angleHold       = std::exp(Clamp(calib.dial[DIAL_HOLD_ANGLE].Eval(dials.dial[DIAL_HOLD_ANGLE]), -3.0f, 3.0f));
+    o.counterLogit    = Clamp(calib.dial[DIAL_COUNTER].Eval(dials.dial[DIAL_COUNTER]), -4.0f, 4.0f);
     o.noiseScale      = Clamp(calib.skill[SKILL_AIM_ERROR].Eval(dials.skill[SKILL_AIM_ERROR]), 0.3f, 3.0f);
     // the time to the first shot after a sighting is set by the trigger, not by detection
     // (a detection sweep in the arena moves it by less than 30 ms)

@@ -10,7 +10,8 @@
   "walk_hidden",
   "burst_median",
   "aim_height_firing",
-  "hold_angle"
+  "hold_angle",
+  "counter_strafe"
  ],
  "skill_dials": [
   "aim_error_fight_deg",
@@ -32,7 +33,8 @@
     "walk_hidden": 0.0114,
     "burst_median": 6.8333,
     "aim_height_firing": 0.39,
-    "hold_angle": 0.2341
+    "hold_angle": 0.2341,
+    "counter_strafe": 0.1922
    },
    "spread": {
     "fwd_diag_fight": 0.0285,
@@ -44,7 +46,8 @@
     "walk_hidden": 0.0197,
     "burst_median": 0.5963,
     "aim_height_firing": 0.0287,
-    "hold_angle": 0.025
+    "hold_angle": 0.025,
+    "counter_strafe": 0.019
    }
   },
   {
@@ -62,7 +65,8 @@
     "walk_hidden": 0.0125,
     "burst_median": 5.75,
     "aim_height_firing": 0.4933,
-    "hold_angle": 0.2826
+    "hold_angle": 0.2826,
+    "counter_strafe": 0.4405
    },
    "spread": {
     "fwd_diag_fight": 0.0437,
@@ -74,7 +78,8 @@
     "walk_hidden": 0.0197,
     "burst_median": 1.2168,
     "aim_height_firing": 0.0447,
-    "hold_angle": 0.0568
+    "hold_angle": 0.0568,
+    "counter_strafe": 0.0867
    }
   },
   {
@@ -92,7 +97,8 @@
     "walk_hidden": 0.068,
     "burst_median": 4.0,
     "aim_height_firing": 0.491,
-    "hold_angle": 0.4472
+    "hold_angle": 0.4472,
+    "counter_strafe": 0.5225
    },
    "spread": {
     "fwd_diag_fight": 0.0333,
@@ -104,7 +110,8 @@
     "walk_hidden": 0.0568,
     "burst_median": 0.5963,
     "aim_height_firing": 0.032,
-    "hold_angle": 0.1161
+    "hold_angle": 0.1161,
+    "counter_strafe": 0.1916
    }
   }
  ],
@@ -119,6 +126,7 @@
   "burst_median": 4.0,
   "aim_height_firing": 0.352,
   "hold_angle": 0.2204,
+  "counter_strafe": 0.1463,
   "aim_error_fight_deg": 4.0775,
   "reaction_ms": 100.0
  },
@@ -133,6 +141,7 @@
   "burst_median": 8.0,
   "aim_height_firing": 0.54,
   "hold_angle": 0.5274,
+  "counter_strafe": 0.6632,
   "aim_error_fight_deg": 6.534,
   "reaction_ms": 200.0
  },
@@ -167,6 +176,7 @@
   "burst_median": 5.9534,
   "aim_height_firing": 0.4408,
   "hold_angle": 0.2943,
+  "counter_strafe": 0.3495,
   "aim_error_fight_deg": 5.3133,
   "reaction_ms": 152.581,
   "mp40_share": 0.5091
