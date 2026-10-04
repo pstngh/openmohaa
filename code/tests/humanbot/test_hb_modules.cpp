@@ -498,8 +498,8 @@ static void TestLeanSwitch(const hb::ModelBundle& b)
     };
     double       rel0, relP, relS, relD, relH;
     const double neutral = rates(0.0f, 0.0f, 0.0f, rel0), presser = rates(2.0f, 0.0f, 0.0f, relP);
-    const double strafer = rates(-5.0f, 0.0f, 0.0f, relS), drop = rates(0.0f, 1.5f, 0.0f, relD);
-    const double habit   = rates(0.0f, 0.0f, 2.0f, relH);
+    const double strafer = rates(-5.0f, 0.0f, 0.0f, relS), habit = rates(0.0f, 0.0f, 2.0f, relH);
+    rates(0.0f, 1.5f, 0.0f, relD);
     HB_REPORT("strafe turned against the lean, next tick: switch %.3f neutral, %.3f at +2, %.3f at -5, %.3f with a +2 lean "
               "habit; let go %.3f neutral, %.3f with a +1.5 let-go, %.3f with a +2 lean habit",
               neutral, presser, strafer, habit, rel0, relD, relH);
@@ -800,6 +800,40 @@ static void TestSoundTurn(const hb::ModelBundle& b)
     HB_CHECK(std::fabs(hb::Wrap180(yawAt3s - 170.0f)) < 30.0f);
 }
 
+// A hit from an enemy not in sight turns the view toward it, also from just outside the view (the owner shot a bot
+// from 61 deg off and its view did not move: only hits felt more than 60 deg off used to turn it).
+static void TestDamageTurn(const hb::ModelBundle& b)
+{
+    hb::ViewModel vm    = b.shared.view;
+    vm.lookaroundPerMin = 0.0f;
+    for (const float off : {30.0f, 55.0f, 120.0f}) {
+        hb::SelfState self;
+        self.alive   = true;
+        self.eye     = hb::Vec3(0, 0, 82);
+        self.viewYaw = 0.0f;
+        hb::ViewInput h;
+        h.ctx = hb::CTX_HIDDEN_NOFIRE;
+        std::vector<hb::DamageObs> hit(1), none;
+        hit[0].yaw = off;
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        vc.Reset(self);
+        hb::Rng        r(11);
+        hb::ViewOutput out;
+        bool           damageMode = false;
+        for (int t = 0; t < 12; t++) {   // 600 ms
+            h.damage = t == 2 ? &hit : &none;
+            self.timeMs += 50;
+            vc.Step(self, h, r, out);
+            self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+            damageMode   = damageMode || out.mode == hb::VIEW_DAMAGE;
+        }
+        HB_REPORT("hit felt %.0f deg off the view: view at %.0f deg 500 ms later", off, self.viewYaw);
+        HB_CHECK(damageMode);
+        HB_CHECK(std::fabs(hb::Wrap180(self.viewYaw - off)) < 15.0f);
+    }
+}
+
 // A belief look with a corner watches the corner nearest the believed position, and a watched corner is followed by
 // where it is when another exposure cell comes to offer it.
 static void TestViewCorners(const hb::ModelBundle& b)
@@ -1001,6 +1035,7 @@ int main()
     TestView(b);
     TestViewCorners(b);
     TestSoundTurn(b);
+    TestDamageTurn(b);
     TestLeanWall(b);
     TestLeanSwitch(b);
     TestStrafeMemory(b);

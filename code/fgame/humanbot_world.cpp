@@ -45,6 +45,11 @@ static const float  SNAP_EXTENT_Z       = 64.0f;
 static const float  VIS_EYE_HEIGHT      = 64.0f;   // between a crouched and a standing eye
 static const int    VIS_BUDGET_MS       = 2;       // tracing time per server frame
 static const int    INIT_WAIT_FRAMES    = 40;      // wait this long for the navigation mesh before going without
+// A map without a recorded prior gets cells of 32 u, or coarser ones on a big map: the visibility table grows with the
+// square of the cells (dm/brownffa has 229,322 cells of 32 u, a 13 GB table: the test server died of it) and the
+// route queries with the cells. The practice maps' recorded priors have a few hundred.
+static const int    MAX_NAV_CELLS       = 3000;
+static const float  NAV_CELL_SIZES[]    = {32.0f, 48.0f, 64.0f, 96.0f, 128.0f, 192.0f, 256.0f, 384.0f, 512.0f, 768.0f};
 static const char  *VIS_CACHE_MAGIC     = "HBV1";
 
 struct WorldContext {
@@ -142,14 +147,15 @@ static void SnapCells(hb::MapPrior& prior, int& snapped)
 }
 
 // A coarse route graph from the navigation mesh: polygons are sampled on a grid of
-// the prior's cell size and joined inside a polygon and across polygon links.
-static bool BuildNavmeshPrior(hb::MapPrior& prior)
+// the prior's cell size and joined inside a polygon and across polygon links. Gives up
+// (false, tooMany set) as soon as the map has more than maxCells cells.
+static bool BuildNavmeshPrior(hb::MapPrior& prior, float size, int maxCells, bool& tooMany)
 {
+    tooMany               = false;
     const dtNavMesh *mesh = navigationMap.IsValid() ? navigationMap.GetNavMesh() : NULL;
     if (!mesh) {
         return false;
     }
-    const float                                   size = 32.0f;
     std::map<std::pair<int, int>, std::vector<int>> columns;
     std::map<dtPolyRef, std::vector<int>>           polyCells;
     std::vector<std::vector<std::pair<int, float>>> adj;
@@ -257,6 +263,10 @@ static bool BuildNavmeshPrior(hb::MapPrior& prior)
                 }
             }
             polyCells[base | static_cast<dtPolyRef>(i)] = cells;
+            if (static_cast<int>(prior.cells.size()) > maxCells) {
+                tooMany = true;
+                return false;
+            }
         }
     }
     if (prior.cells.empty()) {
@@ -451,14 +461,32 @@ static void InitWorld()
         }
     }
     if (!loaded) {
-        s_world.prior = hb::MapPrior();
-        if (BuildNavmeshPrior(s_world.prior)) {
-            s_world.prior.name     = level.mapname.c_str();
-            s_world.prior.checksum = checksum;
-            AddEngineSpawns(s_world.prior);
-            loaded = true;
-        } else if (st.note.empty()) {
-            st.note = "no recorded prior and no navigation mesh: bots hunt without a map";
+        for (const float size : NAV_CELL_SIZES) {
+            bool tooMany  = false;
+            s_world.prior = hb::MapPrior();
+            if (BuildNavmeshPrior(s_world.prior, size, MAX_NAV_CELLS, tooMany)) {
+                s_world.prior.name     = level.mapname.c_str();
+                s_world.prior.checksum = checksum;
+                AddEngineSpawns(s_world.prior);
+                loaded = true;
+                if (size > NAV_CELL_SIZES[0]) {
+                    st.note += (st.note.empty() ? "" : "; ") + std::string("a big map: cells of ")
+                             + std::to_string(static_cast<int>(size)) + " u (at most " + std::to_string(MAX_NAV_CELLS)
+                             + " cells)";
+                    gi.Printf("humanbot: %s is a big map: cells of %d u\n", level.mapname.c_str(), static_cast<int>(size));
+                }
+                break;
+            }
+            if (!tooMany) {
+                break;
+            }
+        }
+        if (!loaded) {
+            s_world.prior = hb::MapPrior();
+            if (st.note.empty()) {
+                st.note = navigationMap.IsValid() ? "the map is too big for the bots' map context: bots hunt without a map"
+                                                  : "no recorded prior and no navigation mesh: bots hunt without a map";
+            }
         }
     }
     if (!loaded) {

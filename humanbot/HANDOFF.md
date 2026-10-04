@@ -31,9 +31,9 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 48% of 195
-  statistics (median relative error 0.25; the same 48% before "The lean follows the strafe", whose dials the average
-  bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
+- In the arena, two average-style bots are within 25% of the human value on 50% of 195
+  statistics (median relative error 0.25; 48% before "Hits from an unseen enemy" and before "The lean follows the
+  strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
   frame, model `697feb684ecf` of 2026-10-04 on a Linux workstation. The arena is not the maps: in its open pillars
@@ -116,6 +116,8 @@ lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
      bots then use a prior derived from the navmesh.
    - The visibility table builds 2 ms per frame and is cached in
      `~/.local/share/openmohaa/main/humanbot/vis/`.
+   - A map without a recorded prior gets cells of 32 u, coarser on a big map (at most 3000 cells:
+     `MAX_NAV_CELLS`, `humanbot_world.cpp`); the console says "is a big map: cells of N u".
 4. **Movement.**
    - Usercmds go through `G_ClientThink` 12 times per frame (`Commit`, `g_humanbot_substeps`).
    - Look for jitter, bots standing still, or bots stuck on doors and ladders.
@@ -874,6 +876,36 @@ Scripts in the git-ignored `move_wip/s5/`: `turn.py` (what the lean does at the 
 realised per family), `dropctx.py` (by context), `score.py` (a report's share within 25%); `move_wip/s4/lean_hold.py`
 and `obs5.py` as before.
 
+## Hits from an unseen enemy, and big maps (2026-10-04)
+
+The owner, playing the bots on the server of `55a6d0d6`: right after spawning, bots often did not look at them, and
+one walked past a doorway looking at the wall without turning even when shot. In that session (13:05:15 UTC, telemetry
+copied to `move_wip/s6/live3/`) the bot walked toward the owner with its route look held 60 deg to the side; hit from
+61 deg off (100 to 9 health) its view did not move for 1.3 s, until it turned to the gunfire 1.35 s later. A hit
+turned the view only when it was felt more than 60 deg off; the felt direction is +-20 deg off (`damage_sigma_deg`)
+and the bot sees 48 deg to each side, so a shooter just outside the view often went unanswered (in that session 4 of
+7 unseen hits from 60-90 deg turned the view). Now any hit from an enemy not in sight turns the view toward where it
+is felt (`ViewControl::Step`, after the same 100 ms).
+
+Also from that session: the owner's rcon `map dm/brownffa` killed the test server (`std::bad_alloc` in
+`MapPrior::InitRuntimeVisibility`). Without a recorded prior that map had 229,322 cells of 32 u, a 13 GB visibility
+table. A navmesh-derived prior now takes the smallest cell size (32, 48, 64 ... 768 u) that keeps it under 3000 cells:
+dm/brownffa gets 2,594 cells of 384 u, set up in 25 ms, its visibility table traced in 5 s (2 minutes at 2 ms a
+frame) and cached. The map load still stalls 2.5 s while the engine builds its navigation mesh.
+
+Practice maps, bot vs bot (`move_wip/reports/hf_*` against `ld_*`); seeds 201-208, in brackets 401-408. Hit with no
+part of the shooter on screen (`move_wip/s6/hit_unseen.py`):
+
+| shooter off the view | people | before | now |
+|---|---|---|---|
+| 48-60 deg: facing it within 0.5 s / 1 s | 91% / 100% (11 hits) | 76% / 88% (85% / 94%) | 88% / 100% (89% / 100%) |
+| 60-75 deg: the same | 87% / 93% (15) | 79% / 87% (86% / 97%) | 86% / 98% (89% / 97%) |
+| 75-180 deg: within 1 s | 75-82% | 91-99% | 91-100% |
+
+The five checks of "What the owner saw" and the lean (`obs5.py`) stay where they were; 281 statistics within 25%
+55% (56%), 56% / 52% before; no statistic crossed 25% for the worse in both seed sets. In the arena (eight seeds) 50%
+of 195 (48%).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1000,6 +1032,9 @@ and `obs5.py` as before.
   (see "What the owner saw"). The early reload and the trigger's rounds-left term replace hand-set values with fits.
 - The style dial `counter_strafe` (a strafe the tick after one is let go) shifts the fitted hazard at that tick; its
   curve is swept like the others.
+- A hit from an enemy not in sight turns the view toward where it is felt, from any angle (before 2026-10-04 only
+  hits felt more than 60 deg off: a hand-set gate). Maps without a recorded prior get coarser cells when they would
+  have more than 3000 (hand-set: the visibility table's size and build time).
 - The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
   the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others
   keep their curves (a re-sweep redraws the arena's noise).
