@@ -61,8 +61,8 @@ In the console, check:
    above.
 2. `humanbot_selftest 60` prints the map status:
    - navigation mesh `valid`;
-   - map prior `recorded human prior, checksum ok` on the four practice maps (`derived from
-     the navmesh` on any other map);
+   - map prior `recorded human prior, checksum ok` on the four practice maps and on dm/brownffa
+     and dm/flag (`derived from the navmesh` on any other map);
    - visibility `ready`. It is built in the background the first time a map loads and cached
      under `~/.local/share/openmohaa/main/humanbot/vis/`.
 
@@ -83,7 +83,8 @@ human is connected (`g_movelog_need_human`), so every visit is a capture of its 
 new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
 
 1. Join the server and play the bot 1v1 on the practice maps (`map dm/crnodoors`,
-   `map dm/main`, `map dm/vents`, `map dm/downladder`). Play with an SMG, as in the
+   `map dm/main`, `map dm/vents`, `map dm/downladder`; also `map dm/brownffa` and `map dm/flag`,
+   practice areas of the objective maps that have their own map prior since 2026-10-04). Play with an SMG, as in the
    recordings. The bot joins axis or allies by its drawn weapon habit (MP40 or Thompson). About
    20-30 minutes per map is plenty.
 2. Vary the opponent between sessions:

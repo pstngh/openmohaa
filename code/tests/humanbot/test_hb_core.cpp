@@ -133,9 +133,11 @@ static void TestBundle(hb::ModelBundle& bundle)
 
 static void TestMaps()
 {
-    // the practice maps' BSP header checksums (sv_mapChecksum), which the engine glue compares exactly
+    // the practice maps' BSP header checksums (sv_mapChecksum), which the engine glue compares exactly: the four duel
+    // maps and two practice areas of the objective maps (dm/brownffa, the Bridge of obj_team4; dm/flag, part of V2)
     const std::map<std::string, int32_t> sums = {{"maps/dm_crnodoors.json", -17593952}, {"maps/dm_main.json", 832297909},
-                                                 {"maps/dm_vents.json", 1765529479}, {"maps/dm_downladder.json", -1474374008}};
+                                                 {"maps/dm_vents.json", 1765529479}, {"maps/dm_downladder.json", -1474374008},
+                                                 {"maps/dm_brownffa.json", -1751530710}, {"maps/dm_flag.json", 166358282}};
     int nmaps = 0;
     for (const std::string& name : hb::EmbeddedNames()) {
         if (name.compare(0, 5, "maps/") != 0) {
@@ -190,7 +192,7 @@ static void TestMaps()
         bits.pop_back();
         HB_CHECK(!m.LoadRuntimeBits(bits));
     }
-    HB_CHECK(nmaps == 4);
+    HB_CHECK(nmaps == 6);
 }
 
 static void TestStyle(const hb::ModelBundle& b)

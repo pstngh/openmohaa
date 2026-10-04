@@ -302,6 +302,19 @@ void ParseMovement(const json& j, MovementModel& m)
     const json& fj = Get(kj, "fwd", "movement.keys");
     ParseKey(sj, m.side, nAge, nClr, nCa, 2, "movement.keys.side");
     ParseKey(fj, m.fwd, nAge, nClr, nCa, 3, "movement.keys.fwd");
+    // optional: models fitted before 2026-10-04 have no distance term with the enemy hidden
+    m.hidDistEdges.clear();
+    m.side.hidDistLogit = Table();
+    m.fwd.hidDistLogit  = Table();
+    if (kj.contains("hid_dist_edges")) {
+        m.hidDistEdges = Floats(kj.at("hid_dist_edges"), "movement.keys.hid_dist_edges");
+        RequireAscending(m.hidDistEdges, "movement.keys.hid_dist_edges");
+        const int nHd = static_cast<int>(m.hidDistEdges.size());
+        FillTable(Get(sj, "hid_dist_logit", "movement.keys.side"), m.side.hidDistLogit, {2, 3, nHd},
+                  "movement.keys.side.hid_dist_logit");
+        FillTable(Get(fj, "hid_dist_logit", "movement.keys.fwd"), m.fwd.hidDistLogit, {3, nHd},
+                  "movement.keys.fwd.hid_dist_logit");
+    }
     FillTable(Get(sj, "reverse_p", "movement.keys.side"), m.reverseP, {CTX_COUNT, 3, nAge}, "movement.keys.side.reverse_p");
     FillTable(Get(sj, "right_p", "movement.keys.side"), m.rightP, {CTX_COUNT, 3}, "movement.keys.side.right_p");
     RequireProb(m.reverseP.v, "movement.keys.side.reverse_p");
@@ -395,6 +408,9 @@ void ParseMovement(const json& j, MovementModel& m)
         const json& c       = j.at("coupling");
         m.navSwitchLogit    = NumOr(c, "nav_switch_logit", m.navSwitchLogit);
         m.navChoiceLogit    = NumOr(c, "nav_choice_logit", m.navChoiceLogit);
+        m.navFarMult        = NumOr(c, "nav_far_mult", m.navFarMult);
+        m.navFarNear        = NumOr(c, "nav_far_near", m.navFarNear);
+        m.navFarDist        = NumOr(c, "nav_far_dist", m.navFarDist);
         m.wallPressureLogit = NumOr(c, "wall_pressure_logit", m.wallPressureLogit);
         m.wallReflexMs      = NumOr(c, "wall_reflex_ms", m.wallReflexMs);
         m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);

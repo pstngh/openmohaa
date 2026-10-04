@@ -114,12 +114,15 @@ struct KeyModel {
     std::vector<float> choiceWallLogit; // what a change goes to: by clearance bin of the chord it makes (empty = none)
     float              losChangeLogit = 0.0f;
     Table              ctxChangeLogit; // side: [ctx][strafing][ctx age bin]; forward: [ctx][fwd+1][ctx age bin]
+    Table              hidDistLogit;   // the enemy hidden, by its believed distance: side [strafing][fwd+1][bin];
+                                       //   forward [fwd+1][bin] (empty = none)
 };
 
 struct MovementModel {
     std::vector<int>   ageEdges;     // lower edges of key-age bins, ticks
     std::vector<float> clearEdges;   // clearance bins in the key direction, units
     std::vector<float> distEdges;
+    std::vector<float> hidDistEdges; // the enemy hidden: lower edges of the distance bins of hidDistLogit, units
     std::vector<int>   ctxAgeEdges;  // ticks since the context changed; the last bin is the reference
     KeyModel           side;
     KeyModel           fwd;
@@ -158,6 +161,11 @@ struct MovementModel {
     // closed-loop couplings (calibrated in the arena)
     float navSwitchLogit      = 1.0f;   // switch logit per unit of misalignment x urgency
     float navChoiceLogit      = 1.5f;   // choice logit per unit of alignment x urgency
+    // with the enemy hidden, the route pull grows with its believed distance: x1 within navFarNear, xnavFarMult from
+    // navFarDist on (1 = off)
+    float navFarMult          = 1.0f;
+    float navFarNear          = 500.0f;
+    float navFarDist          = 900.0f;
     float wallPressureLogit   = 2.0f;   // switch logit while pushing into a wall
     // the wall reflex (set by hand, 0 = off): when the held chord's wall is closer than this many ms
     // at the current speed (or touching), a key is let go of (or a strafe added to slide along the
