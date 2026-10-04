@@ -519,18 +519,33 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
             m_leanAge++;
         }
     } else {
-        const int rel = side == 0 ? 0 : (side == m_lean ? 1 : 2);
+        // the strafe against the lean: the tick it turns so (the side changed this tick) is where people decide
+        const bool against = side != 0 && side != m_lean;
+        const int  rel     = side == 0 ? 0 : (!against ? 1 : (m.leanRels == 4 && m_sideAge == 1 ? 3 : 2));
         for (int k = 0; k < 3; k++) {
             p[k] = m.leanNext.At(1, lctx, ab, rel, k);
         }
-        const double stay = p[0];
-        if (stay > 1e-6 && stay < 1.0 - 1e-6) {
-            const double stay2 = Sigmoid(Logit(static_cast<float>(stay)) + habit - change);
-            const double s     = (1.0 - stay2) / (1.0 - stay);
-            p[1] *= s;
-            p[2] *= s;
-            p[0] = stay2;
+        // the habit and a context change govern letting go only. What a lean does with the strafe against it is a
+        // style of its own (the presser people flip it across with the strafe, the strafers let go of it, most of
+        // all while firing, the stoppers mostly keep it): there the fitted chain's own odds by context hold, shifted
+        // by the style's let-go and switch. The habit no longer holds a lean against the strafe: its calibrated
+        // per-context part (+2.2 hidden firing) cancelled the strafers' let-go in fights
+        const float letGo   = against ? -style.leanDropLogit : habit;
+        double      release = p[1], swap = p[2];
+        if (release > 1e-6 && release < 1.0 - 1e-6) {
+            release = Sigmoid(Logit(static_cast<float>(release)) - letGo + change);
         }
+        if (against && swap > 1e-6 && swap < 1.0 - 1e-6) {
+            swap = Sigmoid(Logit(static_cast<float>(swap)) + style.leanSwitchLogit);
+        }
+        if (release + swap > 1.0) {
+            const double s = 1.0 / (release + swap);
+            release *= s;
+            swap *= s;
+        }
+        p[0] = 1.0 - release - swap;
+        p[1] = release;
+        p[2] = swap;
         // stay on this side or switch to the other
         const double ss = p[0] + p[2];
         if (wall != 0.0f && ss > 1e-9 && p[0] > 1e-9 && p[2] > 1e-9) {

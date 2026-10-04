@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-03.
+For a Claude Code session picking this work up. The state is as of 2026-10-04.
 
 ## What this is
 
@@ -32,10 +32,11 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 48% of 195
-  statistics (median relative error 0.27; 53% before "What the owner saw", where the turn to sounds behind costs
+  statistics (median relative error 0.25; the same 48% before "The lean follows the strafe", whose dials the average
+  bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `7ab48ea75e87` of 2026-10-03 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `697feb684ecf` of 2026-10-04 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -811,6 +812,68 @@ rather than a shift of the fitted one (stoppers 60-63% one tick after letting go
   (`Brain::SetPingMs`, `TickPlan::send`). Without a ping (arena, replay) the fitted dead ticks are drawn as before.
 - Not done: a human tick covers 47-57 ms of client time (B2 of the note); the last usercmd still lands on the frame.
 
+## The lean follows the strafe (2026-10-04)
+
+The owner, spectating the rebuilt server: "the bots hold a lean direction for too long (and lean into a wall for a
+split second as a result)". In the live session of 2026-10-04 (`move_wip/s4/live2/`, bot1 strafer, bot2 presser) and
+the practice-map captures, the presser bots held a lean side a median 400-500 ms, over 2 s 8-14% of leans (presser
+people 300 ms, 1.3%) and leaned against their own strafe 30-31% of lean time (people 15.5%); the strafer bots flipped
+the lean across 2.7-5.2 times a second while their strafe was against it (strafer people 0.12: they let go of it).
+Cause: the style's lean habit (`lean_fight` and the calibrated per-context logit) raised *stay* against both letting
+go and switching, and the chain did not tell the tick the strafe turns against the lean apart from the ticks it stays
+so, while people decide at the turn.
+
+Changes:
+- The lean chain has a fourth strafe relation (`fit_movement.fit_lean`, `MovementModel::leanRels`; a 3-relation
+  model still loads): the tick the strafe turns against the lean (pooled, in sight firing: flip across 38%, let go
+  12%) apart from the ticks it stays against (15% and 7.5% a tick).
+- Two style dials, measured per person over the whole recording (`fit_styles.lean_against`): `lean_switch` (leaning,
+  with the next tick's strafe against the lean, the lean switches across: presser 0.27, stoppers 0.03, strafers
+  0.007) and `lean_drop` (it is let go: presser and stoppers 0.06, strafers 0.20). With the strafe against the lean,
+  `Mover::StepLean` takes the chain's own odds there by context, shifted by the two dials. The lean habit only
+  governs letting go otherwise: its calibrated per-context part (+2.2 hidden firing) had cancelled the strafers'
+  let-go in fights.
+- `calibrate.py`: sweeps for both (`hb_arena --offset lean_switch_logit=`, `lean_drop_logit=`); the `lean_switch`
+  curve's targets are spaced on the logit scale (`LOGIT_SPACED`; people span 0.002-0.32, and evenly spaced the
+  stoppers' 0.03 fell between 0.002 and 0.05). Recalibrated: the pooled lean loops (`--stage pooled --only lean`) and
+  the dials `lean_fight`, `lean_switch` and `lean_drop`. The other dials' curves are kept from 2026-10-03: a full
+  re-sweep only redrew arena noise (the crouch sweep read 8.3 a minute at the multiplier that read 9.3 before), and it
+  raised the bots' quiet hidden crouches on the maps by a fifth (2.6-2.9 to 3.1-3.2 a minute, people 2.3).
+- The fitted lean wall logit is now -0.32 (was -0.41: the chain explains more of the side); three times it is -0.95.
+
+Practice maps, bot vs bot (`move_wip/reports/ld_*` against `fc_*`, the model of "What the owner saw"); seeds
+201-208, in brackets 401-408; "all leans" weighted by family like compare.py:
+
+| | people | before | now |
+|---|---|---|---|
+| presser bots' leans held: p90 / over 2 s | 950 ms / 1.3% | 1900 ms / 9.2% (1750 / 7.5%) | 900 ms / 1.9% (990 / 2.0%) |
+| ... leaning against their own strafe, share of lean time | 15.5% | 31% (30%) | 14% (15.5%) |
+| the strafe turns against the lean: a presser flips it across | 46% | 6.5% (8%) | 52% (49%) |
+| ... a strafer lets go of it / flips it | 36% / 0.2% | 12% / 27% (10% / 25%) | 21% / 4.5% (25% / 5%) |
+| ... a stopper keeps it | 85% | 85% (83%) | 86.5% (85%) |
+| all leans held: p90 / over 2 s | 1140 ms / 2.9% | 1525 ms / 6.2% (1480 / 5.6%) | 1170 ms / 3.6% (1200 / 3.5%) |
+| leans in sight at a flat wall: into it / at an edge just ahead: around it | 35% / 77% | 35% / 63% (34% / 63%) | 31% / 66% (31% / 64%) |
+| crouches a minute, hidden: quiet / after enemy fire | 2.3 / 5.4 | 2.9 / 5.7 (2.6 / 5.6) | 2.9 / 6.1 (2.7 / 5.7) |
+| enemy heard behind: faced within 1 s / hit first | 62% / 7% | 53% / 12% (49% / 15%) | 52.5% / 13% (50% / 16%) |
+| reloads begun with the enemy on screen, a minute alive | 0.3 | 1.6 (1.3) | 1.7 (1.3) |
+| still bouts over 1 s, a fight-minute | 0.64 | 0.39 (0.33) | 0.36 (0.25) |
+| all 281 statistics within 25% / tells | | 55% / 148 (51% / 136) | 56% / 137 (52% / 133) |
+
+No statistic crossed 25% for the worse in both seed sets. In the arena (eight seeds) 48% of 195 are within 25%, as
+before.
+
+Not changed: leans with the head at a wall (within 12 u on the lean side) are 6.3-7.6% of lean time (7.1-7.4% before,
+people 6.3%), and of the same kind: people's are mostly strafing into the wall with the lean (63%), the bots' mostly
+with no strafe key held (48-51%, people 23%): the bot stopped at the wall, often the wall reflex letting go of the
+strafe, and the lean stayed on. That is the next candidate for the owner's "leans into a wall for a split second".
+The strafer bots let go at the turn 21-25% vs 36% (in sight firing 23% vs 53%): one style shift on a chain shared
+by everyone, half of it the presser, cannot give the strafers their let-go in fights alone; they lean against their
+strafe 24-26.5% of lean time vs 15%. The stopper bots keep the lean at the turn as their people do, but their leans
+last longer (p90 1.9-1.95 s vs 1.6, over 2 s 9% vs 7%; 1.55 s before, when their leans ended by flipping).
+Scripts in the git-ignored `move_wip/s5/`: `turn.py` (what the lean does at the turn), `dialfam.py` (the two dials
+realised per family), `dropctx.py` (by context), `score.py` (a report's share within 25%); `move_wip/s4/lean_hold.py`
+and `obs5.py` as before.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -871,6 +934,9 @@ rather than a shift of the fitted one (stoppers 60-63% one tick after letting go
   fights in view last longer (the aim at a sighting above). This is what the owner saw as standing still mid-fight.
 - **Leaning toward an opening:** people already lean toward the edge they reach (66% of edge moments begin leaned
   that way, the bots' 41%); the wall term acts once the bot is there.
+- **Leaning at walls** (see "The lean follows the strafe"): half the bots' leans with the head at a wall come with no
+  strafe key held (people 23%): the bot stopped at the wall and kept the lean. The strafer bots let go of a lean at
+  the strafe's turn 21-25% vs 36%, and the stopper bots' leans last longer (p90 1.9 s vs 1.6).
 - **Turning to a noise behind** (see "What the owner saw"): 49-53% within a second vs 62%, hit first 12-15% vs 7%.
   While the view holds the noise the route is behind it: the back key 7.6-8.8% of hidden time vs 6%, 2 s hidden
   travel 122-135 u vs 158.
@@ -934,6 +1000,9 @@ rather than a shift of the fitted one (stoppers 60-63% one tick after letting go
   (see "What the owner saw"). The early reload and the trigger's rounds-left term replace hand-set values with fits.
 - The style dial `counter_strafe` (a strafe the tick after one is let go) shifts the fitted hazard at that tick; its
   curve is swept like the others.
+- The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
+  the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others
+  keep their curves (a re-sweep redraws the arena's noise).
 - One style dial is inert: `hold_angle` (its arena sweep spans under a third of the human range).
   The burst dial counts the bursts begun in sight and is relative to the pooled bot, like the
   skills. The out-of-ammunition fallback (pistol bash), the ladder climb and its watchdog, and the

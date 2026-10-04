@@ -17,7 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hbdata as H  # noqa: E402
 
 STYLE_DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min", "crouch_per_min",
-               "walk_hidden", "burst_median", "aim_height_firing", "hold_angle", "counter_strafe"]
+               "walk_hidden", "burst_median", "aim_height_firing", "hold_angle", "counter_strafe",
+               "lean_switch", "lean_drop"]
 SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
@@ -46,6 +47,22 @@ def counter_strafe(d):
         n += int(ok.sum())
         k += int((nz[nxt[ok]] == ends[ok] + 2).sum())
     return k / n if n else np.nan
+
+
+def lean_against(d):
+    """Leaning, with the strafe key of the next tick turned against the lean (the lean chain's disagreement): the share
+    of those ticks whose lean switches side with it (lean_switch, people 0.003-0.30) and the share whose lean is let go
+    (lean_drop, 0.05-0.26). The presser flips the lean with the strafe, the strafers let go of it, the stoppers mostly
+    keep it."""
+    n = k = r = 0
+    for _, g in d.groupby(["session_id", "client_id", "seg"], sort=False):
+        ln = g.lean.to_numpy()
+        s = g.side.to_numpy()
+        m = (ln[:-1] != 0) & (s[1:] == -ln[:-1])
+        n += int(m.sum())
+        k += int((ln[1:][m] == -ln[:-1][m]).sum())
+        r += int((ln[1:][m] == 0).sum())
+    return (k / n, r / n) if n else (np.nan, np.nan)
 
 
 def edges_per_min(d, col):
@@ -134,6 +151,7 @@ def dial_table(F, E):
             "aim_height_firing": lf.aim_height_fraction.median(),
             "hold_angle": float(holds.get((name, cap), np.nan)),
             "counter_strafe": counter_strafe(full),
+            **dict(zip(["lean_switch", "lean_drop"], lean_against(full))),
             "mp40_share": d.weapon.eq("MP40").sum() / max(1, smg.sum()),
             "aim_error_fight_deg": lf.aim_total_error.median(),
             "reaction_ms": float(react.get((name, cap), np.nan)),

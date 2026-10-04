@@ -328,6 +328,8 @@ DIAL_SWEEPS = {
     "aim_height_firing": ("aim_height_firing", "dial.aim_height_firing", [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6]),
     "hold_angle": ("hold_logit", "dial.hold_angle", [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]),
     "counter_strafe": ("counter_logit", "dial.counter_strafe", [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]),
+    "lean_switch": ("lean_switch_logit", "dial.lean_switch", [-6.0, -5.0, -4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0]),
+    "lean_drop": ("lean_drop_logit", "dial.lean_drop", [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 3.0]),
 }
 SKILL_NEUTRAL = {"aim_error_fight_deg": 1.0, "reaction_ms": 0.0}   # the pooled bot's offsets
 # Style dials that are relative to the pooled bot, like the skills (their neutral offsets). The burst length counts
@@ -335,6 +337,9 @@ SKILL_NEUTRAL = {"aim_error_fight_deg": 1.0, "reaction_ms": 0.0}   # the pooled 
 # recorded maps, so no release offset gets its pooled bot past ~5.3 rounds (people 4-8). A bot drawn x% above the
 # average person bursts x% longer than the pooled bot.
 RELATIVE_DIALS = {"burst_median": 0.0}
+# Dials that are chances spanning orders of magnitude: their curve's targets are spaced on the logit scale (evenly
+# spaced, the lean switch's first step would run from the strafers' 0.002 to 0.05 and miss the stoppers' 0.03)
+LOGIT_SPACED = {"lean_switch"}
 SKILL_SWEEPS = {
     "aim_error_fight_deg": ("noise_scale", "skill.aim_error_fight_deg", [0.4, 0.6, 0.8, 1.0, 1.3, 1.7, 2.2]),
     "reaction_ms": ("reaction_logit", "skill.reaction_ms", [-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 3.0]),
@@ -367,14 +372,14 @@ NEUTRAL_OFFSET = {"diag_logit": 0.0, "reverse_logit": 0.0, "hold_scale": 1.0, "l
 MIN_REACH = 1 / 3   # a sweep must span this share of the human range to be inverted
 
 
-def dial_curve(offsets, stats, lo, hi, n=7, scale=None, neutral=None):
+def dial_curve(offsets, stats, lo, hi, n=7, scale=None, neutral=None, logit_x=False):
     """Monotone curve dial target -> offset from a sweep: isotonic fit of the statistic over the offset
     grid, inverted on n targets spanning the human range [lo, hi] (clamped to what the sweep reached).
     With scale=(neutral offset, human pooled value) the target is relative: a dial x asks for the
     statistic the bot shows at the neutral offset times x / pooled. A sweep that spans less than
     MIN_REACH of the targets' range cannot tell the offsets apart: inverting its noise would send the
     bots to the grid's ends, so with a neutral offset the curve is flat there (the dial is inert: every
-    bot behaves like the pooled bot on it)."""
+    bot behaves like the pooled bot on it). logit_x spaces the targets evenly on the logit scale."""
     pts = [(o, s) for o, s in zip(offsets, stats) if math.isfinite(s)]
     if len(pts) < 3:
         return None
@@ -390,6 +395,9 @@ def dial_curve(offsets, stats, lo, hi, n=7, scale=None, neutral=None):
         if not inc and fit[k] >= fit[k - 1]:
             fit[k] = fit[k - 1] - 1e-6
     xs = [lo + (hi - lo) * k / (n - 1) for k in range(n)]
+    if logit_x:
+        a, b = logit(lo), logit(hi)
+        xs = [1.0 / (1.0 + math.exp(-(a + (b - a) * k / (n - 1)))) for k in range(n)]
     target = lambda x: x  # noqa: E731
     if scale is not None:
         neutral, pooled = scale
@@ -433,7 +441,7 @@ def calibrate_dials(runner: Runner, log: list, only=()):
             scale = ((SKILL_NEUTRAL[name], styles["pooled"][name]) if group == "skill"
                      else (RELATIVE_DIALS[name], styles["pooled"][name]) if name in RELATIVE_DIALS else None)
             c = dial_curve(grid, realised, styles["min"][name], styles["max"][name], scale=scale,
-                           neutral=NEUTRAL_OFFSET.get(offset))
+                           neutral=NEUTRAL_OFFSET.get(offset), logit_x=name in LOGIT_SPACED)
             log.append({"dial": name, "offset": offset, "grid": grid, "realised": realised, "curve": c})
             print(f"{group} {name}: {offset} {grid} -> {[round(r, 3) for r in realised]}", flush=True)
             if c and c["sweep"]["reach"] < MIN_REACH:

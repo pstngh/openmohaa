@@ -69,7 +69,11 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      the forward key (a low-diagonal style presses forward less, not back more). The burst length
      counts the bursts begun in sight, and is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
      on a corner, and how readily it stops for one) is wired in but inert: no offset of it changes
-     how often a bot waits on the point the enemy appears at.
+     how often a bot waits on the point the enemy appears at. Two dials set what a lean does when the
+     strafe turns against it (the lean chain tells that tick apart, where people decide): how readily
+     it switches across with the strafe and how readily it is let go. The presser flips it with the
+     strafe, the strafers let go of it, the stoppers mostly keep it. The lean dial only sets how
+     readily a lean is let go of otherwise.
 3. **Usercmds.** `hb_substep` turns the tick's decision into 12 usercmds (`g_humanbot_substeps`;
    the recorded people send 12.5 at 250 fps to 25 at 500 fps). Keys are digital, key changes land
    on one sub-step, the view moves along the flick's minimum-jerk profile, and eye info goes out

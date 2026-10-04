@@ -11,7 +11,9 @@
   "burst_median",
   "aim_height_firing",
   "hold_angle",
-  "counter_strafe"
+  "counter_strafe",
+  "lean_switch",
+  "lean_drop"
  ],
  "skill_dials": [
   "aim_error_fight_deg",
@@ -34,7 +36,9 @@
     "burst_median": 6.8333,
     "aim_height_firing": 0.39,
     "hold_angle": 0.2341,
-    "counter_strafe": 0.1922
+    "counter_strafe": 0.1922,
+    "lean_switch": 0.2654,
+    "lean_drop": 0.0562
    },
    "spread": {
     "fwd_diag_fight": 0.0285,
@@ -47,7 +51,9 @@
     "burst_median": 0.5963,
     "aim_height_firing": 0.0287,
     "hold_angle": 0.025,
-    "counter_strafe": 0.019
+    "counter_strafe": 0.019,
+    "lean_switch": 0.0203,
+    "lean_drop": 0.0112
    }
   },
   {
@@ -66,7 +72,9 @@
     "burst_median": 5.75,
     "aim_height_firing": 0.4933,
     "hold_angle": 0.2826,
-    "counter_strafe": 0.4405
+    "counter_strafe": 0.4405,
+    "lean_switch": 0.0067,
+    "lean_drop": 0.2046
    },
    "spread": {
     "fwd_diag_fight": 0.0437,
@@ -79,7 +87,9 @@
     "burst_median": 1.2168,
     "aim_height_firing": 0.0447,
     "hold_angle": 0.0568,
-    "counter_strafe": 0.0867
+    "counter_strafe": 0.0867,
+    "lean_switch": 0.021,
+    "lean_drop": 0.0842
    }
   },
   {
@@ -98,7 +108,9 @@
     "burst_median": 4.0,
     "aim_height_firing": 0.491,
     "hold_angle": 0.4472,
-    "counter_strafe": 0.5225
+    "counter_strafe": 0.5225,
+    "lean_switch": 0.029,
+    "lean_drop": 0.057
    },
    "spread": {
     "fwd_diag_fight": 0.0333,
@@ -111,7 +123,9 @@
     "burst_median": 0.5963,
     "aim_height_firing": 0.032,
     "hold_angle": 0.1161,
-    "counter_strafe": 0.1916
+    "counter_strafe": 0.1916,
+    "lean_switch": 0.0221,
+    "lean_drop": 0.0123
    }
   }
  ],
@@ -127,6 +141,8 @@
   "aim_height_firing": 0.352,
   "hold_angle": 0.2204,
   "counter_strafe": 0.1463,
+  "lean_switch": 0.0024,
+  "lean_drop": 0.0475,
   "aim_error_fight_deg": 4.0775,
   "reaction_ms": 100.0
  },
@@ -142,6 +158,8 @@
   "aim_height_firing": 0.54,
   "hold_angle": 0.5274,
   "counter_strafe": 0.6632,
+  "lean_switch": 0.3163,
+  "lean_drop": 0.2667,
   "aim_error_fight_deg": 6.534,
   "reaction_ms": 200.0
  },
@@ -177,6 +195,8 @@
   "aim_height_firing": 0.4408,
   "hold_angle": 0.2943,
   "counter_strafe": 0.3495,
+  "lean_switch": 0.1396,
+  "lean_drop": 0.1011,
   "aim_error_fight_deg": 5.3133,
   "reaction_ms": 152.581,
   "mp40_share": 0.5091

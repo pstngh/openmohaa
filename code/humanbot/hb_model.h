@@ -135,6 +135,7 @@ struct MovementModel {
     // lean: next[state][ctx][age bin][relation][outcome], see fit_movement.py
     std::vector<int> leanAgeEdges;
     Table            leanNext;
+    int              leanRels = 3;   // 4: leaning, the tick the strafe turns against the lean (3) apart from the ticks it stays against (2)
     std::vector<int> leanCtxAgeEdges;
     Table            leanCtxChangeLogit;  // [ctx][state 0 none / 1 leaning][ctx age bin < last]: leave the state
     std::vector<float> leanCtxLogit;      // calibrated per-context shift of leaning (on +, off -)
@@ -426,6 +427,8 @@ enum Dial {
     DIAL_AIM_HEIGHT,
     DIAL_HOLD_ANGLE,   // hold or clear an angle: crosshair parked on where the enemy will appear, 500 ms early
     DIAL_COUNTER,      // a strafe let go is followed by a strafe one tick later (the stoppers' quick turn)
+    DIAL_LEAN_SWITCH,  // leaning, the strafe turns the other way: the lean follows it across the next tick
+    DIAL_LEAN_DROP,    // ... or is let go of the next tick (the strafers' way)
     DIAL_COUNT
 };
 

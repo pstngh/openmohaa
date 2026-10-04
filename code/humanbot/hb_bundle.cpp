@@ -55,7 +55,8 @@ namespace hb
 
 const char *const DIAL_NAMES[DIAL_COUNT] = {"fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", "jumps_per_min",
                                             "crouch_per_min", "walk_hidden", "burst_median", "aim_height_firing",
-                                            "hold_angle", "counter_strafe"};
+                                            "hold_angle", "counter_strafe", "lean_switch",
+                                            "lean_drop"};
 const char *const SKILL_NAMES[SKILL_COUNT]   = {"aim_error_fight_deg", "reaction_ms"};
 const char *const FAMILY_NAMES[FAMILY_COUNT] = {"presser", "strafer", "stopper"};
 
@@ -318,7 +319,14 @@ void ParseMovement(const json& j, MovementModel& m)
 
     const json& ln  = Get(j, "lean", "movement");
     m.leanAgeEdges  = Ints(Get(ln, "age_edges", "movement.lean"), "movement.lean.age_edges");
-    FillTable(Get(ln, "next", "movement.lean"), m.leanNext, {2, LEAN_CTX_COUNT, static_cast<int>(m.leanAgeEdges.size()), 3, 3},
+    // relations: 3, or 4 with the tick the strafe turns against a lean apart from the ticks it stays against
+    const json& lnx = Get(ln, "next", "movement.lean");
+    Require(lnx.is_array() && !lnx.empty() && lnx[0].is_array() && !lnx[0].empty() && lnx[0][0].is_array()
+                && !lnx[0][0].empty() && lnx[0][0][0].is_array(),
+            "movement.lean.next has the wrong shape");
+    m.leanRels = static_cast<int>(lnx[0][0][0].size());
+    Require(m.leanRels == 3 || m.leanRels == 4, "movement.lean.next: 3 or 4 strafe relations");
+    FillTable(lnx, m.leanNext, {2, LEAN_CTX_COUNT, static_cast<int>(m.leanAgeEdges.size()), m.leanRels, 3},
               "movement.lean.next");
     RequireProb(m.leanNext.v, "movement.lean.next");
     m.leanCtxAgeEdges = Ints(Get(ln, "ctx_age_edges", "movement.lean"), "movement.lean.ctx_age_edges");
