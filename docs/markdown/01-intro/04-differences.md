@@ -429,6 +429,8 @@ Enable this feature with `set sv_netoptimize 2`.
 - Infinite ammo (`dmflags` bit 14): clips never empty, as in Allied Assault
 - Nocliping when dead no longer makes the player animation sketchy
 - Pain animations can be disabled with `g_painanims`
+- Players can always lean, also while moving, in Allied Assault, Spearhead and Breakthrough and every game type, single-player included; `dmflags` no longer has to allow it
+- Spearhead and Breakthrough servers can use the Allied Assault lean with `g_aalean`
 
 ## Planned features
 

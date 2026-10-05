@@ -366,6 +366,11 @@ extern cvar_t *g_door_reopen_blocked;
  */
 extern cvar_t *g_painanims;
 
+/**
+ * @brief When enabled, Spearhead and Breakthrough use the Allied Assault lean limit, speeds and camera roll.
+ */
+extern cvar_t *g_aalean;
+
 void CVAR_Init(void);
 
 #ifdef __cplusplus

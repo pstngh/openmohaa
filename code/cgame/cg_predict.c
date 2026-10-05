@@ -505,26 +505,28 @@ void CG_PredictPlayerState(void)
     }
 
     cg_pmove.noFootsteps = (cgs.dmflags & DF_NO_FOOTSTEPS) > 0;
-    if (cg_protocol >= PROTOCOL_MOHTA_MIN) {
-        // Leaning while moving is allowed in mohta and mohtt only with a specific dm flag bit set
+    //
+    // Changed in OPM
+    //  Same lean as Player::SetMoveInfo: players can always lean, also while moving,
+    //  and Spearhead and Breakthrough use the Allied Assault lean with g_aalean.
+    //  Servers without g_aalean still follow the dmflag
+    //
+    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !cgs.alwaysAllowLean) {
         cg_pmove.alwaysAllowLean = (cgs.dmflags & DF_ALLOW_LEAN_MOVEMENT) ? qtrue : qfalse;
-
-        cg_pmove.leanMax = 45.f;
-        cg_pmove.leanAdd = 6.f;
-        cg_pmove.leanRecoverSpeed = 8.5f;
-        cg_pmove.leanSpeed = 2.f;
     } else {
         cg_pmove.alwaysAllowLean = qtrue;
-        if (cgs.gametype != GT_SINGLE_PLAYER) {
-            cg_pmove.leanMax = 40.f;
-        } else {
-            // Don't allow lean in single-player, like in the original game
-            cg_pmove.leanMax = 0;
-        }
+    }
 
-        cg_pmove.leanAdd = 10.f;
+    if (cg_protocol >= PROTOCOL_MOHTA_MIN && !cgs.aaLean) {
+        cg_pmove.leanMax          = 45.f;
+        cg_pmove.leanAdd          = 6.f;
+        cg_pmove.leanRecoverSpeed = 8.5f;
+        cg_pmove.leanSpeed        = 2.f;
+    } else {
+        cg_pmove.leanMax          = 40.f;
+        cg_pmove.leanAdd          = 10.f;
         cg_pmove.leanRecoverSpeed = 15.f;
-        cg_pmove.leanSpeed = 4.f;
+        cg_pmove.leanSpeed        = 4.f;
     }
 
     cg_pmove.protocol = cg_protocol;

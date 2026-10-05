@@ -489,6 +489,13 @@ void G_RunFrame(int levelTime, int frameTime)
             DisplayMemoryUsage();
         }
 
+        // Added in OPM
+        //  The serverinfo drops a key with an empty value, and clients without
+        //  the key predict lean from the dmflag, so always send g_aalean as 0 or 1
+        if (strcmp(g_aalean->string, g_aalean->integer ? "1" : "0")) {
+            gi.cvar_set("g_aalean", g_aalean->integer ? "1" : "0");
+        }
+
         // exit intermissions
         if (level.exitintermission) {
             if (level.nextmap != level.current_map) {

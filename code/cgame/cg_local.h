@@ -435,6 +435,11 @@ extern "C" {
         int        fraglimit;
         int        timelimit;
         int        maxclients;
+        // Added in OPM
+        //  The server's g_aalean, and whether it has one: such a server
+        //  always allows leaning while moving
+        int        aaLean;
+        qboolean   alwaysAllowLean;
         int        cinematic;
         int        mapChecksum;
         qboolean   useMapChecksum;

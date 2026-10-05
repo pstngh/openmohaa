@@ -130,6 +130,7 @@ void CG_ParseServerinfo(void)
     char       *spawnpos;
     const char *version;
     const char *mapChecksumStr;
+    const char *aaLean;
 
     info           = CG_ConfigString(CS_SERVERINFO);
     cgs.gametype   = atoi(Info_ValueForKey(info, "g_gametype"));
@@ -138,6 +139,11 @@ void CG_ParseServerinfo(void)
     cgs.fraglimit  = atoi(Info_ValueForKey(info, "fraglimit"));
     cgs.timelimit  = atoi(Info_ValueForKey(info, "timelimit"));
     cgs.maxclients = atoi(Info_ValueForKey(info, "sv_maxclients"));
+    // Added in OPM
+    //  Servers without g_aalean only allow leaning while moving with the dmflag
+    aaLean              = Info_ValueForKey(info, "g_aalean");
+    cgs.aaLean          = atoi(aaLean);
+    cgs.alwaysAllowLean = *aaLean ? qtrue : qfalse;
 
     version = Info_ValueForKey(info, "version");
     if (strstr(version, "Spearhead")) {

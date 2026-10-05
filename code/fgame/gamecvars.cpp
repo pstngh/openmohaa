@@ -326,6 +326,9 @@ cvar_t *g_door_reopen_blocked;
 // Whether or not players play pain animations when hit
 cvar_t *g_painanims;
 
+// Whether or not Spearhead and Breakthrough use the Allied Assault lean
+cvar_t *g_aalean;
+
 void CVAR_Init(void)
 {
     int i;
@@ -737,6 +740,9 @@ void CVAR_Init(void)
     g_door_reopen_blocked = gi.Cvar_Get("g_door_reopen_blocked", "1", 0);
 
     g_painanims = gi.Cvar_Get("g_painanims", "1", 0);
+
+    // In the serverinfo so that clients predict the same lean
+    g_aalean = gi.Cvar_Get("g_aalean", "0", CVAR_SERVERINFO);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

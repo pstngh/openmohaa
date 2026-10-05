@@ -88,6 +88,12 @@ The time in second after which an inactive player gets kicked. Defaults to `900`
 
 The time in second after which an inactive player gets moved into spectator. Defaults to `60`
 
+### `g_aalean`
+
+On Spearhead and Breakthrough, set it to `1` to use the Allied Assault lean: a 40 degree limit, faster leaning and the full camera roll. Defaults to `0`, the Spearhead and Breakthrough lean. Any other value is turned into `0` or `1`. Clients running this version follow it; other clients keep predicting the Spearhead and Breakthrough lean.
+
+Leaning while moving is always allowed. Set the `dmflags` bit `262144` too if clients running other versions join a Spearhead or Breakthrough server, so they predict it.
+
 ### `g_painanims`
 
 On Spearhead and Breakthrough, whether players play a pain animation when hit. Defaults to `1`; set it to `0` to disable them.

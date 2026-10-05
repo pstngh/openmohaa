@@ -290,7 +290,9 @@ void CG_OffsetFirstPersonView(refEntity_t *pREnt, qboolean bUseWorldPosition)
                 VectorMA(origin, oHead.origin[i], mat[i], origin);
             }
 
-            if (cg_target_game >= TG_MOHTA) {
+            // Changed in OPM
+            //  Allied Assault camera roll with g_aalean
+            if (cg_target_game >= TG_MOHTA && !cgs.aaLean) {
                 // Changed in 2.0
                 //  Slight less angle
                 cg.refdefViewAngles[2] += cg.predicted_player_state.fLeanAngle * 0.2;
