@@ -251,6 +251,7 @@ private:
     Vector m_passCenter;          // the doorway's middle
     Vector m_passHinge;           // the door's origin, where it turns
     Vector m_passNormal;          // across the doorway, from the bot's side
+    int    m_passLean  = 0;       // the lean toward the way through (-1 left, 1 right)
     bool   m_engaged   = false;   // the focus enemy seen this tick
 
     // the climb in progress (Ladder())
@@ -756,7 +757,7 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
 // the doorway while it swung, 30-55 u off it, lined up with its middle; they were through 1.25 s after the press, 70%
 // within 3 s. The bots ran on into the swinging door, the route slid them along it to the frame and back (the path flips
 // while the door moves), and they were through after 1.65 s, 57% within 3 s: pinned at the Flag room's doors, the one
-// holding the room saw a shoulder through the gap before the bot could see him. So the keys are the door's for that
+// holding the room saw a shoulder through the gap before the bot could see them. So the keys are the door's for that
 // moment: in front of the doorway's middle, no nearer than PASS_NEAR and no further than g_humanbot_door_hold, while
 // the door has turned less than g_humanbot_door_go degrees, then through it, until PASS_BEYOND past it (go 0 = off).
 // The brain keeps the view, and gets the keys back the moment its enemy is in sight. Going at 25 deg the bots were through
@@ -765,6 +766,7 @@ static const float PASS_BEYOND  = 24.0f;    // past the doorway: done
 static const float PASS_FAR     = 160.0f;   // this far back or aside: given up
 static const float PASS_NEAR    = 28.0f;    // waiting no nearer than this to the closed door (the box is 16 u wide)
 static const float PASS_LATCH   = 0.25f;    // going: this share of the half-leaf toward the side away from the hinge
+static const float PASS_LEAN_DEG = 20.0f;   // the view this far off the way through: lean toward the way
 static const int   PASS_MS      = 2500;
 
 void HumanBotAdapter::StartDoorPass(Player *p, Door *d)
@@ -793,6 +795,7 @@ void HumanBotAdapter::StartDoorPass(Player *p, Door *d)
     m_passCenter = c;
     m_passNormal = n;
     m_passHinge  = Vector(d->origin.x, d->origin.y, c.z);
+    m_passLean   = 0;
 }
 
 // The chord nearest a direction off the view, among those not pressing into a wall right there (any if all are).
@@ -845,8 +848,21 @@ bool HumanBotAdapter::DoorPass(Player *p, const HbView& view, const hb::SelfStat
     to.z               = 0.0f;
     plan.chord         = wait && to.length() < 12.0f ? hb::CHORD_NEUTRAL
                                                      : ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.clearance);
-    plan.jump        = false;
-    plan.crouch      = false;
+    plan.jump          = false;
+    plan.crouch        = false;
+    // Looking off the way through (at where the enemy is believed), lean toward the side the way goes, so the eye comes
+    // out of the doorway ahead of the body. The lean chain follows the keys the brain chose, not these: at the moment
+    // the one holding the room and the bot first had each other on screen, its lean led its motion 18-23% of the time
+    // and went against it 21% (the owner's games); people coming in leaned with their motion 56% (against 17%), and the
+    // holder saw them first 29% of the time, the bot 76-83%. The lean chain goes on from this lean when the pass ends.
+    const float through = AngleSubtract(m_passNormal.toYaw(), view.yaw);
+    if (std::fabs(through) > PASS_LEAN_DEG && std::fabs(through) < 180.0f - PASS_LEAN_DEG) {
+        m_passLean = through > 0.0f ? -1 : 1;
+    }
+    if (m_passLean) {
+        plan.lean = m_passLean;
+        m_brain.SetLean(m_passLean);
+    }
     return true;
 }
 

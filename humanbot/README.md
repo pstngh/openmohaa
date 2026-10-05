@@ -79,8 +79,8 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route. A closed
      door across the route is looked at (its nearest part) and opened with use as soon as it is in reach;
      while it swings away the bot waits in front of the doorway, lined up with its middle, and goes
-     through once it has turned 25 deg, as people do (`g_humanbot_door_*`; the brain gets the keys back
-     the moment its enemy is in sight).
+     through once it has turned 25 deg, leaning toward the way through when it looks off it, as people do
+     (`g_humanbot_door_*`; the brain gets the keys back the moment its enemy is in sight).
    - `hb_style`: the dials of this bot. The fight-diagonal dial sets how readily a strafe gains
      the forward key (a low-diagonal style presses forward less, not back more). The burst length
      counts the bursts begun in sight, and is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
