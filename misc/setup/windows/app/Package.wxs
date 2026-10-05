@@ -49,9 +49,6 @@
                     <Component Id="OpenAL$(var.Bitness).dll">
                         <File Source="files/OpenAL$(var.Bitness).dll" />
                     </Component>
-                    <Component Id="libcurl.dll">
-                        <File Source="files/libcurl.dll" />
-                    </Component>
 
                     <!-- Launchers -->
                     <Component Id="launch_openmohaa_base.exe">
@@ -103,7 +100,6 @@
         <ComponentGroup Id="ThirdParty">
             <ComponentRef Id="SDL2.dll" />
             <ComponentRef Id="OpenAL$(var.Bitness).dll" />
-            <ComponentRef Id="libcurl.dll" />
         </ComponentGroup>
 
         <ComponentGroup Id="Launchers">

@@ -23,9 +23,7 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'x64',   os: 'windows-2025',   config: 'x64',    toolset: 'x64',        arch_option: 'VC-WIN64A'    },
-          {name: 'x86',   os: 'windows-2025',   config: 'Win32',  toolset: 'x64_x86',    arch_option: 'VC-WIN32'     },
-          {name: 'arm64', os: 'windows-11-arm', config: 'ARM64',  toolset: 'x64_arm64',  arch_option: 'VC-WIN64-ARM' }
+          {name: 'x64',   os: 'windows-2025',   toolset: 'x64'}
         ]
 
     name: "Building for platform windows-${{matrix.architecture.name}}"
@@ -33,8 +31,6 @@ jobs:
     environment: ${{ inputs.environment }}
     env:
         flexbison-branch: 'v2.5.25'
-        wolfssl-version: 'v5.7.6-stable'
-        curl-version: '8_12_1'
         openal-soft-branch: '1.24.3'
         sdl2-branch: 'release-2.32.8'
 
@@ -87,11 +83,7 @@ jobs:
       if: steps.cache-required-packages.outputs.cache-hit != 'true'
       run: |
         $DownloadPath="$($env:USERPROFILE)\Downloads"
-        if ("${{ matrix.architecture.config }}" -ieq "ARM64") {
-          Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-winarm64.zip" -OutFile "$DownloadPath\ninja-win.zip"
-        } else {
-          Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "$DownloadPath\ninja-win.zip"
-        }
+        Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "$DownloadPath\ninja-win.zip"
         Expand-Archive -Path "$DownloadPath\ninja-win.zip" -DestinationPath "C:\Packages\ninja"
         Invoke-WebRequest "https://download.qt.io/official_releases/jom/jom.zip" -OutFile "$DownloadPath\jom.zip"
         Expand-Archive -Path "$DownloadPath\jom.zip" -DestinationPath "C:\Packages\jom"
@@ -100,10 +92,6 @@ jobs:
       run: |
         $env:PATH += ";C:\Packages\ninja;C:\Packages\jom;"
         echo "PATH=$($env:PATH)" >> $env:GITHUB_ENV
-        if ("${{ matrix.architecture.config }}" -ieq "ARM64") {
-            # Workaround against linking errors related to interlocked functions
-            echo "CFLAGS=/forceInterlockedFunctions-" >> $env:GITHUB_ENV
-        }
 
     ###
     # SDL
@@ -175,40 +163,7 @@ jobs:
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
         # Unfortunately soft-oal produces a binary called OpenAL32 even in 64-bit
-        if (("x64", "ARM64") -icontains "${{ matrix.architecture.config }}") { Rename-Item -Path '.\install\bin\OpenAL32.dll' -NewName 'OpenAL64.dll' }
-
-    ###
-    # cURL
-    #
-    # Uses Schannel as SSL backend, native CAs are used
-    ###
-    - name: Cache cURL
-      id: cache-curl
-      uses: actions/cache@v4
-      with:
-        path: 'thirdparties/curl/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-curl-${{ env.curl-version }}-v1
-
-    # cURL setup
-    - name: Checkout cURL
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: 'curl/curl'
-        path: 'thirdparties/curl'
-        ref: 'curl-${{ env.curl-version }}'
-
-    # cURL build
-    - name: Configure and install curl
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      working-directory: ${{github.workspace}}/thirdparties/curl
-      run: |
-        cmake -B ./build `
-            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/curl/install' `
-            -DCURL_USE_LIBPSL=OFF `
-            -DCURL_USE_SCHANNEL=ON
-        cmake --build ./build --config Release --parallel
-        cmake --install ./build --config Release
+        Rename-Item -Path '.\install\bin\OpenAL32.dll' -NewName 'OpenAL64.dll'
 
     ###
     # Project
@@ -230,7 +185,6 @@ jobs:
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/cmake' `
         -DOPENAL_LIBRARY='${{github.workspace}}/thirdparties/soft-oal' `
         -DOPENAL_INCLUDE_DIR='${{github.workspace}}/thirdparties/soft-oal/install/include/AL' `
-        -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' `
         -DFLEX_EXECUTABLE='${{github.workspace}}/thirdparties/winflexbison-install/win_flex.exe' `
         -DUSE_RENDERER_DLOPEN=OFF `
         -DBUILD_RENDERER_GL2=OFF `
@@ -254,15 +208,8 @@ jobs:
         New-Item -ItemType Directory '${{github.workspace}}/package'
         Copy-Item '${{github.workspace}}/thirdparties/SDL2/install/bin/*.dll' -Destination '${{github.workspace}}/package'
         Copy-Item '${{github.workspace}}/thirdparties/soft-oal/install/bin/*.dll' -Destination '${{github.workspace}}/package'
-        Copy-Item '${{github.workspace}}/thirdparties/curl/install/bin/*.dll' -Destination '${{github.workspace}}/package'
-        if (Test-Path ${{github.workspace}}/install/bin) { Copy-Item '${{github.workspace}}/install/bin/*' -Include '*.dll','*.exe','*.pdb' -Destination '${{github.workspace}}/package' }
-        if (Test-Path ${{github.workspace}}/install/lib) { Copy-Item '${{github.workspace}}/install/lib/*' -Include '*.dll','*.exe','*.pdb' -Destination '${{github.workspace}}/package' }
-
-    - name: Generate setup files
-      working-directory: ${{github.workspace}}
-      run: |
-        Copy-Item -Path '${{github.workspace}}/package' -Destination 'source/misc/setup/windows/app/files' -Recurse
-        dotnet build -p Platform=${{matrix.architecture.config}} -c Release -o out source/misc/setup/windows/app
+        if (Test-Path ${{github.workspace}}/install/bin) { Copy-Item '${{github.workspace}}/install/bin/*' -Include '*.dll','*.exe' -Destination '${{github.workspace}}/package' }
+        if (Test-Path ${{github.workspace}}/install/lib) { Copy-Item '${{github.workspace}}/install/lib/*' -Include '*.dll','*.exe' -Destination '${{github.workspace}}/package' }
 
     ###
     # Artifact
@@ -275,20 +222,3 @@ jobs:
         compression-level: 9
         path: |
           ${{github.workspace}}/package
-          !${{github.workspace}}/package/**/*.pdb
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: out-windows-${{matrix.architecture.name}}-pdb
-        if-no-files-found: error
-        compression-level: 9
-        path: |
-          ${{github.workspace}}/package
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: out-windows-${{matrix.architecture.name}}-installer
-        if-no-files-found: error
-        path: |
-          ${{github.workspace}}/out/en-us/Setup.msi
-          ${{github.workspace}}/out/en-us/Setup.wixpdb

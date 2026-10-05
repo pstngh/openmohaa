@@ -19,9 +19,6 @@ If you already have MOH:AA from a CD, make sure to [Install official patches](#i
 
 1. Download and install [Microsoft Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 2. Grab the latest `openmohaa-*-windows-x64.zip` from the [releases page](https://github.com/openmoh/openmohaa/releases).
-   - If you use Surface Pro laptop, it may have an ARM CPU. So you need to choose `openmohaa-*-windows-arm64.zip` instead.
-
-ℹ️ `-pdb` archives are intended for maintainers and contributors, they contain debug information specific to this build and is used for debugging purposes, you don't need them.
 
 #### Find your game folder
 
@@ -71,9 +68,8 @@ Alternatively, you can also use [WINE](https://www.winehq.org/) to install the g
 
 |OS       |Kind of hardware (CPU, platform...)        |Archive
 |---------|-------------------------------------------|-----------------------
-|macOS    |Apple Silicon or Intel                     |`*-macos-multiarch.arm64-x86_64.zip`
-|Linux    |AMD/Intel                                  |`*-linux-amd64` **(most Linux PCs - choose this if unsure)**
-|Linux    |Raspberry Pi 4 or 5                        |`*-linux-arm64`
+|macOS    |Apple Silicon, macOS 15 or later           |`*-macos-arm64.zip`
+|Linux    |AMD/Intel                                  |`*-linux-amd64`
 
 #### Installing OpenMoHAA
 

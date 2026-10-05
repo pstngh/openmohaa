@@ -3,8 +3,7 @@
 # Linux
 # Ubuntu 22.04
 #
-# Using this version instead of 24.04 to use a lower GLIBC version (2.34).
-# ARM is used for more efficiency, and x64 is used for legacy architectures like PowerPC.
+# Using this version instead of 24.04 to use a lower GLIBC version (2.35).
 ##########################
 name: "Linux Builds"
 
@@ -25,21 +24,13 @@ jobs:
     strategy:
       matrix:
         architecture: [
-          {name: 'amd64',   os: "ubuntu-22.04-arm", package: 'x86-64-linux-gnu',      triple: 'x86_64-linux-gnu',      arch_option: 'linux-x86_64'},
-          {name: 'i686',    os: "ubuntu-22.04-arm", package: 'i686-linux-gnu',        triple: 'i686-linux-gnu',        arch_option: 'linux-x86'},
-          {name: 'arm64',   os: "ubuntu-22.04-arm", package: 'aarch64-linux-gnu',     triple: 'aarch64-linux-gnu',     arch_option: 'linux-aarch64'},
-          {name: 'armhf',   os: "ubuntu-22.04-arm", package: 'arm-linux-gnueabihf',   triple: 'arm-linux-gnueabihf',   arch_option: 'linux-armv4'},
-          {name: 'powerpc', os: "ubuntu-22.04",     package: 'powerpc-linux-gnu',     triple: 'powerpc-linux-gnu',     arch_option: 'linux-ppc'},
-          {name: 'ppc64',   os: "ubuntu-22.04",     package: 'powerpc64-linux-gnu',   triple: 'powerpc64-linux-gnu',   arch_option: 'linux-ppc64'},
-          {name: 'ppc64el', os: "ubuntu-22.04-arm", package: 'powerpc64le-linux-gnu', triple: 'powerpc64le-linux-gnu', arch_option: 'linux-ppc64le'}
+          {name: 'amd64',   os: "ubuntu-22.04"}
         ]
 
     name: "Building for platform linux-${{matrix.architecture.name}}"
     runs-on: ${{ matrix.architecture.os }}
     environment: ${{ inputs.environment }}
     env:
-        wolfssl-version: 'v5.7.6-stable'
-        curl-version: '8_12_1'
         openal-soft-branch: '1.24.3'
         sdl2-branch: 'release-2.32.8'
 
@@ -57,23 +48,9 @@ jobs:
     - name: Settings
       working-directory: ${{github.workspace}}
       run: |
-        echo "HOST_TRIPLE=$(gcc -dumpmachine)" >> $GITHUB_ENV
-
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      name: Install required cross-platform packages (${{ matrix.architecture.package }})
-      if: env.HOST_TRIPLE != matrix.architecture.triple
-      with:
-        packages: gcc-12-${{ matrix.architecture.package }} g++-12-${{ matrix.architecture.package }}
-        version: "${{ runner.os }}-${{ runner.arch }}-v1"
-
-    - name: Settings
-      working-directory: ${{github.workspace}}
-      run: |
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "CFLAGS='--target=${{ matrix.architecture.triple }}'" >> $GITHUB_ENV
-        echo "CXXFLAGS='--target=${{ matrix.architecture.triple }}'" >> $GITHUB_ENV
 
     ###
     # SDL
@@ -85,7 +62,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/SDL2/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-sdl2-${{ env.sdl2-branch }}-v1
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.architecture.name }}-sdl2-${{ env.sdl2-branch }}-v1
 
     # SDL2 setup
     - name: Checkout SDL2
@@ -113,7 +90,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/soft-oal/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-openal-soft-${{ env.openal-soft-branch }}-v1
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.architecture.name }}-openal-soft-${{ env.openal-soft-branch }}-v1
 
     # soft-oal setup
     - name: Checkout soft-oal
@@ -135,74 +112,6 @@ jobs:
         cmake --install ./build --config Release
 
     ###
-    # WolfSSL
-    ###
-    - name: Cache WolfSSL
-      id: cache-wolfssl
-      uses: actions/cache@v4
-      with:
-        path: 'thirdparties/wolfssl/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-wolfssl-${{ env.wolfssl-version }}-v1
-
-    # WolfSSL setup
-    - name: Checkout WolfSSL
-      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: 'wolfssl/wolfssl'
-        path: 'thirdparties/wolfssl'
-        ref: '${{ env.wolfssl-version }}'
-
-    # WolfSSL build
-    - name: Configure and install wolfssl
-      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-      working-directory: ${{github.workspace}}/thirdparties/wolfssl
-      run: |
-        cmake -B ./build \
-            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/wolfssl/install' \
-            -DCMAKE_C_FLAGS="$CFLAGS -fPIC" \
-            -DCMAKE_CXX_FLAGS="$CFLAGS -fPIC" \
-            -DBUILD_SHARED_LIBS=OFF -DWOLFSSL_OPENSSLEXTRA=ON -DWOLFSSL_ASM=OFF -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CURL=ON
-        cmake --build ./build --config Release --parallel
-        cmake --install ./build --config Release
-
-    ###
-    # cURL
-    ###
-    - name: Cache cURL
-      id: cache-curl
-      uses: actions/cache@v4
-      with:
-        path: 'thirdparties/curl/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-curl-${{ env.curl-version }}-v1
-
-    # cURL setup
-    - name: Checkout cURL
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: 'curl/curl'
-        path: 'thirdparties/curl'
-        ref: 'curl-${{ env.curl-version }}'
-
-    # cURL build
-    - name: Configure and install curl
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      working-directory: ${{github.workspace}}/thirdparties/curl
-      run: |
-        cmake -B ./build \
-            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/curl/install' \
-            -DCURL_USE_LIBPSL=OFF \
-            -DCURL_USE_WOLFSSL=ON \
-            -DCURL_ZLIB="" \
-            -DCURL_BROTLI="" \
-            -DCURL_ZSTD="" \
-            -DCMAKE_SHARED_LINKER_FLAGS="-lm" \
-            -DWolfSSL_ROOT='${{github.workspace}}/thirdparties/wolfssl/install'
-        cmake --build ./build --config Release --parallel
-        cmake --install ./build --config Release
-
-    ###
     # Project
     ###
 
@@ -218,7 +127,6 @@ jobs:
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/lib/cmake/SDL2' \
         -DOPENAL_LIBRARY='${{github.workspace}}/thirdparties/soft-oal' \
         -DOPENAL_INCLUDE_DIR='${{github.workspace}}/thirdparties/soft-oal/install/include' \
-        -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
         -DBUILD_RENDERER_GL2=OFF \
         -DGIT_REVISION_BUILD_NUMBER=${{ github.run_number }} \
@@ -241,11 +149,15 @@ jobs:
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
         # Copy libraries
         mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.so.4 '${{github.workspace}}/package/'
+        cp -L ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.so.0 '${{github.workspace}}/package/'
+        cp -L ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.so.1 '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
+
+    - name: Archive package
+      # Artifacts don't keep file permissions, so the package goes in a tar
+      # to keep the binaries executable; the release jobs extract it
+      run: tar -C '${{github.workspace}}/package' -cf '${{github.workspace}}/package.tar' .
 
     ###
     # Artifacts
@@ -257,4 +169,4 @@ jobs:
         if-no-files-found: error
         compression-level: 9
         path:
-          ${{github.workspace}}/package
+          ${{github.workspace}}/package.tar

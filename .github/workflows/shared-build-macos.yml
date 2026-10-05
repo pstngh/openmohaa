@@ -1,9 +1,9 @@
 ##########################
 #
 # Apple macOS
-# macOS 15
+# Apple silicon, macOS 15 or later
 #
-# This version is used as the OS, as it's faster than other versions.
+# Built on the macOS 26 runner for its newer SDK.
 ##########################
 name: "macOS Builds"
 
@@ -21,23 +21,10 @@ env:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        architecture: [
-          #{name: 'x86_64',   triple: 'x86_64-apple-macos10.8'},
-          #{name: 'arm64',    triple: 'arm64-apple-macos11'}
-          #{name: 'x86_64',    build_name: 'x86_64'},
-          #{name: 'arm64',     build_name: 'arm64'},
-          # Compile into an universal binary
-          {name: 'multiarch-arm64-x86_64', build_name: 'arm64;x86_64' }
-        ]
-
-    name: "Building for platform macos-${{matrix.architecture.name}}"
-    runs-on: "macos-15"
+    name: "Building for platform macos-arm64"
+    runs-on: "macos-26"
     env:
         openal-soft-branch: '1.24.3'
-        wolfssl-version: 'v5.7.6-stable'
-        curl-version: '8_12_1'
         sdl2-branch: 'release-2.32.8'
 
     steps:
@@ -57,7 +44,7 @@ jobs:
         echo "CMAKE_GENERATOR=Ninja Multi-Config" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+        echo "MACOSX_DEPLOYMENT_TARGET=15.0" >> $GITHUB_ENV
 
     ###
     # SDL
@@ -69,7 +56,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/SDL2/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-sdl2-${{ env.sdl2-branch }}-v1
+        key: ${{ runner.os }}-arm64-sdl2-${{ env.sdl2-branch }}-v1
 
     # SDL2 setup
     - name: Checkout SDL2
@@ -85,8 +72,7 @@ jobs:
       working-directory: ${{github.workspace}}/thirdparties/SDL2
       run: |
         cmake -B ./build \
-        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/SDL2/install' \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}'
+        -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/SDL2/install'
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
 
@@ -98,11 +84,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: 'thirdparties/soft-oal/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-openal-soft-${{ env.openal-soft-branch }}-v1
+        key: ${{ runner.os }}-arm64-openal-soft-${{ env.openal-soft-branch }}-v1
 
     # soft-oal setup
-    # Use GCC instead of Clang because of missing SSE intrinsics
-    # It also doesn't enable altivec support on PowerPC by default
     - name: Checkout soft-oal
       if: steps.cache-openal-soft.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
@@ -118,81 +102,7 @@ jobs:
       run: |
         cmake -B ./build \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/soft-oal/install' \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
         -DCMAKE_VERBOSE_MAKEFILE=on
-        cmake --build ./build --config Release --parallel
-        cmake --install ./build --config Release
-
-    ###
-    # WolfSSL
-    ###
-# FIXME: Figure out how to compile WolfSSL cross-architecture
-#
-#    - name: Cache WolfSSL
-#      id: cache-wolfssl
-#      uses: actions/cache@v4
-#      with:
-#        path: 'thirdparties/wolfssl_install'
-#        key: ${{ runner.os }}-${{ matrix.architecture.name }}-wolfssl-${{ env.wolfssl-version }}-v1
-#
-#    # WolfSSL setup
-#    - name: Checkout WolfSSL
-#      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-#      uses: actions/checkout@v4
-#      with:
-#        repository: 'wolfssl/wolfssl'
-#        path: 'thirdparties/wolfssl'
-#        ref: '${{ env.wolfssl-version }}'
-#
-#    # WolfSSL build
-#    - name: Configure and install wolfssl
-#      if: steps.cache-wolfssl.outputs.cache-hit != 'true'
-#      working-directory: ${{github.workspace}}/thirdparties/wolfssl
-#      run: |
-#        cmake -B ./build \
-#            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/wolfssl_install' \
-#            -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
-#            -DBUILD_SHARED_LIBS=OFF -DWOLFSSL_OPENSSLEXTRA=ON -DWOLFSSL_ASM=OFF -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CURL=ON
-#        cmake --build ./build --config Release --parallel
-#        cmake --install ./build --config Release
-
-    ###
-    # cURL
-    ###
-    - name: Cache cURL
-      id: cache-curl
-      uses: actions/cache@v4
-      with:
-        path: 'thirdparties/curl/install'
-        key: ${{ runner.os }}-${{ matrix.architecture.name }}-curl-${{ env.curl-version }}-v1
-
-    # cURL setup
-    - name: Checkout cURL
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: 'curl/curl'
-        path: 'thirdparties/curl'
-        ref: 'curl-${{ env.curl-version }}'
-
-    # cURL build
-    - name: Configure and install curl
-      if: steps.cache-curl.outputs.cache-hit != 'true'
-      working-directory: ${{github.workspace}}/thirdparties/curl
-      run: |
-        cmake -B ./build \
-            -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/thirdparties/curl/install' \
-            -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
-            -DCURL_USE_LIBPSL=OFF \
-            -DCURL_USE_WOLFSSL=OFF \
-            -DCURL_USE_LIBSSH2=OFF \
-            -DUSE_LIBIDN2=OFF \
-            -DUSE_NGHTTP2=OFF \
-            -DCURL_ENABLE_SSL=OFF \
-            -DCURL_ZLIB="" \
-            -DCURL_BROTLI="" \
-            -DCURL_ZSTD="" \
-            -DWolfSSL_ROOT='${{github.workspace}}/thirdparties/wolfssl_install'
         cmake --build ./build --config Release --parallel
         cmake --install ./build --config Release
 
@@ -208,13 +118,12 @@ jobs:
       run: |
         echo "CMAKE_PARAM=--log-level=VERBOSE \
         -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install' \
+        -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DCMAKE_VERBOSE_MAKEFILE=on \
-        -DCMAKE_OSX_ARCHITECTURES='${{ matrix.architecture.build_name }}' \
         -DUSE_INTERNAL_SDL=OFF \
         -DSDL2_DIR='${{github.workspace}}/thirdparties/SDL2/install/lib/cmake/SDL2' \
         -DOPENAL_LIBRARY='${{github.workspace}}/thirdparties/soft-oal/install' \
         -DOPENAL_INCLUDE_DIR='${{github.workspace}}/thirdparties/soft-oal/install/include/AL' \
-        -DCURL_ROOT='${{github.workspace}}/thirdparties/curl/install' \
         -DUSE_RENDERER_DLOPEN=OFF \
         -DBUILD_RENDERER_GL2=OFF \
         -DBUILD_MACOS_APP=OFF \
@@ -236,16 +145,21 @@ jobs:
       # Install to the directory defined in CMAKE_INSTALL_PREFIX
       run: |
         cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        # Create hard-link and copy symbolic links
+        # Copy the libraries themselves: libopenal.1.dylib is a symbolic link,
+        # and a link to it would be dropped from the artifact
         mkdir ${{github.workspace}}/package
-        cp -l ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
-        cp -l ${{github.workspace}}/thirdparties/curl/install/lib*/libcurl.4.dylib '${{github.workspace}}/package/'
+        cp -L ${{github.workspace}}/thirdparties/SDL2/install/lib/libSDL2-2.0.0.dylib '${{github.workspace}}/package/'
+        cp -L ${{github.workspace}}/thirdparties/soft-oal/install/lib/libopenal.1.dylib '${{github.workspace}}/package/'
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
 
     - name: Build launcher
       run: sh '${{github.workspace}}/source/code/LauncherMac/bundle.sh' '${{github.workspace}}/package'
+
+    - name: Archive package
+      # Artifacts don't keep file permissions, so the package goes in a tar
+      # to keep the binaries executable; the release jobs extract it
+      run: tar -C '${{github.workspace}}/package' -cf '${{github.workspace}}/package.tar' .
 
     ###
     # Artifacts
@@ -253,8 +167,8 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: out-macos-${{matrix.architecture.name}}
+        name: out-macos-arm64
         if-no-files-found: error
         compression-level: 9
         path:
-          ${{github.workspace}}/package
+          ${{github.workspace}}/package.tar

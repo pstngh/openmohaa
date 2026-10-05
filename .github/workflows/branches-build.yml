@@ -41,16 +41,8 @@ jobs:
       matrix:
         target_os: [
           'linux-amd64',
-          'linux-i686',
-          'linux-arm64',
-          'linux-armhf',
-          'linux-powerpc',
-          'linux-ppc64',
-          'linux-ppc64el',
-          'windows-x64-pdb',
-          'windows-x86-pdb',
-          'windows-arm64-pdb',
-          'macos-multiarch-arm64-x86_64',
+          'windows-x64',
+          'macos-arm64',
         ]
 
     runs-on: ubuntu-24.04
@@ -65,6 +57,11 @@ jobs:
       with:
         name: 'out-${{matrix.target_os}}'
         path: ${{github.workspace}}/${{matrix.target_os}}
+
+    - name: Extract
+      # The macOS and Linux packages are in a tar that keeps file permissions
+      working-directory: '${{github.workspace}}/${{matrix.target_os}}'
+      run: if [ -f package.tar ]; then tar -xf package.tar && rm package.tar; fi
 
     - name: Zip
       working-directory: '${{github.workspace}}/${{matrix.target_os}}'

@@ -9,6 +9,10 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(identity)
 
+# macOS builds target macOS 15 or later. It is set before project() so the
+# toolchain checks use it, and -D still overrides it.
+set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0 CACHE STRING "Minimum macOS version")
+
 project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 option(BUILD_SERVER "Build dedicated server" ON)
