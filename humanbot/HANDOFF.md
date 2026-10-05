@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-04.
+For a Claude Code session picking this work up. The state is as of 2026-10-05.
 
 ## What this is
 
@@ -32,14 +32,14 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 52% of 195
-  statistics (median relative error 0.23; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
+  statistics (median relative error 0.23, as before "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
   bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `f6661e571831` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `6cd163537aa4` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -1131,6 +1131,76 @@ No statistic crossed 25% for the worse in both seed sets (one for the better: th
 first look at a sighting after a spawn and the owner's other checks stay where they were. In the arena (eight seeds)
 52% of 195 within 25% (53%), no stuck bout.
 
+## Back and forth with the enemy hidden (2026-10-05)
+
+The "sideways walk" of the practice areas ("Known gaps") is mostly running back and forth. Of the 3 s stretches with
+the enemy hidden in which a player ran 300 u or more, people end within 100 u of where they started 9% of the time on
+dm/brownffa and dm/flag and 18% on the duel maps; the bots of `bd746743` 41% and 34%, and their 2 s paths were half as
+straight (net over path 0.29-0.33 against 0.58-0.61). In the owner's games of 2026-10-04/05 (`move_wip/s9/live4/`,
+`live5/`) it is 18% of the bots' hidden stretches. On dm/brownffa and dm/flag 17% of the bots' alive time was at the
+exit of a spawn area (people 4-5%), strafing along the wall beside the opening with the opening straight ahead and
+never pressing forward through it, or running past a turn of the path and back. Diagnosed on captures at `bd746743`
+(`move_wip/reports`/`eval/cache/bot` `bt0_*`, `tc2_*`) and one diagnostic server that printed the path's corners each
+tick (git-ignored scripts in `humanbot/cache/move_wip/s10/`: `dith2.py` the back and forth, `qs.py` the gait table,
+`rstab.py` how steady the route is, `trace.py` tick traces, `dspots.py` where, `trans.py` key transitions, `walls.py`;
+the experiments' code is `s10/experimental_all.diff`).
+
+**What it was.**
+- **The keys followed the route loosely.** A key changed for the route only when that improved how its chord goes the
+  route's way by more than 0.3 (the cosine of the angle): forward alone with the route 45 deg off, or a strafe with the
+  route straight ahead, was "good enough" and kept. With a stable route in the open the held chord was within 22 deg of
+  it on 43% of ticks; at a turn of the path the bots ran past it, the route pointed back, and they came back.
+- **The route swung.** The walls' push on the route (`g_humanbot_wall_steer`, "Wall contact") at full strength turned
+  the route more than 30 deg on 22% of ticks, and in a corridor the walls on either side took turns (15 times a minute
+  across); the route was within 15 deg of where it pointed half a second earlier on only a fifth of the ticks the bots
+  ran hidden. Corners passed close by swung it too.
+- **Not the hunt goal** (3% of the route's big swings came with a new goal), **nor the view**: kept within 60 deg of
+  the route, or turned to it at path turns, the view lagged its target (31 deg at the median while looking down the
+  route) and the gait did not change.
+
+**What changed.**
+- `nav_deadband` 0.1 (coupling, `assemble_model.py`; was the constant 0.3 in `hb_movement.cpp`). Unit test
+  `TestRouteTurns`: with a route that takes a new bearing every second, the keys go its way at a cosine of 0.89 (0.86).
+- `g_humanbot_wall_steer` 0.5 (the default and `duel.cfg`; was 1): the bots touch walls as often as before and as people.
+
+Bot against bot (`move_wip/reports/ov_*` against `tc2_*` on the duel maps, `bov_*` against `bt0_*` on dm/brownffa
+and dm/flag; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/brownffa, dm/flag: ran 300 u in 3 s, back within 100 u | 9% | 41% (41%) | 34% (37%) |
+| ... straightness of the path (net / path) | 0.61 | 0.29 (0.30) | 0.35 (0.33) |
+| ... forward held while moving hidden | 77% | 43% (39%) | 47% (44%) |
+| ... net distance in 2 s hidden p50 | 267 u | 101 (97) | 117 (113) |
+| ... touching a wall / standing at one | 9.1% / 6.3% | 9.8% / 11.4% (9.9% / 11.1%) | 10.1% / 10.4% (9.7% / 9.7%) |
+| dm/brownffa: two bots in sight of each other, a minute / from a spawn to the first sight | 13.5 / 2.3 s | 7.3 / 5.0 s (7.4 / 4.9 s) | 10.1 / 3.6 s (10.3 / 3.4 s) |
+| dm/flag: the same | 15.7 / 2.1 s | 5.7 / 5.3 s (5.5 / 5.6 s) | 5.4 / 5.8 s (5.4 / 6.0 s) |
+| duel maps: ran 300 u in 3 s, back within 100 u | 18% | 34% (34%) | 31% (35%) |
+| ... forward held while moving hidden / net distance in 2 s hidden | 63% / 212 u | 54% / 157 (51% / 147) | 57% / 182 (55% / 176) |
+| ... touching a wall | 7.3% | 5.9% (6.3%) | 5.7% (5.5%) |
+| ... all 281 statistics within 25% | | 59% (56%) | 58% (56%) |
+
+Two statistics crossed 25% for the worse in both seed sets: strafes are held a median 200 ms (250 before, people 300)
+and the enemy is on screen 44-45% of duel time (40-41%, people 34%); two for the better (back-offs at 288-384 u in
+fights, the hidden release 1-1.5 s into a hold). The owner's checks (`obs5.py`) stay where they were except that the bots,
+in view of each other more, begin a few more reloads with the enemy on screen (1.71 (1.39) a minute alive against 1.51
+(1.24), people 0.31). In the arena (eight seeds) 52% of 195 within 25% (52%), no stuck bout; 83 us per bot per tick
+with 16 bots.
+
+Tried and dropped (dm/brownffa and dm/flag, seeds 201-208, and the duel maps where noted): `nav_deadband` 0 (as 0.1)
+and 0.2 (half the gain); the coupling 1.5x or 2x (`nav_switch_logit`/`nav_choice_logit`; travel 134-138 u, but the bots
+stood hidden 10% of the time, people 15%, and on the duel maps 56% within 25%); the walls' push off (back and forth 28%,
+but walls touched 12.7%) or smoothed over ticks (no change); aiming 64-128 u along the straightened path or 24 u wide of
+its corners (small, more wall contact; `IPather::GetCorners` was added for it); the navigation mesh built for a 16 u
+agent (worse); the keys following a smoothed route (worse); judging each key with the other at the best chord's state
+(back and forth 35%, standing 28%); a hold that stops the keys (standing 21-38%); the view kept within 45-60 deg of the
+route, turned to it at path turns or more readily behind (no change); shorter holds of a sound's direction (no change).
+
+**Still off.** On dm/flag the bots still loop through the junction west of the spawn and the side route people never
+use; the back and forth is still three to four times people's; with the enemy hidden the bots hold forward less than
+people and run on more crooked paths, and people's straight paths come from steering with the mouse, which the bots'
+keys-follow-the-route design does not do.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1164,11 +1234,13 @@ first look at a sighting after a spawn and the owner's other checks stay where t
   Lives are 10-11 s vs 7. The hidden diagonal is 28-30% vs 30% (per family the strafer and stopper bots
   21-23% and 19-21% vs 24% and 18.5%; 15-18% before "Travel and the hidden view"); forward alone 14% vs
   12%, standing 14-15% vs 22.5%.
-- **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps"): the bots meet 5-6
-  times a minute vs 13.5-15.7 and take 5.6-7 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they
-  move sideways (forward held 33-42% of the time they move vs 73%, motion 73-89 deg off the view vs 40), their hunt
-  goal hops as the belief moves, and on dm/flag a tenth of their time is on a loop people never use (the navmesh
-  route between the spawns). They stand over 2 s with the enemy hidden 0.26-0.8 times a minute vs 0.3. Fights there:
+- **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps" and "Back and forth
+  with the enemy hidden"): the bots meet 10 times a minute on dm/brownffa and 5.4 on dm/flag vs 13.5-15.7 and take
+  3.4-3.6 and 5.8-6 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they run back and forth (34-37%
+  of the 3 s stretches with 300 u run end within 100 u of the start, people 9%) and hold forward 44-47% of the time they
+  move (77%); on dm/flag a tenth of their time is on a loop people never use (the navmesh route between the spawns) and
+  they still get caught at the junction west of the spawn. They stand over 2 s with the enemy hidden 0.26-0.8 times a
+  minute vs 0.3. Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
@@ -1199,6 +1271,10 @@ first look at a sighting after a spawn and the owner's other checks stay where t
   as standing still mid-fight.
 - **Leaning toward an opening:** people already lean toward the edge they reach (66% of edge moments begin leaned
   that way, the bots' 41%); the wall term acts once the bot is there.
+- **Leaning all the time (presser and stopper styles)**: found in the owner's games of 2026-10-04/05, not changed. The
+  presser-style bots lean 84% of their hidden time, 91% while reloading and 92% in sight not firing; the presser 54%,
+  47% and 52%. The stopper-style bots 81%, 79% and 88%; their people 68%, 43% and 44%. Firing, both match (93-97% vs
+  88-93%); the strafer style matches everywhere. In the owner's games those bots leaned 75-92% of the time.
 - **Leaning at walls** (see "The lean follows the strafe"): half the bots' leans with the head at a wall come with no
   strafe key held (people 23%): the bot stopped at the wall and kept the lean. The strafer bots let go of a lean at
   the strafe's turn 21-25% vs 36%, and the stopper bots' leans last longer (p90 1.9 s vs 1.6).
@@ -1273,6 +1349,9 @@ first look at a sighting after a spawn and the owner's other checks stay where t
 - A hit from an enemy not in sight turns the view toward where it is felt, from any angle (before 2026-10-04 only
   hits felt more than 60 deg off: a hand-set gate). Maps without a recorded prior get coarser cells when they would
   have more than 3000 (hand-set: the visibility table's size and build time).
+- A key changes for the route when that makes its chord go the route's way better by more than 0.1 (the cosine;
+  `nav_deadband`, hand-set on practice-map captures, 0.3 before 2026-10-05), and the walls push the route at half
+  strength (`g_humanbot_wall_steer` 0.5, 1 before): see "Back and forth with the enemy hidden".
 - With the enemy hidden the route pull grows with its believed distance (x1 within 500 u, x3 from 900 u: `nav_far_*`,
   hand-set on all six maps, see "The practice areas of the objective maps") and gives way while the bot presses into a
   wall. A bot travelling with its route into a wall it touches, that has held no key for a second, takes the open

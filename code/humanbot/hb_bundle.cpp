@@ -414,6 +414,7 @@ void ParseMovement(const json& j, MovementModel& m)
         m.wallPressureLogit = NumOr(c, "wall_pressure_logit", m.wallPressureLogit);
         m.wallReflexMs      = NumOr(c, "wall_reflex_ms", m.wallReflexMs);
         m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);
+        m.navDeadband       = NumOr(c, "nav_deadband", m.navDeadband);
     }
 }
 

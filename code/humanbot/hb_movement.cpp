@@ -346,7 +346,7 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         z += m.sideCtxLogit[in.ctx];
     }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, true, veto, m_side) - 0.3f);
+        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, true, veto, m_side) - m.navDeadband);
     }
     p    = Sigmoid(z);
     side = m_side;
@@ -437,7 +437,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
         z -= 0.5f * style.diagLogit;
     }
     if (in.navValid && in.urgency > 0.0f) {
-        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, false, veto, side) - 0.3f);
+        z += m.navSwitchLogit * NavPull(in) * (NavGain(in, false, veto, side) - m.navDeadband);
     }
 
     // the next state: a categorical over the other two, tilted toward or away from the enemy by distance

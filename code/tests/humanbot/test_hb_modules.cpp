@@ -464,6 +464,48 @@ static void TestHiddenDistance(const hb::ModelBundle& b)
     HB_CHECK(sFar < sNear);
 }
 
+// A route that turns: every second it takes a new bearing within 90 deg of the view. A key changes for the route once
+// that improves the chord's alignment by more than nav_deadband; at 0.3 the bots kept forward alone, a diagonal or a
+// strafe that went the route's way only partly (a stable route in the open was within 22 deg of the held chord on 43% of
+// ticks on the maps), zig-zagged and ran back and forth.
+static void TestRouteTurns(const hb::ModelBundle& b)
+{
+    hb::StyleOffsets style;
+    auto along = [&](float deadband) {
+        hb::MovementModel mm = b.shared.movement;
+        mm.navDeadband       = deadband;
+        hb::Mover mv;
+        mv.Init(&mm);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 600.0f;
+        in.onGround   = true;
+        in.navValid   = true;
+        in.travelling = true;
+        in.urgency    = 0.8f;
+        hb::Rng        rm(81), rs(82), rr(83);
+        hb::MoveOutput out;
+        double         sum = 0.0;
+        const int      n   = 200000;
+        for (int i = 0; i < n; i++) {
+            if (i % 20 == 0) {
+                in.navBearing = static_cast<float>(rr.Uniform(-90.0, 90.0));
+            }
+            mv.Step(in, style, rm, rs, out);
+            if (out.chord != hb::CHORD_NEUTRAL) {
+                sum += std::cos((hb::Mover::ChordAngle(out.chord) - in.navBearing) * hb::DEG2RAD);
+            }
+        }
+        return sum / n;
+    };
+    const double now = along(b.shared.movement.navDeadband), before = along(0.3f);
+    HB_REPORT("a route turning every second: the keys go its way %.2f (cosine, dead band %.2f), %.2f at 0.3", now,
+              b.shared.movement.navDeadband, before);
+    HB_CHECK(b.shared.movement.navDeadband < 0.3f);
+    HB_CHECK(now > before + 0.02);
+}
+
 // A bot that wants to go somewhere, stands with no key held and whose route runs into a wall it touches takes the open
 // chord nearest the route within a second instead of standing there.
 static void TestUnstick(const hb::ModelBundle& b)
@@ -1257,6 +1299,7 @@ int main()
     TestLeanSwitch(b);
     TestStrafeMemory(b);
     TestHiddenDistance(b);
+    TestRouteTurns(b);
     TestUnstick(b);
     TestFarPullWall(b);
     TestSubsteps();
