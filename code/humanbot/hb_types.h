@@ -122,6 +122,8 @@ public:
     virtual bool Clear(const Vec3& a, const Vec3& b) const = 0;
 };
 
+static constexpr int MAX_NAV_CORNERS = 4;
+
 //
 // Own state, read from the engine every tick
 //
@@ -156,6 +158,10 @@ struct SelfState {
     float drop[9]       = {};     // floor drop 32 u ahead per chord direction (0 = level)
     bool  navSteerValid = false;  // navmesh steering toward the last nav target
     float navSteerYaw   = 0.0f;   // world yaw of the next path corner
+    int   navCorners    = 0;      // the next corners of the straightened navmesh path toward the last nav target
+    Vec3  navCorner[MAX_NAV_CORNERS];  //   (0: none; the brain then walks its own route cells), nearest first
+    bool  doorAheadValid = false; // a closed door across the way ahead, within reach soon: where the way meets it
+    Vec3  doorAhead;              //   (doors open to the use key aimed at them)
     float navPathLen    = 0.0f;
     float stuckMs       = 0.0f;   // pressing movement keys without progress
     float wallPressMs   = 0.0f;   // pressing into geometry

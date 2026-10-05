@@ -287,12 +287,13 @@ float Mover::HidDist(const KeyModel& k, int row, int fwd, const MoveInput& in) c
 }
 
 // How firmly the keys follow the route: the urgency, more so the farther away the enemy is believed to be while it is
-// hidden (people run to a far fight and strafe and peek near one). Not while pressing into a wall: three times the
-// pull outweighed letting go of a key held into it (in the arena bots pushed against pillars for seconds).
+// hidden (people run to a far fight and strafe and peek near one), and while the view leads along the way. Neither
+// while pressing into a wall: three times the pull outweighed letting go of a key held into it (in the arena bots
+// pushed against pillars for seconds).
 float Mover::NavPull(const MoveInput& in) const
 {
     const MovementModel& m = *m_p;
-    float                k = in.urgency;
+    float                k = in.urgency * (in.travelView && in.wallPressMs <= 0.0f ? m.travelPull : 1.0f);
     if (m.navFarMult != 1.0f && m.navFarDist > m.navFarNear && in.enemyKnown && in.wallPressMs <= 0.0f
         && (in.ctx == CTX_HIDDEN_NOFIRE || in.ctx == CTX_HIDDEN_FIRE)) {
         k *= 1.0f + (m.navFarMult - 1.0f) * Clamp((in.enemyDist - m.navFarNear) / (m.navFarDist - m.navFarNear), 0.0f, 1.0f);

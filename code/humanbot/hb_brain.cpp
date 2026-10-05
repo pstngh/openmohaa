@@ -55,6 +55,8 @@ static constexpr float BOOST_DETECT   = 0.5f;
 // The route the view looks along is smoothed (time constant ~0.3 s): the next path corner's direction swings round
 // as a corner is passed, and people look down the corridor, not at the next corner.
 static constexpr float ROUTE_LOOK_ALPHA = 0.15f;
+// The view leads along a way only while its end is at least this far (units).
+static constexpr float TRAVEL_AHEAD_MIN = 48.0f;
 
 void Brain::Init(const ModelBundle *bundle, const MapPrior *map, const StyleDials& dials, uint64_t seed, int substeps)
 {
@@ -422,6 +424,13 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         m_lookRouteYaw = Wrap180(m_lookRouteYaw + ROUTE_LOOK_ALPHA * Wrap180(m_navOut.desiredYaw - m_lookRouteYaw));
     }
     vi.navYaw          = m_lookRouteValid ? m_lookRouteYaw : m_navOut.desiredYaw;
+    vi.travelling      = vi.navValid && (m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH);
+    vi.doorValid       = vi.navValid && self.doorAheadValid;
+    vi.door            = self.doorAhead;
+    if (vi.travelling && S.view.travelLead > 0.0f && m_nav.PointAhead(self, S.view.travelLead, vi.ahead)) {
+        // a way that ends right here gives no direction to look along
+        vi.aheadValid = (vi.ahead - self.origin).lengthXY() >= TRAVEL_AHEAD_MIN;
+    }
     vi.sounds          = &obs.sounds;
     vi.damage          = &obs.damage;
     vi.aimHeightFiring = m_off.aimHeightFiring;
@@ -453,6 +462,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.navBearing     = Wrap180(m_navOut.desiredYaw - self.viewYaw);
     mi.urgency        = m_navOut.urgency;
     mi.travelling     = m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH;
+    mi.travelView     = vo.travel;
     for (int c = 0; c < NUM_CHORDS; c++) {
         mi.clearance[c] = self.clearance[c];
         mi.drop[c]      = self.drop[c];

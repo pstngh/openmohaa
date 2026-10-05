@@ -229,6 +229,10 @@ private:
     bool     m_steerValid  = false;
     float    m_steerYaw    = 0.0f;
     float    m_pathLen     = 0.0f;
+    int      m_nCorners    = 0;   // the straightened path's next corners (the view leads along them)
+    bool     m_doorValid   = false;   // a closed door across the way ahead (DoorAhead)
+    Vector   m_door;
+    Vector   m_corners[hb::MAX_NAV_CORNERS];
 
     // special owners
     int m_owner          = hb::OWNER_BRAIN;
@@ -495,6 +499,27 @@ static float WallSteerYaw(float routeYaw, float viewYaw, const float clearance[h
     return RAD2DEG(std::atan2(py + gain * ry, px + gain * rx));
 }
 
+// A closed door across the way within DOOR_AHEAD of the eye, along the yaw: where the way meets it. The doors of the
+// practice maps open to the use key only, aimed at them (Player::getUseableEntities: 64 u along the view); the bots
+// pressed use only for a door straight ahead in their view, and at dm/flag's junction west of the spawn they slid along
+// a closed door for seconds while their view was on the corridor beyond it or on a corner (people open it and walk
+// through).
+static const float DOOR_AHEAD = 96.0f;
+
+static bool DoorAhead(Player *p, float yaw, Vector& at)
+{
+    Vector fwd;
+    Vector(0, yaw, 0).AngleVectors(&fwd);
+    const Vector  start = p->origin + Vector(0, 0, p->viewheight);
+    const trace_t tr    = G_Trace(start, vec_zero, vec_zero, start + fwd * DOOR_AHEAD, p, MASK_USABLE, qfalse, "HumanBot door");
+    if (tr.ent && tr.ent->entity && tr.ent->entity != world && tr.ent->entity->IsSubclassOfDoor()
+        && !static_cast<Door *>(tr.ent->entity)->isOpen()) {
+        at = tr.endpos;
+        return true;
+    }
+    return false;
+}
+
 // Navigation mesh path toward the brain's goal: the direction of its next corner, kept off the walls.
 void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self)
 {
@@ -527,13 +552,17 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::Se
         Vector dir = m_pather->GetCurrentDirection();
         dir.z      = 0.0f;
         if (dir.normalize() > 0.0f) {
+            m_nCorners   = m_pather->GetCorners(m_corners, hb::MAX_NAV_CORNERS);
             m_steerValid = true;
             m_steerYaw   = WallSteerYaw(dir.toYaw(), self.viewYaw, self.clearance);
+            m_doorValid  = DoorAhead(p, dir.toYaw(), m_door);
             m_pathLen    = (goal - p->origin).length();
             return;
         }
     }
     m_steerValid = false;
+    m_nCorners   = 0;
+    m_doorValid  = false;
 }
 
 void HumanBotAdapter::SetOwner(Player *p, int owner)
@@ -725,6 +754,12 @@ void HumanBotAdapter::Prepare()
     raw.self.navSteerValid = m_steerValid;
     raw.self.navSteerYaw   = m_steerYaw;
     raw.self.navPathLen    = m_pathLen;
+    raw.self.navCorners    = m_steerValid ? m_nCorners : 0;
+    raw.self.doorAheadValid = m_steerValid && m_doorValid;
+    raw.self.doorAhead      = hb::Vec3(m_door.x, m_door.y, m_door.z);
+    for (int i = 0; i < raw.self.navCorners; i++) {
+        raw.self.navCorner[i] = hb::Vec3(m_corners[i].x, m_corners[i].y, m_corners[i].z);
+    }
 
     if (raw.self.alive && !raw.self.spectator) {
         for (int i = 0; i < game.maxclients; i++) {
