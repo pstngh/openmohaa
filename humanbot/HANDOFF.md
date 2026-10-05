@@ -1454,6 +1454,68 @@ Flag room 70% of his time and the bot walked into it. Asked, the owner said the 
 too well (the soft wallhack), and agreed with what is still off: seen first walking into the room he holds, the slow
 sideways running, the jumps (4.5 a minute against his 1.4; the bot drew the jumpiest recorded style, 5.7).
 
+## Through the doors (2026-10-05)
+
+In the owner's game on `84508075` (see "The way people go") he had the bot on screen first in 61% of its deaths: he held
+the Flag room and the bot walked into it. Taken apart (git-ignored scripts in `humanbot/cache/move_wip/s14/`:
+`approach.py` the moments one walks into a room the other holds, `late.py` and `lateb.py` why the one walking in was late,
+`atdoor.py` those moments at a door, `doorpass.py`, `dooruse.py`, `doorside.py`, `doortrack.py`, `doorstate.py`,
+`presswhy.py` and `pressview.py` the passes through dm/flag's two doors into the Flag room, the Flag door D7 and the Flag
+pre-CR door D1): the bot met him at one of those doors in 89% of the times it walked into the room, and there he had it
+on screen 150 ms or more before it had him 39% of the time; when people walk into a room someone holds and meet him at
+the door (the dm/flag duel in the data repository), 9%. All 22 times the bot was late came at a door; in 15 it had slowed
+to 50 u/s and its eye saw no part of him while he, leaning at the doorway, saw part of it through the gap. The
+doors swing away from whoever opens them and take 1-1.5 s to open (wood, metal; `Door`, `RotatingDoor::DoOpen`). People
+press use as soon as the door is in reach (70 u from the doorway's middle, the view 12 deg off its nearest part), hold
+30-55 u in front of it lined up with its middle while it swings, and are through (100 u past it) 1.25 s after the press,
+70% within 3 s; at a door they stop for 300 ms in 2-5% of their passes. In the V2 matches (163 sessions, the same two
+doors) they press 71 u off and are through after 1.35 s. The bots pressed 49 u off, looking along the door where the way
+met it, ran on into the swinging door, and the route slid them along it to the frame and back (the path flips while the
+door moves): through after 1.6-1.7 s, 55-59% within 3 s, a stop at the door in 15-23% of their passes. People walking into
+a held room do not wait or hold an angle first (a stop in the 3 s before 8%): they come through at a run with the view on
+the one holding it (7 deg off, over 30 deg 1%).
+
+**What changed** (the engine glue only):
+- **The door pass** (`DoorPass`): after the bot opens a door the keys are the door's for a moment: in front of the
+  doorway's middle, no nearer than 28 u and no further than `g_humanbot_door_hold` (48 u), while the door has turned less
+  than `g_humanbot_door_go` (25 deg), then through it a little to the side that opens first, until 24 u past it. The keys
+  are the 8-way chord nearest the way there, skipping chords that press into a wall. The brain keeps the view and gets
+  the keys back the moment its enemy is in sight.
+- **The door look** looks at the door's nearest part, not where the way meets it, and starts 128 u ahead
+  (`g_humanbot_door_ahead`, 96 before): use reaches it 53 u from its middle (49 before).
+- **Use** is pressed only on a closed door (on a moving door it does nothing; on an open one it shuts it).
+
+Bot against bot (`bdz_*` against `bvz_*` on dm/brownffa and dm/flag, `dz_*` against `vz_*` on the duel maps, the committed
+build of "The way people go"; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/flag's doors into the Flag room: through within 3 s of the press / time to through p50 | 70% / 1.25 s | 59% / 1.6 s (55% / 1.7 s) | 80% / 1.35 s (79% / 1.4 s) |
+| ... a 300 ms stop in a pass, D1 / D7 | 5% / 2% | 17% / 20% (15% / 22%) | 10% / 8% (12% / 11%) |
+| walking into the Flag room someone holds, at a door: he has it on screen 150+ ms first / its speed then | 9% / 223 u/s | 24% / 156 (29% / 154) | 18% / 169 (25% / 164) |
+| ... anywhere: he has it on screen first | 8% | 18% (23%) | 15% (19%) |
+| dm/flag, a bot coming out of Pre-control, Inside door 2 or Door 2 onto the screen of one in the Flag room: its view over 30 / 90 deg off him | | 20% / 7% (17% / 5%) | 16% / 5% (16% / 4%) |
+| dm/flag: sightings a minute / from a spawn to the first sight / the enemy in sight | 15.7 / 2.1 s / 27.5% | 11.4 / 2.9 s / 30.6% (11.2 / 3.0 s / 30.3%) | 11.9 / 2.5 s / 33.0% (11.8 / 2.5 s / 33.9%) |
+| dm/flag: time at the junction mouth by the Flag pre-CR door | 2.2% | 4.2% (4.1%) | 3.1% (3.3%) |
+| dm/brownffa, dm/flag hidden: ran 300 u in 3 s, back within 100 u / net distance in 2 s | 9% / 267 u | 23.0% / 211 (24.7% / 204) | 21.7% / 224 (21.4% / 220) |
+| ... pressing into a wall | | 1.5% (1.4%) | 0.85% (0.84%) |
+| duel maps: all 281 statistics within 25% | | 57% (55%) | 57% (56%) |
+
+The duel maps' doors are off the routes (the door code holds the keys 0.01% of the time there): their changes are two
+runs' spread (back and forth 28.9% and 27.5% against 26.6% and 25.6%; one statistic crossed 25% for the better in both seed
+sets, none for the worse). The owner's checks (`obs5.py`) stay where they were. The arena has no doors and does not run
+the engine glue.
+
+Tried (dm/flag, seeds 201-208): going at 10-15 deg (the bots ran into the door again: he had them on screen first at the
+door 29-30% of the time), at 35-45 deg (they stood waiting: a stop at the Flag door in 29-34% of the passes, through after
+1.45-1.6 s), holding in front of the door at a fixed 40 u (the bots backed up to it after pressing late, and went at 45 deg
+into the still swinging door: through after 1.65 s), the door look from 160 u (no change).
+
+**Still off.** At the doors, bot against bot, the one holding the room still has the one coming in on screen first 18-25%
+of the time against people's 9%: while the bot waits in front of the swinging door the holder sees part of it through
+the gap before its eye sees him (people's stops there are rarer and shorter). The bots meet more on dm/flag than before but
+still less than people, and keep the enemy in sight longer once they meet.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1494,6 +1556,8 @@ sideways running, the jumps (4.5 a minute against his 1.4; the bot drew the jump
   of the start since "Watching his side", 25% before, people 9%), most of it near the enemy, at two corridor mouths on
   dm/brownffa and at dm/flag's Flag pre-CR door, and hold forward 63-65% of the time they move (77%); on dm/flag under 1%
   of their time is where people never stood (the navmesh's ring between the spawns, 7-11% before "The way people go").
+  Through dm/flag's doors into the Flag room the bots are 80% through within 3 s of the press (people 70%), but the one
+  holding the room still sees one coming in first at a door 18-25% of the time (people 9%; see "Through the doors").
   They stand over 2 s with the
   enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
@@ -1630,6 +1694,8 @@ sideways running, the jumps (4.5 a minute against his 1.4; the bot drew the jump
   way is used whatever keys are held. All hand-set on the practice maps and the owner's game (see "Watching his side").
 - On maps with a recorded prior the engine's path goes to a point 384 u along the route over the moves people made
   (`via_dist`), not straight to the goal by the navmesh's shortest way. Hand-set on dm/flag (see "The way people go").
+- After the bot opens a door the keys are the door's until it is through (`g_humanbot_door_go` 25 deg, `_hold` 48 u), and
+  the door look aims at the door's nearest part from 128 u ahead (`_ahead`). Hand-set on dm/flag (see "Through the doors").
 - **The soft wallhack** (the owner's, 2026-10-05): a hidden enemy's true direction and distance reach the belief as a
   noisy hunch 40 times a minute (`hunch_*` in the perception model; `RawEnemy::hunchPos`, filled by the engine glue);
   the plan's perception was human-fair throughout. Set by hand (see "Watching his side").
