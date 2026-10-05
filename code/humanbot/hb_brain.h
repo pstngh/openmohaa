@@ -121,6 +121,7 @@ private:
     int  m_tclockMs      = 100000; // the press hazard's clock in sight: m_vageMs, restarted when the aim arrives late
     bool m_aimArrived    = false;  // the crosshair came near the enemy in this sighting
     bool m_sightFirst    = false;  // the first tick of a sighting
+    bool m_firedInSight  = false;  // the trigger pressed in this sighting (the reaction dial acts until then)
     bool m_detected      = false;
     int  m_acqTicks      = 1000;
     int  m_focusId       = -1;

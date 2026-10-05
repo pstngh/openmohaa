@@ -34,6 +34,7 @@ static constexpr int   ACQUISITION_TICKS = 10;
 static constexpr int   CLICK_RETRY_MS    = 600;
 static constexpr float BODY_HALF_W       = 15.0f;
 static constexpr int   AIM_ARRIVE_CLOCK_MS = 200;   // the press hazard's clock on a late aim arrival (its peak: 200-250 ms)
+static constexpr float REACTED_HALF_WIDTHS = 4.0f;  // a press this near the enemy ends the reaction (the clean first press)
 // The owner's rule: no two headshots in a row. After a head hit the bot aims at the chest for
 // HEAD_HIT_CHEST_MS and holds its fire for the first HEAD_HIT_PAUSE_MS, while the view comes down
 // (the next round would leave within 100 ms, before the view moved).
@@ -135,6 +136,7 @@ void Brain::OnSpawn(const Observation& obs)
     m_tclockMs   = 100000;
     m_aimArrived = false;
     m_sightFirst = false;
+    m_firedInSight = false;
     m_detected  = false;
     m_acqTicks  = 1000;
     m_clickDown = false;
@@ -268,6 +270,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         m_tclockMs   = m_vageMs;
         m_aimArrived = false;
         m_sightFirst = detected;
+        m_firedInSight = false;
     } else {
         m_sightFirst = false;
         m_vageMs   = std::min(m_vageMs + TICK_MS, 100000);
@@ -317,7 +320,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
             // there from the start of the sighting: the clock runs on from the parts
             m_aimArrived = true;
             if (!m_sightFirst) {
-                m_tclockMs = std::min(m_tclockMs, AIM_ARRIVE_CLOCK_MS);
+                m_tclockMs     = std::min(m_tclockMs, AIM_ARRIVE_CLOCK_MS);
+                m_firedInSight = false;   // a late arrival is a new reaction
             }
         }
         if (m_vis) {
@@ -346,7 +350,12 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     ti.blocked      = obs.teammateInCrosshair || now - m_headHitMs < HEAD_HIT_PAUSE_MS;
     ti.releaseLogit = m_off.releaseLogit;
-    ti.pressLogit   = m_off.reactionLogit + BOOST_REACTION * m_skillBoost;
+    // The reaction dial is the time to the first press after a sighting (fit_styles.py, the arena's clean first press),
+    // and acts until the first press with the crosshair near the enemy (or until a late arrival of the aim, a new
+    // reaction): as a shift of every press it held fire on target throughout. A bot drawn at the slowest reaction (200 ms,
+    // -1.35) fired at 53% of its in-sight time with the crosshair on the owner in the owner's game of 2026-10-05 (the
+    // strafers of 132-151 ms 84-90%, each recorded person 77-84%)
+    ti.pressLogit   = (m_firedInSight ? 0.0f : m_off.reactionLogit) + BOOST_REACTION * m_skillBoost;
     // the respawn click is often still held, or clicked again, in the first live ticks (it never fires);
     // the trigger takes over for good once an enemy is seen or the clicking is over
     const SpawnModel& sp = S.spawn;
@@ -364,6 +373,9 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         attack = m_click;
     } else {
         attack = m_trigger.Step(ti, m_rngTrigger);
+        if (attack && detected && ti.errHalfWidths < REACTED_HALF_WIDTHS) {
+            m_firedInSight = true;
+        }
     }
 
     //
