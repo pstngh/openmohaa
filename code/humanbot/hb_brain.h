@@ -56,6 +56,8 @@ public:
     void SetWorld(const WorldQuery *world) { m_belief.SetWorld(world); }
 
     void Think(const Observation& obs, TickPlan& plan, Diag *diag);
+    // The lean the engine held this tick instead of the planned one (going through a door): the lean chain goes on from it.
+    void SetLean(int lean) { m_mover.SetLean(lean); }
 
     const StyleDials&   Dials() const { return m_dials; }
     const StyleOffsets& Offsets() const { return m_off; }

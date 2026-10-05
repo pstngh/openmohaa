@@ -93,6 +93,14 @@ public:
     int SideAgeTicks() const { return m_sideAge; }
     int Lean() const { return m_lean; }
     int LeanAgeTicks() const { return m_leanAge; }
+    // A lean the engine held (going through a door): the chain goes on from it.
+    void SetLean(int lean)
+    {
+        if (lean != m_lean) {
+            m_lean    = lean;
+            m_leanAge = 1;
+        }
+    }
 
     // Chord direction in the view frame (degrees, + = left); 0 for neutral.
     static float ChordAngle(int chord);
