@@ -2154,6 +2154,13 @@ void Level::EventGetDMRespawning(Event *ev)
 
 void Level::EventSetDMRespawning(Event *ev)
 {
+    // Added in OPM
+    //  Free-for-all and team matches always respawn,
+    //  even on a map whose script turns respawning off for its objectives
+    if (dmManager.IgnoresObjectiveSpawnScripts()) {
+        return;
+    }
+
     dmManager.SetGameAllowsRespawns(ev->GetBoolean(1));
 }
 

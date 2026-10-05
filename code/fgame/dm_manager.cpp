@@ -1114,6 +1114,24 @@ void DM_Manager::InitGame(void)
         }
     }
 
+    // Added in OPM
+    //  A map without spawn points for the mode, such as an objective map in
+    //  free-for-all or a deathmatch map in a team game, uses the other kind
+    if (g_gametype->integer >= GT_FFA && !m_team_allies.m_spawnpoints.NumObjects()
+        && !m_team_axis.m_spawnpoints.NumObjects()) {
+        for (i = 1; i <= level.m_SimpleArchivedEntities.NumObjects(); i++) {
+            SimpleArchivedEntity *const ent       = level.m_SimpleArchivedEntities.ObjectAt(i);
+            const char *const           classname = ent->getClassID();
+
+            if (g_gametype->integer == GT_FFA
+                    ? !Q_stricmp(classname, "info_player_allied") || !Q_stricmp(classname, "info_player_axis")
+                    : !Q_stricmp(classname, "info_player_deathmatch")) {
+                m_team_allies.m_spawnpoints.AddObject(static_cast<PlayerStart *>(ent));
+                m_team_axis.m_spawnpoints.AddObject(static_cast<PlayerStart *>(ent));
+            }
+        }
+    }
+
     if (g_gametype->integer > GT_SINGLE_PLAYER) {
         if (g_gametype->integer < GT_MAX_GAME_TYPE) {
             m_teams.ClearObjectList();
@@ -1766,8 +1784,28 @@ void DM_Manager::SetBombsPlanted(int num)
     m_iNumBombsPlanted = num;
 }
 
+// Added in OPM
+//  Free-for-all and team matches on an objective, tug-of-war or liberation map
+//  ignore the map script switches that turn off spawning or respawning,
+//  as the script was written for the map's own mode
+bool DM_Manager::IgnoresObjectiveSpawnScripts(void) const
+{
+    if (g_gametype->integer != GT_FFA && g_gametype->integer != GT_TEAM) {
+        return false;
+    }
+
+    return !Q_stricmpn(level.mapname.c_str(), "obj/", 4) || !Q_stricmpn(level.mapname.c_str(), "lib/", 4);
+}
+
 void DM_Manager::StopTeamRespawn(eController controller)
 {
+    // Added in OPM
+    //  Free-for-all and team matches always respawn,
+    //  even on a tug-of-war map whose objectives stop a team respawning
+    if (IgnoresObjectiveSpawnScripts()) {
+        return;
+    }
+
     if (controller == CONTROLLER_ALLIES) {
         m_bAllowAlliedRespawn = false;
     } else if (controller == CONTROLLER_AXIS) {

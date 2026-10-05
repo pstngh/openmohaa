@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "entity.h"
 #include "trigger.h"
 #include "playerstart.h"
+#include "dm_manager.h"
 
 /*****************************************************************************/
 /*QUAKED info_player_start (0.75 0.75 0) (-16 -16 0) (16 16 96)
@@ -105,6 +106,13 @@ void PlayerStart::EventEnableSpawn(Event *ev)
 
 void PlayerStart::EventDisableSpawn(Event *ev)
 {
+    // Added in OPM
+    //  Free-for-all and team matches keep every spawn point,
+    //  even on a map whose script disables some for its objectives
+    if (dmManager.IgnoresObjectiveSpawnScripts()) {
+        return;
+    }
+
     m_bForbidSpawns = true;
 }
 

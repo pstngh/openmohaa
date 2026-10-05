@@ -256,10 +256,8 @@ void MpMapPickerClass::SetupSecondaryFiles(const char *path, bool bTugOfWar, boo
                 }
             }
         } else {
-            if (!Q_stricmp(mapname, "obj_team2") || !Q_stricmp(mapname, "obj_team4")) {
-                continue;
-            }
-
+            // Removed in OPM
+            //  obj_team2 and obj_team4 are listed like every other map
             listbox->AddItem(new MpMapPickerItem(mapname, path));
         }
     }

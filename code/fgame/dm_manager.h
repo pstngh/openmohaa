@@ -254,6 +254,8 @@ public:
 
     float GetMatchStartTime(void);
     void  StopTeamRespawn(eController controller);
+    // Added in OPM
+    bool  IgnoresObjectiveSpawnScripts(void) const;
     bool  AllowTeamRespawn(int teamnum) const;
     int   GetTeamSpawnTimeLeft() const;
 

@@ -244,10 +244,8 @@ void UIMapListBox::PopulateMapList()
                     continue;
                 }
 
-                if (!Q_stricmp(mapName, "obj_team2") || !Q_stricmp(mapName, "obj_team4")) {
-                    continue;
-                }
-
+                // Removed in OPM
+                //  obj_team2 and obj_team4 are listed like every other map
                 AddItem(mapName, NULL);
             }
         }

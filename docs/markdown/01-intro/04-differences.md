@@ -409,6 +409,7 @@ Enable this feature with `set sv_netoptimize 2`.
 #### Server-side
 
 - Allow rotating on noclip mode when dead
+- Any multiplayer map can be played in free-for-all and team matches: objective, tug-of-war and liberation map scripts can no longer turn off spawning or respawning there, a map without spawn points for the mode uses the other kind, and the map lists include `obj_team2` and `obj_team4`
 - Better logging of clients and chat
 - Damage flash and view kick are shown in god mode, as in Allied Assault
 - Don't set `g_shownpc` to true automatically
