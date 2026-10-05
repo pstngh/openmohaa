@@ -1357,9 +1357,22 @@ the better in both seed sets (among them the hidden yaw error to an enemy last s
 and the crosshair on the body firing at 768-1200 u) and one for the worse: the mouse still between ticks with the enemy
 hidden, 25% -> 23% (people 32%), from the small corrections near him. The owner's checks (`obs5.py`) stay where they were;
 an enemy heard behind is faced within a second 63-68% of the time (56-61% before, people 62%). In the arena (eight
-seeds) 53% of 195 within 25% (52%), median 0.23; one bot stood stuck at a pillar for 2.1 s in one of twelve runs of 900 s
-(none with the near route pull off; on the maps the share of time stuck over 1 s is unchanged, 0-0.01%, and the
-engine's recovery takes over at 1.5 s); 101 us per bot with 16 bots. The arena's bots have no hunch.
+seeds) 53% of 195 within 25% (52%), median 0.23; one bot stood stuck for 2.1 s (seed 6): in the travel look, holding
+the forward diagonal into the corner of the low wall, its box within the trace margin of the corner, so the probes saw
+the way clear and no wall reflex acted (the same seed stuck for 2.1 s in one of the morning's travel-mode runs; none in
+32 further seeds, with or without the near rules; on the maps the share of time stuck over 1 s is unchanged, 0-0.01%,
+and the engine's recovery takes over at 1.5 s); 79 us per bot with 16 bots on a quiet machine (101 under load). The
+arena's bots have no hunch.
+
+Checked again on captures of the committed build (`fz_*` duel maps, `bfz_*` dm/brownffa and dm/flag; `bin_final`, no
+patch; 201 and 401): the first sight 9.9 deg (bf; over 90 deg 7-8%) and 11.5-11.8 (duel); the owner's dm/flag situation
+9 deg / over 30 deg 16-19%; dm/brownffa and dm/flag back and forth 21.6% (22.1%), net 2 s hidden 190 u (176); an enemy
+heard behind faced within a second 69% (65%). But on the duel maps the back and forth did not fall: 26.7% (30.1%)
+against 26.6% (27.7%) before (two runs of one model differ by 3-4 points: `lkh1_*` 24.2-26.3%, `lk0_*` of the previous
+model 26.2-32.1%); forward held moving hidden 67% (64%), people 63%; all 281 statistics within 25% 56% (56%), before
+56% (54%), worse in both seed sets only the mouse still hidden and while reloading (22% and 17%, people 32% and 26%).
+And on dm/flag the bots spend 11.5% (11.2%) of their time on the loop people never use, 7.3% (8.4%) before: every run
+with the hunch has 9-11.5%, those without 7.3-10.4 (`s11/junc.py`).
 
 Tried and dropped (seeds 201-208): the near rules without the route pull (the back and forth 28-30% on dm/brownffa and
 dm/flag, worse than before); the corners weighed by their angle to him at 60 deg or not at all, or the sound answered on
@@ -1376,7 +1389,9 @@ stopper styles 3.7-4.1 at the median) and jumped 7 a minute against him: the dia
 
 **Still off.** The moment one first has the other on screen the bots' view is still 10-12 deg off at the median against
 people's 4 (the corners they pick, and the 5-10 deg their quick turns leave); with the enemy hidden their view turns more
-than before (median 18-20 deg/s, people 9-10); near a hidden enemy they still strafe and turn about more than people
+than before (median 18-20 deg/s, people 9-10); on dm/flag they spend more time on the loop people never use (11%, 7-8%
+before); on the duel maps they still run back and forth as before (27-30%, people 18%); near a hidden enemy they still
+strafe and turn about more than people
 (25% of runs end where they began against 12%), most of it at the narrow corridor mouths beside dm/flag's doors and on
 dm/brownffa.
 
@@ -1419,7 +1434,8 @@ dm/brownffa.
   run back and forth (20-22% of the 3 s stretches with 300 u run end within 100 u of the start since "Watching his side",
   25% before, people 9%), most of it near
   the enemy and at two corridor mouths on dm/brownffa, and hold forward 56-58% of the time they move (77%); on dm/flag
-  8-10% of their time is on a loop people never use (the navmesh route between the spawns). They stand over 2 s with the
+  11% of their time is on a loop people never use (the navmesh route between the spawns; 7-8% before "Watching his
+  side", most likely the soft wallhack's sharper belief sending the hunt by the navmesh route). They stand over 2 s with the
   enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the

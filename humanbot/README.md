@@ -23,7 +23,10 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - the direction damage came from;
    - the map: routes, visibility, where people tend to be.
 
-   The brain never sees an enemy's hidden position.
+   The brain never sees an enemy's hidden position, except as the owner's "soft wallhack": about
+   40 times a minute a rough hunch of where a hidden enemy is (25 deg and about a third of the
+   distance off) nudges the bot's belief, as map knowledge does for an experienced player. The
+   view does not turn to it and the trigger never sees it.
 2. **Brain** (`code/humanbot`, engine-independent):
    - `hb_perception_model`: detection by eccentricity, distance and visible parts.
    - `hb_belief`: a particle filter over each enemy's position, driven by sights, sounds and
