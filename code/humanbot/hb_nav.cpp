@@ -30,6 +30,8 @@ namespace hb
 {
 
 static constexpr int ENGAGE_MEMORY_MS = 1000;
+// A bot this many cells off the cells people stood in still takes its way from the nearest of them.
+static constexpr float VIA_HERE_CELLS = 3.0f;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
 {
@@ -42,17 +44,18 @@ void Navigator::SetMap(const MapPrior *map)
 {
     m_map        = map;
     m_treeTarget = -1;
+    m_viaCell    = -1;
     Reset();
 }
 
-int Navigator::RouteFrom(const SelfState& self, const Vec3& target)
+int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCells)
 {
     if (!m_map || m_map->NumCells() == 0) {
         return -1;
     }
     int here = m_map->CellAt(self.origin);
     if (here < 0) {
-        here = m_map->NearestCell(self.origin, 2.0f * m_map->cellSize);
+        here = m_map->NearestCell(self.origin, hereCells * m_map->cellSize);
     }
     const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
     if (here < 0 || goal < 0 || here == goal) {
@@ -79,6 +82,38 @@ bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
     const int  after = m_next[next];
     const Vec3 aim   = after >= 0 ? m_map->cells[after].center : m_map->cells[next].center;
     yaw              = YawOf(aim - self.origin);
+    return true;
+}
+
+// The way people go. The engine's navmesh path is the shortest way to the goal, and on dm/flag that runs round the ring
+// through Door 2, past the Railing and through Door 3 between the bottom-west spawn and Pre-control, where people never go
+// (in the owner's game on dm/flag the bot spent 18% of its time in the Door 2 corridor, the owner 3%; the bots 11% of their
+// time off the ground people stood on there). On a recorded prior the route over the cells and moves people made picks the
+// way, and the engine's path goes to a point viaDist along it. The point is kept while it is still at least half that far
+// ahead on the route (the engine re-paths when it moves), and dropped for the goal itself once that is within viaDist.
+bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
+{
+    const float d = m_p ? m_p->viaDist : 0.0f;
+    if (d <= 0.0f || !m_map || m_map->fromNavmesh) {
+        m_viaCell = -1;
+        return false;
+    }
+    const int here = RouteFrom(self, target, VIA_HERE_CELLS);
+    if (here < 0 || m_next[here] < 0 || m_dist[here] <= d) {
+        m_viaCell = -1;
+        return false;
+    }
+    const bool keep = m_viaCell >= 0 && m_viaTree == m_treeTarget && m_dist[m_viaCell] < m_dist[here]
+                      && m_dist[here] - m_dist[m_viaCell] >= 0.5f * d;
+    if (!keep) {
+        int c = here;
+        for (int step = 0; step < 1024 && m_dist[here] - m_dist[c] < d && m_next[c] >= 0; step++) {
+            c = m_next[c];
+        }
+        m_viaCell = c;
+        m_viaTree = m_treeTarget;
+    }
+    via = m_map->cells[m_viaCell].center;
     return true;
 }
 
@@ -282,6 +317,7 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     out.valid     = true;
     m_target      = out.target;
     m_targetValid = true;
+    out.viaValid  = Via(self, out.target, out.via);
     float routeYaw = 0.0f;
     if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;

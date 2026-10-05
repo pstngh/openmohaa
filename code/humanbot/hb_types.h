@@ -286,6 +286,8 @@ struct TickPlan {
     int   command     = CMD_NONE;
     bool  navTargetValid = false;
     Vec3  navTarget;
+    bool  navViaValid    = false;   // the engine paths to navVia, a point along the way people go, not to navTarget
+    Vec3  navVia;
     // the fire gate of g_humanbot_skill: a round with the crosshair off the body is skipped with
     // fireGate (0 = off); the target direction at the tick's start and its change over the tick
     float fireGate     = 0.0f;

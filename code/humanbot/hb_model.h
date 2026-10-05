@@ -426,6 +426,9 @@ struct NavModel {
     float waypointReach     = 48.0f;
     float repathMs          = 1000.0f;
     float postKillMs        = 1500.0f;  // after a kill the bot stays where it is this long (urgency ~0)
+    // On a recorded prior the engine's path goes to a point this far along the route over the cells and moves people
+    // made, not straight to the goal (0 = off: the navmesh's shortest way)
+    float viaDist           = 0.0f;
 };
 
 struct PresentationModel {

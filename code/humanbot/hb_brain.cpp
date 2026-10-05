@@ -535,6 +535,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     plan.command        = cmd;
     plan.navTargetValid = m_navOut.valid;
     plan.navTarget      = m_navOut.target;
+    plan.navViaValid    = m_navOut.valid && m_navOut.viaValid;
+    plan.navVia         = m_navOut.via;
     m_attackPrev        = attack;
 
     if (diag) {

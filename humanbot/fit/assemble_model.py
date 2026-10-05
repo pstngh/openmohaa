@@ -217,7 +217,13 @@ def build():
                 # 1-1.5 s later 54-59% of the time (30-35% with more), the bots 20-38%, and the bots began five times
                 # as many reloads in the enemy's view (1.6 a minute alive against 0.3); now 31-46% and 1.3. Twice the
                 # urgency did no better
-                "low_clip_cover": 0.25},
+                "low_clip_cover": 0.25,
+                # On a map with a recorded prior the engine's path goes to a point via_dist along the route over the
+                # cells and moves people made, not straight to the goal (set on practice-map captures, 2026-10-05, "The
+                # way people go" in HANDOFF.md): the navmesh's shortest way on dm/flag runs round the ring through Door
+                # 2, past the Railing and through Door 3, where people never go (the bots 11% of their time there, in
+                # the owner's game the bot 18% in the Door 2 corridor, the owner 3%)
+                "via_dist": 384.0},
         "presentation": {"ping_median_ms": 45.0, "ping_sigma": 0.45, "ping_drift_ar": 0.995, "ping_jitter_ms": 4.0,
                          "join_delay_median_ms": 6000.0, "join_delay_sigma": 0.6},
     }

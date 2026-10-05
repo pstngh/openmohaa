@@ -39,7 +39,8 @@ Verified:
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `4168220cf225` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `80a1cf4fbb2d` of 2026-10-05 on a Linux workstation (the same results with `4168220cf225`: "The way people
+  go" acts in the engine only). The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -1393,7 +1394,53 @@ than before (median 18-20 deg/s, people 9-10); on dm/flag they spend more time o
 before); on the duel maps they still run back and forth as before (27-30%, people 18%); near a hidden enemy they still
 strafe and turn about more than people
 (25% of runs end where they began against 12%), most of it at the narrow corridor mouths beside dm/flag's doors and on
-dm/brownffa.
+dm/brownffa. (The loop on dm/flag: see "The way people go".)
+
+## The way people go (2026-10-05)
+
+After "Watching his side" the bots spent 11% of their time on dm/flag where people never stood (7-8% before). Mapped
+(git-ignored `humanbot/cache/move_wip/s13/`: `loop.py` that time by intent and place, `flag_density.png` people and bots
+on dm/flag): people keep to the Flag room, the west corridor down past the Flag door (D7) to Inside door 2 and the
+bottom-west spawn, and Pre-control by the Flag pre-CR door (D1). The bots also ran the ring from the bottom-west spawn
+east through Door 2 (D8), past the Railing and through Door 3 (D5) to Pre-control: the navmesh's shortest way between
+the spawns, which no recorded person and not the owner took (in the owner's game on `e388d77b` the bot spent 18% of its
+time in the Door 2 corridor, the owner 3%). The engine paths straight to the brain's goal over the navmesh; the map
+prior's route graph, built from the moves people made, was used only in the arena. The soft wallhack's sharper belief
+sent the hunt that way more often (every run with it 9-11.5%).
+
+**What changed.** On a map with a recorded prior the engine's path goes to a point along the people's route, not
+straight to the goal (`Navigator::Via`, `TickPlan::navVia`, `via_dist` 384 u in the nav model): the cell 384 u along the
+route graph's shortest path toward the goal, kept while at least half that is still ahead (the engine re-paths when it
+moves 64 u), the goal itself once within 384 u along the route. The bot's cell is the nearest within 3 cells. Navmesh-
+derived priors (maps without a recording) and the arena (no engine path) are unchanged; the arena's eight seeds give the
+same results as before to the last digit. 256 and 512 u did the same. Unit test `TestViaPeoplesWay` (from the
+bottom-west spawn toward Pre-control the point lies up the west corridor).
+
+Bot against bot (`bvz_*` against `bfz_*` on dm/brownffa and dm/flag, `vz_*` against `fz_*` on the duel maps, the committed
+build of "Watching his side" and this one; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/flag: time where people never stood | 0 | 11.5% (11.2%) | 0.7% (0.7%) |
+| ... sightings a minute / from a spawn to the first sight | 15.7 / 2.1 s | 8.5 / 3.7 s (8.5 / 3.7 s) | 11.4 / 2.9 s (11.2 / 3.0 s) |
+| ... the enemy in sight | 27.5% | 23.4% (23.7%) | 30.6% (30.3%) |
+| ... a bot coming out of Pre-control, Inside door 2 or Door 2 onto the screen of one in the Flag room: times / view off him p50 / over 30 deg | | 720 / 9 deg / 19% (687 / 9 / 16%) | 984 / 9 / 20% (951 / 9 / 17%) |
+| dm/brownffa, dm/flag: forward held moving hidden / plain strafe | 77% / 15% | 63% / 25% (59% / 28%) | 65% / 24% (63% / 26%) |
+| ... net distance in 2 s hidden / the hidden view's yaw speed p50 | 267 u / 10 deg/s | 190 / 18.0 (176 / 18.7) | 211 / 17.0 (204 / 17.8) |
+| ... the hidden view off the enemy p50 | 17 deg | 22.6 (22.6) | 20.1 (19.6) |
+| ... ran 300 u in 3 s, back within 100 u | 9% | 21.6% (22.1%) | 23.0% (24.7%) |
+| ... the moment one first has the other on screen: view off p50 | 4 deg | 9.9 (9.9) | 9.7 (9.6) |
+| duel maps: ran 300 u in 3 s, back within 100 u | 18% | 26.7% (30.1%) | 26.6% (25.6%) |
+| ... the moment one first has the other on screen: view off p50 | 4 deg | 11.8 (11.5) | 11.4 (11.9) |
+| ... all 281 statistics within 25% | | 56% (56%) | 57% (55%) |
+
+dm/brownffa barely changes (13.5-13.9 sightings a minute either way, people 13.5): its prior covers the ground the bots
+use. The back and forth on dm/brownffa and dm/flag is 1-3 points higher, within what two runs of one model differ by;
+more of it is at the Flag pre-CR door's mouth (4.1-4.2% of the time there, 3.5-3.7% before, people 2.2%), which the bots
+now pass on the people's way. On the duel maps one statistic crossed 25% for the worse in both seed sets (the aim
+error firing at 768-1200 u, 2.2 -> 2.7 deg, people 2.1; few samples) and none for the better. The owner's checks
+(`obs5.py`) stay where they were. 16 bots in the arena 79 us per bot (the route tree is rebuilt when the goal's cell
+changes).
 
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
@@ -1429,13 +1476,13 @@ dm/brownffa.
   21-23% and 19-21% vs 24% and 18.5%; 15-18% before "Travel and the hidden view"); forward alone 14% vs
   12%, standing 14-15% vs 22.5%.
 - **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps", "Back and forth
-  with the enemy hidden" and "Steering with the view"): the bots meet 12.2 times a minute on dm/brownffa and 8.9 on
-  dm/flag vs 13.5-15.7 and take 3 and 3.8-3.9 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they
-  run back and forth (20-22% of the 3 s stretches with 300 u run end within 100 u of the start since "Watching his side",
-  25% before, people 9%), most of it near
-  the enemy and at two corridor mouths on dm/brownffa, and hold forward 56-58% of the time they move (77%); on dm/flag
-  11% of their time is on a loop people never use (the navmesh route between the spawns; 7-8% before "Watching his
-  side", most likely the soft wallhack's sharper belief sending the hunt by the navmesh route). They stand over 2 s with the
+  with the enemy hidden", "Steering with the view" and "The way people go"): the bots meet 13.5-13.9 times a minute on
+  dm/brownffa and 11.2-11.4 on dm/flag vs 13.5 and 15.7, and take 2.5-2.7 and 2.9-3 s from a spawn to the first sight vs
+  2.3 and 2.1. With the enemy hidden they run back and forth (21-25% of the 3 s stretches with 300 u run end within 100 u
+  of the start since "Watching his side", 25% before, people 9%), most of it near the enemy, at two corridor mouths on
+  dm/brownffa and at dm/flag's Flag pre-CR door, and hold forward 63-65% of the time they move (77%); on dm/flag under 1%
+  of their time is where people never stood (the navmesh's ring between the spawns, 7-11% before "The way people go").
+  They stand over 2 s with the
   enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
@@ -1569,6 +1616,8 @@ dm/brownffa.
 - With the enemy believed within 800 u the way is not led: the view watches his side (`travel_far`, `near_*`,
   `sound_belief_corner`) and the keys follow the way up to three times as firmly (`near_pull`); a closed door across the
   way is used whatever keys are held. All hand-set on the practice maps and the owner's game (see "Watching his side").
+- On maps with a recorded prior the engine's path goes to a point 384 u along the route over the moves people made
+  (`via_dist`), not straight to the goal by the navmesh's shortest way. Hand-set on dm/flag (see "The way people go").
 - **The soft wallhack** (the owner's, 2026-10-05): a hidden enemy's true direction and distance reach the belief as a
   noisy hunch 40 times a minute (`hunch_*` in the perception model; `RawEnemy::hunchPos`, filled by the engine glue);
   the plan's perception was human-fair throughout. Set by hand (see "Watching his side").
