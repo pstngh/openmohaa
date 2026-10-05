@@ -932,7 +932,11 @@ void PortableTurret::P_ThinkActive()
                 if (ReadyToFire(FIRE_PRIMARY)) {
                     Fire(FIRE_PRIMARY);
                     m_fCurrViewJitter = m_fViewJitter;
-                    if (ammo_clip_size[FIRE_PRIMARY]) {
+                    //
+                    // Changed in OPM
+                    //  With infinite ammo, the clip never empties
+                    //
+                    if (ammo_clip_size[FIRE_PRIMARY] && !DM_FLAG(DF_INFINITE_AMMO)) {
                         // decrease the ammo count
                         ammo_in_clip[FIRE_PRIMARY]--;
                     }

@@ -1032,7 +1032,11 @@ void Weapon::UseAmmo(int amount, firemode_t mode)
 {
     mode = m_bShareClip ? FIRE_PRIMARY : mode;
 
-    if (UnlimitedAmmo(mode) && (!owner || !owner->isClient())) {
+    //
+    // Changed in OPM
+    //  With infinite ammo, the clip of players never empties either, as in 1.11
+    //
+    if (!owner || !owner->isClient() || DM_FLAG(DF_INFINITE_AMMO)) {
         return;
     }
 
@@ -1668,6 +1672,19 @@ void Weapon::Shoot(Event *ev)
                     m_fFireSpreadMult[mode] = m_fFireSpreadMultCap[mode];
                 } else if (m_fFireSpreadMult[mode] > 0) {
                     m_fFireSpreadMult[mode] = 0;
+                }
+            }
+
+            //
+            // Added in OPM
+            //  A clip that never empties is never reloaded, and reloading resets the spread,
+            //  so keep it within what one full clip can build up
+            //
+            if (DM_FLAG(DF_INFINITE_AMMO) && owner && owner->isClient() && GetClipSize(mode)) {
+                const float clipSpreadMult = GetClipSize(mode) * m_fFireSpreadMultAmount[mode];
+
+                if (fabs(m_fFireSpreadMult[mode]) > fabs(clipSpreadMult)) {
+                    m_fFireSpreadMult[mode] = clipSpreadMult;
                 }
             }
         }

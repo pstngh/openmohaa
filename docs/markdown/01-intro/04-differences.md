@@ -414,6 +414,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - High-damage weapons (sniper rifles, the Kar98 and the shotgun) scale their damage against players with the maximum health of the player hit, which `g_playerdmhealth` sets
 - Improved portable turret placement
 - Increased the DM message limit in multiplayer
+- Infinite ammo (`dmflags` bit 14): clips never empty, as in Allied Assault
 - Nocliping when dead no longer makes the player animation sketchy
 
 ## Planned features

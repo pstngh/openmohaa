@@ -18,7 +18,7 @@ The following are valid values across all games:
 |2    |Make weapons stay when picked up
 |3    |Prevent fall damage
 |5    |Kill the player when it reaches a `trigger_changelevel` trigger
-|14   |Infinite ammo
+|14   |Infinite ammo, clips never empty
 |22   |Disable rifle
 |23   |Disable sniper
 |24   |Disable submachine gun
