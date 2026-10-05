@@ -381,6 +381,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - Fixed infinite loop when firing bullets outside the map
 - Fixed `leave_team` bug
 - Fixed memory leaks issues in long matches
+- Fixed pain animations on Spearhead and Breakthrough: every hit played the back animation, and none played while holding a grenade
 - Fixed players having the name of another player when rejoining after losing connection
 - Fixed an issue where a player could die immediately after respawning
 - Fixed rare sketchy animations server-side on Spearhead and Breakthrough
@@ -416,6 +417,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - Increased the DM message limit in multiplayer
 - Infinite ammo (`dmflags` bit 14): clips never empty, as in Allied Assault
 - Nocliping when dead no longer makes the player animation sketchy
+- Pain animations can be disabled with `g_painanims`
 
 ## Planned features
 

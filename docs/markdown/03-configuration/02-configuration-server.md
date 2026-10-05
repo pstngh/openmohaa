@@ -88,6 +88,10 @@ The time in second after which an inactive player gets kicked. Defaults to `900`
 
 The time in second after which an inactive player gets moved into spectator. Defaults to `60`
 
+### `g_painanims`
+
+On Spearhead and Breakthrough, whether players play a pain animation when hit. Defaults to `1`; set it to `0` to disable them.
+
 ### `g_password`
 
 Make the server joinable only with a password. By default, no password is set.

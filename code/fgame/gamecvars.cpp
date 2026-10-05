@@ -322,6 +322,9 @@ cvar_t *g_navigation_legacy;
 // Reopen door if blocked
 cvar_t *g_door_reopen_blocked;
 
+// Whether or not players play pain animations when hit
+cvar_t *g_painanims;
+
 void CVAR_Init(void)
 {
     int i;
@@ -729,6 +732,8 @@ void CVAR_Init(void)
     g_navigation_legacy = gi.Cvar_Get("g_navigation_legacy", "0", CVAR_LATCH);
 
     g_door_reopen_blocked = gi.Cvar_Get("g_door_reopen_blocked", "1", 0);
+
+    g_painanims = gi.Cvar_Get("g_painanims", "1", 0);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

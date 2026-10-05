@@ -6413,7 +6413,11 @@ void Player::DamageFeedback(void)
         damage_blend += (damage_blood / realcount) * bcolor;
     }
 
-    if (g_target_game >= target_game_e::TG_MOHTA) {
+    //
+    // Changed in OPM
+    //  Pain animations can be disabled with g_painanims
+    //
+    if (g_target_game >= target_game_e::TG_MOHTA && g_painanims->integer) {
         //
         // Added in 2.0
         //  try to find and play pain animation
@@ -6462,11 +6466,13 @@ void Player::DamageFeedback(void)
                         painAnim = "minedetector_";
                     } else if (!Q_stricmp(itemName, "Minensuchgerat")) {
                         painAnim = "minedetectoraxis_";
-                    } else if (!Q_stricmp(itemName, "LandmineAllies")) {
+                    } else if (!Q_stricmp(itemName, "LandmineAllies") || !Q_stricmp(itemName, "LandmineAxis")) {
                         painAnim = "mine_";
-                    } else if (!Q_stricmp(itemName, "LandmineAxis")) {
-                        painAnim = "mine_";
-                    } else if (!Q_stricmp(itemName, "LandmineAxis")) {
+                    } else {
+                        //
+                        // Fixed in OPM
+                        //  "LandmineAxis" was checked twice, so grenades had no pain animation
+                        //
                         painAnim = "grenade_";
                     }
                 } else if (weapon_class & WEAPON_CLASS_HEAVY) {
@@ -6502,7 +6508,11 @@ void Player::DamageFeedback(void)
 
         painAnim += "hit_";
 
-        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID || HITLOC_TORSO_LOWER) {
+        //
+        // Fixed in OPM
+        //  The check was always true, so every hit played the back animation
+        //
+        if (pain_dir == PAIN_REAR || pain_location == HITLOC_TORSO_MID || pain_location == HITLOC_TORSO_LOWER) {
             painAnim += "back";
         } else {
             switch (pain_location) {

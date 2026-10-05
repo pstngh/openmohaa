@@ -356,6 +356,11 @@ extern cvar_t *g_navigation_legacy;
 
 extern cvar_t *g_door_reopen_blocked;
 
+/**
+ * @brief When disabled, players don't play pain animations when hit (Spearhead and Breakthrough).
+ */
+extern cvar_t *g_painanims;
+
 void CVAR_Init(void);
 
 #ifdef __cplusplus
