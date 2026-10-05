@@ -1,6 +1,6 @@
 FROM debian:trixie
 
-RUN apt update && apt install -y git cmake ninja-build clang flex bison zlib1g-dev libcurl4-openssl-dev
+RUN apt update && apt install -y git cmake ninja-build clang flex bison zlib1g-dev
 
 # Compile with clang
 ENV CC=clang
@@ -28,7 +28,7 @@ COPY --from=0 /usr/local/games/openmohaa /usr/local/games/openmohaa
 VOLUME "/usr/local/share/mohaa"
 
 # Install tools to check for the health
-RUN apt update && apt install -y socat libcurl4-openssl-dev
+RUN apt update && apt install -y socat
 COPY "health_check.sh" "/usr/local/bin/health_check.sh"
 HEALTHCHECK --interval=15s --timeout=20s --start-period=10s --retries=3 CMD [ "bash", "/usr/local/bin/health_check.sh" ]
 

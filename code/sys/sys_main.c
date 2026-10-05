@@ -284,8 +284,6 @@ Single exit point (regular exit or in case of error)
 */
 static Q_NO_RETURN void Sys_Exit( int exitCode )
 {
-    Sys_ShutdownEx();
-
 	CON_Shutdown( );
 
 #ifndef DEDICATED
@@ -785,10 +783,6 @@ int main( int argc, char **argv )
 	char  commandLine[ MAX_STRING_CHARS ] = { 0 };
 #ifdef PROTOCOL_HANDLER
 	char *protocolCommand = NULL;
-#endif
-
-#ifdef USE_AUTOUPDATER
-	Sys_LaunchAutoupdater(argc, argv);
 #endif
 
 #ifndef DEDICATED

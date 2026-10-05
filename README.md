@@ -94,7 +94,6 @@ The following third party tools and libraries are used by the project
 - [SDL](http://www.libsdl.org/)
 - [OpenAL](https://www.openal.org/)
 - [LibMAD](http://www.underbit.com/products/mad/)
-- [cURL](https://curl.se/)
 - [Libogg](https://github.com/gcp/libogg)
 - [Libvorbis](https://xiph.org/vorbis/)
 - [Libopus](https://opus-codec.org/)
