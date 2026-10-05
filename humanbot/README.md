@@ -6,7 +6,9 @@ duels). It moves, aims, fires and looks the way those players did. Each bot draw
 family (presser, strafer or stopper), then its own dials and skill within that family. There is
 no neural net: the brain is small semi-Markov processes, controllers and hazards fitted on the
 recordings, plus a particle filter for where the enemy might be. The stock code still handles
-doors and getting unstuck, for a moment each time. Ladders are climbed by a simple rule: the
+getting unstuck, for a moment each time. Doors are opened and passed by a simple rule, as people
+do: use as soon as the door is in reach, a moment in front of it while it swings, then through.
+Ladders are climbed by a simple rule: the
 forward key held and the view up or down the ladder, as people climb, toward the end nearer the
 bot's goal.
 
@@ -74,7 +76,11 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      pistol when the primary is empty, back to the primary when it has rounds again, a weapon drawn
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
      first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
-     the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route.
+     the walls (`g_humanbot_wall_steer`), and on the move the view also looks down the route. A closed
+     door across the route is looked at (its nearest part) and opened with use as soon as it is in reach;
+     while it swings away the bot waits in front of the doorway, lined up with its middle, and goes
+     through once it has turned 25 deg, as people do (`g_humanbot_door_*`; the brain gets the keys back
+     the moment its enemy is in sight).
    - `hb_style`: the dials of this bot. The fight-diagonal dial sets how readily a strafe gains
      the forward key (a low-diagonal style presses forward less, not back more). The burst length
      counts the bursts begun in sight, and is relative to the average bot, like the skills. The hold-or-clear dial (how early a bot parks
@@ -122,6 +128,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `g_humanbot_disguise` | 0 | 1: names from `main/humanbot/names.txt` (else a built-in list), a realistic ping, listed as players (off: labelled bots) |
 | `g_humanbot_model_dir` | "" | game-relative directory with `shared.json` / `styles.json` / `calibration.json` merge patches and `maps/<map>.json` |
 | `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the climb, door and stuck-recovery code |
+| `g_humanbot_door_go` / `_hold` / `_ahead` | 25 / 48 / 128 | through a door the bot opened once it has turned this far (0: no door pass), waiting up to this far in front of it; a closed door is looked for this far along the route |
 
 Commands:
 - `addbotstyle <presser|strafer|stopper|random> [name]`

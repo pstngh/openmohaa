@@ -49,6 +49,9 @@ cvar_t *g_humanbot_families;
 cvar_t *g_humanbot_debug;
 cvar_t *g_humanbot_wall_steer;
 cvar_t *g_humanbot_skill;
+static cvar_t *g_humanbot_door_ahead;
+static cvar_t *g_humanbot_door_hold;
+static cvar_t *g_humanbot_door_go;
 
 //
 // Model
@@ -185,6 +188,8 @@ private:
     void Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self);
     void Owners(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
     void Ladder(Player *p, const HbView& view, const Vector& goal, hb::TickPlan& plan);
+    void StartDoorPass(Player *p, Door *d);
+    bool DoorPass(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
     bool Opponent(Player *self, Player *other) const;
     bool TeammateInCrosshair(Player *p, const HbView& view) const;
     void SetOwner(Player *p, int owner);
@@ -238,6 +243,15 @@ private:
     int m_owner          = hb::OWNER_BRAIN;
     int m_recoveryUntil  = 0;
     int m_useUntil       = 0;
+
+    // the door the bot opened, while it goes through (DoorPass())
+    int    m_passDoor  = -1;
+    int    m_passStart = 0;
+    float  m_passYaw   = 0.0f;   // the door's yaw closed
+    Vector m_passCenter;          // the doorway's middle
+    Vector m_passHinge;           // the door's origin, where it turns
+    Vector m_passNormal;          // across the doorway, from the bot's side
+    bool   m_engaged   = false;   // the focus enemy seen this tick
 
     // the climb in progress (Ladder())
     int   m_ladderSince    = 0;
@@ -504,18 +518,24 @@ static float WallSteerYaw(float routeYaw, float viewYaw, const float clearance[h
 // pressed use only for a door straight ahead in their view, and at dm/flag's junction west of the spawn they slid along
 // a closed door for seconds while their view was on the corridor beyond it or on a corner (people open it and walk
 // through).
-static const float DOOR_AHEAD = 96.0f;
-
+// g_humanbot_door_ahead: how far ahead (96 u until 2026-10-05; with the view on the door's nearest part, 128 u has use
+// reach it 53 u from its middle against 49, people 70).
 static bool DoorAhead(Player *p, float yaw, Vector& at)
 {
     Vector fwd;
     Vector(0, yaw, 0).AngleVectors(&fwd);
+    const float   ahead = g_humanbot_door_ahead ? g_humanbot_door_ahead->value : 128.0f;
     const Vector  start = p->origin + Vector(0, 0, p->viewheight);
-    const trace_t tr    = G_Trace(start, vec_zero, vec_zero, start + fwd * DOOR_AHEAD, p, MASK_USABLE, qfalse, "HumanBot door");
+    const trace_t tr    = G_Trace(start, vec_zero, vec_zero, start + fwd * ahead, p, MASK_USABLE, qfalse, "HumanBot door");
     // (a door already opening is not looked at: it swings out of the way)
     if (tr.ent && tr.ent->entity && tr.ent->entity != world && tr.ent->entity->IsSubclassOfDoor()
         && static_cast<Door *>(tr.ent->entity)->isCompletelyClosed()) {
-        at = tr.endpos;
+        // its nearest part, not where the way meets it: coming at a door on the slant, the bots looked along it and were
+        // 42 u off it when use reached it (people press 60 u off, the view 12 deg off its nearest part)
+        const Entity *d = tr.ent->entity;
+        at              = Vector(
+            Q_clamp_float(start.x, d->absmin.x, d->absmax.x), Q_clamp_float(start.y, d->absmin.y, d->absmax.y), start.z
+        );
         return true;
     }
     return false;
@@ -711,15 +731,123 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
         const trace_t tr    = G_Trace(start, vec_zero, vec_zero, start + fwd * 64.0f, p, MASK_USABLE | MASK_LADDER, qfalse, "HumanBot use");
         if (tr.ent && tr.ent->entity && tr.ent->entity != world) {
             Entity *e = tr.ent->entity;
-            if ((e->IsSubclassOfDoor() && !static_cast<Door *>(e)->isOpen()) || e->isSubclassOf(FuncLadder)) {
+            // (use does nothing to a door on the move, and shuts an open one)
+            if ((e->IsSubclassOfDoor() && static_cast<Door *>(e)->isCompletelyClosed()) || e->isSubclassOf(FuncLadder)) {
                 plan.use   = true;
                 m_useUntil = level.inttime + 100;
+                if (e->IsSubclassOfDoor()) {
+                    StartDoorPass(p, static_cast<Door *>(e));
+                }
+                DoorPass(p, view, self, plan);
                 SetOwner(p, hb::OWNER_DOOR);
                 return;
             }
         }
     }
+    if (DoorPass(p, view, self, plan)) {
+        SetOwner(p, hb::OWNER_DOOR);
+        return;
+    }
     SetOwner(p, hb::OWNER_BRAIN);
+}
+
+// Through a door the bot opened (2026-10-05). The practice maps' doors swing away from whoever opens them and take 1-1.5 s
+// to open (wood, metal). On dm/flag people pressed use as soon as the door was in reach (60 u off it) and held in front of
+// the doorway while it swung, 30-55 u off it, lined up with its middle; they were through 1.25 s after the press, 70%
+// within 3 s. The bots ran on into the swinging door, the route slid them along it to the frame and back (the path flips
+// while the door moves), and they were through after 1.65 s, 57% within 3 s: pinned at the Flag room's doors, the one
+// holding the room saw a shoulder through the gap before the bot could see him. So the keys are the door's for that
+// moment: in front of the doorway's middle, no nearer than PASS_NEAR and no further than g_humanbot_door_hold, while
+// the door has turned less than g_humanbot_door_go degrees, then through it, until PASS_BEYOND past it (go 0 = off).
+// The brain keeps the view, and gets the keys back the moment its enemy is in sight. Going at 25 deg the bots were through
+// after 1.35 s, 80% within 3 s; at 10-15 deg they ran into the door again, at 35-45 deg they stood waiting.
+static const float PASS_BEYOND  = 24.0f;    // past the doorway: done
+static const float PASS_FAR     = 160.0f;   // this far back or aside: given up
+static const float PASS_NEAR    = 28.0f;    // waiting no nearer than this to the closed door (the box is 16 u wide)
+static const float PASS_LATCH   = 0.25f;    // going: this share of the half-leaf toward the side away from the hinge
+static const int   PASS_MS      = 2500;
+
+void HumanBotAdapter::StartDoorPass(Player *p, Door *d)
+{
+    m_passDoor = -1;
+    if (!d->isSubclassOf(RotatingDoor)) {
+        return;
+    }
+    // the leaf from the hinge (the door's origin) to its middle, closed
+    Vector c = (d->absmin + d->absmax) * 0.5f;
+    Vector u = c - d->origin;
+    u.z      = 0.0f;
+    if (u.normalize() < 8.0f) {
+        return;
+    }
+    Vector n(-u.y, u.x, 0.0f);
+    Vector toC = c - p->origin;
+    toC.z      = 0.0f;
+    if (DotProduct(n, toC) < 0.0f) {
+        n = n * -1.0f;
+    }
+    c.z          = p->origin.z;
+    m_passDoor   = d->entnum;
+    m_passStart  = level.inttime;
+    m_passYaw    = d->angles.yaw();
+    m_passCenter = c;
+    m_passNormal = n;
+    m_passHinge  = Vector(d->origin.x, d->origin.y, c.z);
+}
+
+// The chord nearest a direction off the view, among those not pressing into a wall right there (any if all are).
+static int ChordToward(float relYaw, const float clearance[hb::NUM_CHORDS])
+{
+    int   best = hb::CHORD_NEUTRAL;
+    float bestErr = 1e9f;
+    for (int c = 0; c < hb::NUM_CHORDS; c++) {
+        if (c == hb::CHORD_NEUTRAL) {
+            continue;
+        }
+        const float err = std::fabs(AngleSubtract(relYaw, hb::Mover::ChordAngle(c))) + (clearance[c] < 2.0f ? 360.0f : 0.0f);
+        if (err < bestErr) {
+            bestErr = err;
+            best    = c;
+        }
+    }
+    return best;
+}
+
+bool HumanBotAdapter::DoorPass(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan)
+{
+    if (m_passDoor < 0) {
+        return false;
+    }
+    const float goDeg = g_humanbot_door_go ? g_humanbot_door_go->value : 0.0f;
+    Entity     *e     = G_GetEntity(m_passDoor);
+    if (!e || !e->IsSubclassOfDoor() || goDeg <= 0.0f || m_engaged || level.inttime - m_passStart > PASS_MS) {
+        m_passDoor = -1;
+        return false;
+    }
+    Door  *d   = static_cast<Door *>(e);
+    Vector rel = p->origin - m_passCenter;
+    rel.z      = 0.0f;
+    const float depth  = DotProduct(rel, m_passNormal);
+    const float across = std::fabs(rel.x * m_passNormal.y - rel.y * m_passNormal.x);
+    // through, too far off, or the door shut again (it is used afresh)
+    if (depth > PASS_BEYOND || depth < -PASS_FAR || across > PASS_FAR
+        || (d->isCompletelyClosed() && level.inttime - m_passStart > 200)) {
+        m_passDoor = -1;
+        return false;
+    }
+    const bool  wait = !d->isOpen() && std::fabs(AngleSubtract(d->angles.yaw(), m_passYaw)) < goDeg;
+    // waiting: lined up with the doorway's middle where the bot stands, no nearer than PASS_NEAR and no further than
+    // the hold distance; going: onto a line through it on the side that opens first (away from the hinge), 48 u ahead
+    const float hold   = g_humanbot_door_hold ? g_humanbot_door_hold->value : 48.0f;
+    const float along  = wait ? -Q_clamp_float(-depth, PASS_NEAR, std::max(PASS_NEAR, hold)) : std::min(depth + 48.0f, 64.0f);
+    const Vector latch = m_passCenter - m_passHinge;
+    Vector      to     = m_passCenter + latch * (wait ? 0.0f : PASS_LATCH) + m_passNormal * along - p->origin;
+    to.z               = 0.0f;
+    plan.chord         = wait && to.length() < 12.0f ? hb::CHORD_NEUTRAL
+                                                     : ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.clearance);
+    plan.jump        = false;
+    plan.crouch      = false;
+    return true;
 }
 
 void HumanBotAdapter::Prepare()
@@ -861,6 +989,7 @@ void HumanBotAdapter::Prepare()
             plan.jump = false;
         }
     }
+    m_engaged = diag.detected != 0;
     Owners(p, view, raw.self, plan);
     m_command = plan.command;
 
@@ -1068,6 +1197,9 @@ void G_HumanBotInit(void)
     g_humanbot_debug     = gi.Cvar_Get("g_humanbot_debug", "0", 0);
     g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "0.5", 0);
     g_humanbot_skill     = gi.Cvar_Get("g_humanbot_skill", "0", 0);
+    g_humanbot_door_ahead = gi.Cvar_Get("g_humanbot_door_ahead", "128", 0);
+    g_humanbot_door_hold  = gi.Cvar_Get("g_humanbot_door_hold", "48", 0);
+    g_humanbot_door_go    = gi.Cvar_Get("g_humanbot_door_go", "25", 0);
 
     if (!s_inited) {
         std::string error;
