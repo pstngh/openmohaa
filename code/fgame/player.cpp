@@ -9654,7 +9654,12 @@ void Player::Auto_Join_DM_Team(Event *ev)
 
     Event event(EV_Player_JoinDMTeam, 1);
 
-    if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
+    // Added in OPM
+    //  g_bot_team puts every bot on one team
+    if ((edict->r.svFlags & SVF_BOT)
+        && (!Q_stricmp(g_bot_team->string, "allies") || !Q_stricmp(g_bot_team->string, "axis"))) {
+        event.AddString(g_bot_team->string);
+    } else if (dmManager.GetAutoJoinTeam() == TEAM_AXIS) {
         event.AddString("axis");
     } else {
         event.AddString("allies");

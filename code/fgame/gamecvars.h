@@ -328,6 +328,11 @@ extern cvar_t *g_bot_initial_spawn_delay;
  */
 extern cvar_t *g_bot_manualmove;
 
+/**
+ * @brief The team bots join: allies, axis, or auto to balance the teams.
+ */
+extern cvar_t *g_bot_team;
+
 extern cvar_t *g_rankedserver;
 extern cvar_t *g_spectatefollow_firstperson;
 
