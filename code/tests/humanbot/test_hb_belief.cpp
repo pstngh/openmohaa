@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "hb_brain.h"
 #include "hb_bundle.h"
+#include "hb_nav.h"
 #include "hb_perception_model.h"
 #include "hb_test.h"
 
@@ -409,6 +410,101 @@ static void TestOutOfAmmo(const hb::ModelBundle& b, const hb::MapPrior& m)
     HB_CHECK(nearLoaded.bashes == 0 && nearLoaded.fires > 0);
 }
 
+// The bot sees the enemy 20 deg off its crosshair and its aim gets there 3 s later: with the press clock restarting at the
+// aim's arrival it presses as readily as early in a sighting (people whose aim gets there late: 21-37% a tick in the
+// next 250 ms); counted from when the parts came on screen it pressed at 1-2% a tick (the owner, 2026-10-05).
+static double LateAimPress(const hb::ModelBundle& b, const hb::MapPrior& m, float arriveHw)
+{
+    hb::ModelBundle bb = b;
+    bb.shared.trigger.aimArriveHalfWidths = arriveHw;
+    hb::Brain     br;
+    hb::Perceiver pc;
+    br.Init(&bb, &m, hb::SampleStyle(bb.style, -1, 7), 4321, 4);
+    pc.Init(&bb.shared.perception, hb::Rng(7).Derive(hb::STREAM_PERCEPTION));
+    hb::RawInput raw = BaseInput(m);
+    const float  enemyYaw = 20.0f;
+    const hb::Vec3 c = raw.self.eye + hb::Vec3(std::cos(enemyYaw * hb::DEG2RAD), std::sin(enemyYaw * hb::DEG2RAD), 0.0f) * 300.0f
+                     - hb::Vec3(0, 0, 5);
+    hb::RawEnemy& e = raw.enemies[0];
+    e.inFov       = true;
+    e.centroidLos = true;
+    e.centroid    = c;
+    e.partMask    = (1 << hb::NUM_PARTS) - 1;
+    for (int k = 0; k < hb::NUM_PARTS; k++) {
+        e.partPos[k] = c + hb::Vec3(0, 0, 40.0f - 16.0f * k);
+    }
+    double pSum = 0.0;
+    int    n = 0, detected = 0;
+    for (int t = 0; t < 66; t++) {
+        raw.self.timeMs  = 1000 + t * 50;
+        raw.self.viewYaw = t < 60 ? 0.0f : enemyYaw;   // the crosshair is held off the enemy, then put on it
+        hb::Observation obs;
+        pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+        hb::TickPlan plan;
+        hb::Diag     d;
+        br.Think(obs, plan, &d);
+        detected += d.detected;
+        if (t > 60) {
+            pSum += d.p_press;
+            n++;
+        }
+    }
+    HB_CHECK(detected > 30);
+    return pSum / std::max(1, n);
+}
+
+static void TestLateAim(const hb::ModelBundle& b, const hb::MapPrior& m)
+{
+    const double off = LateAimPress(b, m, 0.0f), on = LateAimPress(b, m, 2.0f);
+    HB_REPORT("aim on the enemy 3 s into a sighting: press %.3f a tick (the clock from the parts on screen: %.3f)", on, off);
+    HB_CHECK(on > 2.5 * off && on > 0.08);
+}
+
+// In a fight with little left in the clip the bot makes for cover from the enemy, as people do (in sight with under a
+// quarter of the clip they are out of its sight 1-1.5 s later 54-59% of the time, with more 30-35%).
+static void TestLowClipCover(const hb::ModelBundle& b, const hb::MapPrior& m)
+{
+    hb::NavModel np = b.shared.nav;
+    np.lowClipCover = 0.25f;
+    hb::SelfState self;
+    self.alive  = true;
+    self.origin = m.cells[m.NumCells() / 2].center;
+    self.eye    = self.origin + hb::Vec3(0, 0, 82);
+    // the enemy in a cell that sees the bot's, 200 u or more away
+    const int here = m.CellAt(self.origin);
+    int       seer = -1;
+    float     best = 0.0f;
+    for (int c = 0; c < m.NumCells(); c++) {
+        const float v = m.Visibility(c, here);
+        if ((m.cells[c].center - self.origin).lengthXY() > 200.0f && v > best) {
+            best = v;
+            seer = c;
+        }
+    }
+    HB_CHECK(seer >= 0);
+    hb::BeliefEstimate be;
+    be.valid = true;
+    be.mode  = m.cells[std::max(0, seer)].center;
+    for (const float fill : {0.8f, 0.15f}) {
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::NavInput in;
+        in.focus    = &be;
+        in.detected = true;
+        in.enemyPos = be.mode;
+        in.clipFill = fill;
+        hb::Rng        r(3);
+        hb::NavOutput  out;
+        nav.Step(self, in, r, out);
+        HB_REPORT("in sight, %.0f%% of the clip left: intent %d, urgency %.2f", 100.0f * fill, out.intent, out.urgency);
+        if (fill < 0.25f) {
+            HB_CHECK(out.intent == hb::INTENT_RELOAD_COVER && out.urgency > 0.0f);
+        } else {
+            HB_CHECK(out.intent == hb::INTENT_ENGAGE);
+        }
+    }
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -430,5 +526,7 @@ int main()
     TestSpawn(b, m);
     TestTracking(b, m);
     TestOutOfAmmo(b, m);
+    TestLateAim(b, m);
+    TestLowClipCover(b, m);
     return hbtest::Finish("test_hb_belief");
 }

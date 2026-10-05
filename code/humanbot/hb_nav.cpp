@@ -146,7 +146,16 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     const BeliefEstimate *b = in.focus;
     const bool recentlySeen = b && b->valid && !b->dead && b->msSinceSeen < ENGAGE_MEMORY_MS;
 
-    if (in.detected || recentlySeen) {
+    const bool lowClip = p.lowClipCover > 0.0f && in.clipFill < p.lowClipCover && !in.outOfAmmo;
+    if ((in.detected || recentlySeen) && lowClip) {
+        // little left in the clip in a fight: people make for cover. In sight with under a quarter of the clip they
+        // are out of the enemy's sight 1-1.5 s later 54-59% of the time (30-35% with more) and move away from it 2.5
+        // times as often; the bots stayed in sight (20-38%) and began five times as many reloads in it
+        m_intent    = INTENT_RELOAD_COVER;
+        out.target  = PickCover(self, in.detected ? in.enemyPos : b->mode);
+        out.urgency = p.reloadUrgency;
+        m_goalValid = false;
+    } else if (in.detected || recentlySeen) {
         m_intent    = INTENT_ENGAGE;
         out.target  = in.detected ? in.enemyPos : b->mode;
         // out of ammunition the only weapon left is the bash: close in. In sight the fitted keys and the style move

@@ -61,7 +61,8 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      a strafe so the bot runs along the wall on the diagonal, as people do (a diagonal down a
      corridor is left alone). A bot that wants to go somewhere but has stood a second with its route
      running into a wall it touches takes the open direction nearest its route.
-   - `hb_nav`: where to go (hunt, hold, cover, and after the enemy for a second once it is out of
+   - `hb_nav`: where to go (hunt, hold, cover, also in a fight with little left in the clip, as people
+     leave the enemy's sight then, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
      follow the route with a strength set on the practice maps, so that the bots cover ground and
      meet about as often as people do; with the enemy hidden the pull grows with its believed distance
@@ -166,7 +167,9 @@ follow the route (`nav_switch_logit`, `nav_choice_logit`, and how that grows wit
 after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route
 behind the view (`route_turn_hazard`, `travel_follow_deg`), the corner passed rather than watched
 (`preaim_pass_dps`), the turn to a sound outside the view (`sound_turn_*`), the held direction that gives way to
-the believed position (`hold_belief_deg`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
+the believed position (`hold_belief_deg`), the cover with little left in the clip (`low_clip_cover`), the restart of
+the trigger's clock when the aim reaches the enemy late (`aim_arrive_hw`) and the hidden re-aim (`hidden_reaim_*`) are
+set by hand from bot captures on the practice maps, scored with
 `compare.py`: the arena's pillars are not the recorded maps (in the open arena the bots already
 cover as much ground as people; on the maps the walls stop them).
 

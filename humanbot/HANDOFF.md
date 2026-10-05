@@ -31,14 +31,15 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.21; 48% and 0.27 before "Where the bot looks when first seen", 50% and 0.25 before
+- In the arena, two average-style bots are within 25% of the human value on 52% of 195
+  statistics (median relative error 0.23; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
+  bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `327da60a09fa` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `f6661e571831` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -1087,6 +1088,49 @@ at the first sight 11 deg off (15-16). In the arena (eight seeds) 53% of 195 wit
 Still off: the remaining lives seen over 45 deg off (11% against 4%) are spread over a pre-aimed corner away from the
 believed position (27-31% of them), a turn to a sound under way (23-26%), a route look (15-17%) and look-arounds (7-8%).
 
+## Late aim and low clips (2026-10-05)
+
+The owner, on the server of `85b943f3`: "last kill i made, what happened to the bot? it didnt shoot me at all"
+(`move_wip/s9/live4/1791163568_607971_*`). The bot (a strafer with the slowest reaction draw, 189 ms) had fired 16 rounds
+into cover at the owner's footsteps, was looking 30-40 deg off when the owner came round, got its crosshair onto the
+owner only about 2 s later, and then tracked the owner for 7 s at 1-2% a tick of pressing (16 rounds left, not reloading) until it
+died. The press hazard in sight falls with the time since the parts came on screen (-1.56 from 2.5 s); with the slow
+reaction draw (-1.17) and a long gap since the last burst (-0.32) the crosshair on the body gave 1.5% a tick. People
+with the crosshair on the body press 21% a tick 1-2.5 s into a sighting and 11-14% after 2.5 s; the additive model fits
+those cells (8.5% from 2.5 s). What it lacks is a late aim: people's aim is within 2 body half-widths by 0.3 s in nine
+sightings in ten, and when it gets there 0.3-1.5 s in they press at 20-38% a tick in the next 250 ms
+(`move_wip/s9/lateaim.py`), as early as any. Earlier in the same session the bot stopped firing for another reason: a
+brief loss of sight with 6 of 30 rounds left, a reload begun 150 ms later (at people's rate for that moment), and the
+owner back in view for the 2 s of it.
+
+Changes:
+- **The press clock restarts when the aim arrives late** (`aim_arrive_hw` 2 in the trigger tuning, `Brain::Think`): the
+  first time in a sighting the crosshair comes within 2 body half-widths of the enemy, if it was not there at the
+  sighting's first tick, the clock is set back to 200 ms (the fitted peak; `AIM_ARRIVE_CLOCK_MS`). In the test above
+  (`test_hb_belief` `TestLateAim`) the press goes from 2.2% to 17% a tick. Bot against bot a late aim is rare, as for
+  people: arrivals 0.8-1.5 s into a sighting press 32% a tick in the next 250 ms (19% before, people 20%).
+- **Little left in the clip in a fight: make for cover** (`low_clip_cover` 0.25 in the nav model, `Navigator::Step`):
+  with under a quarter of the clip and the enemy in sight or lost under a second ago, the intent is the reload cover at
+  the reload urgency (0.4; 0.8 did no better). People in sight with under a quarter of the clip are out of the enemy's
+  sight 1-1.5 s later 54-59% of the time (30-35% with more) and move away from it 2.5 times as often; the bots 20-38%.
+  The bots go into fights with clips as full as people's and fire as many rounds a minute; they ran dry in view.
+
+Practice maps, bot vs bot (`move_wip/reports/tc2_*` against `hr3_*`, the model of "Where the bot looks when first seen";
+seeds 201-208, in brackets 401-408; `tc1_201` the clock alone, `tc3_201` the cover at urgency 0.8):
+
+| | people | before | now |
+|---|---|---|---|
+| reloads begun with the enemy on screen, a minute alive | 0.31 | 1.61 (1.42) | 1.27 (1.25) |
+| ... the enemy on screen in the next 2 s | 63% | 85% | 78% |
+| in sight with under an eighth of the clip: out of sight 1-1.5 s later | 59% | 20% (21%) | 31% (27%) |
+| ... an eighth to a quarter | 54% | 38% (38%) | 46% (43%) |
+| reloads begun with the enemy lost under 2 s, a minute alive | 0.39 | 0.44 | 0.54 (0.56) |
+| all 281 statistics within 25% | | 58% (58%) | 59% (56%) |
+
+No statistic crossed 25% for the worse in both seed sets (one for the better: the mouse at rest while reloading). The
+first look at a sighting after a spawn and the owner's other checks stay where they were. In the arena (eight seeds)
+52% of 195 within 25% (53%), no stuck bout.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1148,9 +1192,11 @@ believed position (27-31% of them), a turn to a sound under way (23-26%), a rout
   dial used to push them backwards.
 - **Seeing the enemy without firing:** people stand still 30% of that time, bots 8-9% on the real
   maps (14% before "Encounters") and 11% in the arena. The long freezes were bots out of ammunition (see above).
-- **Reloading in the enemy's view:** the bots begin 1.3-1.6 reloads a minute alive with the enemy on screen vs
-  people's 0.3, nearly all with the clip run dry, and keep the enemy on screen 82-84% of the next 2 s vs 63%: their
-  fights in view last longer (the aim at a sighting above). This is what the owner saw as standing still mid-fight.
+- **Reloading in the enemy's view:** the bots begin 1.25-1.3 reloads a minute alive with the enemy on screen vs
+  people's 0.3 (1.3-1.6 before "Late aim and low clips"), nearly all with the clip run dry, and keep the enemy on screen
+  78% of the next 2 s vs 63%: their fights in view last longer (the aim at a sighting above), and with little left in
+  the clip they leave the enemy's sight about half as readily as people (27-46% vs 54-59%). This is what the owner saw
+  as standing still mid-fight.
 - **Leaning toward an opening:** people already lean toward the edge they reach (66% of edge moments begin leaned
   that way, the bots' 41%); the wall term acts once the bot is there.
 - **Leaning at walls** (see "The lean follows the strafe"): half the bots' leans with the head at a wall come with no
@@ -1235,6 +1281,10 @@ believed position (27-31% of them), a turn to a sound under way (23-26%), a rout
 - A person needs 10 duel minutes and a capture row 5 to stand for a style (the data repository's rule); shorter games
   count only in the pooled values. The priors of dm/brownffa and dm/flag need two player-sessions per cell or spawn
   (two people, or one person in two sessions) instead of two sessions: each map is one or two recorded sessions.
+- In sight the press hazard's clock restarts at 200 ms when the crosshair first reaches the enemy late in a sighting
+  (`aim_arrive_hw`, hand-set threshold of 2 body half-widths); the fit's clock runs from the parts on screen. In a
+  fight with under a quarter of the clip left the bot makes for cover (`low_clip_cover`, hand-set at people's step in
+  leaving the enemy's sight). See "Late aim and low clips".
 - The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
   the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others
   keep their curves (a re-sweep redraws the arena's noise).

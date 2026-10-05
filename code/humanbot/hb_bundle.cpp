@@ -613,6 +613,7 @@ void ParseTrigger(const json& j, TriggerModel& t)
         t.hiddenFireLogit   = NumOr(j.at("tuning"), "hidden_fire_logit", t.hiddenFireLogit);
         t.hiddenLateLogit   = NumOr(j.at("tuning"), "hidden_late_logit", t.hiddenLateLogit);
         t.pressLosLogit     = NumOr(j.at("tuning"), "press_los_logit", t.pressLosLogit);
+        t.aimArriveHalfWidths = NumOr(j.at("tuning"), "aim_arrive_hw", t.aimArriveHalfWidths);
         t.releaseLosLogit   = NumOr(j.at("tuning"), "release_los_logit", t.releaseLosLogit);
         t.releaseNearLogit  = NumOr(j.at("tuning"), "release_near_logit", t.releaseNearLogit);
         t.releaseFarLogit   = NumOr(j.at("tuning"), "release_far_logit", t.releaseFarLogit);
@@ -697,6 +698,7 @@ void ParseNav(const json& j, NavModel& n)
     n.huntUrgency   = NumOr(j, "hunt_urgency", n.huntUrgency);
     n.engageUrgency = NumOr(j, "engage_urgency", n.engageUrgency);
     n.reloadUrgency = NumOr(j, "reload_urgency", n.reloadUrgency);
+    n.lowClipCover  = NumOr(j, "low_clip_cover", n.lowClipCover);
     n.waypointReach = NumOr(j, "waypoint_reach", n.waypointReach);
     n.repathMs      = NumOr(j, "repath_ms", n.repathMs);
     n.postKillMs    = NumOr(j, "post_kill_ms", n.postKillMs);

@@ -316,6 +316,10 @@ struct TriggerModel {
     // into cover long after sight.
     float hiddenLateLogit   = 0.0f;
     float pressLosLogit     = 0.0f;   // calibrated shift of the press hazard with LOS
+    // In sight the press hazard's clock (time since the parts came on screen) restarts at the reaction peak when the
+    // crosshair first comes within this many body half-widths of the enemy later in the sighting (0 = never): people
+    // whose aim gets there 0.3-1.5 s into a sighting press at 21-37% a tick in the next 250 ms, as early as any.
+    float aimArriveHalfWidths = 0.0f;
     float releaseLosLogit   = 0.0f;   // calibrated shift of the release hazard with LOS
     // Calibrated tilts of the release with LOS. The fitted release by aim error comes out too flat in
     // closed loop (the bot let go near the target and sprayed far off it, and tapped too little);
@@ -383,6 +387,7 @@ struct NavModel {
     float huntUrgency       = 0.8f;
     float engageUrgency     = 0.25f;  // toward the enemy for the second after losing sight (none while it is perceived)
     float reloadUrgency     = 0.4f;
+    float lowClipCover      = 0.0f;   // in a fight with less than this share of the clip left, make for cover (0 = off)
     float waypointReach     = 48.0f;
     float repathMs          = 1000.0f;
     float postKillMs        = 1500.0f;  // after a kill the bot stays where it is this long (urgency ~0)

@@ -138,7 +138,13 @@ def build():
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},
-                    "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0, "hidden_late_logit": 0.0}},
+                    # aim_arrive_hw (2026-10-05, "Late aim and low clips" in HANDOFF.md): the press clock in sight restarts at
+                    # its peak when the crosshair first comes within 2 body half-widths of the enemy later in a sighting.
+                    # People whose aim gets there 0.3-1.5 s in press at 20-38% a tick in the next 250 ms, as early as any;
+                    # the fitted clock runs from the parts on screen (people's aim is there by 0.3 s in nine sightings in
+                    # ten), and a bot slow to get there tracked the owner for seconds at 1-2% a tick
+                    "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0, "hidden_late_logit": 0.0,
+                               "aim_arrive_hw": 2.0}},
         "weapon": {"post_kill_round_edges": wp["post_kill_round_edges"], "post_kill_reload_p": wp["post_kill_reload_p"],
                    "post_kill_delay": wp["post_kill_delay"], "respawn": wp["respawn"],
                    "tactical": wp["tactical"], "pistol_switch_per_min": 0.1},
@@ -160,7 +166,13 @@ def build():
         # of the time). Pulling in sight too made every bot press forward like the presser family.
         "nav": {"hold_hazard": 0.02, "hold_median_ms": 1500.0, "hold_sigma": 0.7, "spawn_push_ms": 2500.0, "hunt_urgency": 0.8,
                 "engage_urgency": 0.65, "reload_urgency": 0.4, "waypoint_reach": 48.0, "repath_ms": 1000.0,
-                "post_kill_ms": 500.0},
+                "post_kill_ms": 500.0,
+                # in a fight with under a quarter of the clip left the bot makes for cover at the reload urgency (set on
+                # practice-map captures, 2026-10-05): in sight with that little people are out of the enemy's sight
+                # 1-1.5 s later 54-59% of the time (30-35% with more), the bots 20-38%, and the bots began five times
+                # as many reloads in the enemy's view (1.6 a minute alive against 0.3); now 31-46% and 1.3. Twice the
+                # urgency did no better
+                "low_clip_cover": 0.25},
         "presentation": {"ping_median_ms": 45.0, "ping_sigma": 0.45, "ping_drift_ar": 0.995, "ping_jitter_ms": 4.0,
                          "join_delay_median_ms": 6000.0, "join_delay_sigma": 0.6},
     }

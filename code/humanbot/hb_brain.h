@@ -116,6 +116,9 @@ private:
     int  m_lageMs        = 100000;
     bool m_vis           = false;  // the trigger's sight: a body part of the focus enemy perceived
     int  m_vageMs        = 100000; // since that changed; a sighting counts from when the parts came on screen
+    int  m_tclockMs      = 100000; // the press hazard's clock in sight: m_vageMs, restarted when the aim arrives late
+    bool m_aimArrived    = false;  // the crosshair came near the enemy in this sighting
+    bool m_sightFirst    = false;  // the first tick of a sighting
     bool m_detected      = false;
     int  m_acqTicks      = 1000;
     int  m_focusId       = -1;
