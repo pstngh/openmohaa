@@ -57,6 +57,8 @@ struct NavOutput {
     Vec3  target;
     float urgency    = 0.0f;
     float desiredYaw = 0.0f;   // world yaw to travel
+    bool  viaValid   = false;  // the engine's path goes to `via`, a point along the way people go (NavModel::viaDist)
+    Vec3  via;
 };
 
 class Navigator
@@ -78,8 +80,11 @@ private:
     Vec3 PickCover(const SelfState& self, const Vec3& threat) const;
     // Direction of the next route-graph cell toward target (when the engine gives no steering).
     bool RouteYaw(const SelfState& self, const Vec3& target, float& yaw);
-    // The route cell the bot is in, with the shortest-path tree toward target's cell built (-1: no route).
-    int  RouteFrom(const SelfState& self, const Vec3& target);
+    // The route cell the bot is in (or the nearest within hereCells cells), with the shortest-path tree toward target's
+    // cell built (-1: no route).
+    int  RouteFrom(const SelfState& self, const Vec3& target, float hereCells = 2.0f);
+    // The point the engine's path goes to: viaDist along the route people take toward target (false: the target itself).
+    bool Via(const SelfState& self, const Vec3& target, Vec3& via);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -94,6 +99,9 @@ private:
     int                m_treeTarget = -1;
     std::vector<int>   m_next;
     std::vector<float> m_dist;
+    // the via point's cell and the tree it was taken on
+    int                m_viaCell    = -1;
+    int                m_viaTree    = -1;
 };
 
 } // namespace hb

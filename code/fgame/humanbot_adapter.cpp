@@ -529,6 +529,8 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::Se
         return;
     }
     const Vector goal(plan.navTarget.x, plan.navTarget.y, plan.navTarget.z);
+    // the path goes to the brain's point along the way people go when it gives one (hb::Navigator::Via)
+    const Vector pathTo = plan.navViaValid ? Vector(plan.navVia.x, plan.navVia.y, plan.navVia.z) : goal;
     if (!m_pather) {
         m_pather = IPather::CreatePather();
     }
@@ -536,14 +538,14 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::Se
         m_steerValid = false;
         return;
     }
-    if ((goal - m_pathGoal).lengthSquared() > Square(64.0f) || level.inttime - m_pathTime > 1000 || !m_pather->GetNodeCount()) {
+    if ((pathTo - m_pathGoal).lengthSquared() > Square(64.0f) || level.inttime - m_pathTime > 1000 || !m_pather->GetNodeCount()) {
         if (!m_pather->IsQuerying()) {
             PathSearchParameter parameters;
             parameters.entity     = p;
             parameters.fallHeight = MAX_FALL_HEIGHT;
             parameters.leashDist  = 0.0f;
-            m_pather->FindPath(p->origin, goal, parameters);
-            m_pathGoal = goal;
+            m_pather->FindPath(p->origin, pathTo, parameters);
+            m_pathGoal = pathTo;
             m_pathTime = level.inttime;
         }
     } else {

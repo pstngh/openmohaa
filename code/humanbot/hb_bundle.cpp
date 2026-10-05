@@ -721,6 +721,7 @@ void ParseNav(const json& j, NavModel& n)
     n.waypointReach = NumOr(j, "waypoint_reach", n.waypointReach);
     n.repathMs      = NumOr(j, "repath_ms", n.repathMs);
     n.postKillMs    = NumOr(j, "post_kill_ms", n.postKillMs);
+    n.viaDist       = NumOr(j, "via_dist", n.viaDist);
 }
 
 void ParsePresentation(const json& j, PresentationModel& p)

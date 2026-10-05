@@ -505,6 +505,58 @@ static void TestLowClipCover(const hb::ModelBundle& b, const hb::MapPrior& m)
     }
 }
 
+// The way people go (NavModel::viaDist): on dm/flag the navmesh's shortest way from the bottom-west spawn to Pre-control
+// runs east through Door 2, past the Railing and through Door 3, where people never go; they go north up the west
+// corridor and through the Flag room. The engine's path goes to a point along the people's route: up the west corridor.
+static void TestViaPeoplesWay(const hb::ModelBundle& b)
+{
+    hb::MapPrior  m;
+    std::string   err;
+    HB_CHECK(hb::LoadMapPrior(hb::EmbeddedText("maps/dm_flag.json"), "", m, err));
+    hb::NavModel np = b.shared.nav;
+    HB_CHECK(np.viaDist > 0.0f);
+    hb::SelfState self;
+    self.alive  = true;
+    self.origin = hb::Vec3(1185.0f, 2000.0f, 0.0f);   // the bottom-west spawn
+    self.eye    = self.origin + hb::Vec3(0, 0, 82);
+    hb::NavInput in;
+    in.detected = true;                                // heading for the enemy at Pre-control
+    in.enemyPos = hb::Vec3(1870.0f, 2770.0f, 0.0f);
+    in.clipFill = 1.0f;
+    for (const bool on : {true, false}) {
+        hb::NavModel q = np;
+        q.viaDist      = on ? np.viaDist : 0.0f;
+        hb::Navigator nav;
+        nav.Init(&q, &m);
+        hb::Rng       r(5);
+        hb::NavOutput out;
+        nav.Step(self, in, r, out);
+        const float ahead = (out.via - self.origin).lengthXY();
+        HB_REPORT("via %s: valid %d at (%.0f, %.0f), %.0f u off", on ? "on" : "off", out.viaValid, out.via.x, out.via.y, ahead);
+        if (on) {
+            // up the west corridor (x about 1150-1250), not east toward Door 2 (1456, 1984)
+            HB_CHECK(out.viaValid && out.via.x < 1300.0f && out.via.y > self.origin.y + 0.5f * np.viaDist);
+            HB_CHECK(ahead < np.viaDist + 64.0f);
+        } else {
+            HB_CHECK(!out.viaValid);
+        }
+    }
+    // the goal itself once it is near along the route
+    hb::Navigator nav;
+    nav.Init(&np, &m);
+    in.enemyPos = self.origin + hb::Vec3(0.0f, 0.5f * np.viaDist, 0.0f);
+    hb::Rng       r(5);
+    hb::NavOutput out;
+    nav.Step(self, in, r, out);
+    HB_CHECK(!out.viaValid);
+    // a map derived from the navmesh: no people's way to follow
+    m.fromNavmesh = true;
+    nav.Init(&np, &m);
+    in.enemyPos = hb::Vec3(1870.0f, 2770.0f, 0.0f);
+    nav.Step(self, in, r, out);
+    HB_CHECK(!out.viaValid);
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -528,5 +580,6 @@ int main()
     TestOutOfAmmo(b, m);
     TestLateAim(b, m);
     TestLowClipCover(b, m);
+    TestViaPeoplesWay(b);
     return hbtest::Finish("test_hb_belief");
 }
