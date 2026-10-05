@@ -1547,6 +1547,33 @@ of the time against people's 9%: while the bot waits in front of the swinging do
 the gap before its eye sees the holder (people's stops there are rarer and shorter). The bots meet more on dm/flag than before but
 still less than people, and keep the enemy in sight longer once they meet.
 
+## Holding fire on target (2026-10-05)
+
+The owner's game on `8ff52949` (dm/flag, one stopper bot, 22:14-22:20 UTC, the owner as "n", stopped early;
+`move_wip/s9/live10/`, features `eval/cache/bot/live10_own`): the owner 41 kills, the bot 11, with remarks typed into the
+chat ("what just happened", "why did it wait before shooting", "why did it stop", "why is it not shooting"; read them with
+`s14/comment.py DIR PREFIX T_MS`). At each the bot had the owner in sight, often with its crosshair on the owner, and
+held fire: once 2.5 s at 2-3 deg off a standing owner. It had drawn the slowest reaction the dial allows (199.6 ms of
+100-200, an offset of -1.35 on the press logit), and the offset shifted every press in sight: with the crosshair within
+1.5 body half-widths it fired at 53% of that time (after its first shot of a sighting 63%), the strafers of the owner's
+earlier games (132-151 ms) 84-90% (91-96%), each recorded person 77-84%. The doorway lean worked there (the lean led the
+motion at the first sight 64% of the time, 23% in the game before; the owner had it on screen first 26%, 33% before).
+
+**What changed:** the reaction dial is the time to the first press after a sighting (`fit_styles.py`, the arena's clean
+first press), so its offset now acts only until the bot's first press within 4 body half-widths of the enemy in a
+sighting, and again from a late arrival of its aim (`m_firedInSight`, `REACTED_HALF_WIDTHS`). Presses farther off do not
+end it (else a stray press 20 deg off, then the aim's late arrival, gave half the press rate: `TestLateAim`). The
+calibration stands: the arena's first press is the same (at -1.35 362-388 ms before and after, at 0 250 ms, at +1.5
+188 ms; four seeds of 900 s), and the pooled bot (offset 0) is unchanged to the last digit. In the open arena the share of
+in-sight time firing does not move (45-46% at -1.35, 62% at 0): its sightings are short, cut by the pillars.
+
+Bot against bot on dm/flag with every bot at -1.35 (`s14/quickbf_cal.sh` with a calibration patch, `rs0_201` the
+previous code, `rs1_201` this): with the crosshair on the enemy in sight, firing 54% -> 65% (after the first shot of a
+sighting 67% -> 83%; bots at their drawn styles 79% and 87%, people 77-84%); before the first shot 14% either way (the
+slow reaction itself). Standard captures (`rz_*`, `brz_*` against `ez_*`, `bez_*`): on target firing 77-81% either way,
+all 281 statistics within 25% 57% (57%), before 58% (54%), one crossed for the better in both seed sets (the press with
+the aim near 0.55-1 s into a sighting, 0.28 -> 0.25, people 0.21) and none for the worse; the owner's checks the same.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1738,8 +1765,9 @@ still less than people, and keep the enemy in sight longer once they meet.
   The burst dial counts the bursts begun in sight and is relative to the pooled bot, like the
   skills. The out-of-ammunition fallback (pistol bash), the ladder climb and its watchdog, and the
   anticipation boost of the hidden press (`anticipation_logit` 5) are set by hand.
-- The reaction skill shifts the trigger's press hazard instead of the detection rate. Both skills
-  are relative to the average bot.
+- The reaction skill shifts the trigger's press hazard instead of the detection rate, and only until the bot's first
+  press within 4 body half-widths of the enemy in a sighting, or a late arrival of its aim (since 2026-10-05; see "Through
+  the doors"). Both skills are relative to the average bot.
 - AFK behavior is not modelled.
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).

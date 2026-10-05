@@ -41,7 +41,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      sight is let go of as people let go of it. Fire into cover fades with the time since sight, as
      people lose track of the enemy, except at an enemy expected in the crosshair right now (people
      prefire corners). After a head hit of its own the bot pauses and aims at the chest (the
-     owner's rule: no two headshots in a row).
+     owner's rule: no two headshots in a row). A bot's reaction skill shifts the press only until its
+     first shot near the enemy in a sighting (or a late arrival of its aim): after it, it fires like
+     the average player.
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
      while the enemy is hidden. With only parts of the enemy showing, it aims at a visible part.
      While the enemy is hidden it pre-aims the corner the believed enemy would come out from:
