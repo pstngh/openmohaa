@@ -125,7 +125,16 @@ def build():
                        # time and are hit first 7%; the bots without the turn 38% and 20%. Held only 0.9 s the view
                        # swung back to the route and turned to the next sound again (60% and 11%, but the hidden view
                        # turned at 16.8 deg/s at the median, 10.6 before, people 8.1); held 3 s: 51%, 13%, 10.3 deg/s
-                       "sound_turn_p": 1.0, "sound_turn_delay_ms": 150.0, "sound_turn_hold_ms": 3000.0},
+                       "sound_turn_p": 1.0, "sound_turn_delay_ms": 150.0, "sound_turn_hold_ms": 3000.0,
+                       # set on practice-map captures (2026-10-05, "Where the bot looks when first seen" in HANDOFF.md):
+                       # footsteps just outside the view (48-90 deg) are turned to as well: people get their view onto an
+                       # unseen enemy running there within a second 74-80% of the time against 51-53% for a quiet one,
+                       # the bots 70-71% (61-64% quiet); now 80-85%. And a held direction gives way once the enemy is
+                       # believed out of view of it: first seen after their spawn people look 5 deg off the enemy at the
+                       # median (over 45 deg 4% of lives), the bots 18 deg (25%), most of those with a belief right
+                       # within 30 deg but the view held on a direction kept after passing a corner; with both and the
+                       # hearing below, 12-13 deg (11%)
+                       "sound_turn_deg": 48.0, "hold_belief_deg": 48.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},
@@ -133,10 +142,14 @@ def build():
         "weapon": {"post_kill_round_edges": wp["post_kill_round_edges"], "post_kill_reload_p": wp["post_kill_reload_p"],
                    "post_kill_delay": wp["post_kill_delay"], "respawn": wp["respawn"],
                    "tactical": wp["tactical"], "pistol_switch_per_min": 0.1},
-        # Not measurable in the recordings (no audio, no intent); plan values, tuned by calibrate.py.
+        # Not measurable in the recordings (no audio, no intent); plan values, tuned by calibrate.py. Except the
+        # front/back confusion of footsteps (the plan's 0.25): people hear which side an enemy runs on. With an unseen
+        # enemy running in front of them within 1000 u they turn around within a second 2.4% of the time, no more than
+        # with a quiet one (3.1%), and face one running behind them 69% (quiet 33%). With a quarter of the footsteps
+        # heard on the mirrored side the bots turned around 11% (practice maps, 2026-10-05); with none, 2.7%.
         "perception": {"detect_rate": 1.2, "ecc_scale_deg": 18.0, "dist_scale": 1400.0, "part_exponent": 0.7, "loss_memory_ticks": 3,
                        "gunfire_sigma_deg": 10.0, "gunfire_range": 3000.0, "footstep_sigma_deg": 20.0, "footstep_range": 1000.0,
-                       "front_back_confusion": 0.25, "reload_range": 600.0, "reload_sigma_deg": 15.0, "distance_log_sd": 0.35,
+                       "front_back_confusion": 0.0, "reload_range": 600.0, "reload_sigma_deg": 15.0, "distance_log_sd": 0.35,
                        "damage_sigma_deg": 20.0},
         "belief": {"particles": 256, "neg_detect": 0.85, "ess_resample": 0.5, "jitter": 10.0, "move_boost": 1.0,
                    "sound_sigma_scale": 1.0, "spawn_min_dist": 256.0},

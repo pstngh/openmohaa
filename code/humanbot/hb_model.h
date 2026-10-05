@@ -270,6 +270,8 @@ struct ViewModel {
                                        //   direction when there is one (0: the believed position)
     float lostAimLastSeen    = 0.0f;   // 1: right after losing sight the view holds where the enemy was last seen
                                        //   (0: it follows the believed position on)
+    float holdBeliefDeg      = 0.0f;   // a held direction gives way (a new look) once the believed enemy is this far
+                                       //   off it (0 = it is kept until its dwell runs out)
     float lookDwellMedianMs  = 900.0f;
     float lookDwellSigma     = 0.6f;
     float damageTurnDelayMs  = 100.0f;
