@@ -48,6 +48,7 @@ struct NavInput {
     int                   msSinceKill  = 1000000;
     float                 angleHold    = 1.0f;     // style (hold or clear an angle): x the hold hazard with an exposure coming up
     bool                  outOfAmmo    = false;    // nothing left to fire: close in on the enemy (to bash)
+    float                 clipFill     = 1.0f;     // rounds left in the clip, a share of it
 };
 
 struct NavOutput {

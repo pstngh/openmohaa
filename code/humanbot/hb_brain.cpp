@@ -33,6 +33,7 @@ static constexpr int   TRACK_MEMORY_MS   = 350;   // keep tracking a just-lost e
 static constexpr int   ACQUISITION_TICKS = 10;
 static constexpr int   CLICK_RETRY_MS    = 600;
 static constexpr float BODY_HALF_W       = 15.0f;
+static constexpr int   AIM_ARRIVE_CLOCK_MS = 200;   // the press hazard's clock on a late aim arrival (its peak: 200-250 ms)
 // The owner's rule: no two headshots in a row. After a head hit the bot aims at the chest for
 // HEAD_HIT_CHEST_MS and holds its fire for the first HEAD_HIT_PAUSE_MS, while the view comes down
 // (the next round would leave within 100 ms, before the view moved).
@@ -129,6 +130,9 @@ void Brain::OnSpawn(const Observation& obs)
     m_lageMs    = 100000;
     m_vis       = false;
     m_vageMs    = 100000;
+    m_tclockMs   = 100000;
+    m_aimArrived = false;
+    m_sightFirst = false;
     m_detected  = false;
     m_acqTicks  = 1000;
     m_clickDown = false;
@@ -257,10 +261,15 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     // the trigger's sight: any body part perceived. Its clock starts when the parts came on screen, as
     // people's reaction is timed from the first visible part (REPORT section 14), not when the bot noticed
     if (detected != m_vis) {
-        m_vis    = detected;
-        m_vageMs = detected ? std::max(0, fe->visibleMs) : 0;
+        m_vis        = detected;
+        m_vageMs     = detected ? std::max(0, fe->visibleMs) : 0;
+        m_tclockMs   = m_vageMs;
+        m_aimArrived = false;
+        m_sightFirst = detected;
     } else {
-        m_vageMs = std::min(m_vageMs + TICK_MS, 100000);
+        m_sightFirst = false;
+        m_vageMs   = std::min(m_vageMs + TICK_MS, 100000);
+        m_tclockMs = std::min(m_tclockMs + TICK_MS, 100000);
     }
 
     //
@@ -298,6 +307,20 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
         ti.errHalfWidths = err / std::max(0.05f, hw);
         enemyFeet        = fe->pos - Vec3(0.0f, 0.0f, 0.5f * fe->bodyHeight);
         enemyKnown       = true;
+        // the press hazard falls with the time since the enemy came on screen, but people press as readily once
+        // their crosshair gets there late (0.3-1.5 s in: 21-37% a tick in the next 250 ms); the bot, slower to get
+        // there, tracked the owner for seconds at 1-2% a tick. A late arrival restarts the clock at the press peak
+        const float arrive = S.trigger.aimArriveHalfWidths;
+        if (m_vis && !m_aimArrived && arrive > 0.0f && ti.errHalfWidths < arrive) {
+            // there from the start of the sighting: the clock runs on from the parts
+            m_aimArrived = true;
+            if (!m_sightFirst) {
+                m_tclockMs = std::min(m_tclockMs, AIM_ARRIVE_CLOCK_MS);
+            }
+        }
+        if (m_vis) {
+            ti.lageMs = m_tclockMs;
+        }
     } else if (fb && fb->valid && !fb->dead) {
         enemyFeet  = fb->mode;
         enemyKnown = true;
@@ -463,6 +486,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     ni.msSinceKill  = now - m_killMs;
     ni.angleHold    = m_off.angleHold;
     ni.outOfAmmo    = dry;
+    ni.clipFill     = self.clipSize > 0 ? static_cast<float>(self.clipAmmo) / self.clipSize : 1.0f;
     m_nav.Step(self, ni, m_rngNav, m_navOut);
 
     //
