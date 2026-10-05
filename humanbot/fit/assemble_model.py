@@ -69,9 +69,16 @@ def build():
             # dm/brownffa and dm/flag, took 7.5-9 s from a spawn to the first sight (people 2.1-2.3); 500-900 u gives
             # 5.6-7 s. Ramped from 300 to 700 u (4.4-6 s) it cost the duel maps, whose hidden fights sit at 250-450 u:
             # the bots stood a third less with the enemy hidden than people and fought more; from 600 to 1000 u the duel
-            # maps were the same as now and dm/brownffa lost most of the gain
+            # maps were the same as now and dm/brownffa lost most of the gain.
+            # A key changes for the route when that makes the chord go its way better by more than nav_deadband (the
+            # cosine of the angle between the chord and the route), set on practice-map captures (2026-10-05, "Back and
+            # forth" in HANDOFF.md): at 0.3 a diagonal or strafe was kept with the route straight ahead (a stable route in
+            # the open was within 22 deg of the held chord on 43% of ticks), the bots zig-zagged and, of the 3 s stretches
+            # with the enemy hidden in which they ran 300 u, ended within 100 u of the start in 41% (dm/brownffa, dm/flag)
+            # and 34% (duel maps; people 9% and 18%); 0.1 with the walls' push on the route halved (g_humanbot_wall_steer)
+            # gives 34-37% and 31-35%, 0.0 no more than 0.1, 0.2 half the gain
             "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "nav_far_mult": 3.0, "nav_far_near": 500.0,
-                         "nav_far_dist": 900.0, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
+                         "nav_far_dist": 900.0, "nav_deadband": 0.1, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
                          "wall_reflex_logit": 4.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",

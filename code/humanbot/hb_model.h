@@ -172,6 +172,9 @@ struct MovementModel {
     // wall) with this logit, and no new key presses into a wall the bot touches
     float wallReflexMs        = 0.0f;
     float wallReflexLogit     = 0.0f;
+    // a key changes for the route only when that improves how the chord goes the route's way by more than this (cosine);
+    // a smaller change the pull holds back
+    float navDeadband         = 0.3f;
 };
 
 struct NoiseModel {

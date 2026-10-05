@@ -464,7 +464,10 @@ void HumanBotAdapter::Track(Player *p, const hb::SelfState& self)
 // walls, inside the player's 15 u box: a bot heading for them scrapes every wall on the way. Walls
 // closer than this push the route direction sideways, away from them (only the part across the
 // route, so they never turn the bot back).
-// g_humanbot_wall_steer scales the push (0 = off).
+// g_humanbot_wall_steer scales the push (0 = off). At full strength (1, until 2026-10-05) the pushes of the walls on
+// either side of a corridor took turns tick by tick (the steered direction swung across 15 times a minute) and the keys
+// that follow it zig-zagged; at 0.5 the bots touch walls as often as people (9.8% of the time on dm/brownffa and
+// dm/flag, people 9.1%; 5.5% on the duel maps, people 7.3%).
 static const float WALL_STEER_MARGIN = 32.0f;
 
 static float WallSteerYaw(float routeYaw, float viewYaw, const float clearance[hb::NUM_CHORDS])
@@ -1020,7 +1023,7 @@ void G_HumanBotInit(void)
     g_humanbot_model_dir = gi.Cvar_Get("g_humanbot_model_dir", "", 0);
     g_humanbot_families  = gi.Cvar_Get("g_humanbot_families", "", 0);
     g_humanbot_debug     = gi.Cvar_Get("g_humanbot_debug", "0", 0);
-    g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "1", 0);
+    g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "0.5", 0);
     g_humanbot_skill     = gi.Cvar_Get("g_humanbot_skill", "0", 0);
 
     if (!s_inited) {
