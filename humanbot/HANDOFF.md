@@ -1442,6 +1442,18 @@ error firing at 768-1200 u, 2.2 -> 2.7 deg, people 2.1; few samples) and none fo
 (`obs5.py`) stay where they were. 16 bots in the arena 79 us per bot (the route tree is rebuilt when the goal's cell
 changes).
 
+**The owner's game on `84508075`** (dm/flag, one strafer bot, 18:09-18:21 UTC, the owner as "n"; `move_wip/s9/live8/`,
+against `live7/` on `e388d77b`; `s11/sess.py`, `s11/deaths.py`, `s12/firstlook.py`): the owner 67 kills, the bot 34 (39
+to 22 before), 101 deaths in 10 minutes alive (61 in 8). At the moment the owner first had the bot on screen after its
+spawn its view was a median 12 deg off him, over 30 deg 19% of the time (26 deg and 38% before); no travel look, no
+door spin (17 times before); the view watched where it believed him (45 of 67) or a sound (16). The Door 2 corridor
+3.5% of the bot's time (17% before, the owner 2.4%), never the Railing. Hidden: back and forth 16% (24%, the owner
+7-11%), forward held moving 67% (62%, 84-90%), a plain strafe 24% (29%, 6-10%), speed p50 163 u/s (156, 221-237); in
+sight the back key 5% (11%, 4-5%). The owner still had the bot on screen first in 61% of its deaths (72%): he held the
+Flag room 70% of his time and the bot walked into it. Asked, the owner said the bot never seemed to know where he was
+too well (the soft wallhack), and agreed with what is still off: seen first walking into the room he holds, the slow
+sideways running, the jumps (4.5 a minute against his 1.4; the bot drew the jumpiest recorded style, 5.7).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
