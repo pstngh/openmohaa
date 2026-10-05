@@ -145,6 +145,7 @@ extern cvar_t *g_gametypestring;
 extern cvar_t *g_realismmode;
 extern cvar_t *g_teamdamage;
 extern cvar_t *g_healthdrop;
+extern cvar_t *g_playerdmhealth;
 extern cvar_t *g_healrate;
 
 extern cvar_t *g_allowvote;

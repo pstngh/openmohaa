@@ -98,6 +98,12 @@ If enabled, the legs animation continues from its current time between animation
 
 This prevents some tricks such as `ghost walking` where a player rapidly switch weapons to avoid emitting footsteps sounds.
 
+### `g_playerdmhealth`
+
+The health of players in multiplayer. Defaults to `100`; `0` or lower also means `100`.
+
+The sniper rifles, the Mauser KAR 98K and the shotgun scale their damage against players with the maximum health of the player they hit, so they take as many hits to kill as with `100` health.
+
 ### `g_playerStacking`
 
 If enabled, a player can stand on another player's head without being pushed off. Defaults to `0`.

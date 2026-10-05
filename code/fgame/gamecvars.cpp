@@ -140,6 +140,7 @@ cvar_t *g_gametypestring;
 cvar_t *g_realismmode;
 cvar_t *g_teamdamage;
 cvar_t *g_healthdrop;
+cvar_t *g_playerdmhealth;
 cvar_t *g_healrate;
 
 cvar_t *g_allowvote;
@@ -491,6 +492,9 @@ void CVAR_Init(void)
 
     g_teamdamage = gi.Cvar_Get("g_teamdamage", "0", 0);
     g_healthdrop = gi.Cvar_Get("g_healthdrop", "1", 0);
+
+    g_playerdmhealth = gi.Cvar_Get("g_playerdmhealth", "100", 0);
+
     if (g_protocol >= protocol_e::PROTOCOL_MOHTA_MIN) {
         g_healrate = gi.Cvar_Get("g_healrate", "10", 0);
     } else {

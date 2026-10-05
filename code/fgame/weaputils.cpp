@@ -2347,10 +2347,14 @@ float BulletAttack(
 
                         original_value = ent->health;
 
+                        //
+                        // Changed in OPM
+                        //  High-damage weapons scale with the maximum health of the player they hit
+                        //
                         ent->Damage(
                             world,
                             owner,
-                            newdamage,
+                            weap ? newdamage * weap->GetPlayerHealthDamageScale(ent) : newdamage,
                             trace.endpos,
                             dir,
                             trace.plane.normal,

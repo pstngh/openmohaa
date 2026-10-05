@@ -363,6 +363,7 @@ public:
     void       SetShareClip(Event *ev);
     void       SetTagBarrel(const char *tagBarrel); // Added in 2.0
     str        GetTagBarrel() const;                // Added in 2.0
+    float      GetPlayerHealthDamageScale(Entity *victim); // Added in OPM
     void       SetModels(const char *world, const char *view);
     void       SetOwner(Sentient *ent) override;
     void       SetMaxChargeTime(Event *ev);

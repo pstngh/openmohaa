@@ -1340,6 +1340,30 @@ str Weapon::GetTagBarrel() const
     return m_sTagBarrel;
 }
 
+//
+// Added in OPM
+//  In multiplayer, the sniper rifles, the Kar98 and the shotgun scale their damage
+//  with the maximum health of the player they hit, so they take as many hits to kill as with 100 health
+//
+float Weapon::GetPlayerHealthDamageScale(Entity *victim)
+{
+    static const char *const scaledNames[] = {
+        "Springfield '03 Sniper", "KAR98 - Sniper", "SVT 40", "G 43", "Enfield L42A1", "Mauser KAR 98K", "Shotgun"
+    };
+
+    if (g_gametype->integer == GT_SINGLE_PLAYER || !victim->IsSubclassOfPlayer() || victim->max_health == 100) {
+        return 1;
+    }
+
+    for (const char *scaledName : scaledNames) {
+        if (!Q_stricmp(GetItemName(), scaledName)) {
+            return victim->max_health / 100.0f;
+        }
+    }
+
+    return 1;
+}
+
 //======================
 //Weapon::Shoot
 //======================
