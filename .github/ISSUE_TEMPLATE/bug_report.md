@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Logs**
 - Paste the output of the console window in a text file, and attach the text file.
-- If applicable (`logfile` set to 2), attach the `qconsole.log` file. On Windows, it can be found in **%APPDATA%\...\qconsole.log** and on Linux, it can be found on the home directory **~/.openmohaa/.../qconsole.log**.
+- If applicable (`logfile` set to 2), attach the `qconsole.log` file. It can be found in the game folder of the installation directory, like **main/qconsole.log**.
 
 **Version information (please complete the following information):**
  - OS: [e.g. `Debian`]

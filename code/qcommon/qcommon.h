@@ -1051,7 +1051,6 @@ extern	cvar_t	*com_altivec;
 extern	cvar_t	*com_standalone;
 extern	cvar_t	*com_gamename;
 extern	cvar_t	*com_basegame;
-extern	cvar_t	*com_homepath;
 extern	cvar_t	*com_altivec;
 
 // both client and server must agree to pause
@@ -1418,8 +1417,6 @@ char	*Sys_MicrosoftStorePath(void);
 char    *Sys_DefaultAppPath(void);
 #endif
 
-char	*Sys_DefaultHomeDataPath(void);
-char	*Sys_DefaultHomeStatePath(void);
 const char *Sys_Dirname( char *path );
 const char *Sys_Basename( char *path );
 char *Sys_ConsoleInput( void );

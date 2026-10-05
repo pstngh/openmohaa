@@ -159,13 +159,11 @@ struct Config: Equatable {
 
     // MARK: Launch arguments
 
-    /// Arguments shared by Connect and Play. The game folder doubles as the
-    /// home path so configs stay with the game. It must be the exact path the
-    /// engine takes from its executable, or every pak file is loaded twice, so
-    /// a folder the command line cannot carry keeps the default home path.
-    func commonArgs(folder: String) -> [String] {
+    /// Arguments shared by Connect and Play. The engine keeps configs and
+    /// other user data in the game folder by itself.
+    func commonArgs() -> [String] {
         let size = resolution.split(separator: "x").map(String.init)
-        var args = isSafe(folder) ? set("fs_homepath", folder) : []
+        var args: [String] = []
         if !name.isEmpty {
             args += set("name", name)
         }
@@ -178,8 +176,8 @@ struct Config: Equatable {
     }
 
     /// Connect always starts Allied Assault.
-    func connectArgs(folder: String) -> [String] {
-        var args = commonArgs(folder: folder) + set("com_target_game", 0)
+    func connectArgs() -> [String] {
+        var args = commonArgs() + set("com_target_game", 0)
         if !password.isEmpty {
             args += set("password", password)
         }
@@ -192,7 +190,7 @@ struct Config: Equatable {
         return args
     }
 
-    func playArgs(folder: String) -> [String] {
+    func playArgs() -> [String] {
         // Rockets and landmines are left out, and the expansions keep the
         // old sniper rifle and give the shotgun instead of the Kar98 mortar.
         var dmflags = 1 << 26 | 1 << 28
@@ -203,7 +201,7 @@ struct Config: Equatable {
             dmflags |= 1 << 14
         }
 
-        var args = commonArgs(folder: folder) + set("com_target_game", game)
+        var args = commonArgs() + set("com_target_game", game)
         args += set("g_gametype", gametype)
         args += set("dmflags", dmflags)
         args += set("fraglimit", 0)
@@ -796,7 +794,7 @@ struct LauncherView: View {
 
             let process = Process()
             process.executableURL = game
-            process.arguments = play ? config.playArgs(folder: folder.path) : config.connectArgs(folder: folder.path)
+            process.arguments = play ? config.playArgs() : config.connectArgs()
             process.currentDirectoryURL = folder
             do {
                 try process.run()

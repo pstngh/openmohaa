@@ -43,20 +43,12 @@ extern "C" {
 #define TARGET_GAME_PROTOCOL_MOH		8
 #define TARGET_GAME_NAME_MOH			"mohaa"
 
-#define HOMEPATH_NAME_UNIX_MOH		".moh"
-#define HOMEPATH_NAME_WIN_MOH		"moh"
-#define HOMEPATH_NAME_MACOSX_MOH	HOMEPATH_NAME_WIN_MOH
-
 #define GAME_EXTENSION_MOHTA			"mainta"
 #define PRODUCT_EXTENSION_MOHTA			"Spearhead"
 #define TARGET_GAME_VERSION_MOHTA		"2.16"
 #define TARGET_GAME_PROTOCOL_MIN_MOHTA	16
 #define TARGET_GAME_PROTOCOL_MOHTA		17
 #define TARGET_GAME_NAME_MOHTA			"mohaas"
-
-#define HOMEPATH_NAME_UNIX_MOHTA	".mohta"
-#define HOMEPATH_NAME_WIN_MOHTA		"mohta"
-#define HOMEPATH_NAME_MACOSX_MOHTA	HOMEPATH_NAME_WIN_MOHTA
 
 #define GAME_EXTENSION_BASE_MOHTT		"maintt"
 #define PRODUCT_EXTENSION_MOHTT			"Breakthrough"
@@ -67,18 +59,12 @@ extern "C" {
 #define TARGET_GAME_PROTOCOL_MOHTT		17
 #define TARGET_GAME_NAME_MOHTT			"mohaab"
 
-#define HOMEPATH_NAME_UNIX_MOHTT	".mohtt"
-#define HOMEPATH_NAME_WIN_MOHTT		"mohtt"
-#define HOMEPATH_NAME_MACOSX_MOHTT	HOMEPATH_NAME_WIN_MOHTT
-
 //
 // The target type specifies which content pack the engine targets.
 // 
 // Note: An universal client is not currently possible without refactoring the network and the file system.
 //       Pak files must be reloaded on-the-fly depending on the server the client is connecting to.
 //
- #define HOMEPATH_NAME_UNIX_LEGACY	".openmohaa"
- #define HOMEPATH_NAME				"openmohaa"
 
 #define CONFIG_PREFIX			"omconfig"
 

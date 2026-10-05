@@ -19,7 +19,6 @@ This document lists all differences in the engine between versions of the origin
 - OpenAL sound support (better sound quality)
 - Full 64-bit support
 - Cross-platform support
-- Multiuser support on OS (On Windows, user game data is stored in "%APPDATA%\openmohaa")
 - Many bug fixes and additions from ioquake3
 - Automatic scaling of UI elements on high resolutions like 4K
 
@@ -413,6 +412,7 @@ Enable this feature with `set sv_netoptimize 2`.
 #### Client-side
 
 - Configs are always stored in the installation directory, under `main/configs`, `mainta/configs` or `maintt/configs`; `fs_homepath` no longer moves them
+- All other user data (logs, saves, screenshots, demos) is stored in the installation directory too, unless `fs_homepath` is set
 - The sun lens flare and its fullscreen fade are no longer drawn in the GL1 renderer, light and dlight flares are unchanged
 
 #### Server-side

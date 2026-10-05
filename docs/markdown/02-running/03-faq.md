@@ -19,7 +19,7 @@ If you accidentally extracted into a subfolder (e.g., `MOHAA/openmohaa-0.80.0/`)
 OpenMoHAA is not a standalone game - it needs the original MOHAA game files to run. Make sure you have Medal of Honor: Allied Assault installed.
 
 ### 4. Check for error messages
-Error messages displayed in the terminal are often helpful for diagnosing issues. You can also check the log file located in your user data folder (`%APPDATA%\openmohaa\main` on Windows, `~/.openmohaa/main` on Linux).
+Error messages displayed in the terminal are often helpful for diagnosing issues. You can also check the log file located in the game folder (`main`, `mainta` or `maintt` in the installation directory).
 </details>
 
 ---
@@ -77,11 +77,11 @@ This forces Windows to refresh display settings, which may restore brightness.
 <summary>I am using a custom map/mod, and I experience glitches that do not occur in the original game. What should I do?</summary>
 
 ### 1. Check game file precedences:
-As OpenMoHAA has MultiUser Support (on Windows, user game data is stored in `%APPDATA%\openmohaa`), custom files in this directory override existing files in the game installation folder.
+If `fs_homepath` is set, custom files in that directory override existing files in the game installation folder.
 
 |Example|
 |-|
-| A custom `grenzuebergang_KE.pk3` (placed in the user game data folder) contains a `scripts/effects.shader` file and it does not declare `bh_wood_puff_simple`. As a result, bullet impact effect has no texture.
+| A custom `grenzuebergang_KE.pk3` (placed in the `fs_homepath` directory) contains a `scripts/effects.shader` file and it does not declare `bh_wood_puff_simple`. As a result, bullet impact effect has no texture.
 However, if `grenzuebergang_KE.pk3` is placed in the game installation folder (`MOHAA/main` or `/mainta` or `/maintt`, where the base `pak*.pk3` files are located) original files take precedence over custom files as they follow the alphabetical order of file naming.
 `Pak1.pk3` contains the original `scripts/effects.shader` where the impact effect is declared; therefore, the player does not experience any issue, as the original file is "loaded" after the custom file. |
 

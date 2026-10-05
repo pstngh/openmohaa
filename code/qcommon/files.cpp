@@ -3591,28 +3591,22 @@ FS_Startup
 static void FS_Startup(const char* gameName)
 {
 	cvar_t *fs_homepath = Cvar_Get("fs_homepath", "", CVAR_INIT|CVAR_PROTECTED);
-	const char *dataPath = Sys_DefaultHomeDataPath();
-	const char *statePath = Sys_DefaultHomeStatePath();
-
-	if(*(fs_homepath)->string) {
-		// Setting fs_homepath manually overrides everything else but configs
-		dataPath = statePath = fs_homepath->string;
-	} else if(!*dataPath || !*statePath) {
-		// #shouldneverhappen; just a sensible fallback
-		dataPath = statePath = Sys_DefaultInstallPath();
-	}
+	const char *homePath;
 
 	Com_Printf( "----- FS_Startup -----\n" );
 
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
 	fs_basepath = Cvar_Get("fs_basepath", Sys_DefaultInstallPath(), CVAR_INIT | CVAR_PROTECTED);
 	fs_basegame = Cvar_Get ("fs_basegame", "", CVAR_INIT );
+	// User data lives in the installation directory, unless fs_homepath
+	// moves it; configs never move
+	homePath = *fs_homepath->string ? fs_homepath->string : fs_basepath->string;
 	// Configs always live in the game installation directory, fs_basepath,
 	// under <game>/configs, whatever the working directory says
 	fs_homeconfigpath = Cvar_Get ("fs_homeconfigpath", fs_basepath->string, CVAR_INIT|CVAR_PROTECTED );
 	Cvar_ForceReset( "fs_homeconfigpath" );
-	fs_homedatapath = Cvar_Get ("fs_homedatapath", dataPath, CVAR_INIT|CVAR_PROTECTED );
-	fs_homestatepath = Cvar_Get ("fs_homestatepath", statePath, CVAR_INIT|CVAR_PROTECTED );
+	fs_homedatapath = Cvar_Get ("fs_homedatapath", homePath, CVAR_INIT|CVAR_PROTECTED );
+	fs_homestatepath = Cvar_Get ("fs_homestatepath", homePath, CVAR_INIT|CVAR_PROTECTED );
 	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
 	fs_restrict = Cvar_Get( "fs_restrict", "", CVAR_INIT );
 	fs_steampath = Cvar_Get ("fs_steampath", Sys_SteamPath(), CVAR_INIT|CVAR_PROTECTED );

@@ -14,7 +14,7 @@ Base game and expansions can be started from one of the 3 launchers:
 
 ### Start using the macOS launcher
 
-On Apple silicon Macs with macOS 15 or later, `launcher.app` in the game folder joins a server in Allied Assault, directly or from one of three saved shortcuts, or starts a local bot match in any of the three games with cheats enabled so `dog` and the other cheats work. It also sets the size and color of the crosshair and checks the retail pak files of each installed game. It keeps its settings in `launcher.cfg` beside it, and games it starts keep their configuration in the game folder.
+On Apple silicon Macs with macOS 15 or later, `launcher.app` in the game folder joins a server in Allied Assault, directly or from one of three saved shortcuts, or starts a local bot match in any of the three games with cheats enabled so `dog` and the other cheats work. It also sets the size and color of the crosshair and checks the retail pak files of each installed game. It keeps its settings in `launcher.cfg` beside it, and games it starts keep their configuration and other data in the game folder.
 
 If macOS refuses to open a downloaded build, open `install.command` in the game folder first. To build the launcher on a Mac, run `code/LauncherMac/bundle.sh` with the game folder as argument. The launcher starts the `openmohaa` binary beside it, so build the game for it with `-DBUILD_MACOS_APP=OFF`, as the release build does, instead of as `openmohaa.app`.
 
@@ -38,33 +38,28 @@ The argument `+set com_target_demo 1` must be appended to command-line to play t
 
 ## User data location
 
-Game configuration files are always stored beside the binaries, under
-`main/configs/omconfig.cfg` for Allied Assault, `mainta/configs/omconfig.cfg`
-for Spearhead, or `maintt/configs/omconfig.cfg` for Breakthrough. For example,
-an installation at `/path/to/mohaa` stores the base-game config at
-`/path/to/mohaa/main/configs/omconfig.cfg`, regardless of the process's
-working directory. Configs are neither read from nor written to any other
-location, so the installation folder must be writable to save settings.
-After upgrading from a build that stored configs in the user data directory,
-copy the existing `omconfig.cfg` into the matching installation subdirectory
-to keep your settings.
+All user-writable data, like configuration files, the console logfile, saves,
+screenshots and demos, is stored in the game installation folder, in the
+subdirectory of the game being used: `main` for the base game or
+`mainta`/`maintt` for the expansions. Configs are in `configs` there:
+`omconfig.cfg` for the game, `omconfig_server.cfg` for the dedicated server, or
+the file named by `+set config`. For example, an installation at
+`/path/to/mohaa` stores the base-game config at
+`/path/to/mohaa/main/configs/omconfig.cfg`. The installation folder is
+`fs_basepath`: the folder of the executable, unless `fs_basepath` is set on
+the command line or the executable is started without a folder in its path,
+in which case it is the working directory. It must be writable.
 
-Other user-writable data, like the console logfile and saves, is stored in a
-platform-specific directory:
+After upgrading from a build that stored user data in `%APPDATA%\openmohaa`
+(Windows), `~/.local/share/openmohaa` or `~/.openmohaa` (Linux) or `~/Library/Application Support/openmohaa`
+(macOS), copy its `main`, `mainta` and `maintt` contents into the installation
+folder to keep your settings, saves and demos.
 
-- `%APPDATA%\openmohaa` on Windows
-- `~/.openmohaa` on Linux
-- `~/Library/Application Support/openmohaa` on macOS
-
-There will be one or more subdirectories matching the game being used: `main`
-for the base game or `mainta`/`maintt` for the expansions.
-
-If necessary, the location of all other user-writable data can be changed by
-setting `fs_homepath` on the command line. The value can be a relative path
-(relative to the current working directory) or an absolute path. Examples:
+If necessary, all user data except configs can be moved by setting
+`fs_homepath` on the command line. The value can be a relative path (relative
+to the current working directory) or an absolute path. Examples:
 - `+set fs_homepath Z:\openmohaa_data` data will be written inside the fully qualified path `Z:\openmohaa_data`
 - `+set fs_homepath homedata` will use the subfolder `homedata` in the process current working directory to write data (will be created automatically)
-- `+set fs_homepath .` not recommended, will write data inside the process current working directory
 
 Note that the configuration file isn't created nor written automatically on a dedicated server (**omohaaded**).
 

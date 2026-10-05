@@ -120,7 +120,6 @@ cvar_t	*com_protocol;
 cvar_t	*com_legacyprotocol;
 #endif
 cvar_t	*com_basegame;
-cvar_t  *com_homepath;
 cvar_t	*com_busyWait;
 #ifndef DEDICATED
 cvar_t  *con_autochat;
@@ -1764,13 +1763,6 @@ void Com_Init( char *commandLine ) {
 
 	com_standalone = Cvar_Get("com_standalone", "0", CVAR_ROM);
 	com_basegame = Cvar_Get("com_basegame", BASEGAME, CVAR_INIT);
-    if (com_target_demo->integer) {
-		// As full and demo are different products,
-		// it's better for them to have separate location for configs and saves
-	    com_homepath = Cvar_Get("com_homepath", va("%s-demo", HOMEPATH_NAME), CVAR_INIT|CVAR_PROTECTED);
-    } else {
-	    com_homepath = Cvar_Get("com_homepath", "", CVAR_INIT|CVAR_PROTECTED);
-    }
 
 	FS_InitFilesystem ();
 
