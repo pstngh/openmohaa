@@ -409,6 +409,7 @@ Enable this feature with `set sv_netoptimize 2`.
 
 - Allow rotating on noclip mode when dead
 - Better logging of clients and chat
+- Damage flash and view kick are shown in god mode, as in Allied Assault
 - Don't set `g_shownpc` to true automatically
 - Improved portable turret placement
 - Increased the DM message limit in multiplayer

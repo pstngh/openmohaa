@@ -6565,12 +6565,17 @@ void Player::DamageFeedback(void)
     // Added in 2.0
     //  Don't show damage when in god mode
     //
+    // Removed in OPM
+    //  Show it, as in 1.11 and earlier
+    //
+#if 0
     if (flags & FL_GODMODE) {
         damage_count  = 0;
         damage_blood  = 0;
         damage_alpha  = 0;
         damage_angles = vec_zero;
     }
+#endif
 }
 
 void Player::GetPlayerView(Vector *pos, Vector *angle)
