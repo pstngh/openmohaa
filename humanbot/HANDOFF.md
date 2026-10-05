@@ -32,14 +32,14 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 52% of 195
-  statistics (median relative error 0.23, as before "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
+  statistics (median relative error 0.23, as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
   bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `6cd163537aa4` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `3040d79717e2` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -48,7 +48,7 @@ Verified:
   the corner pre-aim's model (`c29371288`) and the out-of-ammunition one (`8d64ab93b`) both
   score 59%. The arena's pooled bots carry no style shift, so the out-of-ammunition fix below
   shows on the practice maps, not here.
-- 16 bots take 81-90 us per bot per tick on that workstation (112 in the build container); the
+- 16 bots take 81-90 us per bot per tick on that workstation (86 with the travel mode) (112 in the build container); the
   budget is 150. In the engine with 16 bots the brain takes 113-123 us per bot (median) and the 12 usercmds 43 us
   (see "What the owner saw").
 - On the four practice maps, bot against bot (`humanbot/eval/reports/`), see "Corner pre-aim",
@@ -1201,6 +1201,89 @@ use; the back and forth is still three to four times people's; with the enemy hi
 people and run on more crooked paths, and people's straight paths come from steering with the mouse, which the bots'
 keys-follow-the-route design does not do.
 
+## Steering with the view (2026-10-05)
+
+The owner asked for a travel mode: with the enemy out of sight, the view leading along the path and the keys mostly on
+forward or a forward diagonal, keeping the corner pre-aim and the turn to sounds behind for when the enemy is expected
+soon. (The owner had not played the test server since 05:45 UTC that morning: one stranger connected at 05:57 and timed
+out before joining; no telemetry was written.) Diagnosed on the captures of `5a31a932` (`bov_*`, `ov_*`) and a
+diagnostic server that printed the path's corners each tick (git-ignored scripts in `humanbot/cache/move_wip/s11/`:
+`lead.py` how the view leads the path, `modes.py` the view modes and keys, `rev*.py` and `trace2.py` the back and
+forth, `junc.py` dm/flag's junction, `flicks.py` the hidden view's quick turns, `chk.sh` the table below).
+
+**What it was.**
+- **People look where they will be.** Running with the enemy hidden on dm/brownffa and dm/flag their view is a median
+  20 deg off the way to where they are a second later (72% of the time within 30 deg), and they hold forward (28%) or a
+  forward diagonal (49%), a plain strafe 15%. The bots looked at corners, the believed position and sounds (24 deg; 58%)
+  and strafed 35-38% of the time they ran.
+- **The view alone did not change the keys.** With the view leading the path, the way was within 45 deg of it three
+  quarters of the time, and the fitted key habits still held a plain strafe 31% of it (half of those begun from a
+  diagonal at a wall, the rest from short back-diagonal steps).
+- **Doors.** On dm/flag half of the back and forth was at the junction west of the spawn: a rotating door (hinge at
+  (1878, 2880)) closes a corridor's mouth, and another at (1198, 2320). The practice maps' doors open to the use key
+  only, aimed at them (`Player::getUseableEntities`: 64 u along the view); the bots pressed use only with a closed door
+  straight ahead in their view, and with the view on the corridor beyond or on a corner they slid along the closed leaf
+  for seconds (people open it and walk through).
+- **Narrow mouths.** On dm/brownffa 60% of it is at two corridor mouths about 70 u wide ((-1385, 1566) and (-1109, 1060)):
+  approaching on a diagonal the bots hit the wall beside the opening, slide past and come back (not fixed).
+- **Near the enemy.** Within 700 u of a hidden enemy the bots end 39-48% of their 3 s runs where they began, people
+  3-10%: people keep going forward there (64% of the time at 400-1000 u, the bots 45-50%), the bots strafe and turn about.
+
+**What changed.**
+- **The view's travel mode** (`hb_view`, `travel_*` in the view tuning, `assemble_model.py`): hunting or out of the
+  spawn, with no enemy expected soon (the imminence below 0.2; back in only below 0.1, else the view flipped between a
+  corner and the way 16 times a minute), the view looks toward the point 200 u ahead on the path. That direction follows
+  the point with a quarter of the gap a tick, a turn of more than 45 deg is one sweep (0.15 a tick), the mouse does not
+  rest with the way more than 20 deg off, and the fitted controller turns the view. Look-arounds and the turns to a hit
+  or a sound run their course in it; a sound behind still turns the view.
+- **The keys follow the way more firmly while the view leads** (`travel_pull` 3 in the couplings), not while pressing
+  into a wall (in the arena a bot pushed against a pillar for 2.1 s with it).
+- **Doors:** the engine traces 96 u from the eye along the path's direction for a closed door (`DoorAhead`,
+  `humanbot_adapter.cpp`); whenever the bot has a way to go the view turns to it (one sweep), and the existing use logic
+  opens it.
+- The engine passes the straightened path's next corners (`IPather::GetCorners`, `SelfState::navCorner`), and
+  `Navigator::PointAhead` walks them (in the arena, the route cells). Unit tests `TestTravelLead`, `TestFarPullWall`.
+
+Bot against bot (`move_wip/reports`/`eval/cache/bot` `bty_*` against `bov_*` on dm/brownffa and dm/flag, `ty_*` against
+`ov_*` on the duel maps; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/brownffa, dm/flag: ran 300 u in 3 s, back within 100 u | 9% | 34% (37%) | 25.5% (24.7%) |
+| ... straightness of the path (net / path) | 0.61 | 0.35 (0.33) | 0.43 (0.44) |
+| ... moving hidden: forward held / plain strafe | 77% / 15% | 47% / 35% (44% / 38%) | 58% / 29% (56% / 32%) |
+| ... moving hidden: view within 45 deg of the motion | 75% | 45% (42%) | 55% (52.5%) |
+| ... view off the way to where the bot is 1 s later p50 | 20 deg | 24 (24) | 18.7 (17.7) |
+| ... net distance in 2 s hidden p50 | 267 u | 117 (113) | 170 (162) |
+| dm/flag: time at the junction door's mouth / on the loop people never use | 2.2% / 0 | 5.8% / 14% (6.1% / 11.5%) | 3.3% / 7.3% (3.4% / 8.4%) |
+| dm/flag: sightings a minute / from a spawn to the first sight | 15.7 / 2.1 s | 5.4 / 5.8 s (5.4 / 6.0 s) | 8.9 / 3.8 s (8.8 / 3.9 s) |
+| dm/brownffa: the same | 13.5 / 2.3 s | 10.1 / 3.6 s (10.3 / 3.4 s) | 12.2 / 3.0 s (12.2 / 3.0 s) |
+| ... hidden yaw speed p50 / turns of 10 deg or more a hidden minute | 10.2 deg/s / 39 | 10.7 / 54 (10.2) | 15.7 / 61 (15.8) |
+| duel maps: ran 300 u in 3 s, back within 100 u | 18% | 31% (35%) | 27% (28%) |
+| ... forward held moving hidden / net distance in 2 s hidden | 63% / 212 u | 57% / 182 (55% / 176) | 62% / 205 (58% / 190) |
+| ... hidden yaw speed p50 / turns of 10 deg or more a hidden minute | 9.0 deg/s / 39 | 14.9 / 54 (15.0 / 54) | 18.6 / 58 (19.1 / 61) |
+| ... all 281 statistics within 25% | | 58% (56%) | 56% (54%) |
+
+On the duel maps no statistic crossed 25% for the worse in both seed sets, and one for the better: the view's turn
+toward the enemy in the last 500 ms before a sighting, 10.3-12 deg (7.9-8.9, people 13). The owner's checks (`obs5.py`)
+stay where they were (an enemy heard behind faced within a second 61% (56%), people 62%). Walls are touched as before
+(5.5-5.9% of duel time, people 7.3%; 8.6-8.8% on dm/brownffa and dm/flag, people 9.1%), no bot was stuck for 1.5 s. In
+the arena (eight seeds) 52% of 195 within 25% (52%), median 0.23, no stuck bout; 86 us per bot with 16 bots. Two runs
+of the same model and seeds differ by up to 3 points in the back and forth.
+
+Tried and dropped (dm/brownffa and dm/flag, seeds 201-208): the view on the point ahead without the smoothing, its
+error gain x2.5 and sweeps from 30 deg at 0.3 a tick (a quick turn begun 65 times a travel minute, now 50; x1.5 and x2.5
+overshoot a 40 deg turn by 20% and 45%); the travel mode up to an imminence of 0.1 (no gain); no hysteresis; the pull as
+before (the back and forth 3-4 points higher) or x2; the keys heading for the farthest point along the path, of 192,
+128, 80 and 48 u, that the body reaches in a straight line (a box trace above step height, inner corners rounded 16 u)
+and the view led to it (no gain); sounds behind not turned to on the way unless the enemy is expected soon (no gain, the
+view turned more).
+
+**Still off.** The back and forth is 25% and 27-28% (people 9% and 18%), most of it near a hidden enemy and at
+dm/brownffa's two corridor mouths; the bots still hold a plain strafe twice as often as people while they run hidden,
+and their hidden view turns more than before (median 16-19 deg/s, people 9-10; 58-61 turns of 10 deg or more a hidden
+minute, 54 before, people 39).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1234,13 +1317,13 @@ keys-follow-the-route design does not do.
   Lives are 10-11 s vs 7. The hidden diagonal is 28-30% vs 30% (per family the strafer and stopper bots
   21-23% and 19-21% vs 24% and 18.5%; 15-18% before "Travel and the hidden view"); forward alone 14% vs
   12%, standing 14-15% vs 22.5%.
-- **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps" and "Back and forth
-  with the enemy hidden"): the bots meet 10 times a minute on dm/brownffa and 5.4 on dm/flag vs 13.5-15.7 and take
-  3.4-3.6 and 5.8-6 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they run back and forth (34-37%
-  of the 3 s stretches with 300 u run end within 100 u of the start, people 9%) and hold forward 44-47% of the time they
-  move (77%); on dm/flag a tenth of their time is on a loop people never use (the navmesh route between the spawns) and
-  they still get caught at the junction west of the spawn. They stand over 2 s with the enemy hidden 0.26-0.8 times a
-  minute vs 0.3. Fights there:
+- **The practice areas (dm/brownffa, dm/flag)** (see "The practice areas of the objective maps", "Back and forth
+  with the enemy hidden" and "Steering with the view"): the bots meet 12.2 times a minute on dm/brownffa and 8.9 on
+  dm/flag vs 13.5-15.7 and take 3 and 3.8-3.9 s from a spawn to the first sight vs 2.1-2.3. With the enemy hidden they
+  run back and forth (25% of the 3 s stretches with 300 u run end within 100 u of the start, people 9%), most of it near
+  the enemy and at two corridor mouths on dm/brownffa, and hold forward 56-58% of the time they move (77%); on dm/flag
+  8-10% of their time is on a loop people never use (the navmesh route between the spawns). They stand over 2 s with the
+  enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
@@ -1271,7 +1354,8 @@ keys-follow-the-route design does not do.
   as standing still mid-fight.
 - **Leaning toward an opening:** people already lean toward the edge they reach (66% of edge moments begin leaned
   that way, the bots' 41%); the wall term acts once the bot is there.
-- **Leaning all the time (presser and stopper styles)**: found in the owner's games of 2026-10-04/05, not changed. The
+- **Leaning all the time (presser and stopper styles)**: found in the owner's games of 2026-10-04/05, not changed: the
+  owner judged the leaning fine for now (2026-10-05) and asked to leave it. The
   presser-style bots lean 84% of their hidden time, 91% while reloading and 92% in sight not firing; the presser 54%,
   47% and 52%. The stopper-style bots 81%, 79% and 88%; their people 68%, 43% and 44%. Firing, both match (93-97% vs
   88-93%); the strafer style matches everywhere. In the owner's games those bots leaned 75-92% of the time.
@@ -1291,7 +1375,8 @@ keys-follow-the-route design does not do.
 - **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
   burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
   relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.
-- **The hidden view turns too much:** yaw speed with the enemy hidden p50 13-14 deg/s vs 8, p99 645-660 vs 545 (p99
+- **The hidden view turns too much:** since "Steering with the view" (the view leads along the way) p50 16-19 deg/s vs
+  9-10 and 58-61 turns of 10 deg or more a hidden minute vs 39 (54 before). Before it: p50 13-14 deg/s vs 8, p99 645-660 vs 545 (p99
   815-860 from the turn to sounds behind, see "What the owner saw", until the bots heard which side footsteps come from); before it p50 11.5-11.8 deg/s (16-17
   before "Travel and the hidden view", 20 before "Movement on the maps"; in the arena with corners 10.7),
   p99 666-677 vs 545, 54-55 turns of 10 deg or more per hidden minute vs 46, of them 10-11 of 90 deg or
@@ -1364,6 +1449,9 @@ keys-follow-the-route design does not do.
   (`aim_arrive_hw`, hand-set threshold of 2 body half-widths); the fit's clock runs from the parts on screen. In a
   fight with under a quarter of the clip left the bot makes for cover (`low_clip_cover`, hand-set at people's step in
   leaving the enemy's sight). See "Late aim and low clips".
+- Travelling with no enemy expected soon the view leads along the way (`travel_*` in the view tuning) and the keys follow
+  the way three times as firmly (`travel_pull`); a closed door across the way is looked at so the use key opens it. All
+  hand-set on captures of dm/brownffa and dm/flag (see "Steering with the view").
 - The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
   the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others
   keep their curves (a re-sweep redraws the arena's noise).

@@ -45,10 +45,10 @@ void Navigator::SetMap(const MapPrior *map)
     Reset();
 }
 
-bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
+int Navigator::RouteFrom(const SelfState& self, const Vec3& target)
 {
     if (!m_map || m_map->NumCells() == 0) {
-        return false;
+        return -1;
     }
     int here = m_map->CellAt(self.origin);
     if (here < 0) {
@@ -56,11 +56,20 @@ bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
     }
     const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
     if (here < 0 || goal < 0 || here == goal) {
-        return false;
+        return -1;
     }
     if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells())) {
         m_map->PathTreeTo(goal, m_next, m_dist);
         m_treeTarget = goal;
+    }
+    return here;
+}
+
+bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
+{
+    const int here = RouteFrom(self, target);
+    if (here < 0) {
+        return false;
     }
     const int next = m_next[here];
     if (next < 0) {
@@ -73,12 +82,61 @@ bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
     return true;
 }
 
+bool Navigator::PointAhead(const SelfState& self, float dist, Vec3& out)
+{
+    if (!m_targetValid) {
+        return false;
+    }
+    Vec3  from = self.origin;
+    float left = dist;
+    if (self.navCorners > 0) {
+        for (int i = 0; i < self.navCorners; i++) {
+            Vec3 seg = self.navCorner[i] - from;
+            seg.z    = 0.0f;
+            const float len = seg.lengthXY();
+            if (len >= left) {
+                out = from + seg * (left / len);
+                out.z = self.navCorner[i].z;
+                return true;
+            }
+            left -= len;
+            from = self.navCorner[i];
+        }
+        out = from;
+        return true;
+    }
+    int c = RouteFrom(self, m_target);
+    if (c < 0) {
+        return false;
+    }
+    for (int step = 0; step < 64 && left > 0.0f; step++) {
+        const int nx = m_next[c];
+        if (nx < 0) {
+            break;
+        }
+        const Vec3& to  = m_map->cells[nx].center;
+        const Vec3  seg = Vec3(to.x - from.x, to.y - from.y, 0.0f);
+        const float len = seg.lengthXY();
+        if (len >= left) {
+            out   = from + seg * (left / len);
+            out.z = to.z;
+            return true;
+        }
+        left -= len;
+        from = to;
+        c    = nx;
+    }
+    out = from;
+    return true;
+}
+
 void Navigator::Reset()
 {
     m_intent      = INTENT_HUNT;
     m_holdUntilMs = 0;
     m_goalUntilMs = 0;
     m_goalValid   = false;
+    m_targetValid = false;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
@@ -220,8 +278,10 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
             out.urgency = p.huntUrgency;
         }
     }
-    out.intent = m_intent;
-    out.valid  = true;
+    out.intent    = m_intent;
+    out.valid     = true;
+    m_target      = out.target;
+    m_targetValid = true;
     float routeYaw = 0.0f;
     if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;

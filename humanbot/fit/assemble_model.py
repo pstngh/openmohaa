@@ -76,10 +76,14 @@ def build():
             # the open was within 22 deg of the held chord on 43% of ticks), the bots zig-zagged and, of the 3 s stretches
             # with the enemy hidden in which they ran 300 u, ended within 100 u of the start in 41% (dm/brownffa, dm/flag)
             # and 34% (duel maps; people 9% and 18%); 0.1 with the walls' push on the route halved (g_humanbot_wall_steer)
-            # gives 34-37% and 31-35%, 0.0 no more than 0.1, 0.2 half the gain
+            # gives 34-37% and 31-35%, 0.0 no more than 0.1, 0.2 half the gain.
+            # While the view leads along the way (the view's travel_*), the route pull x travel_pull, set on captures of
+            # dm/brownffa and dm/flag (2026-10-05, "Steering with the view" in HANDOFF.md): with the view leading but the
+            # pull as before, the bots held a plain strafe 31% of the time they ran on the way (people 15% of their
+            # hidden running); x2 and x3 brought the back and forth down by 3 and 4 points
             "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "nav_far_mult": 3.0, "nav_far_near": 500.0,
                          "nav_far_dist": 900.0, "nav_deadband": 0.1, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
-                         "wall_reflex_logit": 4.0},
+                         "wall_reflex_logit": 4.0, "travel_pull": 3.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
                                          "click_first_p", "click_stay_p", "click_press_p"]},
@@ -141,7 +145,19 @@ def build():
                        # median (over 45 deg 4% of lives), the bots 18 deg (25%), most of those with a belief right
                        # within 30 deg but the view held on a direction kept after passing a corner; with both and the
                        # hearing below, 12-13 deg (11%)
-                       "sound_turn_deg": 48.0, "hold_belief_deg": 48.0},
+                       "sound_turn_deg": 48.0, "hold_belief_deg": 48.0,
+                       # set on captures of dm/brownffa and dm/flag (2026-10-05, "Steering with the view" in HANDOFF.md):
+                       # travelling with no enemy expected soon (the imminence below 0.2; back below 0.1 after a corner)
+                       # the view leads along the way, to the point 200 u ahead on the path (people's view is a median
+                       # 20 deg off the way to where they are a second later, and 72% of the time within 30 deg of it).
+                       # Its direction follows that point with a quarter of the gap a tick, a turn of more than 45 deg is
+                       # one sweep at 0.15 a tick, and the mouse does not rest with the way more than 20 deg off; the
+                       # fitted controller turns the view (its yaw error gain x1.5 or x2.5 overshot a 40 deg turn by 20% or
+                       # 45% and rang). With the direction followed at once and sweeps from 30 deg at 0.3 the view began a
+                       # quick turn 65 times a travel minute (now 50; people's hidden view makes 39 turns of 10 deg or more
+                       # a minute there)
+                       "travel_lead": 200.0, "travel_imminence": 0.2, "travel_flick_deg": 45.0, "travel_flick_hazard": 0.15,
+                       "travel_still_deg": 20.0, "travel_smooth": 0.25},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},

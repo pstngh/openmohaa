@@ -175,6 +175,8 @@ struct MovementModel {
     // a key changes for the route only when that improves how the chord goes the route's way by more than this (cosine);
     // a smaller change the pull holds back
     float navDeadband         = 0.3f;
+    // while the view leads along the way (ViewModel::travelLead) the route pull x this (1 = as any travel)
+    float travelPull          = 1.0f;
 };
 
 struct NoiseModel {
@@ -286,6 +288,16 @@ struct ViewModel {
     float soundTurnHoldMs    = 900.0f;  // the view keeps the sound's direction this long: no route turn, look-around or
                                         //   corner breaks it off (people who turn to a noise behind see the enemy within
                                         //   2 s 90% of the time and turn away again 2%)
+    // Travelling (hunting, out of the spawn) with no enemy expected soon (the imminence below travelImminence), the
+    // view leads along the way: it looks toward the point travelLead units ahead on the path (0 = off), a turn of more
+    // than travelFlickDeg taken in one sweep with travelFlickHazard per tick, and the mouse does not rest with the way
+    // more than travelStillDeg off the view
+    float travelLead         = 0.0f;
+    float travelImminence    = 0.2f;
+    float travelFlickDeg     = 30.0f;
+    float travelFlickHazard  = 0.0f;
+    float travelStillDeg     = 180.0f;
+    float travelSmooth       = 1.0f;   // the led direction follows the point ahead with this weight per tick (1: at once)
 };
 
 struct TriggerSide {

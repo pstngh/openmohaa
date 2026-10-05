@@ -141,6 +141,13 @@ public:
     virtual Vector GetCurrentDirection() const = 0;
 
     /**
+     * @brief Return the next corners of the straightened path (at most maxCorners), nearest first.
+     *
+     * @return The number of corners written (0 when the pather does not provide them).
+     */
+    virtual int GetCorners(Vector *corners, int maxCorners) const { return 0; }
+
+    /**
      * @brief Return the final destination
      * 
      * @return Vector the destination.

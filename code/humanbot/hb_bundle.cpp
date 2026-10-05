@@ -415,6 +415,7 @@ void ParseMovement(const json& j, MovementModel& m)
         m.wallReflexMs      = NumOr(c, "wall_reflex_ms", m.wallReflexMs);
         m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);
         m.navDeadband       = NumOr(c, "nav_deadband", m.navDeadband);
+        m.travelPull        = NumOr(c, "travel_pull", m.travelPull);
     }
 }
 
@@ -544,6 +545,12 @@ void ParseView(const json& j, ViewModel& v)
         v.routeTurnHazard   = NumOr(t, "route_turn_hazard", v.routeTurnHazard);
         v.preaimPassDps     = NumOr(t, "preaim_pass_dps", v.preaimPassDps);
         v.travelFollowDeg   = NumOr(t, "travel_follow_deg", v.travelFollowDeg);
+        v.travelLead        = NumOr(t, "travel_lead", v.travelLead);
+        v.travelImminence   = NumOr(t, "travel_imminence", v.travelImminence);
+        v.travelFlickDeg    = NumOr(t, "travel_flick_deg", v.travelFlickDeg);
+        v.travelFlickHazard = NumOr(t, "travel_flick_hazard", v.travelFlickHazard);
+        v.travelStillDeg    = NumOr(t, "travel_still_deg", v.travelStillDeg);
+        v.travelSmooth      = NumOr(t, "travel_smooth", v.travelSmooth);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);

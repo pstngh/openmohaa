@@ -69,12 +69,17 @@ public:
     void Step(const SelfState& self, const NavInput& in, Rng& rng, NavOutput& out);
     // Pick a new hunt goal at the next step (the believed position moved: an enemy was heard behind).
     void Replan() { m_goalValid = false; }
+    // The point `dist` along the way to the last step's target: on the straightened navmesh path when the engine
+    // gives its corners, else along the route cells. False without a way.
+    bool PointAhead(const SelfState& self, float dist, Vec3& out);
 
 private:
     Vec3 PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng);
     Vec3 PickCover(const SelfState& self, const Vec3& threat) const;
     // Direction of the next route-graph cell toward target (when the engine gives no steering).
     bool RouteYaw(const SelfState& self, const Vec3& target, float& yaw);
+    // The route cell the bot is in, with the shortest-path tree toward target's cell built (-1: no route).
+    int  RouteFrom(const SelfState& self, const Vec3& target);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -83,6 +88,8 @@ private:
     int             m_goalUntilMs   = 0;
     Vec3            m_goal;
     bool            m_goalValid     = false;
+    Vec3            m_target;                  // the last step's target
+    bool            m_targetValid   = false;
     // shortest-path tree toward the last route target
     int                m_treeTarget = -1;
     std::vector<int>   m_next;

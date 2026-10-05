@@ -47,6 +47,8 @@ static constexpr float PREAIM_FOLLOW_DEG = 4.0f;
 // a noise behind is turned to on the corner nearest its direction when one lies this close (the sound itself is
 // 10-20 deg off)
 static constexpr float SOUND_CORNER_DEG = 45.0f;
+// Travel mode, left for the corners once the enemy is expected soon, comes back below this share of the threshold.
+static constexpr float TRAVEL_REENTER = 0.5f;
 
 static float MinJerk(float tau)
 {
@@ -93,6 +95,8 @@ void ViewControl::Reset(const SelfState& self)
     m_refractory     = 0;
     m_preaimCell     = -1;
     m_beliefDead     = false;
+    m_travel         = false;
+    m_doorLook       = false;
 }
 
 // The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
@@ -391,7 +395,17 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         out.mode      = VIEW_TRACK;
         m_wasTracking = true;
         m_damagePending = false;
+        m_travel      = false;
     } else {
+        // Travelling with no enemy expected soon, people look where they go: their view is a median 20 deg off the way
+        // to where they are a second later (the bots' 24-33 deg) and within 45 deg of their motion 75% of the time (the
+        // bots' 42-45%), and they hold forward or a forward diagonal. The bots looked at corners and the believed
+        // position, steered with the keys alone, ran past turns of the path and back (a third of their 3 s runs ended
+        // where they began, people's a tenth). The view leads along the way, looking at a point ahead on the path. It
+        // gives way to the corners once the enemy is expected soon, and comes back only once it is expected half as
+        // soon (near the threshold the view flipped between a corner and the way 16 times a minute)
+        const float immMax = m_travel ? p.travelImminence : TRAVEL_REENTER * p.travelImminence;
+        const bool  travel = p.travelLead > 0.0f && in.travelling && in.aheadValid && out.imminence < immMax;
         // turn toward a hit from an enemy not in sight (one in sight is tracked), wherever the hit is felt to come
         // from. Only hits felt more than 60 deg off used to turn the view: the felt direction is +-20 deg off, and the
         // bot sees 48 deg to each side, so a shooter just outside the view often went unanswered (the owner shot a
@@ -436,9 +450,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             m_lookMode       = m_pendingMode;
             m_dwellMs        = m_pendingMode == VIEW_SOUND ? p.soundTurnHoldMs : 900.0f;
             newLook          = true;
+            m_travel         = false;
         } else if (in.firing) {
             // spraying at a hidden enemy: the view stays where it points, no new look starts
-            if (m_wasTracking || !m_lookPointValid) {
+            if (m_wasTracking || !m_lookPointValid || m_travel) {
+                m_travel         = false;
                 m_lookPoint      = eye + AnglesForward(self.viewPitch, self.viewYaw) * DIR_LOOK_DIST;
                 m_lookPointValid = true;
                 m_lookMode       = VIEW_HOLD;
@@ -481,7 +497,40 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             const bool holdOff = m_lookMode == VIEW_HOLD && p.holdBeliefDeg > 0.0f && bel && bel->valid && !bel->dead
                                  && bel->spread < DIFFUSE_SPREAD
                                  && std::fabs(Wrap180(YawOf(bel->mode - eye) - YawOf(m_lookPoint - eye))) > p.holdBeliefDeg;
-            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn || holdOff) {
+            // on the way (travel): a turn to a sound or a hit and a look-around run their course
+            const bool busy   = (m_lookMode == VIEW_SOUND || m_lookMode == VIEW_DAMAGE || m_lookMode == VIEW_LOOKAROUND)
+                              && m_dwellMs > 0.0f && !m_wasTracking && m_lookPointValid;
+            if (p.travelLead > 0.0f && in.doorValid && !(busy && m_lookMode != VIEW_LOOKAROUND)) {
+                // a closed door across the way: look at it (the use key opens what the view is on)
+                m_lookPoint      = in.door;
+                m_travelYaw      = YawOf(in.door - eye);
+                m_lookPointValid = true;
+                m_lookMode       = VIEW_TRAVEL;
+                newLook          = !m_travel || !m_doorLook;
+                m_travel         = true;
+                m_doorLook       = true;
+            } else if (travel && !busy) {
+                m_doorLook = false;
+                if (m_travel && uLook < p.lookaroundPerMin / 1200.0f) {
+                    LookAround(self, rng);
+                    m_travel = false;
+                    newLook  = true;
+                } else {
+                    Vec3 a = in.ahead;
+                    a.z += eye.z - self.origin.z;
+                    const Vec3 da = a - eye;
+                    m_travelYaw   = m_travel && m_lookMode == VIEW_TRAVEL
+                                      ? Wrap180(m_travelYaw + p.travelSmooth * Wrap180(YawOf(da) - m_travelYaw))
+                                      : YawOf(da);
+                    m_lookPoint      = eye + AnglesForward(PitchOf(da), m_travelYaw) * DIR_LOOK_DIST;
+                    m_lookPointValid = true;
+                    m_lookMode       = VIEW_TRAVEL;
+                    newLook          = !m_travel;
+                    m_travel         = true;
+                }
+            } else if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn || holdOff || m_travel) {
+                // (the way led the view until now: the enemy is expected soon, or the bot stopped travelling)
+                m_travel = false;
                 ChooseLook(self, in, preW, out.imminence, rng);
                 newLook = true;
             } else if (m_lookMode != VIEW_PREAIM && m_lookMode != VIEW_SOUND && out.imminence > 0.0f
@@ -517,6 +566,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         aim           = m_lookPoint;
         m_aimH += (p.aimHeightIdle - m_aimH) * 0.35f;
         out.mode = m_lookMode;
+    }
+    out.travel = m_travel;
+    if (!m_travel) {
+        m_doorLook = false;
     }
 
     const Vec3  d      = aim - eye;
@@ -589,7 +642,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             }
         } else if (newLook && angErr > (m_lookMode == VIEW_PREAIM ? p.preaimFlickDeg : p.flickDeg)) {
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
-        } else if (p.hiddenReaimHazard > 0.0f && angErr > p.hiddenReaimDeg && uFlick < p.hiddenReaimHazard) {
+        } else if (m_travel && std::fabs(errYaw) > p.travelFlickDeg && uFlick < p.travelFlickHazard) {
+            // the way turned: one sweep onto it
+            StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
+        } else if (!m_travel && p.hiddenReaimHazard > 0.0f && angErr > p.hiddenReaimDeg && uFlick < p.hiddenReaimHazard) {
             // the view drifted off what it watches (own motion, the believed position moved): re-aim in one turn
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
         }
@@ -643,6 +699,10 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             } else {
                 m_still = uStill < Sigmoid(Logit((standing ? p.stillEnterStanding : p.stillEnter)[ctx]) + p.stillLogit[ctx]);
             }
+        }
+        if (m_travel && std::fabs(errYaw) > p.travelStillDeg) {
+            // the mouse does not rest while the way turns off the view
+            m_still = false;
         }
         if (m_still) {
             out.still      = true;

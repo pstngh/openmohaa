@@ -496,6 +496,18 @@ Vector RecastPather::GetCurrentDelta() const
     return delta;
 }
 
+int RecastPather::GetCorners(Vector *corners, int maxCorners) const
+{
+    if (!moving || traversingOffMeshLink) {
+        return 0;
+    }
+    const int n = Q_min(detourData->ncorners, maxCorners);
+    for (int i = 0; i < n; i++) {
+        ConvertRecastToGameCoord(detourData->corners[i], corners[i]);
+    }
+    return n;
+}
+
 Vector RecastPather::GetCurrentDirection() const
 {
     Vector delta;

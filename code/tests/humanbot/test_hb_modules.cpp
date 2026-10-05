@@ -506,6 +506,134 @@ static void TestRouteTurns(const hb::ModelBundle& b)
     HB_CHECK(now > before + 0.02);
 }
 
+// Travelling with no enemy expected soon, the view leads along the way: it follows a point ahead on the path round a
+// turn, gives way to a corner once the enemy is expected out of it soon, and turns to a closed door across the way; and
+// while it leads, the keys hold forward or a forward diagonal more.
+static void TestTravelLead(const hb::ModelBundle& b)
+{
+    hb::ViewModel vm    = b.shared.view;
+    vm.lookaroundPerMin = 0.0f;
+    HB_CHECK(vm.travelLead > 0.0f);
+    // the bot runs east at 250 u/s, the path turns north at x = 300; the point travelLead ahead along it
+    auto ahead = [&](float x) {
+        const float left = vm.travelLead - std::max(0.0f, 300.0f - x);
+        return left <= 0.0f ? hb::Vec3(x + vm.travelLead, 0, 0) : hb::Vec3(300.0f, left, 0);
+    };
+    hb::BeliefEstimate be;   // the enemy far: its corner 3 s away
+    be.valid            = true;
+    be.spread           = 200.0f;
+    be.mode             = hb::Vec3(-1500, 500, 0);
+    be.nExposure        = 1;
+    be.exposure[0]      = hb::Vec3(-900, 600, 0);
+    be.exposureCell[0]  = 7;
+    be.exposureMass[0]  = 1.0f;
+    be.exposureEtaMs[0] = 3000.0f;
+    be.cornerValid[0]   = true;
+    be.corner[0]        = hb::Vec3(-900, 600, 82);
+    be.cornerOpen[0]    = 1.0f;
+    hb::SelfState self;
+    self.alive    = true;
+    self.velocity = hb::Vec3(250, 0, 0);
+    hb::ViewInput h;
+    h.ctx        = hb::CTX_HIDDEN_NOFIRE;
+    h.belief     = &be;
+    h.moving     = true;
+    h.navValid   = true;
+    h.travelling = true;
+    h.aheadValid = true;
+    hb::ViewControl vc;
+    vc.Init(&vm);
+    vc.Reset(self);
+    hb::Rng        r(23);
+    hb::ViewOutput out;
+    double         errSum = 0.0;
+    int            n = 0, travel = 0;
+    float          x = 0.0f;
+    for (int t = 0; t < 60; t++) {   // 3 s: 1.2 s east, then north
+        const hb::Vec3 pos = x < 300.0f ? hb::Vec3(x, 0, 0) : hb::Vec3(300.0f, x - 300.0f, 0);
+        self.origin   = pos;
+        self.eye      = pos + hb::Vec3(0, 0, 82);
+        self.velocity = x < 300.0f ? hb::Vec3(250, 0, 0) : hb::Vec3(0, 250, 0);
+        h.ahead       = x < 300.0f ? ahead(x) : hb::Vec3(300.0f, x - 300.0f + vm.travelLead, 0);
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+        x += 12.5f;
+        if (t >= 10) {
+            errSum += std::fabs(hb::Wrap180(hb::YawOf(h.ahead - pos) - self.viewYaw));
+            n++;
+            travel += out.travel && out.mode == hb::VIEW_TRAVEL ? 1 : 0;
+        }
+    }
+    HB_REPORT("travel round a path turn: the view %.1f deg off the point %.0f u ahead on average, travel mode %d of %d ticks, "
+              "view at %.0f deg at the end (the way north: 90)", errSum / n, vm.travelLead, travel, n, self.viewYaw);
+    HB_CHECK(travel == n);
+    HB_CHECK(errSum / n < 15.0);
+    HB_CHECK(std::fabs(hb::Wrap180(self.viewYaw - 90.0f)) < 15.0f);
+
+    // the enemy expected out of the corner soon: the corner wins
+    be.corner[0]        = hb::Vec3(700, 2000, 82);
+    be.exposure[0]      = hb::Vec3(700, 2000, 0);
+    be.exposureEtaMs[0] = 100.0f;
+    bool preaim = false;
+    for (int t = 0; t < 40; t++) {
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+        preaim       = preaim || out.mode == hb::VIEW_PREAIM;
+    }
+    HB_REPORT("the enemy expected out of a corner soon: travel %d, pre-aim seen %d", out.travel ? 1 : 0, preaim ? 1 : 0);
+    HB_CHECK(!out.travel);
+    HB_CHECK(preaim);
+
+    // a closed door across the way, 40 deg right, the bot at it: the view turns to it
+    be.exposureEtaMs[0] = 3000.0f;
+    self.viewYaw        = 90.0f;
+    self.velocity       = hb::Vec3();
+    h.doorValid         = true;
+    h.door              = self.eye + hb::Vec3(std::cos(50.0f * hb::DEG2RAD), std::sin(50.0f * hb::DEG2RAD), 0) * 60.0f;
+    for (int t = 0; t < 10; t++) {
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+    }
+    HB_REPORT("a closed door 40 deg right across the way: view at %.0f deg after 0.5 s (the door at 50)", self.viewYaw);
+    HB_CHECK(std::fabs(hb::Wrap180(self.viewYaw - 50.0f)) < 10.0f);
+
+    // the keys while the view leads: the way within 45 deg of the view, forward held more
+    hb::StyleOffsets style;
+    auto fwdShare = [&](bool travelView) {
+        hb::Mover mv;
+        mv.Init(&b.shared.movement);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 250.0f;   // near: the fitted keys strafe most
+        in.onGround   = true;
+        in.navValid   = true;
+        in.travelling = true;
+        in.urgency    = 0.8f;
+        in.travelView = travelView;
+        hb::Rng        rm(91), rs(92), rr(93);
+        hb::MoveOutput mo;
+        int            fwd = 0;
+        const int      steps = 100000;
+        for (int i = 0; i < steps; i++) {
+            if (i % 20 == 0) {
+                in.navBearing = static_cast<float>(rr.Uniform(-45.0, 45.0));
+            }
+            mv.Step(in, style, rm, rs, mo);
+            fwd += hb::ChordFwd(mo.chord) == 1 ? 1 : 0;
+        }
+        return static_cast<double>(fwd) / steps;
+    };
+    const double led = fwdShare(true), free = fwdShare(false);
+    HB_REPORT("the way within 45 deg, the enemy 250 u away: forward held %.2f of the time with the view leading (pull x%.1f), "
+              "%.2f without", led,
+              b.shared.movement.travelPull, free);
+    HB_CHECK(led > free + 0.03);
+}
+
 // A bot that wants to go somewhere, stands with no key held and whose route runs into a wall it touches takes the open
 // chord nearest the route within a second instead of standing there.
 static void TestUnstick(const hb::ModelBundle& b)
@@ -553,11 +681,12 @@ static void TestFarPullWall(const hb::ModelBundle& b)
     far.navFarMult        = 3.0f;
     flat.navFarMult       = 1.0f;
     hb::StyleOffsets style;
-    auto pChange = [&](const hb::MovementModel& mm, float pressMs) {
+    auto pChange = [&](const hb::MovementModel& mm, float pressMs, bool travelView = false) {
         hb::Mover mv;
         mv.Init(&mm);
         mv.SetKeys(1, 0);
         hb::MoveInput in;
+        in.travelView  = travelView;
         in.ctx         = hb::CTX_HIDDEN_NOFIRE;
         in.enemyKnown  = true;
         in.enemyDist   = 1200.0f;
@@ -581,6 +710,11 @@ static void TestFarPullWall(const hb::ModelBundle& b)
               pressFar, pressFlat, offFar, offFlat);
     HB_CHECK(std::fabs(pressFar - pressFlat) < 1e-6f);
     HB_CHECK(offFar < offFlat);
+    // nor the travel mode's pull (in the arena a bot pushed against a pillar for 2.1 s with it)
+    const float pressLed = pChange(far, 200.0f, true), offLed = pChange(far, 0.0f, true);
+    HB_REPORT("... with the view leading along the way: %.3f; before pressing %.3f", pressLed, offLed);
+    HB_CHECK(std::fabs(pressLed - pressFar) < 1e-6f);
+    HB_CHECK(offLed < offFar);
 }
 
 // People lean away from a flat wall at their side and around an edge just ahead on one side.
@@ -1300,6 +1434,7 @@ int main()
     TestStrafeMemory(b);
     TestHiddenDistance(b);
     TestRouteTurns(b);
+    TestTravelLead(b);
     TestUnstick(b);
     TestFarPullWall(b);
     TestSubsteps();

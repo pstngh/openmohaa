@@ -60,6 +60,11 @@ struct ViewInput {
     bool  moving      = false;
     bool  navValid    = false;
     float navYaw      = 0.0f;  // world yaw of travel
+    bool  travelling  = false; // hunting or out of the spawn, with a way to go
+    bool  aheadValid  = false; // the point travelLead ahead on the way:
+    Vec3  ahead;
+    bool  doorValid   = false; // a closed door across the way ahead (where the way meets it): the view turns to it
+    Vec3  door;                //   to open it, whenever the bot has a way to go
     const std::vector<SoundObs>  *sounds = nullptr;
     const std::vector<DamageObs> *damage = nullptr;
     float aimHeightFiring = 0.44f;  // style
@@ -89,6 +94,7 @@ struct ViewOutput {
     float aimHeight   = 0.0f;
     float flickAmp    = 0.0f;
     float imminence   = 0.0f;   // belief mass expected to come out at a corner soon (exp(-eta / horizon))
+    bool  travel      = false;  // the view leads along the way (travel mode)
 };
 
 class ViewControl
@@ -155,6 +161,9 @@ private:
     int   m_refractory  = 0;   // ticks before another corrective flick may start
     int   m_preaimCell  = -1;  // the exposure whose corner is watched (VIEW_PREAIM)
     bool  m_beliefDead  = false;  // the focus belief was of a dead enemy last tick
+    bool  m_travel      = false;  // the look leads along the way (travel mode, VIEW_TRAVEL)
+    float m_travelYaw   = 0.0f;   //   toward this direction (the point ahead, smoothed)
+    bool  m_doorLook    = false;  //   or at a closed door across the way
 };
 
 } // namespace hb

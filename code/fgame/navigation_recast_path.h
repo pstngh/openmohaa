@@ -58,6 +58,7 @@ public:
     virtual int     GetNodeCount() const override;
     virtual Vector  GetCurrentDelta() const override;
     virtual Vector  GetCurrentDirection() const override;
+    virtual int     GetCorners(Vector *corners, int maxCorners) const override;
     virtual Vector  GetDestination() const override;
     virtual bool    HasReachedGoal(const Vector& origin) const override;
     virtual bool    IsQuerying() const override;
