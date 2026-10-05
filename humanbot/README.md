@@ -45,7 +45,9 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      turns onto it as an exposure comes up, and holds it against the bot's own motion as the enemy
      is expected out of it (a corner watched with nothing expected soon is looked at like any
      point). A corner the bot runs past, whose direction its own motion sweeps faster than 90
-     degrees a second, is passed: the view keeps its direction instead of following it round. The
+     degrees a second, is passed: the view keeps its direction instead of following it round, until
+     the enemy is believed out of view of it. An enemy heard outside the view (footsteps, heard on
+     the side they come from, as people hear them, or gunfire) is turned to. The
      mouse rests as often as people's, more while the bot stands still, as people's
      does. The geometry query never traces a player. On the move it turns to a route that lies
      behind it rather than walking backwards, and it looks anew when a killed enemy is expected
@@ -163,7 +165,8 @@ follow the route (`nav_switch_logit`, `nav_choice_logit`, and how that grows wit
 `nav_far_*`), the pull toward the enemy for the second
 after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route
 behind the view (`route_turn_hazard`, `travel_follow_deg`), the corner passed rather than watched
-(`preaim_pass_dps`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
+(`preaim_pass_dps`), the turn to a sound outside the view (`sound_turn_*`), the held direction that gives way to
+the believed position (`hold_belief_deg`) and the hidden re-aim (`hidden_reaim_*`) are set by hand from bot captures on the practice maps, scored with
 `compare.py`: the arena's pillars are not the recorded maps (in the open arena the bots already
 cover as much ground as people; on the maps the walls stop them).
 

@@ -912,6 +912,109 @@ static void TestSoundTurn(const hb::ModelBundle& b)
     HB_CHECK(std::fabs(hb::Wrap180(yawAt3s - 170.0f)) < 30.0f);
 }
 
+// The bot hears which side footsteps come from, as people do: with an unseen enemy running in front of them they turn
+// around within a second 2.4% of the time, no more than with a quiet one (the bots, which heard a quarter of footsteps
+// on the mirrored side, 11%). A footstep heard just outside the view is turned to like one behind.
+static void TestHearingSide(const hb::ModelBundle& b)
+{
+    hb::Perceiver pc;
+    pc.Init(&b.shared.perception, hb::Rng(13));
+    int wrong = 0, n = 0;
+    for (int i = 0; i < 2000; i++) {
+        hb::RawInput raw;
+        raw.self.alive   = true;
+        raw.self.timeMs  = 50 * i;
+        raw.self.viewYaw = 0.0f;
+        const bool front = i % 2 == 0;
+        raw.sounds.push_back(hb::RawSound{hb::SOUND_FOOTSTEP, 3, hb::Vec3(front ? 400.0f : -400.0f, 60.0f, 0.0f)});
+        hb::Observation obs;
+        pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+        for (const hb::SoundObs& o : obs.sounds) {
+            n++;
+            wrong += (std::fabs(o.yaw) > 90.0f) == front;
+        }
+    }
+    HB_REPORT("footsteps 8.5 deg off straight ahead or behind: heard on the wrong side %d of %d", wrong, n);
+    HB_CHECK(n == 2000 && wrong == 0);
+
+    hb::ViewModel vm    = b.shared.view;
+    vm.lookaroundPerMin = 0.0f;
+    hb::SelfState self;
+    self.alive   = true;
+    self.eye     = hb::Vec3(0, 0, 82);
+    self.viewYaw = 0.0f;
+    hb::ViewInput h;
+    h.ctx = hb::CTX_HIDDEN_NOFIRE;
+    std::vector<hb::SoundObs> step(1), none;
+    step[0].type = hb::SOUND_FOOTSTEP;
+    step[0].yaw  = 65.0f;   // just outside the view (48 deg to each side)
+    hb::ViewControl vc;
+    vc.Init(&vm);
+    vc.Reset(self);
+    hb::Rng        r(9);
+    hb::ViewOutput out;
+    for (int t = 0; t < 22; t++) {
+        h.sounds = t == 2 ? &step : &none;
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+    }
+    HB_REPORT("a footstep 65 deg off: view at %.0f deg after 1 s", self.viewYaw);
+    HB_CHECK(std::fabs(hb::Wrap180(self.viewYaw - 65.0f)) < 20.0f);
+}
+
+// A held direction gives way once the enemy is believed out of view of it: after running past a corner the bots kept
+// its direction for its dwell (about 2 s), 60 deg away from where they rightly believed the enemy to be.
+static void TestHoldGivesWay(const hb::ModelBundle& b)
+{
+    for (const float give : {0.0f, 48.0f}) {
+        hb::ViewModel vm      = b.shared.view;
+        vm.beliefLookShare    = 1.0f;
+        vm.beliefLookCorner   = 0.0f;
+        vm.preaimShare        = 0.0f;
+        vm.preaimWeight       = 0.0f;
+        vm.preaimHazard       = 0.0f;
+        vm.travelShare        = 0.0f;
+        vm.lookaroundPerMin   = 0.0f;
+        vm.routeTurnHazard    = 0.0f;
+        vm.hiddenReaimHazard  = 0.0f;
+        vm.lookDwellMedianMs  = 5000.0f;
+        vm.holdBeliefDeg      = give;
+        hb::SelfState self;
+        self.alive   = true;
+        self.eye     = hb::Vec3(0, 0, 82);
+        self.viewYaw = 0.0f;
+        hb::BeliefEstimate be;
+        be.valid  = true;
+        be.spread = 150.0f;
+        be.mode   = hb::Vec3(0, 600, 0);   // 90 deg left
+        hb::ViewInput h;
+        h.ctx = hb::CTX_HIDDEN_NOFIRE;
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        vc.Reset(self);
+        hb::Rng        r(17);
+        hb::ViewOutput out;
+        int            firstMode = -1;
+        for (int t = 0; t < 30; t++) {
+            h.belief = t < 5 ? nullptr : &be;   // no belief: the look holds the view's direction
+            self.timeMs += 50;
+            vc.Step(self, h, r, out);
+            self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+            if (t == 0) {
+                firstMode = out.mode;
+            }
+        }
+        HB_REPORT("held look, enemy then believed 90 deg left, give way at %.0f deg: view at %.0f deg 1.25 s later", give, self.viewYaw);
+        HB_CHECK(firstMode == hb::VIEW_HOLD);
+        if (give > 0.0f) {
+            HB_CHECK(std::fabs(hb::Wrap180(self.viewYaw - 90.0f)) < 20.0f);
+        } else {
+            HB_CHECK(std::fabs(self.viewYaw) < 10.0f);
+        }
+    }
+}
+
 // A hit from an enemy not in sight turns the view toward it, also from just outside the view (the owner shot a bot
 // from 61 deg off and its view did not move: only hits felt more than 60 deg off used to turn it).
 static void TestDamageTurn(const hb::ModelBundle& b)
@@ -1147,6 +1250,8 @@ int main()
     TestView(b);
     TestViewCorners(b);
     TestSoundTurn(b);
+    TestHearingSide(b);
+    TestHoldGivesWay(b);
     TestDamageTurn(b);
     TestLeanWall(b);
     TestLeanSwitch(b);

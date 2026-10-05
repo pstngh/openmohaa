@@ -31,13 +31,14 @@ Verified:
 - `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
-- In the arena, two average-style bots are within 25% of the human value on 48% of 195
-  statistics (median relative error 0.27; 50% and 0.25 before "The practice areas of the objective maps"; 48% before
+- In the arena, two average-style bots are within 25% of the human value on 53% of 195
+  statistics (median relative error 0.21; 48% and 0.27 before "Where the bot looks when first seen", 50% and 0.25 before
+  "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
   strafe", whose dials the average bot does not carry; 53% before "What the owner saw", where the turn to sounds behind costs
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
-  frame, model `30d7e11d39a2` of 2026-10-04 on a Linux workstation. The arena is not the maps: in its open pillars
+  frame, model `327da60a09fa` of 2026-10-05 on a Linux workstation. The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -1030,6 +1031,62 @@ the enemy (18 deg off it at the median, the bots 34) and run on the forward diag
 the bots' time is on a loop people never used: the navmesh route between the two spawns is shorter through it, and the
 route is the navmesh's, not the prior's. Crouching: 4-6 presses a minute against 3.6 (dm/brownffa) and 2.0 (dm/flag).
 
+## Where the bot looks when first seen (2026-10-05)
+
+The owner, playing the server of `62c99112` for a minute on dm/crnodoors: "when I first see the bot (after he spawns)
+he's almost looking elsewhere than towards me, and takes a while to look at me". In that session (8 bot lives,
+`move_wip/s9/live4/`, `firstsee.py`, `spawntl.py`) the bot looked 87-167 deg away from the owner in 3 lives when the
+owner first had it on screen, though the position it believed the owner at was within 10 deg of the owner each time. Over the
+practice-map captures (`spawnview.py`: the first moment the opponent has a player on screen within 10 s of that
+player's spawn; on screen = some part visible and within 48 deg of the opponent's view, since the logged `ext_in_fov`
+differs between the recordings' schemas) people look 5 deg off the enemy at the median, over 45 deg in 4% of lives and
+never over 90; the bots 18 deg, 25% and 10%, and a fifth of them took over 500 ms to get the view on (people 5%). In
+nine in ten of those lives the bot's belief was right within 30 deg and its view more than 30 deg off its own belief
+(`spawnmode.py`): turned to a sound (40-45% of the lives over 45 deg off, 66-71% of those over 90), holding a direction
+(28-30%, mostly one kept after running past a pre-aimed corner) or watching a corner (15-18%).
+
+Causes and changes:
+- **Front/back confusion of footsteps** (`front_back_confusion`, a plan value of 0.25: a quarter of footsteps heard on
+  the mirrored side). Since the turn to a noise behind ("What the owner saw") the bots acted on it: one hearing an enemy
+  in front would spin round. People do not (`wrongway.py`): with an unseen enemy running in front of them within 1000 u
+  they turn around within a second 2.4% of the time, no more than with a quiet one (3.1%), and they face one running
+  behind them 69% (quiet 33%). The bots turned around 11% (quiet 8-9%). Now 0: they turn around 2.7% (3.1%).
+- **Footsteps just outside the view** (48-90 deg) were not turned to (`sound_turn_deg` 90). People get their view onto
+  an unseen enemy running there within a second 74-80% of the time (quiet 51-53%), the bots 70-71% (61-64%)
+  (`hearband.py`). Now 48: 80-85%.
+- **A held direction gives way** once the enemy is believed out of view of it (`hold_belief_deg` 48,
+  `ViewControl::Step`): a new look, which with a focused belief watches the believed position or its corner.
+
+Practice maps, bot vs bot (`move_wip/reports/hr3_*` against `fin_*`, the model of "The practice areas of the objective
+maps"); seeds 201-208, in brackets 401-408; `hr1_*` the hearing alone, `hr2_*` with the turn outside the view:
+
+| | people | before | hearing | + outside the view | + hold gives way |
+|---|---|---|---|---|---|
+| first seen after a spawn: view off the enemy, median | 5 deg | 18 (18) | 15 (16) | 13 (14) | 12 (13) |
+| ... over 45 deg / over 90 deg | 4% / 0% | 25% / 10% (25% / 10%) | 18% / 4% (19% / 4%) | 12% / 2% (13% / 3%) | 11% / 2% (11% / 3%) |
+| ... view on the enemy after over 500 ms | 5% | 21% (22%) | 15% (16%) | 12% (13%) | 10% (10%) |
+| enemy running in front, unseen: turns around within 1 s | 2.4% | 11.3% | 2.7% | 2.8% | 2.7% |
+| enemy heard behind: faced within 1 s / hit first (`obs5.py`) | 62% / 7% | 51% / 14% (52% / 14%) | | 58% / 9% (55% / 11%) | 60% / 10% (57% / 13%) |
+| all 281 statistics within 25% | | 56% (52%) | 58% (55%) | 60% (57%) | 58% (58%) |
+
+Against `fin_*`, 12 statistics crossed 25% for the better in both seed sets (the belief's accuracy with the enemy hidden
+now at people's: within 30 deg 4-8 s after losing sight 66% against 53%, people 76%; the hidden view's p99 yaw speed
+650-660 deg/s against 840, people 545; the crosshair 500 ms before a sighting 15.5-17 deg off against 19-21, people 14;
+at the first part 13-14.5 against 16-19, people 5) and 4 for the worse (forward alone with the enemy hidden 15-16% of
+that time, 13.5-15% before, people 12%; rounds released per tick 3-4 ticks into a burst; shots in the 500 ms before a
+sighting 23% against 21-22%, people 18%; the turn of the view in the 500 ms before a sighting 10.4-10.8 deg against
+11-12.5, people 14.5). The bots find each other sooner (first sight p75 2.2 s against 2.45-2.55, people 1.9) and are in
+sight firing more (24% of duel time against 21.5-22.5%, people 17.5%), so they begin more reloads with the enemy on
+screen (1.5-1.8 a minute alive against 1.3-1.55, people 0.3). Quiet crouches with the enemy hidden 2.9-3.0 a minute
+(2.7-2.8, people 2.3). With the enemy quiet and just outside the view the bots now look toward it more than people
+(48-70 deg: 74% within a second against 53%): their belief is better than before and the hold gives way to it. On
+dm/brownffa and dm/flag (seeds 201-208): first seen after a spawn over 45 deg off 11% (24%), over 90 4% (14%); two bots in
+sight of each other 7.3 and 5.6 times a minute (5.9, 5.5); from a spawn to the first sight 5.1 and 5.3 s (6.0, 5.6); aim
+at the first sight 11 deg off (15-16). In the arena (eight seeds) 53% of 195 within 25% (48%), no stuck bout.
+
+Still off: the remaining lives seen over 45 deg off (11% against 4%) are spread over a pre-aimed corner away from the
+believed position (27-31% of them), a turn to a sound under way (23-26%), a route look (15-17%) and look-arounds (7-8%).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1099,7 +1156,8 @@ route is the navmesh's, not the prior's. Crouching: 4-6 presses a minute against
 - **Leaning at walls** (see "The lean follows the strafe"): half the bots' leans with the head at a wall come with no
   strafe key held (people 23%): the bot stopped at the wall and kept the lean. The strafer bots let go of a lean at
   the strafe's turn 21-25% vs 36%, and the stopper bots' leans last longer (p90 1.9 s vs 1.6).
-- **Turning to a noise behind** (see "What the owner saw"): 49-53% within a second vs 62%, hit first 12-15% vs 7%.
+- **Turning to a noise behind** (see "What the owner saw" and "Where the bot looks when first seen"): 57-60% within a
+  second vs 62%, hit first 10-13% vs 7% (49-53% and 12-15% before the bots heard which side footsteps come from).
   While the view holds the noise the route is behind it: the back key 7.6-8.8% of hidden time vs 6%, 2 s hidden
   travel 122-135 u vs 158.
 - **Stopping between strafes (stoppers):** after letting go of a strafe the stopper bots press again a tick later
@@ -1111,8 +1169,8 @@ route is the navmesh's, not the prior's. Crouching: 4-6 presses a minute against
 - **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
   burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
   relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.
-- **The hidden view turns too much:** yaw speed with the enemy hidden p50 11.4-12 deg/s vs 8, p99 815-860 vs 545
-  since the turn to sounds behind (see "What the owner saw"); before it p50 11.5-11.8 deg/s (16-17
+- **The hidden view turns too much:** yaw speed with the enemy hidden p50 13-14 deg/s vs 8, p99 645-660 vs 545 (p99
+  815-860 from the turn to sounds behind, see "What the owner saw", until the bots heard which side footsteps come from); before it p50 11.5-11.8 deg/s (16-17
   before "Travel and the hidden view", 20 before "Movement on the maps"; in the arena with corners 10.7),
   p99 666-677 vs 545, 54-55 turns of 10 deg or more per hidden minute vs 46, of them 10-11 of 90 deg or
   more vs 4.6 (the remaining big ones: the turn to a route behind the view, corners coming up, look
@@ -1153,6 +1211,10 @@ route is the navmesh's, not the prior's. Crouching: 4-6 presses a minute against
   to a route behind the view (0.05 a tick), the route look's re-aim (60 deg), the hidden re-aim hazard
   (0.05) and the corner pass rate (90 deg/s) were set by hand on practice-map captures (see
   "Encounters", "Movement on the maps" and "Travel and the hidden view").
+- Footsteps are heard on the side they come from (`front_back_confusion` 0; the plan's 0.25 made the bots spin round
+  to enemies in front, which people do not), turned to from 48 deg off the view (`sound_turn_deg`), and a held view
+  direction gives way once the enemy is believed out of view of it (`hold_belief_deg`); all three set on practice-map
+  captures (see "Where the bot looks when first seen").
 - The hidden look policy, the hidden view's noise (0.125, last looped 2026-10-02), the sound precision
   and the pitch gain were set by hand (see the `calibrate.py` docstring). So was the corner pre-aim's part of it (`preaim_*`), on real-map
   captures. The pooled loops and every dial sweep except `hold_angle`'s run without corners

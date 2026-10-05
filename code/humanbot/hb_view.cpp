@@ -475,7 +475,13 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 m_lookPoint = eye + AnglesForward(self.viewPitch, YawOf(m_lookPoint - eye)) * DIR_LOOK_DIST;
                 m_lookMode  = VIEW_HOLD;
             }
-            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn) {
+            // a held direction gives way once the enemy is believed out of view of it: people look where they think
+            // the enemy is (first seen after their spawn, their view is 5 deg off it at the median), and a direction kept
+            // after running past a corner left the bots looking 60 deg away from a belief right within 30 deg
+            const bool holdOff = m_lookMode == VIEW_HOLD && p.holdBeliefDeg > 0.0f && bel && bel->valid && !bel->dead
+                                 && bel->spread < DIFFUSE_SPREAD
+                                 && std::fabs(Wrap180(YawOf(bel->mode - eye) - YawOf(m_lookPoint - eye))) > p.holdBeliefDeg;
+            if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn || holdOff) {
                 ChooseLook(self, in, preW, out.imminence, rng);
                 newLook = true;
             } else if (m_lookMode != VIEW_PREAIM && m_lookMode != VIEW_SOUND && out.imminence > 0.0f
