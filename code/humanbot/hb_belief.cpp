@@ -493,6 +493,22 @@ void BeliefFilter::ApplySound(TrackState& t, const SoundObs& s, const Observatio
     t.est.lastThreatMs = obs.self.timeMs;
 }
 
+void BeliefFilter::ApplyHunch(TrackState& t, const SoundObs& s, const Observation& obs)
+{
+    double lbar = 0.0, wsum = 0.0;
+    for (const Particle& p : t.parts) {
+        lbar += p.w * SoundLikelihood(p, s, obs);
+        wsum += p.w;
+    }
+    lbar = wsum > 0.0 ? lbar / wsum : 0.0;
+    if (lbar < 0.25) {
+        Inject(t, s.yaw, s.yawSigma, s.yaw, 0.0f, s.dist, s.distLogSd, m_p->injectMax * static_cast<float>(1.0 - lbar / 0.25), false, obs);
+    }
+    for (Particle& p : t.parts) {
+        p.w *= 0.05f + SoundLikelihood(p, s, obs);
+    }
+}
+
 void BeliefFilter::ApplyDamage(TrackState& t, const DamageObs& dm, const Observation& obs)
 {
     const int botCell = m_map ? m_map->CellAt(obs.self.origin) : -1;
@@ -845,6 +861,15 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
     const SoundObs *heard[MAX_HEARD_SOUNDS];
     int             nHeard = 0;
     for (const SoundObs& s : obs.sounds) {
+        if (s.type == SOUND_HUNCH) {
+            // the soft wallhack: a rough sense of where that enemy is, for its own track (not a threat heard)
+            const int k = FindTrack(s.sourceId);
+            if (k >= 0 && !m_tracks[k].est.dead && !m_tracks[k].est.detected) {
+                ApplyHunch(m_tracks[k], s, obs);
+                Normalise(m_tracks[k], obs);
+            }
+            continue;
+        }
         if (nHeard < MAX_HEARD_SOUNDS) {
             heard[nHeard++] = &s;
         } else {

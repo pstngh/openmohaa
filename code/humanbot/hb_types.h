@@ -90,6 +90,7 @@ enum SoundType {
     SOUND_IMPACT,
     SOUND_DOOR,
     SOUND_OTHER,
+    SOUND_HUNCH,   // not a sound: a rough sense of where a known enemy is (PerceptionModel::hunchPerMin)
 };
 
 enum BodyPart {
@@ -182,6 +183,11 @@ struct RawEnemy {
     Vec3  velocity;               // only when partMask != 0
     bool  reloading   = false;    // only when partMask != 0
     bool  firing      = false;    // only when partMask != 0
+    // The owner's "soft wallhack" (2026-10-05): experienced players nearly always know where their opponent is from the
+    // map and the game's flow, and the owner allows the bots a rough sense of it. The enemy's true feet position, which
+    // reaches the brain only as PerceptionModel's noisy, occasional hunch (never the view or the trigger directly)
+    bool  hunchValid  = false;
+    Vec3  hunchPos;
 };
 
 struct RawSound {

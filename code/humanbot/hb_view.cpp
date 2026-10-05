@@ -49,6 +49,10 @@ static constexpr float PREAIM_FOLLOW_DEG = 4.0f;
 static constexpr float SOUND_CORNER_DEG = 45.0f;
 // Travel mode, left for the corners once the enemy is expected soon, comes back below this share of the threshold.
 static constexpr float TRAVEL_REENTER = 0.5f;
+// The enemy believed near (ViewModel::travelFar) stays near until believed this much further off.
+static constexpr float NEAR_LEAVE = 1.15f;
+// A sound's direction is kept at least this long before it may give way to where the enemy is believed to be.
+static constexpr float NEAR_SOUND_MIN_MS = 600.0f;
 
 static float MinJerk(float tau)
 {
@@ -97,6 +101,7 @@ void ViewControl::Reset(const SelfState& self)
     m_beliefDead     = false;
     m_travel         = false;
     m_doorLook       = false;
+    m_near           = false;
 }
 
 // The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
@@ -263,7 +268,8 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const d
         // the corner of an exposure coming up wins over watching the believed position through the wall
         w[1] = p.preaimShare + p.preaimWeight * imminence;
     }
-    if (in.moving && in.navValid) {
+    if (in.moving && in.navValid && !m_near) {
+        // (with the enemy believed near his side is watched, not the route)
         w[2] = p.travelShare;
     }
     w[3] = std::max(0.02, 1.0 - w[0] - w[1] - w[2]);
@@ -304,10 +310,27 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const d
                 if (b->cornerValid[i] && PassingCorner(self, in, b->corner[i])) {
                     ew[i] = 0.0;
                 }
+                if (m_near && p.nearAwayDeg > 0.0f && focused && std::fabs(Wrap180(ey - beliefYaw)) > p.nearAwayDeg) {
+                    ew[i] = 0.0;
+                }
             }
             double ewSum = 0.0;
             for (int k = 0; k < b->nExposure; k++) {
                 ewSum += ew[k];
+            }
+            if (ewSum <= 0.0 && m_near && focused) {
+                // the enemy near and no corner his way: watch where he is believed to be
+                const int c = p.beliefLookCorner > 0.5f ? CornerNearBelief(self, in) : -1;
+                if (c >= 0 && !(p.nearAwayDeg > 0.0f && std::fabs(Wrap180(YawOf(b->corner[c] - eye) - beliefYaw)) > p.nearAwayDeg)) {
+                    m_lookPoint  = CornerAim(eye, b->corner[c], b->cornerOpen[c]);
+                    m_lookMode   = VIEW_PREAIM;
+                    m_preaimCell = b->exposureCell[c];
+                } else {
+                    m_lookPoint = b->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+                    m_lookMode  = VIEW_BELIEF;
+                }
+                m_lookPointValid = true;
+                break;
             }
             if (ewSum <= 0.0) {
                 // only corners being passed: keep looking where the view points
@@ -336,6 +359,11 @@ void ViewControl::ChooseLook(const SelfState& self, const ViewInput& in, const d
         m_lookMode       = VIEW_HOLD;
         break;
     }
+    if (m_near && focused && p.nearAwayDeg > 0.0f && std::fabs(Wrap180(YawOf(m_lookPoint - eye) - YawOf(b->mode - eye))) > p.nearAwayDeg) {
+        // the enemy near: not a look away from him
+        m_lookPoint = b->mode + Vec3(0.0f, 0.0f, HEAD_HEIGHT);
+        m_lookMode  = VIEW_BELIEF;
+    }
 }
 
 void ViewControl::LookAround(const SelfState& self, Rng& rng)
@@ -360,14 +388,37 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const double uPre   = rng.Uniform();
     const double uSound = rng.Uniform();
 
-    // the imminence of the exposures with a corner: belief mass expected to come out there soon
+    // People watch the side of a hidden enemy they know is near, whichever way they go: within 600 u (dm/brownffa,
+    // dm/flag) their view is a median 7-25 deg off his direction even when their way goes 60-180 deg elsewhere, and
+    // only further off do they look along the way more than at him. The bots led the view along the way whenever no
+    // exposure was expected soon (a spread belief of a still enemy expects none), so on dm/flag they came through the
+    // doors to the owner, who held the flag room, looking down the corridor (17 of the 40 lives he saw first)
+    const auto *bel   = in.belief;
+    const bool  focus = bel && bel->valid && !bel->dead && bel->spread < DIFFUSE_SPREAD;
+    if (p.travelFar > 0.0f && focus) {
+        const float dist = (bel->mode - self.origin).lengthXY();
+        m_near           = dist < (m_near ? NEAR_LEAVE * p.travelFar : p.travelFar);
+    } else {
+        m_near = false;
+    }
+    const float beliefYaw = focus ? YawOf(bel->mode - self.eye) : 0.0f;
+    // the imminence of the exposures with a corner: belief mass expected to come out there soon (near, on his side)
     double     preW[MAX_EXPOSURE] = {};
-    const auto *bel = in.belief;
     if (bel && bel->valid && !bel->dead && !in.track) {
         const double horizon = std::max(50.0, static_cast<double>(p.preaimHorizonMs) * in.angleHold);
         for (int i = 0; i < bel->nExposure; i++) {
             if (bel->cornerValid[i] && !PassingCorner(self, in, bel->corner[i])) {
                 preW[i] = bel->exposureMass[i] * std::exp(-bel->exposureEtaMs[i] / horizon);
+                if (m_near) {
+                    const float dy = Wrap180(YawOf(bel->corner[i] - self.eye) - beliefYaw);
+                    if (p.nearSideDeg > 0.0f) {
+                        const double z = dy / p.nearSideDeg;
+                        preW[i] *= std::exp(-z * z);
+                    }
+                    if (p.nearAwayDeg > 0.0f && std::fabs(dy) > p.nearAwayDeg) {
+                        preW[i] = 0.0;
+                    }
+                }
                 out.imminence += static_cast<float>(preW[i]);
             }
         }
@@ -405,7 +456,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         // gives way to the corners once the enemy is expected soon, and comes back only once it is expected half as
         // soon (near the threshold the view flipped between a corner and the way 16 times a minute)
         const float immMax = m_travel ? p.travelImminence : TRAVEL_REENTER * p.travelImminence;
-        const bool  travel = p.travelLead > 0.0f && in.travelling && in.aheadValid && out.imminence < immMax;
+        const bool  travel = p.travelLead > 0.0f && in.travelling && in.aheadValid && out.imminence < immMax && !m_near;
         // turn toward a hit from an enemy not in sight (one in sight is tracked), wherever the hit is felt to come
         // from. Only hits felt more than 60 deg off used to turn the view: the felt direction is +-20 deg off, and the
         // bot sees 48 deg to each side, so a shooter just outside the view often went unanswered (the owner shot a
@@ -440,8 +491,19 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             m_damagePending  = false;
             m_lookPoint      = eye + YawDir(m_damageYaw) * DIR_LOOK_DIST;
             if (m_pendingMode == VIEW_SOUND) {
-                // a noise behind: the corner it will come out of, when the belief offers one that way
-                const int c = CornerNearYaw(self, in, m_damageYaw, SOUND_CORNER_DEG);
+                // a noise behind: the corner it will come out of, when the belief offers one that way. The sound moved the
+                // belief onto the ground it can come from (its direction is 10-20 deg off): the corner nearest the
+                // believed position, when that lies the sound's way
+                int c = -1;
+                if (p.soundBeliefCorner > 0.5f && focus && std::fabs(Wrap180(beliefYaw - m_damageYaw)) < SOUND_CORNER_DEG) {
+                    c = CornerNearBelief(self, in);
+                    if (c < 0) {
+                        m_lookPoint = eye + YawDir(beliefYaw) * DIR_LOOK_DIST;
+                    }
+                }
+                if (c < 0) {
+                    c = CornerNearYaw(self, in, m_damageYaw, SOUND_CORNER_DEG);
+                }
                 if (c >= 0) {
                     m_lookPoint = CornerAim(eye, bel->corner[c], bel->cornerOpen[c]);
                 }
@@ -494,15 +556,28 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             // a held direction gives way once the enemy is believed out of view of it: people look where they think
             // the enemy is (first seen after their spawn, their view is 5 deg off it at the median), and a direction kept
             // after running past a corner left the bots looking 60 deg away from a belief right within 30 deg
-            const bool holdOff = m_lookMode == VIEW_HOLD && p.holdBeliefDeg > 0.0f && bel && bel->valid && !bel->dead
+            const float holdDeg = m_near && p.nearHoldDeg > 0.0f ? p.nearHoldDeg : p.holdBeliefDeg;
+            const bool holdOff = m_lookMode == VIEW_HOLD && holdDeg > 0.0f && bel && bel->valid && !bel->dead
                                  && bel->spread < DIFFUSE_SPREAD
-                                 && std::fabs(Wrap180(YawOf(bel->mode - eye) - YawOf(m_lookPoint - eye))) > p.holdBeliefDeg;
+                                 && std::fabs(Wrap180(YawOf(bel->mode - eye) - YawOf(m_lookPoint - eye))) > holdDeg;
+            // the enemy near: a corner, a sound's direction, a route or a held direction that ended up far off where he is
+            // believed to be gives way (a sound's direction is held while the bot runs on, so it drifts off him: at the
+            // sightings where the bots' view was over 90 deg off the enemy their belief was within 30 deg of him 75% of
+            // the time). A sound is turned to first
+            const float soundAge = m_lookMode == VIEW_SOUND ? p.soundTurnHoldMs - m_dwellMs : 1e9f;
+            const bool  awayOff  = m_near && p.nearAwayDeg > 0.0f && m_lookPointValid && !m_wasTracking
+                                  && (m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_HOLD || (m_lookMode == VIEW_TRAVEL && !m_travel)
+                                      || (m_lookMode == VIEW_SOUND && soundAge > NEAR_SOUND_MIN_MS))
+                                  && std::fabs(Wrap180(beliefYaw - YawOf(m_lookPoint - eye))) > p.nearAwayDeg;
             // on the way (travel): a turn to a sound or a hit and a look-around run their course
             const bool busy   = (m_lookMode == VIEW_SOUND || m_lookMode == VIEW_DAMAGE || m_lookMode == VIEW_LOOKAROUND)
                               && m_dwellMs > 0.0f && !m_wasTracking && m_lookPointValid;
             if (p.travelLead > 0.0f && in.doorValid && !(busy && m_lookMode != VIEW_LOOKAROUND)) {
-                // a closed door across the way: look at it (the use key opens what the view is on)
-                m_lookPoint      = in.door;
+                // a closed door across the way: look at it (the use key opens what the view is on). Its direction, not the
+                // point: the point is found afresh each tick along the way from the eye, so as a near fixed point the
+                // view's own-motion term swung the view off it (a bot strafing through dm/flag's flag door turned
+                // 105 deg away from the room in half a second)
+                m_lookPoint      = eye + AnglesForward(PitchOf(in.door - eye), YawOf(in.door - eye)) * DIR_LOOK_DIST;
                 m_travelYaw      = YawOf(in.door - eye);
                 m_lookPointValid = true;
                 m_lookMode       = VIEW_TRAVEL;
@@ -528,7 +603,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                     newLook          = !m_travel;
                     m_travel         = true;
                 }
-            } else if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn || holdOff || m_travel) {
+            } else if (m_dwellMs <= 0.0f || m_wasTracking || !m_lookPointValid || reborn || holdOff || awayOff || m_travel) {
                 // (the way led the view until now: the enemy is expected soon, or the bot stopped travelling)
                 m_travel = false;
                 ChooseLook(self, in, preW, out.imminence, rng);
@@ -568,6 +643,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         out.mode = m_lookMode;
     }
     out.travel = m_travel;
+    out.near   = m_near && !in.track;
     if (!m_travel) {
         m_doorLook = false;
     }
@@ -628,6 +704,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
 
     // flick decisions
     const float angErr     = std::sqrt(errYaw * errYaw + errPitch * errPitch);
+    // with the enemy near, a hidden look is corrected from closer (people's crosshair is a median 4-5 deg off an enemy
+    // the moment he first has them on screen; the bots' 9-14, their quick turns landing 5-10 deg short or wide and the
+    // slow controller and the still mouse leaving it there)
+    const float reaimDeg = m_near && p.nearReaimDeg > 0.0f ? p.nearReaimDeg : p.hiddenReaimDeg;
+    const float reaimHz  = m_near && p.nearReaimHazard > 0.0f ? p.nearReaimHazard : p.hiddenReaimHazard;
     const float halfW      = std::atan(BODY_HALF_W / dist) * RAD2DEG;
     const bool  offTarget  = in.track && angErr > p.acquireMinHalfW * halfW;
     if (m_refractory > 0) {
@@ -645,7 +726,7 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         } else if (m_travel && std::fabs(errYaw) > p.travelFlickDeg && uFlick < p.travelFlickHazard) {
             // the way turned: one sweep onto it
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
-        } else if (!m_travel && p.hiddenReaimHazard > 0.0f && angErr > p.hiddenReaimDeg && uFlick < p.hiddenReaimHazard) {
+        } else if (!m_travel && reaimHz > 0.0f && angErr > reaimDeg && uFlick < reaimHz) {
             // the view drifted off what it watches (own motion, the believed position moved): re-aim in one turn
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
         }

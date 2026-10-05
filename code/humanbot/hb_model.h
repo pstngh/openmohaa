@@ -177,6 +177,8 @@ struct MovementModel {
     float navDeadband         = 0.3f;
     // while the view leads along the way (ViewModel::travelLead) the route pull x this (1 = as any travel)
     float travelPull          = 1.0f;
+    // hunting with the enemy believed near and the view on his side (ViewModel::travelFar), the route pull x this
+    float nearPull            = 1.0f;
 };
 
 struct NoiseModel {
@@ -298,6 +300,19 @@ struct ViewModel {
     float travelFlickHazard  = 0.0f;
     float travelStillDeg     = 180.0f;
     float travelSmooth       = 1.0f;   // the led direction follows the point ahead with this weight per tick (1: at once)
+    // The enemy believed near (a focused belief whose position lies within travelFar; out again past
+    // NEAR_LEAVE x travelFar): the view does not lead along the way but watches his side, the corners coming up
+    // weighing exp(-(d/nearSideDeg)^2) by the angle d between their direction and the believed position's
+    // (0 = off: the way led with no enemy expected soon, whatever his distance)
+    float travelFar          = 0.0f;
+    float nearSideDeg        = 0.0f;
+    float nearReaimDeg       = 0.0f;   // near: a view this far off its look target re-aims (0: hiddenReaimDeg)
+    float nearReaimHazard    = 0.0f;   //   with this chance per tick (0: hiddenReaimHazard)
+    float nearHoldDeg        = 0.0f;   // near: a held direction gives way this far off the believed enemy (0: holdBeliefDeg)
+    float nearAwayDeg        = 0.0f;   // near: no corner this far off the believed enemy is watched, and a corner, sound or
+                                       //   route look that ends up this far off gives way (0 = off)
+    float soundBeliefCorner  = 0.0f;   // 1: a sound turned to aims at the corner nearest the believed position when that
+                                       //   lies within 45 deg of the sound (0: the corner nearest the sound's direction)
 };
 
 struct TriggerSide {
@@ -380,6 +395,11 @@ struct PerceptionModel {
     float reloadSigmaDeg   = 15.0f;
     float distanceLogSd    = 0.35f;
     float damageSigmaDeg   = 20.0f;
+    // the soft wallhack (RawEnemy::hunchPos): a hidden enemy's direction and distance come to the belief this many
+    // times a minute (0 = off), with this yaw noise and log-normal distance noise; the view does not turn to it
+    float hunchPerMin      = 0.0f;
+    float hunchSigmaDeg    = 25.0f;
+    float hunchDistLogSd   = 0.35f;
 };
 
 struct BeliefModel {

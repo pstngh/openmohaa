@@ -52,6 +52,7 @@ struct MoveInput {
     float urgency        = 0.0f;    // 0 = no preference, 1 = must travel
     bool  travelling     = false;   // going somewhere (hunting, out of the spawn), not after an enemy just lost
     bool  travelView     = false;   // the view leads along the way (its travel mode): the pull x travelPull
+    bool  nearView       = false;   // the view watches the side of an enemy believed near: the pull x nearPull
     float clearance[9]   = {128, 128, 128, 128, 128, 128, 128, 128, 128};
     float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;

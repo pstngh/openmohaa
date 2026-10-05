@@ -80,10 +80,15 @@ def build():
             # While the view leads along the way (the view's travel_*), the route pull x travel_pull, set on captures of
             # dm/brownffa and dm/flag (2026-10-05, "Steering with the view" in HANDOFF.md): with the view leading but the
             # pull as before, the bots held a plain strafe 31% of the time they ran on the way (people 15% of their
-            # hidden running); x2 and x3 brought the back and forth down by 3 and 4 points
+            # hidden running); x2 and x3 brought the back and forth down by 3 and 4 points.
+            # With the enemy believed near and the view on his side (the view's travel_far), the route pull x up to
+            # near_pull, by the cosine of the route's angle to the view (a route behind it as fitted), set on practice-map
+            # captures (2026-10-05, "Watching his side" in HANDOFF.md): within 700 u of a hidden enemy people hold a forward
+            # diagonal where the bots held a plain strafe (with the way 22-67 deg off the view 65% and 9% against 47% and
+            # 24%) and ran back and forth three times as often
             "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "nav_far_mult": 3.0, "nav_far_near": 500.0,
                          "nav_far_dist": 900.0, "nav_deadband": 0.1, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
-                         "wall_reflex_logit": 4.0, "travel_pull": 3.0},
+                         "wall_reflex_logit": 4.0, "travel_pull": 3.0, "near_pull": 3.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
                                          "click_first_p", "click_stay_p", "click_press_p"]},
@@ -157,7 +162,18 @@ def build():
                        # quick turn 65 times a travel minute (now 50; people's hidden view makes 39 turns of 10 deg or more
                        # a minute there)
                        "travel_lead": 200.0, "travel_imminence": 0.2, "travel_flick_deg": 45.0, "travel_flick_hazard": 0.15,
-                       "travel_still_deg": 20.0, "travel_smooth": 0.25},
+                       "travel_still_deg": 20.0, "travel_smooth": 0.25,
+                       # set on practice-map captures and the owner's game on dm/flag (2026-10-05, "Watching his side" in
+                       # HANDOFF.md): the way is led only with the enemy believed further than 800 u (a focused belief;
+                       # back past 920). Nearer, people watch his side whichever way they go (within 600 u their view is
+                       # 7-25 deg off him even with their way 60-180 deg elsewhere): the corners coming up weigh by their
+                       # angle to the believed position (exp(-(d/30)^2)), none over 90 deg off it is watched and a corner,
+                       # sound or route look that ends up so far off gives way, a sound is answered on the corner nearest
+                       # the believed position when that lies its way, a hidden look is corrected from 4 deg off (0.15 a
+                       # tick) and a held direction gives way 20 deg off him. In the owner's game the bot was in the travel
+                       # look at 17 of the 40 moments he first had it on screen, its view a median 40 deg off him
+                       "travel_far": 800.0, "near_side_deg": 30.0, "near_away_deg": 90.0, "sound_belief_corner": 1.0,
+                       "near_reaim_deg": 4.0, "near_reaim_hazard": 0.15, "near_hold_deg": 20.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},
@@ -176,10 +192,16 @@ def build():
         # enemy running in front of them within 1000 u they turn around within a second 2.4% of the time, no more than
         # with a quiet one (3.1%), and face one running behind them 69% (quiet 33%). With a quarter of the footsteps
         # heard on the mirrored side the bots turned around 11% (practice maps, 2026-10-05); with none, 2.7%.
+        # The soft wallhack (the owner's, 2026-10-05: experienced players nearly always know where their opponent is): a
+        # hidden enemy's direction reaches the belief 40 times a minute, 25 deg and a log-normal 0.35 off, never the view.
+        # With the view on the side of an enemy believed near (the view's travel_far) the bots' belief was 100 deg off
+        # him at the sightings where he caught them looking the other way (over 90 deg off 10% of the times he first had
+        # them on screen, 8% before; people 3%): with the hunch 8% (duel maps and dm/brownffa, dm/flag; "Watching his
+        # side" in HANDOFF.md)
         "perception": {"detect_rate": 1.2, "ecc_scale_deg": 18.0, "dist_scale": 1400.0, "part_exponent": 0.7, "loss_memory_ticks": 3,
                        "gunfire_sigma_deg": 10.0, "gunfire_range": 3000.0, "footstep_sigma_deg": 20.0, "footstep_range": 1000.0,
                        "front_back_confusion": 0.0, "reload_range": 600.0, "reload_sigma_deg": 15.0, "distance_log_sd": 0.35,
-                       "damage_sigma_deg": 20.0},
+                       "damage_sigma_deg": 20.0, "hunch_per_min": 40.0, "hunch_sigma_deg": 25.0, "hunch_dist_log_sd": 0.35},
         "belief": {"particles": 256, "neg_detect": 0.85, "ess_resample": 0.5, "jitter": 10.0, "move_boost": 1.0,
                    "sound_sigma_scale": 1.0, "spawn_min_dist": 256.0},
         # engage_urgency (the pull toward the enemy for the second after losing sight; none while it is perceived, where

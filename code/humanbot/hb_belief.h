@@ -123,6 +123,7 @@ private:
     void Predict(TrackState& t, const Observation& obs);
     void NegativeInfo(TrackState& t, const Observation& obs, float hfovDeg, float vfovDeg);
     void ApplySound(TrackState& t, const SoundObs& s, const Observation& obs);
+    void ApplyHunch(TrackState& t, const SoundObs& s, const Observation& obs);
     void ApplyDamage(TrackState& t, const DamageObs& d, const Observation& obs);
     // Re-draws part of the cloud along a bearing when the cloud cannot explain an observation.
     void Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
