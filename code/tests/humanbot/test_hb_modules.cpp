@@ -634,6 +634,157 @@ static void TestTravelLead(const hb::ModelBundle& b)
     HB_CHECK(led > free + 0.03);
 }
 
+// The enemy believed near (ViewModel::travelFar): on the way out of a spawn the view watches the corner on his side, not
+// the way ahead (on dm/flag the bots came through the doors to the owner, who held the flag room, looking down the
+// corridor); believed far, the view leads along the way. A closed door across the way is looked at by its direction: a
+// bot strafing past it no longer swings its view off the way. And with the view on his side the keys follow the way
+// more firmly (a forward diagonal rather than a plain strafe).
+static void TestNearSide(const hb::ModelBundle& b)
+{
+    hb::ViewModel vm    = b.shared.view;
+    vm.lookaroundPerMin = 0.0f;
+    HB_CHECK(vm.travelFar > 0.0f);
+    // the bot runs east; the believed enemy north-west of it, round a corner to the north
+    hb::BeliefEstimate be;
+    be.valid            = true;
+    be.spread           = 150.0f;
+    be.nExposure        = 2;
+    be.exposureCell[0]  = 7;
+    be.exposureMass[0]  = 0.5f;
+    be.exposureEtaMs[0] = 2500.0f;
+    be.cornerValid[0]   = true;
+    be.cornerOpen[0]    = 1.0f;
+    be.exposureCell[1]  = 8;   // a corner on the far side, as likely
+    be.exposureMass[1]  = 0.5f;
+    be.exposureEtaMs[1] = 2500.0f;
+    be.cornerValid[1]   = true;
+    be.cornerOpen[1]    = -1.0f;
+    auto run = [&](float enemyDist, int& travel, float& offSide, float& offWay) {
+        be.mode        = hb::Vec3(-enemyDist * 0.6f, enemyDist * 0.8f, 0);
+        be.corner[0]   = hb::Vec3(-150, 250, 82);
+        be.exposure[0] = hb::Vec3(-150, 250, 0);
+        be.corner[1]   = hb::Vec3(250, -250, 82);
+        be.exposure[1] = hb::Vec3(250, -250, 0);
+        hb::SelfState self;
+        self.alive = true;
+        hb::ViewInput h;
+        h.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        h.belief     = &be;
+        h.moving     = true;
+        h.navValid   = true;
+        h.navYaw     = 0.0f;
+        h.travelling = true;
+        h.aheadValid = true;
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        vc.Reset(self);
+        hb::Rng        r(29);
+        hb::ViewOutput out;
+        travel  = 0;
+        offSide = offWay = 0.0f;
+        for (int t = 0; t < 40; t++) {   // 2 s
+            const hb::Vec3 pos(t * 2.0f, 0, 0);
+            self.origin   = pos;
+            self.eye      = pos + hb::Vec3(0, 0, 82);
+            self.velocity = hb::Vec3(40, 0, 0);
+            h.ahead       = pos + hb::Vec3(vm.travelLead, 0, 0);
+            self.timeMs += 50;
+            vc.Step(self, h, r, out);
+            self.viewYaw   = hb::Wrap180(self.viewYaw + out.yawDelta);
+            self.viewPitch = hb::Clamp(self.viewPitch + out.pitchDelta, -85.0f, 85.0f);
+            travel += out.travel ? 1 : 0;
+        }
+        offSide = std::fabs(hb::Wrap180(hb::YawOf(be.corner[0] - self.eye) - self.viewYaw));
+        offWay  = std::fabs(self.viewYaw);
+    };
+    int   tNear, tFar;
+    float sNear, wNear, sFar, wFar;
+    run(450.0f, tNear, sNear, wNear);
+    run(1600.0f, tFar, sFar, wFar);
+    HB_REPORT("the enemy believed 450 u away round a corner: travel %d of 40 ticks, the view %.0f deg off the corner on his "
+              "side after 2 s (the way %.0f deg off); 1600 u away: travel %d, the way %.0f deg off", tNear, sNear, wNear, tFar, wFar);
+    HB_CHECK(tNear == 0);
+    HB_CHECK(sNear < 15.0f);
+    HB_CHECK(tFar > 30);
+    HB_CHECK(wFar < 15.0f);
+
+    // a closed door 40 u ahead across the way (north), found afresh along the way from the eye each tick, the bot
+    // strafing west past it at 150 u/s: the view stays on the way
+    {
+        hb::SelfState self;
+        self.alive   = true;
+        self.viewYaw = 90.0f;
+        hb::BeliefEstimate far = be;
+        far.mode               = hb::Vec3(0, 3000, 0);
+        hb::ViewInput h;
+        h.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        h.belief     = &far;
+        h.moving     = true;
+        h.navValid   = true;
+        h.navYaw     = 90.0f;
+        h.travelling = true;
+        h.aheadValid = true;
+        h.doorValid  = true;
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        vc.Reset(self);
+        hb::Rng        r(31);
+        hb::ViewOutput out;
+        float          worst = 0.0f;
+        for (int t = 0; t < 12; t++) {
+            const hb::Vec3 pos(-7.5f * t, 0, 0);
+            self.origin   = pos;
+            self.eye      = pos + hb::Vec3(0, 0, 82);
+            self.velocity = hb::Vec3(-150, 0, 0);
+            h.ahead       = pos + hb::Vec3(0, vm.travelLead, 0);
+            h.door        = self.eye + hb::Vec3(0, 40, 0);
+            self.timeMs += 50;
+            vc.Step(self, h, r, out);
+            self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+            worst        = std::max(worst, std::fabs(hb::Wrap180(self.viewYaw - 90.0f)));
+        }
+        HB_REPORT("strafing past a closed door across the way: the view at most %.0f deg off it in 0.6 s", worst);
+        HB_CHECK(worst < 10.0f);
+    }
+
+    // the keys with the view on his side and the way 20-70 deg off it: forward held more, plain strafes fewer
+    hb::StyleOffsets style;
+    auto shares = [&](bool nearView, double& fwd, double& strafe) {
+        hb::Mover mv;
+        mv.Init(&b.shared.movement);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 450.0f;
+        in.onGround   = true;
+        in.navValid   = true;
+        in.travelling = true;
+        in.urgency    = 0.8f;
+        in.nearView   = nearView;
+        hb::Rng        rm(95), rs(96), rr(97);
+        hb::MoveOutput mo;
+        int            f = 0, st = 0;
+        const int      steps = 100000;
+        for (int i = 0; i < steps; i++) {
+            if (i % 20 == 0) {
+                in.navBearing = static_cast<float>(rr.Uniform(20.0, 70.0)) * (rr.Bernoulli(0.5) ? 1.0f : -1.0f);
+            }
+            mv.Step(in, style, rm, rs, mo);
+            f += hb::ChordFwd(mo.chord) == 1 ? 1 : 0;
+            st += hb::ChordFwd(mo.chord) == 0 && hb::ChordSide(mo.chord) != 0 ? 1 : 0;
+        }
+        fwd    = static_cast<double>(f) / steps;
+        strafe = static_cast<double>(st) / steps;
+    };
+    double fN, sN, f0, s0;
+    shares(true, fN, sN);
+    shares(false, f0, s0);
+    HB_REPORT("the way 20-70 deg off the view, the enemy 450 u away: forward held %.2f, plain strafe %.2f with the view on his "
+              "side (pull x%.1f); %.2f, %.2f without", fN, sN, b.shared.movement.nearPull, f0, s0);
+    HB_CHECK(fN > f0 + 0.03);
+    HB_CHECK(sN < s0);
+}
+
 // A bot that wants to go somewhere, stands with no key held and whose route runs into a wall it touches takes the open
 // chord nearest the route within a second instead of standing there.
 static void TestUnstick(const hb::ModelBundle& b)
@@ -1156,6 +1307,7 @@ static void TestHoldGivesWay(const hb::ModelBundle& b)
         vm.hiddenReaimHazard  = 0.0f;
         vm.lookDwellMedianMs  = 5000.0f;
         vm.holdBeliefDeg      = give;
+        vm.travelFar          = 0.0f;   // (the near rules, TestNearSide, would break the hold off as well)
         hb::SelfState self;
         self.alive   = true;
         self.eye     = hb::Vec3(0, 0, 82);
@@ -1411,6 +1563,81 @@ static void TestPerceiverDead(const hb::ModelBundle& b)
     HB_CHECK(!obs.enemies.empty() && obs.enemies[0].id == 3 && !obs.enemies[0].detected);
 }
 
+// The soft wallhack (the owner's, 2026-10-05): a hidden enemy's true position reaches the belief only as an occasional,
+// noisy hunch (hunch_per_min a minute, hunch_sigma_deg off), never while it is seen, and the view does not turn to it
+// (only footsteps and gunfire turn it).
+static void TestHunch(const hb::ModelBundle& b)
+{
+    const hb::PerceptionModel& pm = b.shared.perception;
+    HB_CHECK(pm.hunchPerMin > 0.0f);
+    hb::Perceiver pc;
+    pc.Init(&pm, hb::Rng(11));
+    hb::RawInput raw;
+    raw.self.alive  = true;
+    raw.self.origin = hb::Vec3(0, 0, 0);
+    raw.self.eye    = hb::Vec3(0, 0, 82);
+    hb::RawEnemy e;
+    e.id         = 3;
+    e.alive      = true;
+    e.hunchValid = true;
+    e.hunchPos   = hb::Vec3(0, 600, 0);   // north, behind a wall
+    raw.enemies.push_back(e);
+    hb::Observation obs;
+    int             n = 0;
+    double          s2 = 0.0;
+    const int       ticks = 20 * 600;     // 10 minutes
+    for (int t = 0; t < ticks; t++) {
+        pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+        for (const hb::SoundObs& so : obs.sounds) {
+            if (so.type == hb::SOUND_HUNCH && so.sourceId == 3) {
+                n++;
+                const double d = hb::Wrap180(so.yaw - 90.0f);
+                s2 += d * d;
+            }
+        }
+    }
+    const double perMin = n / 10.0, sd = n ? std::sqrt(s2 / n) : 0.0;
+    HB_REPORT("a hidden enemy 600 u away: %.1f hunches a minute (%.0f set), their direction %.1f deg off (sd; %.0f set)", perMin,
+              pm.hunchPerMin, sd, pm.hunchSigmaDeg);
+    HB_CHECK(std::fabs(perMin - pm.hunchPerMin) < 0.15 * pm.hunchPerMin);
+    HB_CHECK(std::fabs(sd - pm.hunchSigmaDeg) < 0.2 * pm.hunchSigmaDeg);
+    // none while it is seen
+    raw.enemies[0].inFov    = true;
+    raw.enemies[0].partMask = 0x3f;
+    raw.enemies[0].centroid = hb::Vec3(0, 600, 50);
+    int seen = 0;
+    for (int t = 0; t < 2000; t++) {
+        pc.Process(raw, 96.4f, 64.4f, 1.0f, obs);
+        for (const hb::SoundObs& so : obs.sounds) {
+            seen += !obs.enemies.empty() && obs.enemies[0].detected && so.type == hb::SOUND_HUNCH ? 1 : 0;
+        }
+    }
+    HB_CHECK(seen == 0);
+    // the view does not turn to a hunch behind it
+    hb::ViewModel vm    = b.shared.view;
+    vm.lookaroundPerMin = 0.0f;
+    hb::ViewControl vc;
+    vc.Init(&vm);
+    hb::SelfState self;
+    self.alive = true;
+    self.eye   = hb::Vec3(0, 0, 82);
+    vc.Reset(self);
+    std::vector<hb::SoundObs> hs(1);
+    hs[0].type = hb::SOUND_HUNCH;
+    hs[0].yaw  = 180.0f;
+    hb::ViewInput h;
+    h.sounds = &hs;
+    hb::Rng        r(13);
+    hb::ViewOutput out;
+    bool           turned = false;
+    for (int t = 0; t < 40; t++) {
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        turned = turned || out.mode == hb::VIEW_SOUND;
+    }
+    HB_CHECK(!turned);
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -1435,10 +1662,12 @@ int main()
     TestHiddenDistance(b);
     TestRouteTurns(b);
     TestTravelLead(b);
+    TestNearSide(b);
     TestUnstick(b);
     TestFarPullWall(b);
     TestSubsteps();
     TestEye();
     TestPerceiverDead(b);
+    TestHunch(b);
     return hbtest::Finish("test_hb_modules");
 }

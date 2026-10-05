@@ -293,7 +293,12 @@ float Mover::HidDist(const KeyModel& k, int row, int fwd, const MoveInput& in) c
 float Mover::NavPull(const MoveInput& in) const
 {
     const MovementModel& m = *m_p;
-    float                k = in.urgency * (in.travelView && in.wallPressMs <= 0.0f ? m.travelPull : 1.0f);
+    float                k = in.urgency * (in.wallPressMs > 0.0f ? 1.0f : in.travelView ? m.travelPull : 1.0f);
+    if (in.nearView && !in.travelView && in.wallPressMs <= 0.0f) {
+        // the view on the side of an enemy believed near: the way ahead of the view followed firmly (people there hold a
+        // forward diagonal), one behind it as fitted (pulled as firmly, the bots walked backwards 11% of their hunt)
+        k *= 1.0f + (m.nearPull - 1.0f) * std::max(0.0f, std::cos(in.navBearing * DEG2RAD));
+    }
     if (m.navFarMult != 1.0f && m.navFarDist > m.navFarNear && in.enemyKnown && in.wallPressMs <= 0.0f
         && (in.ctx == CTX_HIDDEN_NOFIRE || in.ctx == CTX_HIDDEN_FIRE)) {
         k *= 1.0f + (m.navFarMult - 1.0f) * Clamp((in.enemyDist - m.navFarNear) / (m.navFarDist - m.navFarNear), 0.0f, 1.0f);

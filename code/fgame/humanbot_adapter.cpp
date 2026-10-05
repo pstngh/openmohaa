@@ -512,8 +512,9 @@ static bool DoorAhead(Player *p, float yaw, Vector& at)
     Vector(0, yaw, 0).AngleVectors(&fwd);
     const Vector  start = p->origin + Vector(0, 0, p->viewheight);
     const trace_t tr    = G_Trace(start, vec_zero, vec_zero, start + fwd * DOOR_AHEAD, p, MASK_USABLE, qfalse, "HumanBot door");
+    // (a door already opening is not looked at: it swings out of the way)
     if (tr.ent && tr.ent->entity && tr.ent->entity != world && tr.ent->entity->IsSubclassOfDoor()
-        && !static_cast<Door *>(tr.ent->entity)->isOpen()) {
+        && static_cast<Door *>(tr.ent->entity)->isCompletelyClosed()) {
         at = tr.endpos;
         return true;
     }
@@ -696,10 +697,12 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
         m_controller->GetMovement().ClearMove();
     }
 
-    // doors: the stock use logic when a closed door or a ladder is right ahead
+    // doors: the stock use logic when a closed door or a ladder is right ahead (in the view, the bot going forward or
+    // pressing a wall), or a closed door lies across its way: with the view on the door but a strafe held the bots slid
+    // to and fro beside dm/flag's doors with the enemy behind them and never opened them
     if (level.inttime < m_useUntil) {
         plan.use = true;
-    } else if (hb::ChordFwd(plan.chord) > 0 || m_wallMs > 0.0f) {
+    } else if (hb::ChordFwd(plan.chord) > 0 || m_wallMs > 0.0f || (m_steerValid && m_doorValid)) {
         Vector fwd;
         Vector(0, view.yaw, 0).AngleVectors(&fwd);
         const Vector  start = p->origin + Vector(0, 0, p->viewheight);
@@ -781,6 +784,9 @@ void HumanBotAdapter::Prepare()
                 // nothing about an enemy with no visible part crosses into the brain
                 e.inFov             = s.partMask != 0 && s.inFov;
                 e.partMask          = s.partMask;
+                // the soft wallhack: the brain's perception turns this into an occasional noisy hunch
+                e.hunchValid        = true;
+                e.hunchPos          = hb::Vec3(o->origin.x, o->origin.y, o->origin.z);
                 e.centroidLos       = s.partMask != 0 && s.centroidLos;
                 if (s.partMask) {
                     Vector parts[hb::NUM_PARTS];

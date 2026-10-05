@@ -416,6 +416,7 @@ void ParseMovement(const json& j, MovementModel& m)
         m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);
         m.navDeadband       = NumOr(c, "nav_deadband", m.navDeadband);
         m.travelPull        = NumOr(c, "travel_pull", m.travelPull);
+        m.nearPull          = NumOr(c, "near_pull", m.nearPull);
     }
 }
 
@@ -551,6 +552,13 @@ void ParseView(const json& j, ViewModel& v)
         v.travelFlickHazard = NumOr(t, "travel_flick_hazard", v.travelFlickHazard);
         v.travelStillDeg    = NumOr(t, "travel_still_deg", v.travelStillDeg);
         v.travelSmooth      = NumOr(t, "travel_smooth", v.travelSmooth);
+        v.travelFar         = NumOr(t, "travel_far", v.travelFar);
+        v.nearSideDeg       = NumOr(t, "near_side_deg", v.nearSideDeg);
+        v.soundBeliefCorner = NumOr(t, "sound_belief_corner", v.soundBeliefCorner);
+        v.nearReaimDeg      = NumOr(t, "near_reaim_deg", v.nearReaimDeg);
+        v.nearReaimHazard   = NumOr(t, "near_reaim_hazard", v.nearReaimHazard);
+        v.nearHoldDeg       = NumOr(t, "near_hold_deg", v.nearHoldDeg);
+        v.nearAwayDeg       = NumOr(t, "near_away_deg", v.nearAwayDeg);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);
@@ -679,6 +687,9 @@ void ParsePerception(const json& j, PerceptionModel& p)
     p.reloadSigmaDeg     = NumOr(j, "reload_sigma_deg", p.reloadSigmaDeg);
     p.distanceLogSd      = NumOr(j, "distance_log_sd", p.distanceLogSd);
     p.damageSigmaDeg     = NumOr(j, "damage_sigma_deg", p.damageSigmaDeg);
+    p.hunchPerMin        = NumOr(j, "hunch_per_min", p.hunchPerMin);
+    p.hunchSigmaDeg      = NumOr(j, "hunch_sigma_deg", p.hunchSigmaDeg);
+    p.hunchDistLogSd     = NumOr(j, "hunch_dist_log_sd", p.hunchDistLogSd);
     Require(p.detectRate > 0.0f && p.eccScaleDeg > 0.0f && p.distScale > 0.0f, "perception out of range");
 }
 

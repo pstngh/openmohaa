@@ -162,6 +162,25 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
             t.detected = false;
         }
         out.enemies.push_back(o);
+        if (p.hunchPerMin > 0.0f && e.hunchValid && !o.detected) {
+            // the soft wallhack: now and then a rough sense of where the hidden enemy is (three draws per hidden
+            // enemy and tick, only with it on: the other streams stay as they were)
+            const double uh = m_rng.Uniform();
+            const double h1 = m_rng.Normal();
+            const double h2 = m_rng.Normal();
+            if (uh < p.hunchPerMin / 1200.0f) {
+                const Vec3  d    = e.hunchPos - raw.self.origin;
+                SoundObs    h;
+                h.type      = SOUND_HUNCH;
+                h.sourceId  = e.id;
+                h.yawSigma  = p.hunchSigmaDeg;
+                h.yaw       = Wrap180(YawOf(d) + static_cast<float>(h1) * p.hunchSigmaDeg);
+                h.dist      = std::max(16.0f, d.lengthXY() * std::exp(static_cast<float>(h2) * p.hunchDistLogSd));
+                h.distLogSd = p.hunchDistLogSd;
+                h.mirrorYaw = h.yaw;
+                out.sounds.push_back(h);
+            }
+        }
     }
 
     //

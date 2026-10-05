@@ -95,6 +95,7 @@ struct ViewOutput {
     float flickAmp    = 0.0f;
     float imminence   = 0.0f;   // belief mass expected to come out at a corner soon (exp(-eta / horizon))
     bool  travel      = false;  // the view leads along the way (travel mode)
+    bool  near        = false;  // the enemy believed near: the view watches his side (ViewModel::travelFar)
 };
 
 class ViewControl
@@ -164,6 +165,7 @@ private:
     bool  m_travel      = false;  // the look leads along the way (travel mode, VIEW_TRAVEL)
     float m_travelYaw   = 0.0f;   //   toward this direction (the point ahead, smoothed)
     bool  m_doorLook    = false;  //   or at a closed door across the way
+    bool  m_near        = false;  // the enemy believed near (ViewModel::travelFar): his side is watched, not the way
 };
 
 } // namespace hb

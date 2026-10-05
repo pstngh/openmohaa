@@ -463,6 +463,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.urgency        = m_navOut.urgency;
     mi.travelling     = m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH;
     mi.travelView     = vo.travel;
+    mi.nearView       = vo.near;
     for (int c = 0; c < NUM_CHORDS; c++) {
         mi.clearance[c] = self.clearance[c];
         mi.drop[c]      = self.drop[c];
