@@ -12,6 +12,12 @@ Base game and expansions can be started from one of the 3 launchers:
 - `launch_openmohaa_spearhead`, use this to play **Medal of Honor: Allied Assault: Spearhead**
 - `launch_openmohaa_breakthrough`, use this to play **Medal of Honor: Allied Assault: Breakthrough**
 
+### Start using the macOS launcher
+
+On Apple silicon Macs with macOS 15 or later, `launcher.app` in the game folder joins a server in Allied Assault, directly or from one of three saved shortcuts, or starts a local bot match in any of the three games with cheats enabled so `dog` and the other cheats work. It also sets the size and color of the crosshair and checks the retail pak files of each installed game. It keeps its settings in `launcher.cfg` beside it, and games it starts keep their configuration in the game folder.
+
+If macOS refuses to open a downloaded build, open `install.command` in the game folder first. To build the launcher on a Mac, run `code/LauncherMac/bundle.sh` with the game folder as argument. The launcher starts the `openmohaa` binary beside it, so build the game for it with `-DBUILD_MACOS_APP=OFF`, as the release build does, instead of as `openmohaa.app`.
+
 ### Start from the command-line
 
 **Spearhead** and **Breakthrough** are supported in OpenMoHAA using the `com_target_game` variable.

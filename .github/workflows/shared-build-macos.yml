@@ -244,6 +244,9 @@ jobs:
         if [ -d ${{github.workspace}}/install/bin ]; then cp -r ${{github.workspace}}/install/bin/openmohaa/. '${{github.workspace}}/package'; fi
         if [ -d ${{github.workspace}}/install/lib ]; then cp -r ${{github.workspace}}/install/lib/openmohaa/. '${{github.workspace}}/package'; fi
 
+    - name: Build launcher
+      run: sh '${{github.workspace}}/source/code/LauncherMac/bundle.sh' '${{github.workspace}}/package'
+
     ###
     # Artifacts
     ###
