@@ -373,6 +373,7 @@ public:
     float      GetMaxChargeTime(firemode_t);
     int        AmmoAvailable(firemode_t mode);
     qboolean   UnlimitedAmmo(firemode_t mode);
+    qboolean   UnlimitedReserveAmmo(firemode_t mode); // Added in OPM
     qboolean   HasAmmo(firemode_t mode);
     qboolean   HasAmmoInClip(firemode_t mode);
     int        GetClipSize(firemode_t mode);

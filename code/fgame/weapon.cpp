@@ -1800,6 +1800,31 @@ qboolean Weapon::UnlimitedAmmo(firemode_t mode)
 }
 
 //======================
+//Weapon::UnlimitedReserveAmmo
+//======================
+//
+// Added in OPM
+//  In multiplayer, reloading a gun doesn't use up the ammo the player carries,
+//  so guns never run out. Grenades, rockets and the other explosives still do
+//
+qboolean Weapon::UnlimitedReserveAmmo(firemode_t mode)
+{
+    static const char *const bulletAmmoTypes[] = {"pistol", "rifle", "smg", "mg", "shotgun"};
+
+    if (g_gametype->integer == GT_SINGLE_PLAYER || !owner || !owner->isClient() || !ammo_clip_size[mode]) {
+        return false;
+    }
+
+    for (const char *bulletAmmoType : bulletAmmoTypes) {
+        if (!Q_stricmp(ammo_type[mode], bulletAmmoType)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//======================
 //Weapon::HasAmmo
 //======================
 qboolean Weapon::HasAmmo(firemode_t mode)
@@ -1816,7 +1841,9 @@ qboolean Weapon::HasAmmo(firemode_t mode)
         mode = FIRE_PRIMARY;
     }
 
-    if (UnlimitedAmmo(mode)) {
+    // Changed in OPM
+    //  Also when the reserve ammo is unlimited, as the clip can always be reloaded
+    if (UnlimitedAmmo(mode) || UnlimitedReserveAmmo(mode)) {
         return true;
     }
 
@@ -2885,7 +2912,9 @@ void Weapon::FillAmmoClip(Event *ev)
         return;
     }
 
-    if (UnlimitedAmmo(FIRE_PRIMARY)) {
+    // Changed in OPM
+    //  Also reload directly when the reserve ammo is unlimited
+    if (UnlimitedAmmo(FIRE_PRIMARY) || UnlimitedReserveAmmo(FIRE_PRIMARY)) {
         // reload directly
         ammo_in_clip[FIRE_PRIMARY] = ammo_clip_size[0];
     } else {
@@ -2944,7 +2973,9 @@ void Weapon::AddToAmmoClip(Event *ev)
         amount = ammo_clip_size[FIRE_PRIMARY] - ammo_in_clip[FIRE_PRIMARY];
     }
 
-    if (UnlimitedAmmo(FIRE_PRIMARY)) {
+    // Changed in OPM
+    //  Also reload directly when the reserve ammo is unlimited
+    if (UnlimitedAmmo(FIRE_PRIMARY) || UnlimitedReserveAmmo(FIRE_PRIMARY)) {
         // Stick it in the clip
         ammo_in_clip[FIRE_PRIMARY] = amount + ammo_in_clip[FIRE_PRIMARY];
     } else {
@@ -3029,7 +3060,7 @@ qboolean Weapon::CheckReload(firemode_t mode)
         return false;
     }
 
-    if (ammo_in_clip[mode] < ammo_clip_size[mode] && AmmoAvailable(mode)
+    if (ammo_in_clip[mode] < ammo_clip_size[mode] && (AmmoAvailable(mode) || UnlimitedReserveAmmo(mode))
         && (m_bCanPartialReload || ammo_in_clip[mode] <= 0)) {
         return true;
     }
@@ -3053,7 +3084,8 @@ qboolean Weapon::ShouldReload(void)
     if (m_bShouldReload) {
         return qtrue;
     } else {
-        if (ammo_clip_size[FIRE_PRIMARY] && !ammo_in_clip[FIRE_PRIMARY] && AmmoAvailable(FIRE_PRIMARY)) {
+        if (ammo_clip_size[FIRE_PRIMARY] && !ammo_in_clip[FIRE_PRIMARY]
+            && (AmmoAvailable(FIRE_PRIMARY) || UnlimitedReserveAmmo(FIRE_PRIMARY))) {
             return qtrue;
         }
     }
