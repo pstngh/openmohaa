@@ -116,6 +116,7 @@ private:
     float CtxChange(const KeyModel& k, int row, int ctx) const;
     float HidDist(const KeyModel& k, int row, int fwd, const MoveInput& in) const;
     float NavPull(const MoveInput& in) const;
+    float FarRun(const MoveInput& in) const;
     int   LedgeMask(const MoveInput& in) const;
     void  StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p);
     void  StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, int side, double u1, Rng& rng, int& fwd,
@@ -147,6 +148,7 @@ private:
     // wall with a strafe toward this side (0 = none)
     bool                 m_reflexSide = false;
     bool                 m_reflexFwd  = false;
+    bool                 m_reflexDiagFwd = false;  // ... out of a forward diagonal (eased running to a far fight)
     int                  m_slideSide  = 0;
     int                  m_lastSide   = 0;      // the side of the last strafe (kept while no strafe key is held)
     bool                 m_slideFwd   = false;  // a strafe into a wall: add forward and run along it
