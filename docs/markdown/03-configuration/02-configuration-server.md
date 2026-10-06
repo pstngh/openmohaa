@@ -114,6 +114,8 @@ The health of players in multiplayer. Defaults to `100`; `0` or lower also means
 
 The sniper rifles, the Mauser KAR 98K and the shotgun scale their damage against players with the maximum health of the player they hit, so they take as many hits to kill as with `100` health.
 
+The clips of the submachine guns and machine guns scale with it, so a full clip takes down as many players as with `100` health: at `200`, the Thompson holds 60 rounds instead of 30 and the MP40 64 instead of 32. Other weapons and turrets keep their clip. A change applies to weapons given after it, such as on the next respawn.
+
 ### `g_playerStacking`
 
 If enabled, a player can stand on another player's head without being pushed off. Defaults to `0`.

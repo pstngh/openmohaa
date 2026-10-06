@@ -423,7 +423,7 @@ Enable this feature with `set sv_netoptimize 2`.
 - Better logging of clients and chat
 - Damage flash and view kick are shown in god mode, as in Allied Assault
 - Don't set `g_shownpc` to true automatically
-- High-damage weapons (sniper rifles, the Kar98 and the shotgun) scale their damage against players with the maximum health of the player hit, which `g_playerdmhealth` sets
+- High-damage weapons (sniper rifles, the Kar98 and the shotgun) scale their damage against players with the maximum health of the player hit, which `g_playerdmhealth` sets, and the clips of submachine guns and machine guns scale with it
 - Improved portable turret placement
 - Increased the DM message limit in multiplayer
 - Infinite ammo (`dmflags` bit 14): clips never empty, as in Allied Assault

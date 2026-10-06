@@ -1368,6 +1368,30 @@ float Weapon::GetPlayerHealthDamageScale(Entity *victim)
     return 1;
 }
 
+//
+// Added in OPM
+//  In multiplayer, the clips of the submachine guns and machine guns scale with g_playerdmhealth,
+//  so a full clip takes down as many players as with 100 health. Turrets are left as is
+//
+void Weapon::ScaleClipSizeWithPlayerHealth()
+{
+    int mode;
+
+    if (g_gametype->integer == GT_SINGLE_PLAYER || g_playerdmhealth->integer <= 0) {
+        return;
+    }
+
+    if (IsSubclassOfTurretGun() || !(weapon_class & (WEAPON_CLASS_SMG | WEAPON_CLASS_MG))) {
+        return;
+    }
+
+    for (mode = 0; mode < MAX_FIREMODES; mode++) {
+        if (ammo_clip_size[mode]) {
+            ammo_clip_size[mode] = Q_max((ammo_clip_size[mode] * g_playerdmhealth->integer + 50) / 100, 1);
+        }
+    }
+}
+
 //======================
 //Weapon::Shoot
 //======================
@@ -3055,6 +3079,11 @@ void Weapon::IdleInit(Event *ev)
     }
 
     weaponstate = WEAPON_READY;
+
+    // Added in OPM
+    //  Posted when the weapon is created, so it runs once the TIKI init commands
+    //  have set the clip size and the weapon type, and before the starting ammo is given
+    ScaleClipSizeWithPlayerHealth();
 }
 
 //======================
