@@ -52,6 +52,8 @@ cvar_t *g_humanbot_skill;
 static cvar_t *g_humanbot_door_ahead;
 static cvar_t *g_humanbot_door_hold;
 static cvar_t *g_humanbot_door_go;
+static cvar_t *g_humanbot_max_crouch;
+static cvar_t *g_humanbot_max_jumps;
 
 //
 // Model
@@ -380,6 +382,17 @@ void HumanBotAdapter::ChooseStyle()
     float        w[hb::FAMILY_COUNT];
     const bool   weighted = family < 0 && FamilyWeights(w);
     m_dials               = hb::SampleStyle(b.style, family, seed, weighted ? w : nullptr);
+    // A server's cap on how often a bot crouches and jumps (a minute alive; 0 = as drawn). The strafer and stopper
+    // styles spread wide (crouches 7 +- 4-7 a minute, jumps 4 +- 2); against the owner on dm/flag a bot drawn at 11.7
+    // crouches and 5.7 jumps a minute looked wrong (2026-10-05). The model and its evaluation keep the drawn values.
+    const float maxCrouch = g_humanbot_max_crouch ? g_humanbot_max_crouch->value : 0.0f;
+    const float maxJumps  = g_humanbot_max_jumps ? g_humanbot_max_jumps->value : 0.0f;
+    if (maxCrouch > 0.0f) {
+        m_dials.dial[hb::DIAL_CROUCH] = std::min(m_dials.dial[hb::DIAL_CROUCH], maxCrouch);
+    }
+    if (maxJumps > 0.0f) {
+        m_dials.dial[hb::DIAL_JUMPS] = std::min(m_dials.dial[hb::DIAL_JUMPS], maxJumps);
+    }
     // keep it with the bot across map changes (G_SaveBots copies the userinfo)
     Info_SetValueForKey(p->client->pers.userinfo, "hb_style", hb::StyleKey(m_dials).c_str());
 }
@@ -1216,6 +1229,8 @@ void G_HumanBotInit(void)
     g_humanbot_door_ahead = gi.Cvar_Get("g_humanbot_door_ahead", "128", 0);
     g_humanbot_door_hold  = gi.Cvar_Get("g_humanbot_door_hold", "48", 0);
     g_humanbot_door_go    = gi.Cvar_Get("g_humanbot_door_go", "25", 0);
+    g_humanbot_max_crouch = gi.Cvar_Get("g_humanbot_max_crouch", "0", 0);
+    g_humanbot_max_jumps  = gi.Cvar_Get("g_humanbot_max_jumps", "0", 0);
 
     if (!s_inited) {
         std::string error;

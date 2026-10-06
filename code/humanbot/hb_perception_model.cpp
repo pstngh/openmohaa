@@ -85,6 +85,11 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
     out.headHit             = raw.headHit;
     out.teammateInCrosshair = raw.teammateInCrosshair;
     m_lastDetectP           = 0.0f;
+    // Back from the dead: no hunch reaches a dead bot (the engine lists no enemies then), so its first moments alive
+    // ran on where its killer was 2-3 s before, and it came out of Pre-control looking 160 deg off the owner
+    // (2026-10-05); people know where their killer is when they respawn. The first live tick brings a hunch.
+    const bool respawned = raw.self.alive && !m_wasAlive;
+    m_wasAlive           = raw.self.alive;
 
     const Vec3& eye = raw.self.eye;
 
@@ -168,7 +173,7 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
             const double uh = m_rng.Uniform();
             const double h1 = m_rng.Normal();
             const double h2 = m_rng.Normal();
-            if (uh < p.hunchPerMin / 1200.0f) {
+            if (uh < p.hunchPerMin / 1200.0f || respawned) {
                 const Vec3  d    = e.hunchPos - raw.self.origin;
                 SoundObs    h;
                 h.type      = SOUND_HUNCH;
