@@ -559,6 +559,10 @@ void ParseView(const json& j, ViewModel& v)
         v.nearReaimHazard   = NumOr(t, "near_reaim_hazard", v.nearReaimHazard);
         v.nearHoldDeg       = NumOr(t, "near_hold_deg", v.nearHoldDeg);
         v.nearAwayDeg       = NumOr(t, "near_away_deg", v.nearAwayDeg);
+        v.lookChain         = NumOr(t, "look_chain", v.lookChain);
+        v.nearSoundDeg      = NumOr(t, "near_sound_deg", v.nearSoundDeg);
+        v.nearLookaround    = NumOr(t, "near_lookaround", v.nearLookaround);
+        v.nearRouteTurn     = NumOr(t, "near_route_turn", v.nearRouteTurn);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);

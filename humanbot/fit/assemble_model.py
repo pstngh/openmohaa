@@ -173,7 +173,15 @@ def build():
                        # tick) and a held direction gives way 20 deg off him. In the owner's game the bot was in the travel
                        # look at 17 of the 40 moments he first had it on screen, its view a median 40 deg off him
                        "travel_far": 800.0, "near_side_deg": 30.0, "near_away_deg": 90.0, "sound_belief_corner": 1.0,
-                       "near_reaim_deg": 4.0, "near_reaim_hazard": 0.15, "near_hold_deg": 20.0},
+                       "near_reaim_deg": 4.0, "near_reaim_hazard": 0.15, "near_hold_deg": 20.0,
+                       # set on captures of dm/flag (2026-10-06, "The crosshair at the door" in HANDOFF.md): a look begun
+                       # while the view still turns to the last one is turned to once that turn ends (a quarter of the
+                       # hidden looks began so and were left to the idle controller, 21 deg off). With the enemy believed
+                       # near, a sound's direction gives way 20 deg off him (after its 600 ms), and there are no
+                       # look-arounds and no turns to a route behind the view. Walking into the flag room someone holds, the
+                       # bot's view at the moment one first has the other on screen was over 20 deg off him 12-13% of the
+                       # time (people 7%), 8-9% with these
+                       "look_chain": 1.0, "near_sound_deg": 20.0, "near_lookaround": 0.0, "near_route_turn": 0.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},
