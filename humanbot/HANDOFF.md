@@ -1574,6 +1574,43 @@ slow reaction itself). Standard captures (`rz_*`, `brz_*` against `ez_*`, `bez_*
 all 281 statistics within 25% 57% (57%), before 58% (54%), one crossed for the better in both seed sets (the press with
 the aim near 0.55-1 s into a sighting, 0.28 -> 0.25, people 0.21) and none for the worse; the owner's checks the same.
 
+## Back from the dead, crouches and jumps (2026-10-05)
+
+The owner's game on `4411dbc5` (dm/flag, one stopper bot, reaction 119 ms, 23:12-23:21 UTC, the owner as "n";
+`move_wip/s9/live11/`, `eval/cache/bot/live11_own`): the owner 47 kills, the bot 32 (its best of the day; 29 of them in
+the Flag room). The chat remarks, traced with `s14/comment.py`:
+- "why did it crouch and stop": hit twice at 146 u (50 -> 10 health) the bot crouched and stood, its aim thrown 30 deg
+  off by the second hit, and died. It had drawn 11.7 crouches a minute (the strafer and stopper styles spread 7 +- 4-7;
+  people crouch 2-3.6 a minute in fights on these maps).
+- "why is it shooting for no reason / im not even there": the owner stood still at Pre-control behind the Flag pre-CR
+  door, 500-800 u off; the bot in the Flag room fired about 23 rounds at the doorway in 7 s (a reload between),
+  expecting the owner out (its hunch had the owner behind the door). People do more of it: with the enemy alive and
+  nothing on screen, people on dm/brownffa and dm/flag hold the trigger over 3 s in a hidden spell 0.45 times a minute
+  (up to 14 s), the bots 0-0.01 (this one 2.8 s at most). Asked, the owner chose to leave it.
+- "it was looking the wrong way when it came in" (twice): coming out of Pre-control right after its respawn its belief
+  was 160 deg off the owner; once its view was still on the door it had opened; once (not remarked) a look-around 175
+  deg off. 250 ms after the bot's respawns in the owner's games the belief was over 90 deg off the owner 0% (games of
+  84508075, 4123f9b1), 36% (8ff52949) and 0% (this one) of the time, bot against bot never: the owner moves on after a
+  kill, the bots stay.
+
+**What changed:**
+- **A hunch on respawning** (the soft wallhack): no hunch reaches a dead bot (the engine lists no enemies then), so its
+  first moments alive ran on where its killer was 2-3 s before; people know where their killer is when they respawn. The
+  first live tick brings a hunch (`Perceiver`, `m_wasAlive`). Bot against bot the belief 250 ms after a respawn is 7 deg
+  off at the median on dm/brownffa and dm/flag (10 before), the same on the duel maps (4).
+- **A cap on crouches and jumps for a server** (`g_humanbot_max_crouch`, `g_humanbot_max_jumps`, a minute alive, 0 = as
+  drawn): the drawn dial is cut to it. The test server runs 4.4 and 1.9 (the average person); the model, the arena and the
+  bot-against-bot captures keep the drawn values.
+
+Tried and dropped: no look-around with the enemy near (`m_near`), or near and expected out soon: on the duel maps the
+running back and forth rose 2-5 points in both seed sets either way (seed 401: 28-29% against 23-24% without; people 18%).
+
+Bot against bot (`w3z_*`, `bw3z_*` against `rz_*`, `brz_*`): all 281 statistics within 25% 55% (54%), before 57% (57%;
+the runs of the day 54-58%); two crossed for the worse in both seed sets: the aim error firing at 768-1200 u (2.0 -> 2.8
+deg, people 2.1; few samples, it moved as much before) and fire held with no part 1-2 s after one was on screen (0.16 ->
+0.14, people 0.20); none for the better. dm/brownffa and dm/flag back and forth 20.7% (20.5%), before 21.9% (19.6%); the
+owner's checks the same.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1756,7 +1793,8 @@ the aim near 0.55-1 s into a sighting, 0.28 -> 0.25, people 0.21) and none for t
   lean goes toward the way through while the view is off it, and the door look aims at the door's nearest part from
   128 u ahead (`_ahead`). Hand-set on dm/flag (see "Through the doors").
 - **The soft wallhack** (the owner's, 2026-10-05): a hidden enemy's true direction and distance reach the belief as a
-  noisy hunch 40 times a minute (`hunch_*` in the perception model; `RawEnemy::hunchPos`, filled by the engine glue);
+  noisy hunch 40 times a minute and on the bot's respawn (`hunch_*` in the perception model; `RawEnemy::hunchPos`, filled
+  by the engine glue);
   the plan's perception was human-fair throughout. Set by hand (see "Watching his side").
 - The style dials `lean_switch` and `lean_drop` shift the lean chain's switch and let-go while the strafe is against
   the lean (the habit does not act there). Since 2026-10-04 only the dials a change touches are re-swept; the others

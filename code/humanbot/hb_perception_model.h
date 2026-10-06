@@ -70,6 +70,7 @@ private:
     Rng                    m_rng;
     std::vector<Track>     m_tracks;
     float                  m_lastDetectP = 0.0f;
+    bool                   m_wasAlive    = true;   // alive last tick (a respawn brings a hunch at once)
 };
 
 } // namespace hb
