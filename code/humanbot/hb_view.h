@@ -166,6 +166,7 @@ private:
     float m_travelYaw   = 0.0f;   //   toward this direction (the point ahead, smoothed)
     bool  m_doorLook    = false;  //   or at a closed door across the way
     bool  m_near        = false;  // the enemy believed near (ViewModel::travelFar): his side is watched, not the way
+    bool  m_lookOwed    = false;  // a look begun during a flick, to be turned to once it ends (ViewModel::lookChain)
 };
 
 } // namespace hb

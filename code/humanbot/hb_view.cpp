@@ -102,6 +102,7 @@ void ViewControl::Reset(const SelfState& self)
     m_travel         = false;
     m_doorLook       = false;
     m_near           = false;
+    m_lookOwed       = false;
 }
 
 // The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
@@ -565,10 +566,14 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             // sightings where the bots' view was over 90 deg off the enemy their belief was within 30 deg of him 75% of
             // the time). A sound is turned to first
             const float soundAge = m_lookMode == VIEW_SOUND ? p.soundTurnHoldMs - m_dwellMs : 1e9f;
-            const bool  awayOff  = m_near && p.nearAwayDeg > 0.0f && m_lookPointValid && !m_wasTracking
+            // (a sound's direction gives way sooner: it is 10-20 deg off where he is, and the belief the sound moved goes
+            // on refining while the view held the direction for 3 s; a third of the bots seen with the view over 20 deg off
+            // the one holding dm/flag's flag room were holding such a direction)
+            const float awayDeg  = m_lookMode == VIEW_SOUND && p.nearSoundDeg > 0.0f ? p.nearSoundDeg : p.nearAwayDeg;
+            const bool  awayOff  = m_near && awayDeg > 0.0f && m_lookPointValid && !m_wasTracking
                                   && (m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_HOLD || (m_lookMode == VIEW_TRAVEL && !m_travel)
                                       || (m_lookMode == VIEW_SOUND && soundAge > NEAR_SOUND_MIN_MS))
-                                  && std::fabs(Wrap180(beliefYaw - YawOf(m_lookPoint - eye))) > p.nearAwayDeg;
+                                  && std::fabs(Wrap180(beliefYaw - YawOf(m_lookPoint - eye))) > awayDeg;
             // on the way (travel): a turn to a sound or a hit and a look-around run their course
             const bool busy   = (m_lookMode == VIEW_SOUND || m_lookMode == VIEW_DAMAGE || m_lookMode == VIEW_LOOKAROUND)
                               && m_dwellMs > 0.0f && !m_wasTracking && m_lookPointValid;
@@ -614,14 +619,20 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
                 PreaimCorner(self, in, preW, rng);
                 newLook = true;
             } else if (m_lookMode != VIEW_TRAVEL && m_lookMode != VIEW_SOUND && in.moving && in.navValid && p.routeTurnHazard > 0.0f
+                       && !(m_near && p.nearRouteTurn < 0.5f)
                        && std::fabs(Wrap180(in.navYaw - self.viewYaw)) > ROUTE_TURN_DEG && rng.Uniform() < p.routeTurnHazard) {
-                // the route turned away behind the view: people turn to it rather than walk backwards
+                // the route turned away behind the view: people turn to it rather than walk backwards (not with the enemy
+                // believed near, whose side they watch whichever way they go: the turn to the route, then back to him once
+                // it was 90 deg off him, kept the bots' view swinging near doorways)
                 m_lookPoint      = eye + YawDir(in.navYaw) * DIR_LOOK_DIST;
                 m_lookPointValid = true;
                 m_lookMode       = VIEW_TRAVEL;
                 m_dwellMs        = static_cast<float>(0.7 * p.lookDwellMedianMs * rng.LogNormal(1.0, p.lookDwellSigma));
                 newLook          = true;
-            } else if (m_lookMode != VIEW_LOOKAROUND && m_lookMode != VIEW_SOUND && uLook < p.lookaroundPerMin / 1200.0f) {
+            } else if (m_lookMode != VIEW_LOOKAROUND && m_lookMode != VIEW_SOUND && !(m_near && p.nearLookaround < 0.5f)
+                       && uLook < p.lookaroundPerMin / 1200.0f) {
+                // (no look-around with the enemy believed near: the bots' hidden view turns 90 deg or more twice as often
+                // as people's)
                 LookAround(self, rng);
                 newLook = true;
             } else if (m_lookMode == VIEW_BELIEF && in.belief && in.belief->valid && !in.belief->dead) {
@@ -714,14 +725,24 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     if (m_refractory > 0) {
         m_refractory--;
     }
+    // a look that begins while the view is still turning to the last one (or just after) is turned to once that turn
+    // is done: a quarter of the bots' hidden looks began so and were never turned to (the view 21 deg off the new
+    // target when the old turn ended, the idle controller drifting there over seconds)
+    if (in.track) {
+        m_lookOwed = false;
+    } else if (newLook && p.lookChain > 0.5f && (m_flick.active || m_refractory > 0)) {
+        m_lookOwed = true;
+    }
     if (!m_flick.active && m_refractory == 0) {
+        const bool owed = m_lookOwed;
+        m_lookOwed      = false;
         if (in.track) {
             // corrective submovements toward a seen target: fast right after the sighting
             const float hz = in.acquisition ? p.acquireHazard : p.trackFlickHazard;
             if ((offTarget || std::fabs(errYaw) > p.flickDeg) && uFlick < hz) {
                 StartFlick(errYaw, errPitch, p.flickGainMedian, p.flickGainSigma, rng);
             }
-        } else if (newLook && angErr > (m_lookMode == VIEW_PREAIM ? p.preaimFlickDeg : p.flickDeg)) {
+        } else if ((newLook || owed) && angErr > (m_lookMode == VIEW_PREAIM ? p.preaimFlickDeg : p.flickDeg)) {
             StartFlick(errYaw, errPitch, 0.95f, 0.12f, rng);
         } else if (m_travel && std::fabs(errYaw) > p.travelFlickDeg && uFlick < p.travelFlickHazard) {
             // the way turned: one sweep onto it

@@ -1441,6 +1441,95 @@ static void TestDamageTurn(const hb::ModelBundle& b)
     }
 }
 
+// A look that begins while the view is still turning to the last one is turned to once that turn is done: a quarter
+// of the bots' hidden looks began so and were never turned to (the view 21 deg off the new target when the old turn
+// ended, then left to the idle controller and the still mouse).
+static void TestLookChain(const hb::ModelBundle& b)
+{
+    float med[2];
+    for (const int chain : {0, 1}) {
+        hb::ViewModel vm    = b.shared.view;
+        vm.lookaroundPerMin = 0.0f;
+        vm.lookChain        = static_cast<float>(chain);
+        std::vector<float> offs;
+        for (int k = 0; k < 200; k++) {
+            hb::SelfState self;
+            self.alive   = true;
+            self.eye     = hb::Vec3(0, 0, 82);
+            self.viewYaw = 0.0f;
+            hb::ViewInput h;
+            h.ctx = hb::CTX_HIDDEN_NOFIRE;
+            std::vector<hb::DamageObs> first(1), second(1), none;
+            first[0].yaw  = 100.0f;   // a big turn, under way for about 300 ms
+            second[0].yaw = -40.0f;   // felt while it is under way
+            hb::ViewControl vc;
+            vc.Init(&vm);
+            vc.Reset(self);
+            hb::Rng        r(100 + k);
+            hb::ViewOutput out;
+            for (int t = 0; t < 24; t++) {   // 1.2 s
+                h.damage = t == 2 ? &first : t == 5 ? &second : &none;
+                self.timeMs += 50;
+                vc.Step(self, h, r, out);
+                self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+            }
+            offs.push_back(std::fabs(hb::Wrap180(self.viewYaw + 40.0f)));
+        }
+        std::sort(offs.begin(), offs.end());
+        med[chain] = offs[offs.size() / 2];
+    }
+    HB_REPORT("a hit felt at -40 deg while turning to one at 100: the view %.0f deg off it 1.2 s later (%.0f without the "
+              "chained turn)", med[1], med[0]);
+    HB_CHECK(med[1] < 10.0f);
+    HB_CHECK(med[0] > 2.0f * med[1]);
+}
+
+// With the enemy believed near, a sound's direction (10-20 deg off where he is) gives way to where he is believed to be
+// once it has been watched 600 ms and lies 20 deg off him: the bots held it for 3 s while the belief went on refining.
+static void TestNearSoundGivesWay(const hb::ModelBundle& b)
+{
+    float at[2];
+    for (const int give : {0, 1}) {
+        hb::ViewModel vm      = b.shared.view;
+        vm.lookaroundPerMin   = 0.0f;
+        vm.beliefLookShare    = 1.0f;
+        vm.preaimShare        = 0.0f;
+        vm.preaimWeight       = 0.0f;
+        vm.nearSoundDeg       = give ? 20.0f : 0.0f;
+        HB_CHECK(vm.travelFar > 400.0f && vm.nearAwayDeg > 70.0f);
+        hb::BeliefEstimate be;
+        be.valid  = true;
+        be.spread = 150.0f;
+        be.mode   = hb::Vec3(400, 0, 0);   // straight ahead, near
+        hb::SelfState self;
+        self.alive   = true;
+        self.eye     = hb::Vec3(0, 0, 82);
+        self.viewYaw = 0.0f;
+        hb::ViewInput h;
+        h.ctx    = hb::CTX_HIDDEN_NOFIRE;
+        h.belief = &be;
+        std::vector<hb::SoundObs> step(1), none;
+        step[0].type = hb::SOUND_FOOTSTEP;
+        step[0].yaw  = 70.0f;   // heard 70 deg left, outside the view
+        hb::ViewControl vc;
+        vc.Init(&vm);
+        vc.Reset(self);
+        hb::Rng        r(23);
+        hb::ViewOutput out;
+        for (int t = 0; t < 36; t++) {   // 1.8 s
+            h.sounds = t == 2 ? &step : &none;
+            self.timeMs += 50;
+            vc.Step(self, h, r, out);
+            self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+        }
+        at[give] = self.viewYaw;
+    }
+    HB_REPORT("the enemy believed near ahead, a footstep heard 70 deg left: the view at %.0f deg 1.8 s later (%.0f when the "
+              "sound's direction is kept)", at[1], at[0]);
+    HB_CHECK(std::fabs(at[1]) < 15.0f);
+    HB_CHECK(std::fabs(hb::Wrap180(at[0] - 70.0f)) < 20.0f);
+}
+
 // A belief look with a corner watches the corner nearest the believed position, and a watched corner is followed by
 // where it is when another exposure cell comes to offer it.
 static void TestViewCorners(const hb::ModelBundle& b)
@@ -1720,6 +1809,8 @@ int main()
     TestHearingSide(b);
     TestHoldGivesWay(b);
     TestDamageTurn(b);
+    TestLookChain(b);
+    TestNearSoundGivesWay(b);
     TestLeanWall(b);
     TestLeanSwitch(b);
     TestStrafeMemory(b);

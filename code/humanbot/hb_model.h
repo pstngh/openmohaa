@@ -313,6 +313,12 @@ struct ViewModel {
                                        //   route look that ends up this far off gives way (0 = off)
     float soundBeliefCorner  = 0.0f;   // 1: a sound turned to aims at the corner nearest the believed position when that
                                        //   lies within 45 deg of the sound (0: the corner nearest the sound's direction)
+    float lookChain          = 0.0f;   // 1: a look begun during a flick (or its refractory) is turned to once that ends
+                                       //   (0: its own flick is never made; the controller drifts there)
+    float nearSoundDeg       = 0.0f;   // near: a sound's direction, kept 600 ms, gives way this far off the believed enemy
+                                       //   (0: nearAwayDeg)
+    float nearLookaround     = 1.0f;   // near: look-arounds as anywhere (1) or none (0)
+    float nearRouteTurn      = 1.0f;   // near: the turn to a route behind the view as anywhere (1) or none (0)
 };
 
 struct TriggerSide {

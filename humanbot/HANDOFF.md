@@ -32,8 +32,8 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.23; 52% over 16 seeds before and after "Running to a far fight" (51% and 0.23 on
-  seeds 1-8 with it); 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
+  statistics (median relative error 0.23; 53% over 16 seeds with "The crosshair at the door", median 0.232 (52% and
+  0.225 before); 52% over 16 seeds before and after "Running to a far fight" (51% and 0.23 on seeds 1-8 with it); 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
   bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
@@ -1726,6 +1726,82 @@ with the mouse. On the duel maps people strafe more while hidden than the bots (
 fade nearer the enemy would cost the duel maps. The bots' speed while running hidden is about as before (p50 196-198 u/s
 against people's 212-234): their key runs stay short.
 
+## The crosshair at the door (2026-10-06)
+
+The rest of the owner's first task ("seen first / crosshair at the door"). In the owner's game on `56727d03` the bot's
+crosshair was 13 deg off him when they had each other on screen at once as it walked into the Flag room he held, and he
+hit first 83% of those (see "The bot's own doors"). Bot against bot on `68df9f32` (`bt3z_*`), walking into the Flag room
+another holds (`s14/approach.py flag`), the entrant's view at the meeting was 7 deg off the holder at the median like
+people's, but over 20 deg off 12-14% of the time (people 7%) and still so 300 ms later (13%, people 2%). Git-ignored
+scripts in `humanbot/cache/move_wip/s17/`: `door.py` one table of these entries (the view off the holder from -300 to
++300 ms, the time onto him, who saw and who died first), `cause.py` and `tail.py` why the view was off, `turn.py` the
+turn of the last 300 ms, `after.py` the 300 ms after, `flickat.py` the turns under way at the meeting, `lostflick.py` the
+looks begun during a turn, `churn.py` the look changes near the enemy, `holder.py` and `quiet.py` the holder's noise and
+the entrant's belief, `turns.py` the hidden view's turns per minute, `immin.py` the belief's imminence (debug build of
+`debug2.diff`, never commit it).
+
+**What it was.** Of the entrants over 20 deg off at the meeting, the belief was within 20 deg of the holder 87% of the
+time: the view was not on it. It was on a sound's direction (29-31%), a look-around (9-10%), a corner or held direction
+(11-13%), or behind a belief look it had not reached (42-44%, in a turn begun 100-150 ms before or left to the idle
+controller and the still mouse).
+- **A look begun during a turn was never turned to.** A new look's turn starts only with no turn under way: a quarter of
+  the bots' hidden looks began while the view still turned to the last one (near the enemy the look changed 60 times a
+  hidden minute), and when that turn ended the view was a median 21-24 deg off the new target, which the idle controller
+  approached slowly and the still mouse often not at all.
+- **A sound's direction was kept 3 s** (`sound_turn_hold_ms`) while the belief the sound had moved went on refining (the
+  direction itself is 10-20 deg off), and with the enemy near it gave way only 90 deg off him (`near_away_deg`).
+- **Look-arounds and the turn to a route behind the view went on with the enemy near**: the route turn, then the turn back
+  to him once that look was 90 deg off him, kept the view swinging by the doorways.
+- The late turn itself: people turn their view onto the holder in the last 300 ms before the meeting (17 deg off to 6),
+  the bots 1 deg. But since "Watching his side" the bots watch where they believe him through the wall, 8-9 deg off him
+  300 ms before (people 17): the gap was the tail, not the median.
+
+**What changed** (the brain, `hb_view.cpp`; hand-set in `assemble_model.py`, model `2329712e2844`):
+- **A look begun during a turn (or its 100 ms refractory) is turned to once that turn ends** (`look_chain`).
+- With the enemy believed near (`travel_far`): **a sound's direction gives way 20 deg off him** once watched 600 ms
+  (`near_sound_deg`), and there are **no look-arounds** (`near_lookaround`) and **no turns to a route behind the view**
+  (`near_route_turn`): his side is watched whichever way the bot goes, the keys follow the way (`near_pull`).
+Unit tests `TestLookChain` (a hit felt at -40 deg during a turn to one at 100: the view 9 deg off it 1.2 s later, 63
+without) and `TestNearSoundGivesWay`.
+
+Bot against bot (`bc4z_*` against `bt3z_*` on dm/brownffa and dm/flag, `c4z_*` against `t3z_*` on the duel maps, the
+committed build of "Running to a far fight"; seeds 201-208, in brackets 401-408, and a third set 301-308 for the doors):
+
+| | people | before | now |
+|---|---|---|---|
+| walking into the Flag room someone holds: the entrant's view off him at the meeting, p50 / p90 / over 20 deg | 6.2 / 16 / 7% | 7.2 / 25 / 14% (6.8 / 22 / 12%; 301: 7.7 / 23 / 13%) | 6.2 / 19 / 9% (6.4 / 19 / 9%; 6.3 / 20 / 10%) |
+| ... 150 ms after: p50 / p90 / over 20 deg | 4.1 / 11 / 1% | 5.9 / 23 / 12% (6.3 / 23 / 12%) | 5.2 / 19 / 9% (5.1 / 19 / 9%) |
+| ... onto him (within 5 deg) after the meeting, p50 / p75 | 50 / 150 ms | 100 / 200 (100 / 200) | 50 / 200 (100 / 200) |
+| dm/flag, dm/brownffa: aim at the first sight | 3.9, 4.8 deg | 8.9, 10.5 (8.3, 10.6) | 7.8, 10.0 (7.7, 9.6) |
+| dm/brownffa, dm/flag hidden: view off the enemy p50 / yaw speed p50 | 17.2 / 10.2 | 18.5 / 16.2 (18.6 / 16.3) | 17.3 / 15.3 (17.0 / 15.8) |
+| ... turns of the view a hidden minute: 30-90 deg / 90 deg or more | 16.9 / 8.2 | 20.5 / 11.9 (20.7 / 11.6) | 17.7 / 9.7 (17.9 / 9.7) |
+| duel maps: an enemy heard behind faced within 1 s (`obs5.py`) | 62% | 68% (66%) | 65% (62%) |
+| duel maps: all 281 statistics within 25% | | 57% (53%) | 58% (56%) |
+
+Across both duel seed sets two statistics crossed 25% for the better (the clean first press p90 550 -> 500 ms, people 400;
+the yaw speed in sight not firing p99) and one for the worse (the press hazard the tick the enemy goes out of sight, 0.149
+-> 0.162, people 0.124); the yaw error to where the enemy will appear 500 ms before he does fell from 14.0 to 12.2 deg
+(people 10.7), and with it the turn toward him in those 500 ms (10.4 -> 9.4, people 13: there is less left to turn). Quiet
+hidden crouches rose from 2.7-2.8 to 3.0-3.1 a minute (people 2.3): the stance does not depend on the view, but the bots
+hold fire into cover a little more (with no part visible 1-2 s after 14% -> 16%, people 20%). Back and forth on
+dm/brownffa read 17-22% before and 22-24% after in three runs of four servers, but 19.3% and 18.5% in a run of eight on
+dm/brownffa alone: within two runs' spread (on dm/flag 15-21% and 14-18%). The dm/flag headlines (meetings a minute, spawn
+to first sight, approach and retreat, crouches, time off people's ground) stay where they were. In the arena 53% of 195
+statistics within 25% over 16 seeds (52% before; median 0.232 against 0.225), no stuck bout.
+
+Tried and dropped (dm/flag, seeds 201-208): the chained turn alone (the meeting 7.7 -> 7.1 deg, over 20 deg 12% either
+way: the looks kept changing); **stepping into his sight** (the cell the bot will be in 300 or 500 ms ahead sees the
+believed position's cell: a look off his side gives way to it and the view re-aims at 0.5 or 1 a tick): 6.1-6.5 deg at the
+meeting against 6.3 without, within two runs' spread. The belief's own imminence (`out.imminence`, `visibleSoon`) reads 0
+before these meetings: it models the enemy walking into the bot's view, not the bot walking into a room he holds.
+
+**Still off.** At the meeting the bots' view is still over 20 deg off the holder 9-10% of the time (people 7%) and 150 ms
+later 9% (people 1%): a turn begun late (8% of the entries are in a turn begun 100-150 ms before the meeting), a belief
+12-20 deg off (5%). Holding the room, the bots are weaker than people: their crosshair 7-8 deg off the entrant at the
+meeting (people 3), and the holder dies first 61-65% of the time (people 43%), so bot against bot the entrant wins; in
+the owner's games the owner holds, with his crosshair 2-3 deg off. Untested against the owner: the build on the VPS
+(`68df9f32`) has the door sounds fixed but not this.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1772,7 +1848,10 @@ against people's 212-234): their key runs stay short.
   holding the room sees one coming in first at a door 9-11% of the time (people 9%; 19-20% before "The bot's own doors").
   They stand over 2 s with the
   enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
-  back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.
+  back off 10.5-13.5% of firing time vs 3-4%, aim 8-10 deg off at the first sight vs 4-5 (8-11 before "The crosshair at
+  the door"), crouch 4-6 a minute vs 2-3.6. Walking into dm/flag's Flag room someone holds, the bots' view is over 20 deg
+  off him 9-10% of the time at the meeting (people 7%; 12-14% before "The crosshair at the door"), a median 6 deg like
+  people's.
 - **Hold or clear an angle (`hold_angle` dial):** wired in (it scales the pre-aim horizon and the
   hold hazard near exposures) but inert. Its sweep moves the share parked on the appearance point
   by under a sixth of the human range (0.22-0.53); the bots' parked share is set by the corner
@@ -1823,7 +1902,9 @@ against people's 212-234): their key runs stay short.
 - **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
   burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
   relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.
-- **The hidden view turns too much:** since "Watching his side" (small corrections near the enemy) p50 18-20 deg/s vs
+- **The hidden view turns too much:** on dm/brownffa and dm/flag since "The crosshair at the door" 30-90 deg turns 17.7-17.9
+  and turns of 90 deg or more 9.7 a hidden minute vs 16.9 and 8.2 (20.5-20.7 and 11.6-11.9 before), p50 15-16 deg/s vs 10.
+  Since "Watching his side" (small corrections near the enemy) p50 18-20 deg/s vs
   9-10 (dm/brownffa and dm/flag 16 before it); since "Steering with the view" (the view leads along the way) p50 16-19
   deg/s and 58-61 turns of 10 deg or more a hidden minute vs 39 (54 before). Before it: p50 13-14 deg/s vs 8, p99 645-660 vs 545 (p99
   815-860 from the turn to sounds behind, see "What the owner saw", until the bots heard which side footsteps come from); before it p50 11.5-11.8 deg/s (16-17
@@ -1907,6 +1988,9 @@ against people's 212-234): their key runs stay short.
   way is used whatever keys are held. All hand-set on the practice maps and the owner's game (see "Watching his side").
 - On maps with a recorded prior the engine's path goes to a point 384 u along the route over the moves people made
   (`via_dist`), not straight to the goal by the navmesh's shortest way. Hand-set on dm/flag (see "The way people go").
+- A look begun during a turn is turned to once that turn ends; with the enemy believed near a sound's direction gives way
+  20 deg off him after 600 ms, and there are no look-arounds and no turns to a route behind the view. Hand-set on dm/flag
+  (see "The crosshair at the door").
 - After the bot opens a door the keys are the door's until it is through (`g_humanbot_door_go` 25 deg, `_hold` 48 u), the
   lean goes toward the way through while the view is off it, and the door look aims at the door's nearest part from
   128 u ahead (`_ahead`). Hand-set on dm/flag (see "Through the doors").
