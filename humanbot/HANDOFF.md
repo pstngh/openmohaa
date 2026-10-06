@@ -32,7 +32,8 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.23; 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
+  statistics (median relative error 0.23; 52% over 16 seeds before and after "Running to a far fight" (51% and 0.23 on
+  seeds 1-8 with it); 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
   bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
   "Hits from an unseen enemy" and before "The lean follows the
@@ -1660,6 +1661,71 @@ Tried: re-aiming a hidden look near the enemy more readily (`near_reaim_hazard` 
 200-1000 ms (offline, `smooth.py`): no better (its large errors are the enemy believed in another place for a while,
 not noise).
 
+## Running to a far fight (2026-10-06)
+
+The owner's games on dm/flag against strafer and stopper bots (`live7` to `live11`): with the owner out of the bot's sight
+the bot held forward 64-71% of the time it ran (the owner 82-92%), a plain strafe 17-24% (6-11%), and ran at a median
+159-168 u/s (202-239); the presser bot of `live12` ran like the owner. Taken apart on the captures of 99993f11 (`bx1z_*`,
+`x1z_*`; git-ignored scripts in `humanbot/cache/move_wip/s16/`: `gait.py` per person and style family, `dist.py` and
+`waybins.py` by the enemy's distance and the way taken off the view, `trans.py` and `rate.py` key changes, `diagwall.py`
+and `fwdwhy.py` what makes the forward key change, `excess.py` and `strafes.py` where the plain strafes are, `tr.py` tick
+traces):
+- **People run to a far fight whatever their style.** On dm/brownffa and dm/flag the recorded strafer person holds a plain
+  strafe 29% of the time he runs within 500 u of a hidden enemy (forward 59%, as in fights), 20% at 500-800 u and 10% at
+  800-1200 u (forward 82%); the owner's friend 27%, 17% and 14%. The strafer and stopper bots strafed 22-26% from 500 u
+  on, little less than within 500 u (28-29%): the diagonal habit, a style measured in fights (`fwd_diag_fight`: the strafer and stopper styles let go of
+  forward out of a diagonal four times as readily and take it back at a quarter of the rate), acted just as fully on the way
+  to a far fight. Within 500 u the bots strafed as people.
+- **The wall reflex let go of forward out of a diagonal.** Running a forward diagonal with a wall within reach along it and
+  forward's own direction blocked too, people 500 u or more from a hidden enemy let go of forward 49 times per 1000 ticks (26
+  in the open); the reflex made the bots' 273 (and 330-460 near the enemy and in sight, people 124-148). About a third of
+  the bots' plain strafes far from the enemy began so; their forward key went on and off 1.7-1.8 times a second (people 0.6-1.2).
+- Not the view: the way the bots went over the next second lay off their view as often as people's; within each angle
+  the bots strafed two to three times as much.
+
+**What changed** (the brain, `hb_movement.cpp`; the model is unchanged): with the enemy hidden and believed beyond 500 u,
+toward 900 u (`Mover::FarRun`, the ramp of the route pull's growth `nav_far_near`/`nav_far_dist`), the diagonal habit fades
+to nothing, and the reflex's push to let go of forward out of a forward diagonal fades to nothing too: forward is then let
+go of there as fitted (the fitted wall terms; 108 per 1000 ticks at the far end). Near a hidden enemy and in sight both act
+as before: the fight style dials are calibrated with them, and near the enemy the bots strafed as people. Unit tests in
+`TestMovement` (a diagonal at a wall far from the enemy keeps forward, near it does not) and `TestHiddenDistance` (a low
+diagonal habit strafes 41% at 300 u, 13% at 1000 u like no habit).
+
+Bot against bot (`bt3z_*` against `bx1z_*` on dm/brownffa and dm/flag, `t3z_*` against `x1z_*` on the duel maps, the
+committed build of "The bot's own doors"; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/brownffa, dm/flag, running 700-1000 u from a hidden enemy: forward held / plain strafe | 82% / 11% | 68% / 20% (68% / 21%) | 74% / 15% (72% / 16%) |
+| ... the strafer bots 700 u or more away / the stopper bots | 82% / 11% (strafer), 73% / 13% (stopper), 73% / 15% (the owner's friend) | 67% / 21%, 62% / 25% (66% / 23%, 69% / 20%) | 72% / 17%, 72% / 17% (71% / 18%, 75% / 15%) |
+| ... the strafer / stopper bots 500 u or more away: plain strafes of 250 ms or more | 14% / 8% | 16% / 18% (17% / 15%) | 12% / 13% (13% / 12%) |
+| ... a forward diagonal at a wall blocking forward too, 900 u or more away: forward let go per 1000 ticks | 14 | 228 (197) | 133 (151) |
+| ... all hidden running: forward held / plain strafe | 77% / 15% | 66.5% / 22.6% (65.4% / 23.6%) | 68.9% / 20.2% (66.5% / 22.1%) |
+| ... net distance in 2 s hidden / ran 300 u in 3 s, back within 100 u | 267 u / 9% | 252 / 21.7% (250 / 19.0%) | 259 / 18.0% (245 / 20.3%) |
+| ... touching a wall | 9.1% | 7.5% (7.2%) | 7.4% (7.7%) |
+| duel maps: hidden plain strafe / in a fight | 26% / 58% | 23.4% / 54.8% (21.1% / 47.9%) | 23.0% / 55.1% (19.9% / 48.7%) |
+| duel maps: all 281 statistics within 25% | | 55% (55%) | 57% (53%) |
+
+No statistic crossed 25% for the better or the worse in both duel seed sets; the dm/flag and dm/brownffa headlines (meetings a
+minute, spawn to first sight, aim at the first sight, fight approach, crouches) and the owner's checks (`obs5.py`) stay where
+they were. In the arena 52% of 195 statistics within 25% over 16 seeds of 900 s before and after (median 0.230 and 0.225;
+seeds 1-8 53% and 51%, 9-16 53% and 52%), no stuck bout; there the fights moved toward the diagonal (in sight firing 46% ->
+48%, people 31%; z 2.9 over 16 seeds), the bots coming into them from straighter runs, which the maps' fights do not show.
+
+Tried and dropped (dm/brownffa and dm/flag, seed 201): the reflex's logit halved or quartered everywhere (the bots ran into
+walls more, 30% of their far running within reach of one against 24%, and strafed more near the enemy); the reflex never
+letting go of forward out of a diagonal at any distance and in sight (hidden plain strafe 17-19%, but the duel maps' hidden
+plain strafe 16.5% against people's 26%, fights strafed less, and the arena 48% of 195); the route taking forward away only
+with a deadband of 0.3 (one point on dm/flag, the duel maps' hidden strafe further below people's); the habit's fade from 700
+to 1100 u (lost a third of the gain).
+
+**Still off.** Within 400-700 u of a hidden enemy, where the bot spends half its hidden running in the owner's games, the
+strafer and stopper bots still hold a plain strafe about 20% of the time (people 15%, the owner 5-13%), and their forward
+key still flickers (1.7-1.8 changes a second against 0.6-1.2): the route pull and the walls change keys where people steer
+with the mouse. On the duel maps people strafe more while hidden than the bots (26% against 20-23%); there, starting the
+fade nearer the enemy would cost the duel maps. The bots' speed while running hidden is about as before (p50 196-198 u/s
+against people's 212-234): their key runs stay short.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1698,7 +1764,9 @@ not noise).
   dm/brownffa and 11.2-11.4 on dm/flag vs 13.5 and 15.7, and take 2.5-2.7 and 2.9-3 s from a spawn to the first sight vs
   2.3 and 2.1. With the enemy hidden they run back and forth (21-25% of the 3 s stretches with 300 u run end within 100 u
   of the start since "Watching his side", 25% before, people 9%), most of it near the enemy, at two corridor mouths on
-  dm/brownffa and at dm/flag's Flag pre-CR door, and hold forward 63-65% of the time they move (77%); on dm/flag under 1%
+  dm/brownffa and at dm/flag's Flag pre-CR door, and hold forward 67-69% of the time they move (77%; 65-66% before
+  "Running to a far fight"; within 400-700 u of the enemy the strafer and stopper bots still strafe about 20% of the time
+  they run, people 15%, the owner 5-13%); on dm/flag under 1%
   of their time is where people never stood (the navmesh's ring between the spawns, 7-11% before "The way people go").
   Through dm/flag's doors into the Flag room the bots are 80% through within 3 s of the press (people 70%), and the one
   holding the room sees one coming in first at a door 9-11% of the time (people 9%; 19-20% before "The bot's own doors").
@@ -1820,7 +1888,8 @@ not noise).
   strength (`g_humanbot_wall_steer` 0.5, 1 before): see "Back and forth with the enemy hidden".
 - With the enemy hidden the route pull grows with its believed distance (x1 within 500 u, x3 from 900 u: `nav_far_*`,
   hand-set on all six maps, see "The practice areas of the objective maps") and gives way while the bot presses into a
-  wall. A bot travelling with its route into a wall it touches, that has held no key for a second, takes the open
+  wall. Over the same ramp the diagonal habit (a style measured in fights) fades to nothing, and so does the wall reflex's
+  push to let go of forward out of a forward diagonal (see "Running to a far fight"). A bot travelling with its route into a wall it touches, that has held no key for a second, takes the open
   chord nearest the route (`UNSTICK_*`, hand-set). The keys' change rates with the enemy hidden have a fitted distance
   term (`hid_dist_logit`).
 - A person needs 10 duel minutes and a capture row 5 to stand for a style (the data repository's rule); shorter games

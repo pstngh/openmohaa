@@ -186,12 +186,20 @@ float Mover::WallMargin(const MoveInput& in, int chord) const
 // into a diagonal there, 217 per 1000 ticks, and stop 32), and a strafe into a wall adds forward when the front
 // diagonal on its side is open (people add forward in 22% of their key changes there and stop in 28%; letting go,
 // the bots stopped in 49%, and they stood at walls 5% of their hidden time against people's 3%).
+// Running to a far fight (FarRun) a forward diagonal into a wall lets go of forward less readily, at the far end not
+// for the wall at all: people running a diagonal at a wall keep forward and steer with the mouse (on dm/brownffa and
+// dm/flag 500 u or more from a hidden enemy, with forward's own direction blocked too, they let go of forward 49 times
+// per 1000 ticks and 26 in the open; the reflex made the bots' 273, and their running a weave of diagonals and sideways
+// steps). Forward is then let go of as fitted (the fitted wall terms: 108). Near the enemy and in sight the reflex acts
+// as before: the fight style dials are calibrated with it (there too it lets go of forward three times as readily as
+// people, 330-460 against 124-148, but near a hidden enemy the bots then strafed as much as people).
 void Mover::Reflex(const MoveInput& in, int veto)
 {
-    m_reflexSide = false;
-    m_reflexFwd  = false;
-    m_slideSide  = 0;
-    m_slideFwd   = false;
+    m_reflexSide    = false;
+    m_reflexFwd     = false;
+    m_reflexDiagFwd = false;
+    m_slideSide     = 0;
+    m_slideFwd      = false;
     if (!WallAhead(in, MakeChord(m_fwd, m_side))) {
         return;
     }
@@ -206,6 +214,7 @@ void Mover::Reflex(const MoveInput& in, int veto)
         } else {
             m_reflexFwd = true;
         }
+        m_reflexDiagFwd = m_reflexFwd && m_fwd == 1;
     } else if (m_fwd == 1) {
         float best = 0.0f;
         for (int s = -1; s <= 1; s += 2) {
@@ -304,6 +313,17 @@ float Mover::NavPull(const MoveInput& in) const
         k *= 1.0f + (m.navFarMult - 1.0f) * Clamp((in.enemyDist - m.navFarNear) / (m.navFarDist - m.navFarNear), 0.0f, 1.0f);
     }
     return k;
+}
+
+// How far the bot is running to a far fight: 0 in sight or with the enemy believed within navFarNear, 1 from navFarDist
+// on with the enemy hidden (the ramp of the route pull's growth: people run to a far fight and strafe and peek near one).
+float Mover::FarRun(const MoveInput& in) const
+{
+    const MovementModel& m = *m_p;
+    if (!in.enemyKnown || (in.ctx != CTX_HIDDEN_NOFIRE && in.ctx != CTX_HIDDEN_FIRE) || m.navFarDist <= m.navFarNear) {
+        return 0.0f;
+    }
+    return Clamp((in.enemyDist - m.navFarNear) / (m.navFarDist - m.navFarNear), 0.0f, 1.0f);
 }
 
 void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, int veto, double u1, double u2, int& side, float& p)
@@ -416,7 +436,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
             z += ChordWall(m.fwd.diagWallLogit, m, in, MakeChord(m_fwd, side));
         }
         if (wallAhead) {
-            z += m.wallReflexLogit;
+            z += m.wallReflexLogit * (m_reflexDiagFwd ? 1.0f - FarRun(in) : 1.0f);
         }
         if (in.wallPressMs > 0.0f) {
             z += m.wallPressureLogit * Clamp(in.wallPressMs / 350.0f, 0.0f, 1.0f);
@@ -438,9 +458,13 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     if (m_fwd != 1) {
         z += m.fwdCtxLogit[in.ctx];
     }
-    // the diagonal habit keeps forward held while strafing
+    // the diagonal habit keeps forward held while strafing. A style measured in fights, it fades running to a far fight:
+    // people run to it whatever their style (on dm/brownffa and dm/flag at 800-1200 u from a hidden enemy the strafer
+    // people hold a plain strafe 10% of the time they move and forward 82%, within 500 u 29% and 59% as in fights; the
+    // bots of their style 22% and 66% there, 28% and 61% within 500 u; the presser bots ran as the presser person)
+    const float diagLogit = style.diagLogit * (1.0f - FarRun(in));
     if (m_fwd == 1 && side != 0) {
-        z -= 0.5f * style.diagLogit;
+        z -= 0.5f * diagLogit;
     }
     if (in.navValid && in.urgency > 0.0f) {
         z += m.navSwitchLogit * NavPull(in) * (NavGain(in, false, veto, side) - m.navDeadband);
@@ -483,7 +507,7 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     p = Sigmoid(z);
     if (rateHabit && wsum > 0.0 && w[2] > 0.0) {
         const double q  = w[2] / wsum;
-        const double kh = std::exp(0.5 * style.diagLogit);
+        const double kh = std::exp(0.5 * diagLogit);
         p               = static_cast<float>(std::min(0.999, p * (q * kh + (1.0 - q))));
         w[2] *= kh;
     }

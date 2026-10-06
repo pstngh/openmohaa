@@ -214,6 +214,43 @@ static void TestMovement(const hb::ModelBundle& b)
     }
     HB_REPORT("diagonal kept one more tick down a corridor: %.2f (in the open %.2f)", keptCorridor / 2000.0, keptOpen / 2000.0);
     HB_CHECK(keptCorridor > keptOpen - 100);
+    // running to a far fight (the enemy hidden 900 u or more away) a forward diagonal at a wall that blocks forward's own
+    // direction too keeps forward, and with both key directions blocked lets go of the strafe key only: people running a
+    // diagonal at a wall keep forward and steer with the mouse (they let go of it 49 times per 1000 ticks there, the
+    // reflex made the bots' 273 and their running a weave). Near the enemy the reflex lets go of forward as before
+    hb::MoveInput diagWall = corridor;
+    diagWall.enemyDist     = 1000.0f;
+    diagWall.clearance[6]  = 30.0f;   // forward-left: reached in 125 ms
+    diagWall.clearance[7]  = 30.0f;   // forward too
+    diagWall.clearance[3]  = 128.0f;  // left open
+    hb::MoveInput diagBoxed = diagWall;
+    diagBoxed.clearance[3]  = 30.0f;
+    hb::MoveInput diagNear  = diagWall;
+    diagNear.enemyDist      = 350.0f;
+    int fwdKept = 0, fwdKeptBoxed = 0, sideKeptBoxed = 0, fwdKeptNear = 0;
+    for (int i = 0; i < 2000; i++) {
+        hb::Mover a, x, n;
+        a.Init(&reflex);
+        x.Init(&reflex);
+        n.Init(&reflex);
+        a.SetKeys(1, -1);
+        x.SetKeys(1, -1);
+        n.SetKeys(1, -1);
+        a.Step(diagWall, style, rm, rs, out);
+        fwdKept += hb::ChordFwd(out.chord) == 1;
+        x.Step(diagBoxed, style, rm, rs, out);
+        fwdKeptBoxed += hb::ChordFwd(out.chord) == 1;
+        sideKeptBoxed += hb::ChordSide(out.chord) == -1;
+        n.Step(diagNear, style, rm, rs, out);
+        fwdKeptNear += hb::ChordFwd(out.chord) == 1;
+    }
+    HB_REPORT("diagonal at a wall ahead, running to a far fight: forward kept one more tick %.2f (near the enemy %.2f); with "
+              "both key directions blocked forward %.2f, the strafe %.2f",
+              fwdKept / 2000.0, fwdKeptNear / 2000.0, fwdKeptBoxed / 2000.0, sideKeptBoxed / 2000.0);
+    HB_CHECK(fwdKept > 1800);
+    HB_CHECK(fwdKeptNear < 1000);
+    HB_CHECK(fwdKeptBoxed > 1800);
+    HB_CHECK(sideKeptBoxed < 1000);
     // forward into a wall with the front-left diagonal open: the bot slides along it (adds the strafe) and keeps
     // forward, where people turn forward into a diagonal; with no diagonal open it lets go
     hb::MoveInput ahead = corridor;
@@ -462,6 +499,33 @@ static void TestHiddenDistance(const hb::ModelBundle& b)
     HB_REPORT("enemy hidden 200 u away: forward held %.2f, strafing %.2f; 900 u away: %.2f, %.2f", fNear, sNear, fFar, sFar);
     HB_CHECK(fFar > fNear + 0.05);
     HB_CHECK(sFar < sNear);
+    // the diagonal habit, a style measured in fights, fades running to a far fight (whole within nav_far_near of a hidden
+    // enemy, gone from nav_far_dist): people of every style run to it (the strafer people hold a plain strafe 10% of
+    // the time they move 800-1200 u from a hidden enemy on dm/brownffa and dm/flag, 29% within 500 u)
+    auto plain = [&](const hb::StyleOffsets& st, float dist) {
+        hb::Mover mv;
+        mv.Init(&b.shared.movement);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = dist;
+        in.onGround   = true;
+        hb::Rng        rm(63), rs(64);
+        hb::MoveOutput out;
+        int            n = 0;
+        for (int i = 0; i < 300000; i++) {
+            mv.Step(in, st, rm, rs, out);
+            n += hb::ChordFwd(out.chord) == 0 && hb::ChordSide(out.chord) != 0;
+        }
+        return n / 300000.0;
+    };
+    hb::StyleOffsets lowDiag;
+    lowDiag.diagLogit = -2.7f;
+    const double lowNear = plain(lowDiag, 300.0f), lowFar = plain(lowDiag, 1000.0f), pooledFar = plain(style, 1000.0f);
+    HB_REPORT("plain strafe, enemy hidden: a low diagonal habit %.3f at 300 u, %.3f at 1000 u (no habit %.3f)", lowNear,
+              lowFar, pooledFar);
+    HB_CHECK(lowFar < lowNear - 0.03);
+    HB_CHECK(std::fabs(lowFar - pooledFar) < 0.02);
 }
 
 // A route that turns: every second it takes a new bearing within 90 deg of the view. A key changes for the route once
