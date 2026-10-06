@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-05.
+For a Claude Code session picking this work up. The state is as of 2026-10-06.
 
 ## What this is
 
@@ -40,7 +40,7 @@ Verified:
   most in the arena, 51% before "Corners and the lost enemy", 55% and 0.22 before "Travel and the hidden view", 58%
   and 0.18 before "Movement on the maps", 60% before the encounter changes); eight seeds of 900 s at 12 usercmds a
   frame, model `80a1cf4fbb2d` of 2026-10-05 on a Linux workstation (the same results with `4168220cf225`: "The way people
-  go" acts in the engine only). The arena is not the maps: in its open pillars
+  go" acts in the engine only, as does "The bot's own doors"). The arena is not the maps: in its open pillars
   the stronger route coupling makes the bots cover more ground than people (see "Encounters"), since
   the wall reflex slides along walls they no longer stop at pillars (see "Movement on the maps"), and
   a strafe that meets a pillar now runs on along it on the diagonal, so in fights the pooled bot
@@ -1611,6 +1611,55 @@ deg, people 2.1; few samples, it moved as much before) and fire held with no par
 0.14, people 0.20); none for the better. dm/brownffa and dm/flag back and forth 20.7% (20.5%), before 21.9% (19.6%); the
 owner's checks the same.
 
+## The bot's own doors (2026-10-06)
+
+The owner's game on `56727d03` (dm/flag, one presser bot: reaction 102 ms, crouches 2.1 and jumps 0.3 a minute; 00:33-00:42
+UTC, the owner as "n", no chat remarks; `move_wip/s9/live12/`, `eval/cache/bot/live12_own`): the owner 60 kills, the bot 20.
+The door stops were gone (a stop in the 3 s before walking into the Flag room 4%, 33-41% in the games before; people 8%)
+and the respawn hunch worked (250 ms after a respawn its belief over 30 deg off the owner 5%, 16-23% before). It lost at
+the doors: the owner had it on screen first by 150 ms or more at 25% of its walks into the room (26% in the game before,
+people 8%), and when they had each other on screen at once (36 of 56) the owner hit first 83%: the bot's crosshair was
+13 deg off him at that moment and 11 deg 150 ms later, the owner's 3. When the owner's friend walked into the room the
+owner held (the recorded duel) the friend's crosshair was 5 deg off and the owner hit first 57%. Out of sight the presser
+ran like the owner (forward held 80% against 82%, a plain strafe 12% against 11%): the slow sideways running is the
+strafer and stopper bots'.
+
+Taken apart (git-ignored scripts in `humanbot/cache/move_wip/s15/`: `entryview.py` the entrant's view, belief, view
+target and lag from 1.5 s before the meeting, `trace.py` the entries tick by tick, `jumps.py` and `jumps2.py` what moved
+the belief, from a debug build that reuses three diag columns, `debug_diag.diff`; `s14/doorfight.py` the first second
+after the meeting): in the last 300 ms before the meeting people turn their view onto the one holding the room (15 deg
+off to 5), the bots 1-3 deg; their view chased a belief whose direction jumped more than 20 deg 70-80 times a hidden
+minute. Most jumps came with a sound, as often away from the enemy as toward him, and in the half second after the bot's
+own use press a third of the sounds left its belief within 150 u of itself: a door's sounds (`Door::Open`, `OpenEnd`,
+`Close`, `CloseEnd` broadcast an AI event) came from the door, and the belief, which gives each sound to the enemy that
+explains it best, put the enemy at the door the bot was opening, just as it came into the room he held.
+
+**What changed** (the engine glue): `Door::Open` tells the glue who opened the door (`G_HumanBotDoorOpened`), and the
+door's sounds come from that player (`G_HumanBotAIEvent`), so a bot does not hear the doors it opens itself as the
+enemy, as people know the doors they open; a door the enemy opens is heard as before.
+
+Bot against bot (`bx1z_*` against `bw3z_*` on dm/brownffa and dm/flag, `x1z_*` against `w3z_*` on the duel maps, the
+committed build of "Back from the dead"; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| dm/flag hidden within 1200 u: the belief over 20 deg off within 300 ms of a sound (debug builds, seeds 201-208) | | 20% | 9% |
+| walking into the Flag room someone holds: the holder has it on screen 150+ ms first, anywhere / at a door | 8% / 9% | 14% / 18% (15% / 19%) | 7% / 9% (8% / 11%) |
+| ... the entrant's view off the holder at the meeting p50 / over 30 deg | 7 / 1% | 9 / 14% (9 / 13%) | 8 / 5% (7 / 5%) |
+| dm/flag: sightings a minute / aim off at the first sight | 15.7 / 3.9 deg | 12.0 / 10.1 (11.7 / 9.7) | 12.6 / 8.6 (12.9 / 8.4) |
+| dm/brownffa, dm/flag hidden: the view's yaw speed p50 / the view off the enemy p50 | 10.2 / 17.2 | 17.4 / 20.1 (17.6 / 19.2) | 15.4 / 18.4 (16.0 / 18.3) |
+| ... net distance in 2 s / ran 300 u in 3 s, back within 100 u | 267 u / 9% | 232 / 20.7% (216 / 20.5%) | 252 / 21.7% (250 / 19.0%) |
+| duel maps: all 281 statistics within 25% | | 55% (54%) | 55% (55%) |
+
+No statistic crossed 25% either way in both duel seed sets (the duel maps' doors are off the routes); the owner's checks
+(`obs5.py`) stay where they were; dm/brownffa's aim at the first sight 10.3 -> 11.3 deg (10.4 -> 10.7), within two
+runs' spread. The arena has no doors and does not run the glue.
+
+Tried: re-aiming a hidden look near the enemy more readily (`near_reaim_hazard` 0.15 -> 0.35 and 0.6, dm/flag seeds
+201-208): the entrant's view at the meeting 7 -> 6-7 deg, over 20 deg 12% either way; dropped. The belief smoothed over
+200-1000 ms (offline, `smooth.py`): no better (its large errors are the enemy believed in another place for a while,
+not noise).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1651,8 +1700,8 @@ owner's checks the same.
   of the start since "Watching his side", 25% before, people 9%), most of it near the enemy, at two corridor mouths on
   dm/brownffa and at dm/flag's Flag pre-CR door, and hold forward 63-65% of the time they move (77%); on dm/flag under 1%
   of their time is where people never stood (the navmesh's ring between the spawns, 7-11% before "The way people go").
-  Through dm/flag's doors into the Flag room the bots are 80% through within 3 s of the press (people 70%), but the one
-  holding the room still sees one coming in first at a door 19-20% of the time (people 9%; see "Through the doors").
+  Through dm/flag's doors into the Flag room the bots are 80% through within 3 s of the press (people 70%), and the one
+  holding the room sees one coming in first at a door 9-11% of the time (people 9%; 19-20% before "The bot's own doors").
   They stand over 2 s with the
   enemy hidden 0.26-0.8 times a minute vs 0.3 (before "Steering with the view"). Fights there:
   back off 10.5-13.5% of firing time vs 3-4%, aim 14-16 deg off at the first sight vs 4-5, crouch 4-6 a minute vs 2-3.6.

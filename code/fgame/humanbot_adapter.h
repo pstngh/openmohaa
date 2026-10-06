@@ -124,6 +124,8 @@ void G_HumanBotObserveParts(Player *viewer, Player *target, int *visibleParts, i
 void G_HumanBotEmitSound(Entity *source, const Vector& origin, int soundType, float radius);
 // G_BroadcastAIEvent: footsteps, impacts, doors (weapon fire comes from Weapon::Shoot).
 void G_HumanBotAIEvent(Entity *source, const Vector& origin, int aiEventType, float radius);
+// Door::Open: who opened the door (its sounds are that player's).
+void G_HumanBotDoorOpened(Entity *door, Entity *opener);
 // Player::Killed: the kill feed every player sees.
 void G_HumanBotDeath(Player *victim);
 void G_HumanBotDamage(

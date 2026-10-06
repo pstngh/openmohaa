@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "item.h"
 #include "actor.h"
 #include "player.h"
+#include "humanbot_adapter.h"
 
 Event EV_Door_OpenStartSound
 (
@@ -698,6 +699,7 @@ void Door::Open(Event *ev)
 
     previous_state = state;
     SetState(STATE_OPENING);
+    G_HumanBotDoorOpened(this, other);
 
     e = new Event(EV_Door_DoOpen);
     e->AddEntity(other);

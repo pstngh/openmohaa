@@ -146,6 +146,8 @@ static bool FamilyWeights(float w[hb::FAMILY_COUNT])
 static std::vector<HbSoundEvent>  s_soundsPending, s_soundsTick;
 static std::vector<HbDamageEvent> s_damagePending, s_damageTick;
 static std::vector<int>           s_deathsPending, s_deathsTick;
+// who last opened each door (entity numbers): its sounds are that player's doing
+static std::map<int, int>         s_doorOpener;
 
 static const float SOUND_MAX_RANGE = 4000.0f;
 static const int   MAX_FALL_HEIGHT = 400;   // like the stock bots' paths
@@ -1251,11 +1253,13 @@ void G_HumanBotInit(void)
     s_damageTick.clear();
     s_deathsPending.clear();
     s_deathsTick.clear();
+    s_doorOpener.clear();
 }
 
 void G_HumanBotShutdown(void)
 {
     HB_WorldReset();
+    s_doorOpener.clear();
     s_soundsPending.clear();
     s_soundsTick.clear();
     s_damagePending.clear();
@@ -1413,6 +1417,13 @@ void G_HumanBotEmitSound(Entity *source, const Vector& origin, int soundType, fl
     s_soundsPending.push_back(s);
 }
 
+void G_HumanBotDoorOpened(Entity *door, Entity *opener)
+{
+    if (door) {
+        s_doorOpener[door->entnum] = opener && opener != world ? opener->entnum : -1;
+    }
+}
+
 void G_HumanBotAIEvent(Entity *source, const Vector& origin, int aiEventType, float radius)
 {
     // gunfire comes from every Weapon::Shoot instead (the AI fire event is throttled)
@@ -1422,7 +1433,18 @@ void G_HumanBotAIEvent(Entity *source, const Vector& origin, int aiEventType, fl
     if (aiEventType >= AI_EVENT_AMERICAN_VOICE && aiEventType <= AI_EVENT_GERMAN_URGENT) {
         return;
     }
+    const size_t before = s_soundsPending.size();
     G_HumanBotEmitSound(source, origin, SoundTypeFromAIEvent(aiEventType), radius);
+    // A door's sounds (it starts and stops opening, then closing) are the doing of whoever opened it, as people know
+    // of the doors they open themselves. Taken for the enemy's, the bot's own door put him where the bot stood: on
+    // dm/flag a third of the sounds in the half second after its use press left its belief within 150 u of itself, as
+    // it came into the room the enemy held (2026-10-06)
+    if (s_soundsPending.size() > before && source && source->IsSubclassOfDoor()) {
+        const auto it = s_doorOpener.find(source->entnum);
+        if (it != s_doorOpener.end()) {
+            s_soundsPending.back().sourceId = it->second;
+        }
+    }
 }
 
 void G_HumanBotDamage(
