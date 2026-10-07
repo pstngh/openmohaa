@@ -967,6 +967,44 @@ static void TestLeanWall(const hb::ModelBundle& b)
     HB_CHECK(edge > flat0 + 0.1);
 }
 
+// People lean to see past what hides the enemy: away from his side while he is hidden, toward him on screen.
+static void TestLeanEnemy(const hb::ModelBundle& b)
+{
+    hb::MovementModel mm = b.shared.movement;
+    mm.leanEnemyLogit    = {-1.0f, -1.0f, 1.0f, 1.0f, 0.0f};
+    hb::StyleOffsets style;
+    auto toRight = [&](int ctx, float bearing) {
+        hb::Mover m;
+        m.Init(&mm);
+        hb::MoveInput in;
+        in.ctx          = ctx;
+        in.enemyKnown   = true;
+        in.enemyBearing = bearing;
+        in.enemyDist    = 600.0f;
+        in.onGround     = true;
+        hb::Rng        r1(51), r2(52);
+        hb::MoveOutput out;
+        int            right = 0, leaned = 0;
+        for (int i = 0; i < 200000; i++) {
+            m.Step(in, style, r1, r2, out);
+            leaned += out.lean != 0;
+            right += out.lean == 1;
+        }
+        return right / double(std::max(leaned, 1));
+    };
+    // the enemy 45 deg to the right of the view (the bearing is + to the left)
+    const double hid = toRight(hb::CTX_HIDDEN_NOFIRE, -45.0f), los = toRight(hb::CTX_LOS_NOFIRE, -45.0f);
+    const double hidLeft = toRight(hb::CTX_HIDDEN_NOFIRE, 45.0f), ahead = toRight(hb::CTX_HIDDEN_NOFIRE, -1.0f);
+    mm.leanEnemyLogit.clear();
+    const double hid0 = toRight(hb::CTX_HIDDEN_NOFIRE, -45.0f), los0 = toRight(hb::CTX_LOS_NOFIRE, -45.0f);
+    HB_REPORT("the enemy 45 deg to the right, leans to the right: hidden %.2f (no term %.2f; him on the left %.2f, "
+              "straight ahead %.2f), in sight %.2f (no term %.2f)", hid, hid0, hidLeft, ahead, los, los0);
+    HB_CHECK(hid < hid0 - 0.1);
+    HB_CHECK(hidLeft > hid0 + 0.1);
+    HB_CHECK(std::fabs(ahead - hid0) < 0.03);
+    HB_CHECK(los > los0 + 0.1);
+}
+
 // Leaning, with the strafe turned against the lean: the style sets how readily the lean follows it across and how
 // readily it is let go of (the presser people flip it with the strafe, the strafers let go of it, the stoppers mostly
 // keep it); the lean habit no longer acts there.
@@ -1812,6 +1850,7 @@ int main()
     TestLookChain(b);
     TestNearSoundGivesWay(b);
     TestLeanWall(b);
+    TestLeanEnemy(b);
     TestLeanSwitch(b);
     TestStrafeMemory(b);
     TestHiddenDistance(b);

@@ -149,6 +149,12 @@ struct MovementModel {
     float              leanEdgeOpen  = 96.0f;
     float              leanWallLogit = 0.0f;
     float              leanEdgeLogit = 0.0f;
+    // the side a lean takes by the enemy's side (empty = off): per context, the logit of leaning toward him (+) or away
+    // (-) while he is known leanEnemyMinDeg-leanEnemyMaxDeg off the view (seen, or where the belief has him while hidden):
+    // people lean to see past what hides him, away from his side, and toward him once he is on screen
+    std::vector<float> leanEnemyLogit;
+    float              leanEnemyMinDeg = 3.0f;
+    float              leanEnemyMaxDeg = 150.0f;
     std::vector<float> sideCtxLogit;      // calibrated per-context strafe habit (press from neutral +)
     std::vector<float> fwdCtxLogit;       // calibrated per-context forward habit (toward forward +)
     float              reverseLogit = 0.0f;  // calibrated shift of reversing (vs letting go) a strafe

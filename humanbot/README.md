@@ -67,7 +67,11 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      lets go of the key that leaves the more open direction, adds a strafe to forward or forward to
      a strafe so the bot runs along the wall on the diagonal, as people do (a diagonal down a
      corridor is left alone). A bot that wants to go somewhere but has stood a second with its route
-     running into a wall it touches takes the open direction nearest its route.
+     running into a wall it touches takes the open direction nearest its route. The side a lean takes
+     follows the strafe, the walls beside (away from a flat wall, around an edge just ahead) and the
+     enemy: with him out of sight, away from the side the bot believes him on, which shows more of
+     what lies past the corner hiding him (people lean that way three times in four), and toward him
+     once he is on screen.
    - `hb_nav`: where to go (hunt, hold, cover, also in a fight with little left in the clip, as people
      leave the enemy's sight then, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys

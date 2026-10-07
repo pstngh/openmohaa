@@ -124,6 +124,8 @@ private:
     void  StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng);
     // How strongly the walls on one side (-1 left, +1 right) draw a lean to it (logit; see MovementModel).
     float LeanWallLogit(const MoveInput& in, int side) const;
+    // How strongly the enemy's side draws a lean to the right (logit; - with him on the left; see MovementModel).
+    float LeanEnemyLogit(const MoveInput& in) const;
     void  StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng, MoveOutput& out);
 
     float SpawnLogit(const Table& t, int row, int age) const;

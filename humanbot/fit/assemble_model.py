@@ -53,7 +53,16 @@ def build():
                      # net +2.5 (2.74: around an edge 61%, 3.74: 63%, people 77%; edges a quarter second or longer
                      # 79% vs 76%: people lean toward the opening before they reach it)
                      "wall": {**mv["lean"]["wall"], "wall_logit": round(3.0 * mv["lean"]["wall"]["wall_logit"], 4),
-                              "edge_logit": 3.74}},
+                              "edge_logit": 3.74},
+                     # The lean's side by the enemy's side (fit_movement.fit_lean_enemy: -0.61 away from him hidden,
+                     # +0.18 toward him in sight, with the chain and the walls as offset). Fitted on his true position
+                     # and acting on the bot's belief of it, it moved the bots' hidden leans away from him from 52-58%
+                     # to 55-62% on practice-map captures (2026-10-07; people 75-78%). Two and a half times the fitted
+                     # term gives 61-68%; four times 66-72%, but then a bot strafing toward his side leans against its
+                     # own strafe 47-52% of the time (people 27-37%, x2.5 39-43%): the rest of the gap is the strafe
+                     # itself (people strafe away from his side 56-64% of hidden lean time, the bots 41%)
+                     "enemy": {**{k: mv["lean"]["enemy"][k] for k in ["min_deg", "max_deg"]},
+                               "logit": [round(2.5 * x, 4) for x in mv["lean"]["enemy"]["logit"]]}},
             "stance": {k: {kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "hold_pmf", "release_age_edges",
                                                 "release_hazard", "up_age_edges", "up_hazard"] if kk in v}
                        for k, v in mv["stance"].items()},

@@ -1813,6 +1813,67 @@ meeting (people 3), and the holder dies first 61-65% of the time (people 43%), s
 the owner's games the owner holds, with his crosshair 2-3 deg off. Untested against the owner: the build on the VPS
 (`68df9f32`) has the door sounds fixed but not this.
 
+## The side a lean takes (2026-10-07)
+
+The owner (2026-10-07, the first of three requests): "study the 'logic' of how real players lean, whether in fights and
+running around ... entering flag room from pre control, you would mainly lean right, but entering flag from inside door
+2/alpha, you would lean left, the goal is always to see further around the corner ... when youre fighting you just
+oscillate the two". Measured on every human duel (the six duel and practice maps, and dm/alpha, dm/mohdm6, dust2) and,
+as a check, the V2 and bridge matches of the data repository, with the enemy's visibility from the recorded body parts,
+else the rebuilt table, else the line of sight (many duel-map sessions have no recorded parts: counted as hidden they
+blur the split). Git-ignored scripts in `humanbot/cache/move_wip/s18/`: `load_people.py` (that table), `lean1.py`,
+`lean2.py`, `lean3.py` (the side of a lean against the strafe, the enemy's side, the walls; by map, person, angle,
+distance), `doorlean.py` (dm/flag's doors, people in the duels, the V2 matches and the owner's games), `fightlean.py`,
+`fightlean_p.py`, `fightlean_f.py` (the lean in fights; per person, per bot family), `leanfit.py`.
+
+**What people do.**
+- **Hidden, they lean away from the side the enemy is on**: with him 10-90 deg off the view, 76% of their hidden lean
+  time (66-85% by map, 67-80% by person, 66-70% in the V2 and bridge matches), 75% with no strafe key held; and toward
+  the more open of the two front diagonals (76%). Leaning away from the corner that hides him shows more of what lies past
+  it. With him on screen it turns round: toward his side, 63% (74% with no strafe key held).
+- **The owner's two doors** (`doorlean.py`): going north through the Flag pre-CR door (D1) from Pre-control, where the
+  room opens to the left, people lean right (in the second either side of the doorway, hidden: right 19-39% of the time,
+  left 5%; the V2 matches 14-27% against 5-6%); going north through the Flag door (D7) from Inside door 2, the room ahead
+  and to the right, left (17-36% against 3-8%). Mostly they go through without a lean (hidden 55-81%). The bots already
+  took those sides (D1 right 65-72%, D7 left 31-53%) but leaned through 51-84% of their passes (the door pass holds a
+  lean toward the way through: "Through the doors").
+- **In fights** the lean follows the strafe (77% of fight lean time) and flips across on the tick the strafe reverses
+  (71% of reversals), but that is a style: the presser (the owner) flips it 81% of the time, about 1.6 times a second;
+  the two stoppers keep it through a reversal (53-62%), the two strafers let go of it (51%) or flip it 29-30%. The bot
+  families do the same (presser bots flip 81-84%, stopper bots keep it 58-63%, strafer bots flip 29-30% and let go 37%):
+  the owner's games of 2026-10-06/07 drew stopper bots, which keep their lean.
+
+**What changed**: the side a lean takes now depends on the enemy's side (`fit_movement.fit_lean_enemy`,
+`Mover::LeanEnemyLogit`, `movement.lean.enemy`): a logit per context of leaning toward him (+) or away (-) while he is
+known 3-150 deg off the view, seen or where the belief has him (the soft wallhack's hunch keeps that rough), fitted with
+the chain and the wall terms as offset: -0.61 hidden, +0.18 in sight, -0.06 reloading. Two and a half times that is set
+in `assemble_model.py` (the fitted term acts on the belief, not his true position, and moved the bots little). Like the
+walls, it moves the side a lean takes, not whether there is one. Unit test `TestLeanEnemy`.
+
+Bot against bot (`bl25_*` against `rb_201`/`bc4z_401` on dm/brownffa and dm/flag, `l25_*` against `c4z_*` on the duel
+maps; seeds 201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| hidden, the enemy 10-90 deg off: leaning away from his side, dm/brownffa + dm/flag | 78% | 58% (60%) | 68% (69%) |
+| ... with no strafe key held | 72% | 54% (56%) | 66% (67%) |
+| ... the duel maps / with no strafe key held | 75% / 75% | 52% / 46% (51% / 47%) | 61% / 58% (60% / 56%) |
+| ... strafing toward his side, leaning against the strafe: dm/brownffa + dm/flag / duel maps | 27% / 37% | 35% / 29% (36% / 28%) | 43% / 39% (44% / 37%) |
+| leaning, hidden / in sight (duel maps) | 51% / 76% | 58% / 76% (56% / 72%) | 57% / 76% (56% / 73%) |
+| ... the lean on the strafe's side, hidden (duel maps) | 80% | 71% (71%) | 71% (72%) |
+| walking into the Flag room someone holds: the holder has it on screen first / the entrant dies first | 10% / 54% | 8% / 32% (8% / 29%) | 5% / 29% (7% / 29%) |
+
+Four times the fitted term gave 72% and 66% away from him hidden, but a bot strafing toward his side then leaned against
+its own strafe 47-52% of the time. The rest of the gap is the strafe: hidden, people strafe away from his side 56-64% of
+their lean time, the bots 41%, and a lean on the strafe's side is people's 95% of the time then (the bots' 79-83%).
+Back and forth, the doors, the dm/brownffa and dm/flag headlines and the walls stay where they were. Duel maps: all 281
+statistics within 25% 60% (55%), before 58% (56%); one crossed for the better in both seed sets (the release hazard in
+sight at 3-4 half-widths), none for the worse. In the arena 51% of 195 within 25% over 16 seeds (52% before; median 0.24).
+
+**Still off.** How often: hidden, the bots lean 57-61% of the time (people 47-51%; the presser- and stopper-style bots
+most, see "Leaning all the time"), and at dm/flag's doors into the Flag room people go through without a lean 55-81% of
+the time hidden, the bots 16-53%.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before

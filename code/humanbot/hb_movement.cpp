@@ -540,6 +540,22 @@ float Mover::LeanWallLogit(const MoveInput& in, int side) const
     return w * (m.leanWallLogit + (edge ? m.leanEdgeLogit : 0.0f));
 }
 
+// People lean to see past what hides the enemy: with him hidden off to one side of the view they lean to the other
+// side (76% of their leans then, the bots' 52-58%), and toward him once he is on screen (63%).
+float Mover::LeanEnemyLogit(const MoveInput& in) const
+{
+    const MovementModel& m = *m_p;
+    if (m.leanEnemyLogit.empty() || !in.enemyKnown || in.enemyDead) {
+        return 0.0f;
+    }
+    const float off = std::fabs(in.enemyBearing);
+    if (off < m.leanEnemyMinDeg || off > m.leanEnemyMaxDeg) {
+        return 0.0f;
+    }
+    // the bearing is + to the left: he is on the right side with a negative one
+    return (in.enemyBearing < 0.0f ? 1.0f : -1.0f) * m.leanEnemyLogit[in.ctx];
+}
+
 void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, Rng& rng)
 {
     const MovementModel& m  = *m_p;
@@ -554,8 +570,8 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
     }
     // style and the calibrated per-context habit: lean on (+) / off (-)
     const float habit = style.leanLogit + (in.enemyDead ? 0.0f : m.leanCtxLogit[in.ctx]);
-    // the walls beside move the side a lean takes, not whether there is one: right minus left
-    const float wall = LeanWallLogit(in, 1) - LeanWallLogit(in, -1);
+    // the walls beside and the enemy's side move the side a lean takes, not whether there is one: right minus left
+    const float wall = LeanWallLogit(in, 1) - LeanWallLogit(in, -1) + LeanEnemyLogit(in);
     double      p[3];
     if (m_lean == 0) {
         const int rel = side + 1;

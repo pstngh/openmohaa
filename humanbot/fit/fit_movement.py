@@ -86,8 +86,9 @@ def fit_lean(F, EL):
                             offset=H.logit(base_leave))
     lean_change = co[0].reshape(len(H.CONTEXTS), 2, len(CTX_AGE_EDGES) - 1)
     wall = fit_lean_wall(d, l, nl, out[st, ctx, ab, rel])
+    enemy = fit_lean_enemy(d, l, nl, out[st, ctx, ab, rel], wall)
     return {"age_edges": AGE_EDGES, "next": out.round(5), "ctx_age_edges": CTX_AGE_EDGES,
-            "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4), "wall": wall,
+            "ctx_change_logit": lean_change.round(4), "ctx_change_bias": round(b0, 4), "wall": wall, "enemy": enemy,
             "doc": "next[state][ctx][age][rel][outcome]; ctx 0-4 the duel contexts, 5 the opponent dead; rel from the "
                    "side key of the next tick; state 0 none: rel = strafe side (0 left key, 1 none, 2 right key), "
                    "outcome 0 lean left / 1 none / 2 lean right (rel 3 unused); state 1 leaning: rel 0 no strafe / 1 agree / "
@@ -126,6 +127,49 @@ def fit_lean_wall(d, l, nl, P):
     w = minimize(nll, np.zeros(2), method="BFGS").x
     return {"range": LEAN_WALL_RANGE, "edge_open": LEAN_EDGE_OPEN, "wall_logit": round(float(w[0]), 4),
             "edge_logit": round(float(w[1]), 4)}
+
+
+LEAN_ENEMY_DEG = (3.0, 150.0)   # the enemy's side counts while he is this far off the view
+LEAN_ENEMY_GROUPS = [0, 0, 1, 1, 2]   # per context: hidden (no fire, firing), in sight (no fire, firing), reloading
+
+
+def lean_enemy_side(D):
+    """+1 with the enemy to the right of the view, -1 to the left, 0 within LEAN_ENEMY_DEG[0] of it or behind (or none)."""
+    b = (np.degrees(np.arctan2(D.opponent_origin_y.to_numpy(float) - D.origin_y.to_numpy(float),
+                               D.opponent_origin_x.to_numpy(float) - D.origin_x.to_numpy(float)))
+         - D.view_yaw.to_numpy(float) + 180.0) % 360.0 - 180.0
+    a = np.abs(b)
+    ok = np.isfinite(b) & (a >= LEAN_ENEMY_DEG[0]) & (a <= LEAN_ENEMY_DEG[1])
+    return np.where(ok, np.where(b > 0, -1.0, 1.0), 0.0)
+
+
+def fit_lean_enemy(d, l, nl, P, wall):
+    """The side a lean takes by the enemy's side (people lean to see past what hides him: with him hidden 10-90 deg
+    off the view they lean away from his side 76% of the time, 66-85% by map and 67-80% by person, and 72% with no
+    strafe key held; in sight toward him, 63%): a logistic of ending the tick leaned right with the chain and the
+    fitted wall terms as offset, one weight per context group (LEAN_ENEMY_GROUPS). The opponent-dead rows are left out."""
+    from scipy.optimize import minimize
+    ctx = d.lctx.to_numpy()
+    sel = (nl != 0) & np.isfinite(d.clear_left.to_numpy(float)) & np.isfinite(d.clear_right.to_numpy(float)) & (ctx != LEAN_CTX_DEAD)
+    pr = np.where(l == 0, P[:, 2], np.where(l == 1, P[:, 0], P[:, 2])) / np.maximum(P[:, 0] + P[:, 2], 1e-9)
+    off = H.logit(np.clip(pr, 1e-6, 1 - 1e-6)) + lean_wall_features(d) @ np.array([wall["wall_logit"], wall["edge_logit"]])
+    e = lean_enemy_side(d)
+    grp = np.asarray(LEAN_ENEMY_GROUPS)[np.clip(ctx, 0, len(LEAN_ENEMY_GROUPS) - 1)]
+    ng = max(LEAN_ENEMY_GROUPS) + 1
+    X = np.zeros((len(d), ng))
+    X[np.arange(len(d)), grp] = e
+    X, off, y = X[sel], off[sel], (nl[sel] == 1).astype(float)
+
+    def nll(w):
+        z = off + X @ w
+        return np.sum(np.logaddexp(0.0, z) - y * z) + 0.5 * np.sum(w * w)
+
+    w = minimize(nll, np.zeros(ng), method="BFGS").x
+    return {"min_deg": LEAN_ENEMY_DEG[0], "max_deg": LEAN_ENEMY_DEG[1],
+            "logit": [round(float(w[g]), 4) for g in LEAN_ENEMY_GROUPS],
+            "doc": "per context: the logit of leaning toward the enemy's side (+) or away from it (-), the enemy known "
+                   "(seen, or believed while hidden) min_deg-max_deg off the view; fitted with the chain and the wall "
+                   "terms as offset"}
 
 
 def hold_pmf(runs_ms, max_ticks=40):
@@ -236,6 +280,7 @@ def main():
         if "press_hazard_fire" in v:
             print(k, "  after enemy fire", (np.asarray(v["press_hazard_fire"]) * 1200).round(2))
     print("lean wall", part["lean"]["wall"])
+    print("lean enemy", part["lean"]["enemy"]["logit"])
 
 
 if __name__ == "__main__":

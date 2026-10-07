@@ -370,6 +370,16 @@ void ParseMovement(const json& j, MovementModel& m)
         m.leanEdgeLogit = NumOr(w, "edge_logit", m.leanEdgeLogit);
         Require(m.leanWallRange > 0.0f, "movement.lean.wall.range out of range");
     }
+    m.leanEnemyLogit.clear();
+    if (ln.contains("enemy")) {
+        const json& e     = ln.at("enemy");
+        m.leanEnemyLogit  = Floats(Get(e, "logit", "movement.lean.enemy"), "movement.lean.enemy.logit");
+        m.leanEnemyMinDeg = NumOr(e, "min_deg", m.leanEnemyMinDeg);
+        m.leanEnemyMaxDeg = NumOr(e, "max_deg", m.leanEnemyMaxDeg);
+        Require(m.leanEnemyLogit.size() == CTX_COUNT, "movement.lean.enemy.logit size");
+        Require(m.leanEnemyMinDeg >= 0.0f && m.leanEnemyMaxDeg >= m.leanEnemyMinDeg && m.leanEnemyMaxDeg <= 180.0f,
+                "movement.lean.enemy degrees out of range");
+    }
     if (ln.contains("ctx_logit")) {
         m.leanCtxLogit = Floats(ln.at("ctx_logit"), "movement.lean.ctx_logit");
         Require(m.leanCtxLogit.size() == CTX_COUNT, "movement.lean.ctx_logit size");
