@@ -42,8 +42,9 @@ header test. It also runs two arena tests on the real player movement code:
 
 ## 2. Smoke test (5 minutes)
 
-Copy `humanbot/server/duel.cfg` and `humanbot/server/soak.cfg` into the server's data folder
-(`~/.local/share/openmohaa/main/`, or the game's `main/`). Then start the server with the
+Copy `humanbot/server/duel.cfg` and `humanbot/server/soak.cfg` into the server's data folder:
+the game's `main/` (under `fs_basepath`), or `main/` under `fs_homepath` when it is set (user
+data lives in the installation directory on this branch). Then start the server with the
 duel configuration, pointing `fs_basepath` at the MOHAA folder that holds `main/` with the
 game's pak files and the practice maps:
 
@@ -64,7 +65,7 @@ In the console, check:
    - map prior `recorded human prior, checksum ok` on the four practice maps and on dm/brownffa
      and dm/flag (`derived from the navmesh` on any other map);
    - visibility `ready`. It is built in the background the first time a map loads and cached
-     under `~/.local/share/openmohaa/main/humanbot/vis/`.
+     under `main/humanbot/vis/` in the data folder.
 
    The test then runs a 60 s bot game. It ends with one line per bot (stuck bouts, wall
    pressure, keyboard violations, think time), the wall pressure over all bots and
@@ -77,8 +78,8 @@ Please send the console log if anything reads FAIL, MISSING or MISMATCH.
 
 `duel.cfg` records everything. It pins the settings that must match the human recordings:
 `sv_fps 20`, free-for-all, normal physics (`sv_runspeed 250`, `sv_dmspeedmult 1`,
-`sv_gravity 800`) and one bot. Telemetry goes to
-`~/.local/share/openmohaa/main/telemetry/segments/` on the server. It records only while a
+`sv_gravity 800`) and one bot. Telemetry goes to `main/telemetry/segments/` in the server's
+data folder. It records only while a
 human is connected (`g_movelog_need_human`), so every visit is a capture of its own, and a
 new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
 
@@ -107,7 +108,7 @@ new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
 Copy the duel telemetry from the server, then pack it in your checkout of the fork:
 
 ```sh
-scp -r you@server:.local/share/openmohaa/main/telemetry ./duel-telemetry
+scp -r you@server:/path/to/mohaa/main/telemetry ./duel-telemetry
 python3 -m pip install -r humanbot/eval/requirements.txt
 python3 humanbot/tools/pack_capture.py ./duel-telemetry --out humanbot/captures
 (cd humanbot/captures && shasum -a 256 -c SHA256SUMS)

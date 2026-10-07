@@ -1,6 +1,6 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-06.
+For a Claude Code session picking this work up. The state is as of 2026-10-07.
 
 ## What this is
 
@@ -12,6 +12,17 @@ procedure.
 
 - **Code:** all the work is on branch `claude/funny-cray-e3yyih`. `main` is untouched and no PR
   is open; open one only if the owner asks.
+- **The branch sits on `bots-new`** (since 2026-10-07): the owner's branch with their other features (HUD, launcher,
+  always-allowed lean and `g_aalean`, guns that never run out of reserve ammo in multiplayer, clips scaled by
+  `g_playerdmhealth`, FFA and TDM on every map, `g_bot_team`, nullbinds, crosshair, user data in the installation
+  directory, CI that builds three targets and runs the Python tests) is at the bottom, and the bot commits were replayed
+  on top of it with the same messages. Commit IDs written in this file before that date name the old commits, kept on
+  the branch `claude/funny-cray-e3yyih-before-bots-new` (the old tip `eeee4b2c` is the new `686cebdc`); model hashes
+  (`2329712e2844` ...) did not change. On top of bots-new: the bot's C++ tests run in their own job of the Unit Tests
+  workflow (bots-new's own job runs only the Python tests), the upstream lz77 test stays removed as bots-new removed it,
+  and `json.hpp`, which bots-new dropped from `code/qcommon` with the update checker, is vendored for the model loader
+  in `code/thirdparty/nlohmann-json-3.7.3`. User data now defaults to the game's `main/` under `fs_basepath`
+  (`fs_homepath` still moves everything but configs), so the telemetry and the vis cache are found there.
 - **Human data:** github.com/pstngh/openmohaa-movement (private) holds the human recordings and
   their analysis. It is needed only to refit the model, calibrate, or compare bots with humans,
   checked out next to the fork (`../openmohaa-movement`, or `$HB_MOVEMENT_REPO`). Its own
@@ -28,7 +39,7 @@ Built and pushed:
 - the owner kit: `humanbot/server/duel.cfg`, `soak.cfg`, `names.txt`, and `pack_capture.py`.
 
 Verified:
-- `ctest` passes 8/8: since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
+- `ctest` passes 7/7 (8/8 before the move onto bots-new, with the upstream lz77 test): since "Travel and the hidden view" checked with clang RelWithDebInfo on the Linux
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 53% of 195
@@ -82,7 +93,7 @@ not part of this work: never touch it.
 ## The task now: the test server
 
 Use the Linux VPS the human duels were recorded on; the owner plays from a Mac. Its telemetry
-lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
+lives under `main/` in the server's data folder (`fs_homepath` when set, else `fs_basepath`). Follow TESTING.md:
 
 1. **Build on the server**, server only, no install:
    ```sh
@@ -90,7 +101,7 @@ lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
    cmake --build build
    (cd build && ctest --output-on-failure)
    ```
-2. **Start it.** Copy `humanbot/server/*.cfg` into `~/.local/share/openmohaa/main/` (and
+2. **Start it.** Copy `humanbot/server/*.cfg` into that data folder's `main/` (and
    `humanbot/server/names.txt` to `main/humanbot/names.txt` for the disguise test), then run
    ```sh
    build/RelWithDebInfo/omohaaded +set fs_basepath /path/to/mohaa +set com_target_game 0 +exec duel.cfg
@@ -121,8 +132,8 @@ lives under `~/.local/share/openmohaa/main/`. Follow TESTING.md:
 3. **Map context.**
    - `checksum MISMATCH` on a practice map means the map file differs from the recorded one; the
      bots then use a prior derived from the navmesh.
-   - The visibility table builds 2 ms per frame and is cached in
-     `~/.local/share/openmohaa/main/humanbot/vis/`.
+   - The visibility table builds 2 ms per frame and is cached in `main/humanbot/vis/` in the
+     data folder.
    - A map without a recorded prior gets cells of 32 u, coarser on a big map (at most 3000 cells:
      `MAX_NAV_CELLS`, `humanbot_world.cpp`); the console says "is a big map: cells of N u".
 4. **Movement.**
