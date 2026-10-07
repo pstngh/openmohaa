@@ -1211,6 +1211,34 @@ static void TestWeapon(const hb::ModelBundle& b)
     const double low = earlyReloads(3), full = earlyReloads(28);
     HB_REPORT("early reload within a second, enemy out of sight: %.2f with 3 rounds left, %.2f with 28", low, full);
     HB_CHECK(low > 0.05 && low > 4.0 * full);
+    // after a kill: a reload within two seconds with no enemy left, none while another one is on screen, and a
+    // planned one held when another comes on screen before it starts
+    auto afterKill = [&](bool otherSeen, bool seenLater) {
+        int n = 0;
+        for (int k = 0; k < 400; k++) {
+            w.Reset();
+            s.weaponClass = hb::WEAPON_CLASS_SMG;
+            s.weaponState = 0;
+            s.clipSize    = 32;
+            s.clipAmmo    = 12;
+            s.reserveAmmo = 64;
+            s.timeMs += 50;
+            int cmd = w.Step(s, true, otherSeen, otherSeen, false, otherSeen ? 0 : 5000, r);
+            for (int t = 0; t < 40 && cmd == hb::CMD_NONE; t++) {
+                s.timeMs += 50;
+                const bool seen = otherSeen || (seenLater && t >= 4);
+                cmd = w.Step(s, false, otherSeen || seenLater, seen, false, seen ? 0 : 5000, r);
+            }
+            n += cmd == hb::CMD_RELOAD;
+        }
+        return n / 400.0;
+    };
+    const double alone = afterKill(false, false), other = afterKill(true, false), comes = afterKill(false, true);
+    HB_REPORT("reload within 2 s of a kill (12 of 32 rounds left): %.2f with no enemy left, %.2f with another on "
+              "screen, %.2f with another coming on screen 250 ms later", alone, other, comes);
+    HB_CHECK(alone > 0.9);
+    HB_CHECK(other < 0.02);
+    HB_CHECK(comes < 0.02);
 }
 
 static void TestView(const hb::ModelBundle& b)

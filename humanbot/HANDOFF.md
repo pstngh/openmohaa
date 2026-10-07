@@ -1874,6 +1874,35 @@ sight at 3-4 half-widths), none for the worse. In the arena 51% of 195 within 25
 most, see "Leaning all the time"), and at dm/flag's doors into the Flag room people go through without a lean 55-81% of
 the time hidden, the bots 16-53%.
 
+## Reloading after a kill (2026-10-07)
+
+The owner (2026-10-07, the second request): "bot should immediately reload after a kill unless another enemy is in
+sight". Git-ignored script `humanbot/cache/move_wip/s18/reloadkill.py`: every kill with an SMG or MG, whether the killer
+reloads within 3 s (before dying), how soon, by the rounds left, and with several enemies whether the next one (the
+telemetry's nearest living enemy after the kill) is on screen in the half second after it, or near (800 u).
+
+**What people do.** In the duels, where the only enemy is now dead, they reload after 92% of their kills, 0.6 s later
+(p25-p75 550-700 ms): 99% with under half the clip left, 73% with three quarters or more (each recorded player 85-98%,
+95-99% with under three quarters left). The bots did the same (90% after 0.65 s; 86-100% in the owner's 1v1 games).
+With another enemy on screen (the V2 and bridge matches, 12 kills; the owner's game against two bots of 2026-10-07, 5
+kills) people reload about half as often, and two seconds later (p50 1.85 s and 2.2 s): once he is out of sight. With
+another enemy alive and near but not on screen, they reload less too (36% of 50 in the matches, the owner 54% of 13).
+In the owner's three-player game the bots reloaded at once (91% within 3 s, 650 ms after the kill) with the owner on
+screen, and died within 3 s in 55-71% of those.
+
+**What changed** (`hb_weapon.cpp`): the reload after a kill is not planned while another enemy is seen (the focus has
+switched to him at the kill), and a planned one is held if he comes on screen before it starts; it then comes out of his
+sight (the early reload with the enemy out of sight) or with the clip run dry. Unit test in `TestWeapon`.
+
+Three bots on dm/flag and dm/brownffa (free-for-all, 8 servers of 300 s at timescale 10, `s18/quick3.sh`; `t3r_201`
+against `t3a_201`, the same build without it): after a kill with another enemy on screen the bots reload within 3 s 64% of
+the time (86% before), 1.5 s after the kill at the median (0.7 s), and die within 3 s 38% of the time (42%); with no enemy
+left 92% (89%). Reloads begun with an enemy on screen fell from 2.2 to 1.5 a minute alive (people's duels 0.3). Bot
+against bot with two bots nothing changes (no other enemy).
+
+Not changed: with another enemy alive and believed near but not on screen people reload less after a kill, the bots as
+often as with none (85-88%); the owner asked for "in sight" only.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before

@@ -55,6 +55,7 @@ public:
 private:
     const WeaponModel *m_p         = nullptr;
     int                m_reloadAtMs = -1;
+    bool               m_reloadAfterKill = false;   // the planned reload is the one after a kill
     int                m_lastCmdMs  = -100000;
     int                m_unarmedSince = -1;   // since when nothing is in hand (-1: armed)
 };

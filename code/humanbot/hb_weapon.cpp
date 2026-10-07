@@ -42,6 +42,7 @@ void WeaponLogic::Init(const WeaponModel *params)
 void WeaponLogic::Reset()
 {
     m_reloadAtMs   = -1;
+    m_reloadAfterKill = false;
     m_lastCmdMs    = -100000;
     m_unarmedSince = -1;
 }
@@ -109,7 +110,12 @@ int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool
         m_lastCmdMs = now;
         return CMD_PRIMARY;
     }
-    if (gotKill && canReload) {
+    // after a kill people reload (92% of their kills in the duels, 99% with under half the clip left, 0.6 s later),
+    // unless another enemy is on screen: then about half as often and two seconds later (the matches on V2 and the
+    // bridge, the owner's game against two bots), once he is gone. The bots reloaded at once and died within 3 s
+    // in 55-71% of those. So with another enemy seen at the kill, or by the time it would start, it waits: the reload
+    // then comes out of his sight (the early reload below) or with the clip run dry
+    if (gotKill && canReload && !enemyDetected) {
         const int   bin = BinIndex(self.clipAmmo, p.postKillRoundEdges);
         const float pr  = p.postKillReloadP[bin];
         if (uKill < pr) {
@@ -123,12 +129,14 @@ int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool
                     break;
                 }
             }
-            m_reloadAtMs = now + static_cast<int>(delay);
+            m_reloadAtMs      = now + static_cast<int>(delay);
+            m_reloadAfterKill = true;
         }
     }
     if (self.clipAmmo == 0 && self.reserveAmmo > 0 && m_reloadAtMs < 0) {
         // dry clip: reload right after letting go of the trigger
         m_reloadAtMs = now + (attackHeld ? 150 : 50) + static_cast<int>(100.0 * uDly);
+        m_reloadAfterKill = false;
     }
     if (m_reloadAtMs < 0 && canReload && enemyAlive && !enemyDetected && self.clipAmmo > 0 && self.clipSize > 0) {
         // early, with the enemy out of sight: people reload readily with little left, seldom with most of the clip
@@ -140,12 +148,15 @@ int WeaponLogic::Step(const SelfState& self, bool gotKill, bool enemyAlive, bool
             h = self.clipAmmo < p.tacticalClipFrac * self.clipSize ? p.tacticalHazard : 0.0f;
         }
         if (uTac < h) {
-            m_reloadAtMs = now + 100;
+            m_reloadAtMs      = now + 100;
+            m_reloadAfterKill = false;
         }
     }
     if (m_reloadAtMs >= 0 && now >= m_reloadAtMs) {
-        m_reloadAtMs = -1;
-        if (canReload && (self.weaponState == WEAPON_STATE_READY || self.weaponState == WEAPON_STATE_FIRING)
+        const bool held   = m_reloadAfterKill && enemyDetected && self.clipAmmo > 0;
+        m_reloadAtMs      = -1;
+        m_reloadAfterKill = false;
+        if (!held && canReload && (self.weaponState == WEAPON_STATE_READY || self.weaponState == WEAPON_STATE_FIRING)
             && now - m_lastCmdMs > 300) {
             m_lastCmdMs = now;
             return CMD_RELOAD;

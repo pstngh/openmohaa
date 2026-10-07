@@ -78,7 +78,8 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      follow the route with a strength set on the practice maps, so that the bots cover ground and
      meet about as often as people do; with the enemy hidden the pull grows with its believed distance
      (people run to a far fight). After a kill a bot moves on within half a second, as people
-     run. `hb_weapon`: reloads and weapon switches (the
+     run. `hb_weapon`: reloads (after a kill, as people do, unless another enemy is on screen: then
+     the reload waits until he is out of sight or the clip runs dry) and weapon switches (the
      pistol when the primary is empty, back to the primary when it has rounds again, a weapon drawn
      when nothing is in hand). Out of ammunition altogether, which people never are (they die
      first), the bot closes in and bashes with the pistol. The adapter keeps the navmesh route off
