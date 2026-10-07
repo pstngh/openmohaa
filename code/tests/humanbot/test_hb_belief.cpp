@@ -347,6 +347,69 @@ static void TestTracking(const hb::ModelBundle& b, const hb::MapPrior& m)
     HB_CHECK(nearest < 300.0f);
 }
 
+// Two enemies: the one just seen stays the focus over the other only heard since, for FOCUS_KEEP_MS (3 s): in the owner's
+// game of 2026-10-07 a bot that had lost sight of him at 230 u turned within a second to the other bot's footsteps 1000 u
+// off. Seen, the other takes the focus at once.
+static void TestFocusKeep(const hb::ModelBundle& b, const hb::MapPrior& m)
+{
+    hb::BeliefFilter bf;
+    bf.Init(&b.shared.belief, &b.shared.perception, &m, hb::Rng(9));
+    hb::Observation obs;
+    obs.self.alive     = true;
+    obs.self.spectator = false;
+    obs.self.origin    = m.cells[0].center;
+    obs.self.eye       = obs.self.origin + hb::Vec3(0, 0, 82);
+    hb::EnemyObs e1, e2;
+    e1.id = 1;
+    e2.id = 2;
+    obs.enemies.push_back(e1);
+    obs.enemies.push_back(e2);
+    const hb::Vec3 near = m.cells[m.NumCells() / 3].center, far = m.cells[(m.NumCells() * 3) / 4].center;
+    auto focusId = [&]() { return bf.Focus() >= 0 ? bf.Track(bf.Focus()).enemyId : -1; };
+    int t = 0;
+    for (; t < 5; t++) {
+        obs.self.timeMs         = t * 50;
+        obs.enemies[0].detected = true;
+        obs.enemies[0].pos      = near + hb::Vec3(0, 0, 47);
+        bf.Update(obs, 96.4f, 64.4f);
+    }
+    HB_CHECK(focusId() == 1);
+    obs.enemies[0].detected = false;
+    hb::SoundObs so;
+    so.type      = hb::SOUND_FOOTSTEP;
+    so.yaw       = hb::YawOf(far - obs.self.origin);
+    so.yawSigma  = 10.0f;
+    so.dist      = (far - obs.self.origin).length();
+    so.distLogSd = 0.35f;
+    int heldUntil = -1;
+    for (; t < 5 + 100; t++) {
+        obs.self.timeMs = t * 50;
+        obs.sounds.clear();
+        if (t >= 25 && t % 4 == 0) {
+            obs.sounds.push_back(so);   // the other enemy's footsteps, from 1 s after the loss on
+        }
+        bf.Update(obs, 96.4f, 64.4f);
+        if (focusId() == 1) {
+            heldUntil = obs.self.timeMs - 200;
+        }
+    }
+    obs.sounds.clear();
+    HB_REPORT("the enemy lost from sight stays the focus %d ms against the other one's footsteps", heldUntil);
+    HB_CHECK(heldUntil >= 2900 && heldUntil <= 3500);
+    HB_CHECK(focusId() == 2);   // after it, the most recent threat again
+    // the other enemy seen: the focus at once, the first one lost from sight or not
+    obs.enemies[0].detected = true;
+    obs.enemies[0].pos      = near + hb::Vec3(0, 0, 47);
+    obs.self.timeMs += 50;
+    bf.Update(obs, 96.4f, 64.4f);
+    obs.enemies[0].detected = false;
+    obs.enemies[1].detected = true;
+    obs.enemies[1].pos      = far + hb::Vec3(0, 0, 47);
+    obs.self.timeMs += 50;
+    bf.Update(obs, 96.4f, 64.4f);
+    HB_CHECK(focusId() == 2);
+}
+
 // Out of ammunition (people never are: they die first) the bot closes in and bashes with the pistol, a tap at a time,
 // once the enemy is in reach with the crosshair on it. With rounds left it shoots and never bashes.
 static void TestOutOfAmmo(const hb::ModelBundle& b, const hb::MapPrior& m)
@@ -577,6 +640,7 @@ int main()
     TestCorner(b);
     TestSpawn(b, m);
     TestTracking(b, m);
+    TestFocusKeep(b, m);
     TestOutOfAmmo(b, m);
     TestLateAim(b, m);
     TestLowClipCover(b, m);

@@ -33,6 +33,7 @@ namespace hb
 // rule, SeedFromSpawns): the belief draws it at people's median respawn delay (2.45 s), from where the bot is by then.
 static constexpr int   RESPAWN_SEED_MS   = 2450;
 static constexpr int   DEAD_RECKON_TICKS = 8;      // follow the last seen velocity this long
+static constexpr int   FOCUS_KEEP_MS     = 3000;   // an enemy seen this recently stays the focus over one only heard since
 static constexpr float CHEST_HEIGHT      = 56.0f;
 // Corners are traced at the height of a standing enemy's head (0.9 of 94 u): people's first visible part is
 // the head in 87% of sightings. A corner is reused while the eye stays within CORNER_REUSE_DIST of where it
@@ -922,7 +923,11 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         }
     }
 
-    // focus: whoever is visible, else the most recent threat
+    // focus: whoever is visible, else the enemy seen in the last FOCUS_KEEP_MS (the most recently seen first), else the
+    // most recent threat. With the most recent threat alone, in the owner's game of 2026-10-07 (dm/flag, two bots) a bot
+    // that had just lost sight of him 230 u away (he crouched behind the corner) turned within a second to the footsteps
+    // of the other bot, respawned 1000 u off, and he walked up and killed it from the side. A sound still turns the view
+    // (hb_view), and a new enemy seen takes the focus at once.
     m_focus = -1;
     int bestT = -2000000000;
     for (size_t i = 0; i < m_tracks.size(); i++) {
@@ -930,6 +935,8 @@ void BeliefFilter::Update(const Observation& obs, float hfovDeg, float vfovDeg)
         int key = e.lastThreatMs;
         if (e.detected) {
             key = 2000000000;
+        } else if (!e.dead && e.seenThisLife && e.msSinceSeen <= FOCUS_KEEP_MS) {
+            key = now + 1 + FOCUS_KEEP_MS - e.msSinceSeen;
         }
         if (e.dead) {
             key -= 1000000;

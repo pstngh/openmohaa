@@ -2067,6 +2067,28 @@ dm/brownffa and dm/flag, the same binary with it off (`bp2_*`) and on (`bd2_*`),
 
 The held-room entries and the headline numbers do not move with it; the duel maps' doors are off the routes.
 
+## Ignored with two enemies: the focus (2026-10-07)
+
+The owner on `514e1f50` (dm/flag, the owner as "908357" against bot2 and bot3, free-for-all, 20:25-20:30 UTC;
+`move_wip/s9/live16/`, features `eval/cache/bot/live16_own`): "what just happened to bot2", then, in this session: "i stopped [spotted] a bug where i
+was ignored by one of the bots". bot2 and the owner traded shots at 300 u by the Flag door; the owner crouched behind the
+corner 230 u away, and a second later bot2 turned to watch bot3's side (bot3 had respawned 1000 u off and its footsteps
+reached bot2); the owner walked up from its side and killed it from 60 u, its view 45-115 deg off him (`s19/tri.py`).
+Without an enemy on screen the focus was the most recent threat, so any sound of another enemy took it; the focus then
+flipped between the two with each sound.
+
+**What changed** (`BeliefFilter::Update`, `FOCUS_KEEP_MS`): an enemy seen in the last 3 s stays the focus over one only
+heard or felt since (the most recently seen first); one seen takes it at once, and a sound still turns the view as before.
+Unit test `TestFocusKeep`. Three bots a server on dm/flag and dm/brownffa (`s18/quick3.sh`; `t3f1_*` against `t3d2_*`, the
+build of "The pocket behind an open door"; seeds 201-208, in brackets 401-408; `s19/focus.py`): after losing sight of its
+focus enemy within 600 u the focus went to another enemy not on screen within 2 s 42.5% (42.9%) of the time, now 2.7%
+(2.7%); deaths to a killer more than 60 deg off the view whom the bot had seen in the 3 s before 0.32 (0.28) a minute alive,
+now 0.24 (0.19); all deaths 6.1 (5.9) a minute either way. With one enemy (two-bot games, the arena) nothing changes.
+
+The owner's games on `514e1f50` that evening (20:00-20:34 UTC, dm/flag and dm/crnodoors, free-for-all and team play): no
+round fired with no part of an enemy on screen beyond the 300 ms tail (the logger checks the nearest enemy only: 37 of
+the 45 rounds it flagged were at the other bot, on the shooter's screen), and no stay beside a door hinge over 2.6 s.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
