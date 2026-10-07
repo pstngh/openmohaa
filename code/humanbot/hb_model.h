@@ -372,6 +372,12 @@ struct TriggerModel {
     float releaseNearLogit  = 0.0f;   // aim error below RELEASE_FAR_HALF_WIDTHS
     float releaseFarLogit   = 0.0f;   // aim error from RELEASE_FAR_HALF_WIDTHS
     float releaseTapLogit   = 0.0f;   // the first two ticks of a hold (a tap)
+
+    // The owner's rule (2026-10-07): no press without a part of the enemy on screen (0), whatever the fitted hidden press
+    // says (1: prefire, fire into cover, at a sound or a door). A hold begun in sight then lets go at the latest
+    // hiddenHoldMs after the last part left the screen (0 = the fitted hidden release only).
+    float hiddenPress  = 1.0f;
+    float hiddenHoldMs = 0.0f;
 };
 
 constexpr float RELEASE_FAR_HALF_WIDTHS = 6.0f;

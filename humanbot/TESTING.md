@@ -188,8 +188,12 @@ live test:
   people: their crosshair trails the enemy, so a sidestep also moves them away from it.
 - **Stillness while seeing the enemy without firing.** People stand still 30% of that time,
   bots 8-11%. (Bots that stood frozen in front of an enemy for minutes had run out of
-  ammunition; since 2026-10-02 they fire into cover like people and rarely run dry. One that
-  does closes in and hits with the pistol butt.)
+  ammunition; since 2026-10-02 they rarely run dry. One that does closes in and hits with the
+  pistol butt.)
+- **No prefire** (the owner's rule since 2026-10-07): a bot never presses the trigger with no part
+  of the enemy on screen (no prefire, no fire into cover, at a door, a sound or a dead enemy), and
+  lets go at most 300 ms after the enemy leaves the screen. Tell us if a bot still fires at
+  nothing. In the first second of a life the respawn click may still be held; it fires no round.
 - **Ladders.** Since 2026-10-02 a bot that stalls on a ladder (another bot in the way) turns
   back, and jumps off if it stalls again. Tell us if a bot still hangs on one.
 - **The arena is not a recorded map.** Its context mix differs (more hidden time, fewer

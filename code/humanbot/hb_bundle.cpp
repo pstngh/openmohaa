@@ -660,6 +660,8 @@ void ParseTrigger(const json& j, TriggerModel& t)
         t.releaseNearLogit  = NumOr(j.at("tuning"), "release_near_logit", t.releaseNearLogit);
         t.releaseFarLogit   = NumOr(j.at("tuning"), "release_far_logit", t.releaseFarLogit);
         t.releaseTapLogit   = NumOr(j.at("tuning"), "release_tap_logit", t.releaseTapLogit);
+        t.hiddenPress       = NumOr(j.at("tuning"), "hidden_press", t.hiddenPress);
+        t.hiddenHoldMs      = NumOr(j.at("tuning"), "hidden_hold_ms", t.hiddenHoldMs);
     }
 }
 

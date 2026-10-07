@@ -38,7 +38,7 @@
    "anticipation_logit": 5.0,
    "hidden_fire_logit": 0.1001,
    "hidden_late_logit": -0.7413,
-   "press_los_logit": 0.2655,
+   "press_los_logit": 0.5084,
    "release_far_logit": 0.6511,
    "release_los_logit": 0.0,
    "release_near_logit": -1.1489,

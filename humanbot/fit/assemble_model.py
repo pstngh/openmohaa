@@ -199,8 +199,15 @@ def build():
                     # People whose aim gets there 0.3-1.5 s in press at 20-38% a tick in the next 250 ms, as early as any;
                     # the fitted clock runs from the parts on screen (people's aim is there by 0.3 s in nine sightings in
                     # ten), and a bot slow to get there tracked the owner for seconds at 1-2% a tick
+                    # hidden_press 0 is the owner's rule (2026-10-07: "i want bots to stop prefiring, its pointless"): no
+                    # press with no part of the enemy on screen, so no prefire, no fire into cover, at a sound, a door or
+                    # a dead enemy, whatever the fitted hidden press (people do all of it: they hold the trigger with no
+                    # part visible 17% of such time, and prefire a quarter of the sightings after 2-5 s hidden). A burst
+                    # begun in sight then lets go at the latest hidden_hold_ms after the last part left the screen:
+                    # people let go on the same tick half the time, within 150 ms 75%, within 300 ms 90% (the human
+                    # duels with recorded or rebuilt parts, 12000 such bursts; the bots 150 / 250 / 350 ms before)
                     "tuning": {"anticipation_logit": 1.0, "hidden_fire_logit": 0.0, "hidden_late_logit": 0.0,
-                               "aim_arrive_hw": 2.0}},
+                               "aim_arrive_hw": 2.0, "hidden_press": 0.0, "hidden_hold_ms": 300.0}},
         "weapon": {"post_kill_round_edges": wp["post_kill_round_edges"], "post_kill_reload_p": wp["post_kill_reload_p"],
                    "post_kill_delay": wp["post_kill_delay"], "respawn": wp["respawn"],
                    "tactical": wp["tactical"], "pistol_switch_per_min": 0.1},

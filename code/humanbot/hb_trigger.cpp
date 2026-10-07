@@ -69,6 +69,10 @@ float Trigger::PressProb(const TriggerInput& in, int gapTicks) const
             z += s.clip[BinIndex(in.clipFill, t.clipEdges)];
         }
     } else {
+        if (t.hiddenPress <= 0.0f) {
+            // the owner's rule: no press with no part of the enemy on screen
+            return 0.0f;
+        }
         const TriggerSide& s = t.pressHidden;
         z = s.bias + s.err[BinIndex(in.hiddenYawErr, t.yawEdges)]
           + s.lage[BinIndex(static_cast<float>(in.lageMs), t.lageHiddenEdges)] + s.age[BinIndex(gapTicks, t.gapEdges)]
@@ -100,6 +104,10 @@ float Trigger::ReleaseProb(const TriggerInput& in, int holdTicks) const
           + (in.errHalfWidths >= RELEASE_FAR_HALF_WIDTHS ? t.releaseFarLogit : t.releaseNearLogit)
           + (holdTicks <= 2 ? t.releaseTapLogit : 0.0f) + in.releaseLogit;
     } else {
+        if (t.hiddenPress <= 0.0f && t.hiddenHoldMs > 0.0f && static_cast<float>(in.lageMs) >= t.hiddenHoldMs) {
+            // with the hidden press off, a burst runs on past the last visible part no longer than people's do
+            return 1.0f;
+        }
         // the style's burst length is a firefight habit: fire at an enemy out of sight is let go of as
         // people let go of it (with it, the bots held such fire 2.3x as long and ran out of ammunition)
         const TriggerSide& s = t.releaseHidden;

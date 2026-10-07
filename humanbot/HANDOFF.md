@@ -43,7 +43,9 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.23; 50-51% over 16 seeds with "Crouches and jumps for a reason", whose jump rate
+  statistics (median relative error 0.23; with "No prefire" the 39 statistics of fire without a part on screen leave
+  people's, 38% -> 10% within 25%, and the other 156 stay at 49%, counted as seed means over 16 seeds (that count gives 47%
+  -> 42% for all 195); 50-51% over 16 seeds with "Crouches and jumps for a reason", whose jump rate
   falls below the reference's, which counts people's jumps onto things, and 51% with "The side a lean takes" (52% before);
   53% over 16 seeds with "The crosshair at the door", median 0.232 (52% and
   0.225 before); 52% over 16 seeds before and after "Running to a far fight" (51% and 0.23 on seeds 1-8 with it); 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
@@ -1602,7 +1604,8 @@ the Flag room). The chat remarks, traced with `s14/comment.py`:
   door, 500-800 u off; the bot in the Flag room fired about 23 rounds at the doorway in 7 s (a reload between),
   expecting the owner out (its hunch had the owner behind the door). People do more of it: with the enemy alive and
   nothing on screen, people on dm/brownffa and dm/flag hold the trigger over 3 s in a hidden spell 0.45 times a minute
-  (up to 14 s), the bots 0-0.01 (this one 2.8 s at most). Asked, the owner chose to leave it.
+  (up to 14 s), the bots 0-0.01 (this one 2.8 s at most). Asked, the owner chose to leave it (reversed on 2026-10-07:
+  see "No prefire").
 - "it was looking the wrong way when it came in" (twice): coming out of Pre-control right after its respawn its belief
   was 160 deg off the owner; once its view was still on the door it had opened; once (not remarked) a look-around 175
   deg off. 250 ms after the bot's respawns in the owner's games the belief was over 90 deg off the owner 0% (games of
@@ -1968,6 +1971,73 @@ dials are drawn from the family's spread, which holds a player who crouches 8 ti
 drawn crouch dials reach 9-12 a minute. Narrowing that draw, or a lower `g_humanbot_max_crouch` on the test server (4.4,
 the average person), is the owner's call. Jumps in fights are below people's (they include people's jumps onto things).
 
+## No prefire (2026-10-07)
+
+The owner watched two bots on `b53427f0` (dm/flag, 15:03-15:06 UTC, the owner as "908357" spectating with a free camera;
+bot2 and bot3 both stoppers; `move_wip/s9/live15/`, features `eval/cache/bot/live15_own`) and typed nine remarks; then: "i
+want bots to stop prefiring, its pointless" (on 2026-10-05 they had chosen to leave it, see "Back from the dead"). The
+server ran with infinite ammunition then (`dmflags 16384`, set by the owner's rcon at 14:53). Traced with the git-ignored
+scripts in `humanbot/cache/move_wip/s19/` (`bb.py` the two bots side by side and where the camera looks, `shots.py` one
+bot tick by tick with its rounds):
+- "bots are messed up with the door / bot3 was stuck behind it for ages / and bot 2 was trying to shoot him behind it":
+  bot2 opened the Flag pre-CR door from the Flag room with bot3 right behind it in Pre-control; the door swung onto
+  bot3's side and left it in the corner between the open door and the wall beside the hinge for 15 s, while bot2 fired
+  98 rounds at the door and the walls round it with no part of bot3 on screen (bot3 29 back). See "The pocket behind an
+  open door".
+- "why didnt bot 2 reload": the clip never ran down (infinite ammunition): 32 of 32 after its kill.
+- "why did bot3 just flick back and shoot ? / there was no enemy": after its kill in the Flag room bot3 turned about 110
+  deg and sprayed 8 rounds at an empty spot (its enemy dead), and twice in the next 6 s turned 90 deg and fired a few
+  rounds into the wall of the Inside door 2 corridor, the enemy respawned 740 u away: the fitted fire into cover.
+- "and now look how bot3 was stuck behind a door": the same corner at the Flag door, 5 s, both bots firing through the
+  door (13 and 24 rounds).
+- "bot2 was looking at a wall for a second there": after its kill bot2 held its view on where the enemy fell while it
+  backed into the Flag room's north wall, and stood a second with the view on the wall 25 u ahead. Not changed: standing
+  a second or more with the view into a wall within 24 u is as common for people as for the bots (people 20-70 times an
+  hour alive by map set, the bots 16-22; `s19/wall.py`).
+- "what did bot3 just shoot at": in the Flag pre-CR doorway bot3 fired 3 rounds into the empty Flag room, its enemy dead.
+
+**What people do.** With no part of the enemy on screen people hold the trigger 17% of the time (52% in the first 300 ms
+after the last part, 22% at 0.5-2 s, 6% after 5 s), and a third of their sightings begin with the trigger already held
+(prefire 26% after 2-5 s hidden). When the last part leaves the screen during a burst they let go on the same tick half
+the time, within 150 ms 75%, within 300 ms 90% (12000 such bursts in the human duels with recorded or rebuilt parts;
+`s19/tail.py`); the bots 150 / 250 / 350 ms.
+
+**What changed** (the owner's rule; `trigger.tuning.hidden_press` 0 and `hidden_hold_ms` 300 in `assemble_model.py`,
+`Trigger::PressProb`, `Trigger::ReleaseProb`): no press while no part of the focus enemy is perceived (a dead enemy has
+none), whatever the fitted hidden press says; a burst begun in sight lets go at the latest 300 ms after the last part left
+the screen. The fitted hidden press, its fade (`hidden_late_logit`) and the anticipation boost stay in the model, switched
+off; `calibrate.py` leaves their two loops out while the rule is on. Without the bots' own fire into cover the gaps since
+the last release before a sighting got longer, where the fitted press hazard is lower (-0.32 on the logit from 4 s), and
+the first press after a sighting came later: `press_los_logit` was recalibrated with the rule on, 0.27 -> 0.51
+(`calibrate.py --stage pooled --only press_los_logit`; model `00f15a524ce4`). On the duel maps the press hazard on the
+first tick of a sighting with the aim near (people 0.28) went 0.25-0.27 -> 0.20 with the rule alone (`p1_*`) and 0.22-0.23
+recalibrated, at 50-100 ms (people 0.33) 0.31 -> 0.26-0.28 -> 0.29-0.33; bursts begun in sight stay at 6 rounds (people 6). The respawn click still held in a life's first ticks (it fires no round) is the
+only press left with no part on screen. Unit test in `TestTrigger`.
+
+Bot against bot (`bd2_*` against `bc2_*` on dm/brownffa and dm/flag, `d2_*` against `c2_*` on the duel maps; seeds 201-208,
+in brackets 401-408; `s19/trig.py`, `react.py`, `shotsnp.py`):
+
+| | people | before | now |
+|---|---|---|---|
+| rounds a minute alive with no part on screen for more than 0.4 s, dm/brownffa + dm/flag / duel maps | | 34 (31) / 22 (22) | 0.09 (0.05) / 0.14 (0.12) |
+| fire held with no part on screen 0.5-1 / 1-2 / 2-5 / over 5 s after the last part, duel maps | 23 / 21 / 10 / 6% | 21 / 14 / 10 / 12% | 0.5 / 0.1 / 0 / 0% |
+| sightings begun with the trigger held, dm/brownffa + dm/flag / duel maps (now: bursts through a brief loss of sight, the respawn click) | 31 / 32% | 33 (33) / 32 (32)% | 10 (11) / 16 (15)% |
+| first press after a sighting with the trigger up, p25 / p50 / p75 ms, dm/brownffa + dm/flag | 50 / 150 / 250 | 50 / 150 / 250 | 100 / 150 / 250 (same) |
+| ... duel maps | 100 / 200 / 300 | 100 / 150 / 300 (50 / 150 / 300) | 100 / 150 / 300 (same) |
+| rounds a minute alive / hits a round, dm/brownffa + dm/flag | 196 / 20% | 164 / 19% (164 / 19%) | 128 / 26% (131 / 24%) |
+| kills a minute alive, dm/brownffa + dm/flag / duel maps | | 4.9 (4.9) / 5.7 (5.5) | 5.1 (5.1) / 5.8 (5.7) |
+| trigger held, share of the time, dm/brownffa / dm/flag | 34 / 34% | 33 / 35% (34 / 34%) | 27 / 27% (29 / 27%) |
+| walking into the Flag room someone holds: the entrant's view off him at the meeting p50 / dies first | 7 deg / 54% | 7.0 / 31% (6.8 / 27%) | 8.6 / 32% (8.0 / 37%) |
+| duel maps: all 281 statistics within 25% | | 57% (57%) | 58% (55%) |
+
+Crossed for the worse in both duel seed sets: the statistics of fire without a part on screen (the share of time hidden
+and firing, fire held with no part, holds begun with no part that are taps, hidden presses after 0.55 s), the trigger
+held before the first part (0.19 -> 0.005, people 0.23) and the attack curve 200 ms before and after it (which counted the
+prefired sightings); for the better the attack curve 500 ms before, the lean share, the forward key while reloading, the
+hidden press in the first 50 ms and the release in sight at 3-4 half-widths. In the arena (16 seeds, counted as seed means
+over the 195 statistics) 47% -> 42% within 25%; of them the 156 not tied to fire without sight 49% -> 49% (median relative
+error 0.258 -> 0.259), the 39 tied to it 38% -> 10%.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -1980,9 +2050,8 @@ the average person), is the owner's call. Jumps in fights are below people's (th
   their error given that distance matching people's. The belief offers the right corner as its heaviest in 57%
   of sightings; within 5 deg the right corner is not offered at all in 40% (see "Corners and the lost enemy").
   The owner judged this gap minor next to what shows in play. Downstream of it: the first hit lands 400 ms after the first part (250),
-  and 35% of part sightings end without a hit (28%; 45% before "Encounters"). Prefire is short after
-  long hides: the bots hold fire before the first part at 20% of the part sightings vs 23%; their
-  anticipation of where and when the enemy comes out is the limit.
+  and 35% of part sightings end without a hit (28%; 45% before "Encounters"). The bots do not prefire (the owner's
+  rule since 2026-10-07, see "No prefire"; people hold fire before the first part at 23% of the part sightings).
 - **Partial exposure:** the enemy shows only parts (centroid hidden) 6.1-6.3% of duel time vs 10.5%
   (4% before "Encounters"), and bots hit 12% of their rounds there vs 22%. It is about people's
   share of the time on screen: the bots see the enemy less often, not peek less. They fire at such
@@ -2062,9 +2131,8 @@ the average person), is the owner's call. Jumps in fights are below people's (th
 - **Stopping between strafes (stoppers):** after letting go of a strafe the stopper bots press again a tick later
   45-50% of the time (the dial's target 52% over all recorded maps; the stopper people on the practice maps 68%) and
   pause a quarter second or more 27-31% vs 13%.
-- **Fire into cover:** it fades with the time since sight like people's (more than 5 s after the
-  parts were last on screen 6.4-6.8% of that time vs 4.3%); over all such time it is 15-16% vs 17%
-  (11-12% before "Encounters").
+- **Fire into cover:** none, by the owner's rule (see "No prefire"): with no part of the enemy on screen people hold
+  the trigger 17% of the time, the bots only in the 300 ms after the last part left the screen (8% of all such time).
 - **Burst length:** bursts begun in sight are 5 rounds vs 6 (p90 14 vs 13); all bursts 4 vs 5. The
   burst dial works (per bot, realised against drawn, correlation 0.84 on seeds 201-208) but is
   relative: no offset makes the arena's pooled bot burst past 5.5-5.75 rounds.

@@ -38,10 +38,14 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
    - `hb_trigger`: press and release hazards by aim error, time since sight and hold age. "In
      sight" means a body part perceived, and the clock runs from when the parts came on screen, as
      people's reaction does. A style's burst length acts only in sight: fire at an enemy out of
-     sight is let go of as people let go of it. Fire into cover fades with the time since sight, as
-     people lose track of the enemy, except at an enemy expected in the crosshair right now (people
-     prefire corners). After a head hit of its own the bot pauses and aims at the chest (the
-     owner's rule: no two headshots in a row). A bot's reaction skill shifts the press only until its
+     sight is let go of as people let go of it. People also press with nothing of the enemy on
+     screen (they prefire corners and fire into cover); the bots do not, by the owner's rule
+     (2026-10-07, `trigger.tuning.hidden_press` 0): no press without a part on screen, and a burst
+     begun in sight lets go at most 300 ms after the last part left it (`hidden_hold_ms`; people
+     within 300 ms nine times in ten). The fitted fire into cover, its fade with the time since sight
+     and its boost at an enemy expected in the crosshair stay in the model, switched off. After a
+     head hit of its own the bot pauses and aims at the chest (the owner's rule: no two headshots
+     in a row). A bot's reaction skill shifts the press only until its
      first shot near the enemy in a sighting (or a late arrival of its aim): after it, it fires like
      the average player.
    - `hb_view`: tracking controllers, main-sequence flicks, a still gate and the look policy
@@ -182,7 +186,8 @@ It then sweeps each style dial's internal offset in the arena and writes the mon
 from dial target to offset. A dial whose sweep spans less than a third of the human range stays
 at its neutral offset (`hold_angle`). The two skills (aim error, reaction) and the burst length
 are relative to the pooled bot. The corner pre-aim's look policy (`preaim_*`), the boost of
-fire into cover at an enemy expected in the crosshair (`anticipation_logit`), how strongly the keys
+fire into cover at an enemy expected in the crosshair (`anticipation_logit`; off with the owner's rule, which also
+leaves the two loops of fire into cover out of the calibration), how strongly the keys
 follow the route (`nav_switch_logit`, `nav_choice_logit`, and how that grows with the believed distance,
 `nav_far_*`), the pull toward the enemy for the second
 after losing sight (`engage_urgency`), the pause after a kill (`post_kill_ms`), the turn to a route

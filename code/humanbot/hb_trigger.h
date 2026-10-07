@@ -25,7 +25,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // they depend on the aim error (in body half-widths), the time since the LOS
 // changed and how long the button has been held or released; while hidden,
 // on how close the view is to where the enemy is believed to be. There is no
-// hard aim threshold, so bots spray and pre-fire like people do.
+// hard aim threshold, so bots spray like people do. People also pre-fire and fire
+// into cover; by the owner's rule (TriggerModel::hiddenPress 0) the bots do not:
+// no press while hidden, and a burst lets go soon after the enemy leaves the screen.
 
 #pragma once
 

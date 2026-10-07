@@ -1085,7 +1085,9 @@ static void TestTrigger(const hb::ModelBundle& b)
     const float pNear = tr.PressProb(in, 10);
     in.errHalfWidths  = 15.0f;
     const float pFar  = tr.PressProb(in, 10);
-    HB_CHECK(pNear > 0.2f && pNear < 0.5f);   // 25-38% per tick with the target near the crosshair
+    // 25-38% per tick with the target near the crosshair (people, over all gaps since the last release; with no
+    // prefire the calibrated shift puts this point, 0.5 s after a release, at about 0.5)
+    HB_CHECK(pNear > 0.2f && pNear < 0.6f);
     HB_CHECK(pFar < 0.05f);
     in.errHalfWidths = 1.0f;
     in.lageMs        = 0;
@@ -1118,7 +1120,62 @@ static void TestTrigger(const hb::ModelBundle& b)
     // cannot fire: the button is released at once
     in.canFire = false;
     HB_CHECK(!tr.Step(in, r));
-    // hidden: firing into cover only where the enemy is believed to be
+    in.canFire = true;
+    // the owner's rule (2026-10-07), as the model ships: no press with no part of the enemy on screen, whatever the
+    // fitted hidden press says (an exposure expected in the crosshair, a hit, the view on the belief), and a burst begun
+    // in sight lets go within hidden_hold_ms of the last part leaving the screen
+    {
+        const hb::TriggerModel& m = b.shared.trigger;
+        HB_CHECK(m.hiddenPress <= 0.0f && m.hiddenHoldMs > 0.0f && m.hiddenHoldMs <= 500.0f);
+        hb::TriggerInput q;
+        q.canFire      = true;
+        q.los          = false;
+        q.hiddenYawErr = 1.0f;
+        q.anticipate   = true;
+        q.damaged      = true;
+        int presses    = 0;
+        for (const int ms : {0, 100, 300, 1000, 3000, 20000}) {
+            q.lageMs = ms;
+            HB_CHECK(tr.PressProb(q, 20) == 0.0f);
+            hb::Trigger t0;
+            t0.Init(&m);
+            hb::Rng rr(11);
+            for (int i = 0; i < 2000; i++) {
+                presses += t0.Step(q, rr) ? 1 : 0;
+            }
+        }
+        HB_CHECK(presses == 0);
+        // a burst begun in sight: the enemy leaves the screen and the trigger is let go of soon after
+        int longest = 0;
+        for (int k = 0; k < 400; k++) {
+            hb::Trigger t1;
+            t1.Init(&m);
+            hb::Rng          rr(100 + k);
+            hb::TriggerInput s = in;
+            s.errHalfWidths    = 1.0f;
+            s.lageMs           = 600;
+            bool held          = false;
+            for (int i = 0; i < 200 && !held; i++) {
+                held = t1.Step(s, rr);
+            }
+            HB_CHECK(held);
+            q.anticipate = false;
+            q.damaged    = false;
+            int ticks    = 0;
+            for (q.lageMs = 0; q.lageMs < 5000 && t1.Step(q, rr); q.lageMs += 50) {
+                ticks++;
+            }
+            longest = std::max(longest, ticks * 50);
+        }
+        HB_REPORT("bursts begun in sight run on at most %d ms past the last visible part (hidden_hold_ms %.0f)", longest,
+                  m.hiddenHoldMs);
+        HB_CHECK(longest <= static_cast<int>(m.hiddenHoldMs));
+    }
+    // the fitted hidden press (the rule off): firing into cover only where the enemy is believed to be
+    hb::TriggerModel fitted = b.shared.trigger;
+    fitted.hiddenPress      = 1.0f;
+    fitted.hiddenHoldMs     = 0.0f;
+    tr.Init(&fitted);
     hb::TriggerInput h;
     h.canFire      = true;
     h.los          = false;
@@ -1142,7 +1199,7 @@ static void TestTrigger(const hb::ModelBundle& b)
     HB_CHECK(hb::HiddenLateRamp(0) == 0.0f && hb::HiddenLateRamp(500) == 0.0f);
     HB_CHECK(hb::HiddenLateRamp(2000) > 0.4f && hb::HiddenLateRamp(2000) < 0.6f);
     HB_CHECK(hb::HiddenLateRamp(8000) == 1.0f && hb::HiddenLateRamp(100000) == 1.0f);
-    hb::TriggerModel plain = b.shared.trigger, faded = b.shared.trigger;
+    hb::TriggerModel plain = fitted, faded = fitted;
     plain.hiddenLateLogit  = 0.0f;
     faded.hiddenLateLogit  = -2.0f;
     hb::Trigger tp, tf;

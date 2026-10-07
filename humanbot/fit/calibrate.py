@@ -32,7 +32,9 @@ since a body part was last on screen: the overall hidden shift on the first seco
 crosshair (anticipation_logit 5, which the fade leaves out) was set by hand from bot captures on the
 practice maps: in the arena a loop on the fire held before the first visible part ran it from 2 to its
 bound 5 and moved that share 11% -> 13%, while on the recorded maps 5 brought the prefire after 2-5 s
-hidden from 10% to 17% (people 26%). The couplings of assemble_model.py are set there by
+hidden from 10% to 17% (people 26%). Since 2026-10-07 the model ships with the owner's rule of no press with no
+part on screen (trigger.tuning.hidden_press 0): the two hidden loops are then left out and their values kept. The
+couplings of assemble_model.py are set there by
 hand; the wall reflex among them was set in the engine (the arena has too few walls to see it), and how
 strongly the keys follow the route, the pull toward the enemy in a fight (engage_urgency), the pause after a
 kill, the turn to a route behind the view, the route look's re-aim and the hidden re-aim hazard on practice-map
@@ -185,6 +187,9 @@ def pooled_loops(shared):
         Loop("release_tap_logit", ["trigger", "tuning", "release_tap_logit"], "add", "arena", ["perception.tap_share.in_sight"],
              -3.0, 3.0, shared["trigger"].get("tuning", {}).get("release_tap_logit", 0.0)),
     ]
+    if shared["trigger"].get("tuning", {}).get("hidden_press", 1.0) <= 0.0:
+        # the owner's rule (no press with no part on screen): the hidden press's shift and fade act on nothing
+        L = [lp for lp in L if lp.name not in ("hidden_fire_logit", "hidden_late_logit")]
     mv = shared["movement"]
     lean0 = mv["lean"].get("ctx_logit", [0.0] * 5)
     habit = mv.get("habit", {})
