@@ -71,7 +71,10 @@ One 50 ms server frame, for every bot (`code/fgame/humanbot_adapter.cpp`):
      follows the strafe, the walls beside (away from a flat wall, around an edge just ahead) and the
      enemy: with him out of sight, away from the side the bot believes him on, which shows more of
      what lies past the corner hiding him (people lean that way three times in four), and toward him
-     once he is on screen.
+     once he is on screen. Crouches and jumps come mostly in fights, as people's do (nine in ten of their
+     crouches and two thirds of their jumps): with nothing seen, heard or felt for a second they are
+     rarer, and the jumps people make up onto boxes and ledges, which the bot's way takes without one,
+     are not drawn as jumps of its style.
    - `hb_nav`: where to go (hunt, hold, cover, also in a fight with little left in the clip, as people
      leave the enemy's sight then, and after the enemy for a second once it is out of
      sight, as people go after it; in sight the fitted keys and the style move the bot). The keys
@@ -135,7 +138,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `g_humanbot_disguise` | 0 | 1: names from `main/humanbot/names.txt` (else a built-in list), a realistic ping, listed as players (off: labelled bots) |
 | `g_humanbot_model_dir` | "" | game-relative directory with `shared.json` / `styles.json` / `calibration.json` merge patches and `maps/<map>.json` |
 | `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the climb, door and stuck-recovery code |
-| `g_humanbot_max_crouch` / `_max_jumps` | 0 / 0 | the most crouches / jumps a minute a bot's style may draw (0: as drawn from the recorded people; the average person 4.4 / 1.9) |
+| `g_humanbot_max_crouch` / `_max_jumps` | 0 / 0 | the most crouches / jumps a minute a bot's style may draw (0: as drawn from the recorded people; the average person 4.4 / 0.9, jumps up onto something left out) |
 | `g_humanbot_door_go` / `_hold` / `_ahead` | 25 / 48 / 128 | through a door the bot opened once it has turned this far (0: no door pass), waiting up to this far in front of it; a closed door is looked for this far along the route |
 
 Commands:

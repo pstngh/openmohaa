@@ -61,6 +61,7 @@ struct MoveInput {
     bool  ducked         = false;
     bool  enemyDead      = false;   // no living enemy known (after a kill): lean context LEAN_CTX_DEAD
     bool  fireHeard      = false;   // another player's gunfire heard in the last 500 ms (people crouch then)
+    bool  quiet          = false;   // no part of the enemy seen, no gunfire heard and no hit taken for a second
     bool  onGround       = true;
     bool  allowJump      = true;
 };

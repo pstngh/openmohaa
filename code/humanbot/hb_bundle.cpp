@@ -405,6 +405,18 @@ void ParseMovement(const json& j, MovementModel& m)
                     std::string("movement.stance.") + names[i] + ".press_hazard_fire size");
             RequireProb(keys[i]->pressHazardFire, "movement.stance.press_hazard_fire");
         }
+        if (k.contains("press_hazard_quiet")) {
+            keys[i]->pressHazardQuiet = Floats(k.at("press_hazard_quiet"), "movement.stance.press_hazard_quiet");
+            Require(keys[i]->pressHazardQuiet.size() == CTX_COUNT,
+                    std::string("movement.stance.") + names[i] + ".press_hazard_quiet size");
+            RequireProb(keys[i]->pressHazardQuiet, "movement.stance.press_hazard_quiet");
+        }
+        if (k.contains("press_hazard_dead")) {
+            keys[i]->pressHazardDead = Floats(k.at("press_hazard_dead"), "movement.stance.press_hazard_dead");
+            Require(keys[i]->pressHazardDead.size() == CTX_COUNT,
+                    std::string("movement.stance.") + names[i] + ".press_hazard_dead size");
+            RequireProb(keys[i]->pressHazardDead, "movement.stance.press_hazard_dead");
+        }
         if (k.contains("up_hazard")) {
             keys[i]->upAgeEdges = Ints(Get(k, "up_age_edges", "movement.stance"), "movement.stance.up_age_edges");
             keys[i]->upHazard   = Floats(Get(k, "up_hazard", "movement.stance"), "movement.stance.up_hazard");

@@ -407,12 +407,14 @@ static void TestStance(const hb::ModelBundle& b)
     HB_REPORT("lean hidden: %.2f with a living enemy, %.2f with none", hunting, deadOpp);
     HB_CHECK(deadOpp < hunting - 0.1);
 
-    // people crouch three times as readily in the half second after a shot is heard
-    auto dipsPerMin = [&](bool fire) {
+    // people crouch three times as readily in the half second after a shot is heard, and hardly when nothing has been
+    // seen, heard or felt for a second; jumps likewise (their quiet jumps are mostly up onto something)
+    auto dipsPerMin = [&](bool fire, bool quietNow) {
         hb::Mover m;
         m.Init(&b.shared.movement);
         hb::MoveInput ci = in;
         ci.fireHeard     = fire;
+        ci.quiet         = quietNow;
         hb::Rng r1(31), r2(32);
         bool    d = false, pk = false;
         int     dipsN = 0;
@@ -427,9 +429,28 @@ static void TestStance(const hb::ModelBundle& b)
         }
         return dipsN / (200000.0 / 1200.0);
     };
-    const double quiet = dipsPerMin(false), fired = dipsPerMin(true);
-    HB_REPORT("crouch dips a minute hidden: %.1f quiet, %.1f after a shot", quiet, fired);
-    HB_CHECK(fired > 2.0 * quiet);
+    const double quiet = dipsPerMin(false, true), recent = dipsPerMin(false, false), fired = dipsPerMin(true, false);
+    HB_REPORT("crouch dips a minute hidden: %.1f quiet, %.1f in a fight's lulls, %.1f after a shot", quiet, recent, fired);
+    HB_CHECK(fired > 3.0 * quiet);
+    HB_CHECK(recent > 1.5 * quiet);
+    auto jumpsPerMin = [&](bool quietNow) {
+        hb::Mover m;
+        m.Init(&b.shared.movement);
+        hb::MoveInput ci = in;
+        ci.quiet         = quietNow;
+        hb::Rng r1(33), r2(34);
+        bool    pk = false;
+        int     n  = 0;
+        for (int i = 0; i < 200000; i++) {
+            m.Step(ci, style, r1, r2, out);
+            n += out.jump && !pk;
+            pk = out.jump;
+        }
+        return n / (200000.0 / 1200.0);
+    };
+    const double jq = jumpsPerMin(true), jr = jumpsPerMin(false);
+    HB_REPORT("jumps a minute hidden: %.1f quiet, %.1f in a fight's lulls", jq, jr);
+    HB_CHECK(jr > 1.5 * jq);
 }
 
 // After a strafe is let go, the next strafe goes the other way (people: 95-98% after one tick of none).

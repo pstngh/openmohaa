@@ -85,6 +85,17 @@ def edges_per_min(d, col):
     return st[el].sum() / max(el.sum() / 1200, 1e-9)
 
 
+def jumps_per_min(d):
+    """Jump presses a duel minute, leaving out the ones that land on something higher (fit_movement.terrain_jumps):
+    the bots get up there without a jump, and counted in, those jumps came back as jumps for no reason."""
+    import fit_movement as M
+    g = d.groupby(["session_id", "client_id", "seg"], sort=False)
+    st = (d.jump_key & g.jump_key.shift().eq(False)).to_numpy().copy()
+    st &= ~M.terrain_jumps(d, st)
+    el = d.eligible.to_numpy()
+    return st[el].sum() / max(el.sum() / 1200, 1e-9)
+
+
 def bursts(events, F):
     """Median burst length (consecutive 100 ms SMG shots, eligible shots only) per alias x capture, over the bursts
     whose first round left with a body part of the enemy on screen (perception.burst_in_sight). The dial shifts the
@@ -157,7 +168,7 @@ def dial_table(F, E):
             "reverse_share": (t.nx_side == -t.side).mean(),
             "side_hold_ms": complete_side_holds(full).median(),
             "lean_fight": (lf.lean != 0).mean(),
-            "jumps_per_min": edges_per_min(full.assign(k=full.jump_key), "k"),
+            "jumps_per_min": jumps_per_min(full),
             "crouch_per_min": edges_per_min(full.assign(k=full.crouch_key), "k"),
             "walk_hidden": hid.run.eq(0).mean(),
             "burst_median": float(bmed.get((name, cap), np.nan)),

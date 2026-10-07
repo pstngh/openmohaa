@@ -195,6 +195,8 @@ def complete_runs(F, col):
 
 
 UP_AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41]   # ticks crouched (lower edges)
+QUIET_TICKS = 20         # quiet: no part of the enemy on screen, none of his shots heard and no hit taken for 1 s
+TERRAIN_UP = 12.0        # a jump that lands this much higher went onto something
 FIRE_HEARD_TICKS = 10    # the crouch's "enemy just fired": its attack held in this many ticks up to now
 
 
@@ -215,13 +217,48 @@ def fit_stand_up(F, g, first):
     return ((k["sum"] + 5 * prior) / (k["size"] + 5)).to_numpy()
 
 
+def quiet_rows(F, g):
+    """Quiet: no part of the enemy on screen, none of his shots and no hit taken in the last QUIET_TICKS (and now)."""
+    def recent(col):
+        return g[col].transform(lambda x: x.fillna(0).astype(float).rolling(QUIET_TICKS + 1, min_periods=1).max()).gt(0)
+    return ~(recent("vis") | recent("opp_attack_primary") | recent("ev_dmg_taken"))
+
+
+def terrain_jumps(F, start):
+    """Jump presses that land TERRAIN_UP or more higher (within 1.5 s, the first tick on the ground 150 ms or more
+    after the press): onto a box, a step, a ledge. The bot's navigation takes it up such things without a jump."""
+    out = np.zeros(len(F), bool)
+    z = F.origin_z.to_numpy(float)
+    og = F.on_ground.to_numpy().astype(bool)
+    run = (F.session_id.astype(str) + "|" + F.client_id.astype(str) + "|" + F.seg.astype(str)).to_numpy()
+    n = len(F)
+    for i in np.flatnonzero(np.asarray(start)):
+        j = i + 3
+        while j < min(i + 30, n) and run[j] == run[i] and not og[j]:
+            j += 1
+        if j < n and run[j] == run[i] and og[j] and z[j] - z[i] >= TERRAIN_UP:
+            out[i] = True
+    return out
+
+
 def fit_stance(F, EL):
-    """Press hazards (per tick, by context) and hold-length pmfs for crouch, jump and walk keys."""
+    """Press hazards (per tick, by context) and hold-length pmfs for crouch, jump and walk keys.
+
+    Crouches and jumps are pressed mostly in fights (people: 91% of crouches and 67% of jumps come with a part of the
+    enemy on screen within a second either side, or his shot or a hit in the last second); out of them, quiet
+    (quiet_rows), people crouch 1.1 times a minute where hidden time as a whole has 2.4, and their quiet jumps are
+    mostly up onto something. Both keys get a press hazard of their own for quiet time (press_hazard_quiet), and jumps
+    that land on something higher are not counted as presses (the bots take such places without them). With the enemy
+    dead (after a kill, all human DM sessions as for the lean chain) the crouch gets one more (press_hazard_dead):
+    reloading then, people crouch 0.2-0.9 times a minute, against 2.8 while reloading in a fight. Their jumps then
+    (3.7 a minute, not onto anything) are left out: the owner asked for no jumps without a reason (2026-10-07)."""
     out = {}
     F = F.assign(walk_key=F.run.eq(0))
     g = F.groupby(["session_id", "client_id", "seg"], sort=False)
     first = g.cumcount().eq(0)
     standing = ~F.ducked.astype(bool) & F.on_ground.astype(bool)
+    quiet = quiet_rows(F, g)
+    dead = ~F.eligible & ~F.opp_alive.fillna(False).astype(bool)
     for key, col in [("crouch", "crouch_key"), ("jump", "jump_key"), ("walk", "walk_key")]:
         # before the first live tick of a respawn every key was up (empty usercmds)
         prev = g[col].shift().where(~(first & F.spawn_seg), False)
@@ -229,16 +266,24 @@ def fit_stance(F, EL):
         idle = prev.eq(False)
         if key == "crouch":
             idle &= standing      # a press while crouched stands up: that is the stand-up hazard
-        E = F.assign(_s=start, _idle=idle)
+        if key == "jump":
+            start &= ~terrain_jumps(F, start)
+        E = F.assign(_s=start, _idle=idle, _q=quiet)
         E = E[E.eligible & E._idle]
         haz = E.groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+        hquiet = hdead = None
+        if key in ("crouch", "jump"):
+            hquiet = E[E._q].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+            haz = E[~E._q].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+            Ed = F.assign(_s=start, _idle=idle)[dead & idle]
+            hdead = Ed.groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
         if key == "crouch":
             # people crouch three times as readily in the half second after the enemy fired (hidden 1.3 -> 4.2 a
             # minute, firing back in sight 1.7 -> 6.0); without it they hardly crouch. The bot hears every shot.
             fired = g.opp_attack_primary.transform(
                 lambda s: s.fillna(0).astype(float).rolling(FIRE_HEARD_TICKS, min_periods=1).max()).gt(0)
             E = E.assign(_f=fired[E.index])
-            hq = E[~E._f].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
+            hq = E[~E._f & ~E._q].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
             hf = E[E._f].groupby("ctx_i")._s.mean().reindex(range(len(H.CONTEXTS))).fillna(0).to_numpy()
         runs = complete_runs(F, col)
         runs = runs[runs.val.eq(True)]
@@ -259,6 +304,10 @@ def fit_stance(F, EL):
         rel = ((k["sum"] + 5 * prior) / (k["size"] + 5)).to_numpy()
         out[key] = {"press_hazard": haz.round(6), "hold_pmf": hold_pmf(runs.ms, cap), "hold_ms_median": float(runs.ms.median()),
                     "release_age_edges": rel_edges, "release_hazard": rel.round(5)}
+        if hquiet is not None:
+            out[key]["press_hazard_quiet"] = hquiet.round(6)
+            if key == "crouch":
+                out[key]["press_hazard_dead"] = hdead.round(6)
         if key == "crouch":
             out[key]["press_hazard"] = hq.round(6)
             out[key]["press_hazard_fire"] = hf.round(6)
@@ -277,6 +326,10 @@ def main():
     print("wrote", p)
     for k, v in part["stance"].items():
         print(k, "press/min by ctx", (np.asarray(v["press_hazard"]) * 1200).round(2), "hold median", v["hold_ms_median"])
+        if "press_hazard_quiet" in v:
+            print(k, "  quiet", (np.asarray(v["press_hazard_quiet"]) * 1200).round(2))
+            if "press_hazard_dead" in v:
+                print(k, "  enemy dead", (np.asarray(v["press_hazard_dead"]) * 1200).round(2))
         if "press_hazard_fire" in v:
             print(k, "  after enemy fire", (np.asarray(v["press_hazard_fire"]) * 1200).round(2))
     print("lean wall", part["lean"]["wall"])

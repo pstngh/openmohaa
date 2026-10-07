@@ -51,7 +51,8 @@ MIN_UNITS = {"ratio": 30, "quantile": 20, "custom": 1200}
 FEATURE_COLS = ["session_id", "client_id", "session_ms", "seg", "eligible", "person", "map", "line_of_sight", "attack",
                 "reloading", "action", "side", "fwd", "lean", "speed_xy", "self_approach_speed", "distance_xy",
                 "distance_xyz", "aim_total_error", "aim_yaw_error", "aim_height_fraction", "crosshair_on_opponent",
-                "tgt_half_w_deg", "yaw_d", "clip_ammo", "jump_key", "crouch_key", "run", "origin_x", "origin_y", "weapon"]
+                "tgt_half_w_deg", "yaw_d", "clip_ammo", "jump_key", "crouch_key", "run", "origin_x", "origin_y", "weapon",
+                "origin_z", "on_ground"]
 LOOKUP_COLS = ["session_id", "client_id", "session_ms", "person", "is_bot", "practice", "normal_physics", "clip_ammo",
                "weapon"]
 
@@ -206,6 +207,18 @@ def sequences(V: pd.DataFrame) -> pd.DataFrame:
         V[k] = x & ~prev
         # fit_styles.py edges_per_min: the first tick of a segment never counts
         V[k + "_fs"] = x & ~prev & ~new
+    # fit_styles.py jumps_per_min leaves out the jumps that land 12 u or more higher (fit_movement.terrain_jumps)
+    terrain = np.zeros(n, dtype=bool)
+    if "origin_z" in V and "on_ground" in V:
+        z = V.origin_z.to_numpy(float)
+        og = V.on_ground.to_numpy().astype(bool)
+        for i in np.flatnonzero(V["jump_start_fs"].to_numpy()):
+            j = i + 3
+            while j < min(i + 30, n) and not new[j] and not og[j]:
+                j += 1
+            if j < n and not new[j] and og[j] and z[j] - z[i] >= 12.0:
+                terrain[i] = True
+    V["jump_terrain"] = terrain
     walk = V.run.eq(0).to_numpy()
     prev = np.zeros(n, dtype=bool)
     prev[1:] = walk[:-1]
@@ -829,7 +842,7 @@ def dials(D: MetricData, persons) -> dict:
              "reverse_share": (t.nx_side == -t.side).mean() if len(t) else np.nan,
              "side_hold_ms": S[S.person.eq(p)].ms.median(),
              "lean_fight": (lf.lean != 0).mean() if len(lf) else np.nan,
-             "jumps_per_min": d.jump_start_fs.sum() / max(mins, 1e-9),
+             "jumps_per_min": (d.jump_start_fs & ~d.jump_terrain).sum() / max(mins, 1e-9),
              "crouch_per_min": d.crouch_start_fs.sum() / max(mins, 1e-9),
              "walk_hidden": hid.run.eq(0).mean() if len(hid) else np.nan,
              "counter_strafe": counter_strafe(full),

@@ -42,6 +42,7 @@ static constexpr int   HEAD_HIT_CHEST_MS = 300;
 static constexpr int   HEAD_HIT_PAUSE_MS = 100;
 // people crouch three times as readily in the half second after the enemy fired (fit_movement.py)
 static constexpr int   FIRE_HEARD_MS     = 500;
+static constexpr int   QUIET_MS          = 1000;   // nothing seen, heard or felt this long: quiet (fit_movement QUIET_TICKS)
 // Out of ammunition the bot closes in and bashes with the pistol (DM reach 96 u from its middle, plus the box of
 // the victim): within this distance, centre to centre, and with the crosshair this near the body (half-widths).
 static constexpr float BASH_REACH           = 100.0f;
@@ -246,6 +247,9 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     if (obs.headHit) {
         m_headHitMs = now;
+    }
+    if (!obs.damage.empty()) {
+        m_hitTakenMs = now;
     }
     for (const SoundObs& s : obs.sounds) {
         if (s.type == SOUND_GUNFIRE) {
@@ -489,6 +493,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.ducked      = self.ducked;
     mi.enemyDead   = !enemyAlive;
     mi.fireHeard   = now - m_fireHeardMs <= FIRE_HEARD_MS;
+    mi.quiet       = !m_vis && m_vageMs >= QUIET_MS && now - m_fireHeardMs > QUIET_MS && now - m_hitTakenMs > QUIET_MS;
     mi.onGround    = self.onGround;
     MoveOutput mo;
     if (liveTick == 0) {

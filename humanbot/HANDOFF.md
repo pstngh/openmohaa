@@ -43,7 +43,9 @@ Verified:
   workstation (its GCC has no m4 for flex and bison); before it, with GCC RelWithDebInfo and clang Debug.
 - CI is green: Builds on Linux, macOS and Windows, Unit Tests, and the Python checks.
 - In the arena, two average-style bots are within 25% of the human value on 53% of 195
-  statistics (median relative error 0.23; 53% over 16 seeds with "The crosshair at the door", median 0.232 (52% and
+  statistics (median relative error 0.23; 50-51% over 16 seeds with "Crouches and jumps for a reason", whose jump rate
+  falls below the reference's, which counts people's jumps onto things, and 51% with "The side a lean takes" (52% before);
+  53% over 16 seeds with "The crosshair at the door", median 0.232 (52% and
   0.225 before); 52% over 16 seeds before and after "Running to a far fight" (51% and 0.23 on seeds 1-8 with it); 52% before "Watching his side", as before "Steering with the view" and "Back and forth with the enemy hidden"; 53% and 0.21 before "Late aim and low clips", 48% and 0.27 before "Where the
   bot looks when first seen", 50% and 0.25 before
   "The practice areas of the objective maps"; 48% before
@@ -1847,7 +1849,8 @@ distance), `doorlean.py` (dm/flag's doors, people in the duels, the V2 matches a
 `Mover::LeanEnemyLogit`, `movement.lean.enemy`): a logit per context of leaning toward him (+) or away (-) while he is
 known 3-150 deg off the view, seen or where the belief has him (the soft wallhack's hunch keeps that rough), fitted with
 the chain and the wall terms as offset: -0.61 hidden, +0.18 in sight, -0.06 reloading. Two and a half times that is set
-in `assemble_model.py` (the fitted term acts on the belief, not his true position, and moved the bots little). Like the
+in `assemble_model.py` (the fitted term acts on the belief, not his true position, and moved the bots little; model
+`070ae7090822`). Like the
 walls, it moves the side a lean takes, not whether there is one. Unit test `TestLeanEnemy`.
 
 Bot against bot (`bl25_*` against `rb_201`/`bc4z_401` on dm/brownffa and dm/flag, `l25_*` against `c4z_*` on the duel
@@ -1902,6 +1905,66 @@ against bot with two bots nothing changes (no other enemy).
 
 Not changed: with another enemy alive and believed near but not on screen people reload less after a kill, the bots as
 often as with none (85-88%); the owner asked for "in sight" only.
+
+## Crouches and jumps for a reason (2026-10-07)
+
+The owner (2026-10-07, the third request): "they crouch/jump too much for no reason still, theres really no reason to do
+it unless its to jump ON/OVER something, or pass under something". Git-ignored scripts in `humanbot/cache/move_wip/s18/`:
+`cj.py`, `cj2.py`, `cj3.py` (each press from standing on the ground and what is around it: a part of the enemy on screen
+now, seen in the last second, his shot or a hit in the last second, seen only in the next second, a ladder, a jump that
+lands 12 u or more higher or ends 24 u lower, else none; by map, person, style family), `cjctx.py`, `cjwho.py` (the bots'
+quiet presses by the brain's context and by who held the keys), `quietfit.py`.
+
+**What people do** (the six duel and practice maps): 2.6 crouches and 2.4 jumps a minute alive. 91% of the crouches and
+two thirds of the jumps come in a fight (a part of the enemy on screen within a second either side, or his shot or a
+hit in the last second): they dodge. Out of fights their jumps are mostly up onto something (0.57 a minute: boxes,
+ledges, steps); no spot on these maps needs a crouch to pass under. "For no reason" (nothing of the above) they crouch
+0.23 and jump 0.15-0.2 times a minute; but that is a habit of some players: by style family, the strafers crouch so 0.62
+a minute, the stoppers 0.22, the presser (the owner) 0.05, and the players who crouch most in fights also crouch most
+when nothing is happening (per quiet minute 0.3-4.6). After a kill, reloading, people hardly crouch (0.2-0.9 a minute;
+2.8 while reloading in a fight); in the first second after it, still in the fight's rhythm, they crouch and jump a lot.
+
+**What the bots did** (`bl25_*`, `l25_*`): the same totals by family (calibrated), but placed differently: quiet presses
+(nothing seen, heard or felt for a second) 2-4 times people's family for family, crouches right after the enemy went out
+of sight about half people's, crouches while reloading after a kill 4 a minute, and jumps up onto something never (the
+navigation takes the bot up a step without one): the jump dial counted people's jumps onto things, so the bots made them
+up with jumps for no reason. All the bots' presses come from the brain (`bot_owner` 0).
+
+**What changed** (`fit_movement.fit_stance`, `Mover::StepStance`, `fit_styles.jumps_per_min`, `metrics.dials`): crouch and
+jump get a press hazard of their own for quiet time (`press_hazard_quiet`: no part of the enemy on screen, none of his
+shots heard and no hit taken for 1 s; `MoveInput::quiet`), and the crouch one with no living enemy (`press_hazard_dead`);
+the fight hazards are fitted on the rest. Jumps that land 12 u or more higher are no longer presses, in the hazards nor
+in the jump dial (the style families' means 0.10 / 1.86 / 2.90 a minute, were 0.56 / 4.14 / 3.69; pooled 0.94, was
+1.89); people's jumps after a kill (3.7 a minute, not onto anything) are left out, as the owner asked. The crouch and jump
+dial curves were recalibrated (`calibrate.py --stage dials --only crouch_per_min,jumps_per_min`; model `0c03f5574d14`). The servers' cap on
+jumps (`g_humanbot_max_jumps`) now reads the new dial: the average person is 0.9, not 1.9. Unit test in `TestStance` (dips
+and jumps a minute: quiet, in a fight's lulls, after a shot).
+
+Bot against bot (`bc2_*` against `bl25_*` on dm/brownffa and dm/flag, `c2_*` against `l25_*` on the duel maps; seeds
+201-208, in brackets 401-408), presses a minute alive "for no reason", by family (presser / stopper / strafer):
+
+| | people | before | now |
+|---|---|---|---|
+| crouches for no reason, dm/brownffa + dm/flag | 0.05 / 0.22 / 0.62 | 0.21 / 0.79 / 0.99 (0.20 / 0.82 / 0.68) | 0.10 / 0.45 / 0.59 (0.16 / 0.52 / 0.45) |
+| ... duel maps | | 0.20 / 0.71 / 1.05 (0.20 / 0.77 / 0.69) | 0.10 / 0.39 / 0.60 (0.13 / 0.42 / 0.36) |
+| jumps for no reason, dm/brownffa + dm/flag | 0.01 / 0.30 / 0.47 | 0.15 / 0.93 / 1.12 (0.08 / 0.75 / 1.16) | 0.03 / 0.66 / 0.39 (0.06 / 0.39 / 0.47) |
+| ... duel maps | | 0.12 / 0.81 / 1.23 (0.08 / 0.74 / 1.19) | 0.03 / 0.45 / 0.46 (0.03 / 0.42 / 0.41) |
+| crouches a minute in all, dm/brownffa + dm/flag | 1.29 / 3.53 / 4.46 | 1.05 / 3.64 / 4.38 (1.17 / 3.98 / 3.31) | 0.91 / 3.40 / 4.22 (1.03 / 3.56 / 3.04) |
+| jumps a minute in all, dm/brownffa + dm/flag (people: of them up onto something 0.34 / 0.40 / 0.86) | 0.73 / 3.64 / 3.72 | 0.51 / 2.94 / 3.69 (0.44 / 2.33 / 3.81) | 0.14 / 2.18 / 1.82 (0.20 / 1.69 / 1.88) |
+| crouches a minute reloading after a kill (all bots) | 0.8 | 3.9 / 4.2 (bf / duel) | 1.6 / 1.8 |
+
+The fight crouches stay where they were (in sight, after a sighting, after a shot). Back and forth, the doors and the
+dm/brownffa and dm/flag headlines stay where they were. Duel maps: all 281 statistics within 25% 57% (57%), before 60%
+(55%); crossed for the worse in both seed sets the jumps a minute (1.48-1.73 -> 0.94-1.10, people 1.87, which counts
+their jumps onto things) and the release hazard in sight at 3-4 half-widths (0.0166 -> 0.0202, people 0.0136; it crossed
+the other way with "The side a lean takes"), none for the better. In the arena 50-51% of 195 statistics within 25% over 16 seeds
+(51% before): the jump rate there falls to 0.7 a minute against the reference's 1.9, which counts people's jumps onto
+things (the arena has none to jump onto, nor do the bots on the maps).
+
+**Still off.** The stopper-style bots still crouch and jump for no reason about twice as often as their people: their
+dials are drawn from the family's spread, which holds a player who crouches 8 times a minute (4.5 per quiet minute); the
+drawn crouch dials reach 9-12 a minute. Narrowing that draw, or a lower `g_humanbot_max_crouch` on the test server (4.4,
+the average person), is the owner's call. Jumps in fights are below people's (they include people's jumps onto things).
 
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 

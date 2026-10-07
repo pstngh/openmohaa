@@ -112,6 +112,7 @@ private:
     int  m_killMs        = -1000000;
     int  m_headHitMs     = -1000000;   // our last bullet in an enemy's head
     int  m_fireHeardMs   = -1000000;   // another player's gunfire last heard
+    int  m_hitTakenMs    = -1000000;   // a hit last taken
     int  m_pingMs        = 0;
     int  m_viewMode      = -1;     // the view mode of the last tick
     bool m_los           = false;

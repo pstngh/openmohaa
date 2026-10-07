@@ -63,8 +63,8 @@ def build():
                      # itself (people strafe away from his side 56-64% of hidden lean time, the bots 41%)
                      "enemy": {**{k: mv["lean"]["enemy"][k] for k in ["min_deg", "max_deg"]},
                                "logit": [round(2.5 * x, 4) for x in mv["lean"]["enemy"]["logit"]]}},
-            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "hold_pmf", "release_age_edges",
-                                                "release_hazard", "up_age_edges", "up_hazard"] if kk in v}
+            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "press_hazard_quiet", "press_hazard_dead", "hold_pmf",
+                                                "release_age_edges", "release_hazard", "up_age_edges", "up_hazard"] if kk in v}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:

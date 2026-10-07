@@ -649,7 +649,8 @@ void Mover::StepLean(const MoveInput& in, const StyleOffsets& style, int side, R
 
 // One key held down for a while: pressed with a per-context hazard, released
 // with a hazard that depends on how long it has been held.
-static bool StepKey(const StanceKeyModel& k, int ctx, float mult, bool allowPress, double uPress, double uRelease, int& age)
+static bool StepKey(const StanceKeyModel& k, const std::vector<float>& press, int ctx, float mult, bool allowPress,
+                    double uPress, double uRelease, int& age)
 {
     if (age > 0) {
         const float h = k.releaseHazard[BinIndex(age, k.releaseAgeEdges)];
@@ -660,7 +661,7 @@ static bool StepKey(const StanceKeyModel& k, int ctx, float mult, bool allowPres
         age++;
         return true;
     }
-    if (allowPress && uPress < k.pressHazard[ctx] * mult) {
+    if (allowPress && uPress < press[ctx] * mult) {
         age = 1;
         return true;
     }
@@ -674,7 +675,7 @@ static bool StepToggle(const StanceKeyModel& k, const std::vector<float>& press,
 {
     crouchedTicks = crouched && onGround ? crouchedTicks + 1 : 0;
     if (age > 0) {
-        return StepKey(k, ctx, mult, false, uPress, uRelease, age);
+        return StepKey(k, press, ctx, mult, false, uPress, uRelease, age);
     }
     const float h = crouchedTicks > 0 ? k.upHazard[BinIndex(crouchedTicks, k.upAgeEdges)]
                                       : (onGround ? press[ctx] * mult : 0.0f);
@@ -693,21 +694,31 @@ void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng,
     const double uj = rng.Uniform(), ujr = rng.Uniform();
     const double uw = rng.Uniform(), uwr = rng.Uniform();
 
+    // people crouch and jump in fights: three times as readily in the half second after a shot is heard, and hardly
+    // when nothing has been seen, heard or felt for a second (then their jumps are up onto something, which the bot's
+    // way takes without one), nor while reloading after a kill
+    auto pressOf = [&](const StanceKeyModel& k) -> const std::vector<float>& {
+        if (in.fireHeard && !k.pressHazardFire.empty()) {
+            return k.pressHazardFire;
+        }
+        if (in.enemyDead && !k.pressHazardDead.empty()) {
+            return k.pressHazardDead;
+        }
+        return in.quiet && !k.pressHazardQuiet.empty() ? k.pressHazardQuiet : k.pressHazard;
+    };
     if (m.crouch.upHazard.empty()) {
-        out.crouch = StepKey(m.crouch, in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
+        out.crouch = StepKey(m.crouch, pressOf(m.crouch), in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
     } else {
-        // people crouch three times as readily in the half second after a shot is heard
-        const std::vector<float>& press =
-            in.fireHeard && !m.crouch.pressHazardFire.empty() ? m.crouch.pressHazardFire : m.crouch.pressHazard;
-        out.crouch = StepToggle(m.crouch, press, in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr, m_crouchAge,
-                                m_crouchedTicks);
+        out.crouch = StepToggle(m.crouch, pressOf(m.crouch), in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr,
+                                m_crouchAge, m_crouchedTicks);
     }
-    out.jump   = StepKey(m.jump, in.ctx, style.jumpMult, in.allowJump && in.onGround && !out.crouch, uj, ujr, m_jumpAge);
+    out.jump   = StepKey(m.jump, pressOf(m.jump), in.ctx, style.jumpMult, in.allowJump && in.onGround && !out.crouch, uj, ujr,
+                         m_jumpAge);
     if (out.crouch && out.jump) {
         out.jump  = false;
         m_jumpAge = 0;
     }
-    out.walk = StepKey(m.walk, in.ctx, m.walkMult * style.walkMult, true, uw, uwr, m_walkAge);
+    out.walk = StepKey(m.walk, m.walk.pressHazard, in.ctx, m.walkMult * style.walkMult, true, uw, uwr, m_walkAge);
     // people let go of walk when a fight starts
     if (in.ctx == CTX_LOS_FIRE || in.ctx == CTX_HIDDEN_FIRE) {
         m_walkAge = 0;
