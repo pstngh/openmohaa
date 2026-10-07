@@ -89,7 +89,9 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 The VPS runs the test server as the systemd service `openmohaa-humanbot` (UDP 12403; binaries
 in `~linuxuser/moh-humanbot`, home `~linuxuser/moh-humanbot-home`, source
-`~linuxuser/openmohaa-humanbot-src`). The owner's normal server there (`openmohaa`, 12203) is
+`~linuxuser/openmohaa-humanbot-src`). Since `b53427f0` (2026-10-07) its `fs_basepath` is
+`~linuxuser/moh-humanbot-base`, a folder of links to the pk3s of `/home/linuxuser/moh/main`: on bots-new configs
+always go to `<fs_basepath>/main/configs`, and `/home/linuxuser/moh` is the other server's install. The owner's normal server there (`openmohaa`, 12203) is
 not part of this work: never touch it.
 
 ## The task now: the test server
