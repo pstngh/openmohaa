@@ -170,6 +170,9 @@ public:
     void OpenAngle(Event *ev);
     void Archive(Archiver& arc) override;
 
+    // the angles it is shut at (the human-imitation bots find the leaf of an open door from them)
+    const Vector& StartAngles() const { return startangle; }
+
     RotatingDoor();
 };
 

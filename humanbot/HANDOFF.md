@@ -2038,6 +2038,33 @@ hidden press in the first 50 ms and the release in sight at 3-4 half-widths. In 
 over the 195 statistics) 47% -> 42% within 25%; of them the 156 not tied to fire without sight 49% -> 49% (median relative
 error 0.258 -> 0.259), the 39 tied to it 38% -> 10%.
 
+## The pocket behind an open door (2026-10-07)
+
+In the owner's game on `b53427f0` (see "No prefire") a bot stood 15 s at the Flag pre-CR door and 5 s at the Flag door in
+the corner between the open door and the wall beside its hinge. The doors swing away from whoever opens them, and one that
+hits a player swings back the other way (`g_door_reopen_blocked`): opened from the far side, or turned back by someone
+there, the door comes onto the bot's side. In that corner the bot's way to the doorway ran into the leaf, the walls vetoed
+every key pressing into it, and it stood or shuffled; standing within the door's field it also kept the door open (every
+touch restarts its 3 s wait), so the door never closed to free it. Bot against bot such stays of 1.5 s or more came 9-10
+times an hour alive at dm/flag's two doors into the Flag room (up to 49 s); in the dm/flag duels people never stood there
+(`s19/pocket.py`: the 40 x 64 u strips beside the two hinges).
+
+**What changed** (the engine glue, `DoorPocket` and `LeafFrame` in `humanbot_adapter.cpp`; `RotatingDoor::StartAngles`):
+a bot held up 300 ms (moved under 24 u) beside an open door's leaf on the side of the wall beyond the hinge, within 56 u of
+the leaf, gets keys along the leaf past its free end; the brain has them back 28 u past it, when its enemy is in sight, the
+door shuts or swings back under 45 deg, or after 2 s. The brain keeps the view; the hand-off logs as the door's
+(`bot_owner` 2). `g_humanbot_door_pocket 0` turns it off; `g_humanbot_debug 1` prints each one with the leaf's geometry.
+
+dm/brownffa and dm/flag, the same binary with it off (`bp2_*`) and on (`bd2_*`), seeds 201-208 (401-408):
+
+| | people | off | on |
+|---|---|---|---|
+| stays of 1.5 s or more beside the hinges of the Flag room's two doors, an hour alive / the longest | 0 | 10.5 / 20 s (9.3 / 15 s) | 0.2 / 1.7 s (1.0 / 1.8 s) |
+| a 300 ms stop in a pass through the Flag pre-CR door / the Flag door | 5 / 2% | 9 / 10% (9 / 11%, `bc2_401`) | 7 / 9% (7 / 8%) |
+| time within 72 u of the doors p50 / p90, the Flag pre-CR door | 850 / 1470 ms | 1250 / 2200 | 1250 / 2150 (1250 / 2250) |
+
+The held-room entries and the headline numbers do not move with it; the duel maps' doors are off the routes.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before

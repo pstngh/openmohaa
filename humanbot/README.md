@@ -144,6 +144,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `g_humanbot_debug` | 0 | 1: print every hand-off between the brain and the climb, door and stuck-recovery code |
 | `g_humanbot_max_crouch` / `_max_jumps` | 0 / 0 | the most crouches / jumps a minute a bot's style may draw (0: as drawn from the recorded people; the average person 4.4 / 0.9, jumps up onto something left out) |
 | `g_humanbot_door_go` / `_hold` / `_ahead` | 25 / 48 / 128 | through a door the bot opened once it has turned this far (0: no door pass), waiting up to this far in front of it; a closed door is looked for this far along the route |
+| `g_humanbot_door_pocket` | 1 | a bot held up in the corner between an open door's leaf and the wall beyond its hinge goes along the leaf past its free end (0: off) |
 
 Commands:
 - `addbotstyle <presser|strafer|stopper|random> [name]`

@@ -52,6 +52,7 @@ cvar_t *g_humanbot_skill;
 static cvar_t *g_humanbot_door_ahead;
 static cvar_t *g_humanbot_door_hold;
 static cvar_t *g_humanbot_door_go;
+static cvar_t *g_humanbot_door_pocket;
 static cvar_t *g_humanbot_max_crouch;
 static cvar_t *g_humanbot_max_jumps;
 
@@ -194,6 +195,7 @@ private:
     void Ladder(Player *p, const HbView& view, const Vector& goal, hb::TickPlan& plan);
     void StartDoorPass(Player *p, Door *d);
     bool DoorPass(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
+    bool DoorPocket(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
     bool Opponent(Player *self, Player *other) const;
     bool TeammateInCrosshair(Player *p, const HbView& view) const;
     void SetOwner(Player *p, int owner);
@@ -257,6 +259,12 @@ private:
     Vector m_passNormal;          // across the doorway, from the bot's side
     int    m_passLean  = 0;       // the lean toward the way through (-1 left, 1 right)
     bool   m_engaged   = false;   // the focus enemy seen this tick
+
+    // out of the pocket behind an open door (DoorPocket())
+    int m_pocketDoor  = -1;       // the door whose pocket the bot stands in, or leaves
+    int m_pocketSince = 0;        // in it, held up, since
+    Vector m_pocketFrom;          // where it stood then
+    int m_pocketStart = 0;        // leaving it since (0: not yet)
 
     // the climb in progress (Ladder())
     int   m_ladderSince    = 0;
@@ -760,6 +768,11 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
             }
         }
     }
+    if (DoorPocket(p, view, self, plan)) {
+        m_passDoor = -1;
+        SetOwner(p, hb::OWNER_DOOR);
+        return;
+    }
     if (DoorPass(p, view, self, plan)) {
         SetOwner(p, hb::OWNER_DOOR);
         return;
@@ -878,6 +891,130 @@ bool HumanBotAdapter::DoorPass(Player *p, const HbView& view, const hb::SelfStat
         plan.lean = m_passLean;
         m_brain.SetLean(m_passLean);
     }
+    return true;
+}
+
+// The pocket behind an open door (2026-10-07). A door that swings toward the bot (opened from the far side, or turned
+// back when it hit someone there: g_door_reopen_blocked) can leave it in the corner between the open leaf and the wall
+// beyond the hinge. Its way to the doorway runs into the leaf, the walls veto every key that presses into it, and it stood
+// there; standing in the door's field it also kept the door open (each touch restarts the door's wait). In the owner's
+// game of 2026-10-07 a bot stood so 14 s at dm/flag's Flag pre-CR door and 5 s at the Flag door while the other bot fired
+// at the door. Bot against bot such stays of 1.5 s or more came 2-7 times an hour alive at each of those two doors (up to
+// 49 s); people never stood there (the dm/flag duels). After POCKET_WAIT_MS held up in it the keys take the bot along the
+// leaf past its free end, and are the brain's again POCKET_PAST beyond it, when the enemy is in sight, the door shuts or
+// swings back, or after POCKET_MS. The brain keeps the view. g_humanbot_door_pocket 0 turns it off.
+static const float POCKET_SIDE    = 56.0f;    // the bot's middle this far off the leaf on the wall's side, at most
+static const float POCKET_PAST    = 28.0f;    // out: the middle this far past the free end
+static const float POCKET_MOVED   = 24.0f;    // held up: moved less than this in POCKET_WAIT_MS
+static const int   POCKET_WAIT_MS = 300;
+static const int   POCKET_MS      = 2000;
+
+// Where the bot stands relative to an open rotating door: along its leaf from the hinge, off it on the side of the wall
+// beyond the hinge, and out from that wall. False when it is open less than 45 deg.
+static bool LeafFrame(const Door *door, const Vector& at, float& along, float& off, float& out, float& leaf, Vector& u, Vector& n)
+{
+    if (!door->isSubclassOf(RotatingDoor)) {
+        return false;
+    }
+    const RotatingDoor *d = static_cast<const RotatingDoor *>(door);
+    Vector lc = (d->mins + d->maxs) * 0.5f;
+    lc.z      = 0.0f;
+    const float half = lc.length();
+    if (half < 8.0f) {
+        return false;
+    }
+    leaf = 2.0f * half;
+    const float a0 = DEG2RAD(d->StartAngles().yaw()), a1 = DEG2RAD(d->angles.yaw());
+    const Vector uc((lc.x * std::cos(a0) - lc.y * std::sin(a0)) / half, (lc.x * std::sin(a0) + lc.y * std::cos(a0)) / half, 0.0f);
+    u = Vector((lc.x * std::cos(a1) - lc.y * std::sin(a1)) / half, (lc.x * std::sin(a1) + lc.y * std::cos(a1)) / half, 0.0f);
+    if (DotProduct(u, uc) > 0.7f) {
+        return false;
+    }
+    // the wall's normal on the side the leaf swung to, and the leaf's on the side of the wall beyond the hinge
+    Vector m(-uc.y, uc.x, 0.0f);
+    if (DotProduct(m, u) < 0.0f) {
+        m = m * -1.0f;
+    }
+    n = Vector(-u.y, u.x, 0.0f);
+    if (DotProduct(n, uc) > 0.0f) {
+        n = n * -1.0f;
+    }
+    Vector r = at - d->origin;
+    r.z      = 0.0f;
+    along    = DotProduct(r, u);
+    off      = DotProduct(r, n);
+    out      = DotProduct(r, m);
+    return true;
+}
+
+bool HumanBotAdapter::DoorPocket(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan)
+{
+    const int now = level.inttime;
+    float     along = 0.0f, off = 0.0f, out = 0.0f, leaf = 0.0f;
+    Vector    u, n;
+    if (!g_humanbot_door_pocket || !g_humanbot_door_pocket->integer) {
+        m_pocketDoor = -1;
+        return false;
+    }
+    if (m_pocketDoor >= 0) {
+        Entity *e = G_GetEntity(m_pocketDoor);
+        if (!e || !e->IsSubclassOfDoor() || static_cast<Door *>(e)->isCompletelyClosed()
+            || !LeafFrame(static_cast<Door *>(e), p->origin, along, off, out, leaf, u, n)) {
+            m_pocketDoor = -1;
+        } else if (!m_pocketStart) {
+            // in it, waiting
+            if (along < 8.0f || along > leaf + 8.0f || off < 0.0f || off > POCKET_SIDE || out < 0.0f) {
+                m_pocketDoor = -1;
+            } else if ((p->origin - m_pocketFrom).lengthXY() > POCKET_MOVED) {
+                // getting along on its own (the strip beside the hinge can be part of a corridor)
+                m_pocketSince = now;
+                m_pocketFrom  = p->origin;
+            } else if (now - m_pocketSince >= POCKET_WAIT_MS && !m_engaged) {
+                m_pocketStart = std::max(now, 1);
+                if (g_humanbot_debug && g_humanbot_debug->integer) {
+                    gi.Printf(
+                        "humanbot: %s out of the pocket behind door %d at (%.0f %.0f): %.0f u along the leaf of %.0f, %.0f off it, "
+                        "%.0f out from the wall; hinge (%.0f %.0f), yaw %.0f (shut %.0f), leaf (%.2f %.2f)\n",
+                        p->client ? p->client->pers.netname : "?", m_pocketDoor, p->origin.x, p->origin.y, along, leaf, off, out,
+                        e->origin.x, e->origin.y, e->angles.yaw(), static_cast<RotatingDoor *>(e)->StartAngles().yaw(), u.x, u.y
+                    );
+                }
+            }
+        } else if (along > leaf + POCKET_PAST || off < -16.0f || m_engaged || now - m_pocketStart > POCKET_MS) {
+            m_pocketDoor = -1;
+        }
+    }
+    if (m_pocketDoor < 0) {
+        int          touch[MAX_GENTITIES];
+        const Vector lo  = p->origin - Vector(128.0f, 128.0f, 64.0f);
+        const Vector hi  = p->origin + Vector(128.0f, 128.0f, 64.0f);
+        const int    num = gi.AreaEntities(lo, hi, touch, MAX_GENTITIES);
+        for (int i = 0; i < num && m_pocketDoor < 0; i++) {
+            Entity *e = G_GetEntity(touch[i]);
+            if (!e || !e->IsSubclassOfDoor() || static_cast<Door *>(e)->isCompletelyClosed()
+                || !LeafFrame(static_cast<Door *>(e), p->origin, along, off, out, leaf, u, n)) {
+                continue;
+            }
+            if (along >= 8.0f && along <= leaf + 8.0f && off >= 0.0f && off <= POCKET_SIDE && out >= 0.0f) {
+                m_pocketDoor  = e->entnum;
+                m_pocketSince = now;
+                m_pocketFrom  = p->origin;
+                m_pocketStart = 0;
+            }
+        }
+        return false;
+    }
+    if (!m_pocketStart) {
+        return false;
+    }
+    // along the leaf on the bot's side, to past its free end
+    Entity *e    = G_GetEntity(m_pocketDoor);
+    Vector  goal = e->origin + u * (leaf + POCKET_PAST + 12.0f) + n * 8.0f;
+    Vector  to   = goal - p->origin;
+    to.z         = 0.0f;
+    plan.chord   = ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.clearance);
+    plan.jump    = false;
+    plan.crouch  = false;
     return true;
 }
 
@@ -1190,6 +1327,7 @@ void HumanBotAdapter::Spawned()
     m_recoveryUntil = 0;
     m_useUntil      = 0;
     m_ladderSince   = 0;
+    m_pocketDoor    = -1;
     m_eye           = hb::EyeState();
     m_steerValid    = false;
     if (m_player) {
@@ -1231,6 +1369,7 @@ void G_HumanBotInit(void)
     g_humanbot_door_ahead = gi.Cvar_Get("g_humanbot_door_ahead", "128", 0);
     g_humanbot_door_hold  = gi.Cvar_Get("g_humanbot_door_hold", "48", 0);
     g_humanbot_door_go    = gi.Cvar_Get("g_humanbot_door_go", "25", 0);
+    g_humanbot_door_pocket = gi.Cvar_Get("g_humanbot_door_pocket", "1", 0);
     g_humanbot_max_crouch = gi.Cvar_Get("g_humanbot_max_crouch", "0", 0);
     g_humanbot_max_jumps  = gi.Cvar_Get("g_humanbot_max_jumps", "0", 0);
 
