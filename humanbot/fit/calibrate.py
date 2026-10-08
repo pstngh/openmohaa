@@ -45,7 +45,8 @@ dial whose sweep spans less than a third of the human range is left inert, flat 
 offset: hold_angle (2026-10-02; offsets -2..2 move the share parked on the appearance point
 0.27-0.32, people 0.22-0.53. They do move the view onto the corner, but the parked share is
 bounded by how often the belief picks the right corner). The burst dial counts the bursts begun in sight
-and is relative to the pooled bot, like the skills (RELATIVE_DIALS).
+and is relative to the pooled bot, like the skills (RELATIVE_DIALS). The curves and the loop in OWNER_HELD keep their
+values unless named with --only: the owner's rules depend on what they do in the engine (see OWNER_HELD).
 
 Usage: calibrate.py [--stage pooled|dials|all] [--iters 8] [--seeds 1,2,3,4] [--seconds 900]
                     [--build DIR] [--replay-data DIR] [--dry-run]
@@ -76,6 +77,13 @@ import hbdata as H  # noqa: E402
 MODEL = H.HB_ROOT / "model"
 REFERENCE = H.HB_ROOT / "eval" / "human_reference.json"
 CONTEXTS = ["hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"]
+# Kept as they are unless named with --only (2026-10-08, the refit on every duel map, HANDOFF.md "Every duel map, and the
+# team matches as context"): re-swept, the reaction curve gave the fastest recorded reaction a weaker offset (first press
+# p75 150 -> 200 ms in the engine, against the owner's "as fast as the fastest profile"), the crouch curve made up for the
+# quiet crouches the owner's rule forbids with more fight crouches (1.7 -> 2.7 a minute on dm/brownffa and dm/flag), and
+# the aim height's loop and curve lowered the aim on the body (0.43-0.45 -> 0.39-0.41 in the engine, people 0.45); the aim
+# skill's curve maps the best aim to the end of its grid either way.
+OWNER_HELD = {"reaction_ms", "aim_error_fight_deg", "crouch_per_min", "aim_height_firing", "aim_height.firing"}
 
 
 def logit(p):
@@ -268,6 +276,8 @@ def calibrate_pooled(runner: Runner, iters: int, log: list, only=()):
     loops = pooled_loops(shared)
     if only:
         loops = [lp for lp in loops if any(lp.name.startswith(o) for o in only)]
+    else:
+        loops = [lp for lp in loops if lp.name not in OWNER_HELD]
     for lp in loops:
         lp.value = lp.init
     # arrays are written whole (a merge patch replaces arrays)
@@ -432,7 +442,7 @@ def calibrate_dials(runner: Runner, log: list, only=()):
     cal = json.loads((MODEL / "calibration.json").read_text())
     for group, sweeps in (("dial", DIAL_SWEEPS), ("skill", SKILL_SWEEPS)):
         for name, (offset, stat, grid) in sweeps.items():
-            if only and name not in only:
+            if (only and name not in only) or (not only and name in OWNER_HELD):
                 continue
             realised = []
             for v in grid:

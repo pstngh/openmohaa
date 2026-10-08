@@ -1,7 +1,9 @@
 """Export recorded human duel situations for the C++ replay harness (hb_replay).
 
 Writes humanbot/cache/replay/<map>.hbr (git-ignored): every valid row of the
-deathmatch sessions on the practice maps, in unbroken-segment order, as float32
+deathmatch sessions on the practice maps, and of the sessions with 1v1 duel rows on the
+other deathmatch maps (hbdata.widen_duels: dm/brownffa, dm/flag, dm/alpha, dm/mohdm6;
+hb_replay reads REPLAY_MAPS), in unbroken-segment order, as float32
 columns. Segments that start with a respawn begin at the first live tick
 (spawn_seg = 1): runs that start there are complete, not censored. The harness drives the bot modules through these situations and
 computes the same statistics for the bot and for the recorded human.
@@ -21,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hbdata as H  # noqa: E402
 
 OUT = H.CACHE / "replay"
+PRACTICE = ["dm/crnodoors", "dm/main", "dm/vents", "dm/downladder"]
+# the maps hb_replay loads (code/tests/humanbot/hb_replay.cpp)
+REPLAY_MAPS = PRACTICE + ["dm/brownffa", "dm/flag", "dm/alpha", "dm/mohdm6"]
 
 COLS = [
     # identity / sequence
@@ -43,7 +48,8 @@ COLS = [
 def main():
     F = H.load_dm()
     common, _ = H.import_analysis()
-    F = F[F.seg.ge(0) & F["map"].isin(["dm/crnodoors", "dm/main", "dm/vents", "dm/downladder"])].copy()
+    duel_session = F.eligible.groupby(F.session_id, sort=False).transform("any")
+    F = F[F.seg.ge(0) & (F["map"].isin(PRACTICE) | (duel_session & F["map"].isin(REPLAY_MAPS)))].copy()
     # opponent columns not in the default sequence table
     extra = pd.read_parquet(H.analysis_cache() / "features.parquet",
                             columns=["session_id", "client_id", "session_ms", "opp_cmd_forward", "opp_pm_flags", "opp_self_tangential_speed"],

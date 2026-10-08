@@ -1,8 +1,9 @@
 # Human-imitation bots
 
 The deathmatch bots of this fork do not use the stock bot's decision code. Every bot runs one
-data-fitted, stochastic brain learned from five recorded people (397 player-minutes of 1v1 SMG
-duels). It moves, aims, fires and looks the way those players did. Each bot draws a style
+data-fitted, stochastic brain learned from six recorded people (506 player-minutes of 1v1 SMG
+duels on eight deathmatch maps; their team matches inform only how people travel with the enemy far
+away). It moves, aims, fires and looks the way those players did. Each bot draws a style
 family (presser, strafer or stopper), then its own dials and skill within that family. There is
 no neural net: the brain is small semi-Markov processes, controllers and hazards fitted on the
 recordings, plus a particle filter for where the enemy might be. The stock code still handles
@@ -161,7 +162,11 @@ humanbot/fit/run_fits.sh          # needs ../openmohaa-movement (git lfs pull) a
 humanbot/fit/calibrate.py --stage all
 ```
 
-The fits read the recordings through the data repository's unchanged analysis code:
+The fits read the recordings through the data repository's unchanged analysis code. They learn from
+the 1v1 human duels of every deathmatch map (`hbdata.widen_duels`: the data repository's duel mask of
+the four practice maps, plus dm/brownffa, dm/flag, dm/alpha and dm/mohdm6); the team matches are never
+pooled with them (`hbdata.load_team`, used only as a prior of `fit_keys.py`'s hidden distance term past
+1000 u).
 
 - `fit_keys.py`: the two movement keys and how a life starts;
 - `fit_movement.py`: lean and stance;

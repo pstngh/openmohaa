@@ -1,12 +1,13 @@
 # Handoff: human-imitation bots
 
-For a Claude Code session picking this work up. The state is as of 2026-10-07.
+For a Claude Code session picking this work up. The state is as of 2026-10-08.
 
 ## What this is
 
 The bots of this fork (github.com/pstngh/openmohaa, public) run one data-fitted, stochastic brain
-learned from five recorded people (397 player-minutes of 1v1 SMG duels). They move, aim, fire and
-look like those players. Each bot draws a style family (presser, strafer, stopper), then its own
+learned from six recorded people (506 player-minutes of 1v1 SMG duels on eight deathmatch maps; the
+team matches only as context for travel with the enemy far away, see "Every duel map, and the team matches as context").
+They move, aim, fire and look like those players. Each bot draws a style family (presser, strafer, stopper), then its own
 dials. Read [README.md](README.md) for how it works and [TESTING.md](TESTING.md) for the test
 procedure.
 
@@ -2176,6 +2177,74 @@ some begun quiet just before he showed up counted as fight crouches. Kills a min
 dm/brownffa and dm/flag, 6.22 (6.22) -> 6.14 (6.28) on the duel maps; hits a round the same. On the duel maps 201 the crouch
 key's presses a minute (`movement.crouch_per_min`, which counts standing up too) left people's, 4.42 -> 3.24 (people 4.33).
 
+## Every duel map, and the team matches as context (2026-10-08)
+
+The owner asked why the bots learn from only part of the human telemetry, then: "yes do it, use the team matches too but
+just as extra context as gameplay is much different". Step 1 of the long-term direction (generic bots for any map).
+
+**What changed.** The motor fits learned from the data repository's duel mask: living human against living human on the
+four practice maps (393 player-minutes after the respawn dead time). Now (`hbdata.widen_duels`) `eligible` is every 1v1
+human duel on a deathmatch map with normal physics, in games the player held an SMG for at least half the duel time
+(`WIDE_SMG_MIN`; dm/codex_dust2_v2 of 07-26, 55-67% rifles, stays out): 506 minutes, the new ones dm/brownffa 74, dm/flag
+26, dm/mohdm6 7, dm/alpha 6. The data repository is unchanged (its mask stays `eligible_practice`); only the bot's loader
+widens it. Six people count now: a sixth (45 minutes) gets a style and falls in the strafer family, so the families are
+presser 1 person, strafer 3, stopper 2 (a bot draws them 1/6, 1/2, 1/3; 0.2/0.4/0.4 before); the best fight aim among the
+style rows is 3.98 deg (4.08 before). A body part on screen (`vis`): the rebuilt column on the practice maps as before,
+the logged `ext_vis_parts` on the 10-04 games (dm/brownffa, dm/flag, dm/alpha, dm/mohdm6; the centroid ray in the first
+250 ms of a life, where the logged rays start at the previous life's eye), none for the dm/brownffa duels of 07-16 to
+07-25 (22 minutes): those rows get the centroid ray and `vis_known` False, and the fits that time the sight from the first
+part (the trigger, the early reload, the bursts begun in sight) leave them out. `export_replay.py` and `hb_replay` take
+the new maps too, so the replay loops (the strafe and forward habits and the lean by context) match people on every duel
+map.
+
+The team matches (obj/obj_team2 and obj/obj_team4, catalog-only in the data repository; `hbdata.load_team`, rows with an
+SMG and the nearest enemy alive) are never pooled with the duels. With the enemy hidden they are mostly what the duel
+maps lack: 180 minutes with him more than 1000 u away (the duels 7). Within 1000 u the team players strafe half as readily
+as in a duel and walk 24-49% of their hidden time (1-6%): none of that is taken. `fit_keys.py` splits the keys' hidden
+distance term past 1000 u (`HID_DIST_EDGES` 1500, 2000, 3000) and gives those bins a prior (`fit_logistic`'s new `prior`):
+the duel's own 700-1000 u value plus how the team players' change rate moves from 700-1000 u outward (their running ticks),
+which the duel rows there can still move. In the team matches people keep forward held longer and start fewer strafes
+the farther the enemy; the fitted offset of a strafe start with forward held is now -0.2 at 700-1000 u and -0.6 / -1.2 /
+-1.0 / -1.5 from 1000 / 1500 / 2000 / 3000 u. The shapes stay in the part (`team_far_shape`), not the model.
+
+Calibration (`calibrate.py --stage all`, then three curves put back): the pooled loops moved with the fits (re-run with 8
+seeds they land on the same values: the hand's noise 1.25 -> 1.35-1.39, the release tilts near -1.15 -> -0.85 and far
+0.65 -> 0.41, the still gate hidden and reloading). The dial curves are the re-sweep's except three kept from `405467ac`,
+because the re-sweep undid what the owner chose: the reaction skill (it gave 100 ms the offset 1.44 instead of 1.96, and
+the first press after a sighting slowed at p75 from 150 to 200 ms), the crouch (with the owner's rule of no crouch without
+a reason the re-sweep made up for the forbidden quiet crouches with fight crouches: 1.7 -> 2.6-2.75 a minute on dm/brownffa
+and dm/flag, people 1.3-2), and the aim height (the arena loop and the dial curve moved it down: in the engine the bots aimed
+at the belt, 0.39-0.41 of the body vs 0.43-0.45, people 0.45, and hit less); the pooled aim height (`view.aim_height.firing`
+0.3716) is kept with it; `calibrate.py` now holds all of them (`OWNER_HELD`) unless named with `--only`. A re-sweep of
+the aim skill below 0.4 (the best aim maps to the grid's end) was tried and dropped:
+in the arena the fight aim error stops falling at about 4.2 deg there.
+
+**Checks** (bot against bot, the model `85e1a6b7932a` = "T4" against `405467ac` = `r3_*`/`br3_*`; seeds 201-208, in
+brackets 401-408; scripts in `move_wip/s21/`, the play checks of `s14`, `s18`, `s19`, `s20` and `s8/final_bf.py`):
+- Leave one map out (`s21/lomo.py`; each map's people scored by fits without that map): with the other maps' duels added,
+  the keys' change hazards predict 11 of the 12 held-out map and key pairs better (log loss -0.0002 to -0.0028 a tick,
+  dm/flag most; dm/downladder's strafe key +0.0004), the press and release in sight half better, half worse by under
+  0.0006. Pooling the maps hurts no map.
+- Duel maps, all 281 statistics within 25%: 56.9% (54.4%) vs 60.5% (53.0%); the arena (seeds 1-8) 47% for both models.
+- Unchanged in play: the first press after a sighting (p25/50/75 50/100/150 ms), the meetings and who sees whom first on
+  dm/brownffa and dm/flag, the door passes at dm/flag's Flag room, sightings a minute, crouches (fight only, 1.4-1.6 a minute
+  alive on dm/brownffa + dm/flag, 1.9 on the duel maps), the fight diagonals.
+- Aim: the error firing at 128-192 / 256-384 u 9.7-10.2 / 5.2-5.3 deg vs 9.6-9.7 / 5.1-5.2 (people 9.0 / 5.2); rounds on
+  target with the crosshair within 1.5 half-widths 90-93% vs 93-95%; hits a round 27.0-27.3% vs 27.7-28.4% on dm/brownffa
+  + dm/flag, 25.2-25.8% vs 25.9-26.4% on the duel maps; kills a minute alive 2-3% fewer.
+- Lean: the strafer bots lean 45-54% of their time alive vs 32-38% (firing 66-72% vs 52-60%; the strafer people 37% and
+  54-63% firing, the owner 61% and 97%), the others a little more (presser 90-92% vs 89-90%, stopper 82-86% vs 76-81%):
+  the sixth person, who leans more than the two strafers before, joined them. The entrant into a meeting leans 59-63% of the 3 s
+  before vs 49-56% (people 40%).
+- Big maps (`s21/bigmap.py`, two bots in free-for-all on obj/obj_team2 and obj/obj_team4, seeds 601-608; the team context
+  on the first recalibration against the same model without it): it changes little. With the enemy hidden 2000-3000 u away the bots let go of forward 0.042 / 0.034 a tick (without it 0.047 /
+  0.036; the team players 0.010 / 0.006) and start a strafe 0.097 / 0.068 (0.105 / 0.075; people 0.022 / 0.040): on a big
+  map the bots' travel is two to five times as twitchy as people's whatever the fitted hazard, which points at the route
+  following (step 3 of the direction).
+
+`test_hb_modules`' open loop (a bot fighting forever at 350 u) strafes without forward 0.83 of the time now (0.80): its
+bound moved to 0.86; in the engine the fight's shares did not move.
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -2384,6 +2453,13 @@ key's presses a minute (`movement.crouch_per_min`, which counts standing up too)
   the people's range: the owner's rule since 2026-10-08 (see "Every bot at the best reaction and aim").
 - No crouch press when quiet or with the enemy dead (unless a shot was just heard): the owner's rule since 2026-10-08 (see
   "Crouches only with a reason"); people do crouch then, 0.06-0.33 times a minute.
+- The motor layer is fitted on the 1v1 duels of every deathmatch map, not the data repository's duel mask of the four
+  practice maps (`hbdata.widen_duels`, the owner's word of 2026-10-08); the closed-loop reference (`human_reference.json`)
+  stays the practice maps' people. The team matches (catalog-only in the data repository) inform only the keys' hidden
+  distance term past 1000 u, as a prior (see "Every duel map, and the team matches as context").
+- The reaction skill's, the crouch dial's and the aim height's curves (and the pooled aim height) are kept from
+  `405467ac` through the refit of 2026-10-08: re-swept, they undid the owner's fastest reaction and fight-only crouches and
+  lowered the aim (same section). `calibrate.py` keeps them (`OWNER_HELD`) unless they are named with `--only`.
 - AFK behavior is not modelled.
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).

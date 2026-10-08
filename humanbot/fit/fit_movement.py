@@ -7,7 +7,7 @@ Crouch is a toggle in this engine (a press while standing ducks, 99.9%; the next
 press, or a jump press, stands up, 98%), so its press hazard is fitted on
 standing ticks and a stand-up hazard by crouched age ends each dip (people
 crouch 3.5% of the time, in dips of about 350 ms).
-Everything is computed on the duel mask, on unbroken segments, from ticks whose
+Everything is computed on the 1v1 duels of every deathmatch map (hbdata.widen_duels), on unbroken segments, from ticks whose
 run start is observed (every life starts with 2-4 ticks of empty usercmds while
 the client catches up with the respawn, so segment-start runs are censored).
 """

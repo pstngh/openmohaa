@@ -1209,7 +1209,9 @@ int main(int argc, char **argv)
     const StyleOffsets style = ParseOffsets(o.offsets, b.shared);
     std::vector<Replay> reps;
     for (const std::string& d : o.data) {
-        for (const char *mp : {"dm_crnodoors", "dm_main", "dm_vents", "dm_downladder"}) {
+        // the practice maps and the other deathmatch maps with 1v1 duels (humanbot/fit/export_replay.py REPLAY_MAPS)
+        for (const char *mp : {"dm_crnodoors", "dm_main", "dm_vents", "dm_downladder", "dm_brownffa", "dm_flag", "dm_alpha",
+                               "dm_mohdm6"}) {
             Replay r;
             if (LoadHbr(d + "/" + mp + ".hbr", r)) {
                 r.map = mp;

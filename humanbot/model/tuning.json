@@ -2,29 +2,29 @@
  "movement": {
   "habit": {
    "fwd_ctx_logit": [
-    -0.1237,
-    0.0957,
-    0.115,
-    -0.383,
-    0.9028
+    -0.1781,
+    0.1617,
+    0.0502,
+    -0.2276,
+    0.9466
    ],
-   "reverse_logit": 0.2041,
+   "reverse_logit": 0.2597,
    "side_ctx_logit": [
-    -0.2595,
-    0.8907,
-    -0.7302,
-    2.5735,
-    -0.1637
+    -0.2717,
+    0.8734,
+    -0.9172,
+    2.4496,
+    -0.1396
    ],
-   "walk_mult": 2.159
+   "walk_mult": 2.2187
   },
   "lean": {
    "ctx_logit": [
-    -0.406,
-    2.3939,
-    -0.7837,
-    0.6271,
-    -0.2999
+    -0.3661,
+    2.4271,
+    -0.7592,
+    0.6286,
+    -0.323
    ]
   }
  },
@@ -38,11 +38,11 @@
    "anticipation_logit": 5.0,
    "hidden_fire_logit": 0.1001,
    "hidden_late_logit": -0.7413,
-   "press_los_logit": 0.5084,
-   "release_far_logit": 0.6511,
+   "press_los_logit": 0.4784,
+   "release_far_logit": 0.4139,
    "release_los_logit": 0.0,
-   "release_near_logit": -1.1489,
-   "release_tap_logit": -0.2979
+   "release_near_logit": -0.8528,
+   "release_tap_logit": -0.1084
   }
  },
  "view": {
@@ -57,17 +57,17 @@
    "hidden_reaim_hazard": 0.05,
    "look_dwell_median_ms": 2000.0,
    "lookaround_per_min": 3.0,
-   "noise_scale": 1.2477,
+   "noise_scale": 1.3544,
    "pitch_gain_scale": 3.0,
    "preaim_hazard": 0.3,
    "preaim_share": 0.1,
    "preaim_weight": 60.0,
    "still_logit": [
-    0.6472,
-    -0.1617,
+    0.8387,
+    1.0306,
     3.0,
     -3.0,
-    0.5002
+    0.7321
    ],
    "track_gain_scale": 2.5
   }

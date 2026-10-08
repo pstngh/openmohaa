@@ -104,13 +104,15 @@ def jumps_per_min(d):
 
 def bursts(events, F):
     """Median burst length (consecutive 100 ms SMG shots, eligible shots only) per alias x capture, over the bursts
-    whose first round left with a body part of the enemy on screen (perception.burst_in_sight). The dial shifts the
+    whose first round left with a body part of the enemy on screen (perception.burst_in_sight; rows without a part
+    count, hbdata.attach_vis_parts, are left out). The dial shifts the
     release in sight only; fire into cover is let go of as people let go of it, whatever the style."""
     S = events[events.event.eq("shot") & events.actor_bot.eq(0) & events.weapon.isin(["MP40", "Thompson"])]
     S = S.rename(columns={"actor_id": "client_id"})
-    fk = F.set_index(["session_id", "client_id", "session_ms"])[["eligible", "name", "capture_date", "vis"]]
+    fk = F.set_index(["session_id", "client_id", "session_ms"])[["eligible", "name", "capture_date", "vis", "vis_known"]]
     m = fk.reindex(pd.MultiIndex.from_frame(S[["session_id", "client_id", "session_ms"]]))
-    S = S.assign(el=m.eligible.to_numpy(), name=m.name.to_numpy(), cap=m.capture_date.to_numpy(), vis=m.vis.to_numpy())
+    S = S.assign(el=m.eligible.to_numpy(), name=m.name.to_numpy(), cap=m.capture_date.to_numpy(),
+                 vis=np.where(m.vis_known.eq(True).to_numpy(), m.vis.to_numpy(), -1))
     S = S[S.el.eq(True)].sort_values(["session_id", "client_id", "session_ms"])
     gap = S.groupby(["session_id", "client_id"]).session_ms.diff()
     S["bid"] = (~gap.eq(100)).cumsum()

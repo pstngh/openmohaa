@@ -8,6 +8,9 @@ Sequence rule (from the data repo): every next-tick value, hold age and
 time-since-LOS-change is computed on unbroken valid segments first, and only
 then filtered by context. Runs touching a segment edge are censored, except
 the first run after a respawn (the empty usercmds before it are dropped).
+
+The rows the fits learn from (`eligible`, see widen_duels) are the 1v1 human duels of
+every deathmatch map, not only the data repo's duel mask on the four practice maps.
 """
 from __future__ import annotations
 
@@ -88,8 +91,14 @@ FRAME_COLS = [
     "opp_health", "clip_ammo", "clip_size", "weapon", "weapon_state", "origin_x", "origin_y", "origin_z", "velocity_x",
     "velocity_y", "velocity_z", "opponent_id", "opponent_origin_x", "opponent_origin_y", "opponent_origin_z",
     "opponent_velocity_x", "opponent_velocity_y", "has_opp", "opp_alive", "ev_shot", "ev_reload", "ev_dmg_taken",
-    "ev_dmg_dealt", "ev_kill", "ev_death", "ev_spawn", "pm_flags", "eye_z",
+    "ev_dmg_dealt", "ev_kill", "ev_death", "ev_spawn", "pm_flags", "eye_z", "ext_vis_parts",
 ]
+
+# The owner (2026-10-08): learn from the 1v1 duels of every deathmatch map, not only the four practice maps
+# (dm/brownffa and dm/flag above all, the maps they play). A game counts when the player held an SMG for at least this
+# share of its duel time: dm/codex_dust2_v2 (07-26) was played with rifles 55-67% of it; every other game 0.96-1.
+WIDE_SMG_MIN = 0.5
+SMG = ["MP40", "Thompson"]
 
 
 def load_dm(cols=None) -> pd.DataFrame:
@@ -99,18 +108,18 @@ def load_dm(cols=None) -> pd.DataFrame:
     a run), known_* (the run's start is observed: it did not start at a segment
     edge, or the segment starts with a respawn) and `lage` (ms since
     line_of_sight last changed, or since the respawn; NaN when unobserved). `vis`
-    is 1 while a body part of the opponent is on screen (the data repo's rebuilt
-    ext_vis_parts, vis_parts.parquet; 0 outside the duel mask) and `vage` the ms
-    since it changed, the way `lage` follows line_of_sight. The empty usercmds
+    is 1 while a body part of the opponent is on screen (attach_vis_parts; 0 outside
+    `eligible`) and `vage` the ms since it changed, the way `lage` follows line_of_sight. The empty usercmds
     right after each respawn are dropped (drop_spawn_dead_time).
     """
     cache = ensure_features()
     src = cache / "features.parquet"
-    seq = CACHE / "dm_seq_v8.parquet"
+    seq = CACHE / "dm_seq_v9.parquet"
     if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
         return pd.read_parquet(seq)
     F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])
     F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
+    widen_duels(F)
     F = attach_vis_parts(F, cache)
     F = drop_spawn_dead_time(F)
     add_sequences(F)
@@ -120,14 +129,65 @@ def load_dm(cols=None) -> pd.DataFrame:
     return F
 
 
+def widen_duels(F: pd.DataFrame) -> None:
+    """`eligible` becomes the 1v1 human duels of every deathmatch map with normal physics (the data repo's duel mask,
+    kept as `eligible_practice`, plus the other dm maps' duels in games the player held an SMG in, WIDE_SMG_MIN)."""
+    F["eligible_practice"] = F.eligible.astype(bool)
+    duel = F.human_duel.astype(bool) & F.normal_physics.astype(bool) & F["map"].astype(str).str.startswith("dm/")
+    smg = F.weapon.isin(SMG).where(duel)
+    share = smg.groupby([F.session_id, F.client_id], sort=False).transform("mean")
+    F["eligible"] = F.eligible_practice | (duel & share.ge(WIDE_SMG_MIN))
+
+
+def load_team() -> pd.DataFrame:
+    """Valid human rows of the team matches (objective mode, obj/obj_team2 and obj/obj_team4, normal physics), sorted,
+    with the sequence features of load_dm. Context, never pooled with the duels (the owner, 2026-10-08: "use the team
+    matches too but just as extra context as gameplay is much different"): `eligible` is False on every row, and
+    `team_ctx` marks the rows a fit may take context from (an SMG held, the nearest enemy alive and known; with two
+    enemies alive the opponent columns describe the nearest)."""
+    cache = ensure_features()
+    src = cache / "features.parquet"
+    seq = CACHE / "team_seq_v1.parquet"
+    if seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
+        return pd.read_parquet(seq)
+    cols = [c for c in FRAME_COLS if c != "ext_vis_parts"] + ["g_gametype"]
+    F = pd.read_parquet(src, columns=cols, filters=[("valid", "==", True), ("g_gametype", "==", 4)])
+    F = F[F.normal_physics.astype(bool)]
+    F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
+    F["eligible"] = False
+    F["vis"] = np.zeros(len(F), "int8")
+    F["vis_known"] = False
+    F = drop_spawn_dead_time(F)
+    add_sequences(F)
+    F["team_ctx"] = F.weapon.isin(SMG) & F.opp_alive.eq(1) & F.has_opp.astype(bool)
+    CACHE.mkdir(parents=True, exist_ok=True)
+    F.to_parquet(seq, index=False)
+    return F
+
+
+SPAWN_STALE_TICKS = 5   # the logged parts are traced from the previous life's eye for ~250 ms after a respawn
+
+
 def attach_vis_parts(F: pd.DataFrame, cache: Path) -> pd.DataFrame:
-    """`vis`: a body part of the opponent on screen (the rebuilt column of the data repo's vis_parts.py)."""
+    """`vis`: a body part of the opponent on screen. On the practice maps the rebuilt column of the data repo's
+    vis_parts.py (as before the duels were widened); elsewhere the logged ext_vis_parts (schema 13: the 2026-09-28 and
+    10-04 captures), with the centroid ray for the first SPAWN_STALE_TICKS of a life. Rows with neither (the duels of
+    dm/brownffa before schema 13) get the centroid ray and `vis_known` False: the fits that time the sight from the
+    first part (the trigger, the early reload, the bursts begun in sight) leave them out. 0 outside `eligible`."""
     p = cache / "vis_parts.parquet"
     if not p.exists():
         raise SystemExit(f"{p} missing: run the data repo's analysis/vis_parts.py (it needs the MOHAA folder)")
     V = pd.read_parquet(p, columns=["session_id", "client_id", "session_ms", "vis_parts_rebuilt"])
     F = F.merge(V, on=["session_id", "client_id", "session_ms"], how="left", validate="one_to_one")
-    F["vis"] = (F.pop("vis_parts_rebuilt").fillna(0).gt(0) & F.eligible).astype("int8")
+    rebuilt = F.pop("vis_parts_rebuilt")
+    logged = F.pop("ext_vis_parts") if "ext_vis_parts" in F else pd.Series(np.nan, index=F.index)
+    g = F.groupby(["session_id", "client_id", "seg"], sort=False)
+    stale = g.ev_spawn.transform("first").fillna(0).gt(0) & g.cumcount().lt(SPAWN_STALE_TICKS)
+    los = F.line_of_sight.fillna(0).gt(0)
+    from_log = np.where(stale, los, logged.fillna(0).gt(0))
+    vis = np.where(rebuilt.notna(), rebuilt.fillna(0).gt(0), np.where(logged.notna(), from_log, los))
+    F["vis_known"] = F.eligible & (rebuilt.notna() | logged.notna())
+    F["vis"] = (vis & F.eligible).astype("int8")
     return F
 
 
@@ -237,11 +297,12 @@ def shrink_rate(k, n, k0, n0, strength=20.0):
     return (k + strength * prior) / (n + strength)
 
 
-def fit_logistic(codes, y, sizes, l2=1.0, offset=None, weights=None):
+def fit_logistic(codes, y, sizes, l2=1.0, offset=None, weights=None, prior=None):
     """Additive logistic regression over categorical factors.
 
     codes: list of int arrays (one per factor, values in [0, size)); a -1 code means
-    'factor absent' (no contribution). Returns (intercept, [coef arrays]).
+    'factor absent' (no contribution). prior: per factor None or the coefficients' prior
+    means (the L2 penalty pulls toward them instead of 0). Returns (intercept, [coef arrays]).
     """
     y = np.asarray(y, float)
     n = len(y)
@@ -250,6 +311,10 @@ def fit_logistic(codes, y, sizes, l2=1.0, offset=None, weights=None):
     starts = np.cumsum([0] + list(sizes))[:-1]
     nparam = 1 + int(sum(sizes))
     cols = [np.where(c >= 0, c + s + 1, -1) for c, s in zip(codes, starts)]
+    mu = np.zeros(nparam - 1)
+    for s, k, p in zip(starts, sizes, prior or [None] * len(sizes)):
+        if p is not None:
+            mu[s:s + k] = np.asarray(p, float).ravel()
 
     def unpack(theta):
         return theta[0], [theta[1 + s:1 + s + k] for s, k in zip(starts, sizes)]
@@ -267,11 +332,11 @@ def fit_logistic(codes, y, sizes, l2=1.0, offset=None, weights=None):
         for c in cols:
             m = c >= 0
             np.add.at(g, c[m], r[m])
-        g[1:] += 2 * l2 * theta[1:]
-        return -ll + l2 * (theta[1:] ** 2).sum(), g
+        g[1:] += 2 * l2 * (theta[1:] - mu)
+        return -ll + l2 * ((theta[1:] - mu) ** 2).sum(), g
 
     from scipy import optimize
-    res = optimize.minimize(f, np.zeros(nparam), jac=True, method="L-BFGS-B", options={"maxiter": 3000})
+    res = optimize.minimize(f, np.r_[0.0, mu], jac=True, method="L-BFGS-B", options={"maxiter": 3000})
     b0, coefs = unpack(res.x)
     return float(b0), [np.asarray(c) for c in coefs]
 

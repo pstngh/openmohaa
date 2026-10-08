@@ -50,7 +50,7 @@ def fit_tactical():
     key = [F.session_id, F.client_id, F.seg]
     nxr = F.reloading.astype(float).groupby(key, sort=False).shift(-1)
     gap = F.session_ms.groupby(key, sort=False).shift(-1) - F.session_ms
-    E = F[F.eligible & F.vis.eq(0) & ~F.reloading & F.clip_ammo.gt(0) & F.clip_ammo.lt(F.clip_size)
+    E = F[F.eligible & F.vis_known & F.vis.eq(0) & ~F.reloading & F.clip_ammo.gt(0) & F.clip_ammo.lt(F.clip_size)
           & F.weapon.isin(["MP40", "Thompson"]) & nxr.notna() & gap.eq(50)]
     y = nxr[E.index].to_numpy()
     cb = H.binidx(E.clip_ammo / E.clip_size, TAC_CLIP_EDGES)

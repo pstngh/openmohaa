@@ -22,8 +22,8 @@ chain driven by recorded contexts cannot reach within short contexts (people tak
 ~1 s to get onto forward after a reload starts: 35% forward at the first tick, 70%
 after 17 ticks; a longer context-change window fits that but loses the stop on
 first sight).
-Everything is fitted on unbroken segments of the duel mask, from ticks whose
-run start is observed.
+Everything is fitted on unbroken segments of the 1v1 duels of every deathmatch map
+(hbdata.widen_duels), from ticks whose run start is observed.
 """
 import sys
 from pathlib import Path
@@ -37,7 +37,14 @@ import hbdata as H  # noqa: E402
 AGE_EDGES = [1, 2, 3, 4, 5, 7, 9, 13, 21, 41, 81, 161, 241]  # lower edges, ticks; long no-strafe runs keep slowing down
 CLEAR_EDGES = [0.0, 8.0, 16.0, 32.0, 64.0, 127.9]
 DIST_EDGES = [0.0, 96.0, 160.0, 288.0, 512.0, 768.0]
-HID_DIST_EDGES = [0.0, 300.0, 500.0, 700.0, 1000.0]   # the enemy hidden: distance bins of the keys' change rates
+HID_DIST_EDGES = [0.0, 300.0, 500.0, 700.0, 1000.0, 1500.0, 2000.0, 3000.0]   # the enemy hidden: distance bins of the keys' change rates
+# Past 1000 u the duel maps hold little (7 player-minutes hidden at 1000-1500 u, half a minute beyond); the team matches
+# hold 180 minutes there with an SMG. They are context, not duels (the owner, 2026-10-08): only how the rates change from
+# 700-1000 u outward, measured on their running ticks (walking up to an objective is theirs, 24-49% of their hidden time
+# against 1-6% in the duels), becomes the prior of the duel fit's far bins, anchored on the duel's own 700-1000 u value.
+# The duel rows there still move it. Within 1000 u the team players strafe half as readily: none of that is taken.
+TEAM_ANCHOR_BIN = 3                                     # 700-1000 u
+TEAM_FAR_FROM = 4                                       # the first bin whose prior comes from the team matches
 HIDDEN_CTX = [0, 1]                                    # hidden_nofire, hidden_fire
 CTX_AGE_EDGES = [1, 2, 3, 5]          # ticks since the context changed; the last bin (5+) is the reference
 # ticks since the last strafe ended (lower edges): a strafe pressed after one tick of none goes the other way 95-98% of
@@ -67,9 +74,34 @@ def shrunk_table(k, n, keys, shape, prior_keys, strength=25.0):
     return out
 
 
-def offsets(base_logit, y, extra_codes, sizes, l2=2.0):
-    b0, co = H.fit_logistic(extra_codes, y, sizes, l2=l2, offset=base_logit)
+def offsets(base_logit, y, extra_codes, sizes, l2=2.0, prior=None):
+    b0, co = H.fit_logistic(extra_codes, y, sizes, l2=l2, offset=base_logit, prior=prior)
     return b0, co
+
+
+def team_far_shape(T, key, row_fn, nrow, other):
+    """How a key's change rate moves with the hidden enemy's distance in the team matches (running ticks with an SMG,
+    the nearest enemy alive), relative to TEAM_ANCHOR_BIN: logit offsets [row][distance bin], with their own base table
+    of context, state, the other key and age (shrunk like the duel fit's)."""
+    d = T[T.team_ctx & T.run.eq(1) & T["known_" + key] & T["nx_" + key].notna()]
+    st = d[key].to_numpy().astype(int) + 1
+    ot = d[other].to_numpy().astype(int) + 1
+    ctx = d.ctx_i.to_numpy()
+    ab = bidx(d["age_" + key], AGE_EDGES)
+    ch = (d["nx_" + key].to_numpy().astype(int) + 1 != st).astype(float)
+    P = shrunk_table(ch, np.ones_like(ch), [ctx, st, ot, ab], (NC, 3, 3, len(AGE_EDGES)), [0, 1, 3])
+    hd, nhd = hid_dist_codes(d, row_fn(st, ot), nrow)
+    _, co = offsets(H.logit(P[ctx, st, ot, ab]), ch, [hd], [nhd])
+    shape = co[0].reshape(nrow, len(HID_DIST_EDGES))
+    return shape - shape[:, [TEAM_ANCHOR_BIN]]
+
+
+def far_prior(duel_hd, shape):
+    """Prior means of the hidden-distance offsets: 0 (as without one) within 1000 u, the duel's own 700-1000 u value
+    plus the team matches' change from there beyond it."""
+    pr = np.zeros_like(duel_hd)
+    pr[:, TEAM_FAR_FROM:] = duel_hd[:, [TEAM_ANCHOR_BIN]] + shape[:, TEAM_FAR_FROM:]
+    return pr
 
 
 # clearance column of each chord ((fwd + 1) * 3 + (side + 1)); neutral has no direction (open)
@@ -133,7 +165,7 @@ def fit_choice_wall(offset, y, bin_a, bin_b, l2=1.0):
     return np.r_[res.x, 0.0]
 
 
-def fit_side(EL):
+def fit_side(EL, T=None):
     d = EL[EL.known_side & EL.nx_side.notna()].copy()
     s = d.side.to_numpy().astype(int) + 1
     f = d.fwd.to_numpy().astype(int) + 1
@@ -155,8 +187,13 @@ def fit_side(EL):
     dw = diag_wall_codes(d, f - 1, s - 1)
     # the enemy hidden: by its distance, with or without a strafe held and by the forward key
     hd, nhd = hid_dist_codes(d, (s != 1) * 3 + f, 6)
-    b0, co = offsets(base, ch, [wb, losc, cc, dw, hd],
-                     [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd])
+    codes, sizes = [wb, losc, cc, dw, hd], [len(CLEAR_EDGES) - 1, 2, NC * 2 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd]
+    b0, co = offsets(base, ch, codes, sizes)
+    team_shape = None
+    if T is not None:
+        team_shape = team_far_shape(T, "side", lambda st, ot: (st != 1) * 3 + ot, 6, "fwd")
+        pr = far_prior(co[4].reshape(6, -1), team_shape)
+        b0, co = offsets(base, ch, codes, sizes, prior=[None, None, None, None, pr])
     P_logit = H.logit(P) + b0 + co[1][0]
     # what a strafe changes to: P(reverse) [ctx][fwd][age]; from none: P(right) [ctx][fwd]
     e = d[ch == 1]
@@ -189,10 +226,11 @@ def fit_side(EL):
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 2, len(CTX_AGE_EDGES) - 1).round(4),
             "reverse_p": R.round(5), "right_p": L.round(5), "opposite_gap_edges": OPP_GAP_EDGES, "opposite_p": O.round(5),
-            "hid_dist_logit": co[4].reshape(2, 3, len(HID_DIST_EDGES)).round(4)}
+            "hid_dist_logit": co[4].reshape(2, 3, len(HID_DIST_EDGES)).round(4),
+            **({"team_far_shape": team_shape.reshape(2, 3, -1).round(4)} if team_shape is not None else {})}
 
 
-def fit_fwd(EL):
+def fit_fwd(EL, T=None):
     d = EL[EL.known_fwd & EL.nx_fwd.notna()].copy()
     f = d.fwd.to_numpy().astype(int) + 1
     s = d.side.to_numpy().astype(int) + 1
@@ -211,8 +249,13 @@ def fit_fwd(EL):
     dw = diag_wall_codes(d, f - 1, s - 1)
     # the enemy hidden: by its distance and the forward key's state
     hd, nhd = hid_dist_codes(d, f, 3)
-    b0, co = offsets(base, ch, [wb, losc, cc, dw, hd],
-                     [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd])
+    codes, sizes = [wb, losc, cc, dw, hd], [len(CLEAR_EDGES) - 1, 2, NC * 3 * (len(CTX_AGE_EDGES) - 1), OPEN_BIN, nhd]
+    b0, co = offsets(base, ch, codes, sizes)
+    team_shape = None
+    if T is not None:
+        team_shape = team_far_shape(T, "fwd", lambda st, ot: st, 3, "side")
+        pr = far_prior(co[4].reshape(3, -1), team_shape)
+        b0, co = offsets(base, ch, codes, sizes, prior=[None, None, None, None, pr])
     P_logit = H.logit(P) + b0 + co[1][0]
     # destination: logits T[ctx][from][side][to] + approach[ctx][dist] * (to - from) * cos(bearing)
     #              + wall[clearance bin of the chord (to, side)]
@@ -276,7 +319,8 @@ def fit_fwd(EL):
             "los_change_logit": round(float(co[1][1] - co[1][0]), 4),
             "ctx_change_logit": co[2].reshape(NC, 3, len(CTX_AGE_EDGES) - 1).round(4),
             "next_logit": T.round(4), "approach": Ap.round(4), "approach_enemy_reload": round(float(Ar), 4),
-            "hid_dist_logit": co[4].reshape(3, len(HID_DIST_EDGES)).round(4)}
+            "hid_dist_logit": co[4].reshape(3, len(HID_DIST_EDGES)).round(4),
+            **({"team_far_shape": team_shape.round(4)} if team_shape is not None else {})}
 
 
 SPAWN_AGE_EDGES = [1, 2, 3, 5, 9, 21, 41, 81]    # ticks since the first live tick; the last edge ends the spawn run
@@ -332,8 +376,13 @@ def main():
     key = [F.session_id, F.client_id, F.seg]
     F["last_strafe"] = F.side.where(F.side != 0).groupby(key, sort=False).ffill().groupby(key, sort=False).shift(1)
     EL = F[F.eligible]
+    T = H.load_team()
     part = {"age_edges": AGE_EDGES, "clear_edges": CLEAR_EDGES, "dist_edges": DIST_EDGES, "ctx_age_edges": CTX_AGE_EDGES,
-            "hid_dist_edges": HID_DIST_EDGES, "side": fit_side(EL), "fwd": fit_fwd(EL)}
+            "hid_dist_edges": HID_DIST_EDGES, "side": fit_side(EL, T), "fwd": fit_fwd(EL, T),
+            "team_context": "the far bins' prior (from 1000 u): the team matches' change of each rate from 700-1000 u "
+                            "outward (running, an SMG, the nearest enemy alive), on the duel's own 700-1000 u value"}
+    # the team matches' shapes stay in the part (not the model), for the record
+    part["team_far_shape"] = {k: part[k].pop("team_far_shape") for k in ("side", "fwd") if "team_far_shape" in part[k]}
     H.write_part("keys", part)
     sp = fit_spawn(F)
     H.write_part("spawn", sp)
@@ -346,6 +395,9 @@ def main():
     print("P(reverse) LOS fire fwd none by age:", np.array(part["side"]["reverse_p"])[3, 1, :6].round(3))
     print("P(other side after a strafe) by ticks since it ended, per ctx:\n", np.array(part["side"]["opposite_p"]).round(3))
     print("fwd approach coef [ctx][dist]:\n", np.array(part["fwd"]["approach"]).round(2))
+    if part["team_far_shape"]:
+        print("team matches, change from 700-1000 u (logit)\n side:\n", np.array(part["team_far_shape"]["side"]).round(2),
+              "\n fwd:\n", np.array(part["team_far_shape"]["fwd"]).round(2))
     print("enemy hidden, by distance", HID_DIST_EDGES, "\n side [held][fwd+1]:\n", np.array(part["side"]["hid_dist_logit"]).round(2),
           "\n fwd [fwd+1]:\n", np.array(part["fwd"]["hid_dist_logit"]).round(2))
     for k in ["side", "fwd"]:
