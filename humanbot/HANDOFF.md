@@ -94,10 +94,11 @@ The VPS runs the test server as the systemd service `openmohaa-humanbot` (UDP 12
 in `~linuxuser/moh-humanbot`, home `~linuxuser/moh-humanbot-home`, source
 `~linuxuser/openmohaa-humanbot-src`). Since `b53427f0` (2026-10-07) its `fs_basepath` is
 `~linuxuser/moh-humanbot-base`, a folder of links to the pk3s of `/home/linuxuser/moh/main`: on bots-new configs
-always go to `<fs_basepath>/main/configs`, and `/home/linuxuser/moh` is the other server's install. It runs `c3835643`
-since 2026-10-08 12:48 UTC (every bot at the best reaction and aim; model `70f4c84b8a2d`; `humanbot_selftest` PASS on
-dm/crnodoors and dm/flag; left on dm/flag with one bot); `game.so.prev-44b510a8`, `game.so.prev-514e1f50`,
-`game.so.prev-b53427f0` and `omohaaded.prev-b53427f0` are kept (the engine binary has not changed since b53427f0). The owner's normal server there (`openmohaa`, 12203) is not part of this work: never touch it.
+always go to `<fs_basepath>/main/configs`, and `/home/linuxuser/moh` is the other server's install. It runs `1ad8c886`
+since 2026-10-08 19:10 UTC (the fits on the duels of every dm map with the team matches as context, and no crouch without
+a reason; model `85e1a6b7932a`; `humanbot_selftest` PASS on dm/crnodoors and dm/flag; left on dm/flag with one bot);
+`game.so.prev-c3835643`, `game.so.prev-44b510a8`, `game.so.prev-514e1f50`, `game.so.prev-b53427f0` and
+`omohaaded.prev-b53427f0` are kept, and the override before it is `/root/override.conf.humanbot-c3835643-livecheck` (the engine binary has not changed since b53427f0). The owner's normal server there (`openmohaa`, 12203) is not part of this work: never touch it.
 
 ## The task now: the test server
 
