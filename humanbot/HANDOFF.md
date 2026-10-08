@@ -2089,7 +2089,7 @@ The owner's games on `514e1f50` that evening (20:00-20:34 UTC, dm/flag and dm/cr
 round fired with no part of an enemy on screen beyond the 300 ms tail (the logger checks the nearest enemy only: 37 of
 the 45 rounds it flagged were at the other bot, on the shooter's screen), and no stay beside a door hinge over 2.6 s.
 
-## Every bot at the fastest reaction (2026-10-08)
+## Every bot at the best reaction and aim (2026-10-08)
 
 The owner played the test server on `44b510a8` overnight (dm/flag 23:43-23:48 UTC against one stopper bot, then dm/crnodoors
 against two bots; the owner as "908357", no chat remarks; `move_wip/s9/live17/`, features `eval/cache/bot/live17_own`): "it
@@ -2104,36 +2104,43 @@ Pre-control with the owner in its crosshair at 315 u and died to four Colt round
 the owner in its crosshair for 2.5 s and was pistol-whipped. The same draw lay behind "it didnt shoot me at all" (189 ms, see
 "Late aim and low clips") and "why is it not shooting" (199.6 ms, see "Holding fire on target"). Bot against bot on the old
 build, the bots of 100-150 ms out-killed their opponents 1.2 to 1, those of 175-200 ms lost 0.75 to 1. The owner: "i dont
-want slow bots tho, they should all be as fast as the fastest profile".
+want slow bots tho, they should all be as fast as the fastest profile", then "pin aim to the best too".
 
-**What changed** (`FASTEST_SKILLS` in `fit_styles.py`, `skill_fixed` in `styles.json`, `StyleModel::skillDrawMin/Max`): every
-bot draws the fastest recorded reaction, 100 ms (the least over the style rows: one session each of three people), an
-offset of +1.96. `min` and `max` stay the people's range, which the calibrated curve spans; the RNG draw is still made, so
-every other dial of a seed is as before. The pooled bot (the arena, calibration) carries no style shift and is unchanged;
+**What changed** (`BEST_SKILLS` in `fit_styles.py`, `skill_fixed` in `styles.json`, `StyleModel::skillDrawMin/Max`): every
+bot draws the best recorded skills: the fastest reaction, 100 ms (the least over the style rows: one session each of three
+people), an offset of +1.96 on the press logit, and the least fight aim error, 4.08 deg (the pooled person 5.33), the aim
+noise x0.4 (the calibrated curve's end). `min` and `max` stay the people's range, which the calibrated curves span; the RNG
+draws are still made, so every other dial of a seed is as before. The pooled bot (the arena, calibration) carries no style shift and is unchanged;
 `TestLateAim` now runs on the pooled style (a drawn bot fires before its aim arrives). Unit test in `TestStyle`.
 
-Bot against bot (`br1_*` against `bd2_*` on dm/brownffa and dm/flag, `r1_*` against `d2_*` on the duel maps; seeds 201-208,
+Bot against bot (`br2_*` against `bd2_*` on dm/brownffa and dm/flag, `r2_*` against `d2_*` on the duel maps; seeds 201-208,
 in brackets 401-408; `move_wip/s20/stare.py`, `s19/trig.py`; the old build's two-bot games are those of 514e1f50, the same
-as 44b510a8 with one enemy):
+as 44b510a8 with one enemy; `br1_*`/`r1_*` the reaction alone, in the text):
 
 | | people | before | now |
 |---|---|---|---|
 | first press after a sighting with the trigger up, p25 / p50 / p75 ms, dm/brownffa + dm/flag | 50 / 150 / 250 | 100 / 150 / 250 | 50 / 100 / 150 (same) |
 | ... duel maps | 100 / 200 / 300 | 100 / 150 / 300 | 50 / 100 / 150 (same) |
-| firing, crosshair within 1.5 half-widths, bots drawn under / from 160 ms, dm/brownffa + dm/flag | | 89 / 80% (88 / 80%) | 93% (91%) |
-| ... duel maps | | 91 / 83% (89 / 82%) | 94% (92%) |
-| 0.5 s+ on the enemy (under 2 half-widths) without a round, a minute alive, under / from 160 ms, dm/brownffa + dm/flag | | 0.03 / 0.17 (0.05 / 0.15) | 0.03 (0.03) |
-| rounds a minute alive / hits a round, dm/brownffa + dm/flag | 196 / 20% | 128 / 26% (131 / 24%) | 135 / 24% (136 / 23%) |
-| ... duel maps | 147 / 19% | 156 / 24% (156 / 23%) | 166 / 23% (163 / 22%) |
-| kills a minute alive, dm/brownffa + dm/flag / duel maps | | 5.1 (5.1) / 5.8 (5.7) | 5.2 (5.1) / 5.8 (5.8) |
-| duel maps: all 281 statistics within 25% | | 58% (55%) | 57% (51%) |
+| firing, crosshair within 1.5 half-widths, bots drawn under / from 160 ms, dm/brownffa + dm/flag | | 89 / 80% (88 / 80%) | 94% (93%) |
+| ... duel maps | | 91 / 83% (89 / 82%) | 95% (93%) |
+| 0.5 s+ on the enemy (under 2 half-widths) without a round, a minute alive, under / from 160 ms, dm/brownffa + dm/flag | | 0.03 / 0.17 (0.05 / 0.15) | 0.01 (0.01) |
+| rounds a minute alive / hits a round, dm/brownffa + dm/flag | 196 / 20% | 128 / 26% (131 / 24%) | 123 / 28% (123 / 28%) |
+| ... duel maps | 147 / 19% | 156 / 24% (156 / 23%) | 154 / 26% (150 / 26%) |
+| duel maps: aim error firing at 256-384 / 768-1200 u, deg | 5.2 / 2.1 | 5.4 / 2.4 (5.7 / 2.6) | 5.1 / 1.9 (5.1 / 2.0) |
+| duel maps: first hit after the first part p50, ms | 250 | 400 (400) | 300 (300) |
+| kills a minute alive, dm/brownffa + dm/flag / duel maps | | 5.1 (5.1) / 5.8 (5.7) | 5.4 (5.5) / 6.2 (6.2) |
+| duel maps: all 281 statistics within 25% | | 58% (55%) | 60% (54%) |
 
-Crossed for the worse in both duel seed sets: the clean first press (p50 200 -> 100 ms, people 200; mean 229-237 ->
+With the reaction alone (`r1_*`) the duel maps were 57% (51%) within 25%; it crossed for the worse in both duel seed sets: the clean first press (p50 200 -> 100 ms, people 200; mean 229-237 ->
 136-141, people 232) and its p75, the press hazard with the aim near at 0-1000 ms into a sighting (0.22-0.39 ->
 0.38-0.53 a tick, people 0.21-0.35), and the in-sight view's p99 speed with no fire (637-718 -> 751-811 deg/s, people
 583): the bots now press faster than the average person, by the owner's rule. For the better in both: the attack curve
 100 and 200 ms after the first part (0.33-0.36 -> 0.57, 0.55-0.57 -> 0.74-0.75; people 0.61, 0.77), the clean first
-press's p25 and the share of time in sight not firing (10-12% -> 7-8%, people 7%).
+press's p25 and the share of time in sight not firing (10-12% -> 7-8%, people 7%). The best aim then crossed for the better
+in both (`r2_*` against `r1_*`): the error firing at 0-128 u (18.1-18.6 -> 16.2-16.3 deg, people 14.3), the aim 500 ms after
+the first part (6.9-7.8 -> 5.8-6.7, people 5.5), the decisive fight's length (1.6 -> 1.35-1.45 s, people 1.25), the in-sight
+view's p99 speed with no fire back within 25%, and for the worse the bots' walking (8.6-9.4 -> 9.7-10.7 times a minute,
+people 7.5) and standing still while reloading (0.041-0.048 -> 0.034-0.035, people 0.053).
 
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
@@ -2339,8 +2346,8 @@ press's p25 and the share of time in sight not firing (10-12% -> 7-8%, people 7%
 - The reaction skill shifts the trigger's press hazard instead of the detection rate, and only until the bot's first
   press within 4 body half-widths of the enemy in a sighting, or a late arrival of its aim (since 2026-10-05; see "Through
   the doors"). Both skills are relative to the average bot.
-- Every bot draws the fastest recorded reaction (100 ms) instead of one across the people's range: the owner's rule since
-  2026-10-08 (see "Every bot at the fastest reaction").
+- Every bot draws the fastest recorded reaction (100 ms) and the least fight aim error (4.08 deg) instead of skills across
+  the people's range: the owner's rule since 2026-10-08 (see "Every bot at the best reaction and aim").
 - AFK behavior is not modelled.
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).
