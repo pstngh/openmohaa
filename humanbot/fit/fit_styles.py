@@ -26,6 +26,11 @@ STYLE_DIALS = ["fwd_diag_fight", "reverse_share", "side_hold_ms", "lean_fight", 
                "walk_hidden", "burst_median", "aim_height_firing", "hold_angle", "counter_strafe",
                "lean_switch", "lean_drop"]
 SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
+# The owner's rule (2026-10-08: "i dont want slow bots tho, they should all be as fast as the fastest profile"): every
+# bot draws the fastest recorded reaction (the least over the style rows) instead of one across the people's range. A
+# bot drawn at 185-200 ms held its crosshair on the owner half a second or more without a round about once a minute
+# alive; the bots of 102-175 ms never did. min and max stay the people's range, which the calibrated curve spans.
+FASTEST_SKILLS = ["reaction_ms"]
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
 CLUSTER_DIALS = ["fwd_diag_fight", "reverse_share", "lean_fight"]
@@ -249,6 +254,8 @@ def main():
                                 "spread": {k: round(float(spread[k]), 4) for k in STYLE_DIALS}})
     out["min"] = {k: round(float(num[k].min()), 4) for k in STYLE_DIALS + SKILL_DIALS}
     out["max"] = {k: round(float(num[k].max()), 4) for k in STYLE_DIALS + SKILL_DIALS}
+    # skills every bot draws at one value (the fastest end of the range: the least time)
+    out["skill_fixed"] = {k: out["min"][k] for k in FASTEST_SKILLS}
     # weapon preference: bimodal (people switch between sessions), from the alias x capture rows
     mp = np.sort(num.mp40_share.to_numpy())
     comps = [("thompson", mp[mp < 0.3]), ("split", mp[(mp >= 0.3) & (mp < 0.75)]), ("mp40", mp[mp >= 0.75])]

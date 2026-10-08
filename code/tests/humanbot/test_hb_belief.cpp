@@ -475,14 +475,15 @@ static void TestOutOfAmmo(const hb::ModelBundle& b, const hb::MapPrior& m)
 
 // The bot sees the enemy 20 deg off its crosshair and its aim gets there 3 s later: with the press clock restarting at the
 // aim's arrival it presses as readily as early in a sighting (people whose aim gets there late: 21-37% a tick in the
-// next 250 ms); counted from when the parts came on screen it pressed at 1-2% a tick (the owner, 2026-10-05).
+// next 250 ms); counted from when the parts came on screen it pressed at 1-2% a tick (the owner, 2026-10-05). The pooled
+// style: every drawn bot now has the fastest reaction, which fires before the aim gets there.
 static double LateAimPress(const hb::ModelBundle& b, const hb::MapPrior& m, float arriveHw)
 {
     hb::ModelBundle bb = b;
     bb.shared.trigger.aimArriveHalfWidths = arriveHw;
     hb::Brain     br;
     hb::Perceiver pc;
-    br.Init(&bb, &m, hb::SampleStyle(bb.style, -1, 7), 4321, 4);
+    br.Init(&bb, &m, hb::PooledStyle(bb.style), 4321, 4);
     pc.Init(&bb.shared.perception, hb::Rng(7).Derive(hb::STREAM_PERCEPTION));
     hb::RawInput raw = BaseInput(m);
     const float  enemyYaw = 20.0f;
@@ -498,6 +499,7 @@ static double LateAimPress(const hb::ModelBundle& b, const hb::MapPrior& m, floa
     }
     double pSum = 0.0;
     int    n = 0, detected = 0;
+    bool   held = false;   // the trigger down at the end of the last tick
     for (int t = 0; t < 66; t++) {
         raw.self.timeMs  = 1000 + t * 50;
         raw.self.viewYaw = t < 60 ? 0.0f : enemyYaw;   // the crosshair is held off the enemy, then put on it
@@ -507,10 +509,12 @@ static double LateAimPress(const hb::ModelBundle& b, const hb::MapPrior& m, floa
         hb::Diag     d;
         br.Think(obs, plan, &d);
         detected += d.detected;
-        if (t > 60) {
+        if (t > 60 && !held) {
+            // the press hazard while the trigger is up (a tick that presses reports it; held ticks have none)
             pSum += d.p_press;
             n++;
         }
+        held = plan.attack;
     }
     HB_CHECK(detected > 30);
     return pSum / std::max(1, n);

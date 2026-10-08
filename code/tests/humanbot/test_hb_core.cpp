@@ -208,8 +208,12 @@ static void TestStyle(const hb::ModelBundle& b)
         for (int k = 0; k < hb::SKILL_COUNT; k++) {
             HB_CHECK(d.skill[k] >= b.style.skillMin[k] - 1e-4f && d.skill[k] <= b.style.skillMax[k] + 1e-4f);
         }
+        // the owner's rule (2026-10-08), as the model ships: every bot reacts like the fastest recorded profile
+        HB_CHECK(d.skill[hb::SKILL_REACTION] == b.style.skillMin[hb::SKILL_REACTION]);
         HB_CHECK(d.mp40Share >= 0.0f && d.mp40Share <= 1.0f);
     }
+    // the aim skill still spreads across the people's range
+    HB_CHECK(b.style.skillDrawMax[hb::SKILL_AIM_ERROR] > b.style.skillDrawMin[hb::SKILL_AIM_ERROR]);
     for (int f = 0; f < hb::FAMILY_COUNT; f++) {
         HB_CHECK_NEAR(fam[f] / double(n), b.style.families[f].weight, 0.025);
     }

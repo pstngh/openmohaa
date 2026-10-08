@@ -542,6 +542,9 @@ struct StyleModel {
     float                           dialMax[DIAL_COUNT]   = {};
     float                           skillMin[SKILL_COUNT] = {};
     float                           skillMax[SKILL_COUNT] = {};
+    // the range a bot's skill is drawn from: the people's [min, max] unless the model fixes it (styles.skill_fixed)
+    float                           skillDrawMin[SKILL_COUNT] = {};
+    float                           skillDrawMax[SKILL_COUNT] = {};
     float                           pooled[DIAL_COUNT]    = {};
     float                           pooledSkill[SKILL_COUNT] = {};
     std::vector<WeaponMixComponent> weaponMix;

@@ -163,6 +163,9 @@
   "aim_error_fight_deg": 6.534,
   "reaction_ms": 200.0
  },
+ "skill_fixed": {
+  "reaction_ms": 100.0
+ },
  "weapon_mix": [
   {
    "name": "thompson",

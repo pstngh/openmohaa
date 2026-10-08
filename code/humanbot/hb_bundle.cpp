@@ -812,6 +812,13 @@ void ParseStyles(const json& j, StyleModel& s)
         s.skillMin[d] = Num(Get(mn, SKILL_NAMES[d], "styles.min"), "styles.min");
         s.skillMax[d] = Num(Get(mx, SKILL_NAMES[d], "styles.max"), "styles.max");
         Require(s.skillMax[d] >= s.skillMin[d], "styles skill min > max");
+        s.skillDrawMin[d] = s.skillMin[d];
+        s.skillDrawMax[d] = s.skillMax[d];
+        if (j.contains("skill_fixed") && j.at("skill_fixed").contains(SKILL_NAMES[d])) {
+            const float v = Num(j.at("skill_fixed").at(SKILL_NAMES[d]), "styles.skill_fixed");
+            Require(v >= s.skillMin[d] && v <= s.skillMax[d], "styles skill_fixed outside min..max");
+            s.skillDrawMin[d] = s.skillDrawMax[d] = v;
+        }
     }
     if (j.contains("pooled")) {
         for (int d = 0; d < DIAL_COUNT; d++) {

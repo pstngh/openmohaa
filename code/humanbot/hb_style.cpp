@@ -58,7 +58,7 @@ StyleDials SampleStyle(const StyleModel& model, int family, uint32_t seed, const
         d.dial[i]     = Clamp(v, model.dialMin[i], model.dialMax[i]);
     }
     for (int i = 0; i < SKILL_COUNT; i++) {
-        d.skill[i] = static_cast<float>(skillRng.Uniform(model.skillMin[i], model.skillMax[i]));
+        d.skill[i] = static_cast<float>(skillRng.Uniform(model.skillDrawMin[i], model.skillDrawMax[i]));
     }
     std::vector<double> mixw;
     for (const WeaponMixComponent& c : model.weaponMix) {
