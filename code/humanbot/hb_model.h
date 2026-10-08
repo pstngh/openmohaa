@@ -100,6 +100,7 @@ struct StanceKeyModel {
     std::vector<float> pressHazardQuiet; // the same while quiet: no part of the enemy seen, none of his shots heard and
                                          // no hit taken for a second (empty: pressHazard)
     std::vector<float> pressHazardDead;  // the same with no living enemy (after a kill; empty: as with one)
+    float              noReasonScale = 1.0f; // multiplies the quiet and the enemy-dead press hazards (0: no press then)
     std::vector<float> holdPmf;          // hold length in ticks (index 0 = 1 tick), complete holds only
     std::vector<int>   releaseAgeEdges;  // lower edges of hold-age bins, ticks
     std::vector<float> releaseHazard;    // per tick while held, by hold age (survival estimate)

@@ -2142,6 +2142,40 @@ the first part (6.9-7.8 -> 5.8-6.7, people 5.5), the decisive fight's length (1.
 view's p99 speed with no fire back within 25%, and for the worse the bots' walking (8.6-9.4 -> 9.7-10.7 times a minute,
 people 7.5) and standing still while reloading (0.041-0.048 -> 0.034-0.035, people 0.053).
 
+## Crouches only with a reason (2026-10-08)
+
+The owner on `c3835643` (dm/flag 15:44-15:45 UTC, the owner as "908357" against one strafer bot; `move_wip/s9/live18/`,
+features `eval/cache/bot/live18_own`; the bot 9 kills, the owner 7): "looks decent but this bot doesnt seem to lean a lot,
+does it?" and "it should not crouch unless theres a reason for it". The lean: a strafer, which leaned 20% of its time alive
+(39% firing; the owner 61% and 97%). The recorded strafers lean 37% (54-63% firing; the presser, the owner's style, 57% and
+93%, the stoppers 68% and 90%), strafer bots against each other 27% (26% hidden vs 33%, 10% reloading vs 17%, 53% firing):
+not changed, put to the owner. The one crouch of the game: 0.2 s at 34.1 s, 1.25 s after the owner respawned 600 u away out
+of sight, the bot reloading after its kill (the quiet press hazard; `s18/cj.py` counts it a fight crouch because the
+respawn click is in `opp_attack_primary`, though it fires no round).
+
+**What changed** (the owner's rule; `movement.stance.crouch.no_reason_scale` 0 in `assemble_model.py`,
+`StanceKeyModel::noReasonScale`, `Mover::StepStance`): no crouch press while quiet (no part of the enemy seen, none of his
+shots heard and no hit taken for a second) nor with the enemy dead, unless a shot was just heard, whatever the fitted
+hazards. Crouches in a fight stay as fitted. The jumps keep their quiet hazard (`no_reason_scale` 1). Unit test in
+`TestStance`.
+
+Bot against bot (`br3_*` against `br2_*` on dm/brownffa and dm/flag, `r3_*` against `r2_*` on the duel maps; seeds 201-208,
+in brackets 401-408; `s18/cj.py`), crouches a minute alive:
+
+| | people: no reason / fight | before: no reason / fight | now: no reason / fight |
+|---|---|---|---|
+| dm/brownffa | 0.15 / 2.04 | 0.64 / 2.63 (0.53 / 1.85) | 0 / 2.02 (0 / 1.42) |
+| dm/flag | 0.06 / 1.27 | 0.52 / 1.77 (0.63 / 2.24) | 0 / 1.39 (0 / 1.86) |
+| dm/crnodoors | 0.26 / 2.77 | 0.55 / 3.31 (0.28 / 2.21) | 0 / 2.71 (0 / 1.98) |
+| dm/main | 0.22 / 2.21 | 0.46 / 2.67 (0.44 / 2.37) | 0 / 2.41 (0.01 / 1.71) |
+| dm/downladder | 0.33 / 3.24 | 0.81 / 3.28 (0.52 / 2.47) | 0 / 2.56 (0 / 1.71) |
+| dm/vents | 0.15 / 1.39 | 0.12 / 0.98 (0.48 / 3.28) | 0 / 0.87 (0.01 / 2.76) |
+
+The "fight" crouches fall too: `cj.py` counts a crouch with a part of the enemy on screen within a second either side, so
+some begun quiet just before he showed up counted as fight crouches. Kills a minute alive 5.41 (5.46) -> 5.45 (5.48) on
+dm/brownffa and dm/flag, 6.22 (6.22) -> 6.14 (6.28) on the duel maps; hits a round the same. On the duel maps 201 the crouch
+key's presses a minute (`movement.crouch_per_min`, which counts standing up too) left people's, 4.42 -> 3.24 (people 4.33).
+
 ## Known gaps (two average-style bots; "real maps" = the reports above)
 
 - **Aim at a sighting:** 11.5-12.1 deg off at the first visible part vs people's 5.2 (10.2 before
@@ -2348,6 +2382,8 @@ people 7.5) and standing still while reloading (0.041-0.048 -> 0.034-0.035, peop
   the doors"). Both skills are relative to the average bot.
 - Every bot draws the fastest recorded reaction (100 ms) and the least fight aim error (4.08 deg) instead of skills across
   the people's range: the owner's rule since 2026-10-08 (see "Every bot at the best reaction and aim").
+- No crouch press when quiet or with the enemy dead (unless a shot was just heard): the owner's rule since 2026-10-08 (see
+  "Crouches only with a reason"); people do crouch then, 0.06-0.33 times a minute.
 - AFK behavior is not modelled.
 - With more than 2 bots, the reload statistics are skewed (88% of human reloads happen while the
   opponent is dead).

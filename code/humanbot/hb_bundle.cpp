@@ -417,6 +417,9 @@ void ParseMovement(const json& j, MovementModel& m)
                     std::string("movement.stance.") + names[i] + ".press_hazard_dead size");
             RequireProb(keys[i]->pressHazardDead, "movement.stance.press_hazard_dead");
         }
+        keys[i]->noReasonScale = NumOr(k, "no_reason_scale", 1.0f);
+        Require(keys[i]->noReasonScale >= 0.0f && keys[i]->noReasonScale <= 1.0f,
+                std::string("movement.stance.") + names[i] + ".no_reason_scale must be 0..1");
         if (k.contains("up_hazard")) {
             keys[i]->upAgeEdges = Ints(Get(k, "up_age_edges", "movement.stance"), "movement.stance.up_age_edges");
             keys[i]->upHazard   = Floats(Get(k, "up_hazard", "movement.stance"), "movement.stance.up_hazard");

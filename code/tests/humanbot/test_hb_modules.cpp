@@ -409,12 +409,13 @@ static void TestStance(const hb::ModelBundle& b)
 
     // people crouch three times as readily in the half second after a shot is heard, and hardly when nothing has been
     // seen, heard or felt for a second; jumps likewise (their quiet jumps are mostly up onto something)
-    auto dipsPerMin = [&](bool fire, bool quietNow) {
+    auto dipsPerMin = [&](bool fire, bool quietNow, bool dead = false) {
         hb::Mover m;
         m.Init(&b.shared.movement);
         hb::MoveInput ci = in;
         ci.fireHeard     = fire;
         ci.quiet         = quietNow;
+        ci.enemyDead     = dead;
         hb::Rng r1(31), r2(32);
         bool    d = false, pk = false;
         int     dipsN = 0;
@@ -433,6 +434,12 @@ static void TestStance(const hb::ModelBundle& b)
     HB_REPORT("crouch dips a minute hidden: %.1f quiet, %.1f in a fight's lulls, %.1f after a shot", quiet, recent, fired);
     HB_CHECK(fired > 3.0 * quiet);
     HB_CHECK(recent > 1.5 * quiet);
+    // the owner's rule (2026-10-08), as the model ships: no crouch with no reason for it, quiet or with the enemy dead,
+    // unless a shot was just heard
+    const double deadQuiet = dipsPerMin(false, true, true), deadFired = dipsPerMin(true, false, true);
+    HB_REPORT("crouch dips a minute with the enemy dead: %.1f, after a shot %.1f", deadQuiet, deadFired);
+    HB_CHECK(b.shared.movement.crouch.noReasonScale == 0.0f);
+    HB_CHECK(quiet == 0.0 && deadQuiet == 0.0 && recent > 1.0 && deadFired > 1.0);
     auto jumpsPerMin = [&](bool quietNow) {
         hb::Mover m;
         m.Init(&b.shared.movement);

@@ -63,8 +63,14 @@ def build():
                      # itself (people strafe away from his side 56-64% of hidden lean time, the bots 41%)
                      "enemy": {**{k: mv["lean"]["enemy"][k] for k in ["min_deg", "max_deg"]},
                                "logit": [round(2.5 * x, 4) for x in mv["lean"]["enemy"]["logit"]]}},
-            "stance": {k: {kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "press_hazard_quiet", "press_hazard_dead", "hold_pmf",
-                                                "release_age_edges", "release_hazard", "up_age_edges", "up_hazard"] if kk in v}
+            # no_reason_scale 0 is the owner's rule (2026-10-08: "it should not crouch unless theres a reason for it"): no
+            # crouch press while quiet (no part of the enemy seen, none of his shots heard and no hit taken for a second)
+            # nor with the enemy dead, unless a shot was just heard, whatever the fitted hazards (people crouch for no
+            # such reason 0.06 times a minute on dm/flag, the bots did 0.5); crouches in a fight stay as fitted
+            "stance": {k: {**{kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "press_hazard_quiet", "press_hazard_dead",
+                                                   "hold_pmf", "release_age_edges", "release_hazard", "up_age_edges", "up_hazard"]
+                              if kk in v},
+                           **({"no_reason_scale": 0.0} if k == "crouch" else {})}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:

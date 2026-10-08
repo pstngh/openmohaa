@@ -706,13 +706,19 @@ void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng,
         }
         return in.quiet && !k.pressHazardQuiet.empty() ? k.pressHazardQuiet : k.pressHazard;
     };
+    // a press with no reason for it (quiet, or the enemy dead, and no shot heard) is scaled by the model: the crouch's
+    // is 0 by the owner's rule
+    auto multOf = [&](const StanceKeyModel& k, float mult) {
+        return !in.fireHeard && (in.enemyDead || in.quiet) ? mult * k.noReasonScale : mult;
+    };
+    const float crouchMult = multOf(m.crouch, style.crouchMult);
     if (m.crouch.upHazard.empty()) {
-        out.crouch = StepKey(m.crouch, pressOf(m.crouch), in.ctx, style.crouchMult, true, uc, ucr, m_crouchAge);
+        out.crouch = StepKey(m.crouch, pressOf(m.crouch), in.ctx, crouchMult, true, uc, ucr, m_crouchAge);
     } else {
-        out.crouch = StepToggle(m.crouch, pressOf(m.crouch), in.ctx, style.crouchMult, in.ducked, in.onGround, uc, ucr,
+        out.crouch = StepToggle(m.crouch, pressOf(m.crouch), in.ctx, crouchMult, in.ducked, in.onGround, uc, ucr,
                                 m_crouchAge, m_crouchedTicks);
     }
-    out.jump   = StepKey(m.jump, pressOf(m.jump), in.ctx, style.jumpMult, in.allowJump && in.onGround && !out.crouch, uj, ujr,
+    out.jump   = StepKey(m.jump, pressOf(m.jump), in.ctx, multOf(m.jump, style.jumpMult), in.allowJump && in.onGround && !out.crouch, uj, ujr,
                          m_jumpAge);
     if (out.crouch && out.jump) {
         out.jump  = false;
