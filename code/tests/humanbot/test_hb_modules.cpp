@@ -459,7 +459,9 @@ static void TestStance(const hb::ModelBundle& b)
     };
     const double jq = jumpsPerMin(true), jr = jumpsPerMin(false);
     HB_REPORT("jumps a minute hidden: %.1f quiet, %.1f in a fight's lulls", jq, jr);
-    HB_CHECK(jr > 1.5 * jq);
+    // the owner's rule for jumps too (2026-10-24): none with no reason for it
+    HB_CHECK(b.shared.movement.jump.noReasonScale == 0.0f);
+    HB_CHECK(jq == 0.0 && jr > 0.5);
 }
 
 // After a strafe is let go, the next strafe goes the other way (people: 95-98% after one tick of none).

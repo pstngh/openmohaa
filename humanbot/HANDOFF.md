@@ -2158,7 +2158,8 @@ respawn click is in `opp_attack_primary`, though it fires no round).
 **What changed** (the owner's rule; `movement.stance.crouch.no_reason_scale` 0 in `assemble_model.py`,
 `StanceKeyModel::noReasonScale`, `Mover::StepStance`): no crouch press while quiet (no part of the enemy seen, none of his
 shots heard and no hit taken for a second) nor with the enemy dead, unless a shot was just heard, whatever the fitted
-hazards. Crouches in a fight stay as fitted. The jumps keep their quiet hazard (`no_reason_scale` 1). Unit test in
+hazards. Crouches in a fight stay as fitted. The jumps kept their quiet hazard (`no_reason_scale` 1) until "Jumps only with
+a reason" (2026-10-24). Unit test in
 `TestStance`.
 
 Bot against bot (`br3_*` against `br2_*` on dm/brownffa and dm/flag, `r3_*` against `r2_*` on the duel maps; seeds 201-208,
@@ -2177,6 +2178,33 @@ The "fight" crouches fall too: `cj.py` counts a crouch with a part of the enemy 
 some begun quiet just before he showed up counted as fight crouches. Kills a minute alive 5.41 (5.46) -> 5.45 (5.48) on
 dm/brownffa and dm/flag, 6.22 (6.22) -> 6.14 (6.28) on the duel maps; hits a round the same. On the duel maps 201 the crouch
 key's presses a minute (`movement.crouch_per_min`, which counts standing up too) left people's, 4.42 -> 3.24 (people 4.33).
+
+## Jumps only with a reason (2026-10-24)
+
+The owner, offered the crouch rule for jumps too (the bots jumped for no reason 0.3-0.6 times a minute alive, people
+0.1-0.2): "do 1 now, the jump rule". **What changed:** `movement.stance.jump.no_reason_scale` 0 in `assemble_model.py`, the
+crouch's mechanism (`StanceKeyModel::noReasonScale`, `Mover::StepStance`): no jump press while quiet (no part of the enemy
+seen, none of his shots heard and no hit taken for a second) nor with the enemy dead, unless a shot was just heard. Jumps in
+a fight stay as fitted; the ladder's jump and the stock code's jumps while getting unstuck are the engine glue's and stay.
+`calibrate.py` holds the jump curve too (`OWNER_HELD`): re-swept, it would make up for the quiet jumps with fight jumps.
+Unit test in `TestStance`.
+
+Bot against bot (`j1_*`/`bj1_*` against `t4_*`/`bt4_*` = `1ad8c886`; seeds 201-208, in brackets 401-408; `s18/cj.py`,
+`s19/trig.py`), a minute alive:
+
+| | people | before | now |
+|---|---|---|---|
+| jumps with no reason (none / over / up / down), dm/brownffa + dm/flag | 0.15 / 0.05 / 0.57 / 0.01 | 0.41 / 0.10 / 0.02 / 0.01 (0.41 / 0.09 / 0.02 / 0.01) | 0 (0) |
+| ... duel maps, none | 0.15 | 0.37 (0.41) | 0 (0) |
+| jumps counted as in a fight, dm/brownffa + dm/flag / duel maps | 1.62 (all maps) | 0.96 (1.08) / 1.22 (1.28) | 0.67 (0.65) / 0.85 (0.86) |
+| crouches, dm/brownffa + dm/flag / duel maps | 2.62 (all maps) | 1.58 (1.38) / 1.95 (1.92) | 1.56 (1.54) / 1.87 (1.90) |
+| kills, dm/brownffa + dm/flag / duel maps | | 5.27 (5.36) / 6.04 (6.13) | 5.28 (5.32) / 6.02 (6.11) |
+| hits a round, dm/brownffa + dm/flag / duel maps | 20% / 19% | 27.0 (27.3) / 25.2 (25.8)% | 27.3 (26.9) / 24.9 (25.7)% |
+
+The "fight" jumps fall by a third for the reason the fight crouches fell with the crouch rule: `cj.py` counts a jump with a
+part of the enemy on screen within a second either side, so jumps begun quiet just before he showed up counted as fight
+jumps. People's jumps up onto something (0.57) the bots make without a jump. Duel maps, all 281 statistics within 25%:
+56.9% (54.1%) vs 56.9% (54.4%). Not deployed: the test server on 12403 keeps `1ad8c886` (the owner wants it kept).
 
 ## Every duel map, and the team matches as context (2026-10-08)
 
@@ -2453,7 +2481,8 @@ bound moved to 0.86; in the engine the fight's shares did not move.
 - Every bot draws the fastest recorded reaction (100 ms) and the least fight aim error (4.08 deg) instead of skills across
   the people's range: the owner's rule since 2026-10-08 (see "Every bot at the best reaction and aim").
 - No crouch press when quiet or with the enemy dead (unless a shot was just heard): the owner's rule since 2026-10-08 (see
-  "Crouches only with a reason"); people do crouch then, 0.06-0.33 times a minute.
+  "Crouches only with a reason"); people do crouch then, 0.06-0.33 times a minute. The same for jumps since 2026-10-24 (see
+  "Jumps only with a reason"); people jump then 0.08-0.18 times a minute, besides their jumps up onto something.
 - The motor layer is fitted on the 1v1 duels of every deathmatch map, not the data repository's duel mask of the four
   practice maps (`hbdata.widen_duels`, the owner's word of 2026-10-08); the closed-loop reference (`human_reference.json`)
   stays the practice maps' people. The team matches (catalog-only in the data repository) inform only the keys' hidden

@@ -66,11 +66,14 @@ def build():
             # no_reason_scale 0 is the owner's rule (2026-10-08: "it should not crouch unless theres a reason for it"): no
             # crouch press while quiet (no part of the enemy seen, none of his shots heard and no hit taken for a second)
             # nor with the enemy dead, unless a shot was just heard, whatever the fitted hazards (people crouch for no
-            # such reason 0.06 times a minute on dm/flag, the bots did 0.5); crouches in a fight stay as fitted
+            # such reason 0.06 times a minute on dm/flag, the bots did 0.5); crouches in a fight stay as fitted. The same
+            # for the jump since 2026-10-24 (the owner: "do 1 now, the jump rule"; people jump for no reason 0.08-0.18
+            # times a minute, the bots did 0.3-0.6; people's quiet jumps are mostly up onto something, which the bot's
+            # way takes without one; ladder and stuck-recovery jumps are the engine glue's and stay)
             "stance": {k: {**{kk: v[kk] for kk in ["press_hazard", "press_hazard_fire", "press_hazard_quiet", "press_hazard_dead",
                                                    "hold_pmf", "release_age_edges", "release_hazard", "up_age_edges", "up_hazard"]
                               if kk in v},
-                           **({"no_reason_scale": 0.0} if k == "crouch" else {})}
+                           **({"no_reason_scale": 0.0} if k in ("crouch", "jump") else {})}
                        for k, v in mv["stance"].items()},
             "veto_clearance": mv["veto_clearance"],
             # the wall reflex (hb_movement.cpp WallAhead) was set in the engine on dm/crnodoors and dm/main:

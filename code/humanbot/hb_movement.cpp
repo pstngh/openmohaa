@@ -707,7 +707,7 @@ void Mover::StepStance(const MoveInput& in, const StyleOffsets& style, Rng& rng,
         return in.quiet && !k.pressHazardQuiet.empty() ? k.pressHazardQuiet : k.pressHazard;
     };
     // a press with no reason for it (quiet, or the enemy dead, and no shot heard) is scaled by the model: the crouch's
-    // is 0 by the owner's rule
+    // and the jump's are 0 by the owner's rule
     auto multOf = [&](const StanceKeyModel& k, float mult) {
         return !in.fireHeard && (in.enemyDead || in.quiet) ? mult * k.noReasonScale : mult;
     };

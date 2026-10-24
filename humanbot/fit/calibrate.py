@@ -82,8 +82,9 @@ CONTEXTS = ["hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"]
 # p75 150 -> 200 ms in the engine, against the owner's "as fast as the fastest profile"), the crouch curve made up for the
 # quiet crouches the owner's rule forbids with more fight crouches (1.7 -> 2.7 a minute on dm/brownffa and dm/flag), and
 # the aim height's loop and curve lowered the aim on the body (0.43-0.45 -> 0.39-0.41 in the engine, people 0.45); the aim
-# skill's curve maps the best aim to the end of its grid either way.
-OWNER_HELD = {"reaction_ms", "aim_error_fight_deg", "crouch_per_min", "aim_height_firing", "aim_height.firing"}
+# skill's curve maps the best aim to the end of its grid either way. The jump curve likewise since the owner's rule of no
+# jump without a reason (2026-10-24): re-swept, it would make up for the forbidden quiet jumps with fight jumps.
+OWNER_HELD = {"reaction_ms", "aim_error_fight_deg", "crouch_per_min", "jumps_per_min", "aim_height_firing", "aim_height.firing"}
 
 
 def logit(p):
