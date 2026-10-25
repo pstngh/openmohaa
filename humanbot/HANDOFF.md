@@ -2216,6 +2216,76 @@ jumps. People's jumps up onto something (0.57) the bots make without a jump. Due
 56.9% (54.1%) vs 56.9% (54.4%). The test server on 12403 keeps `1ad8c886` (the owner wants it kept); this build runs on
 the second test server, 12404, since 2026-10-25 00:37 UTC (the owner's word, 2026-10-24).
 
+## Holding a doorway (2026-10-25)
+
+The owner, offered "a bot holding a room has its crosshair off where you walk in": "do 1 now, the doorway one". Measured
+on dm/flag's held-room entries (`s14/approach.py flag`: the holder in the Flag room, the entrant at Pre-control, Inside
+door 2 or Door 2; the meeting is the first tick one has the other on screen), people from the data repository's duels,
+the bots bot against bot (`bj1_*` = `a8c4b54a`). Git-ignored scripts in `humanbot/cache/move_wip/s22/`: `holdview.py` (the
+holder's view off the entrant and off the spot they show at, -1500 to +300 ms; the bot's view mode, target and belief),
+`holdfight.py` (first press and hit, who hit first, by the holder's view at the meeting), `holdturn.py` and `holdflick.py`
+(quick turns before the meeting; the bots' flicks by cause), `holdmove.py`, `holdfit.py` (people's view following the
+spot), `landing.py`, `reaim.py`, `slide.py`, `holdrace.py` (the shootout), `hidturns.py` (the hidden view with the enemy
+within 800 u), `stillq.py` (a quick `view.mouse_still`), `sum.sh`; captures `bh1`-`bh10` (dm/brownffa, dm/flag) and `h6`,
+`h8`, `h9`, `h10` (duel maps), `runbf.sh`, `rund.sh`.
+
+**What it was.** The bots' crosshair is on the right door; their hand moves it worse.
+- People's view follows the spot like the fitted hidden controller (`holdfit.py`: 0.57 x the last step, 0.03 x the error,
+  1.04 of the own motion taken out) and turns quickly 0.8 times in the 1.5 s before the meeting, few of those under
+  10 deg. The bots' drifted off it with the resting mouse (28% of their holding ticks on the move rested, people 20%) and
+  came back in small quick turns: 1.7 in those 1.5 s, a quarter under 10 deg, in one at the meeting 27-30% of the time.
+  Hidden with the enemy within 800 u the bots made 17 quick turns of 3-10 deg a minute, people 7.
+- On a corner the enemy was expected out of, `preaim_self_comp` 1 was used as the controller's own-motion term, which the
+  controller's momentum (rho 0.60) carries on: it took out 2.5 times the own motion, and the view ran ahead of the corner
+  as the bot strafed. The fitted term (Kself 0.43) takes out 1.06.
+- Not the turns onto the door: people's quick turns before the meeting land 6.7 deg off the spot, the bots' 9-10, 5-6
+  300 ms later.
+
+**What changed** (`hb_view.cpp`; hand-set in `assemble_model.py`, model `4cb774a0604f`):
+- `preaim_comp_share` 1: `preaim_self_comp` is a share of the own motion (x (1 - rho) as the term).
+- `near_point_hold` 1: with the enemy believed near (`travel_far`), a hidden look at a point (a corner, the believed
+  position) is held like a target: the own motion taken out in full, the error closed at least at the fitted gain
+  (`near_hold_gain` 1), and the mouse does not rest with the point over 3 deg off (`near_still_deg`) while the own motion
+  carries it off faster than 1 deg a tick (`near_still_drift`).
+- `still_logit` hidden not firing 0.84 -> 1.29 and reloading 0.73 -> 1.18 (`tuning.json`, by hand: the hold breaks rests;
+  held off everywhere near, the duel maps' hidden mouse rested 19-22% of the time, people's 32%).
+Unit test `TestNearPointHold`; `TestView`'s still shares are bounded for the gate alone (under 0.95 standing, 0.7 on the
+move: in play looks, quick turns and the hold break rests), `TestLookChain` at 12 deg (the mouse rests a little short).
+
+Bot against bot (`bh10_*` against `bj1_*` on dm/brownffa and dm/flag, `h10_*` against `j1_*` on the duel maps; seeds
+201-208, in brackets 401-408):
+
+| | people | before | now |
+|---|---|---|---|
+| walking into the Flag room someone holds: the holder's view off the entrant at the meeting, p50 | 2.4 | 4.5 (4.8) | 3.7 (4.0) |
+| ... within 4 deg / over 10 deg | 67% / 14% | 45% / 23% (43% / 23%) | 54% / 19% (50% / 21%) |
+| ... off the spot they show at, 300 ms before | 4.9 | 6.0 (5.8) | 5.2 (5.0) |
+| ... quick turns in the 1.5 s before / in one at the meeting | 0.84 / | 1.66 / 30% (1.65 / 27%) | 1.54 / 28% (1.45 / 24%) |
+| ... the holder hits first / dies first | 62% / 43% | 54% / 62% (51% / 63%) | 54% / 61% (52% / 64%) |
+| hidden, the enemy within 800 u (dm/brownffa, dm/flag): quick turns of 3-10 deg a minute / mouse still | 7.0 / 30% | 16.7 / 30% (17.5 / 30%) | 15.4 / 33% (15.7 / 33%) |
+| duel maps: the mouse still hidden not firing / reloading | 32% / 26% | 27% / 21% (27% / 21%) | 28% / 25% (27% / 23%) |
+| aim at the first sight, dm/brownffa / dm/flag | 4.8 / 3.9 | 9.2 / 7.7 (9.2 / 7.1) | 8.9 / 7.1 (9.1 / 7.1) |
+| duel maps: all 281 statistics within 25% | | 56.9% (54.1%) | 58.7% (54.8%) |
+
+Kills (5.23-5.36 a minute), hits a round (26.7-27.0%), the first press (100 ms), crouches and jumps (none without a
+reason), sightings, speed, approach and retreat stay where they were. On the duel maps one statistic crossed 25% for the
+worse in both seed sets (the trigger held in sight at 20-1000 ms, 0.0109 against the line's 0.0107) and one for the better
+(the clean first press p50, 100 -> 150 ms, people 150); the hidden yaw speed p50 is 15-17 deg/s (14-15.5 before, people 8).
+
+Tried (dm/brownffa and dm/flag, both seed sets): the hold with the term itself (`bh1`: 5.0 deg at the meeting, worse); the
+share alone (`bh2`: 4.0-4.5, within 4 deg 46-50%); the hold at the tracking gain 2.5 with the rest only within 1.5 deg
+(`bh3`: 3.8-4.0, 50-52%, but the mouse rested 13% of the holding ticks, people 20% on the move and 45% slower); the
+fitted gain (`bh4`) and the imminence's gain kept under the hold (`bh5`), the same; the rest within 3 deg (`bh6`, the same
+placement); the drift condition at 0.5, 1 and 1.5 deg a tick (`bh7`-`bh9`: the duel maps' hidden mouse 22-23%, 24-25%, 25%,
+1.5 losing some of the placement), all with the old still logits.
+
+**Still off.** The holder's view is still 1.3-1.6 deg further off than people's: 300 ms before, the bots are about where
+people are, but people close in on the spot in that third of a second (4.9 -> 2.4 deg), the bots 5 -> 3.7-4. The corner
+the bot watches is over 5 deg off the entrant 22-28% of the time. Who wins did not move: the holder dies first 61-64%
+(people 43%). That is the shootout: people walking into a held room hit 21% of their shots (the holder 28%), 18% once the
+holder hit first; a bot walking in hits 29% (25% once hit first), as a holding bot does (32%), so the holder's edge
+people have is not there between bots.
+
 ## Every duel map, and the team matches as context (2026-10-08)
 
 The owner asked why the bots learn from only part of the human telemetry, then: "yes do it, use the team matches too but
@@ -2416,7 +2486,10 @@ bound moved to 0.86; in the engine the fight's shares did not move.
 - The still gate of the view has separate fitted odds for a standing bot. A pre-aimed corner is held
   like a target (tracking gain, full own-motion compensation) in proportion to how soon the enemy is
   expected out of it, unless the bot's own motion sweeps it past faster than 90 deg/s
-  (`preaim_pass_dps`): then the view keeps its direction.
+  (`preaim_pass_dps`): then the view keeps its direction. With the enemy believed near, any hidden look
+  at a point is held so, and the mouse does not rest with it over 3 deg off while the bot's own motion
+  carries it off (see "Holding a doorway"); the still gate's hidden and reload logits were raised by hand
+  to match.
 - Right after losing sight the view holds where the enemy was last seen; a belief look watches the corner
   nearest the believed position's direction when the belief offers one (see "Corners and the lost enemy").
 - The belief's mode (the position the goal, the chase and the belief look use) keeps its cell

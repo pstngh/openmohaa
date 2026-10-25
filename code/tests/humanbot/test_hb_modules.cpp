@@ -1387,6 +1387,7 @@ static void TestView(const hb::ModelBundle& b)
     // a belief with two likely exposure points to pre-aim at
     hb::BeliefEstimate be;
     be.valid           = true;
+    be.mode            = hb::Vec3(1500, 300, 0);   // believed far (near, a watched point is held: TestNearPointHold)
     be.nExposure       = 2;
     be.exposure[0]     = hb::Vec3(500, 100, 0);
     be.exposure[1]     = hb::Vec3(300, -400, 0);
@@ -1396,7 +1397,9 @@ static void TestView(const hb::ModelBundle& b)
     h.ctx    = hb::CTX_HIDDEN_NOFIRE;
     h.firing = false;
     h.belief = &be;
-    // people who stop moving mostly stop turning too (hidden: 75% of standing ticks, about 20% on the move)
+    // people who stop moving mostly stop turning too (hidden: 75% of standing ticks, about 20% on the move). This is the
+    // gate alone: in play looks, quick turns and the hold of a watched point break rests (the duel maps' hidden mouse
+    // rests 27-28% of the time, people's 32%), so its odds sit above people's shares
     for (const float speed : {0.0f, 200.0f}) {
         self.velocity = hb::Vec3(speed, 0.0f, 0.0f);
         int still     = 0;
@@ -1409,9 +1412,9 @@ static void TestView(const hb::ModelBundle& b)
         }
         HB_REPORT("hidden at %.0f u/s: still share %.2f", speed, still / 20000.0);
         if (speed > 0.0f) {
-            HB_CHECK(still / 20000.0 > 0.1 && still / 20000.0 < 0.5);
+            HB_CHECK(still / 20000.0 > 0.1 && still / 20000.0 < 0.7);
         } else {
-            HB_CHECK(still / 20000.0 > 0.5 && still / 20000.0 < 0.9);
+            HB_CHECK(still / 20000.0 > 0.5 && still / 20000.0 < 0.95);
         }
     }
     self.velocity = hb::Vec3();
@@ -1635,7 +1638,7 @@ static void TestLookChain(const hb::ModelBundle& b)
     }
     HB_REPORT("a hit felt at -40 deg while turning to one at 100: the view %.0f deg off it 1.2 s later (%.0f without the "
               "chained turn)", med[1], med[0]);
-    HB_CHECK(med[1] < 10.0f);
+    HB_CHECK(med[1] < 12.0f);   // (the mouse may rest a few degrees short once the turn is done)
     HB_CHECK(med[0] > 2.0f * med[1]);
 }
 
@@ -1683,6 +1686,79 @@ static void TestNearSoundGivesWay(const hb::ModelBundle& b)
               "sound's direction is kept)", at[1], at[0]);
     HB_CHECK(std::fabs(at[1]) < 15.0f);
     HB_CHECK(std::fabs(hb::Wrap180(at[0] - 70.0f)) < 20.0f);
+}
+
+// With the enemy believed near, a watched corner is held like a target while the bot strafes about: its own motion is
+// taken out in full (not 2.5 times over) and the mouse rests only within 3 deg of it, so the view is far off it less
+// often and comes back in fewer quick turns (people holding the Flag room are within 4 deg of the entrant 67% of the
+// time when one first has the other on screen, the bots 43-45% without this).
+static void TestNearPointHold(const hb::ModelBundle& b)
+{
+    float med[2], over4[2];
+    int   flicks[2];
+    for (const int hold : {0, 1}) {
+        hb::ViewModel vm    = b.shared.view;
+        vm.lookaroundPerMin = 0.0f;
+        if (!hold) {
+            // as before the hold: the own motion's share taken as the term itself, no hold, the resting mouse
+            vm.preaimCompShare = 0.0f;
+            vm.nearPointHold   = 0.0f;
+            vm.nearStillDeg    = 0.0f;
+        }
+        std::vector<float> errs;
+        flicks[hold] = 0;
+        for (int k = 0; k < 100; k++) {
+            hb::BeliefEstimate be;
+            be.valid            = true;
+            be.spread           = 150.0f;
+            be.mode             = hb::Vec3(520, 60, 0);   // behind the doorway, near
+            be.nExposure        = 1;
+            be.exposure[0]      = hb::Vec3(450, 0, 0);
+            be.exposureCell[0]  = 10;
+            be.exposureMass[0]  = 1.0f;
+            be.exposureEtaMs[0] = 3000.0f;   // not expected out of it soon
+            be.cornerValid[0]   = true;
+            be.corner[0]        = hb::Vec3(450, 0, 82);
+            be.cornerOpen[0]    = 1.0f;
+            hb::SelfState self;
+            self.alive = true;
+            self.eye   = hb::Vec3(0, 0, 82);
+            hb::ViewInput h;
+            h.ctx    = hb::CTX_HIDDEN_NOFIRE;
+            h.belief = &be;
+            h.moving = true;
+            hb::ViewControl vc;
+            vc.Init(&vm);
+            vc.Reset(self);
+            hb::Rng        r(300 + k);
+            hb::ViewOutput out;
+            bool           wasFlick = false;
+            for (int t = 0; t < 60; t++) {   // 3 s, strafing 200 u/s left and right in half-second runs
+                // (the speed changes at most 125 u/s a tick, like a player's: a reversal takes 4 ticks)
+                const float want = (t / 10) % 2 ? -200.0f : 200.0f;
+                self.velocity    = hb::Vec3(0.0f, self.velocity.y + hb::Clamp(want - self.velocity.y, -125.0f, 125.0f), 0.0f);
+                self.origin   = self.origin + self.velocity * 0.05f;
+                self.eye      = self.origin + hb::Vec3(0, 0, 82);
+                self.timeMs += 50;
+                vc.Step(self, h, r, out);
+                self.viewYaw   = hb::Wrap180(self.viewYaw + out.yawDelta);
+                self.viewPitch = self.viewPitch + out.pitchDelta;
+                if (t >= 20) {
+                    errs.push_back(std::fabs(out.errYaw));
+                    flicks[hold] += out.flick && !wasFlick;
+                }
+                wasFlick = out.flick;
+            }
+        }
+        std::sort(errs.begin(), errs.end());
+        med[hold]   = errs[errs.size() / 2];
+        over4[hold] = static_cast<float>(std::count_if(errs.begin(), errs.end(), [](float e) { return e > 4.0f; })) / errs.size();
+    }
+    HB_REPORT("strafing with the enemy believed near behind a watched corner: the view %.1f deg off it (%.0f%% over 4), "
+              "%.1f quick turns in 2 s; %.1f (%.0f%%), %.1f without the hold", med[1], 100.0f * over4[1], flicks[1] / 100.0f,
+              med[0], 100.0f * over4[0], flicks[0] / 100.0f);
+    HB_CHECK(over4[1] < 0.8f * over4[0] && med[1] <= med[0]);
+    HB_CHECK(flicks[1] < flicks[0]);
 }
 
 // A belief look with a corner watches the corner nearest the believed position, and a watched corner is followed by
@@ -1966,6 +2042,7 @@ int main()
     TestDamageTurn(b);
     TestLookChain(b);
     TestNearSoundGivesWay(b);
+    TestNearPointHold(b);
     TestLeanWall(b);
     TestLeanEnemy(b);
     TestLeanSwitch(b);

@@ -561,6 +561,7 @@ void ParseView(const json& j, ViewModel& v)
         v.preaimHorizonMs   = NumOr(t, "preaim_horizon_ms", v.preaimHorizonMs);
         v.preaimFlickDeg    = NumOr(t, "preaim_flick_deg", v.preaimFlickDeg);
         v.preaimSelfComp    = NumOr(t, "preaim_self_comp", v.preaimSelfComp);
+        v.preaimCompShare   = NumOr(t, "preaim_comp_share", v.preaimCompShare);
         v.beliefLookShare   = NumOr(t, "belief_look_share", v.beliefLookShare);
         v.travelShare       = NumOr(t, "travel_share", v.travelShare);
         v.respawnRelook     = NumOr(t, "respawn_relook", v.respawnRelook);
@@ -588,6 +589,10 @@ void ParseView(const json& j, ViewModel& v)
         v.nearSoundDeg      = NumOr(t, "near_sound_deg", v.nearSoundDeg);
         v.nearLookaround    = NumOr(t, "near_lookaround", v.nearLookaround);
         v.nearRouteTurn     = NumOr(t, "near_route_turn", v.nearRouteTurn);
+        v.nearPointHold     = NumOr(t, "near_point_hold", v.nearPointHold);
+        v.nearStillDeg      = NumOr(t, "near_still_deg", v.nearStillDeg);
+        v.nearStillDrift    = NumOr(t, "near_still_drift", v.nearStillDrift);
+        v.nearHoldGain      = NumOr(t, "near_hold_gain", v.nearHoldGain);
         v.lookDwellMedianMs = NumOr(t, "look_dwell_median_ms", v.lookDwellMedianMs);
         v.lookDwellSigma    = NumOr(t, "look_dwell_sigma", v.lookDwellSigma);
         v.damageTurnDelayMs = NumOr(t, "damage_turn_delay_ms", v.damageTurnDelayMs);

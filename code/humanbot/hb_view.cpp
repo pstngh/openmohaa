@@ -722,6 +722,15 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const float reaimHz  = m_near && p.nearReaimHazard > 0.0f ? p.nearReaimHazard : p.hiddenReaimHazard;
     const float halfW      = std::atan(BODY_HALF_W / dist) * RAD2DEG;
     const bool  offTarget  = in.track && angErr > p.acquireMinHalfW * halfW;
+    // Holding a room with the enemy near, people keep the crosshair on the corner he will come out of as they shuffle
+    // about: in the 1.5 s before he walks into dm/flag's Flag room their view makes 0.8 quick turns, few under 10 deg,
+    // and is within 4 deg of him 67% of the time when one first has the other on screen. The bots' drifted off with
+    // their own motion (the fitted controller takes out 43% of it) and the resting mouse, and came back in small quick
+    // turns: 1.7 in those 1.5 s, a quarter under 10 deg, in one at the meeting 30% of the time, within 4 deg 43-45%.
+    // Hidden with the enemy near they made 17 quick turns of 3-10 deg a minute, people 7. So with the enemy near a
+    // hidden look at a point is held like a target, and the mouse rests only once it is on it
+    const bool  pointHold  = !in.track && m_near && p.nearPointHold > 0.5f && m_lookPointValid
+                             && (m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_BELIEF);
     if (m_refractory > 0) {
         m_refractory--;
     }
@@ -806,6 +815,11 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             // the mouse does not rest while the way turns off the view
             m_still = false;
         }
+        if (pointHold && p.nearStillDeg > 0.0f && angErr > p.nearStillDeg && std::fabs(wself) > p.nearStillDrift) {
+            // (only while the bot's own motion carries the point off: standing, or going its way, the mouse rests as
+            // fitted; held everywhere near, the duel maps' hidden mouse rested 19% of the time, people's 32%)
+            m_still = false;
+        }
         if (m_still) {
             out.still      = true;
             out.yawDelta   = 0.0f;
@@ -825,15 +839,25 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
             // people's (corners at a median 170 u sweep past at 22 deg/s)
             float g  = in.track ? p.trackGainScale : 1.0f;
             float ks = c.Kself;
+            // the own motion a held point takes out: preaimSelfComp of it as a share (the controller's momentum carries
+            // each tick's term on, 1 / (1 - rho) of it in all, so the fitted Kself, 0.43 at rho 0.60, takes out 1.06 of
+            // it); taken as the term itself, 1 took out 2.5 of it and the view ran 3-4 deg ahead of a corner as the
+            // bot strafed
+            const float ksHold = p.preaimCompShare > 0.5f ? p.preaimSelfComp * (1.0f - c.rho) : p.preaimSelfComp;
             if (!in.track && m_lookMode == VIEW_PREAIM && bel && bel->valid && !bel->dead) {
                 const double horizon = std::max(50.0, static_cast<double>(p.preaimHorizonMs) * in.angleHold);
                 for (int i = 0; i < bel->nExposure; i++) {
                     if (bel->exposureCell[i] == m_preaimCell) {
                         const float imm = static_cast<float>(std::exp(-bel->exposureEtaMs[i] / horizon));
                         g  = 1.0f + (p.trackGainScale - 1.0f) * imm;
-                        ks = c.Kself + (p.preaimSelfComp - c.Kself) * imm;
+                        ks = c.Kself + (ksHold - c.Kself) * imm;
                     }
                 }
+            }
+            if (pointHold) {
+                // (at least the gain the watched corner's imminence gives)
+                g  = std::max(g, p.nearHoldGain > 0.0f ? p.nearHoldGain : p.trackGainScale);
+                ks = ksHold;
             }
             float rate = c.rho * m_rate + c.Kp * g * m_err[1] + ks * wself + c.Kopp * g * m_wopp[3] + c.bias * p.biasScale + noise;
             const float tpRate = m_tpitch[2] - m_tpitch[3];

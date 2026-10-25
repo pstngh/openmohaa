@@ -63,11 +63,11 @@
    "preaim_share": 0.1,
    "preaim_weight": 60.0,
    "still_logit": [
-    0.8387,
+    1.29,
     1.0306,
     3.0,
     -3.0,
-    0.7321
+    1.18
    ],
    "track_gain_scale": 2.5
   }

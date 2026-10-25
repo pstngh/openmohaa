@@ -199,7 +199,21 @@ def build():
                        # look-arounds and no turns to a route behind the view. Walking into the flag room someone holds, the
                        # bot's view at the moment one first has the other on screen was over 20 deg off him 12-13% of the
                        # time (people 7%), 8-9% with these
-                       "look_chain": 1.0, "near_sound_deg": 20.0, "near_lookaround": 0.0, "near_route_turn": 0.0},
+                       "look_chain": 1.0, "near_sound_deg": 20.0, "near_lookaround": 0.0, "near_route_turn": 0.0,
+                       # set on captures of dm/flag and dm/brownffa (2026-10-25, "Holding a doorway" in HANDOFF.md): with
+                       # the enemy believed near, a hidden look at a point (a corner, where he is believed to be) is held
+                       # like a target: the own motion taken out in full (preaim_self_comp as a share: the controller's
+                       # momentum carries each tick's term on, so as the term itself 1 took out 2.5 of it), the error
+                       # closed at least at the fitted gain, and the mouse rests only within 3 deg of it. People's view
+                       # follows such a point like the fitted controller (0.57 x the last step, 1.04 of the own motion
+                       # taken out); the bots' drifted off with the resting mouse and came back in quick turns (1.7 in
+                       # the 1.5 s before someone walked into the Flag room they held, people 0.8). The holder's view
+                       # was within 4 deg of the entrant at the meeting 43-45% of the time, now 50-54% (people 67%). The
+                       # rest is held off only while the bot's own motion carries the point off over 1 deg a tick: held
+                       # off everywhere near, the duel maps' hidden mouse rested 19-22% of the time (people 32%); with
+                       # the still gate's hidden and reload logits raised by 0.45 (tuning.json) it rests 27-28%, as before
+                       "preaim_comp_share": 1.0, "near_point_hold": 1.0, "near_still_deg": 3.0, "near_still_drift": 1.0,
+                       "near_hold_gain": 1.0},
         },
         "trigger": {**{k: tr[k] for k in ["en_edges", "yaw_edges", "lage_los_edges", "lage_hidden_edges", "hold_edges", "gap_edges",
                                            "clip_edges", "press_los", "release_los", "press_hidden", "release_hidden"]},

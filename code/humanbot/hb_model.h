@@ -275,6 +275,8 @@ struct ViewModel {
                                        // turn like people's, not the idle controller's drift
     float preaimSelfComp     = 1.0f;   // share of the bot's own motion the view takes out on a corner the enemy
                                        //   is expected out of now (the fitted share when none is expected soon)
+    float preaimCompShare    = 0.0f;   // 1: preaimSelfComp is that share (x (1 - rho) as the controller's term);
+                                       //   0: it is the term itself
     float travelShare        = 0.25f;
     float travelFollowDeg    = 15.0f;  // a route look re-aims once the route turned this far from it
     float routeTurnHazard    = 0.0f;   // per tick on the move: turn to a route that lies behind the view (0 = off)
@@ -329,6 +331,12 @@ struct ViewModel {
                                        //   (0: nearAwayDeg)
     float nearLookaround     = 1.0f;   // near: look-arounds as anywhere (1) or none (0)
     float nearRouteTurn      = 1.0f;   // near: the turn to a route behind the view as anywhere (1) or none (0)
+    float nearPointHold      = 0.0f;   // 1: near, a hidden look at a point (a corner, where he is believed to be) is held
+                                       //   like a target: the own motion taken out (preaimSelfComp), the error closed at
+                                       //   the tracking gain (0: so only as the watched corner's exposure is imminent)
+    float nearStillDeg       = 0.0f;   // near: the mouse does not rest with such a point this far off the view (0 = off)
+    float nearStillDrift     = 0.0f;   //   while the own motion carries it off faster than this (deg a tick)
+    float nearHoldGain       = 0.0f;   // near: the error gain on such a point x at least this (0: trackGainScale)
 };
 
 struct TriggerSide {
