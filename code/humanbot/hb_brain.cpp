@@ -530,7 +530,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     m_bashPrev = plan.bash;
     plan.lean       = mo.lean;
     plan.crouch     = mo.crouch;
-    plan.jump       = mo.jump;
+    // onto the raised take-off of a fall people take (hb::MapDrop::jump: dm/mohdm6's ledge railing), a jump with a reason
+    plan.jump       = mo.jump || (m_navOut.valid && m_navOut.jump);
     plan.walk       = mo.walk;
     plan.yawDelta   = vo.yawDelta;
     plan.pitchDelta = vo.pitchDelta;

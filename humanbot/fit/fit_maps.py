@@ -20,7 +20,7 @@ LOS between cells is the fraction of duel ticks with centroid line of sight when
 two players stood in those cells (unordered pair, >= 2 ticks).
 
 DROP_MAPS also get `drops`: the falls people took (the last tick on the ground before an air run and the first after,
-more than DROP_MIN lower), one per take-off cell with its most common landing cell. On dm/mohdm6 people run off the
+more than DROP_MIN lower), one per take-off cell with its most common landing cell (fit_drops). On dm/mohdm6 people run off the
 spawn buildings' upper floors into the street (falls of 400-650 u, past the engine paths' 400 u); the owner
 (2026-10-25): that is a Stalingrad habit and must not touch other maps, so only DROP_MAPS get them.
 """
@@ -45,6 +45,8 @@ AREA_MAPS = ["dm/brownffa", "dm/flag"]
 FULL_MAPS = ["dm/mohdm6"]
 DROP_MAPS = ["dm/mohdm6"]
 DROP_MIN = 96.0
+DROP_NEAR = 96.0
+DROP_CLIMB = 24.0
 
 
 def column_levels(ix, iy, z):
@@ -87,22 +89,44 @@ def nearest_level(levels, ix, iy, z):
     return best
 
 
-def fit_drops(D):
-    """People's falls on the map's rows (sorted, cells set): one per take-off cell that MIN_SESSIONS sources fell from
-    at least 3 times, with its most common landing cell and the median take-off and landing points."""
+def fit_drops(D, key_of, levels, cx, cy, cz):
+    """People's falls on the map's rows (sorted; every living tick, not only the duel ticks: a fall is a way about the
+    map, and a fall while the enemy was dead broke into pieces), as route edges. key_of maps (ix, iy, level) to the kept
+    cells, levels their floor heights, and cx, cy, cz are the kept cells' centres.
+
+    A fall's take-off cell is the cell it left from, or, when people left from a spot too brief to be a cell (the top of
+    dm/mohdm6's ledge railing, which they jump onto), the cell within DROP_NEAR they climbed from (up to 72 u below);
+    its landing cell likewise (within 48 u of height). A fall counts when the falls within DROP_NEAR of its take-off (on
+    its level) number at least 3 from MIN_SESSIONS sources. One drop per take-off cell, with its most common landing cell,
+    the median take-off and landing points, and 1 when the take-off is more than DROP_CLIMB above the cell's floor (the
+    bot jumps onto it)."""
     key = D.groupby(["session_id", "client_id", "seg"], sort=False).ngroup().to_numpy()
     ms, grd = D.session_ms.to_numpy(), D.on_ground.astype(bool).to_numpy()
-    z, cid, src = D.origin_z.to_numpy(), D.cid.to_numpy(), D.src.to_numpy()
+    z, src = D.origin_z.to_numpy(), D.src.to_numpy()
     xyz = D[["origin_x", "origin_y", "origin_z"]].to_numpy()
+
+    def cell_of(p):
+        ix, iy = int(np.floor(p[0] / CELL)), int(np.floor(p[1] / CELL))
+        lid = nearest_level(levels, ix, iy, p[2])
+        return key_of.get((ix, iy, lid), -1) if lid >= 0 and abs(levels[(ix, iy, lid)] - p[2]) <= LEVEL_GAP else -1
+
+    def near_cell(p, below, above):
+        d = np.hypot(cx - p[0], cy - p[1])
+        ok = (d <= DROP_NEAR) & (cz >= p[2] - below) & (cz <= p[2] + above)
+        return int(np.flatnonzero(ok)[np.argmin(d[ok])]) if ok.any() else -1
+
     rows, i, n = [], 0, len(D)
     while i < n - 1:
         if grd[i] and not grd[i + 1] and key[i + 1] == key[i] and ms[i + 1] - ms[i] == 50:
             j = i + 1
             while j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and not grd[j]:
                 j += 1
-            if j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and grd[j] and z[j] - z[i] < -DROP_MIN \
-                    and cid[i] >= 0 and cid[j] >= 0:
-                rows.append((cid[i], cid[j], src[i], *xyz[i], *xyz[j]))
+            if j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and grd[j] and z[j] - z[i] < -DROP_MIN:
+                a, b = cell_of(xyz[i]), cell_of(xyz[j])
+                a = a if a >= 0 else near_cell(xyz[i], 72.0, 24.0)
+                b = b if b >= 0 else near_cell(xyz[j], 48.0, 48.0)
+                if a >= 0 and b >= 0 and a != b:
+                    rows.append((a, b, src[i], *xyz[i], *xyz[j]))
             i = j
         else:
             i += 1
@@ -110,12 +134,15 @@ def fit_drops(D):
     if not rows:
         return out
     R = pd.DataFrame(rows, columns=["a", "b", "src", "x0", "y0", "z0", "x1", "y1", "z1"])
-    for a, d in R.groupby("a"):
-        if len(d) < 3 or d.src.nunique() < MIN_SESSIONS:
-            continue
+    P = R[["x0", "y0", "z0"]].to_numpy()
+    nb = (np.hypot(P[:, None, 0] - P[None, :, 0], P[:, None, 1] - P[None, :, 1]) <= DROP_NEAR) & (np.abs(P[:, None, 2] - P[None, :, 2]) < 48.0)
+    srcs = R.src.to_numpy()
+    R["keep"] = [nb[k].sum() >= 3 and len(set(srcs[nb[k]])) >= MIN_SESSIONS for k in range(len(R))]
+    for a, d in R[R.keep].groupby("a"):
         b = int(d.b.mode().iloc[0])
-        out.append([int(a), b, len(d)] + [round(float(v), 1) for v in d[["x0", "y0", "z0"]].median()]
-                   + [round(float(v), 1) for v in d[d.b.eq(b)][["x1", "y1", "z1"]].median()])
+        take = d[["x0", "y0", "z0"]].median()
+        out.append([int(a), b, len(d)] + [round(float(v), 1) for v in take] + [round(float(v), 1) for v in d[d.b.eq(b)][["x1", "y1", "z1"]].median()]
+                   + [int(take.z0 - cz[a] > DROP_CLIMB)])
     return out
 
 
@@ -230,7 +257,9 @@ def fit_map(F, mp):
         "source": {"sessions": int(D.session_id.nunique()), "rows": int(len(D))},
     }
     if mp in DROP_MAPS:
-        R["drops"] = fit_drops(D)
+        A = F[F["map"].eq(mp) & F.normal_physics].copy()
+        A["src"] = A.session_id + ":" + A.client_id.astype(str)
+        R["drops"] = fit_drops(A, key, levels, (kept.ix.to_numpy() + 0.5) * CELL, (kept.iy.to_numpy() + 0.5) * CELL, cz)
     return R
 
 

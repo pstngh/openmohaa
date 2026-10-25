@@ -652,6 +652,82 @@ static void TestStalingradDrops(const hb::ModelBundle& b)
     hb::NavInput in;
     in.focus     = &be;
     in.outOfAmmo = true;   // a deterministic hunt for the believed position
+    // a raised take-off (the ledge's railing): standing on the ledge next to it the bot runs at the landing and jumps
+    int jumps = 0;
+    for (const hb::MapDrop& d : m.drops) {
+        if (!d.jump) {
+            continue;   // the take-off a step above the cell's floor people jumped from (a jump is also pressed below any take-off)
+        }
+        jumps++;
+        hb::SelfState s = self;
+        const hb::Vec3 c = m.cells[d.from].center;
+        s.origin = hb::Vec3(d.takeoff.x + 0.3f * (c.x - d.takeoff.x), d.takeoff.y + 0.3f * (c.y - d.takeoff.y), m.cells[d.from].z);
+        s.eye           = s.origin + hb::Vec3(0, 0, 82);
+        s.onGround      = true;
+
+        hb::BeliefEstimate bj = be;
+        bj.mode               = d.landing;
+        hb::NavInput ij       = in;
+        ij.focus              = &bj;
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng       r(9);
+        hb::NavOutput out;
+        nav.Step(s, ij, r, out);
+        const bool raised = d.takeoff.z - s.origin.z > 18.0f && (d.takeoff - s.origin).lengthXY() < 48.0f;
+        HB_REPORT("raised take-off (%.0f, %.0f, %.0f) from (%.0f, %.0f, %.0f): direct %d, jump %d", d.takeoff.x, d.takeoff.y,
+                  d.takeoff.z, s.origin.x, s.origin.y, s.origin.z, out.direct, out.jump);
+        // a jump up costs the routes JUMP_UP_COST (hb_map.cpp): taken where there is no other way, like off the ledge
+        // over its railing (take-off at z 100), not where there are stairs
+        if (out.direct) {
+            HB_CHECK(out.jump == raised);
+        }
+        if (std::fabs(d.takeoff.z - 100.0f) < 5.0f) {
+            HB_CHECK(out.direct && out.jump);
+        }
+    }
+    HB_CHECK(jumps > 0);
+    // a take-off on a sill a jump above the floor (the south-west building's top floor): from the floor below it, next
+    // to it, the bot runs at the landing and jumps
+    int sills = 0;
+    for (const hb::MapDrop& d : m.drops) {
+        int below = -1;
+        for (int c = 0; c < m.NumCells() && below < 0; c++) {
+            const float dz = d.takeoff.z - m.cells[c].z;
+            if (dz > 36.0f && dz < 60.0f && (m.cells[c].center - d.takeoff).lengthXY() < 64.0f) {
+                below = c;
+            }
+        }
+        if (below < 0) {
+            continue;
+        }
+        sills++;
+        hb::SelfState s = self;
+        const hb::Vec3 c = m.cells[below].center;
+        const float    l = std::max(1.0f, (c - d.takeoff).lengthXY());
+        const float    k = std::min(1.0f, 32.0f / l);
+        s.origin = hb::Vec3(d.takeoff.x + k * (c.x - d.takeoff.x), d.takeoff.y + k * (c.y - d.takeoff.y), m.cells[below].z);
+        s.eye    = s.origin + hb::Vec3(0, 0, 82);
+        s.onGround = true;
+        hb::BeliefEstimate bj = be;
+        bj.mode               = d.landing;
+        hb::NavInput ij       = in;
+        ij.focus              = &bj;
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng       r(11);
+        hb::NavOutput out;
+        nav.Step(s, ij, r, out);
+        HB_REPORT("sill take-off (%.0f, %.0f, %.0f) from (%.0f, %.0f, %.0f): direct %d, jump %d", d.takeoff.x, d.takeoff.y,
+                  d.takeoff.z, s.origin.x, s.origin.y, s.origin.z, out.direct, out.jump);
+        if (out.direct) {
+            HB_CHECK(out.jump);
+        }
+        if (std::fabs(d.takeoff.z - 100.0f) < 5.0f) {
+            HB_CHECK(out.direct && out.jump);
+        }
+    }
+    HB_CHECK(sills > 0);
     for (const bool withDrops : {true, false}) {
         if (!withDrops) {
             m.drops.clear();

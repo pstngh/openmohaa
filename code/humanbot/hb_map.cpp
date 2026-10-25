@@ -78,6 +78,18 @@ bool MapPrior::Column(int ix, int iy, const int *&b, const int *&e) const
     return b != e;
 }
 
+// On a map whose file lists falls (dm/mohdm6) a move up more than a step is a jump the bots often miss: they made it
+// onto the south-west building's 52 u sill and the ledge's railing one time in four and stood under them. It costs
+// JUMP_UP_COST, so the routes take it where there is no other way (the ledge) and the stairs where there are (the
+// south-west top floor). Other maps' routes are as they were.
+static constexpr float JUMP_UP_STEP = 24.0f;
+static constexpr float JUMP_UP_COST = 1000.0f;
+
+float MapPrior::JumpCost(int from, int to) const
+{
+    return !drops.empty() && cells[to].z > cells[from].z + JUMP_UP_STEP ? JUMP_UP_COST : 0.0f;
+}
+
 void MapPrior::BuildRouteGraph()
 {
     const int n = NumCells();
@@ -97,10 +109,10 @@ void MapPrior::BuildRouteGraph()
                 continue;
             }
             const float len = (cells[a].center - cells[b].center).length();
-            add(a, b, len);
+            add(a, b, len + JumpCost(a, b));
             // walkable both ways unless it is a drop (humans can fall, not climb)
             if (cells[b].z >= cells[a].z - 40.0f) {
-                add(b, a, len);
+                add(b, a, len + JumpCost(b, a));
             }
         }
     }
@@ -109,7 +121,8 @@ void MapPrior::BuildRouteGraph()
     // some take-offs the routes to the street used the fall 2% of the time)
     for (const MapDrop& d : drops) {
         if (d.from >= 0 && d.from < n && d.to >= 0 && d.to < n && d.from != d.to) {
-            add(d.from, d.to, std::max((cells[d.from].center - cells[d.to].center).lengthXY(), 0.5f * cellSize));
+            add(d.from, d.to, std::max((cells[d.from].center - cells[d.to].center).lengthXY(), 0.5f * cellSize)
+                                  + (d.takeoff.z > cells[d.from].z + JUMP_UP_STEP ? JUMP_UP_COST : 0.0f));
         }
     }
     rStart.assign(n + 1, 0);

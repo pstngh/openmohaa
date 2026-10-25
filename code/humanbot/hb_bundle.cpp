@@ -1030,15 +1030,16 @@ bool LoadMapPrior(const std::string& text, const std::string& overrideText, MapP
             }
         }
         if (j.contains("drops")) {
-            // [from, to, count, takeoff x, y, z, landing x, y, z] per take-off cell (fit_maps.py DROP_MAPS)
+            // [from, to, count, takeoff x, y, z, landing x, y, z, jump] per take-off cell (fit_maps.py DROP_MAPS)
             for (const json& s : j.at("drops")) {
-                Require(s.is_array() && s.size() == 9, "map.drops entry");
+                Require(s.is_array() && (s.size() == 9 || s.size() == 10), "map.drops entry");
                 MapDrop d;
                 d.from    = static_cast<int>(Num(s[0], "drop"));
                 d.to      = static_cast<int>(Num(s[1], "drop"));
                 d.count   = Num(s[2], "drop");
                 d.takeoff = Vec3(Num(s[3], "drop"), Num(s[4], "drop"), Num(s[5], "drop"));
                 d.landing = Vec3(Num(s[6], "drop"), Num(s[7], "drop"), Num(s[8], "drop"));
+                d.jump    = s.size() > 9 && Num(s[9], "drop") > 0.5f;
                 Require(d.from >= 0 && static_cast<size_t>(d.from) < n && d.to >= 0 && static_cast<size_t>(d.to) < n, "map drop index");
                 m.drops.push_back(d);
             }

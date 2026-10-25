@@ -33,9 +33,14 @@ static constexpr int ENGAGE_MEMORY_MS = 1000;
 // A bot this many cells off the cells people stood in still takes its way from the nearest of them.
 static constexpr float VIA_HERE_CELLS = 3.0f;
 // A fall people take (MapPrior::drops): the bot runs straight at the landing from this close to the take-off, and keeps
-// at it while falling for at most DROP_MS.
-static constexpr float DROP_REACH = 64.0f;
-static constexpr int   DROP_MS    = 2500;
+// at it while falling for at most DROP_MS; it jumps onto a raised take-off from DROP_JUMP_REACH. It looks for the fall
+// from cells up to DROP_HERE_CELLS away on its floor: dm/mohdm6's ledge is mostly off the cells people stood in.
+static constexpr float DROP_REACH       = 64.0f;
+static constexpr float DROP_JUMP_REACH  = 48.0f;
+static constexpr float DROP_JUMP_HEIGHT = 64.0f;   // a take-off up to this far above the bot still counts as its floor
+static constexpr float DROP_THROUGH     = 32.0f;   // aim this far past the take-off until the bot is past it
+static constexpr float DROP_HERE_CELLS  = 12.0f;
+static constexpr int   DROP_MS          = 2500;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
 {
@@ -122,6 +127,29 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
     return true;
 }
 
+// The nearest route cell on p's floor (within 48 u of its height) up to maxDist away horizontally, -1 if none.
+static int NearestOnFloor(const MapPrior& m, const Vec3& p, float maxDist)
+{
+    const int here = m.CellAt(p);
+    if (here >= 0) {
+        return here;
+    }
+    int   best = -1;
+    float bd   = maxDist * maxDist;
+    for (int c = 0; c < m.NumCells(); c++) {
+        if (std::fabs(m.cells[c].z - p.z) >= 48.0f) {
+            continue;
+        }
+        const Vec3  d  = m.cells[c].center - p;
+        const float d2 = d.x * d.x + d.y * d.y;
+        if (d2 < bd) {
+            bd   = d2;
+            best = c;
+        }
+    }
+    return best;
+}
+
 // dm/mohdm6's people run off the spawn buildings' upper floors into the street, falls of 400-650 u that the engine's
 // paths (at most 400 u) never take: the bots walked the stairs down to a ledge with no way on and spent 29% of their time
 // there (people 0.6%). Only a map whose file lists drops has any (fit_maps.py DROP_MAPS): the owner (2026-10-25), it is a
@@ -131,9 +159,15 @@ const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target)
     if (!m_map || m_map->drops.empty()) {
         return nullptr;
     }
-    const int here = RouteFrom(self, target, VIA_HERE_CELLS);
-    if (here < 0) {
+    // from the bot's own floor only: a cell on another floor within reach would put the fall's take-off elsewhere
+    const int here = NearestOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize);
+    const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
+    if (here < 0 || goal < 0 || here == goal) {
         return nullptr;
+    }
+    if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells())) {
+        m_map->PathTreeTo(goal, m_next, m_dist);
+        m_treeTarget = goal;
     }
     const float within = m_p && m_p->viaDist > 0.0f ? m_p->viaDist : 384.0f;
     int         c      = here;
@@ -360,9 +394,15 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         m_dropIdx = -1;
         drop      = DropAhead(self, out.target);
         if (drop) {
-            const Vec3 d = drop->takeoff - self.origin;
-            if (d.lengthXY() < DROP_REACH && std::fabs(d.z) < 48.0f) {
+            const Vec3  d       = drop->takeoff - self.origin;
+            // on the take-off's floor, a jump below it (dm/mohdm6's sills and railings), or on the floor of the cell
+            // people jumped onto it from
+            const bool  floorOk = (d.z > -48.0f && d.z < DROP_JUMP_HEIGHT) || std::fabs(m_map->cells[drop->from].z - self.origin.z) < 48.0f;
+            if (d.lengthXY() < DROP_REACH && floorOk) {
                 out.direct    = true;
+                // a take-off above a step: jump onto it (the bots stood under a 48 u sill on the south-west building's
+                // top floor 18% of their time when only drops flagged `jump` got one)
+                out.jump      = self.onGround && d.z > 18.0f && d.lengthXY() < DROP_JUMP_REACH;
                 m_dropIdx     = static_cast<int>(drop - m_map->drops.data());
                 m_dropUntilMs = now + DROP_MS;
             }
@@ -374,7 +414,16 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     }
     float routeYaw = 0.0f;
     if (out.direct) {
-        out.desiredYaw = YawOf(out.via - self.origin);
+        // through the take-off, then at the landing: from beside a window the straight line to the landing ran into the
+        // wall next to it (dm/mohdm6's south-west top floor, 14-17% of the bots' time)
+        const MapDrop& d    = *drop;
+        Vec3           dir  = Vec3(d.landing.x - d.takeoff.x, d.landing.y - d.takeoff.y, 0.0f);
+        const float    ldir = dir.lengthXY();
+        dir                 = ldir > 1.0f ? dir * (1.0f / ldir) : Vec3(0.0f, 0.0f, 0.0f);
+        const float along   = (self.origin.x - d.takeoff.x) * dir.x + (self.origin.y - d.takeoff.y) * dir.y;
+        const bool  falling = self.origin.z < d.takeoff.z - 16.0f && !self.onGround;
+        const Vec3  aim     = along < 0.0f && !falling ? d.takeoff + dir * DROP_THROUGH : d.landing;
+        out.desiredYaw      = YawOf(aim - self.origin);
     } else if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;
     } else if (RouteYaw(self, out.target, routeYaw)) {

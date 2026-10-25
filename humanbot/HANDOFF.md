@@ -2358,10 +2358,47 @@ On dm/mohdm6 (`std2_*`, seeds 201-208 and 401-408; the two seed sets agree withi
 | Falls over 300 u a minute | 3.0 | 0.7 | 0.4 | 0.05 |
 | Time on squares people never used | 0% | 16% | 12% | 23% |
 
-Kills and hits nearly double again, but the bots are still a floor away from the enemy 41% of the time and fall a
-quarter as often as people; a tenth of their time is still on the ledge. Next candidates there: the 2D checks in
-`Navigator::Step` (`reached` and the urgency cut use `lengthXY`, so a goal on another floor right overhead counts as
-reached), and the way onto the ledge.
+Kills and hits nearly double again, but the bots were still a floor away from the enemy 41% of the time.
+
+**A floor apart, second round** (the owner: "keep fixing the bots being a floor away from the enemy on Stalingrad").
+The 2D checks were not it (a goal within 48 u counted as reached 2% of that time). Where it was:
+- *The ledge* (z 48 under the north-west building, x -1083 to -207): bots fell onto it from the floor above and then
+  stayed for minutes (5 arrivals held 11% of one seed set's time). People never step down from it: they jump onto its
+  south railing (z 100) or walk up the rubble onto it, and step off the railing into the street. The take-off on the
+  railing is too brief to be a cell, and the other person's falls broke into pieces in the duel rows (the enemy dead
+  mid-fall). `fit_drops` now finds falls on every living row, ties a take-off that is not a cell to the cell within
+  96 u it climbed from, keeps a fall when 3 falls from 2 sources lie within 96 u of its take-off, and marks a take-off
+  more than 24 u above its cell (`jump`, the drops' 10th field): 30 drops, 6 marked. The bot looks for a fall from cells
+  on its own floor up to 384 u away (the ledge is mostly off people's cells), aims through the take-off before turning
+  at the landing (from beside a window the straight line to the landing ran into the wall), and jumps when the take-off
+  is more than 18 u above it within 48 u. Ledge time 10% -> 1.5-2.1% (people 0.7%).
+- *The south-west building's top floor* (z 496, x -1300 to -700): the refit added a fall from its sill (z 548) that people
+  jump onto; the bots stood under it, jumping from against it nearly still, and made it one time in four (18% of their
+  time). A run-up (back off, jump from 72 u at 120 u/s) made it worse (20-23%) and was dropped. Now a move up more than
+  24 u costs 1000 u in the routes on a map with drops (`MapPrior::JumpCost`), so the routes take the stairs where there
+  are any and the jump only off the ledge: 10-12% (people 0.6%; bots spawn there in 10-11% of lives, people 4.5%).
+- Smaller: the south building's upper floor (x -700 to 200, y -1200 to -700, z 150-400), 2-4% of the bots' time, people
+  never; bots spawn there (one of the engine's spawns people hardly drew), and people's cells give no route out.
+
+dm/mohdm6, `std7_*` (the committed build) against the build before this round (`std2_*`) and people:
+
+| | People | Now | Before this round |
+|---|---:|---:|---:|
+| Kills a minute | 3.6 | 1.48-1.52 | 1.2 |
+| Hits a minute | 21.6 | 7.7 | 6.1 |
+| Centroid sight starts a minute | 31 | 10.5 | 8.7 |
+| A floor apart, hidden, within 500 u | 2.7% | 27-31% | 41% |
+| Both on the street | 47% | 19-21% | 19% |
+| On the west ledge | 0.7% | 1.5-2.1% | 9.7% |
+| South-west top floor | 0.6% | 10-12% | 1% (18% with the refit's falls alone) |
+| Falls over 300 u a minute | 3.0 | 0.95 | 0.7 |
+
+dm/brownffa + dm/flag (`bfd7_201` against `bh10_201`): sightings 16.0 vs 16.1 a minute, kills 5.22 vs 5.23, first
+press 50/100/150 ms both; the six other map files are byte for byte unchanged. Captures `std3`-`std7`, `bfd3`-`bfd7`,
+scripts `s24/floors.py`, `dropdiag.py`.
+
+Next: the south-west top floor (people jump onto the sill with a run-up or take the inside stairs at x -975 south; the
+bots do neither well), and the south building's upper floor.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

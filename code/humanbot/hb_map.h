@@ -65,6 +65,7 @@ struct MapDrop {
     Vec3  takeoff;              // where people left the ground (median)
     Vec3  landing;              // where they landed (median)
     float count = 0.0f;
+    bool  jump  = false;        // the take-off is above the cell's floor: people jump onto it (dm/mohdm6's ledge railing)
 };
 
 class MapPrior
@@ -94,6 +95,7 @@ public:
     void AddCellIndex();                          // (re)build the (ix, iy) -> cells lookup
     void BuildRouteGraph();                       // symmetrise the kernel into rStart/rTo/rLen (plus the drops, one way)
     int  DropIndex(int from, int to) const;       // the drop from cell `from` to cell `to`, -1 if none
+    float JumpCost(int from, int to) const;       // extra route length of a move up more than a step (maps with drops)
     int  NumCells() const { return static_cast<int>(cells.size()); }
 
     int  CellAt(const Vec3& p) const;             // cell containing p (nearest level), -1 if none

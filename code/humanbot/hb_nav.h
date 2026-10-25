@@ -60,6 +60,7 @@ struct NavOutput {
     bool  viaValid   = false;  // the engine's path goes to `via`, a point along the way people go (NavModel::viaDist)
     Vec3  via;
     bool  direct     = false;  // run straight at `via`, no engine path: over a fall people take (MapPrior::drops)
+    bool  jump       = false;  // jump now: onto the take-off of such a fall (MapDrop::jump)
 };
 
 class Navigator
