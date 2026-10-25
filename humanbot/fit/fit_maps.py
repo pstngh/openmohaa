@@ -256,6 +256,8 @@ def fit_map(F, mp):
         "hidden_move_speed": round(float(D[D.line_of_sight.eq(0) & D.speed_xy.gt(20)].speed_xy.median()), 1),
         "source": {"sessions": int(D.session_id.nunique()), "rows": int(len(D))},
     }
+    if mp in FULL_MAPS:
+        R["whole_map"] = True   # the bots hold no angle off people's ground there (hb_nav.cpp)
     if mp in DROP_MAPS:
         A = F[F["map"].eq(mp) & F.normal_physics].copy()
         A["src"] = A.session_id + ":" + A.client_id.astype(str)

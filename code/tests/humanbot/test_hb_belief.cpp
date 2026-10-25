@@ -728,6 +728,74 @@ static void TestStalingradDrops(const hb::ModelBundle& b)
         }
     }
     HB_CHECK(sills > 0);
+    // a fall whose take-off people reach by a jump up from the floor below (the south-west building's 52 u sill): from that
+    // floor the bot neither runs at the fall nor sends the engine up the jump; the engine's own path goes to the target
+    int climbs = 0;
+    for (const hb::MapDrop& d : m.drops) {
+        for (int c = 0; c < m.NumCells(); c++) {
+            bool edge = false;
+            for (int k = m.rStart[c]; k < m.rStart[c + 1]; k++) {
+                edge = edge || (m.rTo[k] == d.from && m.JumpUp(c, d.from));
+            }
+            if (!edge) {
+                continue;
+            }
+            // only where the route toward the landing really starts with that jump up
+            std::vector<int>   next;
+            std::vector<float> dist;
+            const int          goal = m.NearestCell(d.landing, 4.0f * m.cellSize);
+            if (goal < 0) {
+                continue;
+            }
+            m.PathTreeTo(goal, next, dist);
+            if (next[c] != d.from) {
+                continue;
+            }
+            climbs++;
+            hb::SelfState s = self;
+            s.origin        = m.cells[c].center;
+            s.eye           = s.origin + hb::Vec3(0, 0, 82);
+            s.onGround      = true;
+            hb::BeliefEstimate bj = be;
+            bj.mode               = d.landing;
+            hb::NavInput ij       = in;
+            ij.focus              = &bj;
+            hb::Navigator nav;
+            nav.Init(&np, &m);
+            hb::Rng       r(13);
+            hb::NavOutput out;
+            nav.Step(s, ij, r, out);
+            HB_CHECK(!out.direct && !out.jump);
+            HB_CHECK(!out.viaValid || out.via.z <= m.cells[c].z + 24.0f);
+        }
+    }
+    HB_REPORT("climbs to a fall's take-off: %d", climbs);
+    HB_CHECK(climbs > 0);
+    // dm/mohdm6 is recorded whole: off people's ground (the south building's upper floor) the bot never starts a hold;
+    // on a cell people stood in it does
+    HB_CHECK(m.wholeMap);
+    for (const bool onCell : {false, true}) {
+        hb::SelfState s = self;
+        s.origin        = onCell ? m.cells[0].center : hb::Vec3(-400.0f, -730.0f, 272.0f);
+        HB_CHECK((m.CellAt(s.origin) >= 0) == onCell);
+        s.eye = s.origin + hb::Vec3(0, 0, 82);
+        hb::BeliefEstimate bh = be;
+        bh.mode               = s.origin + hb::Vec3(900.0f, 0.0f, 0.0f);
+        hb::NavInput ih;
+        ih.focus = &bh;
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng r(17);
+        int     holds = 0;
+        for (int k = 0; k < 4000; k++) {
+            s.timeMs = 50 * k;
+            hb::NavOutput out;
+            nav.Step(s, ih, r, out);
+            holds += out.intent == hb::INTENT_HOLD;
+        }
+        HB_REPORT("whole map, %s people's ground: %d hold ticks in 4000", onCell ? "on" : "off", holds);
+        HB_CHECK(onCell ? holds > 0 : holds == 0);
+    }
     for (const bool withDrops : {true, false}) {
         if (!withDrops) {
             m.drops.clear();

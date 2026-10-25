@@ -2397,8 +2397,33 @@ dm/brownffa + dm/flag (`bfd7_201` against `bh10_201`): sightings 16.0 vs 16.1 a 
 press 50/100/150 ms both; the six other map files are byte for byte unchanged. Captures `std3`-`std7`, `bfd3`-`bfd7`,
 scripts `s24/floors.py`, `dropdiag.py`.
 
-Next: the south-west top floor (people jump onto the sill with a run-up or take the inside stairs at x -975 south; the
-bots do neither well), and the south building's upper floor.
+**The south-west top floor, third round** (the owner: "Keep fixing Stalingrad: the south-west building's top floor
+next"). People left it 11 times of 13 by the sill jump; the inside stairs at x -975 hardly appear in their moves, so the
+cell route's only way out was still the sill. Now, on a map with drops, a jump up on the route ahead sends the engine's
+own path to the target (`Navigator::Via` returns no via point, `DropAhead` stops there): the bots take the stairs. Top
+floor 10-12% -> 1.3-1.6% (stays 3.8 s median, people 2.6 s). The stairs lead east along the south building's upper
+floor (z 272, people passed there once, about 7 s), where the bots then held still 43% of their stay with the enemy in
+the street. A map recorded whole (`whole_map`, written for `FULL_MAPS` only) gets no hold off people's ground
+(`Navigator::Step`): the south building's upper floor and the corridor 13.6% -> 10-12%.
+
+dm/mohdm6, `std9_*` against `std7_*` (`145a7da6`):
+
+| | People | Now | 145a7da6 |
+|---|---:|---:|---:|
+| Kills a minute | 3.6 | 1.9-2.1 | 1.5 |
+| Hits a minute | 21.6 | 9.7-10.6 | 7.7 |
+| Centroid sight starts a minute | 31 | 12.7-13.8 | 10.5 |
+| A floor apart, hidden, within 500 u | 2.7% | 27-32% | 27-31% |
+| Both on the street | 47% | 23-26% | 19-21% |
+| South-west top floor | 0.6% | 1.4-1.6% | 10-12% |
+| South building's upper floor and corridor | (one pass) | 10-12% | 7% |
+| Still with the enemy hidden | 24% | 7% | 12% |
+
+dm/brownffa + dm/flag (`bfd9_201` against `bh10_201`): sightings 16.2 vs 16.1, kills 5.32 vs 5.23, first press
+50/100/150 ms; the six other map files byte for byte unchanged.
+
+Next: the south building's upper floor (people go along it and down at its east end in about 7 s; the bots take 8 s
+median, 34 s at p90); the bots hold too little with the enemy hidden now (7% still against people's 24%).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

@@ -176,6 +176,7 @@ static void TestMaps()
         HB_REPORT("%s: %d cells, %d reach the busiest cell, %d drops", name.c_str(), m.NumCells(), reach, static_cast<int>(m.drops.size()));
         HB_CHECK(reach > m.NumCells() * 0.8);
         // only dm/mohdm6 lists the falls people take (a Stalingrad habit, the owner 2026-10-25), each a one-way route edge
+        HB_CHECK(m.wholeMap == (name == "maps/dm_mohdm6.json"));
         if (name == "maps/dm_mohdm6.json") {
             HB_CHECK(m.drops.size() >= 5);
             for (const hb::MapDrop& d : m.drops) {

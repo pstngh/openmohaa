@@ -123,6 +123,15 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
         m_viaCell = c;
         m_viaTree = m_treeTarget;
     }
+    // a jump up on the way (a map with drops: dm/mohdm6): the engine's own path goes to the target instead. People leave
+    // the south-west building's top floor by jumping onto a 52 u sill; the bots missed that jump three times in four and
+    // stood under it 10-12% of their time, where the engine's path takes the inside stairs.
+    for (int k = here, step = 0; k != m_viaCell && k >= 0 && step < 1024; k = m_next[k], step++) {
+        if (m_next[k] >= 0 && m_map->JumpUp(k, m_next[k])) {
+            m_viaCell = -1;
+            return false;
+        }
+    }
     via = m_map->cells[m_viaCell].center;
     return true;
 }
@@ -172,6 +181,9 @@ const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target)
     const float within = m_p && m_p->viaDist > 0.0f ? m_p->viaDist : 384.0f;
     int         c      = here;
     for (int step = 0; step < 64 && m_next[c] >= 0 && m_dist[here] - m_dist[c] <= within; step++) {
+        if (m_map->JumpUp(c, m_next[c])) {
+            return nullptr;   // a jump up first: the engine's own path (Via)
+        }
         const int k = m_map->DropIndex(c, m_next[c]);
         if (k >= 0) {
             return &m_map->drops[k];
@@ -359,6 +371,10 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
             const int c = m_map->CellAt(self.origin);
             if (c >= 0) {
                 hz *= 0.5f + 2.0f * m_map->cells[c].still;
+            } else if (m_map->wholeMap) {
+                // on a map recorded whole a place no person stood is no place to hold: on dm/mohdm6's south building's
+                // upper floor, where people only pass, the bots held 43% of their time with the enemy in the street
+                hz = 0.0f;
             }
         }
         if (uHold < hz) {

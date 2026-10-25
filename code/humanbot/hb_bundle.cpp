@@ -1045,6 +1045,10 @@ bool LoadMapPrior(const std::string& text, const std::string& overrideText, MapP
             }
         }
         m.hiddenMoveSpeed = NumOr(j, "hidden_move_speed", m.hiddenMoveSpeed);
+        if (j.contains("whole_map")) {
+            Require(j.at("whole_map").is_boolean(), "map.whole_map must be true or false");
+            m.wholeMap = j.at("whole_map").get<bool>();
+        }
         m.AddCellIndex();
         m.BuildRouteGraph();
         if (j.contains("los")) {

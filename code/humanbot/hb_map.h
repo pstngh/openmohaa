@@ -75,6 +75,7 @@ public:
     int32_t                checksum  = 0;
     float                  cellSize  = 32.0f;
     bool                   fromNavmesh = false;
+    bool                   wholeMap    = false;   // recorded whole in 1v1 (fit_maps.py FULL_MAPS: dm/mohdm6)
     std::vector<MapCell>   cells;
     std::vector<MapSpawn>  spawns;
     std::vector<MapDrop>   drops;
@@ -96,6 +97,7 @@ public:
     void BuildRouteGraph();                       // symmetrise the kernel into rStart/rTo/rLen (plus the drops, one way)
     int  DropIndex(int from, int to) const;       // the drop from cell `from` to cell `to`, -1 if none
     float JumpCost(int from, int to) const;       // extra route length of a move up more than a step (maps with drops)
+    bool  JumpUp(int from, int to) const;         // a move up more than a step, on a map with drops
     int  NumCells() const { return static_cast<int>(cells.size()); }
 
     int  CellAt(const Vec3& p) const;             // cell containing p (nearest level), -1 if none

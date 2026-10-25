@@ -85,9 +85,14 @@ bool MapPrior::Column(int ix, int iy, const int *&b, const int *&e) const
 static constexpr float JUMP_UP_STEP = 24.0f;
 static constexpr float JUMP_UP_COST = 1000.0f;
 
+bool MapPrior::JumpUp(int from, int to) const
+{
+    return !drops.empty() && cells[to].z > cells[from].z + JUMP_UP_STEP;
+}
+
 float MapPrior::JumpCost(int from, int to) const
 {
-    return !drops.empty() && cells[to].z > cells[from].z + JUMP_UP_STEP ? JUMP_UP_COST : 0.0f;
+    return JumpUp(from, to) ? JUMP_UP_COST : 0.0f;
 }
 
 void MapPrior::BuildRouteGraph()
