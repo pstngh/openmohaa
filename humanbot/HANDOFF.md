@@ -106,11 +106,14 @@ The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very go
 of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
 for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
 git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
-`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `78b5af52` since 2026-10-25 03:44
-UTC (holding a doorway; model `4cb774a0604f`; `humanbot_selftest` PASS on dm/crnodoors and dm/flag; left on dm/flag with
-one bot). Before it `a8c4b54a` (no jump without a reason, model `6a9e57811b2f`), kept as `game.so.prev-a8c4b54a`, its
-service file as `/root/openmohaa-humanbot2.service.a8c4b54a`, its home as `/root/moh-humanbot2-home-a8c4b54a.tar.gz`;
-a full copy with restore steps is on the workstation in `/home/plex/openmohaa-bots-12404-backup/`.
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `62d73e13` since 2026-10-25 22:32
+UTC (Stalingrad's map knowledge, see "Stalingrad's map knowledge"; bundle `a929b5b8c1ed`: the motor model of
+`4cb774a0604f` with the Stalingrad map file, which the bundle id hashes too; `humanbot_selftest` PASS on dm/mohdm6 over
+300 s; `livecheck.cfg` now starts it on dm/mohdm6, one bot). Before it `78b5af52` (holding a doorway, model
+`4cb774a0604f`), kept as `game.so.prev-78b5af52`, `/root/openmohaa-humanbot2.service.78b5af52` and
+`/root/moh-humanbot2-home-78b5af52.tar.gz` (its `livecheck.cfg` starts on dm/crnodoors), and `a8c4b54a` (no jump
+without a reason, model `6a9e57811b2f`), kept the same way with `a8c4b54a`; full copies with restore steps, one folder
+per build, are on the workstation in `/home/plex/openmohaa-bots-12404-backup/`.
 
 ## The task now: the test server
 
@@ -2472,6 +2475,18 @@ still too little"). The code stays at `62d73e13`.
 
 Next on Stalingrad: the main sill window's jump line; waiting the way people do (it needs the bots to give up their
 hunch at times, a tactics question).
+
+**On 12404** (the owner: "Deploy 62d73e13 to 12404 so I can play against it on Stalingrad"): since 2026-10-25 22:32 UTC,
+see the VPS paragraph. A 90 s `humanbot_selftest` failed on wall pressure (3 bouts, 1.00 a bot-minute against a limit
+below 1); over 300 s it passed with none. One thing the bot games before did not count: **deaths by falling** (the
+telemetry rarely keeps the death tick, so they show only as air runs that end the life). Bot against bot on dm/mohdm6
+with the kill feed kept (300 s at timescale 10, seeds 201-202): `62d73e13` fell to death 38 times against 357 kills (1
+death in 10), `78b5af52` never (59 kills). Nearly all are one fall: off the west building's top (z 544, take-off squares
+x -832 to -768, y -128 to 0) to the street, about 690 u. A landing faster than 1000 u/s kills (`bg_pmove.cpp`; a free
+fall of 625 u). People take it 7 times in 90 minutes, from y -64 to 0 at a run (230 u/s), land at about 900 u/s, slower
+than a free fall, lose about 65 health, and 2 of the 7 ended dead; the bots walk off at 120-130 u/s, 60-120 u further
+south, land at about 1010 u/s and die 320 times in 322 (2.2 times per 10 bot-minutes; `move_wip/s24/falldmg2.py`). The
+south-west top floor's window fall (648 u) costs both 10 health (people land at 860 u/s, bots 900 u/s).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
