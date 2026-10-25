@@ -2451,8 +2451,27 @@ dm/mohdm6, `std10_*` against `std9_*` (`d4aeb450`):
 dm/brownffa + dm/flag (`bfd10_201` against `bh10_201`): sightings 16.3 vs 16.1, kills 5.36 vs 5.23, first press
 50/100/150 ms; the six other map files byte for byte unchanged.
 
-Next: the south-west top floor crept back to 5% (some sill jumps still miss), and the bots stand still with the enemy
-hidden 9% of the time against people's 24%.
+**Fifth round, tried and not kept** (the owner: "Keep fixing Stalingrad: the south-west top floor and the bots standing
+still too little"). The code stays at `62d73e13`.
+- *The south-west top floor (4.7-5.2%, people 0.6%).* The sill jumps land 72% of the time: 94% on the second window's
+  line, 22-43% on the main one (take-off at (-877, -20), 48 u from the sill), where jumping up to 24 u early put the bots
+  at the sill falling. Jumping within 8 u of the take-off and 16 u of the line changed nothing measurable (4.7-4.8%).
+  Under the sill `CellAt` (72 u of height) gave the sill's cell, so the route led the bot to the fall's take-off on the
+  sill, out of the engine's reach ("nodes 0" in a debug print); taking the cell only within 48 u of the bot's height
+  (`NearestOnFloor`) is right but measured 4.5% and slightly fewer kills (2.26-2.32 vs 2.36-2.41 a minute in both seed
+  sets), so it was left out. The long stays (55% of that time) are bots running about by the spawn at (-1100, -200)
+  on long engine paths (77-96 nodes) to street goals.
+- *Standing still (9% of hidden time, people 24%).* People wait at a few spots: 28 cells they stand still in more than
+  half the time, 250 u or more from the spawns, mostly in the central street (x 0-512, y -256 to 384, z -192); 11% of
+  their hidden time is spent there, still 86% of it, in waits of 2.8 s median (12 s at p90); and the longer they live the
+  more they wait (43% still after 20 s alive, bots 9% throughout). The bots chase their hunch and were at those spots 2%
+  of their hidden time. Tried: the spots in the map file with people's wait there (lognormal 4.8 s, sigma 1.1), a hunt goal
+  on a spot 35% of the time on a cold trail (unseen 3 s), kept until reached (12 s), and a wait there on arrival. The bots
+  reached the spot 3-6% of the time (holds and fights broke the trips off, 600-670 u short), stood still no more (10%),
+  and fought worse (kills 1.9-2.05 vs 2.4 a minute, a floor apart 22-29% vs 20%). Not kept.
+
+Next on Stalingrad: the main sill window's jump line; waiting the way people do (it needs the bots to give up their
+hunch at times, a tactics question).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
