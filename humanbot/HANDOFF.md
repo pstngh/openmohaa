@@ -2292,6 +2292,47 @@ people have is not there between bots.
 On the owner's word ("deploy to 12404. but backup current state so we can fully go back") it runs on 12404 since
 2026-10-25 03:44 UTC; the build before it is backed up (see the VPS paragraph near the top).
 
+## Stalingrad's map knowledge (2026-10-25)
+
+The owner wants bots on three maps only: dm/mohdm6 (Stalingrad), obj/obj_team2 (V2) and obj/obj_team4 (Bridge); the
+objective rounds on V2 and Bridge are parked. On 2026-10-25 the owner recorded a 1v1 with a friend on dm/mohdm6 (the
+owner's server, about 42 minutes together, SMGs, no bots), added to openmohaa-movement as training (`754721f`).
+`fit_maps.py` now also fits `FULL_MAPS` (dm/mohdm6: whole deathmatch maps recorded in 1v1, counted like the area maps)
+and takes map names on the command line; `humanbot/maps/dm_mohdm6.json` (831 cells, 3,208 moves, 12,280 seen cell
+pairs, 6 spawns, checksum 1974169620 from `pak6.pk3`) is embedded. Refitting every map reproduces the six others byte
+for byte; the motor model is unchanged (`4cb774a0604f`). The game loads it as a recorded prior (790 of the 831 cells on
+the navmesh) and traces its visibility in 0.4-1 s.
+
+Bot against bot on dm/mohdm6 (`78b5af52` with the file as an `HB_MAPS` override, `stw_*`, against the same build
+without it, the navmesh-derived map as before, `stn_*`; 8 servers, seeds 201-208 and 401-408, 300 s at timescale 10;
+people: the human 1v1 rows on dm/mohdm6, 71 player-minutes; `move_wip/s24/stal.py`):
+
+| | People | With the file | Without (before) |
+|---|---:|---:|---:|
+| Time on 64 u squares people never used | 0% | 12% | 23% |
+| Centroid sight starts a minute | 31 | 7.0-7.1 | 1.0-1.3 |
+| Kills a minute (both alive) | 3.6 | 0.69 | 0.15-0.19 |
+| Hits a minute | 21.6 | 3.4 | 0.8-0.9 |
+| Enemy in sight | 24% | 4% | 1% |
+| Both on the street level (z < -60) | 47% | 8% | 2-3% |
+| Hidden, within 500 u and a floor apart | 2.7% | 62% | 86% |
+
+The file makes the bots meet and kill four to six times as often, but they stay far from people, and the reason is
+floors. dm/mohdm6's spawns are upstairs in the buildings (most lives start at z 513 in the north-west building and at
+z 315 in the east one), and people come down to the street (z -152) at once: from the north-west building they jump
+from the upper floor (about (-790, 625, 310)) straight into the street at (-730, 543). The bots never take that drop.
+They walk down the inside stairs to a ledge at z 48 (x -1100 to -480, y 230 to 560) that has no walkable way down,
+and run about on it hunting an enemy who is in the street below: 29% of their time there (people 0.6%), visits of
+over 20 s hold 79% of it, the longest 187 s. Their belief of the hidden enemy is on the right floor 57% of that time
+and the route goal is there too, but neither the engine's path nor the cell route gets them down. Without the file the
+belief collapses onto the bot's own floor (85%) and the bots crowd the north buildings' upper floors and the street
+below them. Hidden travel stays two to three times as twitchy as people's (500-1000 u: forward let go 1.7 a second
+vs 0.5, strafe starts 3.3 vs 1.0), part of it the running about on the ledge. The 2D checks in `Navigator::Step`
+(`reached` and the urgency cut both use `lengthXY`) treat a goal on another floor right overhead as reached.
+
+Next: let the bots take the drops people take (a move between cells more than a floor apart in the recorded graph,
+which the engine's path does not follow), then measure again; the same is needed on V2 and Bridge, which have floors.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

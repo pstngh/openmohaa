@@ -126,7 +126,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 | `code/tests/pmove/` | `pm_harness`: the real `Pmove()` in a box world, as the server runs it. |
 | `humanbot/fit/` | Fitting scripts. They need the private recordings; `run_fits.sh` runs them all. `calibrate.py` does the closed-loop calibration. |
 | `humanbot/model/` | `shared.json`, the pooled model; `styles.json`, the anonymous style distribution; `calibration.json`, the dial curves; `tuning.json`, the calibrated pooled parameters. |
-| `humanbot/maps/` | Map priors of the practice maps (aggregate occupancy, routes, spawns): the four duel maps, and dm/brownffa and dm/flag (practice areas of obj/obj_team4 and V2 that hold the whole objective map; people play only the area). Other maps get a prior derived from the navmesh. |
+| `humanbot/maps/` | Map priors of the recorded maps (aggregate occupancy, routes, spawns): the four duel maps, dm/brownffa and dm/flag (practice areas of obj/obj_team4 and V2 that hold the whole objective map; people play only the area), and dm/mohdm6 (Stalingrad, recorded whole in 1v1). Other maps get a prior derived from the navmesh. |
 | `humanbot/eval/` | Evaluation: `compare.py`, `metrics.py`, `load_bot_captures.py`, `human_reference.json` (pooled human statistics with CIs). |
 | `humanbot/tools/` | `pack_capture.py`, bot-eval ZIPs; `check_no_raw_data.py`, the privacy guard; `embed_model.py`, which writes `hb_embedded.cpp`. |
 | `humanbot/server/` | `duel.cfg`, `soak.cfg`, `names.txt`. |

@@ -9,7 +9,9 @@ AREA_MAPS are practice maps of objective-map areas recorded outside the duel coh
 map is in them, and people play only the area. Their rows use the duel definitions
 without the map list (both people alive, normal physics: the data repo's practice_areas.py),
 and a cell or spawn needs MIN_SESSIONS player-sessions (two people, or one person in two
-sessions): dm/flag is one recorded session, dm/brownffa mostly one. The transition kernel counts moves between kept cells; its dependence on
+sessions): dm/flag is one recorded session, dm/brownffa mostly one. FULL_MAPS are whole deathmatch maps recorded in 1v1
+outside the practice list (dm/mohdm6, Stalingrad, one of the three maps the owner wants bots for): their rows and sources
+are counted the way AREA_MAPS' are. The transition kernel counts moves between kept cells; its dependence on
 where the enemy is (for belief prediction) is one coefficient per distance band:
 
   P(next = k | cell, enemy direction) ~ count(cell -> k) * exp(beta[band] * cos(dir(k) - dir(enemy)))
@@ -35,6 +37,7 @@ MIN_SESSIONS = 2
 KERNEL_DIST_EDGES = [0.0, 384.0, 768.0]
 MAPS = ["dm/crnodoors", "dm/main", "dm/vents", "dm/downladder"]
 AREA_MAPS = ["dm/brownffa", "dm/flag"]
+FULL_MAPS = ["dm/mohdm6"]
 
 
 def column_levels(ix, iy, z):
@@ -78,7 +81,7 @@ def nearest_level(levels, ix, iy, z):
 
 
 def fit_map(F, mp):
-    area = mp in AREA_MAPS
+    area = mp in AREA_MAPS or mp in FULL_MAPS
     D = F[F["map"].eq(mp) & (F.human_duel & F.normal_physics if area else F.eligible)].copy()
     # what a cell's sources count: sessions, or on an area map player-sessions
     D["src"] = D.session_id + ":" + D.client_id.astype(str) if area else D.session_id
@@ -194,7 +197,7 @@ def main():
     F["practice"] = F["map"].isin(MAPS)
     out_dir = H.HB_ROOT / "maps"
     out_dir.mkdir(parents=True, exist_ok=True)
-    for mp in MAPS + AREA_MAPS:
+    for mp in sys.argv[1:] or MAPS + AREA_MAPS + FULL_MAPS:
         R = fit_map(F, mp)
         p = out_dir / (mp.replace("/", "_") + ".json")
         p.write_text(json.dumps(H.jsonable(R), separators=(",", ":")))
