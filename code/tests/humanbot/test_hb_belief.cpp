@@ -624,6 +624,58 @@ static void TestViaPeoplesWay(const hb::ModelBundle& b)
     HB_CHECK(!out.viaValid);
 }
 
+// Stalingrad's falls (MapPrior::drops): people run off the spawn buildings' upper floors into the street, falls the
+// engine's paths never take. A bot at the take-off of the busiest one, going for the enemy believed at its landing, runs
+// straight at the landing without an engine path; with the drops left out it does not.
+static void TestStalingradDrops(const hb::ModelBundle& b)
+{
+    hb::MapPrior m;
+    std::string  err;
+    HB_CHECK(hb::LoadMapPrior(hb::EmbeddedText("maps/dm_mohdm6.json"), "", m, err));
+    HB_CHECK(!m.drops.empty());
+    if (m.drops.empty()) {
+        return;
+    }
+    const hb::MapDrop* busiest = &m.drops[0];
+    for (const hb::MapDrop& d : m.drops) {
+        busiest = d.count > busiest->count ? &d : busiest;
+    }
+    const hb::MapDrop drop = *busiest;
+    hb::NavModel      np   = b.shared.nav;
+    hb::SelfState     self;
+    self.alive  = true;
+    self.origin = drop.takeoff;
+    self.eye    = self.origin + hb::Vec3(0, 0, 82);
+    hb::BeliefEstimate be;
+    be.valid = true;
+    be.mode  = drop.landing;
+    hb::NavInput in;
+    in.focus     = &be;
+    in.outOfAmmo = true;   // a deterministic hunt for the believed position
+    for (const bool withDrops : {true, false}) {
+        if (!withDrops) {
+            m.drops.clear();
+            m.BuildRouteGraph();
+        }
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng       r(7);
+        hb::NavOutput out;
+        nav.Step(self, in, r, out);
+        const float yawToLanding = hb::YawOf(drop.landing - self.origin);
+        HB_REPORT("at the take-off (%.0f, %.0f, %.0f), drops %s: direct %d, via (%.0f, %.0f, %.0f), yaw %.0f (landing %.0f)",
+                  drop.takeoff.x, drop.takeoff.y, drop.takeoff.z, withDrops ? "on" : "off", out.direct, out.via.x, out.via.y,
+                  out.via.z, out.desiredYaw, yawToLanding);
+        if (withDrops) {
+            HB_CHECK(out.direct && out.viaValid);
+            HB_CHECK((out.via - drop.landing).length() < 1.0f);
+            HB_CHECK(std::fabs(hb::Wrap180(out.desiredYaw - yawToLanding)) < 1.0f);
+        } else {
+            HB_CHECK(!out.direct);
+        }
+    }
+}
+
 int main()
 {
     hb::ModelBundle b;
@@ -649,5 +701,6 @@ int main()
     TestLateAim(b, m);
     TestLowClipCover(b, m);
     TestViaPeoplesWay(b);
+    TestStalingradDrops(b);
     return hbtest::Finish("test_hb_belief");
 }

@@ -173,8 +173,23 @@ static void TestMaps()
         for (int c = 0; c < m.NumCells(); c++) {
             reach += dist[c] < 1e29f;
         }
-        HB_REPORT("%s: %d cells, %d reach the busiest cell", name.c_str(), m.NumCells(), reach);
+        HB_REPORT("%s: %d cells, %d reach the busiest cell, %d drops", name.c_str(), m.NumCells(), reach, static_cast<int>(m.drops.size()));
         HB_CHECK(reach > m.NumCells() * 0.8);
+        // only dm/mohdm6 lists the falls people take (a Stalingrad habit, the owner 2026-10-25), each a one-way route edge
+        if (name == "maps/dm_mohdm6.json") {
+            HB_CHECK(m.drops.size() >= 5);
+            for (const hb::MapDrop& d : m.drops) {
+                HB_CHECK(d.takeoff.z - d.landing.z > 96.0f);
+                HB_CHECK(m.DropIndex(d.from, d.to) >= 0);
+                bool edge = false;
+                for (int k = m.rStart[d.from]; k < m.rStart[d.from + 1]; k++) {
+                    edge = edge || m.rTo[k] == d.to;
+                }
+                HB_CHECK(edge);
+            }
+        } else {
+            HB_CHECK(m.drops.empty());
+        }
         // following next pointers strictly shortens the path
         for (int c = 0; c < m.NumCells(); c++) {
             if (next[c] >= 0) {

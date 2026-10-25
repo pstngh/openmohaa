@@ -2330,8 +2330,38 @@ below them. Hidden travel stays two to three times as twitchy as people's (500-1
 vs 0.5, strafe starts 3.3 vs 1.0), part of it the running about on the ledge. The 2D checks in `Navigator::Step`
 (`reached` and the urgency cut both use `lengthXY`) treat a goal on another floor right overhead as reached.
 
-Next: let the bots take the drops people take (a move between cells more than a floor apart in the recorded graph,
-which the engine's path does not follow), then measure again; the same is needed on V2 and Bridge, which have floors.
+**Stalingrad's falls.** The owner (2026-10-25): jumping down to the street is a Stalingrad habit, so the change must
+not touch other maps. `fit_maps.py` writes `drops` only for `DROP_MAPS` (dm/mohdm6): the falls people took (the last
+tick on the ground before an air run and the first after it, more than 96 u lower), one per take-off cell with its
+most common landing cell, kept from 3 falls by 2 sources: 14, nine from the north-west building's floors at z 496 and
+z 260, five from the east building's at z 320-358, all into the street (people fall 400-650 u there, running at 240
+u/s, jump pressed 1% of the time). `MapPrior::drops` (loader: optional `drops`) adds them to the route graph one way,
+as long as the ground they cover (counted by their height the stairs looked as short: from some take-offs the routes
+to the street used a fall 2% of the time; the first capture, `std_*`, had that and changed nothing). On the route
+within `via_dist` of a fall, `Navigator::Step` points the engine's path at the take-off; within 64 u of it, and while
+falling, the bot runs straight at the landing with no engine path (`NavOutput::direct`, `TickPlan::navDirect`;
+`g_humanbot_debug 1` prints "runs off"). Every other map's file has no drops, and the six are byte for byte what they
+were, so nothing changes there: `bfd2_*` on dm/brownffa + dm/flag against `bh10_*` (78b5af52) are within run noise
+(sightings 13.6-14.8 a minute both, kills 5.28/5.40 vs 5.23/5.36, hits a round 27.0% vs 26.7-27.0%, first press
+50/100/150 ms both).
+
+On dm/mohdm6 (`std2_*`, seeds 201-208 and 401-408; the two seed sets agree within 0.4 points on every row):
+
+| | People | Falls | Map file only | Before |
+|---|---:|---:|---:|---:|
+| Kills a minute | 3.6 | 1.2 | 0.69 | 0.17 |
+| Hits a minute | 21.6 | 6.1 | 3.4 | 0.9 |
+| Centroid sight starts a minute | 31 | 8.7 | 7.0 | 1.1 |
+| On the west ledge | 0.7% | 9.7% | 23% | 1.4% |
+| Hidden, within 500 u and a floor apart | 2.7% | 41% | 61% | 84% |
+| Both on the street | 47% | 19% | 8% | 2% |
+| Falls over 300 u a minute | 3.0 | 0.7 | 0.4 | 0.05 |
+| Time on squares people never used | 0% | 16% | 12% | 23% |
+
+Kills and hits nearly double again, but the bots are still a floor away from the enemy 41% of the time and fall a
+quarter as often as people; a tenth of their time is still on the ledge. Next candidates there: the 2D checks in
+`Navigator::Step` (`reached` and the urgency cut use `lengthXY`, so a goal on another floor right overhead counts as
+reached), and the way onto the ledge.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

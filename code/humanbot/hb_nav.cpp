@@ -32,6 +32,10 @@ namespace hb
 static constexpr int ENGAGE_MEMORY_MS = 1000;
 // A bot this many cells off the cells people stood in still takes its way from the nearest of them.
 static constexpr float VIA_HERE_CELLS = 3.0f;
+// A fall people take (MapPrior::drops): the bot runs straight at the landing from this close to the take-off, and keeps
+// at it while falling for at most DROP_MS.
+static constexpr float DROP_REACH = 64.0f;
+static constexpr int   DROP_MS    = 2500;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
 {
@@ -45,6 +49,7 @@ void Navigator::SetMap(const MapPrior *map)
     m_map        = map;
     m_treeTarget = -1;
     m_viaCell    = -1;
+    m_dropIdx    = -1;
     Reset();
 }
 
@@ -117,6 +122,31 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
     return true;
 }
 
+// dm/mohdm6's people run off the spawn buildings' upper floors into the street, falls of 400-650 u that the engine's
+// paths (at most 400 u) never take: the bots walked the stairs down to a ledge with no way on and spent 29% of their time
+// there (people 0.6%). Only a map whose file lists drops has any (fit_maps.py DROP_MAPS): the owner (2026-10-25), it is a
+// Stalingrad habit and must not touch other maps.
+const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target)
+{
+    if (!m_map || m_map->drops.empty()) {
+        return nullptr;
+    }
+    const int here = RouteFrom(self, target, VIA_HERE_CELLS);
+    if (here < 0) {
+        return nullptr;
+    }
+    const float within = m_p && m_p->viaDist > 0.0f ? m_p->viaDist : 384.0f;
+    int         c      = here;
+    for (int step = 0; step < 64 && m_next[c] >= 0 && m_dist[here] - m_dist[c] <= within; step++) {
+        const int k = m_map->DropIndex(c, m_next[c]);
+        if (k >= 0) {
+            return &m_map->drops[k];
+        }
+        c = m_next[c];
+    }
+    return nullptr;
+}
+
 bool Navigator::PointAhead(const SelfState& self, float dist, Vec3& out)
 {
     if (!m_targetValid) {
@@ -172,6 +202,7 @@ void Navigator::Reset()
     m_goalUntilMs = 0;
     m_goalValid   = false;
     m_targetValid = false;
+    m_dropIdx     = -1;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
@@ -318,8 +349,33 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     m_target      = out.target;
     m_targetValid = true;
     out.viaValid  = Via(self, out.target, out.via);
+    // a fall people take on the way: the engine's path goes to the take-off, and from there (and while falling) the bot
+    // runs straight at the landing
+    const MapDrop *drop = nullptr;
+    if (m_map && m_dropIdx >= 0 && m_dropIdx < static_cast<int>(m_map->drops.size()) && now < m_dropUntilMs
+        && self.origin.z < m_map->drops[m_dropIdx].takeoff.z - 16.0f && self.origin.z > m_map->drops[m_dropIdx].landing.z + 32.0f) {
+        drop       = &m_map->drops[m_dropIdx];
+        out.direct = true;
+    } else {
+        m_dropIdx = -1;
+        drop      = DropAhead(self, out.target);
+        if (drop) {
+            const Vec3 d = drop->takeoff - self.origin;
+            if (d.lengthXY() < DROP_REACH && std::fabs(d.z) < 48.0f) {
+                out.direct    = true;
+                m_dropIdx     = static_cast<int>(drop - m_map->drops.data());
+                m_dropUntilMs = now + DROP_MS;
+            }
+        }
+    }
+    if (drop) {
+        out.via      = out.direct ? drop->landing : drop->takeoff;
+        out.viaValid = true;
+    }
     float routeYaw = 0.0f;
-    if (self.navSteerValid) {
+    if (out.direct) {
+        out.desiredYaw = YawOf(out.via - self.origin);
+    } else if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;
     } else if (RouteYaw(self, out.target, routeYaw)) {
         out.desiredYaw = routeYaw;

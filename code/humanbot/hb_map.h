@@ -57,6 +57,16 @@ struct MapSpawn {
     float count = 1.0f;
 };
 
+// A fall people took on a recorded map ("drops", only maps whose file lists them: dm/mohdm6): from the take-off cell
+// over an edge the engine's paths do not take (a fall higher than they allow) to the landing cell.
+struct MapDrop {
+    int   from  = -1;
+    int   to    = -1;
+    Vec3  takeoff;              // where people left the ground (median)
+    Vec3  landing;              // where they landed (median)
+    float count = 0.0f;
+};
+
 class MapPrior
 {
 public:
@@ -66,6 +76,7 @@ public:
     bool                   fromNavmesh = false;
     std::vector<MapCell>   cells;
     std::vector<MapSpawn>  spawns;
+    std::vector<MapDrop>   drops;
     std::vector<float>     kernelDistEdges;
     std::vector<float>     kernelBeta;
     float                  hiddenMoveSpeed = 195.0f;
@@ -81,7 +92,8 @@ public:
     std::vector<float> rLen;
 
     void AddCellIndex();                          // (re)build the (ix, iy) -> cells lookup
-    void BuildRouteGraph();                       // symmetrise the kernel into rStart/rTo/rLen
+    void BuildRouteGraph();                       // symmetrise the kernel into rStart/rTo/rLen (plus the drops, one way)
+    int  DropIndex(int from, int to) const;       // the drop from cell `from` to cell `to`, -1 if none
     int  NumCells() const { return static_cast<int>(cells.size()); }
 
     int  CellAt(const Vec3& p) const;             // cell containing p (nearest level), -1 if none

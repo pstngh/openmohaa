@@ -18,6 +18,11 @@ where the enemy is (for belief prediction) is one coefficient per distance band:
 
 LOS between cells is the fraction of duel ticks with centroid line of sight when the
 two players stood in those cells (unordered pair, >= 2 ticks).
+
+DROP_MAPS also get `drops`: the falls people took (the last tick on the ground before an air run and the first after,
+more than DROP_MIN lower), one per take-off cell with its most common landing cell. On dm/mohdm6 people run off the
+spawn buildings' upper floors into the street (falls of 400-650 u, past the engine paths' 400 u); the owner
+(2026-10-25): that is a Stalingrad habit and must not touch other maps, so only DROP_MAPS get them.
 """
 import json
 import sys
@@ -38,6 +43,8 @@ KERNEL_DIST_EDGES = [0.0, 384.0, 768.0]
 MAPS = ["dm/crnodoors", "dm/main", "dm/vents", "dm/downladder"]
 AREA_MAPS = ["dm/brownffa", "dm/flag"]
 FULL_MAPS = ["dm/mohdm6"]
+DROP_MAPS = ["dm/mohdm6"]
+DROP_MIN = 96.0
 
 
 def column_levels(ix, iy, z):
@@ -78,6 +85,38 @@ def nearest_level(levels, ix, iy, z):
         if abs(c - z) < bd:
             best, bd = lid, abs(c - z)
     return best
+
+
+def fit_drops(D):
+    """People's falls on the map's rows (sorted, cells set): one per take-off cell that MIN_SESSIONS sources fell from
+    at least 3 times, with its most common landing cell and the median take-off and landing points."""
+    key = D.groupby(["session_id", "client_id", "seg"], sort=False).ngroup().to_numpy()
+    ms, grd = D.session_ms.to_numpy(), D.on_ground.astype(bool).to_numpy()
+    z, cid, src = D.origin_z.to_numpy(), D.cid.to_numpy(), D.src.to_numpy()
+    xyz = D[["origin_x", "origin_y", "origin_z"]].to_numpy()
+    rows, i, n = [], 0, len(D)
+    while i < n - 1:
+        if grd[i] and not grd[i + 1] and key[i + 1] == key[i] and ms[i + 1] - ms[i] == 50:
+            j = i + 1
+            while j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and not grd[j]:
+                j += 1
+            if j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and grd[j] and z[j] - z[i] < -DROP_MIN \
+                    and cid[i] >= 0 and cid[j] >= 0:
+                rows.append((cid[i], cid[j], src[i], *xyz[i], *xyz[j]))
+            i = j
+        else:
+            i += 1
+    out = []
+    if not rows:
+        return out
+    R = pd.DataFrame(rows, columns=["a", "b", "src", "x0", "y0", "z0", "x1", "y1", "z1"])
+    for a, d in R.groupby("a"):
+        if len(d) < 3 or d.src.nunique() < MIN_SESSIONS:
+            continue
+        b = int(d.b.mode().iloc[0])
+        out.append([int(a), b, len(d)] + [round(float(v), 1) for v in d[["x0", "y0", "z0"]].median()]
+                   + [round(float(v), 1) for v in d[d.b.eq(b)][["x1", "y1", "z1"]].median()])
+    return out
 
 
 def fit_map(F, mp):
@@ -179,7 +218,7 @@ def fit_map(F, mp):
     los = pd.DataFrame({"a": lo, "b": hi, "v": P.line_of_sight.eq(1).astype(int)}).groupby(["a", "b"]).v.agg(["size", "sum"])
     los = los[los["size"] >= 2].reset_index()
     checksum = D.sv_mapchecksum.dropna()
-    return {
+    R = {
         "map": mp, "checksum": int(checksum.mode().iloc[0]) if len(checksum) else 0, "cell_size": CELL,
         "cells": {"ix": kept.ix.to_numpy(), "iy": kept.iy.to_numpy(), "z": cz.round(1),
                   "occ": occ.ravel(), "leave": leave.round(4), "still": still.round(4)},
@@ -190,6 +229,9 @@ def fit_map(F, mp):
         "hidden_move_speed": round(float(D[D.line_of_sight.eq(0) & D.speed_xy.gt(20)].speed_xy.median()), 1),
         "source": {"sessions": int(D.session_id.nunique()), "rows": int(len(D))},
     }
+    if mp in DROP_MAPS:
+        R["drops"] = fit_drops(D)
+    return R
 
 
 def main():
@@ -202,7 +244,7 @@ def main():
         p = out_dir / (mp.replace("/", "_") + ".json")
         p.write_text(json.dumps(H.jsonable(R), separators=(",", ":")))
         print(mp, "cells", len(R["cells"]["ix"]), "edges", len(R["edges"]["from"]), "los pairs", len(R["los"]["a"]),
-              "spawns", len(R["spawns"]), "beta", R["kernel"]["beta"], "speed", R["hidden_move_speed"],
+              "spawns", len(R["spawns"]), "drops", len(R.get("drops", [])), "beta", R["kernel"]["beta"], "speed", R["hidden_move_speed"],
               "checksum", R["checksum"], "bytes", p.stat().st_size)
 
 

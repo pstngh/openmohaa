@@ -82,8 +82,7 @@ void MapPrior::BuildRouteGraph()
 {
     const int n = NumCells();
     std::vector<std::vector<std::pair<int, float>>> adj(n);
-    auto add = [&](int a, int b) {
-        const float len = (cells[a].center - cells[b].center).length();
+    auto add = [&](int a, int b, float len) {
         for (const auto& e : adj[a]) {
             if (e.first == b) {
                 return;
@@ -97,11 +96,20 @@ void MapPrior::BuildRouteGraph()
             if (b < 0 || b >= n || b == a) {
                 continue;
             }
-            add(a, b);
+            const float len = (cells[a].center - cells[b].center).length();
+            add(a, b, len);
             // walkable both ways unless it is a drop (humans can fall, not climb)
             if (cells[b].z >= cells[a].z - 40.0f) {
-                add(b, a);
+                add(b, a, len);
             }
+        }
+    }
+    // the falls people took, one way: from the take-off cell to the landing cell, as long as the ground they cover (at
+    // least half a cell; a 650 u fall takes about a second: counted by its height the stairs looked as short, and from
+    // some take-offs the routes to the street used the fall 2% of the time)
+    for (const MapDrop& d : drops) {
+        if (d.from >= 0 && d.from < n && d.to >= 0 && d.to < n && d.from != d.to) {
+            add(d.from, d.to, std::max((cells[d.from].center - cells[d.to].center).lengthXY(), 0.5f * cellSize));
         }
     }
     rStart.assign(n + 1, 0);
@@ -133,6 +141,16 @@ void MapPrior::BuildRouteGraph()
         }
     }
     m_revStart[n] = static_cast<int>(m_revTo.size());
+}
+
+int MapPrior::DropIndex(int from, int to) const
+{
+    for (size_t i = 0; i < drops.size(); i++) {
+        if (drops[i].from == from && drops[i].to == to) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
 }
 
 int MapPrior::CellAt(const Vec3& p) const

@@ -59,6 +59,7 @@ struct NavOutput {
     float desiredYaw = 0.0f;   // world yaw to travel
     bool  viaValid   = false;  // the engine's path goes to `via`, a point along the way people go (NavModel::viaDist)
     Vec3  via;
+    bool  direct     = false;  // run straight at `via`, no engine path: over a fall people take (MapPrior::drops)
 };
 
 class Navigator
@@ -85,6 +86,8 @@ private:
     int  RouteFrom(const SelfState& self, const Vec3& target, float hereCells = 2.0f);
     // The point the engine's path goes to: viaDist along the route people take toward target (false: the target itself).
     bool Via(const SelfState& self, const Vec3& target, Vec3& via);
+    // The fall people took on the route toward target within viaDist of here (maps whose file lists drops), or null.
+    const MapDrop *DropAhead(const SelfState& self, const Vec3& target);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -102,6 +105,9 @@ private:
     // the via point's cell and the tree it was taken on
     int                m_viaCell    = -1;
     int                m_viaTree    = -1;
+    // the fall being taken: kept until the bot is down or the time is up
+    int                m_dropIdx     = -1;
+    int                m_dropUntilMs = 0;
 };
 
 } // namespace hb

@@ -242,6 +242,7 @@ private:
     float    m_pathLen     = 0.0f;
     int      m_nCorners    = 0;   // the straightened path's next corners (the view leads along them)
     bool     m_doorValid   = false;   // a closed door across the way ahead (DoorAhead)
+    bool     m_directOn    = false;   // running straight off a fall people take (TickPlan::navDirect)
     Vector   m_door;
     Vector   m_corners[hb::MAX_NAV_CORNERS];
 
@@ -572,6 +573,19 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::Se
         m_steerValid = false;
         return;
     }
+    if (plan.navDirect) {
+        // over a fall people take (hb::Navigator, dm/mohdm6): no path, the brain runs straight at the landing
+        if (!m_directOn && g_humanbot_debug && g_humanbot_debug->integer) {
+            gi.Printf("humanbot: %s runs off at (%.0f %.0f %.0f) for (%.0f %.0f %.0f)\n", p->client ? p->client->pers.netname : "?",
+                      p->origin.x, p->origin.y, p->origin.z, plan.navVia.x, plan.navVia.y, plan.navVia.z);
+        }
+        m_directOn   = true;
+        m_steerValid = false;
+        m_nCorners   = 0;
+        m_doorValid  = false;
+        return;
+    }
+    m_directOn = false;
     const Vector goal(plan.navTarget.x, plan.navTarget.y, plan.navTarget.z);
     // the path goes to the brain's point along the way people go when it gives one (hb::Navigator::Via)
     const Vector pathTo = plan.navViaValid ? Vector(plan.navVia.x, plan.navVia.y, plan.navVia.z) : goal;
