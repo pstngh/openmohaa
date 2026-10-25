@@ -106,8 +106,11 @@ The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very go
 of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
 for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
 git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
-`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `a8c4b54a` since 2026-10-25 00:37
-UTC (no jump without a reason; model `6a9e57811b2f`).
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `78b5af52` since 2026-10-25 03:44
+UTC (holding a doorway; model `4cb774a0604f`; `humanbot_selftest` PASS on dm/crnodoors and dm/flag; left on dm/flag with
+one bot). Before it `a8c4b54a` (no jump without a reason, model `6a9e57811b2f`), kept as `game.so.prev-a8c4b54a`, its
+service file as `/root/openmohaa-humanbot2.service.a8c4b54a`, its home as `/root/moh-humanbot2-home-a8c4b54a.tar.gz`;
+a full copy with restore steps is on the workstation in `/home/plex/openmohaa-bots-12404-backup/`.
 
 ## The task now: the test server
 
@@ -2214,7 +2217,7 @@ The "fight" jumps fall by a third for the reason the fight crouches fell with th
 part of the enemy on screen within a second either side, so jumps begun quiet just before he showed up counted as fight
 jumps. People's jumps up onto something (0.57) the bots make without a jump. Duel maps, all 281 statistics within 25%:
 56.9% (54.1%) vs 56.9% (54.4%). The test server on 12403 keeps `1ad8c886` (the owner wants it kept); this build runs on
-the second test server, 12404, since 2026-10-25 00:37 UTC (the owner's word, 2026-10-24).
+the second test server, 12404, from 2026-10-25 00:37 to 03:44 UTC (the owner's word, 2026-10-24), then "Holding a doorway".
 
 ## Holding a doorway (2026-10-25)
 
@@ -2285,6 +2288,9 @@ the bot watches is over 5 deg off the entrant 22-28% of the time. Who wins did n
 (people 43%). That is the shootout: people walking into a held room hit 21% of their shots (the holder 28%), 18% once the
 holder hit first; a bot walking in hits 29% (25% once hit first), as a holding bot does (32%), so the holder's edge
 people have is not there between bots.
+
+On the owner's word ("deploy to 12404. but backup current state so we can fully go back") it runs on 12404 since
+2026-10-25 03:44 UTC; the build before it is backed up (see the VPS paragraph near the top).
 
 ## Every duel map, and the team matches as context (2026-10-08)
 
