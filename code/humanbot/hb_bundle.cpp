@@ -1044,6 +1044,20 @@ bool LoadMapPrior(const std::string& text, const std::string& overrideText, MapP
                 m.drops.push_back(d);
             }
         }
+        if (j.contains("jumps")) {
+            // [from, to, count, takeoff x, y, z, landing x, y, z] per take-off cell (fit_maps.py DROP_MAPS, up=True)
+            for (const json& s : j.at("jumps")) {
+                Require(s.is_array() && s.size() == 9, "map.jumps entry");
+                MapDrop d;
+                d.from    = static_cast<int>(Num(s[0], "jump"));
+                d.to      = static_cast<int>(Num(s[1], "jump"));
+                d.count   = Num(s[2], "jump");
+                d.takeoff = Vec3(Num(s[3], "jump"), Num(s[4], "jump"), Num(s[5], "jump"));
+                d.landing = Vec3(Num(s[6], "jump"), Num(s[7], "jump"), Num(s[8], "jump"));
+                Require(d.from >= 0 && static_cast<size_t>(d.from) < n && d.to >= 0 && static_cast<size_t>(d.to) < n, "map jump index");
+                m.jumps.push_back(d);
+            }
+        }
         m.hiddenMoveSpeed = NumOr(j, "hidden_move_speed", m.hiddenMoveSpeed);
         if (j.contains("whole_map")) {
             Require(j.at("whole_map").is_boolean(), "map.whole_map must be true or false");

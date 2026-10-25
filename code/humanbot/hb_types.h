@@ -289,6 +289,8 @@ struct TickPlan {
     bool  navViaValid    = false;   // the engine paths to navVia, a point along the way people go, not to navTarget
     Vec3  navVia;
     bool  navDirect      = false;   // no engine path: run straight at navVia (over a fall people take)
+    bool  navJumpLine    = false;   // on the run-up of a jump up people take: square up on navJumpYaw, forward key
+    float navJumpYaw     = 0.0f;
     // the fire gate of g_humanbot_skill: a round with the crosshair off the body is skipped with
     // fireGate (0 = off); the target direction at the tick's start and its change over the tick
     float fireGate     = 0.0f;

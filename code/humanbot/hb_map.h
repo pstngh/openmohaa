@@ -79,6 +79,7 @@ public:
     std::vector<MapCell>   cells;
     std::vector<MapSpawn>  spawns;
     std::vector<MapDrop>   drops;
+    std::vector<MapDrop>   jumps;      // the jumps up people took ("jumps", dm/mohdm6): take-off below, landing above
     std::vector<float>     kernelDistEdges;
     std::vector<float>     kernelBeta;
     float                  hiddenMoveSpeed = 195.0f;
@@ -97,7 +98,8 @@ public:
     void BuildRouteGraph();                       // symmetrise the kernel into rStart/rTo/rLen (plus the drops, one way)
     int  DropIndex(int from, int to) const;       // the drop from cell `from` to cell `to`, -1 if none
     float JumpCost(int from, int to) const;       // extra route length of a move up more than a step (maps with drops)
-    bool  JumpUp(int from, int to) const;         // a move up more than a step, on a map with drops
+    bool  JumpUp(int from, int to) const;         // a move up more than a step people's jumps do not cover, map with drops
+    int   JumpIndex(int from, int to) const;      // the jump from cell `from` up to cell `to`, -1 if none
     int  NumCells() const { return static_cast<int>(cells.size()); }
 
     int  CellAt(const Vec3& p) const;             // cell containing p (nearest level), -1 if none

@@ -40,6 +40,17 @@ static constexpr float DROP_JUMP_REACH  = 48.0f;
 static constexpr float DROP_JUMP_HEIGHT = 64.0f;   // a take-off up to this far above the bot still counts as its floor
 static constexpr float DROP_THROUGH     = 32.0f;   // aim this far past the take-off until the bot is past it
 static constexpr float DROP_HERE_CELLS  = 12.0f;
+// A jump up people take (MapPrior::jumps): the engine's path goes to JUMP_RUN_START behind the take-off on the jump's
+// line; from up to JUMP_RUN behind it to JUMP_PAST past it, within JUMP_LANE of the line, the bot runs straight through
+// the take-off and jumps from JUMP_AT before it at JUMP_SPEED or more along the line (people jump onto dm/mohdm6's
+// south-west sill at about 120 u/s), then aims at the landing until down.
+static constexpr float JUMP_RUN_START = 64.0f;
+static constexpr float JUMP_RUN       = 96.0f;
+static constexpr float JUMP_PAST      = 24.0f;
+static constexpr float JUMP_LANE      = 32.0f;
+static constexpr float JUMP_AT        = 24.0f;
+static constexpr float JUMP_SPEED     = 100.0f;
+static constexpr int   JUMP_MS        = 1200;
 static constexpr int   DROP_MS          = 2500;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
@@ -55,6 +66,7 @@ void Navigator::SetMap(const MapPrior *map)
     m_treeTarget = -1;
     m_viaCell    = -1;
     m_dropIdx    = -1;
+    m_jumpIdx    = -1;
     Reset();
 }
 
@@ -163,8 +175,9 @@ static int NearestOnFloor(const MapPrior& m, const Vec3& p, float maxDist)
 // paths (at most 400 u) never take: the bots walked the stairs down to a ledge with no way on and spent 29% of their time
 // there (people 0.6%). Only a map whose file lists drops has any (fit_maps.py DROP_MAPS): the owner (2026-10-25), it is a
 // Stalingrad habit and must not touch other maps.
-const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target)
+const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target, bool& isJump)
 {
+    isJump = false;
     if (!m_map || m_map->drops.empty()) {
         return nullptr;
     }
@@ -183,6 +196,11 @@ const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target)
     for (int step = 0; step < 64 && m_next[c] >= 0 && m_dist[here] - m_dist[c] <= within; step++) {
         if (m_map->JumpUp(c, m_next[c])) {
             return nullptr;   // a jump up first: the engine's own path (Via)
+        }
+        const int jk = m_map->JumpIndex(c, m_next[c]);
+        if (jk >= 0) {
+            isJump = true;
+            return &m_map->jumps[jk];
         }
         const int k = m_map->DropIndex(c, m_next[c]);
         if (k >= 0) {
@@ -249,6 +267,7 @@ void Navigator::Reset()
     m_goalValid   = false;
     m_targetValid = false;
     m_dropIdx     = -1;
+    m_jumpIdx     = -1;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
@@ -400,16 +419,49 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     m_targetValid = true;
     out.viaValid  = Via(self, out.target, out.via);
     // a fall people take on the way: the engine's path goes to the take-off, and from there (and while falling) the bot
-    // runs straight at the landing
-    const MapDrop *drop = nullptr;
+    // runs straight at the landing; a jump up people take: a run-up along its line and a jump at its take-off
+    const MapDrop *drop   = nullptr;
+    bool           isJump = false;
+    Vec3           aim;
     if (m_map && m_dropIdx >= 0 && m_dropIdx < static_cast<int>(m_map->drops.size()) && now < m_dropUntilMs
         && self.origin.z < m_map->drops[m_dropIdx].takeoff.z - 16.0f && self.origin.z > m_map->drops[m_dropIdx].landing.z + 32.0f) {
         drop       = &m_map->drops[m_dropIdx];
         out.direct = true;
+    } else if (m_map && m_jumpIdx >= 0 && m_jumpIdx < static_cast<int>(m_map->jumps.size()) && now < m_jumpUntilMs && !self.onGround) {
+        drop         = &m_map->jumps[m_jumpIdx];
+        isJump       = true;
+        out.direct   = true;
+        out.jumpLine = true;
+        aim          = drop->landing;
     } else {
         m_dropIdx = -1;
-        drop      = DropAhead(self, out.target);
-        if (drop) {
+        m_jumpIdx = -1;
+        drop      = DropAhead(self, out.target, isJump);
+        if (drop && isJump) {
+            Vec3        dir   = Vec3(drop->landing.x - drop->takeoff.x, drop->landing.y - drop->takeoff.y, 0.0f);
+            const float ldir  = dir.lengthXY();
+            dir               = ldir > 1.0f ? dir * (1.0f / ldir) : Vec3(0.0f, 0.0f, 0.0f);
+            const float rx    = self.origin.x - drop->takeoff.x;
+            const float ry    = self.origin.y - drop->takeoff.y;
+            const float along = rx * dir.x + ry * dir.y;
+            const float perp  = std::fabs(rx * dir.y - ry * dir.x);
+            if (std::fabs(drop->takeoff.z - self.origin.z) < 48.0f && along > -JUMP_RUN && along < JUMP_PAST && perp < JUMP_LANE) {
+                out.direct   = true;
+                out.jumpLine = true;
+                aim          = drop->takeoff + dir * DROP_THROUGH;
+                const float speedAlong = self.velocity.x * dir.x + self.velocity.y * dir.y;
+                if (self.onGround && along > -JUMP_AT && speedAlong >= JUMP_SPEED) {
+                    out.jump      = true;
+                    m_jumpIdx     = static_cast<int>(drop - m_map->jumps.data());
+                    m_jumpUntilMs = now + JUMP_MS;
+                }
+                out.via      = drop->landing;
+                out.viaValid = true;
+            } else {
+                out.via      = drop->takeoff - dir * JUMP_RUN_START;
+                out.viaValid = true;
+            }
+        } else if (drop) {
             const Vec3  d       = drop->takeoff - self.origin;
             // on the take-off's floor, a jump below it (dm/mohdm6's sills and railings), or on the floor of the cell
             // people jumped onto it from
@@ -424,22 +476,24 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
             }
         }
     }
-    if (drop) {
+    if (drop && !isJump) {
         out.via      = out.direct ? drop->landing : drop->takeoff;
         out.viaValid = true;
+        if (out.direct) {
+            // through the take-off, then at the landing: from beside a window the straight line to the landing ran into
+            // the wall next to it (dm/mohdm6's south-west top floor, 14-17% of the bots' time)
+            const MapDrop& d    = *drop;
+            Vec3           dir  = Vec3(d.landing.x - d.takeoff.x, d.landing.y - d.takeoff.y, 0.0f);
+            const float    ldir = dir.lengthXY();
+            dir                 = ldir > 1.0f ? dir * (1.0f / ldir) : Vec3(0.0f, 0.0f, 0.0f);
+            const float along   = (self.origin.x - d.takeoff.x) * dir.x + (self.origin.y - d.takeoff.y) * dir.y;
+            const bool  falling = self.origin.z < d.takeoff.z - 16.0f && !self.onGround;
+            aim                 = along < 0.0f && !falling ? d.takeoff + dir * DROP_THROUGH : d.landing;
+        }
     }
     float routeYaw = 0.0f;
     if (out.direct) {
-        // through the take-off, then at the landing: from beside a window the straight line to the landing ran into the
-        // wall next to it (dm/mohdm6's south-west top floor, 14-17% of the bots' time)
-        const MapDrop& d    = *drop;
-        Vec3           dir  = Vec3(d.landing.x - d.takeoff.x, d.landing.y - d.takeoff.y, 0.0f);
-        const float    ldir = dir.lengthXY();
-        dir                 = ldir > 1.0f ? dir * (1.0f / ldir) : Vec3(0.0f, 0.0f, 0.0f);
-        const float along   = (self.origin.x - d.takeoff.x) * dir.x + (self.origin.y - d.takeoff.y) * dir.y;
-        const bool  falling = self.origin.z < d.takeoff.z - 16.0f && !self.onGround;
-        const Vec3  aim     = along < 0.0f && !falling ? d.takeoff + dir * DROP_THROUGH : d.landing;
-        out.desiredYaw      = YawOf(aim - self.origin);
+        out.desiredYaw = YawOf(aim - self.origin);
     } else if (self.navSteerValid) {
         out.desiredYaw = self.navSteerYaw;
     } else if (RouteYaw(self, out.target, routeYaw)) {

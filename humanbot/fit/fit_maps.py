@@ -47,6 +47,8 @@ DROP_MAPS = ["dm/mohdm6"]
 DROP_MIN = 96.0
 DROP_NEAR = 96.0
 DROP_CLIMB = 24.0
+JUMP_MIN = 24.0
+JUMP_MAX = 80.0
 
 
 def column_levels(ix, iy, z):
@@ -89,7 +91,7 @@ def nearest_level(levels, ix, iy, z):
     return best
 
 
-def fit_drops(D, key_of, levels, cx, cy, cz):
+def fit_drops(D, key_of, levels, cx, cy, cz, up=False):
     """People's falls on the map's rows (sorted; every living tick, not only the duel ticks: a fall is a way about the
     map, and a fall while the enemy was dead broke into pieces), as route edges. key_of maps (ix, iy, level) to the kept
     cells, levels their floor heights, and cx, cy, cz are the kept cells' centres.
@@ -99,7 +101,11 @@ def fit_drops(D, key_of, levels, cx, cy, cz):
     its landing cell likewise (within 48 u of height). A fall counts when the falls within DROP_NEAR of its take-off (on
     its level) number at least 3 from MIN_SESSIONS sources. One drop per take-off cell, with its most common landing cell,
     the median take-off and landing points, and 1 when the take-off is more than DROP_CLIMB above the cell's floor (the
-    bot jumps onto it)."""
+    bot jumps onto it).
+
+    up=True gives the jumps up instead (`jumps`): a landing JUMP_MIN to JUMP_MAX above the take-off, both cells on the
+    take-off's and the landing's floors, the same counting, nine fields (people jump onto dm/mohdm6's south-west 52 u sill
+    at about 120 u/s; the bots, jumping from against it, missed three times in four)."""
     key = D.groupby(["session_id", "client_id", "seg"], sort=False).ngroup().to_numpy()
     ms, grd = D.session_ms.to_numpy(), D.on_ground.astype(bool).to_numpy()
     z, src = D.origin_z.to_numpy(), D.src.to_numpy()
@@ -121,9 +127,10 @@ def fit_drops(D, key_of, levels, cx, cy, cz):
             j = i + 1
             while j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and not grd[j]:
                 j += 1
-            if j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and grd[j] and z[j] - z[i] < -DROP_MIN:
+            dz = z[j] - z[i] if j < n else 0.0
+            if j < n and key[j] == key[i] and ms[j] - ms[j - 1] == 50 and grd[j] and (JUMP_MIN < dz < JUMP_MAX if up else dz < -DROP_MIN):
                 a, b = cell_of(xyz[i]), cell_of(xyz[j])
-                a = a if a >= 0 else near_cell(xyz[i], 72.0, 24.0)
+                a = a if a >= 0 else near_cell(xyz[i], 48.0, 48.0) if up else near_cell(xyz[i], 72.0, 24.0)
                 b = b if b >= 0 else near_cell(xyz[j], 48.0, 48.0)
                 if a >= 0 and b >= 0 and a != b:
                     rows.append((a, b, src[i], *xyz[i], *xyz[j]))
@@ -142,7 +149,7 @@ def fit_drops(D, key_of, levels, cx, cy, cz):
         b = int(d.b.mode().iloc[0])
         take = d[["x0", "y0", "z0"]].median()
         out.append([int(a), b, len(d)] + [round(float(v), 1) for v in take] + [round(float(v), 1) for v in d[d.b.eq(b)][["x1", "y1", "z1"]].median()]
-                   + [int(take.z0 - cz[a] > DROP_CLIMB)])
+                   + ([] if up else [int(take.z0 - cz[a] > DROP_CLIMB)]))
     return out
 
 
@@ -262,6 +269,7 @@ def fit_map(F, mp):
         A = F[F["map"].eq(mp) & F.normal_physics].copy()
         A["src"] = A.session_id + ":" + A.client_id.astype(str)
         R["drops"] = fit_drops(A, key, levels, (kept.ix.to_numpy() + 0.5) * CELL, (kept.iy.to_numpy() + 0.5) * CELL, cz)
+        R["jumps"] = fit_drops(A, key, levels, (kept.ix.to_numpy() + 0.5) * CELL, (kept.iy.to_numpy() + 0.5) * CELL, cz, up=True)
     return R
 
 
@@ -275,7 +283,7 @@ def main():
         p = out_dir / (mp.replace("/", "_") + ".json")
         p.write_text(json.dumps(H.jsonable(R), separators=(",", ":")))
         print(mp, "cells", len(R["cells"]["ix"]), "edges", len(R["edges"]["from"]), "los pairs", len(R["los"]["a"]),
-              "spawns", len(R["spawns"]), "drops", len(R.get("drops", [])), "beta", R["kernel"]["beta"], "speed", R["hidden_move_speed"],
+              "spawns", len(R["spawns"]), "drops", len(R.get("drops", [])), "jumps", len(R.get("jumps", [])), "beta", R["kernel"]["beta"], "speed", R["hidden_move_speed"],
               "checksum", R["checksum"], "bytes", p.stat().st_size)
 
 

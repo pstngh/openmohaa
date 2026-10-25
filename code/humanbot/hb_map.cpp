@@ -84,10 +84,21 @@ bool MapPrior::Column(int ix, int iy, const int *&b, const int *&e) const
 // south-west top floor). Other maps' routes are as they were.
 static constexpr float JUMP_UP_STEP = 24.0f;
 static constexpr float JUMP_UP_COST = 1000.0f;
+static constexpr float JUMP_LINK_COST = 150.0f;
 
 bool MapPrior::JumpUp(int from, int to) const
 {
-    return !drops.empty() && cells[to].z > cells[from].z + JUMP_UP_STEP;
+    return !drops.empty() && cells[to].z > cells[from].z + JUMP_UP_STEP && JumpIndex(from, to) < 0;
+}
+
+int MapPrior::JumpIndex(int from, int to) const
+{
+    for (size_t i = 0; i < jumps.size(); i++) {
+        if (jumps[i].from == from && jumps[i].to == to) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
 }
 
 float MapPrior::JumpCost(int from, int to) const
@@ -107,6 +118,13 @@ void MapPrior::BuildRouteGraph()
         }
         adj[a].push_back(std::make_pair(b, len));
     };
+    // the jumps up people took, one way, before the moves (an edge keeps its first length): as long as the ground they
+    // cover plus JUMP_LINK_COST, a bot's run-up and the chance it misses (hb::Navigator takes them at a run)
+    for (const MapDrop& d : jumps) {
+        if (d.from >= 0 && d.from < n && d.to >= 0 && d.to < n && d.from != d.to) {
+            add(d.from, d.to, std::max((cells[d.from].center - cells[d.to].center).lengthXY(), 0.5f * cellSize) + JUMP_LINK_COST);
+        }
+    }
     for (int a = 0; a < n; a++) {
         for (int k = kStart[a]; k < kStart[a + 1]; k++) {
             const int b = kTo[k];

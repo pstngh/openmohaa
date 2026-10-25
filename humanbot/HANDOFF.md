@@ -2422,8 +2422,37 @@ dm/mohdm6, `std9_*` against `std7_*` (`145a7da6`):
 dm/brownffa + dm/flag (`bfd9_201` against `bh10_201`): sightings 16.2 vs 16.1, kills 5.32 vs 5.23, first press
 50/100/150 ms; the six other map files byte for byte unchanged.
 
-Next: the south building's upper floor (people go along it and down at its east end in about 7 s; the bots take 8 s
-median, 34 s at p90); the bots hold too little with the enemy hidden now (7% still against people's 24%).
+**The south building's upper floor, fourth round** (the owner: "Keep fixing Stalingrad: the south building's upper floor
+next"). The bots were not stuck there (hunting 86%, at full speed): it was their way off the south-west building, the
+stairs and the corridor along the south building's upper floor, because they could not make the sill jump people use.
+They missed it because the window is narrow: the brain's keys (eight directions off the view) drifted them 20-30 u to
+the side, and they hit its frame at the top of the jump. Now `fit_drops(up=True)` writes people's jumps up (`jumps`,
+DROP_MAPS only: a landing 24-80 u above the take-off, counted like the falls; 13, the sill's 9 times by 4 people-games
+at about 120 u/s). They are route edges (as long as the ground plus 150 u) that `JumpUp` does not block; on one the
+engine's path goes to 64 u behind the take-off on the jump's line, and from up to 96 u behind it the bot runs through the
+take-off, jumping from 24 u before it at 100 u/s or more along the line. On that run the adapter squares the bot up on the
+line with the forward key (`TickPlan::navJumpLine`, as `Ladder()` does on ladders; not with an enemy in sight). In a
+debug game every sill jump landed and the bots went straight on over the edge as people do.
+
+dm/mohdm6, `std10_*` against `std9_*` (`d4aeb450`):
+
+| | People | Now | d4aeb450 |
+|---|---:|---:|---:|
+| Kills a minute | 3.6 | 2.36-2.41 | 1.9-2.1 |
+| Hits a minute | 21.6 | 12.3-12.8 | 9.7-10.6 |
+| Centroid sight starts a minute | 31 | 15.3-15.9 | 12.7-13.8 |
+| A floor apart, hidden, within 500 u | 2.7% | 19-20% | 27-32% |
+| Both on the street | 47% | 30-32% | 23-26% |
+| Time on squares people never used | 0% | 11% | 16% |
+| South building's upper floor and corridor | (one pass) | 5.7-5.8% | 10-12% |
+| South-west top floor | 0.6% | 4.7-5.2% | 1.4-1.6% |
+| Falls over 300 u a minute | 3.0 | 1.6 | 1.2 |
+
+dm/brownffa + dm/flag (`bfd10_201` against `bh10_201`): sightings 16.3 vs 16.1, kills 5.36 vs 5.23, first press
+50/100/150 ms; the six other map files byte for byte unchanged.
+
+Next: the south-west top floor crept back to 5% (some sill jumps still miss), and the bots stand still with the enemy
+hidden 9% of the time against people's 24%.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

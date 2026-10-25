@@ -769,8 +769,48 @@ static void TestStalingradDrops(const hb::ModelBundle& b)
             HB_CHECK(!out.viaValid || out.via.z <= m.cells[c].z + 24.0f);
         }
     }
-    HB_REPORT("climbs to a fall's take-off: %d", climbs);
-    HB_CHECK(climbs > 0);
+    HB_REPORT("climbs to a fall's take-off not among people's jumps: %d", climbs);
+    // people's jumps up (MapPrior::jumps): a bot on the jump's line running through the take-off jumps at it; farther back
+    // it runs without jumping yet; off the line it is sent to the run-up spot behind the take-off
+    HB_CHECK(!m.jumps.empty());
+    const hb::MapDrop* jb = m.jumps.empty() ? nullptr : &m.jumps[0];
+    for (const hb::MapDrop& d : m.jumps) {
+        jb = d.count > jb->count ? &d : jb;
+    }
+    if (jb) {
+        const hb::MapDrop jd   = *jb;
+        hb::Vec3          dir  = hb::Vec3(jd.landing.x - jd.takeoff.x, jd.landing.y - jd.takeoff.y, 0.0f);
+        dir                    = dir * (1.0f / std::max(1.0f, dir.lengthXY()));
+        const hb::Vec3    side = hb::Vec3(-dir.y, dir.x, 0.0f);
+        struct Case {
+            float along, perp;
+            bool  direct, jump;
+        };
+        for (const Case& k : {Case{-10.0f, 0.0f, true, true}, Case{-60.0f, 0.0f, true, false}, Case{-10.0f, 80.0f, false, false}}) {
+            hb::SelfState s = self;
+            s.origin        = jd.takeoff + dir * k.along + side * k.perp;
+            s.eye           = s.origin + hb::Vec3(0, 0, 82);
+            s.onGround      = true;
+            s.velocity      = dir * 160.0f;
+            hb::BeliefEstimate bj = be;
+            bj.mode               = jd.landing;
+            hb::NavInput ij       = in;
+            ij.focus              = &bj;
+            hb::Navigator nav;
+            nav.Init(&np, &m);
+            hb::Rng       r(19);
+            hb::NavOutput out;
+            nav.Step(s, ij, r, out);
+            HB_REPORT("jump (%.0f, %.0f, %.0f) -> (%.0f, %.0f, %.0f), %.0f along %.0f off: direct %d jump %d via (%.0f, %.0f)",
+                      jd.takeoff.x, jd.takeoff.y, jd.takeoff.z, jd.landing.x, jd.landing.y, jd.landing.z, k.along, k.perp,
+                      out.direct, out.jump, out.via.x, out.via.y);
+            // 60 u back the route may run elsewhere (another cell's way): only no jump is required there
+            HB_CHECK(k.along < -30.0f ? !out.jump : out.direct == k.direct && out.jump == k.jump);
+            if (!k.direct) {
+                HB_CHECK(out.viaValid && (out.via - (jd.takeoff - dir * 64.0f)).lengthXY() < 1.0f);
+            }
+        }
+    }
     // dm/mohdm6 is recorded whole: off people's ground (the south building's upper floor) the bot never starts a hold;
     // on a cell people stood in it does
     HB_CHECK(m.wholeMap);

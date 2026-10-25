@@ -60,7 +60,8 @@ struct NavOutput {
     bool  viaValid   = false;  // the engine's path goes to `via`, a point along the way people go (NavModel::viaDist)
     Vec3  via;
     bool  direct     = false;  // run straight at `via`, no engine path: over a fall people take (MapPrior::drops)
-    bool  jump       = false;  // jump now: onto the take-off of such a fall (MapDrop::jump)
+    bool  jump       = false;  // jump now: onto the take-off of such a fall (MapDrop::jump), or a jump up people take
+    bool  jumpLine   = false;  // on the run-up of a jump up people take (MapPrior::jumps): square up, forward key
 };
 
 class Navigator
@@ -87,8 +88,9 @@ private:
     int  RouteFrom(const SelfState& self, const Vec3& target, float hereCells = 2.0f);
     // The point the engine's path goes to: viaDist along the route people take toward target (false: the target itself).
     bool Via(const SelfState& self, const Vec3& target, Vec3& via);
-    // The fall people took on the route toward target within viaDist of here (maps whose file lists drops), or null.
-    const MapDrop *DropAhead(const SelfState& self, const Vec3& target);
+    // The first fall or jump up people took on the route toward target within viaDist of here (maps whose file lists
+    // them), or null; isJump says which.
+    const MapDrop *DropAhead(const SelfState& self, const Vec3& target, bool& isJump);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -109,6 +111,9 @@ private:
     // the fall being taken: kept until the bot is down or the time is up
     int                m_dropIdx     = -1;
     int                m_dropUntilMs = 0;
+    // the jump up being taken: aimed at its landing while in the air
+    int                m_jumpIdx     = -1;
+    int                m_jumpUntilMs = 0;
 };
 
 } // namespace hb
