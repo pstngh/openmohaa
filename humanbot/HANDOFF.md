@@ -100,6 +100,15 @@ a reason; model `85e1a6b7932a`; `humanbot_selftest` PASS on dm/crnodoors and dm/
 `game.so.prev-c3835643`, `game.so.prev-44b510a8`, `game.so.prev-514e1f50`, `game.so.prev-b53427f0` and
 `omohaaded.prev-b53427f0` are kept, and the override before it is `/root/override.conf.humanbot-c3835643-livecheck` (the engine binary has not changed since b53427f0). The owner's normal server there (`openmohaa`, 12203) is not part of this work: never touch it.
 
+The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very good"; a full copy is on the workstation in
+`/home/plex/openmohaa-bots-12403-backup/`). New builds go to a second server since 2026-10-24: the service
+`openmohaa-humanbot2` (UDP 12404, query 12501, both open in ufw; hostname "Humanbot test 2 - <commit>"), with folders
+of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
+for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
+git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `a8c4b54a` since 2026-10-25 00:37
+UTC (no jump without a reason; model `6a9e57811b2f`).
+
 ## The task now: the test server
 
 Use the Linux VPS the human duels were recorded on; the owner plays from a Mac. Its telemetry
@@ -2204,7 +2213,8 @@ Bot against bot (`j1_*`/`bj1_*` against `t4_*`/`bt4_*` = `1ad8c886`; seeds 201-2
 The "fight" jumps fall by a third for the reason the fight crouches fell with the crouch rule: `cj.py` counts a jump with a
 part of the enemy on screen within a second either side, so jumps begun quiet just before he showed up counted as fight
 jumps. People's jumps up onto something (0.57) the bots make without a jump. Duel maps, all 281 statistics within 25%:
-56.9% (54.1%) vs 56.9% (54.4%). Not deployed: the test server on 12403 keeps `1ad8c886` (the owner wants it kept).
+56.9% (54.1%) vs 56.9% (54.4%). The test server on 12403 keeps `1ad8c886` (the owner wants it kept); this build runs on
+the second test server, 12404, since 2026-10-25 00:37 UTC (the owner's word, 2026-10-24).
 
 ## Every duel map, and the team matches as context (2026-10-08)
 
