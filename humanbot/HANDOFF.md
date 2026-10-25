@@ -2292,6 +2292,99 @@ people have is not there between bots.
 On the owner's word ("deploy to 12404. but backup current state so we can fully go back") it runs on 12404 since
 2026-10-25 03:44 UTC; the build before it is backed up (see the VPS paragraph near the top).
 
+## What the recorded map knowledge is worth (2026-10-25)
+
+Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with
+every recorded map prior switched off (`move_wip/s22/noprior/maps/dm_*.json`, a checksum mismatch, so the bots fall back
+to the map derived from the navigation mesh, as on a map nobody recorded: a coarse graph of the walkable cells, every
+cell as likely as any other, the engine's spawns) against the same build with them (`bnp_*`/`np_*` against
+`bh10_*`/`h10_*`; seeds 201-208, in brackets 401-408). Git-ignored scripts in `humanbot/cache/move_wip/s23/`:
+`belief.py` (the bot's guess of the hidden enemy against where he is), `places.py` (time alive by the owner's place
+names), `spawnplaces.py`, `flaggoal.py`, `tab.py` (s15's practice measures on all six maps; `s15d.sh` runs s15 on the
+duel maps); kills and hits from `s19/trig.py`, the duel maps' 281 statistics from `s2/cmp.sh` and `s21/score.py`.
+
+**What a player would see.** On dm/flag the bots spawn at Door 2 or Pre-control; with the recorded map 76% of them are
+in the Flag room 5 s later, without it none: they go out the other way, to the Railing, the corridor to up main, the
+control room, then the vents, Main, door 1 and door 4, the truck, and set a travel goal in the Flag room 0.3% of the time
+(49% with the recorded map). They spend 98% of their time on ground no person used in a duel, meet once a minute
+instead of 14 times, and when they do meet they look 50-56 deg away from the enemy (7 deg). On dm/brownffa they are off
+people's ground 59-61% of the time (the fences, the cellar, the street, the carpet, the front of the bridge) and meet
+2.5-3 times a minute. A bot kills a seventh as often on these two maps. On the four duel maps, small and closed, the loss
+is smaller and uneven: on dm/crnodoors they go where people go (1-2% off), on dm/vents 12-14% off, on dm/main and
+dm/downladder 35-43% (Down main and the truck; door 5 and Beta); kills halve.
+
+| | people | recorded map | navmesh map |
+|---|---|---|---|
+| time on ground no person used in a duel, dm/brownffa / dm/flag | | 0.8 / 0.5% (0.7 / 0.7%) | 59 / 98% (61 / 98%) |
+| ... dm/crnodoors / main / vents / downladder | | 0 / 0 / 1.6 / 0% (0 / 0 / 1.0 / 0%) | 1.3 / 35 / 13.5 / 36% (1.7 / 43 / 11.5 / 40%) |
+| sightings a minute, dm/brownffa / dm/flag | 13.5 / 15.7 | 14.2 / 13.7 (14.7 / 13.9) | 2.5 / 0.9 (2.9 / 1.0) |
+| ... dm/crnodoors / main / vents / downladder | 13.8 / 15.2 / 8.1 / 12.2 | 21.7 / 21.8 / 9.8 / 17.1 (21.4 / 22.1 / 12.0 / 17.7) | 13.3 / 7.1 / 4.9 / 6.4 (14.0 / 4.8 / 5.8 / 5.8) |
+| spawn to the first sight p50, dm/brownffa / dm/flag | 2.3 / 2.15 s | 2.6 / 2.45 (2.45 / 2.45) | 9.9 / 8.85 (7.45 / 8.95) |
+| aim off at the first sight, dm/brownffa / dm/flag | 4.8 / 3.9 deg | 8.9 / 7.1 (9.05 / 7.1) | 24 / 56 (23 / 51) |
+| ... dm/crnodoors / main / vents / downladder | 4.0 / 5.9 / 8.3 / 6.1 | 8.4 / 16.0 / 7.1 / 14.9 (9.3 / 16.0 / 7.6 / 13.9) | 12.2 / 24.0 / 22.3 / 19.1 (11.7 / 24.8 / 19.6 / 18.8) |
+| the guess of the hidden enemy off where he is p50, dm/brownffa / dm/flag | | 81 / 109 u (79 / 107) | 513 / 382 u (469 / 401) |
+| ... the duel maps / its direction off, all maps | | 41-79 u / 3-8 deg | 198-299 u / 8-19 deg |
+| kills a minute alive, dm/brownffa + dm/flag / duel maps | | 5.23 / 6.02 (5.36 / 6.18) | 0.71 / 3.14 (0.79 / 2.97) |
+| hits a round, dm/brownffa + dm/flag / duel maps | 20% / 19% | 26.7 / 24.9% (27.0 / 25.9%) | 19.0 / 22.6% (20.7 / 23.2%) |
+| the first press after a sighting p50, dm/brownffa + dm/flag | 150 ms | 100 (100) | 150 (150) |
+| s15's practice measures within 25%, dm/brownffa + dm/flag (of 28) / duel maps (of 56) | | 15 / 27 (17 / 24) | 6 / 17 (5 / 16) |
+| duel maps: all 281 statistics within 25% | | 58.7% (54.8%) | 48.4% (45.9%) |
+
+**Why.** The recorded map tells the bot where people stand and go (the occupancy, the routes, the spawns); the hidden
+enemy's belief and the travel goals are drawn from it, and the view follows the belief. The navmesh
+map makes every walkable cell as likely as any other: the belief spreads over the whole map, the hunt goes wherever it
+puts the enemy, and where the fighting area is a small part of the map (dm/flag: 242 recorded cells of the duel area,
+1989 cells of 256 u over the whole map) a life goes by searching empty corridors. What the recorded map adds when they do
+meet shows in the aim at the first sight (the view on the corner he comes out of). The other way round, on the small duel
+maps the recorded map makes the bots find each other more often than people do (dm/crnodoors 21-22 sightings a minute
+against 14, dm/main 22 against 15, dm/downladder 17-18 against 12; without it dm/crnodoors is at people's 13-14): a map
+sense from geometry (step 3) should be checked for that too, not only against the navmesh fallback.
+
+## The team matches' fights in the fits: tried, not kept (2026-10-25)
+
+The owner took the offer "add those 795 minutes to the aim and shooting fits, and only the close-range movement, keeping
+travel as it is", an experiment to keep only if the bots came measurably closer to people. Not kept: the model in the
+tree is unchanged (`4cb774a0604f`).
+
+**What the team matches hold.** Of their 795 minutes (11 people, obj/obj_team2 and obj/obj_team4) 264 have an SMG in hand
+and the nearest enemy alive, and in those the nearest enemy is in sight for 6.6 minutes (the duels: 130 of their 506).
+Only the 2026-10-02 match (37 of the 135 minutes near the enemy) logs the body parts the trigger's timing needs.
+The rest near the enemy is hidden time within 1000 u (128 minutes), where the team players walk 43-47% of the time (the
+duels 2%) and strafe 53% (67%): sneaking up, not dueling. With two enemies alive (83 of those 135 minutes) the logged
+opponent is the nearest, the one hit only 89% of the time.
+
+**Tried** (the switch is kept as `move_wip/s23/team_fights_switch.patch`, git-ignored, not committed: `HB_TEAM_FIGHTS` in
+`hbdata.load_dm` appends the team rows with `eligible` on their fight rows, the sequences broken where the nearest enemy
+changes, kept out of the enemy-dead contexts and the spawn; the fits wrote into `humanbot/cache/exp_team_*`; without the
+switch the five fits reproduce the parts byte for byte): "near", in sight or hidden within 1000 u (135 minutes, the plan
+of the session before), and "fight", in sight or hidden within 1000 u and 3 s of the last sight (17 minutes). Refitted:
+the keys, the lean and stance, the trigger, the view and the weapon; the keys' far bins (travel) and the styles stay; no
+recalibration. The model moved little where it was meant to: the aim controller's gain 0.227 -> 0.229 and noise 5.0 ->
+5.1 u, the trigger's press rate the same; "near" made the walk start with the enemy hidden 2.2 times a minute (0.8;
+"fight" 0.9).
+
+Bot against bot (`btn_*`/`tn_*` "near", `btf_*`/`tf_*` "fight", on `s22/bin_final` with the model as a patch, against
+`bh10_*`/`h10_*`; seeds 201-208, in brackets 401-408):
+
+| | people | now | near | fight |
+|---|---|---|---|---|
+| duel maps: all 281 statistics within 25% | | 58.7% (54.8%) | 58.7% (54.1%) | 58.7% (54.8%) |
+| s15's practice measures within 25%, dm/brownffa + dm/flag (of 28) / duel maps (of 56) | | 15 / 27 (17 / 24) | 15 / 24 (12 / 22) | 14 / 28 (16 / 23) |
+| walking with the enemy hidden, not firing, duel maps | 5.9% | 6.4% (6.8%) | 8.6% (9.0%) | 6.5% (7.0%) |
+| ... hidden, dm/brownffa / dm/flag | 4.8 / 6.8% | 5.9 / 4.1% (4.2 / 5.6%) | 11.0 / 6.4% (7.4 / 9.9%) | 6.2 / 4.1% (4.4 / 5.8%) |
+| aim error firing at 128-192 / 256-384 u, duel maps | 9.0 / 5.2 deg | 10.0 / 5.3 (10.2 / 5.3) | 9.8 / 5.3 (10.3 / 5.2) | 9.8 / 5.2 (10.0 / 5.3) |
+| hits a round, dm/brownffa + dm/flag / duel maps | 20% / 19% | 26.7 / 24.9% (27.0 / 25.9%) | 27.3 / 25.5% (27.6 / 25.6%) | 27.4 / 25.3% (27.5 / 25.5%) |
+| kills a minute alive, the same | | 5.23 / 6.02 (5.36 / 6.18) | 5.30 / 6.05 (5.43 / 6.07) | 5.34 / 6.00 (5.42 / 6.13) |
+| holding the Flag room: the holder's view off the entrant at the meeting p50 / the holder dies first | 2.4 / 43% | 3.7 / 61% (4.0 / 64%) | 3.9 / 61% (4.1 / 65%) | 4.1 / 63% (3.7 / 62%) |
+
+The first press after a sighting (p25/50/75 50/100/150 ms), sightings, crouches and leans did not move in either.
+
+**Why it does not help.** The aim and the trigger get 5% more in-sight time, too little to move them. What the team
+matches add close up is their sneaking: "near" carries it into the duels (the bots walk a third more with the enemy
+hidden nearby, further from people on every map but one seed set of dm/flag), "fight" leaves it out and then nothing
+moves. For the motor layer the team matches stay the far prior of the keys; for aim and shooting they would need more
+matches that log the parts (09-18 and 09-21 do not) or the second enemy's columns (the logger describes the nearest only).
+
 ## Every duel map, and the team matches as context (2026-10-08)
 
 The owner asked why the bots learn from only part of the human telemetry, then: "yes do it, use the team matches too but
