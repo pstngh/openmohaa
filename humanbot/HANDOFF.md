@@ -106,11 +106,17 @@ The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very go
 of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
 for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
 git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
-`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `62d73e13` since 2026-10-25 22:32
-UTC (Stalingrad's map knowledge, see "Stalingrad's map knowledge"; bundle `a929b5b8c1ed`: the motor model of
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `435468cb` since 2026-10-26 23:31
+UTC: `62d73e13` with the owner's names and side ("make sure they all axis, and call them by their style, strafer1,
+strafer 2, etc"): `livecheck.cfg` sets `g_humanbot_style_names 1` (each bot called after its style and the lowest free
+number, presser1, strafer2; the family is drawn before the bot connects) and `g_humanbot_ffa_side axis` (both off by
+default; `humanbot_list` shows the side), copy without them `/root/livecheck.cfg.12404-62d73e13-fourbots`. Staged while
+the owner played and swapped in once they left (`/root/swap-12404-435468cb.sh`). Before it `62d73e13` from 2026-10-25
+22:32 UTC (Stalingrad's map knowledge, see "Stalingrad's map knowledge"; bundle `a929b5b8c1ed`: the motor model of
 `4cb774a0604f` with the Stalingrad map file, which the bundle id hashes too; `humanbot_selftest` PASS on dm/mohdm6 over
-300 s; `livecheck.cfg` now starts it on dm/mohdm6, with four bots since 2026-10-26 on the owner's "add 3 more bots" (one
-bot before, `/root/livecheck.cfg.12404-onebot-2026-10-26`)). Before it `78b5af52` (holding a doorway, model
+300 s; `livecheck.cfg` starts it on dm/mohdm6, with four bots since 2026-10-26 on the owner's "add 3 more bots", one bot
+before, `/root/livecheck.cfg.12404-onebot-2026-10-26`), kept as `game.so.prev-62d73e13`,
+`/root/openmohaa-humanbot2.service.62d73e13` and `/root/moh-humanbot2-home-62d73e13.tar.gz`. Before that `78b5af52` (holding a doorway, model
 `4cb774a0604f`), kept as `game.so.prev-78b5af52`, `/root/openmohaa-humanbot2.service.78b5af52` and
 `/root/moh-humanbot2-home-78b5af52.tar.gz` (its `livecheck.cfg` starts on dm/crnodoors), and `a8c4b54a` (no jump
 without a reason, model `6a9e57811b2f`), kept the same way with `a8c4b54a`; full copies with restore steps, one folder
@@ -2488,6 +2494,12 @@ fall of 625 u). People take it 7 times in 90 minutes, from y -64 to 0 at a run (
 than a free fall, lose about 65 health, and 2 of the 7 ended dead; the bots walk off at 120-130 u/s, 60-120 u further
 south, land at about 1010 u/s and die 320 times in 322 (2.2 times per 10 bot-minutes; `move_wip/s24/falldmg2.py`). The
 south-west top floor's window fall (648 u) costs both 10 health (people land at 860 u/s, bots 900 u/s).
+
+The owner's names and side (2026-10-26, `435468cb`, see the VPS paragraph) were checked locally on dm/mohdm6: four
+bots came in as strafer1, presser1, stopper1, presser2, all axis; with strafer1 removed (`sv_numbots 3`) the next bot
+was presser3; a map change kept every name with its style. Seen there, not looked into: after that remove and add,
+the map change brought back the first four (strafer1, not presser3), so the stock bot save and restore
+(`G_SaveBots`/`G_RestoreBots`) seems to keep a removed bot. It does not arise with a fixed number of bots.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
