@@ -109,7 +109,8 @@ git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src che
 `cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `62d73e13` since 2026-10-25 22:32
 UTC (Stalingrad's map knowledge, see "Stalingrad's map knowledge"; bundle `a929b5b8c1ed`: the motor model of
 `4cb774a0604f` with the Stalingrad map file, which the bundle id hashes too; `humanbot_selftest` PASS on dm/mohdm6 over
-300 s; `livecheck.cfg` now starts it on dm/mohdm6, one bot). Before it `78b5af52` (holding a doorway, model
+300 s; `livecheck.cfg` now starts it on dm/mohdm6, with four bots since 2026-10-26 on the owner's "add 3 more bots" (one
+bot before, `/root/livecheck.cfg.12404-onebot-2026-10-26`)). Before it `78b5af52` (holding a doorway, model
 `4cb774a0604f`), kept as `game.so.prev-78b5af52`, `/root/openmohaa-humanbot2.service.78b5af52` and
 `/root/moh-humanbot2-home-78b5af52.tar.gz` (its `livecheck.cfg` starts on dm/crnodoors), and `a8c4b54a` (no jump
 without a reason, model `6a9e57811b2f`), kept the same way with `a8c4b54a`; full copies with restore steps, one folder
