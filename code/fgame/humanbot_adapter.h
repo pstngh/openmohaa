@@ -84,6 +84,8 @@ bool G_HumanBotReportCounters(float minutes);
 
 // A human-looking name for a new bot while g_humanbot_disguise is on, else NULL.
 const char  *G_HumanBotDisguiseName(int clientNum);
+// A new bot's name after its style ("strafer1") while g_humanbot_style_names is on, else NULL; draws its family.
+const char  *G_HumanBotStyleName(int clientNum);
 bool         G_HumanBotDisguised(void);
 // Ping to show for a client in server status queries: a disguised bot's ping, or -1.
 int          G_HumanBotDisplayPing(int clientNum);

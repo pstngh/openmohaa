@@ -462,6 +462,9 @@ gentity_t *G_AddBot(const bot_info_t *info)
     } else if (G_HumanBotDisguiseName(clientNum)) {
         // test mode: a human-looking name
         Q_strncpyz(botName, G_HumanBotDisguiseName(clientNum), sizeof(botName));
+    } else if (const char *styleName = G_HumanBotStyleName(clientNum)) {
+        // the owner's names: the bot's style and a number
+        Q_strncpyz(botName, styleName, sizeof(botName));
     } else {
         const unsigned int num = sv_sharedbots->integer ? clientNum : clientNum - maxclients->integer;
 

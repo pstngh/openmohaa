@@ -55,6 +55,8 @@ static cvar_t *g_humanbot_door_go;
 static cvar_t *g_humanbot_door_pocket;
 static cvar_t *g_humanbot_max_crouch;
 static cvar_t *g_humanbot_max_jumps;
+static cvar_t *g_humanbot_style_names;
+static cvar_t *g_humanbot_ffa_side;
 
 //
 // Model
@@ -138,6 +140,43 @@ static bool FamilyWeights(float w[hb::FAMILY_COUNT])
         sum += w[i];
     }
     return sum > 0.0f;
+}
+
+// The owner's names (2026-10-26, g_humanbot_style_names 1): a new bot is called after its style and the lowest number
+// no other player has ("strafer1", "strafer2"). The family is drawn here, before the bot connects, and handed to
+// ChooseStyle as the pending family; name and style then travel together in the userinfo across map changes.
+const char *G_HumanBotStyleName(int clientNum)
+{
+    static std::string name;
+    if (!g_humanbot_style_names || !g_humanbot_style_names->integer || !HB_Bundle()) {
+        return NULL;
+    }
+    int family = s_pendingFamily;
+    if (family < 0 || family >= hb::FAMILY_COUNT) {
+        if (!s_styleSeeded) {
+            s_styleRng    = hb::Rng(BaseSeed()).Derive(hb::STREAM_STYLE);
+            s_styleSeeded = true;
+        }
+        float      fw[hb::FAMILY_COUNT];
+        const bool weighted = FamilyWeights(fw);
+        double     w[hb::FAMILY_COUNT];
+        for (int f = 0; f < hb::FAMILY_COUNT; f++) {
+            w[f] = weighted ? fw[f] : HB_Bundle()->style.families[f].weight;
+        }
+        family          = s_styleRng.Categorical(w, hb::FAMILY_COUNT);
+        s_pendingFamily = family;
+    }
+    for (int n = 1;; n++) {
+        name       = std::string(hb::FAMILY_NAMES[family]) + std::to_string(n);
+        bool taken = false;
+        for (int i = 0; i < game.maxclients && !taken; i++) {
+            const gentity_t *e = &g_entities[i];
+            taken = i != clientNum && e->inuse && e->client && !Q_stricmp(e->client->pers.netname, name.c_str());
+        }
+        if (!taken) {
+            return name.c_str();
+        }
+    }
 }
 
 //
@@ -450,7 +489,8 @@ bool HumanBotAdapter::TeammateInCrosshair(Player *p, const HbView& view) const
 }
 
 // Joins a side like a human: in free-for-all the side follows the weapon dial
-// (axis carries the MP40, allies the Thompson); team games use the auto team.
+// (axis carries the MP40, allies the Thompson) unless g_humanbot_ffa_side names one (the owner, 2026-10-26: all axis);
+// team games use the auto team.
 void HumanBotAdapter::Join(Player *p)
 {
     if (!p->client->pers.dm_primary[0] || Q_stricmp(p->client->pers.dm_primary, "smg")) {
@@ -468,8 +508,10 @@ void HumanBotAdapter::Join(Player *p)
     // a short, human-looking delay (and no two bots spawning on the same frame)
     const float delay = 0.5f + static_cast<float>(m_rngPresent.Uniform()) * 1.5f + p->entnum / 20.0f;
     if (g_gametype->integer <= GT_FFA) {
-        Event *event = new Event(EV_Player_JoinDMTeam);
-        event->AddString(m_rngPresent.Uniform() < m_dials.mp40Share ? "axis" : "allies");
+        Event      *event = new Event(EV_Player_JoinDMTeam);
+        const char *drawn = m_rngPresent.Uniform() < m_dials.mp40Share ? "axis" : "allies";
+        const char *side  = g_humanbot_ffa_side ? g_humanbot_ffa_side->string : "";
+        event->AddString(!Q_stricmp(side, "axis") || !Q_stricmp(side, "allies") ? side : drawn);
         p->PostEvent(event, delay);
     } else {
         p->PostEvent(EV_Player_AutoJoinDMTeam, delay);
@@ -1397,6 +1439,8 @@ void G_HumanBotInit(void)
     g_humanbot_door_pocket = gi.Cvar_Get("g_humanbot_door_pocket", "1", 0);
     g_humanbot_max_crouch = gi.Cvar_Get("g_humanbot_max_crouch", "0", 0);
     g_humanbot_max_jumps  = gi.Cvar_Get("g_humanbot_max_jumps", "0", 0);
+    g_humanbot_style_names = gi.Cvar_Get("g_humanbot_style_names", "0", 0);
+    g_humanbot_ffa_side    = gi.Cvar_Get("g_humanbot_ffa_side", "", 0);
 
     if (!s_inited) {
         std::string error;
@@ -1697,11 +1741,13 @@ void HB_ListBots()
     for (int i = 1; i <= s_adapters.NumObjects(); i++) {
         HumanBotAdapter *a = s_adapters.ObjectAt(i);
         Player          *p = a->GetPlayer();
+        const teamtype_t team = p ? p->GetTeam() : TEAM_NONE;
         gi.Printf(
-            "  %2d %-20s %s  think %.0f us (max %d)  owner %d\n    %s\n",
+            "  %2d %-20s %s  %s  think %.0f us (max %d)  owner %d\n    %s\n",
             p ? p->entnum : -1,
             p && p->client ? p->client->pers.netname : "?",
             hb::StyleKey(a->Dials()).c_str(),
+            team == TEAM_AXIS ? "axis" : team == TEAM_ALLIES ? "allies" : "no side",
             a->MeanThinkUs(),
             a->MaxThinkUs(),
             a->Owner(),
