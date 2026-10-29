@@ -231,6 +231,7 @@ private:
     void Track(Player *p, const hb::SelfState& self);
     void Steering(Player *p, const hb::TickPlan& plan, const hb::SelfState& self);
     void Owners(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
+    void FallKey(const HbView& view, const hb::SelfState& self, hb::TickPlan& plan) const;
     void Ladder(Player *p, const HbView& view, const Vector& goal, hb::TickPlan& plan);
     void StartDoorPass(Player *p, Door *d);
     bool DoorPass(Player *p, const HbView& view, const hb::SelfState& self, hb::TickPlan& plan);
@@ -844,7 +845,33 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
         plan.viewStill   = false;
         plan.flickShaped = false;
     }
+    FallKey(view, self, plan);
     SetOwner(p, hb::OWNER_BRAIN);
+}
+
+// A fall with no key held is a free fall. The game's air control pulls the whole velocity toward the keys' wish, which
+// has no height (bg_pmove.cpp PM_Accelerate), so any held key brakes a fall: bots in the air gained 800 u/s a second with
+// no key, about 600 with the forward key, 650 with back. People nearly always hold one (forward 69% of their falling
+// ticks). Off the west building's top on dm/mohdm6 (about 690 u) the bots walked off with none and landed above
+// 1000 u/s, which kills (people: 900 u/s, about 20 health). The owner, 2026-10-29: "when they jump from high up, they
+// should hold forward". So a falling bot without a key holds the one nearest the way it travels (forward when it faces
+// it, as people do), not walking; a key it already holds stays.
+static const float FALL_KEY_SPEED = 300.0f;   // falling faster than this (56 u down from rest): a key
+static const float FALL_KEY_DRIFT = 40.0f;    // slower than this sideways: straight down, the forward key
+
+void HumanBotAdapter::FallKey(const HbView& view, const hb::SelfState& self, hb::TickPlan& plan) const
+{
+    if (self.onGround || self.velocity.z > -FALL_KEY_SPEED || plan.chord != hb::CHORD_NEUTRAL) {
+        return;
+    }
+    float rel = 0.0f;
+    if (std::hypot(self.velocity.x, self.velocity.y) > FALL_KEY_DRIFT) {
+        rel = AngleNormalize180(RAD2DEG(std::atan2(self.velocity.y, self.velocity.x)) - view.yaw);
+    }
+    const int fwd  = std::fabs(rel) < 67.5f ? 1 : (std::fabs(rel) > 112.5f ? -1 : 0);
+    const int side = rel > 22.5f && rel < 157.5f ? -1 : (rel < -22.5f && rel > -157.5f ? 1 : 0);   // left of the view: left key
+    plan.chord     = hb::MakeChord(fwd, side);
+    plan.walk      = false;
 }
 
 // Through a door the bot opened (2026-10-05). The practice maps' doors swing away from whoever opens them and take 1-1.5 s
