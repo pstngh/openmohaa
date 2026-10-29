@@ -192,6 +192,14 @@ int main(int argc, char **argv)
         "ext_eye_ofs_z",
         "ext_vis_parts",
         "ext_in_fov",
+        "ext_wall_front",
+        "ext_wall_back",
+        "ext_wall_left",
+        "ext_wall_right",
+        "ext_wall_front_left",
+        "ext_wall_front_right",
+        "ext_wall_back_left",
+        "ext_wall_back_right",
     };
     CheckSameList("MOVELOG_FRAME_EXT_COLUMNS", ext, expectedExt);
 

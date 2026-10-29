@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // where they are), and the logger's centroid ray for the trigger features.
 
 #include "humanbot_internal.h"
+#include "movement_telemetry.h"
 #include "weapon.h"
 
 #include <cmath>
@@ -46,10 +47,9 @@ static const float CLEARANCE_RANGE  = 128.0f;  // the logger's clearance probe
 static const float CLEARANCE_LIFT   = 2.0f;
 static const float DROP_PROBE_AHEAD = 32.0f;
 static const float DROP_PROBE_DEPTH = 320.0f;
-// The wall probe (wallClear) looks this far for a wall the player cannot step over, stepping up at most this many
-// times: the wall reflex reaches 76 u at a run (300 ms), the wall steer 32 u.
+// The wall probe (wallClear, G_WallClearance: the logger's ext_wall_*) looks this far for a wall the player cannot
+// step over: the wall reflex reaches 76 u at a run (300 ms), the wall steer 32 u.
 static const float WALL_PROBE_REACH = 96.0f;
-static const int   WALL_PROBE_STEPS = 4;
 
 cvar_t *g_humanbot_step_walls;
 
@@ -256,50 +256,12 @@ static void ChordDirection(int chord, float viewYaw, Vector& dir)
     dir.normalize();
 }
 
-// How far the box goes in a direction stepping up what the player steps up (STEPSIZE, as PM_StepSlideMove does), from
-// `lifted`, the box raised STEPSIZE above the origin: a curb, a stair or rubble is no wall to someone walking. A wall
-// stops the raised box where it stopped the box on the floor (`footClear`); a staircase is climbed a step at a time.
-static float StepClearance(Player *player, const Vector& dir, const Vector& lifted, float footClear, int mask)
-{
-    Vector pos  = lifted;
-    float  left = CLEARANCE_RANGE;
-    for (int k = 0; k < WALL_PROBE_STEPS; k++) {
-        const trace_t fw = G_Trace(pos, player->mins, player->maxs, pos + dir * left, player, mask, qfalse, "HumanBot wall");
-        if (fw.startsolid) {
-            break;
-        }
-        const float d = fw.fraction * left;
-        left -= d;
-        if (fw.fraction >= 1.0f) {
-            return CLEARANCE_RANGE;
-        }
-        if (d < 1.0f || (k == 0 && std::fabs(d - footClear) < 1.0f)) {
-            break;   // a wall even stepped up
-        }
-        // onto the step, and up again
-        const Vector  stop = fw.endpos;
-        const trace_t dn   = G_Trace(stop, player->mins, player->maxs, stop - Vector(0, 0, STEPSIZE), player, mask, qfalse, "HumanBot wall");
-        const Vector  base = dn.startsolid ? stop : Vector(dn.endpos);
-        const trace_t up   = G_Trace(base, player->mins, player->maxs, base + Vector(0, 0, STEPSIZE), player, mask, qfalse, "HumanBot wall");
-        if (up.startsolid || up.endpos[2] - base.z < 1.0f) {
-            break;   // no room to step up
-        }
-        pos = up.endpos;
-    }
-    return CLEARANCE_RANGE - left;
-}
-
 void HB_FillClearance(Player *player, float viewYaw, float clearance[hb::NUM_CHORDS], float drop[hb::NUM_CHORDS], int dropPhase,
                       float wallClear[hb::NUM_CHORDS])
 {
     const int worldMask = MASK_PLAYERSOLID & ~CONTENTS_BODY & ~CONTENTS_TRIGGER;
     const bool stepWalls = !g_humanbot_step_walls || g_humanbot_step_walls->integer;
-    Vector     lifted    = player->origin;
-    if (stepWalls) {
-        const trace_t up = G_Trace(player->origin, player->mins, player->maxs, player->origin + Vector(0, 0, STEPSIZE), player,
-                                   worldMask, qfalse, "HumanBot wall");
-        lifted = up.startsolid ? player->origin : Vector(up.endpos);
-    }
+    const Vector lifted  = stepWalls ? G_WallProbeStart(player) : player->origin;
     for (int c = 0; c < hb::NUM_CHORDS; c++) {
         if (c == hb::CHORD_NEUTRAL) {
             clearance[c] = CLEARANCE_RANGE;
@@ -319,7 +281,7 @@ void HB_FillClearance(Player *player, float viewYaw, float clearance[hb::NUM_CHO
         clearance[c] = tr.startsolid ? 0.0f : tr.fraction * CLEARANCE_RANGE;
         wallClear[c] = clearance[c];
         if (stepWalls && clearance[c] < WALL_PROBE_REACH) {
-            wallClear[c] = std::max(clearance[c], StepClearance(player, dir, lifted, clearance[c], worldMask));
+            wallClear[c] = G_WallClearance(player, lifted, dir, clearance[c], CLEARANCE_RANGE);
         }
         if (dropPhase < 0 || (c & 1) != dropPhase) {
             continue;

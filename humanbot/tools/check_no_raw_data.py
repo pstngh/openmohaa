@@ -8,9 +8,9 @@ Checks every git-tracked file and every untracked file that is not git-ignored:
     no other archive (.tar .tgz .gz .bz2 .xz .zst .7z .rar); raw CSV exists only inside
     capture ZIPs.
  2. capture ZIPs: only directly in humanbot/captures/, each <= 25 MiB, named
-    DATE_<players>_bot-eval_schema13_<sha12>.zip where sha12 starts the SHA-256 of its first
+    DATE_<players>_bot-eval_schema14_<sha12>.zip where sha12 starts the SHA-256 of its first
     frames CSV, listed with its checksum in humanbot/captures/SHA256SUMS, holding logger
-    triplets only, with the schema-13 frames and events headers, metadata at schema 13, and
+    triplets only, with the schema-14 frames and events headers, metadata at schema 14, and
     bot rows in every session.
  3. JSON under humanbot/: no per-person keys (person, alias, by_person, by_alias, by_player,
     by_name, by_raw_alias..., style_distance, nearest_style) and no name lists (names,

@@ -77,8 +77,11 @@ def tearDownModule():
 class TestSchema(unittest.TestCase):
     def test_columns_follow_the_cpp_contract(self):
         c = cio.columns()
-        self.assertEqual(c.schema, 13)
+        self.assertEqual(c.schema, cio.SCHEMA)
+        self.assertEqual(c.schema, 14)
         self.assertEqual(len(c.core), 133)
+        self.assertEqual(len(c.ext), 16)
+        self.assertIn("ext_wall_front", c.ext)
         self.assertEqual(len(c.events), 49)
         self.assertTrue(all(x.startswith("ext_") for x in c.ext))
         self.assertTrue(all(x.startswith("bot_") for x in c.bot))
@@ -410,7 +413,7 @@ class TestPack(unittest.TestCase):
                             str(TMP / "pack_bad_out")], capture_output=True, text=True)
         self.assertEqual(p.returncode, 1)
         self.assertIn("REFUSED", p.stderr)
-        self.assertIn("schema-13 header", p.stderr)
+        self.assertIn(f"schema-{cio.SCHEMA} header", p.stderr)
         self.assertFalse((TMP / "pack_bad_out").exists())
         nobot = TMP / "pack_nobot"
         MF.write_triplet(nobot, "", [MF.SessionSpec("dm/main", 10, [MF.PlayerSpec(0, "pstN", False)], 1790000000)],
@@ -492,7 +495,7 @@ class TestPrivacyGuard(unittest.TestCase):
         nobot = TMP / "guard_nobot"
         paths = MF.write_triplet(nobot, "", [MF.SessionSpec("dm/main", 5, [MF.PlayerSpec(0, "pstN", False)], 1790000000)],
                                  hbeval.load_styles(), 4)
-        name = f"2026-10-04_pstN_bot-eval_schema13_{cio.sha256_hex(paths['frames'].read_bytes())[:12]}.zip"
+        name = f"2026-10-04_pstN_bot-eval_schema{cio.SCHEMA}_{cio.sha256_hex(paths['frames'].read_bytes())[:12]}.zip"
         with zipfile.ZipFile(cap / name, "w") as zf:
             for k, p in paths.items():
                 zf.write(p, p.name)

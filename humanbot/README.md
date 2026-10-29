@@ -121,7 +121,7 @@ All bots decide on the same snapshot of the world (`PrepareThink`) before any of
 |---|---|
 | `code/humanbot/` | The brain library. Engine-independent C++, used by the game module and the tests. `hb_embedded.cpp` is the model, generated. |
 | `code/fgame/humanbot_*.cpp` | Engine glue: adapter, perception traces, map world (priors, navmesh, visibility cache), eye, presentation, console commands. |
-| `code/fgame/movement_telemetry*` | The telemetry logger (`g_movelog`, schema 13), including one `bot_*` column per brain diagnostic (`hb_diag.h`). |
+| `code/fgame/movement_telemetry*` | The telemetry logger (`g_movelog`, schema 14), including one `bot_*` column per brain diagnostic (`hb_diag.h`). |
 | `code/tests/humanbot/` | Unit tests; `hb_replay`, the brain on recorded human traces; `hb_arena`, bots in closed loop on the real Pmove, with `arena_metrics.h` computing the evaluation's statistics. |
 | `code/tests/pmove/` | `pm_harness`: the real `Pmove()` in a box world, as the server runs it. |
 | `humanbot/fit/` | Fitting scripts. They need the private recordings; `run_fits.sh` runs them all. `calibrate.py` does the closed-loop calibration. |

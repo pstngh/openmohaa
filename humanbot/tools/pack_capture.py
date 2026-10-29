@@ -15,7 +15,7 @@ while a triplet is refused unless --skip-refused is given. Sessions without bot 
 dropped (a bot-eval capture must hold bot rows in every session).
 
 The sessions are packed in capture order into ZIPs of at most 25 MiB, each named
-DATE_pstN_bot-eval_schema13_<sha12>.zip, where sha12 is the first 12 hex digits of the
+DATE_pstN_bot-eval_schema14_<sha12>.zip, where sha12 is the first 12 hex digits of the
 SHA-256 of the first frames CSV in that ZIP. A ZIP holds one or more triplets under their
 original relative names, restricted to its sessions (headers kept). A session never spans
 two ZIPs unless it alone exceeds the limit; its frames and events are then split by time,

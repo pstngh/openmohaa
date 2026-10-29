@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string>
 
 // Written to every row and to the metadata.
-inline constexpr int MOVELOG_SCHEMA = 13;
+inline constexpr int MOVELOG_SCHEMA = 14;
 
 inline constexpr const char *MOVELOG_FRAME_CORE_COLUMNS[] = {
     // 0: sample identity and player state
@@ -92,6 +92,10 @@ inline constexpr const char *MOVELOG_FRAME_EXT_COLUMNS[] = {
     "ext_eye_ofs_z",
     "ext_vis_parts",  // G_HumanBotObserveParts toward the logged opponent (0 without one)
     "ext_in_fov",
+    // schema 14: the clear_* directions probed for a wall the player cannot step over (G_WallClearance: the box steps
+    // up curbs, stairs and rubble as PM_StepSlideMove does), so a fit can tell how people's keys answer a real wall
+    "ext_wall_front", "ext_wall_back", "ext_wall_left", "ext_wall_right", "ext_wall_front_left", "ext_wall_front_right",
+    "ext_wall_back_left", "ext_wall_back_right",
 };
 
 inline constexpr const char *MOVELOG_FRAME_BOT_COLUMNS[] = {
@@ -134,7 +138,7 @@ inline constexpr std::size_t MOVELOG_FRAME_COLUMN_COUNT =
 inline constexpr std::size_t MOVELOG_EVENT_COLUMN_COUNT = MoveLogArrayCount(MOVELOG_EVENT_COLUMNS);
 
 static_assert(MOVELOG_FRAME_CORE_COLUMN_COUNT == 133, "the core frame columns are the lab logger's 133");
-static_assert(MOVELOG_FRAME_EXT_COLUMN_COUNT == 8, "ext frame columns changed: bump MOVELOG_SCHEMA");
+static_assert(MOVELOG_FRAME_EXT_COLUMN_COUNT == 16, "ext frame columns changed: bump MOVELOG_SCHEMA");
 static_assert(
     MOVELOG_FRAME_BOT_COLUMN_COUNT == static_cast<std::size_t>(hb::DIAG_COLUMN_COUNT),
     "one bot_* column per HB_DIAG_FIELDS entry"

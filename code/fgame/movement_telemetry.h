@@ -57,5 +57,13 @@ void G_MoveLogClientDisconnect(Player *player);
 void G_MoveLogChat(Player *player, int mode, const char *message);
 void G_MoveLogBotEvent(const char *eventName, Player *actor, Entity *target, int eventDetail, const Vector& position);
 
+// The wall probe of the ext_wall_* columns, shared with the human bots (g_humanbot_step_walls): how far the player's box
+// goes in `direction` (flat, unit length) stepping up what the player steps up (STEPSIZE, as PM_StepSlideMove does: a
+// curb, a stair or rubble is no wall to someone walking), at most `range`. `footClear` is the box's clearance from the
+// feet in that direction (the clear_* probe); `start` is G_WallProbeStart(player), the box raised STEPSIZE above the
+// origin, once per player and frame.
+Vector G_WallProbeStart(Player *player);
+float  G_WallClearance(Player *player, const Vector& start, const Vector& direction, float footClear, float range);
+
 // A "bot_style" event for `bot`: the style dials go in the chat_message column.
 void G_MoveLogBotStyle(Player *bot, const char *dials);

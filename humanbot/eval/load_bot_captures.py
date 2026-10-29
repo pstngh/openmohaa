@@ -3,7 +3,7 @@
 
 Usage: load_bot_captures.py CACHE_DIR INPUT... [--date YYYY-MM-DD] [--movement-repo PATH]
 
-INPUT is a bot-eval ZIP (DATE_pstN_bot-eval_schema13_<sha12>.zip; one or more logger
+INPUT is a bot-eval ZIP (DATE_pstN_bot-eval_schema14_<sha12>.zip; one or more logger
 triplets inside, e.g. movement_frames.csv and segments/<epoch>_<ms>_movement_frames.csv),
 a directory of such ZIPs, or a logger output directory (telemetry/ with the main triplet
 and/or segments/). CACHE_DIR receives, in the format of openmohaa-movement's
@@ -103,7 +103,7 @@ def open_inputs(inputs, date: str | None = None) -> list:
         seen.add(z)
         m = cio.CAPTURE_RE.match(z.stem)
         if not m:
-            log(f"warning: {z.name} does not follow DATE_pstN_bot-eval_schema13_<sha12>.zip")
+            log(f"warning: {z.name} does not follow DATE_pstN_bot-eval_schema14_<sha12>.zip")
         zf = zipfile.ZipFile(z)
         trips, other, incomplete = cio.zip_triplets(zf)
         if incomplete:

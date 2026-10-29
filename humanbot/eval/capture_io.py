@@ -4,7 +4,7 @@ Logger output (code/fgame/movement_telemetry.cpp), relative to the game dir:
   telemetry/movement_frames.csv, movement_events.csv, movement_meta.txt      main triplet
   telemetry/segments/<epoch>_<ms>_movement_{frames,events}.csv, ..._meta.txt  bounded captures and
                                                                              rotated 1.5 GB segments
-A bot-eval ZIP (humanbot/captures/DATE_pstN_bot-eval_schema13_<sha12>.zip) holds one or more
+A bot-eval ZIP (humanbot/captures/DATE_pstN_bot-eval_schema14_<sha12>.zip) holds one or more
 triplets with the same relative names ("movement_frames.csv", "segments/<epoch>_<ms>_movement_frames.csv").
 
 The expected CSV headers are parsed from the C++ column contract
@@ -24,7 +24,7 @@ from pathlib import Path
 
 from hbeval import FORK_ROOT
 
-SCHEMA = 13
+SCHEMA = 14
 MAX_ZIP_BYTES = 25 * 1024 * 1024
 CAPTURE_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})_(?P<players>[^_]+)_bot-eval_schema(?P<schema>\d+)_(?P<sha>[0-9a-f]{12})$")
 MEMBER_RE = re.compile(r"^(?P<prefix>(?:[^/]*/)*(?:\d+_\d+_)?)movement_(?P<kind>frames|events|meta)\.(?P<ext>csv|txt)$")
@@ -93,7 +93,7 @@ def _c_default(ctype: str, literal: str):
 
 
 def check_frame_header(header: str, root: Path = FORK_ROOT) -> list:
-    """Problems that make `header` (first line of movement_frames.csv) not a schema-13 frame header."""
+    """Problems that make `header` (first line of movement_frames.csv) not a frame header of this build's schema."""
     cols = header.strip("\r\n").split(",")
     c = columns(root)
     if c.schema == SCHEMA:

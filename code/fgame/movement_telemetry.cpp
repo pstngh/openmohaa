@@ -629,7 +629,7 @@ static unsigned int UsercmdsSinceLastRow(Player *player)
     return accepted;
 }
 
-static void AppendExtColumns(std::ostringstream& row, Player *player, Player *opponent)
+static void AppendExtColumns(std::ostringstream& row, Player *player, Player *opponent, const float wallClear[8])
 {
     const Vector eyeOffset    = player->EyePosition() - player->origin;
     int          visibleParts = 0;
@@ -642,6 +642,9 @@ static void AppendExtColumns(std::ostringstream& row, Player *player, Player *op
     row << ',' << player->client->ps.ping << ',' << UsercmdsSinceLastRow(player) << ','
         << player->client->ps.fLeanAngle << ',' << eyeOffset.x << ',' << eyeOffset.y << ',' << eyeOffset.z << ','
         << visibleParts << ',' << inFov;
+    for (int i = 0; i < 8; i++) {
+        row << ',' << wallClear[i];
+    }
 }
 
 // HB_DIAG_FIELDS members are written as integers or with the row's fixed
@@ -1037,6 +1040,17 @@ static bool AppendFrame(Player *player)
     backLeft.normalize();
     backRight.normalize();
 
+    // the clear_* probes (from the feet) and the ext_wall_* ones (stepping up curbs and stairs), in the same order
+    const Vector probeDir[8] = {front, -front, -side, side, frontLeft, frontRight, backLeft, backRight};
+    float        footClear[8], wallClear[8];
+    const Vector wallStart = G_WallProbeStart(player);
+    for (int i = 0; i < 8; i++) {
+        footClear[i] = TraceClearance(player, probeDir[i]);
+        wallClear[i] = footClear[i] < MOVELOG_CLEARANCE_RANGE
+                         ? G_WallClearance(player, wallStart, probeDir[i], footClear[i], MOVELOG_CLEARANCE_RANGE)
+                         : MOVELOG_CLEARANCE_RANGE;
+    }
+
     Vector commandDirection = front * (float)command.forwardmove + side * (float)command.rightmove;
     commandDirection.z      = 0.0f;
 
@@ -1086,10 +1100,9 @@ static bool AppendFrame(Player *player)
         << selfApproach << ',' << selfTangential << ',' << opponentApproach << ',' << closingSpeed << ','
         << aim.pitchError << ',' << aim.yawError << ',' << aim.totalError << ',' << aim.dot << ',' << aim.closestMiss
         << ',' << aim.heightFraction << ',' << (aim.lineOfSight ? 1 : 0) << ',' << aim.crosshairEntity << ','
-        << aim.crosshairDistance << ',' << (aim.crosshairOnTarget ? 1 : 0) << ',' << TraceClearance(player, front) << ','
-        << TraceClearance(player, -front) << ',' << TraceClearance(player, -side) << ',' << TraceClearance(player, side)
-        << ',' << TraceClearance(player, frontLeft) << ',' << TraceClearance(player, frontRight) << ','
-        << TraceClearance(player, backLeft) << ',' << TraceClearance(player, backRight) << ','
+        << aim.crosshairDistance << ',' << (aim.crosshairOnTarget ? 1 : 0) << ',' << footClear[0] << ',' << footClear[1]
+        << ',' << footClear[2] << ',' << footClear[3] << ',' << footClear[4] << ',' << footClear[5] << ','
+        << footClear[6] << ',' << footClear[7] << ','
         << aim.sightBlockerEntity << ',' << aim.sightFraction << ',' << aim.sightDistance << ',' << aim.sightNormal.x
         << ',' << aim.sightNormal.y << ',' << aim.sightNormal.z;
 
@@ -1098,7 +1111,7 @@ static bool AppendFrame(Player *player)
     AppendClearanceColumns(row, clearToward);
     AppendClearanceColumns(row, clearAway);
     // MOVELOG_FRAME_EXT_COLUMNS, then the bot_* columns in HB_DIAG_FIELDS order.
-    AppendExtColumns(row, player, opponent);
+    AppendExtColumns(row, player, opponent, wallClear);
     AppendBotColumns(row, player);
     row << '\n';
 
@@ -1230,6 +1243,50 @@ static void G_MoveLogClientMarker(const char *eventName, Player *player)
 }
 
 } // namespace
+
+static const int WALL_PROBE_MASK  = MASK_PLAYERSOLID & ~CONTENTS_BODY & ~CONTENTS_TRIGGER;
+static const int WALL_PROBE_STEPS = 4;   // a staircase is climbed a step at a time, this many at most
+
+Vector G_WallProbeStart(Player *player)
+{
+    const trace_t up = G_Trace(player->origin, player->mins, player->maxs, player->origin + Vector(0, 0, STEPSIZE), player,
+                               WALL_PROBE_MASK, qfalse, "G_MoveLog wall");
+    return up.startsolid ? player->origin : Vector(up.endpos);
+}
+
+// A wall stops the raised box where it stopped the box on the floor (`footClear`).
+float G_WallClearance(Player *player, const Vector& start, const Vector& direction, float footClear, float range)
+{
+    Vector pos  = start;
+    float  left = range;
+    for (int k = 0; k < WALL_PROBE_STEPS; k++) {
+        const trace_t fw =
+            G_Trace(pos, player->mins, player->maxs, pos + direction * left, player, WALL_PROBE_MASK, qfalse, "G_MoveLog wall");
+        if (fw.startsolid) {
+            break;
+        }
+        const float d = fw.fraction * left;
+        left -= d;
+        if (fw.fraction >= 1.0f) {
+            return range;
+        }
+        if (d < 1.0f || (k == 0 && std::fabs(d - footClear) < 1.0f)) {
+            break;   // a wall even stepped up
+        }
+        // onto the step, and up again
+        const Vector  stop = fw.endpos;
+        const trace_t dn   = G_Trace(stop, player->mins, player->maxs, stop - Vector(0, 0, STEPSIZE), player, WALL_PROBE_MASK, qfalse,
+                                     "G_MoveLog wall");
+        const Vector  base = dn.startsolid ? stop : Vector(dn.endpos);
+        const trace_t up   = G_Trace(base, player->mins, player->maxs, base + Vector(0, 0, STEPSIZE), player, WALL_PROBE_MASK, qfalse,
+                                     "G_MoveLog wall");
+        if (up.startsolid || up.endpos[2] - base.z < 1.0f) {
+            break;   // no room to step up
+        }
+        pos = up.endpos;
+    }
+    return std::max(footClear, range - left);
+}
 
 void G_MoveLogFrame()
 {

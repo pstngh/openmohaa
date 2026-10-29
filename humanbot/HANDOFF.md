@@ -32,7 +32,7 @@ procedure.
 ## State
 
 Built and pushed:
-- the telemetry logger (`g_movelog`, schema 13);
+- the telemetry logger (`g_movelog`, schema 14 since 2026-10-29: `ext_wall_*`; 13 before);
 - the brain library (`code/humanbot`) and the engine glue (`code/fgame/humanbot_*.cpp`);
 - fitting and calibration (`humanbot/fit`) and evaluation (`humanbot/eval`);
 - test harnesses: `hb_replay` (recorded traces), `hb_arena` (closed loop on the real Pmove),
@@ -2647,6 +2647,16 @@ logger's probe cannot tell a curb from a wall (people "touch" something in their
 travel on dm/mohdm6 and are slowed 4.5%), so the fitted wall terms barely react; a step-aware wall clearance in the
 telemetry (a schema change) would let a fresh recording fit it. And in the travel view the route pull keeps flipping
 the keys near walls (1.03 with the reflex off).
+
+**Schema 14: the real walls in the telemetry** (the owner: "Yes, add it"). Eight frame columns after `ext_in_fov`,
+`ext_wall_front` ... `ext_wall_back_right` in the `clear_*` order and directions: how far the box goes stepping up what
+the player steps up (`G_WallClearance` in `movement_telemetry.cpp`: up STEPSIZE, forward, down onto the step, up to four
+steps for a staircase; at least the `clear_*` value, 128 at most), the same probe the bots' `g_humanbot_step_walls`
+uses. In a bot game on dm/mohdm6 something lay within 32 u ahead 65% of the time by `clear_front`, a real wall 60% by
+`ext_wall_front` (a curb or stair read as a wall 5% of the time); no extra hitches. The bot repo's tools take schema 14
+(`capture_io.SCHEMA`, bot-eval ZIPs named `..._schema14_...`). The data repo's loader has to learn the columns and the
+schema, with `g_aastrafe` and `g_movelog_no_bots` in the metadata, before the first schema-14 capture goes in (a
+data-repo session's job). With people's keys and these columns a fit can say how people answer a real wall.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

@@ -9,7 +9,7 @@ point estimates against perception_all.json.
 Two visibility columns:
   * "rebuilt" (people): the column the data repo's unchanged vis_parts.py rebuilds from the practice-map geometry
     (<cache>/vis_parts.parquet, accepted in <results>/vis_parts.json), with its key-modelled leaned eye and lean;
-  * "logged" (bots, schema 13): what the logger recorded, ext_vis_parts from the leaned eye origin + ext_eye_ofs,
+  * "logged" (bots, schema 13 on): what the logger recorded, ext_vis_parts from the leaned eye origin + ext_eye_ofs,
     and ext_lean_angle. For a bot that is exactly its own perception. It is the column the people's rebuild was
     accepted against on 2026-09-28 (vis_parts_acceptance.md). The rebuild itself is not used on bot captures:
     there it fails the same acceptance test (its onsets come early; the bots' eyes are not the people's).

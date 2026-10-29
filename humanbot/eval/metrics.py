@@ -22,7 +22,7 @@ interpolation when weights are 1) and custom (occupancy concentration per map).
 prepare(cache, results, moh_dir) -> MetricData; summarize(data, block_mask, ...) -> {metric: stats};
 the "perception.*" statistics (perception.py: pre-aim, corners and reaction from the first visible body
 part) are added when moh_dir has the practice maps, on the data repo's rebuilt body-part column when the cache
-has an accepted one (people), else on the logged one (bot captures, schema 13);
+has an accepted one (people), else on the logged one (bot captures, schema 13 on);
 dials(data, persons) -> realised style dials (humanbot/fit/fit_styles.py definitions);
 validate(stats of every block, results dir) -> [(metric, ours, script's)].
 
