@@ -53,7 +53,9 @@ struct MoveInput {
     bool  travelling     = false;   // going somewhere (hunting, out of the spawn), not after an enemy just lost
     bool  travelView     = false;   // the view leads along the way (its travel mode): the pull x travelPull
     bool  nearView       = false;   // the view watches the side of an enemy believed near: the pull x nearPull
+    bool  mouseSteers    = false;   // the mouse steers along walls (ViewOutput::wallSteerFree): the reflex only when slowed
     float clearance[9]   = {128, 128, 128, 128, 128, 128, 128, 128, 128};
+    float wallClear[9]   = {-1, -1, -1, -1, -1, -1, -1, -1, -1};   // to a wall not stepped over; -1 = as clearance
     float drop[9]        = {};      // depth of a ledge in each chord direction (0 = none)
     float wallPressMs    = 0.0f;
     float velFwd         = 0.0f;    // own velocity in the view frame, units/s
@@ -105,6 +107,7 @@ public:
 
     // Chord direction in the view frame (degrees, + = left); 0 for neutral.
     static float ChordAngle(int chord);
+    bool         HeadingIntoWall(const MoveInput& in) const;
     // Chords a new key press may not go toward (walls closer than the veto clearance, ledges).
     int          VetoMask(const MoveInput& in) const;
     bool         WallAhead(const MoveInput& in, int chord) const;

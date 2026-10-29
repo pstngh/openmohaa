@@ -103,6 +103,53 @@ void ViewControl::Reset(const SelfState& self)
     m_doorLook       = false;
     m_near           = false;
     m_lookOwed       = false;
+    m_wallSteer      = 0.0f;
+}
+
+// The probes look in the eight chord directions off the current view (wallClear: walls the player cannot step over); a
+// direction between two is read off them linearly. Turning the view by d turns the held keys' direction by d.
+float ViewControl::WallSteer(const SelfState& self, const ViewInput& in, float baseYaw) const
+{
+    const ViewModel& p = *m_p;
+    if (p.wallSteerDeg <= 0.0f || in.heldChord == CHORD_NEUTRAL) {
+        return 0.0f;
+    }
+    float ang[NUM_CHORDS], clear[NUM_CHORDS];
+    int   n = 0;
+    for (int c = 0; c < NUM_CHORDS; c++) {
+        if (c == CHORD_NEUTRAL) {
+            continue;
+        }
+        ang[n]   = std::atan2(static_cast<float>(-ChordSide(c)), static_cast<float>(ChordFwd(c))) * RAD2DEG;
+        clear[n] = self.wallClear[c] >= 0.0f ? self.wallClear[c] : self.clearance[c];
+        n++;
+    }
+    auto clearAt = [&](float rel) {
+        float best1 = 1e9f, best2 = 1e9f, c1 = 0.0f, c2 = 0.0f;
+        for (int i = 0; i < n; i++) {
+            const float d = std::fabs(Wrap180(rel - ang[i]));
+            if (d < best1) {
+                best2 = best1, c2 = c1, best1 = d, c1 = clear[i];
+            } else if (d < best2) {
+                best2 = d, c2 = clear[i];
+            }
+        }
+        const float w = best1 + best2 > 0.0f ? best2 / (best1 + best2) : 1.0f;
+        return w * c1 + (1.0f - w) * c2;
+    };
+    const float chord = std::atan2(static_cast<float>(-ChordSide(in.heldChord)), static_cast<float>(ChordFwd(in.heldChord))) * RAD2DEG;
+    const float need  = self.velocity.lengthXY() * p.wallSteerMs * 0.001f + 4.0f;
+    const float base  = Wrap180(baseYaw + chord - self.viewYaw);
+    if (clearAt(base) >= need) {
+        return 0.0f;
+    }
+    for (float d = 15.0f; d <= p.wallSteerDeg + 0.01f; d += 15.0f) {
+        const float l = clearAt(base + d), r = clearAt(base - d);
+        if (l >= need || r >= need) {
+            return l >= r ? d : -d;
+        }
+    }
+    return 0.0f;   // a corner: no turn helps (the keys' reflex lets go)
 }
 
 // The crosshair's place for a corner: the corner's direction moved onto the cover side and below, like people.
@@ -662,7 +709,15 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     const Vec3  d      = aim - eye;
     const float dist   = std::max(1.0f, d.length());
     const float dxy2   = std::max(1.0f, d.x * d.x + d.y * d.y);
-    const float tYaw   = YawOf(d);
+    // out of sight, not firing, with the view not on a corner or an angle, the mouse steers the keys along walls
+    const bool  steer  = !in.track && !in.firing && (m_lookMode == VIEW_TRAVEL || m_lookMode == VIEW_BELIEF || m_lookMode == VIEW_SOUND
+                                                       || m_lookMode == VIEW_LOOKAROUND);
+    const float want   = steer ? WallSteer(self, in, YawOf(d)) : 0.0f;
+    out.wallSteer      = m_wallSteer;
+    out.wallSteerFree  = p.wallSteerDeg > 0.0f && !in.track && !in.firing
+                        && (steer || m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_HOLD);
+    m_wallSteer += Clamp(want - m_wallSteer, -p.wallSteerRate, p.wallSteerRate);
+    const float tYaw   = m_wallSteer != 0.0f ? Wrap180(YawOf(d) + m_wallSteer) : YawOf(d);
     // The recorded aim heights are measured from the unleaned eye (a lean lowers the camera by up
     // to 7 u), so the pitch aims from there; the yaw aims from the camera like people do.
     const Vec3  dp     = self.aimEyeValid ? aim - self.aimEye : d;

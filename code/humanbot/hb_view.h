@@ -63,6 +63,7 @@ struct ViewInput {
     bool  travelling  = false; // hunting or out of the spawn, with a way to go
     bool  aheadValid  = false; // the point travelLead ahead on the way:
     Vec3  ahead;
+    int   heldChord   = CHORD_NEUTRAL;  // the keys held now (last tick's): the mouse steers them along walls
     bool  doorValid   = false; // a closed door across the way ahead (where the way meets it): the view turns to it
     Vec3  door;                //   to open it, whenever the bot has a way to go
     const std::vector<SoundObs>  *sounds = nullptr;
@@ -96,6 +97,10 @@ struct ViewOutput {
     float imminence   = 0.0f;   // belief mass expected to come out at a corner soon (exp(-eta / horizon))
     bool  travel      = false;  // the view leads along the way (travel mode)
     bool  near        = false;  // the enemy believed near: the view watches his side (ViewModel::travelFar)
+    float wallSteer     = 0.0f;   // the view's turn off its aim to steer along a wall (deg, + = left)
+    bool  wallSteerFree = false;  // out of sight, not firing, the view leading the way, watching the believed enemy, turned
+                                  //   to a sound, looking around, on a corner or an angle (ViewModel::wallSteer*): the keys
+                                  //   stay at walls unless slowed, and the mouse steers along them in the first four
 };
 
 class ViewControl
@@ -128,10 +133,13 @@ private:
     // The exposure whose corner lies nearest the direction yaw, within maxDeg, by mass (-1: none).
     int   CornerNearYaw(const SelfState& self, const ViewInput& in, float yaw, float maxDeg) const;
     void  LookAround(const SelfState& self, Rng& rng);
+    // The turn off baseYaw that steers the held keys along a wall (ViewModel::wallSteer*; 0: none needed or none helps).
+    float WallSteer(const SelfState& self, const ViewInput& in, float baseYaw) const;
     void  StartFlick(float errYaw, float errPitch, float gainMedian, float gainSigma, Rng& rng);
     float NoiseStep(const NoiseModel& nm, float dist, float& state, float scale, Rng& rng);
 
     const ViewModel *m_p = nullptr;
+    float m_wallSteer   = 0.0f;   // the view's turn off its target to steer along a wall (deg, + = left)
 
     // controller state (degrees per tick)
     float m_rate      = 0.0f;

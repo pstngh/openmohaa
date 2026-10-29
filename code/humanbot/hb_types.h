@@ -156,6 +156,8 @@ struct SelfState {
     int   pistolAmmo    = 0;      // rounds left for the pistol (clip + reserve), held or not
     bool  switching     = false;  // weapon change in progress
     float clearance[9]  = {128, 128, 128, 128, 128, 128, 128, 128, 128};  // per chord direction, <= 128
+    // the same to a wall the player cannot step over (a curb, a stair or rubble is none); -1 = as clearance
+    float wallClear[9]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
     float drop[9]       = {};     // floor drop 32 u ahead per chord direction (0 = level)
     bool  navSteerValid = false;  // navmesh steering toward the last nav target
     float navSteerYaw   = 0.0f;   // world yaw of the next path corner

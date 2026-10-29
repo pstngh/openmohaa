@@ -2595,6 +2595,59 @@ the Thompson: strafe 171.9, back 152.7, forward and strafe 222.7, forward 240).
   PASS (stuck 0, kbd 0, pressure 0.40 a bot-minute, think 70-90 us), 33 kills, no falls to death. Backup of `26041009`
   first (VPS `*.26041009`, workstation `/home/plex/openmohaa-bots-12404-backup/26041009/`).
 
+## The zigzag at walls (2026-10-29): measured, the fixes tried left off
+
+The owner: "I wanna keep improving the bots now", then "Yes, build it" to steering along walls with the mouse. The code
+is in, every switch off by default (the arena's 512 statistics at seed 3 equal the build before; git-ignored scripts in
+`humanbot/cache/move_wip/s25/`: `zig*.py`, `diagview.py`, `queue_*.sh`; bot against bot, seeds 201-208, 300 s at
+timescale 10, `g_aastrafe` 1, people at the old strafe speed).
+
+**What a player sees.** With the enemy out of sight the bots tap strafe and let go of forward about twice as often as
+people: on dm/mohdm6 1.1 strafe starts a second at every distance (people 0.5-0.6) and forward let go 0.5-0.8 (people
+0.16-0.45, falling with the distance); they hold a forward diagonal 30% of their hidden travel (people 45%), a plain
+strafe 28% (20%), and are pressed and slowed against a wall 11% of it (4.5%). dm/brownffa and dm/flag show the same.
+
+**Why.** Both are as near walls (on dm/mohdm6 something within 32 u ahead 58-60% of hidden travel, a side wall within
+32 u 66-67%: the logger's probe is a box from the feet, so curbs, stairs and rubble count), but near walls the bots
+change keys 2.5 times as often (strafe starts 1.31 vs 0.53 a second), in the open 1.3 times (0.78 vs 0.58). One part
+off at a time on dm/mohdm6: the wall reflex off brings the open to people's (0.60) and near walls to 0.80, but pressed
+against walls 11% -> 16%; the route pull at its base (`travel_pull` 1, `nav_far_mult` 1) changes nothing; the wall
+steer off a little (1.10). By the view mode, without the reflex every mode but the travel view comes near people's
+(0.67-0.76); the travel view stays at 1.03. Where the bots look matches people (the way a median 21-31 deg off the
+view, people 24-27) except within 500 u on dm/mohdm6 (57 deg vs 27: the belief view, 51% there). A steady forward
+diagonal moves 40.4 deg off the view for both; people then turn the view away from the strafe side at 16-36 deg/s (they
+keep it on a point).
+
+**Tried** (strafe starts a second with a wall within 32 u ahead; pressed against a wall in brackets):
+
+| | people | before | A | B | C | D | E |
+|---|---|---|---|---|---|---|---|
+| dm/mohdm6 | 0.53 (4.5%) | 1.24 (11.1%) | 1.23 (11.1%) | 0.99 (10.6%) | 0.87 (10.1%) | 1.12 (10.3%) | 1.13 (10.0%) |
+| dm/brownffa | 0.80 (1.6%) | 1.52 (1.8%) | 1.54 (1.9%) | 1.62 (3.1%) | 1.29 (4.2%) | 1.69 (2.5%) | 1.69 (2.7%) |
+| dm/flag | 0.88 (1.2%) | 1.11 (0.9%) | 1.12 (1.0%) | 1.33 (1.7%) | 1.07 (2.8%) | 1.38 (1.3%) | 1.41 (1.5%) |
+
+- A: a probe that steps up curbs and stairs (STEPSIZE, a staircase a step at a time) for the hand-made wall rules
+  (reflex, veto, wall steer; `g_humanbot_step_walls 1`, `HB_FillClearance` `wallClear`). The fitted wall terms keep
+  the logger's probe.
+- B: the mouse steers along walls (`view.tuning.wall_steer_deg` 45, `wall_steer_rate` 6, `wall_steer_ms` 300: out of
+  sight with the view leading the way, on the believed enemy, a sound or a look-around, the least turn in 15 deg
+  steps that clears the held keys' wall), the key reflex standing back there unless the wall slows the bot, and out of
+  sight the reflex's reach 100 ms (`movement.coupling.wall_reflex_hidden_ms`). The mouse steering alone did nothing
+  (1.23 on dm/mohdm6): the reflex lets go on the tick the wall comes within reach, before the view turns.
+- C: B, the keys also staying on a corner or an angle: near walls better everywhere, but pressed into walls on the
+  practice maps above people's, and the forward diagonal 27% on dm/brownffa (33% before, people 47%).
+- D: C, the reflex acting when the way the bot moves (its velocity) runs into a wall within 100 ms (`HeadingIntoWall`;
+  at 300 ms: 1.16 / 1.73 / 1.39).
+- E: D, the route pull judging the route against the view's aim without the wall turn (`ViewOutput::wallSteer`).
+  On dm/mohdm6 15 falls to death in 1539 kills (7 in 1679 before).
+- In the open every one of B-E brings the strafing down to about people's (dm/brownffa 0.89 -> 0.67-0.74, people 0.68).
+
+**What it needs.** The hand-made reflex should give way to a fitted one: how people's keys answer a real wall. The
+logger's probe cannot tell a curb from a wall (people "touch" something in their keys' direction 53% of their hidden
+travel on dm/mohdm6 and are slowed 4.5%), so the fitted wall terms barely react; a step-aware wall clearance in the
+telemetry (a schema change) would let a fresh recording fit it. And in the travel view the route pull keeps flipping
+the keys near walls (1.03 with the reflex off).
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

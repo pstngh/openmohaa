@@ -182,6 +182,8 @@ struct MovementModel {
     // wall) with this logit, and no new key presses into a wall the bot touches
     float wallReflexMs        = 0.0f;
     float wallReflexLogit     = 0.0f;
+    // the same reach out of sight (-1: wallReflexMs); there the mouse steers along walls first (ViewModel::wallSteer*)
+    float wallReflexHiddenMs  = -1.0f;
     // a key changes for the route only when that improves how the chord goes the route's way by more than this (cosine);
     // a smaller change the pull holds back
     float navDeadband         = 0.3f;
@@ -312,6 +314,15 @@ struct ViewModel {
     float travelFlickHazard  = 0.0f;
     float travelStillDeg     = 180.0f;
     float travelSmooth       = 1.0f;   // the led direction follows the point ahead with this weight per tick (1: at once)
+    // The mouse steers along walls (set by hand, 0 = off; tried on 2026-10-29 and left off, "The zigzag at walls" in
+    // HANDOFF.md). Out of sight, not firing, with the view leading the way, watching the believed enemy, turned to a
+    // sound or looking around (not on a corner or an angle): when the keys held would reach a wall within wallSteerMs at
+    // the current speed, the view turns the least, in 15 deg steps up to wallSteerDeg, that clears it, at most
+    // wallSteerRate deg a tick; and the wall reflex stands back there and on a corner or an angle unless the bot heads
+    // into the wall within the reflex reach or is slowed by it (MoveInput::mouseSteers).
+    float wallSteerDeg       = 0.0f;
+    float wallSteerRate      = 4.0f;
+    float wallSteerMs        = 300.0f;
     // The enemy believed near (a focused belief whose position lies within travelFar; out again past
     // NEAR_LEAVE x travelFar): the view does not lead along the way but watches his side, the corners coming up
     // weighing exp(-(d/nearSideDeg)^2) by the angle d between their direction and the believed position's

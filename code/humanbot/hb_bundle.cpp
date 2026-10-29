@@ -439,6 +439,7 @@ void ParseMovement(const json& j, MovementModel& m)
         m.wallPressureLogit = NumOr(c, "wall_pressure_logit", m.wallPressureLogit);
         m.wallReflexMs      = NumOr(c, "wall_reflex_ms", m.wallReflexMs);
         m.wallReflexLogit   = NumOr(c, "wall_reflex_logit", m.wallReflexLogit);
+        m.wallReflexHiddenMs = NumOr(c, "wall_reflex_hidden_ms", m.wallReflexHiddenMs);
         m.navDeadband       = NumOr(c, "nav_deadband", m.navDeadband);
         m.travelPull        = NumOr(c, "travel_pull", m.travelPull);
         m.nearPull          = NumOr(c, "near_pull", m.nearPull);
@@ -578,6 +579,9 @@ void ParseView(const json& j, ViewModel& v)
         v.travelFlickHazard = NumOr(t, "travel_flick_hazard", v.travelFlickHazard);
         v.travelStillDeg    = NumOr(t, "travel_still_deg", v.travelStillDeg);
         v.travelSmooth      = NumOr(t, "travel_smooth", v.travelSmooth);
+        v.wallSteerDeg      = NumOr(t, "wall_steer_deg", v.wallSteerDeg);
+        v.wallSteerRate     = NumOr(t, "wall_steer_rate", v.wallSteerRate);
+        v.wallSteerMs       = NumOr(t, "wall_steer_ms", v.wallSteerMs);
         v.travelFar         = NumOr(t, "travel_far", v.travelFar);
         v.nearSideDeg       = NumOr(t, "near_side_deg", v.nearSideDeg);
         v.soundBeliefCorner = NumOr(t, "sound_belief_corner", v.soundBeliefCorner);

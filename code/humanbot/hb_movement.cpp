@@ -42,6 +42,14 @@ static constexpr float UNSTICK_URGENCY  = 0.5f;
 static constexpr float VETO_LOGIT       = 4.0f;
 static constexpr float WALL_TOUCH       = 4.0f;    // units: the box is touching the wall (the wall reflex)
 
+// The clearance to a wall the player cannot step over, for the hand-made wall rules (the veto and the wall reflex), with
+// g_humanbot_step_walls (off by default; else the logger's probe, which a curb or a stair stops as a wall does). The
+// fitted wall terms keep the logger's probe: they were fitted on it.
+static float WallClear(const MoveInput& in, int chord)
+{
+    return in.wallClear[chord] >= 0.0f ? in.wallClear[chord] : in.clearance[chord];
+}
+
 static int Bit(int chord)
 {
     return 1 << chord;
@@ -150,11 +158,38 @@ int Mover::VetoMask(const MoveInput& in) const
     const bool  reflex = m_p->wallReflexMs > 0.0f && !ProbesBlind(in);
     const float touch  = reflex ? std::max(m_p->vetoClearance, WALL_TOUCH) : m_p->vetoClearance;
     for (int c = 0; c < NUM_CHORDS; c++) {
-        if (c != CHORD_NEUTRAL && in.clearance[c] < touch) {
+        if (c != CHORD_NEUTRAL && WallClear(in, c) < touch) {
             mask |= Bit(c);
         }
     }
     return mask;
+}
+
+// Whether the way the bot moves (its velocity, not its keys) runs into a wall within the reflex reach: head-on, where a
+// bot sliding along a wall moves clear of it whatever its keys press into. The eight probes are read linearly between.
+bool Mover::HeadingIntoWall(const MoveInput& in) const
+{
+    const float speed = std::hypot(in.velFwd, in.velRight);
+    if (speed < 50.0f) {
+        return false;
+    }
+    const float rel   = std::atan2(-in.velRight, in.velFwd) * RAD2DEG;   // + = left, as ChordAngle
+    float       best1 = 1e9f, best2 = 1e9f, c1 = 0.0f, c2 = 0.0f;
+    for (int c = 0; c < NUM_CHORDS; c++) {
+        if (c == CHORD_NEUTRAL) {
+            continue;
+        }
+        const float d = std::fabs(Wrap180(rel - ChordAngle(c)));
+        if (d < best1) {
+            best2 = best1, c2 = c1, best1 = d, c1 = WallClear(in, c);
+        } else if (d < best2) {
+            best2 = d, c2 = WallClear(in, c);
+        }
+    }
+    const float w  = best1 + best2 > 0.0f ? best2 / (best1 + best2) : 1.0f;
+    const bool  hidden = in.ctx == CTX_HIDDEN_NOFIRE || in.ctx == CTX_HIDDEN_FIRE;
+    const float ms = hidden && m_p->wallReflexHiddenMs >= 0.0f ? m_p->wallReflexHiddenMs : m_p->wallReflexMs;
+    return w * c1 + (1.0f - w) * c2 < speed * ms * 0.001f + WALL_TOUCH;
 }
 
 // The wall reflex. People see a wall coming and do not run into it; the key processes, fitted on
@@ -174,8 +209,10 @@ float Mover::WallMargin(const MoveInput& in, int chord) const
 {
     const float a     = ChordAngle(chord) * DEG2RAD;   // + = left
     const float v     = in.velFwd * std::cos(a) - in.velRight * std::sin(a);
-    const float reach = std::max(v, 0.0f) * m_p->wallReflexMs * 0.001f + WALL_TOUCH;
-    return in.clearance[chord] - reach;
+    const bool  hidden = in.ctx == CTX_HIDDEN_NOFIRE || in.ctx == CTX_HIDDEN_FIRE;
+    const float ms     = hidden && m_p->wallReflexHiddenMs >= 0.0f ? m_p->wallReflexHiddenMs : m_p->wallReflexMs;
+    const float reach  = std::max(v, 0.0f) * ms * 0.001f + WALL_TOUCH;
+    return WallClear(in, chord) - reach;
 }
 
 // What the wall reflex does this tick, from last tick's keys. Only the direction the bot goes counts: a
@@ -200,6 +237,11 @@ void Mover::Reflex(const MoveInput& in, int veto)
     m_reflexDiagFwd = false;
     m_slideSide     = 0;
     m_slideFwd      = false;
+    if (in.mouseSteers && in.wallPressMs <= 0.0f && !HeadingIntoWall(in)) {
+        // out of sight the keys stay at a wall the bot slides along, as people's do (the mouse steers along it where the
+        // view is free); head-on, or slowed by it, the reflex acts
+        return;
+    }
     if (!WallAhead(in, MakeChord(m_fwd, m_side))) {
         return;
     }

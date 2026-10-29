@@ -441,6 +441,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     vi.navYaw          = m_lookRouteValid ? m_lookRouteYaw : m_navOut.desiredYaw;
     vi.travelling      = vi.navValid && (m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH);
+    vi.heldChord       = m_mover.Chord();
     vi.doorValid       = vi.navValid && self.doorAheadValid;
     vi.door            = self.doorAhead;
     if (vi.travelling && S.view.travelLead > 0.0f && m_nav.PointAhead(self, S.view.travelLead, vi.ahead)) {
@@ -475,13 +476,17 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     mi.enemyReloading = detected && fe->reloading;
     mi.navValid       = m_navOut.valid;
-    mi.navBearing     = Wrap180(m_navOut.desiredYaw - self.viewYaw);
+    // the route off the view's aim: a turn of the mouse to glide along a wall is not the route turning (the keys would
+    // chase it back into the wall)
+    mi.navBearing     = Wrap180(m_navOut.desiredYaw - self.viewYaw + vo.wallSteer);
     mi.urgency        = m_navOut.urgency;
     mi.travelling     = m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH;
     mi.travelView     = vo.travel;
     mi.nearView       = vo.near;
+    mi.mouseSteers    = vo.wallSteerFree;
     for (int c = 0; c < NUM_CHORDS; c++) {
         mi.clearance[c] = self.clearance[c];
+        mi.wallClear[c] = self.wallClear[c];
         mi.drop[c]      = self.drop[c];
     }
     mi.wallPressMs = self.wallPressMs;

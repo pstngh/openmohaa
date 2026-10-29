@@ -50,6 +50,7 @@ class IPather;
 extern cvar_t *g_humanbot_substeps;
 extern cvar_t *g_humanbot_fov;
 extern cvar_t *g_humanbot_aspect;
+extern cvar_t *g_humanbot_step_walls;   // 1: the hand-made wall rules ignore what the player steps over
 extern cvar_t *g_humanbot_seed;
 extern cvar_t *g_humanbot_disguise;
 extern cvar_t *g_humanbot_model_dir;
@@ -125,7 +126,8 @@ void HB_FillSelf(Player *player, const HbView& view, hb::SelfState& self);
 // Clearance (the logger's box probe, up to 128 u) in the 8 chord directions relative to
 // the view yaw, and the depth of the floor just ahead for half of them (dropPhase 0 or
 // 1: odd or even chord indices; -1 none), so each direction is probed every other tick.
-void HB_FillClearance(Player *player, float viewYaw, float clearance[hb::NUM_CHORDS], float drop[hb::NUM_CHORDS], int dropPhase);
+void HB_FillClearance(Player *player, float viewYaw, float clearance[hb::NUM_CHORDS], float drop[hb::NUM_CHORDS], int dropPhase,
+                      float wallClear[hb::NUM_CHORDS]);
 
 //
 // Event buses (humanbot_adapter.cpp)

@@ -658,7 +658,7 @@ void HumanBotAdapter::Steering(Player *p, const hb::TickPlan& plan, const hb::Se
         if (dir.normalize() > 0.0f) {
             m_nCorners   = m_pather->GetCorners(m_corners, hb::MAX_NAV_CORNERS);
             m_steerValid = true;
-            m_steerYaw   = WallSteerYaw(dir.toYaw(), self.viewYaw, self.clearance);
+            m_steerYaw   = WallSteerYaw(dir.toYaw(), self.viewYaw, self.wallClear);
             m_doorValid  = DoorAhead(p, dir.toYaw(), m_door);
             m_pathLen    = (goal - p->origin).length();
             return;
@@ -969,7 +969,7 @@ bool HumanBotAdapter::DoorPass(Player *p, const HbView& view, const hb::SelfStat
     Vector      to     = m_passCenter + latch * (wait ? 0.0f : PASS_LATCH) + m_passNormal * along - p->origin;
     to.z               = 0.0f;
     plan.chord         = wait && to.length() < 12.0f ? hb::CHORD_NEUTRAL
-                                                     : ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.clearance);
+                                                     : ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.wallClear);
     plan.jump          = false;
     plan.crouch        = false;
     // Looking off the way through (at where the enemy is believed), lean toward the side the way goes, so the eye comes
@@ -1106,7 +1106,7 @@ bool HumanBotAdapter::DoorPocket(Player *p, const HbView& view, const hb::SelfSt
     Vector  goal = e->origin + u * (leaf + POCKET_PAST + 12.0f) + n * 8.0f;
     Vector  to   = goal - p->origin;
     to.z         = 0.0f;
-    plan.chord   = ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.clearance);
+    plan.chord   = ChordToward(AngleSubtract(to.toYaw(), view.yaw), self.wallClear);
     plan.jump    = false;
     plan.crouch  = false;
     return true;
@@ -1139,7 +1139,7 @@ void HumanBotAdapter::Prepare()
     const HbView view = HB_ViewOf(p);
     hb::RawInput raw;
     HB_FillSelf(p, view, raw.self);
-    HB_FillClearance(p, view.yaw, raw.self.clearance, m_drop, m_tick & 1);
+    HB_FillClearance(p, view.yaw, raw.self.clearance, m_drop, m_tick & 1, raw.self.wallClear);
     for (int c = 0; c < hb::NUM_CHORDS; c++) {
         raw.self.drop[c] = m_drop[c];
     }
@@ -1459,6 +1459,9 @@ void G_HumanBotInit(void)
     g_humanbot_families  = gi.Cvar_Get("g_humanbot_families", "", 0);
     g_humanbot_debug     = gi.Cvar_Get("g_humanbot_debug", "0", 0);
     g_humanbot_wall_steer = gi.Cvar_Get("g_humanbot_wall_steer", "0.5", 0);
+    // 1: the wall reflex, the key veto and the wall steer see only walls the player cannot step over (0: every curb too,
+    // as the logger's probe; off: on dm/mohdm6 it cut the key changes near walls by 6% only, "The zigzag at walls")
+    g_humanbot_step_walls = gi.Cvar_Get("g_humanbot_step_walls", "0", 0);
     g_humanbot_skill     = gi.Cvar_Get("g_humanbot_skill", "0", 0);
     g_humanbot_door_ahead = gi.Cvar_Get("g_humanbot_door_ahead", "128", 0);
     g_humanbot_door_hold  = gi.Cvar_Get("g_humanbot_door_hold", "48", 0);
