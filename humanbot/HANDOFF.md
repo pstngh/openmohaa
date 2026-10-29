@@ -92,8 +92,11 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `f967d130` with the
-  bots-new engine since 13:34 UTC. Four bots named by style, all axis, on dm/mohdm6 (the bot block marked 2026-10-29 in
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `4892b2d4` with the
+  bots-new engine since 14:54 UTC (`f967d130` from 13:34, kept as `game.so.prev-f967d130`, config
+  `server_opm.cfg.bak-f967d130`). It records only with no bot in the game (`g_movelog_no_bots 1`, the owner: "can you
+  make it so that telemetry ONLY records when no bots are loaded. cause i will turn off bots when I do 1v1s"): `rcon
+  sv_numbots 0` before a recorded 1v1, `rcon sv_numbots 4` after; a restart brings the four bots back. Four bots named by style, all axis, on dm/mohdm6 (the bot block marked 2026-10-29 in
   `main/server_opm.cfg`). `g_aastrafe` 1, the owner's password, recording on. `fs_homepath ~/.local/share/openmohaa` in the
   unit keeps the data folder (`zz_aa_weapons.pk3`, the telemetry) where the old engine had it. The unit's
   `telemetry-reset.conf` deletes the telemetry on every start, so copy recordings out before a restart. The unit
