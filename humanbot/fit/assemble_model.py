@@ -181,6 +181,15 @@ def build():
                        # a minute there)
                        "travel_lead": 200.0, "travel_imminence": 0.2, "travel_flick_deg": 45.0, "travel_flick_hazard": 0.15,
                        "travel_still_deg": 20.0, "travel_smooth": 0.25,
+                       # set on captures of dm/mohdm6, dm/brownffa and dm/flag (2026-10-29, "The view's big turns" in
+                       # HANDOFF.md): out of sight, with the view on the way, a corner, the believed enemy or an angle, a
+                       # jump of its target by more than 75 deg is turned to once the new target has stayed within 30 deg
+                       # for 600 ms, in one turn, the view keeping its aim meanwhile (three holds at most). The bots' route
+                       # goal jumped 29-47 times a minute and the target with it; their turns of 90 deg or more came back
+                       # within 1.5 s 44-48% of the time (people 14-30%). Now quick turns of 10 deg or more 37-42 a minute
+                       # on dm/brownffa and dm/flag (46-55 before, people 37-38), 51 on dm/mohdm6 (57, people 31); 400 ms
+                       # did half as much, and holding only the snap (the controller chasing meanwhile) split each turn
+                       "big_turn_deg": 75.0, "big_turn_hold_ms": 600.0,
                        # set on practice-map captures and the owner's game on dm/flag (2026-10-05, "Watching his side" in
                        # HANDOFF.md): the way is led only with the enemy believed further than 800 u (a focused belief;
                        # back past 920). Nearer, people watch his side whichever way they go (within 600 u their view is

@@ -104,6 +104,10 @@ void ViewControl::Reset(const SelfState& self)
     m_near           = false;
     m_lookOwed       = false;
     m_wallSteer      = 0.0f;
+    m_steadyYaw      = self.viewYaw;
+    m_steadyMs       = 0.0f;
+    m_heldYaw        = self.viewYaw;
+    m_waitMs         = 0.0f;
 }
 
 // The probes look in the eight chord directions off the current view (wallClear: walls the player cannot step over); a
@@ -717,7 +721,29 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
     out.wallSteerFree  = p.wallSteerDeg > 0.0f && !in.track && !in.firing
                         && (steer || m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_HOLD);
     m_wallSteer += Clamp(want - m_wallSteer, -p.wallSteerRate, p.wallSteerRate);
-    const float tYaw   = m_wallSteer != 0.0f ? Wrap180(YawOf(d) + m_wallSteer) : YawOf(d);
+    const float lookYaw = m_wallSteer != 0.0f ? Wrap180(YawOf(d) + m_wallSteer) : YawOf(d);
+    // a big jump of the target out of sight is turned to once the new target has stayed put (ViewModel::bigTurnHoldMs);
+    // meanwhile the view keeps aiming where it did, and after three holds it gives in
+    const bool holdable = !in.track && (m_lookMode == VIEW_TRAVEL || m_lookMode == VIEW_PREAIM || m_lookMode == VIEW_BELIEF
+                                         || m_lookMode == VIEW_HOLD);
+    if (holdable && std::fabs(Wrap180(lookYaw - m_steadyYaw)) <= 30.0f) {
+        m_steadyMs += TICK_MS;
+    } else {
+        m_steadyYaw = lookYaw;
+        m_steadyMs  = 0.0f;
+    }
+    bool bigWait      = false;
+    bool bigWaitEnded = false;
+    if (holdable && p.bigTurnHoldMs > 0.0f && std::fabs(Wrap180(lookYaw - m_heldYaw)) > p.bigTurnDeg
+        && m_steadyMs < p.bigTurnHoldMs && m_waitMs < 3.0f * p.bigTurnHoldMs) {
+        bigWait = true;
+        m_waitMs += TICK_MS;
+    } else {
+        bigWaitEnded = m_waitMs > 0.0f;
+        m_heldYaw    = lookYaw;
+        m_waitMs     = 0.0f;
+    }
+    const float tYaw   = bigWait ? m_heldYaw : lookYaw;
     // The recorded aim heights are measured from the unleaned eye (a lean lowers the camera by up
     // to 7 u), so the pitch aims from there; the yaw aims from the camera like people do.
     const Vec3  dp     = self.aimEyeValid ? aim - self.aimEye : d;
@@ -796,6 +822,9 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         m_lookOwed = false;
     } else if (newLook && p.lookChain > 0.5f && (m_flick.active || m_refractory > 0)) {
         m_lookOwed = true;
+    }
+    if (bigWaitEnded) {
+        m_lookOwed = true;   // the target held still: turn to it in one go
     }
     if (!m_flick.active && m_refractory == 0) {
         const bool owed = m_lookOwed;

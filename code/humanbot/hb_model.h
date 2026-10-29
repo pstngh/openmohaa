@@ -320,6 +320,13 @@ struct ViewModel {
     // the current speed, the view turns the least, in 15 deg steps up to wallSteerDeg, that clears it, at most
     // wallSteerRate deg a tick; and the wall reflex stands back there and on a corner or an angle unless the bot heads
     // into the wall within the reflex reach or is slowed by it (MoveInput::mouseSteers).
+    // Out of sight, with the view leading the way, on a corner, the believed enemy or an angle (not a sound, a hit or a
+    // look-around), a jump of the target by more than bigTurnDeg is turned to only once the new target has stayed within
+    // 30 deg for bigTurnHoldMs (0 = at once), in one turn; meanwhile the view keeps aiming where it did (at most three
+    // holds): a target that jumps and jumps back is not turned to. The bots' turns of 90 deg or more out of sight came
+    // back within 1.5 s 44-48% of the time (people 14-30%), 3-10 times as often as people's.
+    float bigTurnDeg         = 75.0f;
+    float bigTurnHoldMs      = 0.0f;
     float wallSteerDeg       = 0.0f;
     float wallSteerRate      = 4.0f;
     float wallSteerMs        = 300.0f;

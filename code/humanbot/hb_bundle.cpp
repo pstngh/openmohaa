@@ -579,6 +579,8 @@ void ParseView(const json& j, ViewModel& v)
         v.travelFlickHazard = NumOr(t, "travel_flick_hazard", v.travelFlickHazard);
         v.travelStillDeg    = NumOr(t, "travel_still_deg", v.travelStillDeg);
         v.travelSmooth      = NumOr(t, "travel_smooth", v.travelSmooth);
+        v.bigTurnDeg        = NumOr(t, "big_turn_deg", v.bigTurnDeg);
+        v.bigTurnHoldMs     = NumOr(t, "big_turn_hold_ms", v.bigTurnHoldMs);
         v.wallSteerDeg      = NumOr(t, "wall_steer_deg", v.wallSteerDeg);
         v.wallSteerRate     = NumOr(t, "wall_steer_rate", v.wallSteerRate);
         v.wallSteerMs       = NumOr(t, "wall_steer_ms", v.wallSteerMs);

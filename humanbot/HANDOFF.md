@@ -2595,6 +2595,44 @@ the Thompson: strafe 171.9, back 152.7, forward and strafe 222.7, forward 240).
   PASS (stuck 0, kbd 0, pressure 0.40 a bot-minute, think 70-90 us), 33 kills, no falls to death. Backup of `26041009`
   first (VPS `*.26041009`, workstation `/home/plex/openmohaa-bots-12404-backup/26041009/`).
 
+## The view's big turns (2026-10-29)
+
+The owner: "Jerky view first". Bundle `8bfdcab646a6` (the motor model and maps of `a929b5b8c1ed` with
+`view.tuning.big_turn_deg` 75 and `big_turn_hold_ms` 600, hand-set in `assemble_model.py`). Git-ignored scripts in
+`humanbot/cache/move_wip/s25/`: `turns.py` (quick turns by size and what began them), `turns2.py`, `turns3.py` (do
+they come back), `goals.py` (the route goal's jumps by intent), `reversals.py` (turning round).
+
+**What a player sees.** Out of sight and moving, the bots' view made 46-57 quick turns of 10 deg or more a minute
+(people 31-38), most of the surplus turns of 90-180 deg (dm/mohdm6 10.9 a minute, people 3.6; dm/flag 14.3, people 5.9),
+and 44-48% of their turns of 90 deg or more came back within 1.5 s (people 14-30%): the view swung round and back.
+
+**Why.** Three quarters of the turns were sweeps (flicks), and nearly half began right after the view's target jumped. The
+route goal jumped 256 u or more 29-47 times a minute: hunt goals re-picked every 3 s (on dm/flag a median 106 deg off the
+old one from the bot), the belief's mode as the engage target after a loss, and hunting and holding an angle trading
+places 6-9 times a minute. The leading view (`travel_*`) and the corner pre-aim follow such jumps. The body does not turn
+round more than people's (2.4-3.8 times a minute, people 2.7-3.9): only the view swings.
+
+**What changed** (`ViewControl::Step`, `ViewModel::bigTurn*`). Out of sight, with the view leading the way, on a corner,
+the believed enemy or an angle (not a sound, a hit or a look-around), a jump of the target by more than 75 deg is turned
+to once the new target has stayed within 30 deg for 600 ms, in one turn, and meanwhile the view keeps aiming where it did
+(three holds at most). Holding back only the sweep while the controller chased the target split each big turn into a
+30-60 deg turn and a sweep (dm/flag 30-60 deg turns 8.8 -> 18.5 a minute).
+
+| bot against bot, seeds 201 (401) | people | before | now |
+|---|---|---|---|
+| quick turns of 10 deg+ a minute, dm/mohdm6 | 30.9 | 57.0 (67.1) | 50.8 (49.1) |
+| ... dm/brownffa / dm/flag | 38.4 / 37.2 | 46.0 / 54.5 | 37.3 / 41.7 |
+| turns of 90 deg+ a minute, dm/mohdm6 | 3.9 | 11.3 (13.6) | 8.2 (7.9) |
+| ... dm/brownffa / dm/flag | 7.5 / 6.3 | 11.5 / 14.6 | 7.4 / 8.3 |
+| ... back within 1.5 s, dm/mohdm6 / dm/brownffa / dm/flag | 14 / 13 / 30% | 48 / 30 / 44% | 34 / 18 / 22% |
+| ... onto the way the body goes, dm/brownffa / dm/flag | 59 / 68% | 39 / 40% | 47 / 50% |
+
+Kills on dm/mohdm6 2.66 -> 2.40 a minute on seeds 201 and 2.02 -> 2.51 on 401 (run to run they spread that much);
+dm/brownffa and dm/flag: sightings 15.6 / 13.4 -> 14.9 / 13.4 a minute, aim off at the first sight 8.3 / 6.9 -> 9.2 /
+7.0 deg, the first press and the first hit unchanged. Arena (900 s, pooled, seeds 1 and 2, 257 statistics): within 25% of
+people 38.5 / 39.3% -> 42.0 / 42.0%, median relative error 0.37 -> 0.32. 400 ms did about half as much. Still off: on
+dm/mohdm6 the turns of 90 deg+ stay twice people's, a third of them coming back; the route goal's jumps themselves.
+
 ## The zigzag at walls (2026-10-29): measured, the fixes tried left off
 
 The owner: "I wanna keep improving the bots now", then "Yes, build it" to steering along walls with the mouse. The code

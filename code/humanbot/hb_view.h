@@ -140,6 +140,10 @@ private:
 
     const ViewModel *m_p = nullptr;
     float m_wallSteer   = 0.0f;   // the view's turn off its target to steer along a wall (deg, + = left)
+    float m_steadyYaw   = 0.0f;   // the target's direction it has kept within 30 deg of ...
+    float m_steadyMs    = 0.0f;   //   for this long (ViewModel::bigTurnHoldMs)
+    float m_heldYaw     = 0.0f;   // where the view aims while a big jump of the target waits
+    float m_waitMs      = 0.0f;   //   and how long it has waited
 
     // controller state (degrees per tick)
     float m_rate      = 0.0f;
