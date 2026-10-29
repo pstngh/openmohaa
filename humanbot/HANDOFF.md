@@ -106,8 +106,10 @@ The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very go
 of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
 for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
 git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
-`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `435468cb` since 2026-10-26 23:31
-UTC: `62d73e13` with the owner's names and side ("make sure they all axis, and call them by their style, strafer1,
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `26041009` since 2026-10-29 11:06
+UTC (a falling bot holds a key, see "A key in a fall"; the same `livecheck.cfg`), on the owner's "fix it". Before it
+`435468cb` (kept as `game.so.prev-435468cb`, `/root/openmohaa-humanbot2.service.435468cb`,
+`/root/moh-humanbot2-home-435468cb.tar.gz`) from 2026-10-26 23:31 UTC: `62d73e13` with the owner's names and side ("make sure they all axis, and call them by their style, strafer1,
 strafer 2, etc"): `livecheck.cfg` sets `g_humanbot_style_names 1` (each bot called after its style and the lowest free
 number, presser1, strafer2; the family is drawn before the bot connects) and `g_humanbot_ffa_side axis` (both off by
 default; `humanbot_list` shows the side), copy without them `/root/livecheck.cfg.12404-62d73e13-fourbots`. Staged while
@@ -2500,6 +2502,32 @@ bots came in as strafer1, presser1, stopper1, presser2, all axis; with strafer1 
 was presser3; a map change kept every name with its style. Seen there, not looked into: after that remove and add,
 the map change brought back the first four (strafer1, not presser3), so the stock bot save and restore
 (`G_SaveBots`/`G_RestoreBots`) seems to keep a removed bot. It does not arise with a fixed number of bots.
+
+**A key in a fall** (2026-10-29, `26041009`; the owner: "fix it", then "when they jump from high up, they should "hold"
+forward to prevent cratering"). The deadly west-top fall was a free fall. The game's air control pulls the whole velocity
+toward the keys' wish, which has no height (`bg_pmove.cpp` `PM_Accelerate`: `canPush = accel * frametime * wishspeed`
+along wish minus velocity), so a held key brakes a fall and no key does not. Measured over air ticks falling faster than
+100 u/s (`move_wip/s24/airgrav.py`): bots on dm/mohdm6 gained 800 u/s a second with no key, 605 with forward, 654 with
+back; people 600-670 whatever they hold (forward on 69% of their falling ticks, all maps). Off the west top people run
+off at 230 u/s holding forward and land at 900 u/s (about 20 health); the bots walked off at 120-150 u/s with none,
+landed at 1010-1030 u/s and died (a landing over 1000 u/s kills). Now (`HumanBotAdapter::FallKey`) a bot falling faster
+than 300 u/s with no key holds the one nearest the way it travels (forward when it faces it), not walking; a held key
+stays; every map, as it is the game's physics, and only in falls (56 u down from rest). Bot against bot on dm/mohdm6
+(8 servers, 300 s at timescale 10, the kill feed kept, `s24/quickcr.sh`): seeds 201 against `435468cb` (its cvars off,
+= `62d73e13`'s bots) falls to death 163 -> 10 (kills 1492 -> 1615), kills 2.35 -> 2.54 a minute, hits 12.3 -> 13.5,
+a floor apart 22.6% -> 18.9%, both on the street 30.8% -> 33.2%; seeds 401 against `std10_401` 5 falls to death in
+1558 kills, kills 2.36 -> 2.42, a floor apart 20.1% -> 22.3% (seed noise both ways); off the west top they land at
+920 u/s and live (2 deaths in 149 falls). dm/brownffa + dm/flag (`bfk_201` against `bh10_201`, `bfd11_201`):
+sightings 16.1 a minute, kills 5.33 (5.23, 5.34), first press 50/100/150 ms, no fall deaths.
+
+**Strafe and backpedal speed (`PM_CmdScale`), a question the owner brought, not changed.** The owner relayed a report
+that the original games (AA 1.11, SH 2.15, BT 2.40) divide by the raw usercmd values in `PM_CmdScale` while OpenMoHAA
+divides by the moves after `PM_GetMove`'s factors (back 0.8, strafe 0.85), so OpenMoHAA strafes at 0.843 of run speed
+(original 0.716), backpedals at 0.795 (0.636), runs diagonally at 1.0 (0.928). The arithmetic holds (`max` is an int:
+107 / 127). Every recording here was made under OpenMoHAA's version: people's ground speed with an SMG (base 240) is
+202.2 u/s strafing, 190.9 backpedalling, 240 diagonally, exactly OpenMoHAA's numbers (the original's: 171.9, 152.7,
+222.7). Changing it on the servers would change the physics the recordings and the bots' fits were made under
+(mark it in the telemetry metadata, as `normal_physics` does gravity and speed, before mixing recordings).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
