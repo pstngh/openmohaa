@@ -106,8 +106,11 @@ The owner wants 12403 kept on `1ad8c886` for good (2026-10-24: "they are very go
 of its own: binaries `~linuxuser/moh-humanbot2`, home `~linuxuser/moh-humanbot2-home` (`livecheck.cfg`, `add6bots.sh`
 for rcon on 12404), base `~linuxuser/moh-humanbot2-base` (the same links), source `~linuxuser/openmohaa-humanbot2-src`, a
 git worktree of the first source (`git -C ~linuxuser/openmohaa-humanbot2-src checkout --detach <commit>`, then
-`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `26041009` since 2026-10-29 11:06
-UTC (a falling bot holds a key, see "A key in a fall"; the same `livecheck.cfg`), on the owner's "fix it". Before it
+`cmake --build build --target game`; the engine binary is a copy of 12403's). It runs `f967d130` since 2026-10-29 13:01
+UTC (the original strafe and backpedal speed, `g_aastrafe` 1, see "The original strafe speed"; the same `livecheck.cfg`),
+on the owner's "Deploy to 12404". Before it `26041009` from 11:06 UTC (a falling bot holds a key, see "A key in a fall"),
+on the owner's "fix it", kept as `game.so.prev-26041009`, `/root/openmohaa-humanbot2.service.26041009`,
+`/root/moh-humanbot2-home-26041009.tar.gz` and `/root/livecheck.cfg.12404-26041009`. Before that
 `435468cb` (kept as `game.so.prev-435468cb`, `/root/openmohaa-humanbot2.service.435468cb`,
 `/root/moh-humanbot2-home-435468cb.tar.gz`) from 2026-10-26 23:31 UTC: `62d73e13` with the owner's names and side ("make sure they all axis, and call them by their style, strafer1,
 strafer 2, etc"): `livecheck.cfg` sets `g_humanbot_style_names 1` (each bot called after its style and the lowest free
@@ -2561,6 +2564,10 @@ the Thompson: strafe 171.9, back 152.7, forward and strafe 222.7, forward 240).
   the small maps little moves: sightings 14.3 -> 14.6 (dm/brownffa) and 13.6 -> 13.8 (dm/flag) a minute, kills 3334 ->
   3399, the first press 100-150 ms as before; the speed at a sighting is now 171.9 (was 196.5-202.2), as most sightings
   catch a strafe. The people in these tables were recorded at the old speed.
+- **On 12404** since 2026-10-29 13:01 UTC (the owner: "Deploy to 12404"), built on the VPS; `serverinfo` shows
+  `g_aastrafe 1`, the four bots came back as strafer1, strafer2, stopper1, presser1, all axis; `humanbot_selftest 300`
+  PASS (stuck 0, kbd 0, pressure 0.40 a bot-minute, think 70-90 us), 33 kills, no falls to death. Backup of `26041009`
+  first (VPS `*.26041009`, workstation `/home/plex/openmohaa-bots-12404-backup/26041009/`).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
