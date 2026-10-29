@@ -142,6 +142,8 @@ extern cvar_t *g_movelog_max_seconds;
 extern cvar_t *g_movelog_rollover;
 /** 1 records only while a human is connected; each visit is its own capture. */
 extern cvar_t *g_movelog_need_human;
+/** 1 records only while no bot is in the game and sv_numbots is 0; a bot joining ends the capture. */
+extern cvar_t *g_movelog_no_bots;
 
 extern cvar_t *g_showtokens;
 extern cvar_t *g_showopcodes;

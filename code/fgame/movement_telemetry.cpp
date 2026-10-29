@@ -28,7 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // g_movelog_max_mb or g_movelog_max_seconds set, a capture goes to fresh files
 // under telemetry/segments/ and stops at the limit (with g_movelog_rollover, the
 // next capture starts right away). With g_movelog_need_human, recording pauses
-// while no human is connected and every visit is a capture of its own.
+// while no human is connected and every visit is a capture of its own. With
+// g_movelog_no_bots, recording pauses while a bot is in the game or bots are on.
 //
 // The recorder deliberately does not mutate game state and never calls a
 // random-number function.
@@ -248,6 +249,27 @@ static bool WaitingForHuman()
         }
     }
     return true;
+}
+
+// With g_movelog_no_bots set, nothing is recorded while a bot is in the game or bots are switched
+// on (sv_numbots above 0; after a map load they join a moment later): the owner turns the bots off
+// for the 1v1s they record (2026-10-29), so every capture holds people only. A bot that joins ends
+// the capture; once the last one has left, the next capture starts.
+static bool BotInGame()
+{
+    if (!g_movelog_no_bots || !g_movelog_no_bots->integer) {
+        return false;
+    }
+    if (sv_numbots && sv_numbots->integer > 0) {
+        return true;
+    }
+    for (int i = 0; i < game.maxclients; ++i) {
+        gentity_t *edict = &g_entities[i];
+        if (edict->inuse && edict->client && ((edict->r.svFlags & SVF_BOT) || G_IsBot(edict))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static const char *TraceEntityClass(const trace_t& trace)
@@ -742,7 +764,7 @@ static bool EnsureOpen()
     if (framesFile && eventsFile) {
         return true;
     }
-    if (WaitingForHuman()) {
+    if (WaitingForHuman() || BotInGame()) {
         return false;
     }
 
@@ -863,7 +885,8 @@ static bool EnsureOpen()
          << CvarLine("sv_minPlayers", sv_minPlayers) << CvarLine("dmflags", dmflags)
          << CvarLine("com_target_game", gi.Cvar_Get("com_target_game", "", 0))
          << CvarLine("g_movelog_max_mb", g_movelog_max_mb)
-         << CvarLine("g_movelog_max_seconds", g_movelog_max_seconds) << botMeta;
+         << CvarLine("g_movelog_max_seconds", g_movelog_max_seconds)
+         << CvarLine("g_movelog_no_bots", g_movelog_no_bots) << botMeta;
     if (!HasMetaKey(botMeta, "hb_model_sha256")) {
         meta << "hb_model_sha256=" << (hbSha256 ? hbSha256 : "") << '\n';
     }
@@ -1220,6 +1243,14 @@ void G_MoveLogFrame()
         // the last human left: close the capture; the next visit starts a fresh one
         if (framesFile || eventsFile || captureActive) {
             gi.Printf("g_movelog: no human connected; recording pauses until one joins\n");
+            G_MoveLogShutdown();
+        }
+        return;
+    }
+    if (BotInGame()) {
+        // a bot joined or bots were switched on: close the capture; the next one starts when no bot is left
+        if (framesFile || eventsFile || captureActive) {
+            gi.Printf("g_movelog: bots are in the game; recording pauses until none is left\n");
             G_MoveLogShutdown();
         }
         return;

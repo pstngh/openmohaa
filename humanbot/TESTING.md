@@ -81,7 +81,9 @@ Please send the console log if anything reads FAIL, MISSING or MISMATCH.
 `sv_gravity 800`) and one bot. Telemetry goes to `main/telemetry/segments/` in the server's
 data folder. It records only while a
 human is connected (`g_movelog_need_human`), so every visit is a capture of its own, and a
-new segment starts every hour or 512 MB (`g_movelog_rollover`). Then:
+new segment starts every hour or 512 MB (`g_movelog_rollover`). For 1v1s between people on a server
+that also runs bots, `set g_movelog_no_bots 1` records only while no bot is in the game and `sv_numbots` is 0: switch the bots
+off with `sv_numbots 0` and the next capture starts; a bot that joins ends it. Then:
 
 1. Join the server and play the bot 1v1 on the practice maps (`map dm/crnodoors`,
    `map dm/main`, `map dm/vents`, `map dm/downladder`; also `map dm/brownffa` and `map dm/flag`,
