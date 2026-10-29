@@ -90,6 +90,27 @@ Verified:
 `humanbot_selftest 180` PASSes on the VPS since the wall reflex (wall pressure 0.5 per bot-minute
 over all bots, 47-52 us per bot): see "Wall contact" below.
 
+**The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
+made can be 12203").** Two game servers run:
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `f967d130` with the
+  bots-new engine since 13:34 UTC. Four bots named by style, all axis, on dm/mohdm6 (the bot block marked 2026-10-29 in
+  `main/server_opm.cfg`). `g_aastrafe` 1, the owner's password, recording on. `fs_homepath ~/.local/share/openmohaa` in the
+  unit keeps the data folder (`zz_aa_weapons.pk3`, the telemetry) where the old engine had it. The unit's
+  `telemetry-reset.conf` deletes the telemetry on every start, so copy recordings out before a restart. The unit is
+  disabled at boot, as the owner had it. `humanbot_selftest 300` PASS (stuck 0, kbd 0, pressure 0.15 a bot-minute,
+  think 69-90 us), 35 kills, no falls to death. The build before it (game.so of 2026-10-03, model `b4f0aad3a177`, one
+  of the 10-02 commits `f3548ad3`-`9d93d470` before bots-new; engine `4035e8d3`) is `game.so.prev-20261003` and
+  `omohaaded.prev-4035e8d3` there, `/root/backup-12203-2026-10-29/`, and on the workstation
+  `/home/plex/openmohaa-12203-backup/2026-10-29/` (README with restore steps; with the telemetry: two short visits of
+  10-25 and 10-28 not archived anywhere else). Rcon helper: `/root/rcon-12203/rcon.sh`. Change 12203 only on the owner's
+  word.
+- **12603**, mohdemos-bots "aim_s2" (V2/Bridge objective rounds, eight bots), started by hand with nohup in
+  `~linuxuser/moh-mohbot`: the other bot project's, not this work's.
+
+12403 (`openmohaa-humanbot`, `1ad8c886`) and 12404 (`openmohaa-humanbot2`, last `f967d130`) are stopped and disabled,
+their folders kept (`systemctl enable --now <service>` brings one back); the ufw rules for 12403/12500/12404/12501 stay.
+The history of the two below.
+
 The VPS runs the test server as the systemd service `openmohaa-humanbot` (UDP 12403; binaries
 in `~linuxuser/moh-humanbot`, home `~linuxuser/moh-humanbot-home`, source
 `~linuxuser/openmohaa-humanbot-src`). Since `b53427f0` (2026-10-07) its `fs_basepath` is
@@ -2555,7 +2576,7 @@ the Thompson: strafe 171.9, back 152.7, forward and strafe 222.7, forward 240).
 - **What keeps the old speed:** `pm_harness` (`PmSettings::aaStrafe` 0, "the recorded practice server") and with it
   `hb_arena`, whose calibration compares bots with the recordings; the per-map `hidden_move_speed` of the map priors
   (190.9-202.2 u/s, the median ground speed of people out of sight), until a refit on recordings at the new speed;
-  every fitted dial. 12203 runs its own build and is not touched.
+  every fitted dial. 12203 ran its own build (OpenMoHAA's speed) until it took `f967d130` on 2026-10-29 13:34 UTC.
 - `test_pmove_substeps` checks the five held speeds with and without `g_aastrafe` for K = 1, 2, 4 (11710 checks).
 - **Bot against bot, the same build and seeds (201-208), `g_aastrafe` 0 against 1** (`move_wip/s24/queue_aastrafe.sh`,
   300 s at timescale 10, `stal.py`, `s15m.py`). dm/mohdm6 (`aao_201` / `aas_201`, about 640 bot-minutes each): their
