@@ -202,6 +202,7 @@ void SetMoveInfo(pmove_t& pm, PmPlayer& player, const PmSettings& settings, cons
     }
 
     pm.protocol = settings.protocol;
+    pm.aaStrafe = settings.aaStrafe ? qtrue : qfalse;
 
     pm.ps->groundEntityNum = ENTITYNUM_NONE;
 }

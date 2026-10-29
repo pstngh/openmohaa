@@ -334,6 +334,9 @@ cvar_t *g_painanims;
 // Whether or not Spearhead and Breakthrough use the Allied Assault lean
 cvar_t *g_aalean;
 
+// Whether or not players strafe and backpedal at the original games' speed
+cvar_t *g_aastrafe;
+
 void CVAR_Init(void)
 {
     int i;
@@ -755,6 +758,10 @@ void CVAR_Init(void)
 
     // In the serverinfo so that clients predict the same lean
     g_aalean = gi.Cvar_Get("g_aalean", "0", CVAR_SERVERINFO);
+
+    // In the serverinfo so that clients predict the same strafe and backpedal speed;
+    // clients take a server without it for the OpenMoHAA speed (0)
+    g_aastrafe = gi.Cvar_Get("g_aastrafe", "1", CVAR_SERVERINFO);
 
     cl_running = gi.Cvar_Get("cl_running", "", 0);
 }

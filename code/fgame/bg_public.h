@@ -339,6 +339,9 @@ movement on the server game.
         float leanRecoverSpeed;
         float leanAdd;
         float leanMax;
+        // Added in OPM
+        //  The original games' strafe and backpedal speed (g_aastrafe), see PM_CmdScale
+        qboolean aaStrafe;
     } pmove_t;
 
     // if a full pmove isn't done on the client, you can just update the angles

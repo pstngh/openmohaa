@@ -144,6 +144,8 @@ void CG_ParseServerinfo(void)
     aaLean              = Info_ValueForKey(info, "g_aalean");
     cgs.aaLean          = atoi(aaLean);
     cgs.alwaysAllowLean = *aaLean ? qtrue : qfalse;
+    //  Servers without g_aastrafe use the OpenMoHAA strafe and backpedal speed
+    cgs.aaStrafe        = atoi(Info_ValueForKey(info, "g_aastrafe"));
 
     version = Info_ValueForKey(info, "version");
     if (strstr(version, "Spearhead")) {

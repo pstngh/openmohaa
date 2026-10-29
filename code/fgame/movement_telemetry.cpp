@@ -855,6 +855,8 @@ static bool EnsureOpen()
          << CvarLine("sv_mapChecksum", gi.Cvar_Get("sv_mapChecksum", "", 0)) << CvarLine("g_gametype", g_gametype)
          << CvarLine("sv_fps", sv_fps) << CvarLine("sv_runspeed", sv_runspeed)
          << CvarLine("sv_dmspeedmult", sv_dmspeedmult) << CvarLine("sv_gravity", sv_gravity)
+         // 1: the original games' strafe and backpedal speed; older logs lack it (OpenMoHAA's speed)
+         << CvarLine("g_aastrafe", g_aastrafe)
          // Player::InitHealth creates this cvar on the first spawn; use its default.
          << CvarLine("g_playerdmhealth", gi.Cvar_Get("g_playerdmhealth", "100", 0))
          << CvarLine("sv_maxbots", sv_maxbots) << CvarLine("sv_numbots", sv_numbots)

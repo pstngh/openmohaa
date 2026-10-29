@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // 2 or 4 usercmds per 50 ms server frame (pm_harness).
 //
 // Checks the box world's trace semantics, then movement invariants: no NaN,
-// ground contact after every usercmd, run/walk/crouch speeds, strafe onset,
+// ground contact after every usercmd, run/walk/crouch speeds (and strafe and
+// back speeds with g_aastrafe), strafe onset,
 // reversal and stop timing for every K and key-change sub-step, a mid-frame
 // key change bracketed by the whole-frame changes, and the jump. K = 4 is
 // compared with the pooled human response of the movement telemetry.
@@ -335,12 +336,13 @@ Curve Stop(int K, int change)
 }
 
 // speed_xy holding `cmd` from standing still
-Curve HeldSpeed(int K, const usercmd_t& cmd, int frames, const usercmd_t *firstFrame = NULL)
+Curve HeldSpeed(int K, const usercmd_t& cmd, int frames, const usercmd_t *firstFrame = NULL, int aaStrafe = 0)
 {
     Sim   sim;
     Curve curve;
     int   t;
 
+    sim.settings.aaStrafe = aaStrafe;
     Spawn(sim, "held speed");
     if (firstFrame) {
         Frames(sim, *firstFrame, K, 1);
@@ -972,6 +974,78 @@ void TestHeldSpeeds()
     );
 }
 
+// g_aastrafe: the original games' PM_CmdScale divides by the raw usercmd values, so strafe,
+// back and the diagonals are slower; without it the diagonals run at full speed. Forward
+// running is the same either way
+void TestAaStrafe()
+{
+    // strafe: the factored 107.95 times the truncated 107 over 127 * 127 (171.874);
+    // back: 101.6 * 101 / (127 * 127) (152.690); diagonals over the raw sqrt(2) * 127
+    const float aaStrafe     = SMG_RUN_SPEED * 107.95f * 107.0f / (127.0f * 127.0f);
+    const float aaBack       = SMG_RUN_SPEED * 101.6f * 101.0f / (127.0f * 127.0f);
+    const float aaFwdStrafe  = SMG_RUN_SPEED * hypotf(127.0f, 107.95f) / hypotf(127.0f, 127.0f);
+    const float aaBackStrafe = SMG_RUN_SPEED * 107.0f * hypotf(101.6f, 107.95f) / (127.0f * hypotf(127.0f, 127.0f));
+    size_t      k;
+    int         aa;
+
+    printf("\nheld speeds after 12 ticks without and with g_aastrafe (run, strafe, back, forward-strafe, back-strafe)\n");
+    for (k = 0; k < sizeof(SUBSTEPS) / sizeof(SUBSTEPS[0]); k++) {
+        const int K = SUBSTEPS[k];
+
+        for (aa = 0; aa < 2; aa++) {
+            const Curve run        = HeldSpeed(K, Keys(127, 0, 0), 12, NULL, aa);
+            const Curve strafe     = HeldSpeed(K, Keys(0, -127, 0), 12, NULL, aa);
+            const Curve back       = HeldSpeed(K, Keys(-127, 0, 0), 12, NULL, aa);
+            const Curve fwdStrafe  = HeldSpeed(K, Keys(127, 127, 0), 12, NULL, aa);
+            const Curve backStrafe = HeldSpeed(K, Keys(-127, -127, 0), 12, NULL, aa);
+
+            printf(
+                "  K=%d g_aastrafe %d  %6.1f %6.1f %6.1f %6.1f %6.1f\n",
+                K,
+                aa,
+                run.back(),
+                strafe.back(),
+                back.back(),
+                fwdStrafe.back(),
+                backStrafe.back()
+            );
+            Check(Near(run.back(), SMG_RUN_SPEED, EPS), "K=%d aa %d run speed %f", K, aa, run.back());
+            Check(
+                Near(strafe.back(), aa ? aaStrafe : SMG_STRAFE_SPEED, EPS),
+                "K=%d aa %d strafe speed %f",
+                K,
+                aa,
+                strafe.back()
+            );
+            Check(
+                Near(back.back(), aa ? aaBack : SMG_BACK_SPEED, EPS), "K=%d aa %d back speed %f", K, aa, back.back()
+            );
+            Check(
+                Near(fwdStrafe.back(), aa ? aaFwdStrafe : SMG_RUN_SPEED, EPS),
+                "K=%d aa %d forward-strafe speed %f",
+                K,
+                aa,
+                fwdStrafe.back()
+            );
+            Check(
+                Near(backStrafe.back(), aa ? aaBackStrafe : SMG_STRAFE_SPEED, EPS),
+                "K=%d aa %d back-strafe speed %f",
+                K,
+                aa,
+                backStrafe.back()
+            );
+        }
+    }
+    printf(
+        "  expected g_aastrafe 1: %6.1f %6.1f %6.1f %6.1f %6.1f\n",
+        SMG_RUN_SPEED,
+        aaStrafe,
+        aaBack,
+        aaFwdStrafe,
+        aaBackStrafe
+    );
+}
+
 // Crouch toggling: a press ducks (pm_flags 3, bbox 54), another press stands up,
 // no standing up under a low ceiling
 void TestCrouchToggle()
@@ -1111,6 +1185,7 @@ int main(int argc, char **argv)
     TestServerFrameHelper();
     TestStrafeResponses();
     TestHeldSpeeds();
+    TestAaStrafe();
     TestCrouchToggle();
     TestJump();
 

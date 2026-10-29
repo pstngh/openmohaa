@@ -530,6 +530,9 @@ void CG_PredictPlayerState(void)
     }
 
     cg_pmove.protocol = cg_protocol;
+    // Added in OPM
+    //  Same strafe and backpedal speed as Player::SetMoveInfo
+    cg_pmove.aaStrafe = cgs.aaStrafe ? qtrue : qfalse;
 
     // save the state before the pmove so we can detect transitions
     oldPlayerState = cg.predicted_player_state;

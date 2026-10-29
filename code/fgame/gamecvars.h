@@ -384,6 +384,11 @@ extern cvar_t *g_painanims;
  */
 extern cvar_t *g_aalean;
 
+/**
+ * @brief When enabled (the default), players strafe and backpedal at the original games' speed (PM_CmdScale).
+ */
+extern cvar_t *g_aastrafe;
+
 void CVAR_Init(void);
 
 #ifdef __cplusplus

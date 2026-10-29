@@ -277,7 +277,20 @@ static float PM_CmdScale(usercmd_t *cmd)
         return 0;
     }
 
-    total = sqrt((float)(fmove * fmove + smove * smove + cmd->upmove * cmd->upmove));
+    if (pm->aaStrafe) {
+        //
+        // Added in OPM
+        //  Allied Assault 1.11, Spearhead 2.15 and Breakthrough 2.40 divide by the
+        //  raw usercmd values, so the back and strafe factors count twice:
+        //  strafe 0.716 of the run speed instead of 0.843, back 0.636 instead of
+        //  0.795, forward and strafe 0.928 instead of 1. Their clients predict it
+        //  this way too
+        //
+        total = sqrt((float)(cmd->forwardmove * cmd->forwardmove + cmd->rightmove * cmd->rightmove
+                             + cmd->upmove * cmd->upmove));
+    } else {
+        total = sqrt((float)(fmove * fmove + smove * smove + cmd->upmove * cmd->upmove));
+    }
     scale = (float)pm->ps->speed * max / (127.0 * total);
 
     return scale;

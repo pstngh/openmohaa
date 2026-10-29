@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //   * pmove_t: MASK_PLAYERSOLID, the PmWorld callbacks, pmove_fixed and
 //     pmove_msec (clamped to [8, 33]), the lean limits of the protocol
 //     (8: leanMax 40, leanAdd 10, leanRecoverSpeed 15, leanSpeed 4,
-//     alwaysAllowLean) and ps.groundEntityNum reset to ENTITYNUM_NONE;
+//     alwaysAllowLean), g_aastrafe and ps.groundEntityNum reset to ENTITYNUM_NONE;
 //   * after Pmove: GetMoveInfo's ground-plane velocity clip, the entity bbox
 //     and viewheight from pm->mins/maxs/viewheight, groundentity/airspeed, and
 //     ClientMove's "blocked" rule (origin restored when a key is held, the
@@ -89,6 +89,7 @@ struct PmSettings {
     int   pmoveFixed      = 0;            // pmove_fixed
     int   pmoveMsec       = 8;            // pmove_msec (the game clamps it to [8, 33])
     int   protocol        = PROTOCOL_MOH; // g_protocol (8 = Allied Assault)
+    int   aaStrafe        = 0;            // g_aastrafe (the recordings ran without it: strafe 0.843 of run speed)
     int   gametype        = GT_FFA;       // g_gametype
     int   frameMsec       = 50;           // server frame length (sv_fps 20)
     int   tuckThinks      = 3;            // thinks after the take-off think before the mid-air duck

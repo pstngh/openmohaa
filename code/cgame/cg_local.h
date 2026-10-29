@@ -440,6 +440,9 @@ extern "C" {
         //  always allows leaning while moving
         int        aaLean;
         qboolean   alwaysAllowLean;
+        //  The server's g_aastrafe: the original games' strafe and backpedal
+        //  speed (0 on servers without it)
+        int        aaStrafe;
         int        cinematic;
         int        mapChecksum;
         qboolean   useMapChecksum;

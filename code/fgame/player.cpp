@@ -3738,6 +3738,10 @@ void Player::SetMoveInfo(pmove_t *pm, usercmd_t *ucmd)
     pm->protocol = g_protocol;
 
     // Added in OPM
+    //  The original games' strafe and backpedal speed; cgame mirrors it from the serverinfo
+    pm->aaStrafe = g_aastrafe->integer ? qtrue : qfalse;
+
+    // Added in OPM
     //  Initialize the ground entity
     pm->ps->groundEntityNum = ENTITYNUM_NONE;
 }

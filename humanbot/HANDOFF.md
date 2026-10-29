@@ -2520,14 +2520,47 @@ a floor apart 22.6% -> 18.9%, both on the street 30.8% -> 33.2%; seeds 401 again
 920 u/s and live (2 deaths in 149 falls). dm/brownffa + dm/flag (`bfk_201` against `bh10_201`, `bfd11_201`):
 sightings 16.1 a minute, kills 5.33 (5.23, 5.34), first press 50/100/150 ms, no fall deaths.
 
-**Strafe and backpedal speed (`PM_CmdScale`), a question the owner brought, not changed.** The owner relayed a report
+**Strafe and backpedal speed (`PM_CmdScale`), a question the owner brought.** The owner relayed a report
 that the original games (AA 1.11, SH 2.15, BT 2.40) divide by the raw usercmd values in `PM_CmdScale` while OpenMoHAA
 divides by the moves after `PM_GetMove`'s factors (back 0.8, strafe 0.85), so OpenMoHAA strafes at 0.843 of run speed
 (original 0.716), backpedals at 0.795 (0.636), runs diagonally at 1.0 (0.928). The arithmetic holds (`max` is an int:
 107 / 127). Every recording here was made under OpenMoHAA's version: people's ground speed with an SMG (base 240) is
 202.2 u/s strafing, 190.9 backpedalling, 240 diagonally, exactly OpenMoHAA's numbers (the original's: 171.9, 152.7,
-222.7). Changing it on the servers would change the physics the recordings and the bots' fits were made under
-(mark it in the telemetry metadata, as `normal_physics` does gravity and speed, before mixing recordings).
+222.7). Changed the same day: "The original strafe speed (2026-10-29)" below.
+
+## The original strafe speed (2026-10-29)
+
+The owner: "were gonna fix it, and every new telemetry from now on will be with the fix". `g_aastrafe` (default 1, in
+the serverinfo like `g_aalean`) makes `PM_CmdScale` divide by the raw usercmd values (`pmove_t::aaStrafe`, set in
+`Player::SetMoveInfo`; cgame sets it from the serverinfo in `CG_PredictPlayerState`, 0 on a server without the key). With
+an SMG: strafe 171.9 u/s (was 202.2), back 152.7 (190.9), forward and strafe 222.7 (240), back and strafe 166.9 (202.2);
+forward, walk and crouch unchanged. Bots press keys, so they move at the new speeds too (a bot game on dm/mohdm6 with
+the Thompson: strafe 171.9, back 152.7, forward and strafe 222.7, forward 240).
+
+- **The original game agrees.** 200 standard demos of `openmohaa-demos` (original AA 1.11 Linux servers, 1.1x speed):
+  of 1.09 M steady ticks on the ground (the recorder's speed unchanged over three snapshots), the ground speed over
+  `ps.speed` is 0.928 on 35.5% (forward and strafe), 0.716 on 6.6% (strafe), 0.636 on 2.3% (back), 0.695 on 2.5% (back
+  and strafe) and 1.0 on 48.4%; OpenMoHAA's strafe, 0.843, never (0.0%). The 2.7% at 0.80 is shallow water's cap.
+- **The telemetry** writes `g_aastrafe=1` in the session metadata (a `CvarLine`, schema unchanged). Every capture before
+  2026-10-29 lacks the key: OpenMoHAA's speed. The data repo's loader (`load_captures.py`, the cvar list mapped onto the
+  frames) and `common.normal_physics` do not know the key yet; adding it is a data-repo session's job when the first
+  capture with it arrives, so that the two speeds are not pooled unseen.
+- **Clients.** An original AA 1.11 client already predicts this speed (before, it mispredicted on OpenMoHAA servers). An
+  OpenMoHAA client predicts from its own cgame: a cgame from this change reads `g_aastrafe` from the serverinfo and is
+  right on both kinds of server; an older one keeps predicting the faster strafe on a `g_aastrafe 1` server, so its
+  strafes get corrected by the server (about 30 u/s times the ping). The owner's Mac client needs this build's cgame.
+- **What keeps the old speed:** `pm_harness` (`PmSettings::aaStrafe` 0, "the recorded practice server") and with it
+  `hb_arena`, whose calibration compares bots with the recordings; the per-map `hidden_move_speed` of the map priors
+  (190.9-202.2 u/s, the median ground speed of people out of sight), until a refit on recordings at the new speed;
+  every fitted dial. 12203 runs its own build and is not touched.
+- `test_pmove_substeps` checks the five held speeds with and without `g_aastrafe` for K = 1, 2, 4 (11710 checks).
+- **Bot against bot, the same build and seeds (201-208), `g_aastrafe` 0 against 1** (`move_wip/s24/queue_aastrafe.sh`,
+  300 s at timescale 10, `stal.py`, `s15m.py`). dm/mohdm6 (`aao_201` / `aas_201`, about 640 bot-minutes each): their
+  hidden travel 169 -> 152 u/s (they hold forward only 33-64% of it), sight starts 16.7 -> 14.9 a minute, kills 2.62 ->
+  2.42, hits 13.8 -> 12.6, a floor apart 19.4% -> 21.6%, both on the street 33.3% -> 30.4%, falls to death 6 -> 8. On
+  the small maps little moves: sightings 14.3 -> 14.6 (dm/brownffa) and 13.6 -> 13.8 (dm/flag) a minute, kills 3334 ->
+  3399, the first press 100-150 ms as before; the speed at a sighting is now 171.9 (was 196.5-202.2), as most sightings
+  catch a strafe. The people in these tables were recorded at the old speed.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
