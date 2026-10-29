@@ -96,8 +96,8 @@ made can be 12203").** Two game servers run:
   bots-new engine since 13:34 UTC. Four bots named by style, all axis, on dm/mohdm6 (the bot block marked 2026-10-29 in
   `main/server_opm.cfg`). `g_aastrafe` 1, the owner's password, recording on. `fs_homepath ~/.local/share/openmohaa` in the
   unit keeps the data folder (`zz_aa_weapons.pk3`, the telemetry) where the old engine had it. The unit's
-  `telemetry-reset.conf` deletes the telemetry on every start, so copy recordings out before a restart. The unit is
-  disabled at boot, as the owner had it. `humanbot_selftest 300` PASS (stuck 0, kbd 0, pressure 0.15 a bot-minute,
+  `telemetry-reset.conf` deletes the telemetry on every start, so copy recordings out before a restart. The unit
+  starts at boot since 13:43 UTC (the owner: "Yes, enable it"; it was disabled before). `humanbot_selftest 300` PASS (stuck 0, kbd 0, pressure 0.15 a bot-minute,
   think 69-90 us), 35 kills, no falls to death. The build before it (game.so of 2026-10-03, model `b4f0aad3a177`, one
   of the 10-02 commits `f3548ad3`-`9d93d470` before bots-new; engine `4035e8d3`) is `game.so.prev-20261003` and
   `omohaaded.prev-4035e8d3` there, `/root/backup-12203-2026-10-29/`, and on the workstation
