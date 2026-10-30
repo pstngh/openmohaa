@@ -92,9 +92,10 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `47e56da0` (bundle
-  `8bfdcab646a6`: the view's big turns wait) with the bots-new engine since 19:06 UTC (the owner: "Yes, install it";
-  `ffbce392`, telemetry schema 14, from 18:08, kept as `game.so.prev-ffbce392`; `4892b2d4` from 14:54, kept as
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `9982e280` (bundle
+  `8bfdcab646a6`: the top speed rounded as the original) with the bots-new engine since 2026-10-30 03:50 UTC (the owner:
+  "Yes and deploy"; `47e56da0`, the view's big turns wait, from 19:06, kept as `game.so.prev-47e56da0`; `ffbce392`,
+  telemetry schema 14, from 18:08, kept as `game.so.prev-ffbce392`; `4892b2d4` from 14:54, kept as
   `game.so.prev-4892b2d4`; `f967d130` from 13:34, kept as `game.so.prev-f967d130`, config `server_opm.cfg.bak-f967d130`). It records only with no bot in the game (`g_movelog_no_bots 1`, the owner: "can you
   make it so that telemetry ONLY records when no bots are loaded. cause i will turn off bots when I do 1v1s"): `rcon
   sv_numbots 0` before a recorded 1v1, `rcon sv_numbots 2` after; a restart brings the two bots back (the rcon helper says "no reply: normal" for a
@@ -2711,7 +2712,8 @@ other weapons are unchanged. In a bot game on dm/mohdm6 the MP40 and the Thompso
 - **What keeps OpenMoHAA's rounding:** `pm_harness` (`ComputeSpeed` in `pm_runner.cpp`) and with it `hb_arena`, like
   `aaStrafe` 0: their calibration compares bots with people recorded at OpenMoHAA's speeds.
 - **The telemetry** has no key for it (nor a build id): `g_aastrafe=1` captures from 12203 before and after this build
-  went in differ by 1-2 u/s at the SMG's and rifles' top speed, told apart only by the time it went in.
+  went in differ by 1-2 u/s at the SMG's and rifles' top speed, told apart only by the time it went in (12203:
+  2026-10-30 03:50 UTC; SMG 264 before, 262 after, at `sv_dmspeedmult` 1.1).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
