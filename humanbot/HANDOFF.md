@@ -2745,6 +2745,12 @@ columns are unchanged.
 - **On 12203** since 2026-10-30 11:59 UTC (the owner: "Deploy to 12203"; built on the VPS, backup
   `game.so.prev-9982e280`, nobody on, no recordings waiting). It came back with the same model, two bots and settings,
   `g_movelog_usercmds 1`. Its first schema-15 capture is the owner's next recorded game (bots off).
+- **First with a person:** the owner against four bots on dm/mohdm6 at 1.1 (2026-10-30 12:29-12:45 UTC, recording with
+  the bots in for that game only; `humanbot/cache/move_wip/live_20261030/`, no demo). 118,953 of the owner's usercmds,
+  8 ms apart (125 a second, about 6 a frame); every frame row's last usercmd in the file with the same keys. No strafe,
+  forward/back or jump/crouch press was missed by the frame rows, but 24 of the owner's 441 fire presses (5.4%) never
+  reached one: a client's usercmds arrive in packets, two packets can land in one frame, and the frame row keeps only
+  the last usercmd of the last one. A person's `cmd_msec` is not the frame time (mostly 0); `cmd_server_ms` is.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
