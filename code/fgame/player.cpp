@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 #include "bg_local.h"
+#include "bg_speed.h"
 #include "g_spawn.h"
 #include "g_phys.h"
 #include "entity.h"
@@ -4077,8 +4078,10 @@ void Player::ClientMove(usercmd_t *ucmd)
             client->ps.speed = sv_runspeed->value * sv_walkspeedmult->value;
         }
 
+        // Added in OPM
+        //  Each product rounded as the original games do (bg_speed.h)
         if (m_iMovePosFlags & MPF_POSITION_CROUCHING) {
-            client->ps.speed = (float)client->ps.speed * sv_crouchspeedmult->value;
+            client->ps.speed = BG_SpeedTimes(client->ps.speed, sv_crouchspeedmult->value);
         }
 
         pWeap = GetActiveWeapon(WEAPON_MAIN);
@@ -4087,15 +4090,15 @@ void Player::ClientMove(usercmd_t *ucmd)
             // Also use the weapon movement speed
             //
             if (!IsZoomed()) {
-                client->ps.speed = (float)client->ps.speed * pWeap->GetMovementSpeed();
+                client->ps.speed = BG_SpeedTimes(client->ps.speed, pWeap->GetMovementSpeed());
             } else {
-                client->ps.speed = (float)client->ps.speed * pWeap->GetZoomMovement();
+                client->ps.speed = BG_SpeedTimes(client->ps.speed, pWeap->GetZoomMovement());
             }
         }
     }
 
     if (g_gametype->integer != GT_SINGLE_PLAYER) {
-        client->ps.speed = (int)((float)client->ps.speed * sv_dmspeedmult->value);
+        client->ps.speed = BG_SpeedTimes(client->ps.speed, sv_dmspeedmult->value);
     }
 
     //====

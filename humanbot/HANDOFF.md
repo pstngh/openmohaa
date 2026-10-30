@@ -2697,6 +2697,22 @@ uses. In a bot game on dm/mohdm6 something lay within 32 u ahead 65% of the time
 schema, with `g_aastrafe` and `g_movelog_no_bots` in the metadata, before the first schema-14 capture goes in (a
 data-repo session's job). With people's keys and these columns a fit can say how people answer a real wall.
 
+## The top speed rounded as the original (2026-10-29)
+
+The owner wants the top speed "fixed and not changeable", identical to MOHAA 1.11. `Player::ClientMove` multiplies the
+speed by the crouch, the weapon's movement speed (or its zoomed one) and `sv_dmspeedmult` at full precision and cuts each
+product to a whole number (`code/fgame/bg_speed.h`, `BG_SpeedTimes`; no cvar), as the original's x87 code does: 250 x
+0.96f is 239.99999, so 239. Upstream OpenMoHAA multiplied in float (240). Run / walk or crouch tops at
+`sv_dmspeedmult` 1.1: SMG 262 / 157 (was 264 / 158), rifles 257 / 154 (258 / 155), MG 244 / 146, snipers 220 / 132,
+shotgun 271 / 162, pistols and grenades 275 / 165; at 1.0 SMG 239 / 143 (240 / 144), rifles 234 / 140 (235 / 141). The
+other weapons are unchanged. In a bot game on dm/mohdm6 the MP40 and the Thompson held exactly 262.0 running forward at
+1.1 and 239.0 at 1.0. The cgame takes `ps.speed` from the snapshot, so every client predicts it unchanged.
+
+- **What keeps OpenMoHAA's rounding:** `pm_harness` (`ComputeSpeed` in `pm_runner.cpp`) and with it `hb_arena`, like
+  `aaStrafe` 0: their calibration compares bots with people recorded at OpenMoHAA's speeds.
+- **The telemetry** has no key for it (nor a build id): `g_aastrafe=1` captures from 12203 before and after this build
+  went in differ by 1-2 u/s at the SMG's and rifles' top speed, told apart only by the time it went in.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with
