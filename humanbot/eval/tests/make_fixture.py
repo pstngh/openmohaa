@@ -11,7 +11,7 @@ unchanged analysis scripts accept the loaded cache.
 
 Usage: make_fixture.py OUT_DIR [--seconds 150] [--seed 1] [--zip] [--date 2026-10-01]
   writes OUT_DIR/telemetry/movement_{frames,events}.csv + movement_meta.txt and, with
-  --zip, OUT_DIR/<date>_pstN_bot-eval_schema14_<sha12>.zip holding that triplet.
+  --zip, OUT_DIR/<date>_pstN_bot-eval_schema15_<sha12>.zip holding that triplet.
 """
 from __future__ import annotations
 

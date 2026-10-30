@@ -9,13 +9,13 @@ triplet movement_frames.csv, movement_events.csv, movement_meta.txt and/or the s
 triplets segments/<epoch>_<ms>_movement_{frames,events}.csv + ..._meta.txt.
 
 Every triplet is checked first. A triplet is refused when its frames header is not the
-schema-13 header of this build (code/fgame/movement_telemetry_schema.h + hb_diag.h), its
-events header or metadata schema is not 13, or it has no bot rows; nothing is written
+header of this build's schema (code/fgame/movement_telemetry_schema.h + hb_diag.h), its
+events header or metadata schema is not this build's, or it has no bot rows; nothing is written
 while a triplet is refused unless --skip-refused is given. Sessions without bot rows are
 dropped (a bot-eval capture must hold bot rows in every session).
 
 The sessions are packed in capture order into ZIPs of at most 25 MiB, each named
-DATE_pstN_bot-eval_schema14_<sha12>.zip, where sha12 is the first 12 hex digits of the
+DATE_pstN_bot-eval_schema15_<sha12>.zip, where sha12 is the first 12 hex digits of the
 SHA-256 of the first frames CSV in that ZIP. A ZIP holds one or more triplets under their
 original relative names, restricted to its sessions (headers kept). A session never spans
 two ZIPs unless it alone exceeds the limit; its frames and events are then split by time,

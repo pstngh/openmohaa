@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "movement_telemetry_schema.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
@@ -213,6 +214,24 @@ int main(int argc, char **argv)
 #undef TEST_DIAG_COLUMN
     };
     CheckSameList("MOVELOG_FRAME_BOT_COLUMNS", bot, expectedBot);
+
+    //
+    // Usercmd columns (schema 15), exactly as specified; the names follow the frame header's.
+    //
+    const std::vector<std::string> usercmds = ToVector(MOVELOG_USERCMD_COLUMNS, MOVELOG_USERCMD_COLUMN_COUNT);
+    const std::vector<std::string> expectedUsercmds {
+        "schema", "session_id", "session_ms", "server_ms", "client_id", "is_bot", "usercmd_count", "cmd_server_ms",
+        "cmd_msec", "cmd_forward", "cmd_right", "cmd_up", "buttons", "view_pitch", "view_yaw",
+    };
+    CheckSameList("MOVELOG_USERCMD_COLUMNS", usercmds, expectedUsercmds);
+    for (const std::string& name : usercmds) {
+        if (name != "usercmd_count" && std::find(core.begin(), core.end(), name) == core.end()) {
+            Fail("usercmd column \"" + name + "\" is not a core frame column of the same meaning");
+        }
+    }
+    if (MOVELOG_SCHEMA < 15) {
+        Fail("the usercmd file came with schema 15");
+    }
     if (bot.size() != static_cast<std::size_t>(hb::DIAG_COLUMN_COUNT)) {
         Fail("bot column count differs from hb::DIAG_COLUMN_COUNT");
     }
@@ -238,7 +257,7 @@ int main(int argc, char **argv)
     frame.insert(frame.end(), ext.begin(), ext.end());
     frame.insert(frame.end(), bot.begin(), bot.end());
 
-    const std::vector<std::string> *const headers[] = {&frame, &events};
+    const std::vector<std::string> *const headers[] = {&frame, &events, &usercmds};
     for (const std::vector<std::string> *list : headers) {
         for (const std::string& name : *list) {
             if (!IsPlainName(name)) {
@@ -248,6 +267,7 @@ int main(int argc, char **argv)
     }
     CheckUnique("frame header", frame);
     CheckUnique("event header", events);
+    CheckUnique("usercmd header", usercmds);
     if (frame.size() != MOVELOG_FRAME_COLUMN_COUNT) {
         Fail("MOVELOG_FRAME_COLUMN_COUNT is not core + ext + bot");
     }
@@ -261,6 +281,13 @@ int main(int argc, char **argv)
 
     const std::string frameHeader = MoveLogFrameHeaderLine();
     const std::string eventHeader = MoveLogEventHeaderLine();
+    const std::string usercmdHeader = MoveLogUsercmdHeaderLine();
+    if (usercmdHeader != Join(expectedUsercmds) + "\n") {
+        Fail("MoveLogUsercmdHeaderLine() is not the usercmd columns joined by commas");
+    }
+    if (MoveLogCsvFieldCount(usercmdHeader) != MOVELOG_USERCMD_COLUMN_COUNT) {
+        Fail("MoveLogCsvFieldCount(usercmd header) is not MOVELOG_USERCMD_COLUMN_COUNT");
+    }
     if (frameHeader != Join(expectedFrame) + "\n") {
         Fail("MoveLogFrameHeaderLine() is not core + ext + bot joined by commas");
     }
@@ -295,13 +322,15 @@ int main(int argc, char **argv)
     }
 
     std::printf(
-        "test_telemetry_headers: OK (schema %d, %d frame columns = %d core + %d ext + %d bot, %d event columns)\n",
+        "test_telemetry_headers: OK (schema %d, %d frame columns = %d core + %d ext + %d bot, %d event columns, "
+        "%d usercmd columns)\n",
         MOVELOG_SCHEMA,
         static_cast<int>(MOVELOG_FRAME_COLUMN_COUNT),
         static_cast<int>(MOVELOG_FRAME_CORE_COLUMN_COUNT),
         static_cast<int>(MOVELOG_FRAME_EXT_COLUMN_COUNT),
         static_cast<int>(MOVELOG_FRAME_BOT_COLUMN_COUNT),
-        static_cast<int>(MOVELOG_EVENT_COLUMN_COUNT)
+        static_cast<int>(MOVELOG_EVENT_COLUMN_COUNT),
+        static_cast<int>(MOVELOG_USERCMD_COLUMN_COUNT)
     );
     return 0;
 }

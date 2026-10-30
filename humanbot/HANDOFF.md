@@ -32,7 +32,8 @@ procedure.
 ## State
 
 Built and pushed:
-- the telemetry logger (`g_movelog`, schema 14 since 2026-10-29: `ext_wall_*`; 13 before);
+- the telemetry logger (`g_movelog`, schema 15 since 2026-10-30: every usercmd in `movement_usercmds.csv`; 14 from
+  2026-10-29: `ext_wall_*`; 13 before);
 - the brain library (`code/humanbot`) and the engine glue (`code/fgame/humanbot_*.cpp`);
 - fitting and calibration (`humanbot/fit`) and evaluation (`humanbot/eval`);
 - test harnesses: `hb_replay` (recorded traces), `hb_arena` (closed loop on the real Pmove),
@@ -2714,6 +2715,32 @@ other weapons are unchanged. In a bot game on dm/mohdm6 the MP40 and the Thompso
 - **The telemetry** has no key for it (nor a build id): `g_aastrafe=1` captures from 12203 before and after this build
   went in differ by 1-2 u/s at the SMG's and rifles' top speed, told apart only by the time it went in (12203:
   2026-10-30 03:50 UTC; SMG 264 before, 262 after, at `sv_dmspeedmult` 1.1).
+
+## Every usercmd in the telemetry: schema 15 (2026-10-30)
+
+The owner asked about logging every key they press and for how long ("Yes, build it"). A client sends a usercmd per
+rendered frame (the recorded people 250 to 500 a second), but a frame row keeps only the last of each 50 ms: a tap shorter than a
+frame can vanish, and every key change is known to 50 ms. A keyboard logger would see only the owner, on their machine,
+on its own clock; the server sees every player's usercmds. Since schema 15 the logger writes
+`movement_usercmds.csv` next to the frames and events (segments: `<epoch>_<ms>_movement_usercmds.csv`): one row per
+usercmd `Player::ClientThink` accepted (`G_MoveLogUsercmd`, called at its end), for people and bots, only while a
+session is open (the same pauses as the frames: `g_movelog_need_human`, `g_movelog_no_bots`). Columns
+(`MOVELOG_USERCMD_COLUMNS`): `schema`, `session_id`, `session_ms`, `server_ms` (when the server ran it), `client_id`,
+`is_bot`, `usercmd_count` (the player's accepted usercmds so far, this one included), `cmd_server_ms` (the client's
+stamp, the frame row's `cmd_server_ms`), `cmd_msec`, `cmd_forward`, `cmd_right`, `cmd_up`, `buttons`, `view_pitch`,
+`view_yaw` (after it ran). `g_movelog_usercmds` (default 1, in the metadata) 0 writes the header only. Frame and event
+columns are unchanged.
+
+- **Checked in a bot game** on dm/mohdm6 (two bots, 350 s at timescale 5): 167,052 rows, `usercmd_count` always one up,
+  exactly 12 a frame per bot (`g_humanbot_substeps`), as many rows per bot as its frame rows' `ext_usercmds` add up to,
+  and every frame row's last usercmd in the file with the same keys and buttons (100%). The file found 3,558 key changes
+  where the frame rows show 3,276. With `g_movelog_usercmds 0` the file has its header only; with `g_movelog_no_bots 1`
+  nothing is written. A person's usercmds take the same line in `ClientThink`; none was on in this check.
+- **Size:** about as big as the frames file for the same players (15.2 MB against 15.9 MB here), 1.8 MB gzipped
+  (frames 2.7 MB).
+- **Readers:** the bot repo's tools take schema 15 (`capture_io.SCHEMA`); bot-eval ZIPs keep the triplets and leave the
+  usercmd file out. The data repo's loader reads frames by name and any schema number, so schema-15 captures load as
+  before, the usercmd file unread until the data side learns it.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

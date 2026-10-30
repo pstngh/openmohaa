@@ -33,9 +33,12 @@ class Player;
 class Sentient;
 class Vector;
 class Weapon;
+struct usercmd_s;
 
 void G_MoveLogFrame();
 void G_MoveLogShutdown();
+// One row of movement_usercmds.csv for a usercmd `player`'s ClientThink accepted and ran (schema 15), while a session is open.
+void G_MoveLogUsercmd(Player *player, const usercmd_s& command);
 
 void G_MoveLogShot(Sentient *owner, Weapon *weapon, int mode, const Vector& position, const Vector& forward);
 void G_MoveLogReload(Sentient *owner, Weapon *weapon);

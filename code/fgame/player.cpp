@@ -4647,6 +4647,9 @@ void Player::ClientThink(void)
         client->ps.commandTime = current_ucmd->serverTime;
     }
 
+    // Every accepted usercmd for the movement telemetry (movement_usercmds.csv)
+    G_MoveLogUsercmd(this, *current_ucmd);
+
     if (voteUpload) {
         //
         // Process pending vote upload

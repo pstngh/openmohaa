@@ -120,8 +120,8 @@ git add humanbot/captures && git commit -m "Add bot-eval captures" && git push
 Move or delete the server's `telemetry/` folder once it is packed, so the next session starts
 clean (and the soak test's bot-only captures never mix in).
 
-`pack_capture.py` checks every file (schema 14, the build's columns, bot rows present) and
-writes ZIPs named `DATE_pstN_bot-eval_schema14_<sha12>.zip` of at most 25 MiB each. Only your
+`pack_capture.py` checks every file (schema 15, the build's columns, bot rows present) and
+writes ZIPs named `DATE_pstN_bot-eval_schema15_<sha12>.zip` of at most 25 MiB each. Only your
 own games against the bots belong here: never human-vs-human recordings, which stay in the
 private data repository. `check_no_raw_data.py` (run in CI) refuses anything else.
 

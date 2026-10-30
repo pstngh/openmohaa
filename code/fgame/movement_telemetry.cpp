@@ -23,8 +23,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // telemetry, ported from the movement lab logger (schema 12).
 //
 // Output goes below the active game directory: telemetry/movement_frames.csv
-// (one row per player per 50 ms server frame), telemetry/movement_events.csv
-// and telemetry/movement_meta.txt (one INI section per session). With
+// (one row per player per 50 ms server frame), telemetry/movement_events.csv,
+// telemetry/movement_usercmds.csv (one row per usercmd a player's ClientThink
+// accepted; schema 15, g_movelog_usercmds) and telemetry/movement_meta.txt (one
+// INI section per session). With
 // g_movelog_max_mb or g_movelog_max_seconds set, a capture goes to fresh files
 // under telemetry/segments/ and stops at the limit (with g_movelog_rollover, the
 // next capture starts right away). With g_movelog_need_human, recording pauses
@@ -69,14 +71,18 @@ constexpr float              RAD_TO_DEG              = 57.29577951308232f;
 constexpr const char        *MOVELOG_FRAMES_PATH     = "telemetry/movement_frames.csv";
 constexpr const char        *MOVELOG_EVENTS_PATH     = "telemetry/movement_events.csv";
 constexpr const char        *MOVELOG_META_PATH       = "telemetry/movement_meta.txt";
+constexpr const char        *MOVELOG_USERCMDS_PATH   = "telemetry/movement_usercmds.csv";
 
 fileHandle_t       framesFile = 0;
 fileHandle_t       eventsFile = 0;
+fileHandle_t       usercmdsFile = 0;
 std::string        framesBuffer;
 std::string        eventsBuffer;
+std::string        usercmdsBuffer;
 std::string        framesPath(MOVELOG_FRAMES_PATH);
 std::string        eventsPath(MOVELOG_EVENTS_PATH);
 std::string        metaPath(MOVELOG_META_PATH);
+std::string        usercmdsPath(MOVELOG_USERCMDS_PATH);
 std::string        sessionId;
 unsigned long long framesBytesWritten  = 0;
 unsigned long long captureBytesWritten = 0;
@@ -87,7 +93,7 @@ int                nextFlushMsec       = 0;
 bool               captureActive       = false;
 
 //
-// Row shape guard: the first frame row and the first event row of every session
+// Row shape guard: the first frame, event and usercmd row of every session
 // are checked against the width of their header. On a mismatch recording is
 // disabled and no further row of that kind is written.
 //
@@ -99,6 +105,7 @@ enum RowShape {
 
 RowShape frameRowShape = ROW_SHAPE_UNCHECKED;
 RowShape eventRowShape = ROW_SHAPE_UNCHECKED;
+RowShape usercmdRowShape = ROW_SHAPE_UNCHECKED;
 
 static bool BoundedCaptureRequested()
 {
@@ -113,6 +120,7 @@ static void SelectFreshSegmentPaths()
     framesPath = prefix.str() + "_movement_frames.csv";
     eventsPath = prefix.str() + "_movement_events.csv";
     metaPath   = prefix.str() + "_movement_meta.txt";
+    usercmdsPath = prefix.str() + "_movement_usercmds.csv";
 }
 
 struct VisibilityState {
@@ -345,12 +353,21 @@ static void FlushBuffers(bool force)
         eventsBuffer.clear();
     }
 
+    if (usercmdsFile && !usercmdsBuffer.empty() && (force || usercmdsBuffer.size() >= MOVELOG_BUFFER_LIMIT)) {
+        const size_t bytesWritten = gi.FS_Write(usercmdsBuffer.data(), usercmdsBuffer.size(), usercmdsFile);
+        AccountCaptureWrite(bytesWritten);
+        usercmdsBuffer.clear();
+    }
+
     if (force) {
         if (framesFile) {
             gi.FS_Flush(framesFile);
         }
         if (eventsFile) {
             gi.FS_Flush(eventsFile);
+        }
+        if (usercmdsFile) {
+            gi.FS_Flush(usercmdsFile);
         }
     }
 }
@@ -764,7 +781,7 @@ static bool EnsureOpen()
     if (!g_movelog || !g_movelog->integer) {
         return false;
     }
-    if (framesFile && eventsFile) {
+    if (framesFile && eventsFile && usercmdsFile) {
         return true;
     }
     if (WaitingForHuman() || BotInGame()) {
@@ -786,18 +803,20 @@ static bool EnsureOpen()
         framesLength = gi.FS_ReadFile(framesPath.c_str(), NULL, qtrue);
     }
 
-    const long eventsLength     = gi.FS_ReadFile(eventsPath.c_str(), NULL, qtrue);
-    const long metaLength       = gi.FS_ReadFile(metaPath.c_str(), NULL, qtrue);
-    const bool framesNeedHeader = framesLength <= 0;
-    const bool eventsNeedHeader = eventsLength <= 0;
-    const bool metaNeedsHeader  = metaLength <= 0;
-    const bool anyExistingLog   = !framesNeedHeader || !eventsNeedHeader || !metaNeedsHeader;
-    const bool allExistingLogs  = !framesNeedHeader && !eventsNeedHeader && !metaNeedsHeader;
+    const long eventsLength       = gi.FS_ReadFile(eventsPath.c_str(), NULL, qtrue);
+    const long metaLength         = gi.FS_ReadFile(metaPath.c_str(), NULL, qtrue);
+    const long usercmdsLength     = gi.FS_ReadFile(usercmdsPath.c_str(), NULL, qtrue);
+    const bool framesNeedHeader   = framesLength <= 0;
+    const bool eventsNeedHeader   = eventsLength <= 0;
+    const bool metaNeedsHeader    = metaLength <= 0;
+    const bool usercmdsNeedHeader = usercmdsLength <= 0;
+    const bool anyExistingLog     = !framesNeedHeader || !eventsNeedHeader || !metaNeedsHeader || !usercmdsNeedHeader;
+    const bool allExistingLogs    = !framesNeedHeader && !eventsNeedHeader && !metaNeedsHeader && !usercmdsNeedHeader;
 
     if ((anyExistingLog && !allExistingLogs)
         || (allExistingLogs && LastMetadataSchema(metaPath.c_str()) != MOVELOG_SCHEMA)) {
         gi.Printf(
-            "g_movelog: existing telemetry files do not use schema %d; archive/delete all three movement_* files "
+            "g_movelog: existing telemetry files do not use schema %d; archive/delete all four movement_* files "
             "before recording\n",
             MOVELOG_SCHEMA
         );
@@ -805,14 +824,16 @@ static bool EnsureOpen()
         return false;
     }
 
-    const std::string frameHeader = MoveLogFrameHeaderLine();
-    const std::string eventHeader = MoveLogEventHeaderLine();
+    const std::string frameHeader   = MoveLogFrameHeaderLine();
+    const std::string eventHeader   = MoveLogEventHeaderLine();
+    const std::string usercmdHeader = MoveLogUsercmdHeaderLine();
 
     if (allExistingLogs
-        && (!FileStartsWith(framesPath.c_str(), frameHeader) || !FileStartsWith(eventsPath.c_str(), eventHeader))) {
+        && (!FileStartsWith(framesPath.c_str(), frameHeader) || !FileStartsWith(eventsPath.c_str(), eventHeader)
+            || !FileStartsWith(usercmdsPath.c_str(), usercmdHeader))) {
         gi.Printf(
             "g_movelog: existing telemetry files use schema %d with other columns than this build; archive/delete "
-            "all three movement_* files before recording\n",
+            "all four movement_* files before recording\n",
             MOVELOG_SCHEMA
         );
         gi.cvar_set("g_movelog", "0");
@@ -824,16 +845,20 @@ static bool EnsureOpen()
     id << mapName << '_' << static_cast<long long>(std::time(NULL)) << '_' << gi.Milliseconds();
     sessionId = id.str();
 
-    framesFile = gi.FS_FOpenFileAppend(framesPath.c_str());
-    eventsFile = gi.FS_FOpenFileAppend(eventsPath.c_str());
-    if (!framesFile || !eventsFile) {
+    framesFile   = gi.FS_FOpenFileAppend(framesPath.c_str());
+    eventsFile   = gi.FS_FOpenFileAppend(eventsPath.c_str());
+    usercmdsFile = gi.FS_FOpenFileAppend(usercmdsPath.c_str());
+    if (!framesFile || !eventsFile || !usercmdsFile) {
         if (framesFile) {
             gi.FS_FCloseFile(framesFile);
         }
         if (eventsFile) {
             gi.FS_FCloseFile(eventsFile);
         }
-        framesFile = eventsFile = 0;
+        if (usercmdsFile) {
+            gi.FS_FCloseFile(usercmdsFile);
+        }
+        framesFile = eventsFile = usercmdsFile = 0;
         gi.Printf("g_movelog: could not open telemetry output files\n");
         gi.cvar_set("g_movelog", "0");
         return false;
@@ -845,9 +870,11 @@ static bool EnsureOpen()
     framesBytesWritten = framesLength > 0 ? static_cast<unsigned long long>(framesLength) : 0;
     frameRowShape      = ROW_SHAPE_UNCHECKED;
     eventRowShape      = ROW_SHAPE_UNCHECKED;
+    usercmdRowShape    = ROW_SHAPE_UNCHECKED;
 
     framesBuffer.clear();
     eventsBuffer.clear();
+    usercmdsBuffer.clear();
     for (int i = 0; i < MAX_CLIENTS; ++i) {
         visibilityStates[i] = VisibilityState();
     }
@@ -858,6 +885,9 @@ static bool EnsureOpen()
     }
     if (eventsNeedHeader) {
         eventsBuffer = eventHeader;
+    }
+    if (usercmdsNeedHeader) {
+        usercmdsBuffer = usercmdHeader;
     }
 
     const std::string  botMeta  = HumanBotMetaLines();
@@ -889,7 +919,9 @@ static bool EnsureOpen()
          << CvarLine("com_target_game", gi.Cvar_Get("com_target_game", "", 0))
          << CvarLine("g_movelog_max_mb", g_movelog_max_mb)
          << CvarLine("g_movelog_max_seconds", g_movelog_max_seconds)
-         << CvarLine("g_movelog_no_bots", g_movelog_no_bots) << botMeta;
+         << CvarLine("g_movelog_no_bots", g_movelog_no_bots)
+         // 1: movement_usercmds.csv holds every accepted usercmd (schema 15); 0: its header only
+         << CvarLine("g_movelog_usercmds", g_movelog_usercmds) << botMeta;
     if (!HasMetaKey(botMeta, "hb_model_sha256")) {
         meta << "hb_model_sha256=" << (hbSha256 ? hbSha256 : "") << '\n';
     }
@@ -900,7 +932,8 @@ static bool EnsureOpen()
     if (!metaFile) {
         gi.FS_FCloseFile(framesFile);
         gi.FS_FCloseFile(eventsFile);
-        framesFile = eventsFile = 0;
+        gi.FS_FCloseFile(usercmdsFile);
+        framesFile = eventsFile = usercmdsFile = 0;
         gi.Printf("g_movelog: could not open telemetry metadata file\n");
         gi.cvar_set("g_movelog", "0");
         return false;
@@ -917,10 +950,11 @@ static bool EnsureOpen()
     }
     FlushBuffers(true);
     gi.Printf(
-        "g_movelog: recording session %s to %s, %s, and %s\n",
+        "g_movelog: recording session %s to %s, %s, %s, and %s\n",
         sessionId.c_str(),
         framesPath.c_str(),
         eventsPath.c_str(),
+        usercmdsPath.c_str(),
         metaPath.c_str()
     );
     return true;
@@ -1126,7 +1160,7 @@ static bool AppendFrame(Player *player)
 
 static void CloseTelemetrySession()
 {
-    if (!framesFile && !eventsFile) {
+    if (!framesFile && !eventsFile && !usercmdsFile) {
         return;
     }
 
@@ -1140,11 +1174,15 @@ static void CloseTelemetrySession()
     if (eventsFile) {
         gi.FS_FCloseFile(eventsFile);
     }
+    if (usercmdsFile) {
+        gi.FS_FCloseFile(usercmdsFile);
+    }
     gi.Printf("g_movelog: stopped recording session %s\n", sessionId.c_str());
 
-    framesFile = eventsFile = 0;
+    framesFile = eventsFile = usercmdsFile = 0;
     framesBuffer.clear();
     eventsBuffer.clear();
+    usercmdsBuffer.clear();
     sessionId.clear();
     framesBytesWritten = 0;
 }
@@ -1157,6 +1195,7 @@ static void ResetCaptureState()
     framesPath          = MOVELOG_FRAMES_PATH;
     eventsPath          = MOVELOG_EVENTS_PATH;
     metaPath            = MOVELOG_META_PATH;
+    usercmdsPath        = MOVELOG_USERCMDS_PATH;
 }
 
 static const char *CaptureLimitEvent()
@@ -1168,7 +1207,8 @@ static const char *CaptureLimitEvent()
 
     if (g_movelog_max_mb && g_movelog_max_mb->integer > 0) {
         const unsigned long long maxBytes = static_cast<unsigned long long>(g_movelog_max_mb->integer) * 1024ULL * 1024ULL;
-        const unsigned long long pendingBytes = static_cast<unsigned long long>(framesBuffer.size() + eventsBuffer.size());
+        const unsigned long long pendingBytes =
+            static_cast<unsigned long long>(framesBuffer.size() + eventsBuffer.size() + usercmdsBuffer.size());
         if (captureBytesWritten + pendingBytes >= maxBytes) {
             return "capture_size_limit";
         }
@@ -1349,6 +1389,30 @@ void G_MoveLogShutdown()
 {
     CloseTelemetrySession();
     ResetCaptureState();
+}
+
+void G_MoveLogUsercmd(Player *player, const usercmd_t& command)
+{
+    // Only into an open session: G_MoveLogFrame opens and closes them, a usercmd never does
+    if (!usercmdsFile || !g_movelog_usercmds || !g_movelog_usercmds->integer || !IsRecordablePlayer(player)) {
+        return;
+    }
+
+    std::ostringstream row;
+    row << std::fixed << std::setprecision(3) << MOVELOG_SCHEMA << ',' << CsvQuote(sessionId.c_str()) << ','
+        << SessionMsec() << ',' << level.inttime << ',' << player->entnum << ',' << (PlayerIsBot(player) ? 1 : 0) << ','
+        << player->GetUsercmdCount() << ',' << command.serverTime << ',' << static_cast<int>(command.msec) << ','
+        << static_cast<int>(command.forwardmove) << ',' << static_cast<int>(command.rightmove) << ','
+        << static_cast<int>(command.upmove) << ',' << command.buttons << ',' << player->client->ps.viewangles[0] << ','
+        << player->client->ps.viewangles[1] << '\n';
+
+    const std::string text = row.str();
+    if (!RowMatchesHeader(usercmdRowShape, text, MOVELOG_USERCMD_COLUMN_COUNT, "usercmd")) {
+        return;
+    }
+
+    usercmdsBuffer += text;
+    FlushBuffers(false);
 }
 
 void G_MoveLogShot(Sentient *owner, Weapon *weapon, int mode, const Vector& position, const Vector& forward)

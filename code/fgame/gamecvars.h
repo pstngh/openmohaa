@@ -144,6 +144,8 @@ extern cvar_t *g_movelog_rollover;
 extern cvar_t *g_movelog_need_human;
 /** 1 records only while no bot is in the game and sv_numbots is 0; a bot joining ends the capture. */
 extern cvar_t *g_movelog_no_bots;
+/** 1 (default) writes every accepted usercmd to movement_usercmds.csv (schema 15); 0 writes the header only. */
+extern cvar_t *g_movelog_usercmds;
 
 extern cvar_t *g_showtokens;
 extern cvar_t *g_showopcodes;

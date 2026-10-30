@@ -27,7 +27,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // the lists against golden files, so the header text has one source of truth.
 //
 // A frame row is MOVELOG_FRAME_CORE_COLUMNS, then MOVELOG_FRAME_EXT_COLUMNS,
-// then one bot_* column per HB_DIAG_FIELDS entry. The core and event lists are
+// then one bot_* column per HB_DIAG_FIELDS entry. Since schema 15 a usercmd row
+// (movement_usercmds.csv) is MOVELOG_USERCMD_COLUMNS: one row per usercmd that
+// Player::ClientThink accepted, for every player. The core and event lists are
 // the movement lab logger's (schema 12) and existing analysis reads them by
 // name: never rename, reorder or remove one of those columns. Bump
 // MOVELOG_SCHEMA whenever any list changes (including HB_DIAG_FIELDS); the
@@ -41,7 +43,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string>
 
 // Written to every row and to the metadata.
-inline constexpr int MOVELOG_SCHEMA = 14;
+inline constexpr int MOVELOG_SCHEMA = 15;
 
 inline constexpr const char *MOVELOG_FRAME_CORE_COLUMNS[] = {
     // 0: sample identity and player state
@@ -124,6 +126,16 @@ inline constexpr const char *MOVELOG_EVENT_COLUMNS[] = {
     "sight_normal_y", "sight_normal_z",
 };
 
+// schema 15: every usercmd a player's client sent (one per client frame, 4 ms apart at 250 fps), where the frame row
+// keeps only the last of each 50 ms, so key taps shorter than a frame and the time of each key change within it are kept
+inline constexpr const char *MOVELOG_USERCMD_COLUMNS[] = {
+    "schema", "session_id", "session_ms", "server_ms", "client_id", "is_bot",
+    "usercmd_count",   // the player's accepted usercmds so far (Player::GetUsercmdCount), this one included
+    "cmd_server_ms",   // usercmd serverTime: the client's time stamp, the frame row's cmd_server_ms
+    "cmd_msec", "cmd_forward", "cmd_right", "cmd_up", "buttons",
+    "view_pitch", "view_yaw", // client->ps.viewangles after the usercmd ran
+};
+
 template<typename T, std::size_t N>
 constexpr std::size_t MoveLogArrayCount(const T (&)[N])
 {
@@ -136,6 +148,7 @@ inline constexpr std::size_t MOVELOG_FRAME_BOT_COLUMN_COUNT  = MoveLogArrayCount
 inline constexpr std::size_t MOVELOG_FRAME_COLUMN_COUNT =
     MOVELOG_FRAME_CORE_COLUMN_COUNT + MOVELOG_FRAME_EXT_COLUMN_COUNT + MOVELOG_FRAME_BOT_COLUMN_COUNT;
 inline constexpr std::size_t MOVELOG_EVENT_COLUMN_COUNT = MoveLogArrayCount(MOVELOG_EVENT_COLUMNS);
+inline constexpr std::size_t MOVELOG_USERCMD_COLUMN_COUNT = MoveLogArrayCount(MOVELOG_USERCMD_COLUMNS);
 
 static_assert(MOVELOG_FRAME_CORE_COLUMN_COUNT == 133, "the core frame columns are the lab logger's 133");
 static_assert(MOVELOG_FRAME_EXT_COLUMN_COUNT == 16, "ext frame columns changed: bump MOVELOG_SCHEMA");
@@ -144,6 +157,7 @@ static_assert(
     "one bot_* column per HB_DIAG_FIELDS entry"
 );
 static_assert(MOVELOG_EVENT_COLUMN_COUNT == 49, "the event columns are the lab logger's 49");
+static_assert(MOVELOG_USERCMD_COLUMN_COUNT == 15, "usercmd columns changed: bump MOVELOG_SCHEMA");
 
 // Appends `count` column names to `line`, separated by commas.
 inline void MoveLogAppendColumns(std::string& line, const char *const *columns, std::size_t count)
@@ -172,6 +186,15 @@ inline std::string MoveLogEventHeaderLine()
 {
     std::string line;
     MoveLogAppendColumns(line, MOVELOG_EVENT_COLUMNS, MOVELOG_EVENT_COLUMN_COUNT);
+    line += '\n';
+    return line;
+}
+
+// Header line of movement_usercmds.csv, newline terminated.
+inline std::string MoveLogUsercmdHeaderLine()
+{
+    std::string line;
+    MoveLogAppendColumns(line, MOVELOG_USERCMD_COLUMNS, MOVELOG_USERCMD_COLUMN_COUNT);
     line += '\n';
     return line;
 }

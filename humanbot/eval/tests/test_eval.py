@@ -78,7 +78,7 @@ class TestSchema(unittest.TestCase):
     def test_columns_follow_the_cpp_contract(self):
         c = cio.columns()
         self.assertEqual(c.schema, cio.SCHEMA)
-        self.assertEqual(c.schema, 14)
+        self.assertEqual(c.schema, 15)
         self.assertEqual(len(c.core), 133)
         self.assertEqual(len(c.ext), 16)
         self.assertIn("ext_wall_front", c.ext)

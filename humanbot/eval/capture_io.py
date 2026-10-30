@@ -4,8 +4,10 @@ Logger output (code/fgame/movement_telemetry.cpp), relative to the game dir:
   telemetry/movement_frames.csv, movement_events.csv, movement_meta.txt      main triplet
   telemetry/segments/<epoch>_<ms>_movement_{frames,events}.csv, ..._meta.txt  bounded captures and
                                                                              rotated 1.5 GB segments
-A bot-eval ZIP (humanbot/captures/DATE_pstN_bot-eval_schema14_<sha12>.zip) holds one or more
-triplets with the same relative names ("movement_frames.csv", "segments/<epoch>_<ms>_movement_frames.csv").
+  movement_usercmds.csv next to each triplet (schema 15: every accepted usercmd), not part of a triplet
+A bot-eval ZIP (humanbot/captures/DATE_pstN_bot-eval_schema15_<sha12>.zip) holds one or more
+triplets with the same relative names ("movement_frames.csv", "segments/<epoch>_<ms>_movement_frames.csv");
+the usercmd files stay out of it.
 
 The expected CSV headers are parsed from the C++ column contract
 (code/fgame/movement_telemetry_schema.h and code/humanbot/hb_diag.h), so they follow the build.
@@ -24,7 +26,7 @@ from pathlib import Path
 
 from hbeval import FORK_ROOT
 
-SCHEMA = 14
+SCHEMA = 15
 MAX_ZIP_BYTES = 25 * 1024 * 1024
 CAPTURE_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})_(?P<players>[^_]+)_bot-eval_schema(?P<schema>\d+)_(?P<sha>[0-9a-f]{12})$")
 MEMBER_RE = re.compile(r"^(?P<prefix>(?:[^/]*/)*(?:\d+_\d+_)?)movement_(?P<kind>frames|events|meta)\.(?P<ext>csv|txt)$")
