@@ -93,9 +93,10 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `9982e280` (bundle
-  `8bfdcab646a6`: the top speed rounded as the original) with the bots-new engine since 2026-10-30 03:50 UTC (the owner:
-  "Yes and deploy"; `47e56da0`, the view's big turns wait, from 19:06, kept as `game.so.prev-47e56da0`; `ffbce392`,
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `6d9d5c6f` (bundle
+  `8bfdcab646a6`: telemetry schema 15, every usercmd) with the bots-new engine since 2026-10-30 11:59 UTC (the owner:
+  "Deploy to 12203"; `9982e280`, the top speed rounded as the original, from 03:50, kept as `game.so.prev-9982e280`;
+  `47e56da0`, the view's big turns wait, from 2026-10-29 19:06, kept as `game.so.prev-47e56da0`; `ffbce392`,
   telemetry schema 14, from 18:08, kept as `game.so.prev-ffbce392`; `4892b2d4` from 14:54, kept as
   `game.so.prev-4892b2d4`; `f967d130` from 13:34, kept as `game.so.prev-f967d130`, config `server_opm.cfg.bak-f967d130`). It records only with no bot in the game (`g_movelog_no_bots 1`, the owner: "can you
   make it so that telemetry ONLY records when no bots are loaded. cause i will turn off bots when I do 1v1s"): `rcon
@@ -2741,6 +2742,9 @@ columns are unchanged.
 - **Readers:** the bot repo's tools take schema 15 (`capture_io.SCHEMA`); bot-eval ZIPs keep the triplets and leave the
   usercmd file out. The data repo's loader reads frames by name and any schema number, so schema-15 captures load as
   before, the usercmd file unread until the data side learns it.
+- **On 12203** since 2026-10-30 11:59 UTC (the owner: "Deploy to 12203"; built on the VPS, backup
+  `game.so.prev-9982e280`, nobody on, no recordings waiting). It came back with the same model, two bots and settings,
+  `g_movelog_usercmds 1`. Its first schema-15 capture is the owner's next recorded game (bots off).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
