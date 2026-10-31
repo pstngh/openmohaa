@@ -2863,7 +2863,9 @@ through the railing; the time is 12203's, not yet people's.
 
 dm/brownffa + dm/flag (`bfl_201`, this build with the refit maps, against `bmn_201`, `6d9d5c6f` with them, and `bmo_201`
 without): kills 3,353 / 3,363 / 3,378, sight starts and time in sight within 0.5, no falls to death; their files list no
-jumps or drops, so the code takes the paths it took. The seven refit map files are committed (`fit_maps.py`, byte for byte
+jumps or drops, so the code takes the paths it took. The duel maps with the refit files (`dfl_201`, this build) against
+their old ones (`dold_201`): kills 8.63 / 8.69 a minute, sight starts within 1 a minute on each map, the first press,
+crouches and jumps alike. The seven refit map files are committed (`fit_maps.py`, byte for byte
 `s26/maps_new`); the bundle is `20947943d80b`: the motor model of `8bfdcab646a6` with them. `test_hb_belief`'s checks that
 were tied to the 10-25 files' layout now choose by geometry: the spawn test spawns at the map's spawns facing their way
 (strafe in the first three ticks 2.2%), the hidden run stands in the open (the cell that sees the most), the second
@@ -2943,6 +2945,11 @@ seeds 201 and 401:
 | Duel maps, statistics within 25% of people | 56.2% / 51.2% | 54.4% (201) | |
 | Kills a minute: duel maps, dm/mohdm6, dm/brownffa + flag | 8.6-8.9, 3.46-3.51, 7.39 | 8.6-8.7, 3.51-3.56, 7.32 | |
 | dm/mohdm6: on the west ledge, a floor apart, both on the street | 2.5-2.6%, 11.5-12.1%, 42-44% | 2.0%, 9.7-11.4%, 44% | 1.1%, 2.6%, 49% |
+
+Against what 12203 runs (`6d9d5c6f`, `8bfdcab646a6` with its maps) on dm/mohdm6, seeds 201 + 401 together: kills
+2.67 -> 3.54 a minute (people 3.86), centroid sight starts 16.2 -> 22.7 (26.1), a floor apart 20.2% -> 10.6% (2.6%), both
+on the street 33.8% -> 44.1% (48.8%), the west ledge 2.9% -> 2.0% (1.1%) with no stay over a minute, deaths by falling 1.2
+-> 2.7 per 100 minutes alive (people 2.2-2.8), the first press after a part comes on screen 276 -> 270 ms on average.
 
 Nothing the owner watches got worse, a few rows moved toward people. What changes is mostly how the bots move: the
 refit's habits from the 1.1 games (fewer strafe reversals, more counter strafes: the owner's strafe pause of 2026-10-30,
