@@ -48,8 +48,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import load_bot_captures as LB  # noqa: E402
-from hbeval import (BOT_PREFIX, EVAL_CACHE, HUMAN_REFERENCE, OWNER_NAME, REPORTS_DIR, load_styles, log,  # noqa: E402
-                    movement_repo, repo_arg, repo_revision, rounded, run_analysis)
+from hbeval import (BOT_PREFIX, EVAL_CACHE, HUMAN_REFERENCE, OWNER_NAME, REPORTS_DIR, both_speeds_features,  # noqa: E402
+                    load_styles, log, movement_repo, repo_arg, repo_revision, rounded, run_analysis)
 
 NOT_TELLS = {"fights.win_share"}          # outcome against the opponent, not a behaviour
 DIAL_RANGE_EXTRA = {"mp40_share": (0.0, 1.0)}
@@ -430,8 +430,14 @@ def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True
          "bots": [], "notes": list(summary.get("notes", []))}
     R["capture"]["inputs"] = R["capture"].pop("captures")
     href = json.loads(Path(reference).read_text()) if Path(reference).exists() else None
+    pooled = bool(href) and str(href.get("speeds", "")).startswith("both")
     if href:
-        R["human_reference"] = {k: href.get(k) for k in ("generated", "analysis_revision", "cohort", "bootstrap")}
+        R["human_reference"] = {k: href.get(k) for k in ("generated", "analysis_revision", "cohort", "bootstrap", "speeds")}
+        # a reference over both speeds (build_human_reference.py --both-speeds): the bots' games at either speed count,
+        # as the people's do (the bots play at 1.1 since 2026-10-30, which the data repo's duel mask leaves out)
+        if pooled and both_speeds_features(cache / "features.parquet", cache / "features.parquet"):
+            shutil.rmtree(results, ignore_errors=True)
+            R["notes"].append("eligible and normal_physics pooled over both speeds, like the reference")
     bots_meta = [dict(r) for r in roster if r["is_bot"]]
     R["bots"] = bots_meta
     if skip_analysis or repo is None or href is None:
@@ -445,7 +451,7 @@ def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True
         failed = {}
         if not (reuse and (results / "styles.json").exists()):
             log(f"running the analysis scripts on {cache}")
-            timing = run_analysis(cache, results, repo=repo, quiet=False, keep_going=True)
+            timing = run_analysis(cache, results, repo=repo, quiet=False, keep_going=True, both_speeds=pooled)
             failed = {k: v for k, v in timing.items() if isinstance(v, str)}
             for k, v in failed.items():
                 R["notes"].append(f"analysis/{k} {v} (log in {results / 'logs'}); its statistics are missing")

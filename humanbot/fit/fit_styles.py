@@ -36,6 +36,13 @@ BEST_SKILLS = ["aim_error_fight_deg", "reaction_ms"]
 # lower (one person's games of 2026-10-30 50 ms, a single tick; another's dm/mohdm6 game of 2026-10-25 2.82 deg, with
 # longer fights there), and the bots do not take a faster reaction or a finer aim without the owner's word.
 BEST_SKILLS_HELD = {"aim_error_fight_deg": 3.9845, "reaction_ms": 100.0}
+# Where on the body the bots aim firing (the aim height dial, an owner-held curve in calibrate.py): as the style rows gave
+# it before the games at 1.1 (bundle 8bfdcab646a6). The 2026-10-30 rows lowered every family's centre (0.386 / 0.471 /
+# 0.491 -> 0.372 / 0.451 / 0.484) and the lowest row to 0.223, mostly with dm/mohdm6 minutes, where people aim low at an
+# enemy below (0.28-0.35 of the body); people at 1.1 aim no lower than before (0.438 against 0.430 firing in sight, all
+# maps), and the owner chose the aim height in the engine on 2026-10-08. Per family centre and spread, then min, max, pooled.
+AIM_HEIGHT_HELD = {"presser": (0.3858, 0.0264), "strafer": (0.471, 0.0522), "stopper": (0.491, 0.03),
+                   "min": 0.354, "max": 0.539, "pooled": 0.4337}
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
 CLUSTER_DIALS = ["fwd_diag_fight", "reverse_share", "lean_fight"]
@@ -261,6 +268,9 @@ def main():
                                 "spread": {k: round(float(spread[k]), 4) for k in STYLE_DIALS}})
     out["min"] = {k: round(float(num[k].min()), 4) for k in STYLE_DIALS + SKILL_DIALS}
     out["max"] = {k: round(float(num[k].max()), 4) for k in STYLE_DIALS + SKILL_DIALS}
+    for f in out["families"]:
+        f["centre"]["aim_height_firing"], f["spread"]["aim_height_firing"] = AIM_HEIGHT_HELD[f["name"]]
+    out["min"]["aim_height_firing"], out["max"]["aim_height_firing"] = AIM_HEIGHT_HELD["min"], AIM_HEIGHT_HELD["max"]
     # skills every bot draws at one value (the best end of the range: the least time, the least error)
     out["skill_fixed"] = {k: BEST_SKILLS_HELD.get(k, out["min"][k]) for k in BEST_SKILLS}
     # weapon preference: bimodal (people switch between sessions), from the alias x capture rows
@@ -271,6 +281,7 @@ def main():
     # pooled: every duel minute, as the pooled human reference (rows without a value, e.g. no burst in sight, left out)
     out["pooled"] = {k: round(float(np.average(v, weights=num_all.minutes[v.index])), 4)
                      for k in STYLE_DIALS + SKILL_DIALS + ["mp40_share"] for v in [num_all[k].dropna()]}
+    out["pooled"]["aim_height_firing"] = AIM_HEIGHT_HELD["pooled"]
     (H.HB_ROOT / "model").mkdir(parents=True, exist_ok=True)
     (H.HB_ROOT / "model" / "styles.json").write_text(json.dumps(H.jsonable(out), indent=1))
     # private diagnostics stay in the git-ignored cache

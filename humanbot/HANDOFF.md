@@ -2871,6 +2871,59 @@ enemy's footsteps come from well aside of the first's loss, a fall is judged onl
 (people's jumps onto the railing are the routes' way now), and the hold test's "off people's ground" spot is one with no
 cell (the south building's upper floor is people's ground since the 2026-10-30 games). Not on 12203.
 
+## The motor model at 1.1: calibrated, not shipped (2026-10-31)
+
+**The tools at the game's speed** (committed):
+- `hb_arena` runs `pm_harness` at `sv_dmspeedmult` 1.1 with the original strafe and the original top speed
+  (`--dmspeedmult 1 --aastrafe 0`: the old speed). `PmSettings::originalSpeed` cuts each speed factor as the game does since
+  2026-10-30 (`BG_SpeedTimes`): an SMG runs 262 u/s at 1.1 (OpenMoHAA's float 264; `test_pmove_substeps` checks both).
+  `pm_harness`' defaults stay the old speed, which `test_pmove_substeps`' recorded targets are.
+- `eval/human_reference.json` pools both speeds (`build_human_reference.py --both-speeds`: a work copy of the data repo's
+  `features.parquet` whose `eligible` and `normal_physics` are its `*_any_strafe` masks, unweighted): 492 duel minutes,
+  6 people (397 and 5 before, the reference of 2026-10-02); 18 of 281 statistics move more than 10%, most the
+  acquisition timings (first press p25 50 -> 100 ms) and encounters (sightings 33 -> 27 a minute). The data repo's own
+  masks keep movement at the old speed (`common.MOVE_AA_STRAFE` 0); the reference records `"speeds"`.
+- `compare.py` pools both speeds when the reference does (`hbeval.both_speeds_features`, after the data repo's
+  `common.py`): every bot game at 1.1 was outside the duel mask (0 eligible rows). `load_bot_captures.py` reads
+  `g_aastrafe` and `g_movelog_no_bots` from the telemetry like the data repo's loader; without them a 1.1 game counted as
+  neither speed. `calibrate.py --reference`.
+- `fit_styles.AIM_HEIGHT_HELD`: the aim height's style values as `8bfdcab646a6` had them. The 2026-10-30 rows lowered
+  every family's centre (0.386 / 0.471 / 0.491 -> 0.372 / 0.451 / 0.484) mostly with dm/mohdm6 minutes, where people aim
+  low at an enemy below (0.28-0.35 of the body); people at 1.1 aim no lower (firing in sight 0.438 against 0.430). In the
+  engine the refit's bots aimed 0.392 / 0.448 (seeds 201 / 401) where the held ones aim 0.417 / 0.460.
+- `calibrate.KEPT_CURVES`: the burst-length dial keeps `8bfdcab646a6`'s curve. Re-swept at 1.1 it spans 30% of the human
+  range (one person's 2026-10-30 bursts widened it to 3-8 rounds) and would go flat: every bot bursting alike.
+
+**The calibration** (`calibrate.py --stage all` against that reference, the refit of "Both speeds in the fits"; scripts
+and logs in `cache/move_wip/s27/`, the candidate's model files in `s27/model_cal2/`, bundle `0581a8c52114`). The pooled
+loops moved little: the press in sight 0.48 -> 0.56, the release near -0.85 -> -1.18 (holds longer near the target),
+far 0.41 -> 0.18, taps -0.11 -> 0.18, still while firing hidden 1.03 -> -0.50 and reloading 1.18 -> 0.55, reversals
+0.26 -> 0.50; the owner-held curves are unchanged. Arena (8 seeds, 1.1, against the both-speeds reference): 44.0% of 257
+statistics within 25% (`8bfdcab646a6` 44.7%); fight strafe reversals 0.69 (0.82, people 0.68), aim error firing at
+128-192 u 10.3 deg (11.0, people 8.9).
+
+In the engine, bot against bot at 1.1 (8 servers, 300 s at timescale 10, the step before = `8da33710`, the ledge build
+with the refit maps; `s27/owner_rows.py`, `s27/react.py`, `s26/stal2.py`, `compare.py` with `s21/score.py`):
+
+| | Before (seeds 201 / 401) | Calibrated refit |
+|---|---|---|
+| Duel maps, statistics within 25% of people | 56.2% / 51.2% | 53.7% (201) |
+| First press after a part comes on screen, p25/50/75, dm/brownffa + dm/flag | 50/100/150 ms | 50/100/200 ms |
+| Same, duel maps (mean) | 50/100/200 ms (181 / 179) | 50/100/200 ms (191 / 183) |
+| Same, dm/mohdm6 (mean) | 100/200/350 ms (273 / 278) | 100/200/350 ms (281 / 272) |
+| Kills a minute: duel maps, dm/mohdm6, dm/brownffa + flag | 8.6-8.9, 3.46-3.51, 7.39 | 8.3-8.8, 3.45-3.49, 7.40 |
+| Aim height firing (duel maps, dm/mohdm6) | 0.44-0.49, 0.42-0.46 | 0.44-0.49, 0.42-0.46 |
+| Crouches a minute quiet (duel maps) | 0.32-0.38 | 0.33-0.45 |
+| Presses with no part on screen a minute (duel maps) | 13.6-14.0 | 13.1-14.0 |
+| On dm/mohdm6's west ledge | 2.5-2.6% | 2.6-3.2% |
+
+**Not shipped**: the reaction is slower. The refit's own press after a sighting is slower (its pooled reaction 155 ->
+179 ms, the 2026-10-30 games), and the held reaction curve gives the fastest bots a fixed lead over that: on dm/brownffa +
+dm/flag the first press after a part comes on screen is 150 ms -> 200 ms at p75, the slowing the owner turned down on
+2026-10-08; elsewhere it is 4-10 ms later on average. Nothing else the owner watches changed beyond run noise, and nothing
+got better in the engine. The committed model stays `8bfdcab646a6`'s (bundle `20947943d80b` with the refit maps), and
+`cache/parts` and `cache/replay` are its own again.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

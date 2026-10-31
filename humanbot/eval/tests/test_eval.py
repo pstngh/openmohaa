@@ -115,7 +115,7 @@ class TestLoader(unittest.TestCase):
     def test_files_and_format(self):
         self.assertTrue(self.summary["readers"].startswith("local copy"))
         cols = cio.columns()
-        expect = [c for c in cols.frames if not c.startswith("bot_")] + ["source", "capture_date", "role"] + LB.META_NUMERIC
+        expect = [c for c in cols.frames if not c.startswith("bot_")] + ["source", "capture_date", "role"] + LB.META_NUMERIC + LB.META_FLAGS
         self.assertEqual(list(self.F.columns), expect)
         self.assertEqual(list(self.E.columns), list(cols.events) + ["source", "capture_date", "role"])
         self.assertFalse(self.F.duplicated(LB.KEY).any())

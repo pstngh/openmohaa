@@ -57,6 +57,7 @@ CORE_STR = {"session_id", "map", "name", "model", "weapon", "opponent_name"}
 EVENT_STR = {"session_id", "event", "actor_name", "target_name", "weapon", "chat_message", "crosshair_hit_class",
              "sight_blocker_class"}
 META_NUMERIC = ["sv_runspeed", "sv_dmspeedmult", "sv_gravity", "g_gametype", "sv_mapchecksum"]
+META_FLAGS = ["g_aastrafe", "g_movelog_no_bots"]
 
 
 # ------------------------------------------------------------------ readers
@@ -307,6 +308,10 @@ def load(inputs, cache: Path, date: str | None = None, repo: Path | None = None)
     f = f.drop(columns=botc)
     for col in META_NUMERIC:
         f[col] = pd.to_numeric(f.session_id.map({s: v.get(col) for s, v in meta.items()}), errors="coerce")
+    # as the data repo's load_captures.py: logged from 2026-10-29, missing (0) before; g_aastrafe 1 is the original strafe,
+    # which the data repo's masks need to count a game at sv_dmspeedmult 1.1 (every bot game since 2026-10-30)
+    for col in META_FLAGS:
+        f[col] = pd.to_numeric(f.session_id.map({s: v.get(col) for s, v in meta.items()}), errors="coerce").fillna(0).astype("int8")
     f = f.sort_values(KEY, kind="stable").reset_index(drop=True)
     e = e.sort_values(["session_id", "session_ms"], kind="stable").reset_index(drop=True)
     b = b.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)

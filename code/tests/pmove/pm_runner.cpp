@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // machine for crouching and jumping. See pm_runner.h.
 
 #include "pm_runner.h"
+#include "../../fgame/bg_speed.h"
 
 #include <cmath>
 #include <cstring>
@@ -130,6 +131,12 @@ void SetMoveFlags(PmPlayer& player, const PmSettings& settings)
     }
 }
 
+// One factor of the top speed: the game's cut (BG_SpeedTimes) or OpenMoHAA's float before 2026-10-30.
+static int Times(int speed, float mult, int original)
+{
+    return original ? BG_SpeedTimes(speed, mult) : (int)((float)speed * mult);
+}
+
 // The speed part of Player::ClientMove; `cmd` is last_ucmd.
 int ComputeSpeed(const PmPlayer& player, const PmSettings& settings, const usercmd_t& cmd)
 {
@@ -146,15 +153,15 @@ int ComputeSpeed(const PmPlayer& player, const PmSettings& settings, const userc
         }
 
         if (player.crouching) {
-            speed = (int)((float)speed * settings.crouchSpeedMult);
+            speed = Times(speed, settings.crouchSpeedMult, settings.originalSpeed);
         }
 
         // also use the weapon movement speed
-        speed = (int)((float)speed * player.weaponSpeedMult);
+        speed = Times(speed, player.weaponSpeedMult, settings.originalSpeed);
     }
 
     if (settings.gametype != GT_SINGLE_PLAYER) {
-        speed = (int)((float)speed * settings.dmSpeedMult);
+        speed = Times(speed, settings.dmSpeedMult, settings.originalSpeed);
     }
 
     return speed;

@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //   hb_arena [--bots N] [--seconds S] [--seed N] [--substeps K] [--layout pillars|open] [--skill S]
 //            [--override shared.json] [--reference human_reference.json] [--pooled] [--test] [--load] [--no-corners]
-//            [--offset name=value ...] [--quiet]
+//            [--offset name=value ...] [--quiet] [--dmspeedmult 1.1] [--aastrafe 1]
 //
 // The statistics are those of humanbot/eval/metrics.py (arena_metrics.h) under the
 // keys of human_reference.json. --offset replaces one style offset of every bot
@@ -39,7 +39,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // walk_mult, release_logit, aim_height_firing, noise_scale, detect_mult, reaction_logit, hold_logit): the dial
 // sweeps of humanbot/fit/calibrate.py. --quiet prints only the JSON line. --no-corners gives the brains no
 // geometry (exposures without corners, as in hb_replay). HB_ARENA_TRACE=<ms> prints bot 0's view each tick
-// until then (mode, target and view yaw, flick, lean, eye, the watched exposure).
+// until then (mode, target and view yaw, flick, lean, eye, the watched exposure). The players move at the game's speed
+// since 2026-10-30, sv_dmspeedmult 1.1 with the original strafe (--dmspeedmult 1 --aastrafe 0: the old speed).
 
 #include "hb_brain.h"
 #include "hb_bundle.h"
@@ -89,6 +90,9 @@ struct Options {
     bool        load = false;
     bool        quiet = false;
     bool        noCorners = false;   // no geometry for the brains: exposures without corners (as hb_replay)
+    // the game's speed: every game since 2026-10-30 runs sv_dmspeedmult 1.1 with the original strafe (g_aastrafe 1)
+    float       dmSpeedMult = 1.1f;
+    int         aaStrafe    = 1;
     std::vector<std::pair<std::string, float>> offsets;
 };
 
@@ -412,6 +416,9 @@ Arena::Arena(const Options& o, const hb::ModelBundle& b)
     , m_bots(o.bots)
     , m_rng(o.seed)
 {
+    m_settings.dmSpeedMult   = o.dmSpeedMult;
+    m_settings.aaStrafe      = o.aaStrafe;
+    m_settings.originalSpeed = o.aaStrafe;   // the game's top speed came with the original strafe (2026-10-30)
     BuildWorld(m_world, o.layout, m_spawns);
     BuildPrior(m_world, m_spawns, m_prior);
     for (int i = 0; i < o.bots; i++) {
@@ -1149,6 +1156,10 @@ int main(int argc, char **argv)
             o.noCorners = true;
         } else if (a == "--quiet") {
             o.quiet = true;
+        } else if (a == "--dmspeedmult") {
+            o.dmSpeedMult = static_cast<float>(std::atof(next().c_str()));
+        } else if (a == "--aastrafe") {
+            o.aaStrafe = std::atoi(next().c_str());
         } else if (a == "--offset") {
             const std::string kv = next();
             const size_t      eq = kv.find('=');

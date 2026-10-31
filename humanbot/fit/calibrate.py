@@ -46,10 +46,11 @@ offset: hold_angle (2026-10-02; offsets -2..2 move the share parked on the appea
 0.27-0.32, people 0.22-0.53. They do move the view onto the corner, but the parked share is
 bounded by how often the belief picks the right corner). The burst dial counts the bursts begun in sight
 and is relative to the pooled bot, like the skills (RELATIVE_DIALS). The curves and the loop in OWNER_HELD keep their
-values unless named with --only: the owner's rules depend on what they do in the engine (see OWNER_HELD).
+values unless named with --only: the owner's rules depend on what they do in the engine (see OWNER_HELD); so do the
+curves in KEPT_CURVES.
 
 Usage: calibrate.py [--stage pooled|dials|all] [--iters 8] [--seeds 1,2,3,4] [--seconds 900]
-                    [--build DIR] [--replay-data DIR] [--dry-run]
+                    [--build DIR] [--replay-data DIR] [--reference human_reference.json] [--dry-run]
 
 Writes humanbot/model/tuning.json (a merge patch applied by assemble_model.py) and
 humanbot/model/calibration.json, then reassembles and re-embeds the model. The per-iteration
@@ -85,6 +86,10 @@ CONTEXTS = ["hidden_nofire", "hidden_fire", "los_nofire", "los_fire", "reload"]
 # skill's curve maps the best aim to the end of its grid either way. The jump curve likewise since the owner's rule of no
 # jump without a reason (2026-10-24): re-swept, it would make up for the forbidden quiet jumps with fight jumps.
 OWNER_HELD = {"reaction_ms", "aim_error_fight_deg", "crouch_per_min", "jumps_per_min", "aim_height_firing", "aim_height.firing"}
+# Kept as well (2026-10-31, the refit on both speeds): re-swept at 1.1 the burst-length dial spans 30% of the human range
+# (one person's bursts of the 2026-10-30 games widened it to 3-8 rounds, the arena's short sightings cap the pooled bot near
+# 5): inert, every bot would burst like the pooled one. Its curve of 8bfdcab646a6 gives each style its burst length.
+KEPT_CURVES = {"burst_median"}
 
 
 def logit(p):
@@ -219,14 +224,14 @@ def pooled_loops(shared):
 
 
 class Runner:
-    def __init__(self, build: Path, replay_data: Path | None, seeds, seconds, workdir: Path):
+    def __init__(self, build: Path, replay_data: Path | None, seeds, seconds, workdir: Path, reference: Path = REFERENCE):
         self.arena = build / "hb_arena"
         self.replay = build / "hb_replay"
         self.replay_data = replay_data
         self.seeds = seeds
         self.seconds = seconds
         self.work = workdir
-        self.ref = {k: v["value"] for k, v in json.loads(REFERENCE.read_text())["metrics"].items()}
+        self.ref = {k: v["value"] for k, v in json.loads(Path(reference).read_text())["metrics"].items()}
 
     def arena_metrics(self, patch: dict, extra=(), corners=False):
         f = self.work / "patch.json"
@@ -443,7 +448,7 @@ def calibrate_dials(runner: Runner, log: list, only=()):
     cal = json.loads((MODEL / "calibration.json").read_text())
     for group, sweeps in (("dial", DIAL_SWEEPS), ("skill", SKILL_SWEEPS)):
         for name, (offset, stat, grid) in sweeps.items():
-            if (only and name not in only) or (not only and name in OWNER_HELD):
+            if (only and name not in only) or (not only and name in OWNER_HELD | KEPT_CURVES):
                 continue
             realised = []
             for v in grid:
@@ -479,6 +484,7 @@ def main(argv=None):
     ap.add_argument("--seconds", type=int, default=900)
     ap.add_argument("--build", default=str(H.HB_ROOT.parent.parent / "omh-build"))
     ap.add_argument("--replay-data", default=str(H.CACHE / "replay"))
+    ap.add_argument("--reference", default=str(REFERENCE), help="the human statistics the loops match (human_reference.json)")
     ap.add_argument("--dry-run", action="store_true", help="do not write tuning.json / calibration.json")
     ap.add_argument("--only", default="", help="comma-separated loop name prefixes to run (default: all)")
     a = ap.parse_args(argv)
@@ -492,7 +498,7 @@ def main(argv=None):
         print("calibrate: no replay exports, the open-loop loops are skipped")
     log = []
     with tempfile.TemporaryDirectory() as tmp:
-        runner = Runner(build, replay_data, [int(s) for s in a.seeds.split(",")], a.seconds, Path(tmp))
+        runner = Runner(build, replay_data, [int(s) for s in a.seeds.split(",")], a.seconds, Path(tmp), Path(a.reference))
         if a.stage in ("pooled", "all"):
             patch = calibrate_pooled(runner, a.iters, log, [x for x in a.only.split(",") if x])
             if not a.dry_run:

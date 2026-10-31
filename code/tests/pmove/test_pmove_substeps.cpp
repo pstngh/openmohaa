@@ -336,13 +336,16 @@ Curve Stop(int K, int change)
 }
 
 // speed_xy holding `cmd` from standing still
-Curve HeldSpeed(int K, const usercmd_t& cmd, int frames, const usercmd_t *firstFrame = NULL, int aaStrafe = 0)
+Curve HeldSpeed(int K, const usercmd_t& cmd, int frames, const usercmd_t *firstFrame = NULL, int aaStrafe = 0,
+                float dmSpeedMult = 1.0f, int originalSpeed = 0)
 {
     Sim   sim;
     Curve curve;
     int   t;
 
-    sim.settings.aaStrafe = aaStrafe;
+    sim.settings.aaStrafe      = aaStrafe;
+    sim.settings.dmSpeedMult   = dmSpeedMult;
+    sim.settings.originalSpeed = originalSpeed;
     Spawn(sim, "held speed");
     if (firstFrame) {
         Frames(sim, *firstFrame, K, 1);
@@ -1046,6 +1049,26 @@ void TestAaStrafe()
     );
 }
 
+// The game's top speed since 2026-10-30 (bg_speed.h, the arena's settings): each factor cut to a whole number as
+// Allied Assault 1.11 does, so an SMG runs at 239 at sv_dmspeedmult 1 and 262 at 1.1 (OpenMoHAA's float: 240, 264)
+void TestOriginalSpeed()
+{
+    const Curve old1  = HeldSpeed(12, Keys(127, 0, 0), 12, NULL, 1, 1.0f, 0);
+    const Curve orig1 = HeldSpeed(12, Keys(127, 0, 0), 12, NULL, 1, 1.0f, 1);
+    const Curve old11 = HeldSpeed(12, Keys(127, 0, 0), 12, NULL, 1, 1.1f, 0);
+    const Curve orig  = HeldSpeed(12, Keys(127, 0, 0), 12, NULL, 1, 1.1f, 1);
+
+    printf(
+        "\nSMG run speed, OpenMoHAA's rounding / the original's: %.1f / %.1f at 1, %.1f / %.1f at 1.1\n",
+        old1.back(),
+        orig1.back(),
+        old11.back(),
+        orig.back()
+    );
+    Check(Near(old1.back(), 240.0f, EPS) && Near(orig1.back(), 239.0f, EPS), "run speed at 1: %f %f", old1.back(), orig1.back());
+    Check(Near(old11.back(), 264.0f, EPS) && Near(orig.back(), 262.0f, EPS), "run speed at 1.1: %f %f", old11.back(), orig.back());
+}
+
 // Crouch toggling: a press ducks (pm_flags 3, bbox 54), another press stands up,
 // no standing up under a low ceiling
 void TestCrouchToggle()
@@ -1186,6 +1209,7 @@ int main(int argc, char **argv)
     TestStrafeResponses();
     TestHeldSpeeds();
     TestAaStrafe();
+    TestOriginalSpeed();
     TestCrouchToggle();
     TestJump();
 

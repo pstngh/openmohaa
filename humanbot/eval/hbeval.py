@@ -107,13 +107,14 @@ def repo_revision(repo: Path | None) -> str | None:
 
 
 def run_analysis(cache: Path, results: Path, scripts=None, repo: Path | None = None, quiet: bool = True,
-                 keep_going: bool = False) -> dict:
+                 keep_going: bool = False, both_speeds: bool = False) -> dict:
     """Run the data repo's unchanged analysis scripts on `cache`, writing JSON into `results`.
 
     Each script runs as `python <repo>/analysis/<script> <cache> [<results>]` exactly like
     run_all.sh; stdout/stderr go to <results>/logs/<script>.log. Raises on the first failure,
     or with keep_going records it (timing value "failed: <last log line>") and goes on;
-    common.py must always succeed. Returns {script: seconds or failure}.
+    common.py must always succeed. With both_speeds the masks pool both speeds (both_speeds_features) once common.py
+    has written features.parquet. Returns {script: seconds or failure}.
     """
     repo = repo or movement_repo()
     if repo is None:
@@ -140,7 +141,37 @@ def run_analysis(cache: Path, results: Path, scripts=None, repo: Path | None = N
             raise RuntimeError(f"analysis/{s} failed (exit {p.returncode}):\n" + "\n".join(tail))
         if not quiet:
             log(f"  {s:16s} ok ({timing[s]} s)")
+        if s == "common.py" and both_speeds:
+            both_speeds_features(cache / "features.parquet", cache / "features.parquet")
     return timing
+
+
+# The data repo's masks over both speeds (sv_dmspeedmult 1 with OpenMoHAA's strafe, and 1.1 with the original strafe:
+# every game since 2026-10-30); its `eligible` and `normal_physics` keep the old speed only (common.MOVE_AA_STRAFE 0).
+BOTH_SPEEDS = {"eligible": "eligible_any_strafe", "normal_physics": "normal_physics_any_strafe"}
+
+
+def both_speeds_features(src: Path, dst: Path) -> bool:
+    """features.parquet with `eligible` and `normal_physics` taken from the masks over both speeds; dst may be src (in
+    place). False when there was nothing to do (already pooled)."""
+    import pyarrow.parquet as pq
+    src, dst = Path(src), Path(dst)
+    pf = pq.ParquetFile(src)
+    if src.resolve() == dst.resolve():
+        t = pq.read_table(src, columns=list(BOTH_SPEEDS) + list(BOTH_SPEEDS.values()))
+        if all(t.column(a).equals(t.column(b)) for a, b in BOTH_SPEEDS.items()):
+            return False
+    elif dst.is_symlink():
+        dst.unlink()
+    tmp = dst.with_suffix(".tmp")
+    with pq.ParquetWriter(tmp, pf.schema_arrow) as w:
+        for i in range(pf.num_row_groups):
+            t = pf.read_row_group(i)
+            for col, from_col in BOTH_SPEEDS.items():
+                t = t.set_column(t.schema.get_field_index(col), col, t.column(from_col))
+            w.write_table(t)
+    tmp.replace(dst)
+    return True
 
 
 def human_analysis_cache() -> Path | None:

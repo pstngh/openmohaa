@@ -2,6 +2,7 @@
 """Pooled human reference for the bot evaluation: humanbot/eval/human_reference.json.
 
 Usage: build_human_reference.py [--movement-repo PATH] [--analysis-cache DIR] [--moh-dir DIR] [--reuse] [--n-boot 200]
+                                [--both-speeds]
 
 Needs the private openmohaa-movement repository. The human analysis cache (frames/events/
 features.parquet built by its load_captures.py + common.py) is taken from
@@ -26,6 +27,13 @@ Written (pooled aggregates only, no alias, no per-person value):
   cohort       duel minutes, blocks, sessions, people (counts)
 The script checks that its pooled statistics reproduce the scripts' JSON (and perception_all.json) before
 writing.
+
+--both-speeds: the data repo keeps movement at the old speed (its `eligible` and `normal_physics`: sv_dmspeedmult 1 with
+OpenMoHAA's strafe) and pools only aim, reaction, trigger, reload and accuracy over both. Every game since 2026-10-30 runs
+at 1.1 with the original strafe (g_aastrafe 1), and the bots learn from both speeds (hbdata.load_dm); with this flag the
+work dir (default humanbot/eval/cache/human_both) gets a copy of features.parquet whose `eligible` and `normal_physics`
+are the data repo's `eligible_any_strafe` and `normal_physics_any_strafe`, so every statistic pools both speeds
+(unweighted). perception_all.json (the data repo's, at one speed) is then not linked and not checked.
 """
 from __future__ import annotations
 
@@ -43,8 +51,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import metrics as M  # noqa: E402
 import perception as PC  # noqa: E402
-from hbeval import (EVAL_CACHE, HUMAN_REFERENCE, human_analysis_cache, import_analysis_module, log, repo_arg,  # noqa: E402
-                    repo_revision, run_analysis, write_json)
+from hbeval import (EVAL_CACHE, HUMAN_REFERENCE, both_speeds_features, human_analysis_cache,  # noqa: E402
+                    import_analysis_module, log, repo_arg, repo_revision, run_analysis, write_json)
 
 SCRIPTS = ["combat.py", "lives.py", "acquisition.py", "aim_model.py", "engagements.py", "behavior.py", "styles.py"]
 LINKED = ["frames.parquet", "events.parquet", "features.parquet", "meta.json"]
@@ -87,13 +95,19 @@ def link(src: Path, dst: Path):
     os.symlink(src.resolve(), dst)
 
 
-def work_dir(src: Path, work: Path):
+def work_dir(src: Path, work: Path, both_speeds: bool = False):
     work.mkdir(parents=True, exist_ok=True)
     for f in LINKED:
-        link(src / f, work / f)
+        if both_speeds and f == "features.parquet":
+            dst = work / f
+            if not (dst.exists() and not dst.is_symlink() and dst.stat().st_mtime >= (src / f).stat().st_mtime):
+                both_speeds_features(src / f, work / f)
+                log(f"wrote {work / f}: eligible and normal_physics over both speeds")
+        else:
+            link(src / f, work / f)
 
 
-def perception_inputs(src: Path, work: Path, results: Path, repo: Path, moh) -> str | None:
+def perception_inputs(src: Path, work: Path, results: Path, repo: Path, moh, both_speeds: bool = False) -> str | None:
     """Links (or rebuilds) the body-part column and the data repo's perception results; None when ready."""
     if PC.mohaa_dir(moh) is None:
         return "no MOHAA folder (--moh-dir or $MOHAA_DIR)"
@@ -109,8 +123,10 @@ def perception_inputs(src: Path, work: Path, results: Path, repo: Path, moh) -> 
             subprocess.run([sys.executable, str(repo / "analysis" / "vis_parts.py"), str(work), str(results), str(PC.mohaa_dir(moh))],
                            check=True, stdout=fh, stderr=subprocess.STDOUT, env=env, cwd=str(repo))
     pa = repo / "analysis" / "results" / "perception_all.json"
-    if pa.exists():
+    if pa.exists() and not both_speeds:
         link(pa, results / "perception_all.json")
+    elif both_speeds and (results / "perception_all.json").is_symlink():
+        (results / "perception_all.json").unlink()
     return PC.available(work, results, moh)
 
 
@@ -120,7 +136,8 @@ def main(argv=None):
     ap.add_argument("--analysis-cache", help="data-repo cache with features.parquet (default $HB_ANALYSIS_CACHE or "
                                              "humanbot/cache/analysis)")
     ap.add_argument("--moh-dir", help="MOHAA folder with main/ (the practice maps, read only); default $MOHAA_DIR")
-    ap.add_argument("--work", default=str(EVAL_CACHE / "human"))
+    ap.add_argument("--work", help="work dir (default humanbot/eval/cache/human, human_both with --both-speeds)")
+    ap.add_argument("--both-speeds", action="store_true", help="movement at both speeds too (see above)")
     ap.add_argument("--reuse", action="store_true", help="keep existing script outputs in the work dir")
     ap.add_argument("--n-boot", type=int, default=M.N_BOOT)
     ap.add_argument("--out", default=str(HUMAN_REFERENCE))
@@ -128,7 +145,7 @@ def main(argv=None):
     repo = repo_arg(a.movement_repo)
     if repo is None:
         raise SystemExit("openmohaa-movement not found: set HB_MOVEMENT_REPO (the human reference needs the private data)")
-    work = Path(a.work)
+    work = Path(a.work) if a.work else EVAL_CACHE / ("human_both" if a.both_speeds else "human")
     results = work / "results"
     src = Path(a.analysis_cache) if a.analysis_cache else human_analysis_cache()
     if src is None or not (src / "features.parquet").exists():
@@ -138,12 +155,12 @@ def main(argv=None):
         subprocess.run([sys.executable, str(repo / "analysis" / "load_captures.py"), str(repo / "captures"), str(src)],
                        check=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
         run_analysis(src, results, ["common.py"], repo)
-    work_dir(src, work)
+    work_dir(src, work, a.both_speeds)
     todo = [s for s in SCRIPTS if not (a.reuse and (results / (s.replace(".py", ".json"))).exists())]
     if todo:
         log(f"running {', '.join(todo)} on {work}")
         run_analysis(work, results, todo, repo, quiet=False)
-    why = perception_inputs(src, work, results, repo, a.moh_dir)
+    why = perception_inputs(src, work, results, repo, a.moh_dir, a.both_speeds)
     if why:
         log(f"perception statistics left out: {why}")
     D = M.prepare(work, results, moh_dir=a.moh_dir)
@@ -167,6 +184,8 @@ def main(argv=None):
         "about": "Pooled human 1v1 duel reference (openmohaa-movement REPORT section 11 acceptance statistics, and "
                  "section 14's pre-aim, corner and reaction from the first visible body part) for humanbot/eval/compare.py. "
                  "Aggregates over all humans only: no alias, no per-person value.",
+        "speeds": "both (sv_dmspeedmult 1 and 1.1 with g_aastrafe 1, unweighted)" if a.both_speeds else
+                  "the data repo's: movement at the old speed, aim, reaction, trigger, reload and accuracy at both",
         "generated": dt.date.today().isoformat(),
         "generator": "humanbot/eval/build_human_reference.py",
         "analysis_revision": repo_revision(repo),
