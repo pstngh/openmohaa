@@ -277,7 +277,8 @@ static void TestSpawn(const hb::ModelBundle& b, const hb::MapPrior& m)
               deadHist[2] / double(n), deadHist[3] / double(n), deadHist[4] / double(n), noneOrFwd / double(lives),
               click / double(lives), earlyStrafe / (3.0 * lives));
     HB_CHECK(lives == n);
-    HB_CHECK(deadHist[0] == 0 && deadHist[1] == 0 && deadHist[2] + deadHist[3] + deadHist[4] >= n - 2);
+    // people: 2-4 dead ticks but for a rare 6 (0.3% since the 2026-10-30 games)
+    HB_CHECK(deadHist[0] == 0 && deadHist[1] == 0 && deadHist[2] + deadHist[3] + deadHist[4] >= n - 6);
     HB_CHECK(deadHist[3] > deadHist[2]);           // 23% / 39% / 38% in the recordings
     HB_CHECK(noneOrFwd / double(lives) > 0.95);
     HB_CHECK(click / double(lives) > 0.4 && click / double(lives) < 0.6);

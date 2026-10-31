@@ -58,8 +58,21 @@ def fit_side(d, press, los):
     return out
 
 
+# The trigger's timing stays the one the owner chose the reaction with (2026-10-08) until they say otherwise
+# (2026-10-31): the games recorded up to TRIGGER_UNTIL, which give the trigger part of 1ad8c886 and 8bfdcab646a6 byte
+# for byte. Fitted on both speeds with the 2026-10-30 games three times, people's first press after a part came on
+# screen was slower (pooled reaction 155 -> 179 ms; the later games at 1.0 alone are slower too), and the held reaction
+# curve gives the fastest bots a fixed lead over it: in the engine the first press on dm/brownffa + dm/flag went
+# 50/100/150 -> 50/100/200 ms (p25/50/75), the slowing the owner turned down on 2026-10-08. The other parts learn from
+# both speeds.
+TRIGGER_OLD_SPEED_ONLY = True
+TRIGGER_UNTIL = "2026-10-08"
+
+
 def main():
     F = H.load_dm()
+    if TRIGGER_OLD_SPEED_ONLY:
+        F = F[F.session_id.isin(H.sessions_until(TRIGGER_UNTIL))]
     # the respawn click is still held or repeated in the first live ticks (fitted in fit_keys.py as the spawn click)
     EL = F[F.eligible & ~(F.spawn_seg & F.seg_k.lt(H.SPAWN_CLICK_TICKS))]
     # the sight's clock runs from the first part on screen: rows without a part count (hbdata.attach_vis_parts) are left out

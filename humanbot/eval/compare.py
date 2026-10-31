@@ -435,7 +435,8 @@ def run(inputs, name=None, out_dir=None, reference=HUMAN_REFERENCE, private=True
         R["human_reference"] = {k: href.get(k) for k in ("generated", "analysis_revision", "cohort", "bootstrap", "speeds")}
         # a reference over both speeds (build_human_reference.py --both-speeds): the bots' games at either speed count,
         # as the people's do (the bots play at 1.1 since 2026-10-30, which the data repo's duel mask leaves out)
-        if pooled and both_speeds_features(cache / "features.parquet", cache / "features.parquet"):
+        if pooled and (cache / "features.parquet").exists() and both_speeds_features(cache / "features.parquet",
+                                                                                   cache / "features.parquet"):
             shutil.rmtree(results, ignore_errors=True)
             R["notes"].append("eligible and normal_physics pooled over both speeds, like the reference")
     bots_meta = [dict(r) for r in roster if r["is_bot"]]

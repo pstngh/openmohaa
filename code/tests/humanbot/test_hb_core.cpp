@@ -226,9 +226,12 @@ static void TestStyle(const hb::ModelBundle& b)
         for (int k = 0; k < hb::SKILL_COUNT; k++) {
             HB_CHECK(d.skill[k] >= b.style.skillMin[k] - 1e-4f && d.skill[k] <= b.style.skillMax[k] + 1e-4f);
         }
-        // the owner's rule (2026-10-08), as the model ships: every bot reacts and aims like the best recorded profile
-        HB_CHECK(d.skill[hb::SKILL_REACTION] == b.style.skillMin[hb::SKILL_REACTION]);
-        HB_CHECK(d.skill[hb::SKILL_AIM_ERROR] == b.style.skillMin[hb::SKILL_AIM_ERROR]);
+        // the owner's rule (2026-10-08), as the model ships: every bot reacts and aims like the best profile the owner
+        // chose (styles.skill_fixed: fit_styles.BEST_SKILLS_HELD, at or above the people's best since the 1.1 games)
+        HB_CHECK(d.skill[hb::SKILL_REACTION] == b.style.skillDrawMin[hb::SKILL_REACTION]
+                 && b.style.skillDrawMin[hb::SKILL_REACTION] == b.style.skillDrawMax[hb::SKILL_REACTION]);
+        HB_CHECK(d.skill[hb::SKILL_AIM_ERROR] == b.style.skillDrawMin[hb::SKILL_AIM_ERROR]
+                 && b.style.skillDrawMin[hb::SKILL_AIM_ERROR] == b.style.skillDrawMax[hb::SKILL_AIM_ERROR]);
         HB_CHECK(d.mp40Share >= 0.0f && d.mp40Share <= 1.0f);
     }
     for (int f = 0; f < hb::FAMILY_COUNT; f++) {

@@ -2871,7 +2871,7 @@ enemy's footsteps come from well aside of the first's loss, a fall is judged onl
 (people's jumps onto the railing are the routes' way now), and the hold test's "off people's ground" spot is one with no
 cell (the south building's upper floor is people's ground since the 2026-10-30 games). Not on 12203.
 
-## The motor model at 1.1: calibrated, not shipped (2026-10-31)
+## The motor model at 1.1 (2026-10-31): the refit with the 10-08 trigger timing, shipped
 
 **The tools at the game's speed** (committed):
 - `hb_arena` runs `pm_harness` at `sv_dmspeedmult` 1.1 with the original strafe and the original top speed
@@ -2917,12 +2917,39 @@ with the refit maps; `s27/owner_rows.py`, `s27/react.py`, `s26/stal2.py`, `compa
 | Presses with no part on screen a minute (duel maps) | 13.6-14.0 | 13.1-14.0 |
 | On dm/mohdm6's west ledge | 2.5-2.6% | 2.6-3.2% |
 
-**Not shipped**: the reaction is slower. The refit's own press after a sighting is slower (its pooled reaction 155 ->
-179 ms, the 2026-10-30 games), and the held reaction curve gives the fastest bots a fixed lead over that: on dm/brownffa +
-dm/flag the first press after a part comes on screen is 150 ms -> 200 ms at p75, the slowing the owner turned down on
-2026-10-08; elsewhere it is 4-10 ms later on average. Nothing else the owner watches changed beyond run noise, and nothing
-got better in the engine. The committed model stays `8bfdcab646a6`'s (bundle `20947943d80b` with the refit maps), and
-`cache/parts` and `cache/replay` are its own again.
+That candidate is **not shipped**: the reaction is slower. The refit's own press after a sighting is slower (its pooled
+reaction 155 -> 179 ms; the 2026-10-30 games, and the later games at 1.0 alone too), and the held reaction curve gives
+the fastest bots a fixed lead over that: on dm/brownffa + dm/flag the first press after a part comes on screen is 150 ms
+-> 200 ms at p75, the slowing the owner turned down on 2026-10-08; elsewhere it is 4-10 ms later on average.
+
+**Shipped: the refit with the trigger's timing of 2026-10-08.** `fit_trigger.py` fits on the games recorded up to
+2026-10-08 (`TRIGGER_UNTIL`), which gives the trigger part of `1ad8c886` / `8bfdcab646a6` byte for byte; every other part
+is the both-speeds refit, the aim height's style values and the burst curve held as above. Recalibrated at 1.1 the same
+way (`s27/calibrate_trig.log`): the trigger loops land near the old values (press in sight 0.49, `8bfdcab646a6` 0.48;
+release near -0.92 / -0.85, far 0.44 / 0.41), the rest as in the first candidate. Bundle `b2a749ef53b7`; `cache/parts` and
+`cache/replay` are its own (the old ones in `*_base_8bfdcab646a6`). In the engine against the ledge build (`8da33710`),
+seeds 201 and 401:
+
+| | Before | Now | People |
+|---|---|---|---|
+| First press after a part comes on screen, p25/50/75 (mean): dm/brownffa + dm/flag | 50/100/150 ms (148) | 50/100/150 ms (147) | |
+| ... duel maps | 50/100/200 ms (181 / 179) | 50/100/200 ms (176 / 176) | |
+| ... dm/mohdm6 | 100/200/350 ms (273 / 278) | 100/200/350 ms (270 / 269) | |
+| Jumps / crouches with no reason a minute (`s18/cj.py`), duel maps and dm/brownffa + flag | 0 / 0 | 0 / 0 | 0.15 / 0.22 |
+| Fight jumps a minute, duel maps / dm/brownffa + flag | 0.83 / 0.60 | 0.94 / 0.70 | 1.62 (all maps) |
+| Presses with no part on screen a minute (duel maps, dm/mohdm6) | 13.6-14.0, 5.6-5.7 | 13.6, 5.8-5.9 | |
+| Aim height firing (duel maps, dm/mohdm6, dm/brownffa + flag) | 0.44-0.49, 0.42-0.46, 0.43 | 0.44-0.49, 0.42-0.46, 0.44 | 0.45 |
+| Fight strafe reversals, duel maps (`compare.py`) | 0.81-0.83 | 0.79 | 0.68 |
+| Duel maps, statistics within 25% of people | 56.2% / 51.2% | 54.4% (201) | |
+| Kills a minute: duel maps, dm/mohdm6, dm/brownffa + flag | 8.6-8.9, 3.46-3.51, 7.39 | 8.6-8.7, 3.51-3.56, 7.32 | |
+| dm/mohdm6: on the west ledge, a floor apart, both on the street | 2.5-2.6%, 11.5-12.1%, 42-44% | 2.0%, 9.7-11.4%, 44% | 1.1%, 2.6%, 49% |
+
+Nothing the owner watches got worse, a few rows moved toward people. What changes is mostly how the bots move: the
+refit's habits from the 1.1 games (fewer strafe reversals, more counter strafes: the owner's strafe pause of 2026-10-30,
+"doesnt matter" with or without nullbinds), its lean chain, and slightly more jumps in fights. `test_hb_core`'s skill check
+reads the held draw (`skillDrawMin`, now 100 ms and 3.98 deg above the people's newest best), the spawn test allows the
+rare six dead ticks (0.3% since the 2026-10-30 games); `compare.py` pools only once `features.parquet` exists (the
+smoke tests start without it). Not on 12203.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

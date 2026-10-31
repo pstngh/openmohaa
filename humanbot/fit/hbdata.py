@@ -108,7 +108,8 @@ SMG = ["MP40", "Thompson"]
 # under client ids CLIENT_COPY_STEP apart (`copy` 1, 2, ...; `client_src` keeps the logged id, for counting sources).
 # 3: the new games' 190 duel minutes (2026-10-30) then weigh about as much as the old games' 579. The fits whose
 # numbers are speeds take the new games only (fit_maps hidden_move_speed); fit_velocity_response reads the data
-# repo's old-speed mask itself, as pm_harness keeps the old speed.
+# repo's old-speed mask itself, as pm_harness keeps the old speed; fit_trigger takes the games up to 2026-10-08
+# (TRIGGER_UNTIL: the reaction the owner chose).
 NEW_SPEED_WEIGHT = 3
 CLIENT_COPY_STEP = 1000
 SPEED_COLS = ["normal_physics_any_strafe", "eligible_any_strafe", "aa_strafe", "sv_dmspeedmult"]
@@ -146,6 +147,13 @@ def load_dm(cols=None) -> pd.DataFrame:
         CACHE.mkdir(parents=True, exist_ok=True)
         F.to_parquet(seq, index=False)
     return F
+
+
+def sessions_until(date: str) -> set:
+    """Sessions of captures recorded on or before `date` (capture_date, YYYY-MM-DD)."""
+    src = ensure_features() / "features.parquet"
+    S = pd.read_parquet(src, columns=["session_id", "capture_date"]).drop_duplicates("session_id")
+    return set(S.session_id[S.capture_date.astype(str) <= date])
 
 
 def weight_new_speed(F: pd.DataFrame) -> pd.DataFrame:
