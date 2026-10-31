@@ -2752,6 +2752,66 @@ columns are unchanged.
   reached one: a client's usercmds arrive in packets, two packets can land in one frame, and the frame row keeps only
   the last usercmd of the last one. A person's `cmd_msec` is not the frame time (mostly 0); `cmd_server_ms` is.
 
+## Both speeds in the fits (2026-10-30): fitted, not shipped yet
+
+The owner: "never again 1.0 ... the bots will have to be retrained that way as well", the old games kept: "prioritize a
+new data, but not throw away the old one". Asked whether the three games of their demo session go into the bots'
+training: "yes" (openmohaa-movement `427774f`); which strafe switch the bot copies, with nullbinds (direct) or without
+(a pause of about 50 ms, the owner's 2026-10-30 games): "doesnt matter".
+
+**The fits** (committed):
+- `hbdata.load_dm` takes the data repo's masks at either speed (`eligible_any_strafe`, `normal_physics_any_strafe`) as
+  `eligible` and `normal_physics`; `new_speed` marks the games at 1.1 with the original strafe, and `weight_new_speed`
+  repeats their rows `NEW_SPEED_WEIGHT` (3) times under client ids 1000 apart (`copy`, `client_src`), so every count,
+  rate, quantile and logistic fit weighs them three times without a change to each fit: 190 duel minutes at the new speed
+  (the three 2026-10-30 captures: dm/mohdm6 68, dm/crnodoors 53, dm/brownffa 31, dm/main 25, dm/vents 14) against 579 at
+  the old. Cache `dm_seq_v10.parquet`.
+- `fit_maps.py`: sources count `client_src`, not the copies. `hidden_move_speed` comes from the new games where a map has a
+  minute of them moving out of sight, elsewhere from the old median times the median new/old ratio (0.954 over five
+  maps): dm/crnodoors 193.9 -> 179.0, dm/main 195.7 -> 187.6, dm/vents 190.9 -> 182.2, dm/brownffa 202.2 -> 184.2,
+  dm/mohdm6 203.3 -> 219.5 (its long forward runs are faster at 1.1), dm/downladder and dm/flag by the ratio.
+- `fit_velocity_response.py` keeps the data repo's old-speed mask, the speed of `pm_harness`. `export_replay.py` exports
+  each trace once.
+- `fit_styles.py` `BEST_SKILLS_HELD`: the best skills stay the owner's of 2026-10-08 (100 ms, 3.98 deg). The style rows
+  now go lower (one person's 2026-10-30 games 50 ms, a single tick; another's dm/mohdm6 game of 10-25 2.82 deg, with
+  longer fights there), which the bots do not take without the owner's word.
+- `check_no_raw_data.py` skips the lines a changed file keeps identical to upstream: an alias of 2026-10-30 is the rock
+  surface's footstep sound in `code/fgame/sentient.cpp`.
+
+**The refit** (`run_fits.sh`, 7 min). Its outputs are in `cache/move_wip/s26/` (`shared_refit_both_speeds.json`,
+`styles_refit_both_speeds.json`, `parts_refit_both_speeds/`, `maps_new/`, `replay_refit_both_speeds/`); the committed
+model stays `8bfdcab646a6`, and `cache/parts` and `cache/replay` are its own again (copies `*_base_8bfdcab646a6`).
+- *Motor model:* 2,146 of 2,810 values move, the lean chain most. Pooled dials: reverse share 0.60 -> 0.45 (the owner's
+  strafe pause in the 2026-10-30 games), counter strafe 0.34 -> 0.44, reaction 155 -> 179 ms, jumps 0.94 -> 1.13 and
+  crouches 4.1 -> 3.8 a minute; the style range widens (crouches up to 19.7 a minute, jumps 8.3: one person's
+  2026-10-30 games); family shares 0.50 / 0.30 / 0.21 -> 0.49 / 0.26 / 0.26. The tuning and the dial curves were calibrated on the
+  old fit, and `hb_arena` runs `pm_harness` at the old speed: it needs `calibrate.py --stage all` at 1.1 (`PmSettings`
+  with the original strafe and the 1.1 speed, the human reference from both speeds) before it ships.
+- *Maps:* all seven refit. dm/mohdm6 has 1,727 cells (831), 13 spawns (6), 93 drops and 47 jumps, mostly from the
+  three-player game. Bot against bot, the build of 12203 (`6d9d5c6f`, `build/RelWithDebInfo`) with and without the new
+  files as an `HB_MAPS` override, seeds 201-208, 300 s at timescale 10, `sv_dmspeedmult` 1.1 (`s26/queue_maps.sh`,
+  `s26/stal2.py`, whose people are both speeds' rows):
+
+| dm/mohdm6 | People | New files | Files of `8bfdcab646a6` |
+|---|---:|---:|---:|
+| Time on 64 u squares people never used | 0% | 1.3% | 3.8% |
+| Centroid sight starts a minute | 26.1 | 21.0 | 16.4 |
+| Kills a minute | 3.86 | 2.83 | 2.61 |
+| Hits a minute | 23.7 | 15.0 | 13.6 |
+| Both on the street | 48.8% | 34.3% | 32.9% |
+| A floor apart, hidden, within 500 u | 2.6% | 24.0% | 22.1% |
+| On the west ledge | 1.1% | 8.5% | 3.4% |
+| Deaths by falling per 100 minutes alive | 2.2-2.8 | 2.5 | 1.3 |
+
+  *The west ledge:* people cross it (median 0.2 s, at most 8 s). The three-player game gave it 49 cells of people's ground
+  (6 before), and the bots now stay on it more than 20 s 60 times in 707 bot-minutes (23 with the old file), up to 139 s,
+  mostly moving: they wander there. The new files wait until that is fixed. dm/brownffa and dm/flag (`bmo_201` against
+  `bmn_201`): kills 3,378 and 3,363, sight starts and time in sight within 0.5, no time on squares people never used:
+  nothing changes there.
+
+**Next:** the west ledge with the new dm/mohdm6 file; then the motor model's calibration at 1.1; then 12203 on the owner's
+word (backup first).
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

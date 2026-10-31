@@ -23,6 +23,10 @@ DROP_MAPS also get `drops`: the falls people took (the last tick on the ground b
 more than DROP_MIN lower), one per take-off cell with its most common landing cell (fit_drops). On dm/mohdm6 people run off the
 spawn buildings' upper floors into the street (falls of 400-650 u, past the engine paths' 400 u); the owner
 (2026-10-25): that is a Stalingrad habit and must not touch other maps, so only DROP_MAPS get them.
+
+The rows are both speeds, the new games weighted (hbdata.NEW_SPEED_WEIGHT); sources count the logged client
+(`client_src`), not the copies. `hidden_move_speed` is a speed, so it comes from the new games alone where a map has
+HIDDEN_SPEED_MIN_ROWS of them, and elsewhere from the old games times the median new/old ratio of the maps with both.
 """
 import json
 import sys
@@ -49,6 +53,7 @@ DROP_NEAR = 96.0
 DROP_CLIMB = 24.0
 JUMP_MIN = 24.0
 JUMP_MAX = 80.0
+HIDDEN_SPEED_MIN_ROWS = 1200    # one minute of moving out of sight
 
 
 def column_levels(ix, iy, z):
@@ -153,11 +158,23 @@ def fit_drops(D, key_of, levels, cx, cy, cz, up=False):
     return out
 
 
-def fit_map(F, mp):
+def map_rows(F, mp):
     area = mp in AREA_MAPS or mp in FULL_MAPS
-    D = F[F["map"].eq(mp) & (F.human_duel & F.normal_physics if area else F.eligible)].copy()
+    return F[F["map"].eq(mp) & (F.human_duel & F.normal_physics if area else F.eligible)].copy()
+
+
+def hidden_speeds(D):
+    """Median ground speed moving out of sight: (old games', new games', the new games' rows without copies)."""
+    h = D[D.line_of_sight.eq(0) & D.speed_xy.gt(20)]
+    return (float(h[~h.new_speed].speed_xy.median()), float(h[h.new_speed].speed_xy.median()),
+            int((h.new_speed & h["copy"].eq(0)).sum()))
+
+
+def fit_map(F, mp, speed_ratio):
+    area = mp in AREA_MAPS or mp in FULL_MAPS
+    D = map_rows(F, mp)
     # what a cell's sources count: sessions, or on an area map player-sessions
-    D["src"] = D.session_id + ":" + D.client_id.astype(str) if area else D.session_id
+    D["src"] = D.session_id + ":" + D.client_src.astype(str) if area else D.session_id
     ix, iy, lv, levels = cell_keys(D.origin_x.to_numpy(), D.origin_y.to_numpy(), D.origin_z.to_numpy())
     D["ix"], D["iy"], D["lv"] = ix, iy, lv
     agg = D.groupby(["ix", "iy", "lv"]).agg(n=("session_id", "size"), ns=("src", "nunique"))
@@ -231,7 +248,7 @@ def fit_map(F, mp):
     # spawns: where each life started
     sp = F[F["map"].eq(mp) & F.spawn_seg & F.seg_k.eq(0)]
     sp = sp.assign(px=sp.spawn_x.round(0), py=sp.spawn_y.round(0), pz=sp.spawn_z.round(0),
-                   src=sp.session_id + ":" + sp.client_id.astype(str) if area else sp.session_id)
+                   src=sp.session_id + ":" + sp.client_src.astype(str) if area else sp.session_id)
     spawns = sp.groupby(["px", "py", "pz"]).agg(n=("session_id", "size"), ns=("src", "nunique"),
                                                  yaw=("spawn_yaw", "median")).reset_index()
     spawns = spawns[(spawns.n >= 3) & (spawns.ns >= MIN_SESSIONS)]
@@ -252,6 +269,8 @@ def fit_map(F, mp):
     los = pd.DataFrame({"a": lo, "b": hi, "v": P.line_of_sight.eq(1).astype(int)}).groupby(["a", "b"]).v.agg(["size", "sum"])
     los = los[los["size"] >= 2].reset_index()
     checksum = D.sv_mapchecksum.dropna()
+    old_speed, new_speed, n_new = hidden_speeds(D)
+    from_new = n_new >= HIDDEN_SPEED_MIN_ROWS
     R = {
         "map": mp, "checksum": int(checksum.mode().iloc[0]) if len(checksum) else 0, "cell_size": CELL,
         "cells": {"ix": kept.ix.to_numpy(), "iy": kept.iy.to_numpy(), "z": cz.round(1),
@@ -260,14 +279,15 @@ def fit_map(F, mp):
         "kernel": {"dist_edges": KERNEL_DIST_EDGES, "beta": beta.round(4)},
         "spawns": [[float(r.px), float(r.py), float(r.pz), round(float(r.yaw), 1), int(r.n)] for r in spawns.itertuples()],
         "los": {"a": los.a.to_numpy(), "b": los.b.to_numpy(), "n": los["size"].to_numpy(), "vis": los["sum"].to_numpy()},
-        "hidden_move_speed": round(float(D[D.line_of_sight.eq(0) & D.speed_xy.gt(20)].speed_xy.median()), 1),
-        "source": {"sessions": int(D.session_id.nunique()), "rows": int(len(D))},
+        "hidden_move_speed": round(new_speed if from_new else old_speed * speed_ratio, 1),
+        "source": {"sessions": int(D.session_id.nunique()), "rows": int(len(D)),
+                   "hidden_move_speed": "new games" if from_new else f"old games x {speed_ratio:.3f}"},
     }
     if mp in FULL_MAPS:
         R["whole_map"] = True   # the bots hold no angle off people's ground there (hb_nav.cpp)
     if mp in DROP_MAPS:
         A = F[F["map"].eq(mp) & F.normal_physics].copy()
-        A["src"] = A.session_id + ":" + A.client_id.astype(str)
+        A["src"] = A.session_id + ":" + A.client_src.astype(str)
         R["drops"] = fit_drops(A, key, levels, (kept.ix.to_numpy() + 0.5) * CELL, (kept.iy.to_numpy() + 0.5) * CELL, cz)
         R["jumps"] = fit_drops(A, key, levels, (kept.ix.to_numpy() + 0.5) * CELL, (kept.iy.to_numpy() + 0.5) * CELL, cz, up=True)
     return R
@@ -278,8 +298,17 @@ def main():
     F["practice"] = F["map"].isin(MAPS)
     out_dir = H.HB_ROOT / "maps"
     out_dir.mkdir(parents=True, exist_ok=True)
+    # new over old hidden speed, median over the maps with enough of both
+    ratios = []
+    for mp in MAPS + AREA_MAPS + FULL_MAPS:
+        old, new, n_new = hidden_speeds(map_rows(F, mp))
+        if n_new >= HIDDEN_SPEED_MIN_ROWS and np.isfinite(old):
+            ratios.append(new / old)
+            print(mp, "hidden speed old", round(old, 1), "new", round(new, 1), "ratio", round(new / old, 3))
+    speed_ratio = float(np.median(ratios))
+    print("speed ratio", round(speed_ratio, 3), "from", len(ratios), "maps")
     for mp in sys.argv[1:] or MAPS + AREA_MAPS + FULL_MAPS:
-        R = fit_map(F, mp)
+        R = fit_map(F, mp, speed_ratio)
         p = out_dir / (mp.replace("/", "_") + ".json")
         p.write_text(json.dumps(H.jsonable(R), separators=(",", ":")))
         print(mp, "cells", len(R["cells"]["ix"]), "edges", len(R["edges"]["from"]), "los pairs", len(R["los"]["a"]),

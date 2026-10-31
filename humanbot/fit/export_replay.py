@@ -47,6 +47,7 @@ COLS = [
 
 def main():
     F = H.load_dm()
+    F = F[F["copy"].eq(0)]      # the recorded traces once, not the weighting copies of the new games
     common, _ = H.import_analysis()
     duel_session = F.eligible.groupby(F.session_id, sort=False).transform("any")
     F = F[F.seg.ge(0) & (F["map"].isin(PRACTICE) | (duel_session & F["map"].isin(REPLAY_MAPS)))].copy()

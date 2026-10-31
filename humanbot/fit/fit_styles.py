@@ -32,6 +32,10 @@ SKILL_DIALS = ["aim_error_fight_deg", "reaction_ms"]
 # half a second or more without a round about once a minute alive; the bots of 102-175 ms never did. min and max stay
 # the people's range, which the calibrated curves span.
 BEST_SKILLS = ["aim_error_fight_deg", "reaction_ms"]
+# The best skills as the style rows gave them when the owner chose them (2026-10-08): 100 ms and 3.98 deg. Newer rows go
+# lower (one person's games of 2026-10-30 50 ms, a single tick; another's dm/mohdm6 game of 2026-10-25 2.82 deg, with
+# longer fights there), and the bots do not take a faster reaction or a finer aim without the owner's word.
+BEST_SKILLS_HELD = {"aim_error_fight_deg": 3.9845, "reaction_ms": 100.0}
 FAMILY_NAMES = ["presser", "strafer", "stopper"]
 # dials that define the families (REPORT section 9): diagonal press, reverse-vs-stop, lean habit
 CLUSTER_DIALS = ["fwd_diag_fight", "reverse_share", "lean_fight"]
@@ -258,7 +262,7 @@ def main():
     out["min"] = {k: round(float(num[k].min()), 4) for k in STYLE_DIALS + SKILL_DIALS}
     out["max"] = {k: round(float(num[k].max()), 4) for k in STYLE_DIALS + SKILL_DIALS}
     # skills every bot draws at one value (the best end of the range: the least time, the least error)
-    out["skill_fixed"] = {k: out["min"][k] for k in BEST_SKILLS}
+    out["skill_fixed"] = {k: BEST_SKILLS_HELD.get(k, out["min"][k]) for k in BEST_SKILLS}
     # weapon preference: bimodal (people switch between sessions), from the alias x capture rows
     mp = np.sort(num.mp40_share.to_numpy())
     comps = [("thompson", mp[mp < 0.3]), ("split", mp[(mp >= 0.3) & (mp < 0.75)]), ("mp40", mp[mp >= 0.75])]

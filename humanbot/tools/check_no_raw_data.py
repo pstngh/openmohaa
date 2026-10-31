@@ -24,7 +24,9 @@ Checks every git-tracked file and every untracked file that is not git-ignored:
     alias stripped of leading/trailing punctuation). Files that the fork leaves identical to
     upstream OpenMoHAA (the parent of the first commit adding humanbot/, or --upstream-base /
     $HB_UPSTREAM_BASE) are not scanned, because upstream code uses a few aliases as ordinary
-    words; --all-files scans everything. Aliases are never printed in full. Skipped with a
+    words, and neither are the lines a changed file keeps identical to upstream (the rock
+    surface's footstep sound in code/fgame/sentient.cpp is an alias of 2026-10-30); --all-files
+    scans everything. Aliases are never printed in full. Skipped with a
     warning when the data repo is absent (CI).
  5. code/humanbot/hb_embedded.cpp is in sync (humanbot/tools/embed_model.py --check).
 Exits 1 on any violation, printing each.
@@ -178,9 +180,25 @@ def line_of(data: bytes, off: int) -> int:
     return data.count(b"\n", 0, off) + 1
 
 
-def scan_text(rep: Report, sc: AliasScanner, where: str, data: bytes, limit: int = 5):
+def upstream_lines(root: Path, base: str | None, rel: str) -> frozenset:
+    """The lines of `rel` at the upstream base (none for a file upstream lacks)."""
+    if base is None:
+        return frozenset()
+    try:
+        p = subprocess.run(["git", "-C", str(root), "show", f"{base}:{rel}"], capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):
+        return frozenset()
+    return frozenset(p.stdout.split(b"\n")) if p.returncode == 0 else frozenset()
+
+
+def scan_text(rep: Report, sc: AliasScanner, where: str, data: bytes, limit: int = 5, upstream: frozenset = frozenset()):
     hits = 0
     for i, off in sc.scan(data):
+        if upstream:
+            a = data.rfind(b"\n", 0, off) + 1
+            b = data.find(b"\n", off)
+            if data[a:len(data) if b < 0 else b] in upstream:
+                continue          # a line upstream has as it is
         hits += 1
         if hits <= limit:
             rep.bad("alias", f"{where}:{line_of(data, off)}", f"contains {sc.mask(i)}")
@@ -332,7 +350,7 @@ def check(root: Path, repo: Path | None, base_rev: str | None = None, all_files:
     else:
         aliases, owner = load_aliases(repo)
         sc = AliasScanner(aliases)
-    scope = None
+    scope = base = None
     if sc is not None and not all_files:
         base = upstream_base(root, base_rev)
         scope = fork_changed(root, base, files)
@@ -367,7 +385,7 @@ def check(root: Path, repo: Path | None, base_rev: str | None = None, all_files:
                 data = path.read_bytes()
             if b"\0" in data[:8192]:
                 continue          # binary file
-            scan_text(rep, sc, rel, data)
+            scan_text(rep, sc, rel, data, upstream=upstream_lines(root, base, rel) if scope is not None else frozenset())
     for z in sorted(set(sums) - {Path(f).name for f in files if f.startswith(CAPTURES + "/")}):
         rep.warn(f"{CAPTURES}/SHA256SUMS lists {z}, which is not in the checkout")
     emb = root / "humanbot" / "tools" / "embed_model.py"

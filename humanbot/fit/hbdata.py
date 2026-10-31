@@ -10,7 +10,8 @@ then filtered by context. Runs touching a segment edge are censored, except
 the first run after a respawn (the empty usercmds before it are dropped).
 
 The rows the fits learn from (`eligible`, see widen_duels) are the 1v1 human duels of
-every deathmatch map, not only the data repo's duel mask on the four practice maps.
+every deathmatch map, not only the data repo's duel mask on the four practice maps, at
+both speeds, the new games counted NEW_SPEED_WEIGHT times (see load_dm).
 """
 from __future__ import annotations
 
@@ -100,6 +101,18 @@ FRAME_COLS = [
 WIDE_SMG_MIN = 0.5
 SMG = ["MP40", "Thompson"]
 
+# The owner (2026-10-30): every game from then on is at sv_dmspeedmult 1.1 with the original strafe (g_aastrafe 1;
+# "never again 1.0"), and the bots learn from both speeds with the new games first ("prioritize a new data, but not
+# throw away the old one"). `eligible` and `normal_physics` are the data repo's masks at either speed (*_any_strafe),
+# `new_speed` marks the new games, and every row of them counts NEW_SPEED_WEIGHT times: the copies are the same rows
+# under client ids CLIENT_COPY_STEP apart (`copy` 1, 2, ...; `client_src` keeps the logged id, for counting sources).
+# 3: the new games' 190 duel minutes (2026-10-30) then weigh about as much as the old games' 579. The fits whose
+# numbers are speeds take the new games only (fit_maps hidden_move_speed); fit_velocity_response reads the data
+# repo's old-speed mask itself, as pm_harness keeps the old speed.
+NEW_SPEED_WEIGHT = 3
+CLIENT_COPY_STEP = 1000
+SPEED_COLS = ["normal_physics_any_strafe", "eligible_any_strafe", "aa_strafe", "sv_dmspeedmult"]
+
 
 def load_dm(cols=None) -> pd.DataFrame:
     """Valid human rows of deathmatch sessions, sorted, with sequence features.
@@ -110,23 +123,40 @@ def load_dm(cols=None) -> pd.DataFrame:
     line_of_sight last changed, or since the respawn; NaN when unobserved). `vis`
     is 1 while a body part of the opponent is on screen (attach_vis_parts; 0 outside
     `eligible`) and `vage` the ms since it changed, the way `lage` follows line_of_sight. The empty usercmds
-    right after each respawn are dropped (drop_spawn_dead_time).
+    right after each respawn are dropped (drop_spawn_dead_time). Both speeds, the new games
+    weighted (NEW_SPEED_WEIGHT, weight_new_speed).
     """
     cache = ensure_features()
     src = cache / "features.parquet"
-    seq = CACHE / "dm_seq_v9.parquet"
+    seq = CACHE / "dm_seq_v10.parquet"
     if cols is None and seq.exists() and seq.stat().st_mtime > src.stat().st_mtime:
         return pd.read_parquet(seq)
-    F = pd.read_parquet(src, columns=cols or FRAME_COLS, filters=[("valid", "==", True), ("dm_session", "==", True)])
+    F = pd.read_parquet(src, columns=list(dict.fromkeys((cols or FRAME_COLS) + SPEED_COLS)),
+                        filters=[("valid", "==", True), ("dm_session", "==", True)])
+    F["new_speed"] = F.pop("aa_strafe").astype(bool) & F.pop("sv_dmspeedmult").gt(1.05)
+    F["normal_physics"] = F.pop("normal_physics_any_strafe").astype(bool)
+    F["eligible"] = F.pop("eligible_any_strafe").astype(bool)
     F = F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
     widen_duels(F)
     F = attach_vis_parts(F, cache)
     F = drop_spawn_dead_time(F)
     add_sequences(F)
+    F = weight_new_speed(F)
     if cols is None:
         CACHE.mkdir(parents=True, exist_ok=True)
         F.to_parquet(seq, index=False)
     return F
+
+
+def weight_new_speed(F: pd.DataFrame) -> pd.DataFrame:
+    """The new games' rows NEW_SPEED_WEIGHT times: copies under client ids CLIENT_COPY_STEP apart, so every sequence
+    (session, client, seg) stays unbroken and every count, rate and quantile weighs them that much."""
+    new = F[F.new_speed]
+    parts = [F.assign(copy=0, client_src=F.client_id)]
+    for k in range(1, NEW_SPEED_WEIGHT):
+        parts.append(new.assign(copy=k, client_src=new.client_id, client_id=new.client_id + k * CLIENT_COPY_STEP))
+    F = pd.concat(parts, ignore_index=True)
+    return F.sort_values(["session_id", "client_id", "session_ms"], kind="stable").reset_index(drop=True)
 
 
 def widen_duels(F: pd.DataFrame) -> None:
