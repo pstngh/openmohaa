@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #pragma once
 
+#include <utility>
 #include <vector>
 
 #include "hb_belief.h"
@@ -62,6 +63,7 @@ struct NavOutput {
     bool  direct     = false;  // run straight at `via`, no engine path: over a fall people take (MapPrior::drops)
     bool  jump       = false;  // jump now: onto the take-off of such a fall (MapDrop::jump), or a jump up people take
     bool  jumpLine   = false;  // on the run-up of a jump up people take (MapPrior::jumps): square up, forward key
+    bool  jumpLetGo  = false;  // rising in such a jump higher than one with a key held reaches: no keys, as people do
 };
 
 class Navigator
@@ -91,6 +93,10 @@ private:
     // The first fall or jump up people took on the route toward target within viaDist of here (maps whose file lists
     // them), or null; isJump says which.
     const MapDrop *DropAhead(const SelfState& self, const Vec3& target, bool& isJump);
+    // The shortest-path tree toward cell goal in m_next / m_dist, without the blocked jump (rebuilt when either changed).
+    void TreeTo(int goal);
+    // On landing from a jump up: made or missed; a second miss in a row takes it out of this bot's routes for a while.
+    void JudgeJump(const SelfState& self, int jump);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -114,6 +120,14 @@ private:
     // the jump up being taken: aimed at its landing while in the air
     int                m_jumpIdx     = -1;
     int                m_jumpUntilMs = 0;
+    int                m_jumpPressMs = 0;
+    bool               m_jumpAir     = false;   // in the air on that jump: judged made or missed on landing
+    // the jumps up this bot missed JUMP_MISSES times in a row, (from, to) cells: out of its routes until m_blockUntil
+    int                                m_missJump = -1;
+    int                                m_misses   = 0;
+    std::vector<std::pair<int, int>>   m_blocked;
+    std::vector<int>                   m_blockUntil;
+    std::vector<std::pair<int, int>>   m_treeBlocked;   // the blocked edges m_next was built without
 };
 
 } // namespace hb

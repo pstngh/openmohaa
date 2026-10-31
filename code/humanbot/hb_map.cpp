@@ -341,7 +341,8 @@ float MapPrior::Visibility(int a, int b) const
     return 0.0f;
 }
 
-void MapPrior::PathTreeTo(int target, std::vector<int>& next, std::vector<float>& dist) const
+void MapPrior::PathTreeTo(int target, std::vector<int>& next, std::vector<float>& dist,
+                          const std::vector<std::pair<int, int>> *blocked) const
 {
     const int n = NumCells();
     next.assign(n, -1);
@@ -362,7 +363,10 @@ void MapPrior::PathTreeTo(int target, std::vector<int>& next, std::vector<float>
         }
         // cells v with an edge v -> u move one step closer by going to u
         for (int k = m_revStart[u]; k < m_revStart[u + 1]; k++) {
-            const int   v  = m_revTo[k];
+            const int v = m_revTo[k];
+            if (blocked && std::find(blocked->begin(), blocked->end(), std::make_pair(v, u)) != blocked->end()) {
+                continue;
+            }
             const float nd = dist[u] + m_revLen[k];
             if (nd < dist[v]) {
                 dist[v] = nd;

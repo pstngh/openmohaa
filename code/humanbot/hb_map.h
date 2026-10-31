@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace hb
@@ -115,9 +116,10 @@ public:
     const std::vector<uint8_t>& RuntimeBits() const { return m_runtimeBits; }
     bool  LoadRuntimeBits(const std::vector<uint8_t>& bits);
 
-    // Shortest-path tree toward `target` (Dijkstra on the route graph).
+    // Shortest-path tree toward `target` (Dijkstra on the route graph), without the edges (from, to) in `blocked`.
     // next[c] = neighbour of c one step closer to target (-1 when unreachable), dist[c] = path length.
-    void PathTreeTo(int target, std::vector<int>& next, std::vector<float>& dist) const;
+    void PathTreeTo(int target, std::vector<int>& next, std::vector<float>& dist,
+                    const std::vector<std::pair<int, int>> *blocked = nullptr) const;
 
     // Enemy-direction-conditioned move weights out of `cell` (belief prediction).
     // Fills (to, weight) pairs; weights are unnormalised.

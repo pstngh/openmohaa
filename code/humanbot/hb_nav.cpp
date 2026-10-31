@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "hb_nav.h"
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -51,6 +52,22 @@ static constexpr float JUMP_LANE      = 32.0f;
 static constexpr float JUMP_AT        = 24.0f;
 static constexpr float JUMP_SPEED     = 100.0f;
 static constexpr int   JUMP_MS        = 1200;
+// A held key brakes a jump's rise as it brakes a fall (bg_pmove.cpp PM_Accelerate pulls the velocity toward a wish with
+// no height): people rise 56 u with no key and 47 u with one held, and with the 18 u step they climb about 64 u at most
+// holding a key. Onto dm/mohdm6's 68 u railings people let go on the way up (keys held 0-43% of the rise, 83-100% made);
+// the bots held forward, rose 46 u and made 0-2% of their tries, running about under the west ledge's railing. On a jump
+// up climbing more than JUMP_LET_GO the bot lets go from the tick after the press (the jump comes at the next think: the
+// bot is in the air before it knows) while rising faster than JUMP_LET_GO_VZ (the last 1.5 u of the rise keep the key, to
+// push onto the top).
+static constexpr float JUMP_LET_GO     = 62.0f;
+static constexpr float JUMP_LET_GO_VZ  = 50.0f;
+static constexpr int   JUMP_PRESS_LAG  = 60;
+// A jump up the bot missed JUMP_MISSES times in a row (it landed back below) is out of its routes for JUMP_BLOCK_MS: it
+// goes another way, as a person does after a try or two, instead of running at it again and again (dm/mohdm6's west
+// ledge: up to 139 s under its railing).
+static constexpr int   JUMP_MISSES     = 2;
+static constexpr int   JUMP_BLOCK_MS   = 20000;
+static constexpr float JUMP_MADE_BELOW = 24.0f;   // landed no lower than this under the jump's landing: made
 static constexpr int   DROP_MS          = 2500;
 
 void Navigator::Init(const NavModel *params, const MapPrior *map)
@@ -67,7 +84,37 @@ void Navigator::SetMap(const MapPrior *map)
     m_viaCell    = -1;
     m_dropIdx    = -1;
     m_jumpIdx    = -1;
+    m_missJump   = -1;
+    m_misses     = 0;
+    m_blocked.clear();
+    m_blockUntil.clear();
+    m_treeBlocked.clear();
     Reset();
+}
+
+// The nearest route cell on p's floor (within 48 u of its height) up to maxDist away horizontally, -1 if none. CellAt
+// takes a cell up to 72 u above or below: at the foot of dm/mohdm6's north-west railing (65 u) it gave the railing's
+// cell, 12% of the bots' time on the ledge, and the routes had them standing at its face as if on top.
+static int NearestOnFloor(const MapPrior& m, const Vec3& p, float maxDist)
+{
+    const int here = m.CellAt(p);
+    if (here >= 0 && std::fabs(m.cells[here].z - p.z) < 48.0f) {
+        return here;
+    }
+    int   best = -1;
+    float bd   = maxDist * maxDist;
+    for (int c = 0; c < m.NumCells(); c++) {
+        if (std::fabs(m.cells[c].z - p.z) >= 48.0f) {
+            continue;
+        }
+        const Vec3  d  = m.cells[c].center - p;
+        const float d2 = d.x * d.x + d.y * d.y;
+        if (d2 < bd) {
+            bd   = d2;
+            best = c;
+        }
+    }
+    return best;
 }
 
 int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCells)
@@ -75,19 +122,56 @@ int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCe
     if (!m_map || m_map->NumCells() == 0) {
         return -1;
     }
-    int here = m_map->CellAt(self.origin);
-    if (here < 0) {
-        here = m_map->NearestCell(self.origin, hereCells * m_map->cellSize);
+    int here = -1;
+    if (!m_map->drops.empty() && self.onGround) {
+        // on a map with drops (dm/mohdm6) the cell on the bot's own floor: see NearestOnFloor
+        here = NearestOnFloor(*m_map, self.origin, hereCells * m_map->cellSize);
+    } else {
+        here = m_map->CellAt(self.origin);
+        if (here < 0) {
+            here = m_map->NearestCell(self.origin, hereCells * m_map->cellSize);
+        }
     }
     const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
     if (here < 0 || goal < 0 || here == goal) {
         return -1;
     }
-    if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells())) {
-        m_map->PathTreeTo(goal, m_next, m_dist);
-        m_treeTarget = goal;
-    }
+    TreeTo(goal);
     return here;
+}
+
+void Navigator::TreeTo(int goal)
+{
+    if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells()) || m_treeBlocked != m_blocked) {
+        if (m_treeBlocked != m_blocked) {
+            m_viaCell = -1;   // it may lie past the jump just taken out
+        }
+        m_map->PathTreeTo(goal, m_next, m_dist, m_blocked.empty() ? nullptr : &m_blocked);
+        m_treeTarget  = goal;
+        m_treeBlocked = m_blocked;
+    }
+}
+
+void Navigator::JudgeJump(const SelfState& self, int jump)
+{
+    const MapDrop& j = m_map->jumps[jump];
+    if (self.origin.z > j.landing.z - JUMP_MADE_BELOW) {
+        m_misses = 0;
+        return;
+    }
+    m_misses   = m_missJump == jump ? m_misses + 1 : 1;
+    m_missJump = jump;
+    if (m_misses >= JUMP_MISSES) {
+        const std::pair<int, int> e(j.from, j.to);
+        const auto                it = std::find(m_blocked.begin(), m_blocked.end(), e);
+        if (it == m_blocked.end()) {
+            m_blocked.push_back(e);
+            m_blockUntil.push_back(self.timeMs + JUMP_BLOCK_MS);
+        } else {
+            m_blockUntil[it - m_blocked.begin()] = self.timeMs + JUMP_BLOCK_MS;
+        }
+        m_misses = 0;
+    }
 }
 
 bool Navigator::RouteYaw(const SelfState& self, const Vec3& target, float& yaw)
@@ -148,28 +232,6 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
     return true;
 }
 
-// The nearest route cell on p's floor (within 48 u of its height) up to maxDist away horizontally, -1 if none.
-static int NearestOnFloor(const MapPrior& m, const Vec3& p, float maxDist)
-{
-    const int here = m.CellAt(p);
-    if (here >= 0) {
-        return here;
-    }
-    int   best = -1;
-    float bd   = maxDist * maxDist;
-    for (int c = 0; c < m.NumCells(); c++) {
-        if (std::fabs(m.cells[c].z - p.z) >= 48.0f) {
-            continue;
-        }
-        const Vec3  d  = m.cells[c].center - p;
-        const float d2 = d.x * d.x + d.y * d.y;
-        if (d2 < bd) {
-            bd   = d2;
-            best = c;
-        }
-    }
-    return best;
-}
 
 // dm/mohdm6's people run off the spawn buildings' upper floors into the street, falls of 400-650 u that the engine's
 // paths (at most 400 u) never take: the bots walked the stairs down to a ledge with no way on and spent 29% of their time
@@ -187,10 +249,7 @@ const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target, b
     if (here < 0 || goal < 0 || here == goal) {
         return nullptr;
     }
-    if (goal != m_treeTarget || m_next.size() != static_cast<size_t>(m_map->NumCells())) {
-        m_map->PathTreeTo(goal, m_next, m_dist);
-        m_treeTarget = goal;
-    }
+    TreeTo(goal);
     const float within = m_p && m_p->viaDist > 0.0f ? m_p->viaDist : 384.0f;
     int         c      = here;
     for (int step = 0; step < 64 && m_next[c] >= 0 && m_dist[here] - m_dist[c] <= within; step++) {
@@ -268,6 +327,7 @@ void Navigator::Reset()
     m_targetValid = false;
     m_dropIdx     = -1;
     m_jumpIdx     = -1;
+    m_jumpAir     = false;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
@@ -423,6 +483,12 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     const MapDrop *drop   = nullptr;
     bool           isJump = false;
     Vec3           aim;
+    for (size_t k = m_blocked.size(); k-- > 0;) {
+        if (now >= m_blockUntil[k]) {
+            m_blocked.erase(m_blocked.begin() + k);
+            m_blockUntil.erase(m_blockUntil.begin() + k);
+        }
+    }
     if (m_map && m_dropIdx >= 0 && m_dropIdx < static_cast<int>(m_map->drops.size()) && now < m_dropUntilMs
         && self.origin.z < m_map->drops[m_dropIdx].takeoff.z - 16.0f && self.origin.z > m_map->drops[m_dropIdx].landing.z + 32.0f) {
         drop       = &m_map->drops[m_dropIdx];
@@ -430,10 +496,23 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     } else if (m_map && m_jumpIdx >= 0 && m_jumpIdx < static_cast<int>(m_map->jumps.size()) && now < m_jumpUntilMs && !self.onGround) {
         drop         = &m_map->jumps[m_jumpIdx];
         isJump       = true;
-        out.direct   = true;
-        out.jumpLine = true;
-        aim          = drop->landing;
+        out.direct    = true;
+        out.jumpLine  = true;
+        out.jumpLetGo = self.velocity.z > JUMP_LET_GO_VZ && drop->landing.z - drop->takeoff.z > JUMP_LET_GO;
+        // along the jump's line, not at its landing: the game steps a player up only once the rise is over, and from
+        // against the railing's face the landing lies nearly straight up, so the key ran along the face (dm/mohdm6's
+        // north-west railing: tops of 102-104 u, within a step of its 116 u, made 31-54% of the time)
+        Vec3        dir  = Vec3(drop->landing.x - drop->takeoff.x, drop->landing.y - drop->takeoff.y, 0.0f);
+        const float ldir = dir.lengthXY();
+        aim              = ldir > 1.0f ? self.origin + dir * (64.0f / ldir) : drop->landing;
+        m_jumpAir        = true;
     } else {
+        const int  prevJump    = m_jumpIdx;
+        const bool justPressed = prevJump >= 0 && now - m_jumpPressMs <= JUMP_PRESS_LAG;
+        if (m_jumpAir && prevJump >= 0 && prevJump < static_cast<int>(m_map->jumps.size()) && self.onGround) {
+            JudgeJump(self, prevJump);
+        }
+        m_jumpAir = false;
         m_dropIdx = -1;
         m_jumpIdx = -1;
         drop      = DropAhead(self, out.target, isJump);
@@ -450,9 +529,15 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
                 out.jumpLine = true;
                 aim          = drop->takeoff + dir * DROP_THROUGH;
                 const float speedAlong = self.velocity.x * dir.x + self.velocity.y * dir.y;
+                const int k = static_cast<int>(drop - m_map->jumps.data());
                 if (self.onGround && along > -JUMP_AT && speedAlong >= JUMP_SPEED) {
-                    out.jump      = true;
-                    m_jumpIdx     = static_cast<int>(drop - m_map->jumps.data());
+                    out.jump = true;
+                    if (k == prevJump && justPressed) {
+                        out.jumpLetGo = drop->landing.z - drop->takeoff.z > JUMP_LET_GO;
+                    } else {
+                        m_jumpPressMs = now;
+                    }
+                    m_jumpIdx     = k;
                     m_jumpUntilMs = now + JUMP_MS;
                 }
                 out.via      = drop->landing;

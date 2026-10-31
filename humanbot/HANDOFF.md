@@ -2812,6 +2812,65 @@ model stays `8bfdcab646a6`, and `cache/parts` and `cache/replay` are its own aga
 **Next:** the west ledge with the new dm/mohdm6 file; then the motor model's calibration at 1.1; then 12203 on the owner's
 word (backup first).
 
+## Stalingrad's west ledge with the both-speeds maps (2026-10-31)
+
+The refit's dm/mohdm6 file (1,727 cells, people's three-player game in it) has the bots wander on the west ledge (x -1100
+to -480, y 230 to 560, the z 48 floor under the north-west building): 8.5% of their time (people 1.1%), stays over 20 s
+60 times in 707 bot-minutes, up to 139 s. Why: the new file has people's jumps up onto the ledge's north railing (z 116,
+68 u up, taken 4 times) and onto a 68 u ledge in the east building, and the routes off the ledge went over the railing.
+A held key brakes a jump's rise as it brakes a fall (`PM_Accelerate` pulls the velocity toward a wish with no height):
+people's jumps rise 56 u with no key and 47 u holding one, and with the 18 u step that climbs about 64 u at most. Onto the
+68 u railings people let go on the way up (keys held 0-43% of the rise, made 83-100%); the bots held forward, rose 46 u,
+made 0-2% of about 770 tries and ran about under the railing jumping (12 jumps a stay).
+
+**The fix** (`hb::Navigator`; only maps whose file lists jumps and drops, dm/mohdm6):
+- *Let go on a high jump.* On a jump up people took that climbs more than 62 u (`JUMP_LET_GO`) the bot lets go of the keys
+  from the tick after the press (the jump comes at the next think: the bot is in the air before it knows) until it rises
+  slower than 50 u/s (`NavOutput::jumpLetGo`, `TickPlan::navJumpLetGo`, the adapter's jump-line keys): rise 46 -> 54 u
+  (people 55.5), keys held 13-27% of the rise.
+- *Along the jump's line in the air.* The game never steps a player up while still rising (`bg_slidemove.cpp`), and against
+  the railing's face the landing lies straight up, so the key aimed at it ran along the face: tops of 102-104 u were made
+  31-54% of the time. Aiming 64 u along the jump's line: 54-72% (people 83-100%).
+- *Two misses, another way.* A jump up the bot missed twice in a row (landed back more than 24 u under its landing) is out
+  of that bot's routes for 20 s (`Navigator::JudgeJump`; `MapPrior::PathTreeTo` takes blocked edges), as a person goes
+  another way after a try or two.
+- *The bot's own floor.* `CellAt` takes a cell up to 72 u above the feet: at the north railing's foot it gave the
+  railing's cell (65 u up) for 12% of the bots' time on the ledge, and the route had them standing at its face as if on
+  top. On a map with drops the route now starts from a cell within 48 u of the bot's height (`NearestOnFloor`, on the
+  ground; round five tried that for the sill alone and left it out at a small cost in kills, within run noise here).
+
+Bot against bot on dm/mohdm6 (8 servers, 300 s at timescale 10, `sv_dmspeedmult` 1.1; `s27/run_stal.sh`,
+`s26/stal2.py`, `s27/ledge_visits.py`; people both speeds); "12203's" is the build and maps it runs (`6d9d5c6f`,
+`8bfdcab646a6`), "new file" the same build with the refit maps as an `HB_MAPS` override; seeds 201-208 (401-408):
+
+| dm/mohdm6 | People | Now | New file before the fix | 12203's |
+|---|---:|---:|---:|---:|
+| On the west ledge | 1.1% | 2.5% (2.6%) | 8.5% | 3.4% (2.3%) |
+| Ledge stays over 20 s / over 60 s, a 700 bot-minutes | none (max 8 s) | 14 / 0 (14 / 0) | 60 / 11 | 23 / 2 (13 / 0) |
+| Longest ledge stay | 8 s | 35 s (56 s) | 139 s | 135 s (54 s) |
+| Kills a minute | 3.86 | 3.46 (3.51) | 2.83 | 2.61 (2.72) |
+| Hits a minute | 23.7 | 18.4 (18.2) | 15.0 | 13.6 (13.8) |
+| Centroid sight starts a minute | 26.1 | 22.7 (22.4) | 21.0 | 16.4 (16.0) |
+| A floor apart, hidden, within 500 u | 2.6% | 12.1% (11.5%) | 24.0% | 22.1% (18.2%) |
+| Both on the street | 48.8% | 43.8% (42.4%) | 34.3% | 32.9% (34.7%) |
+| Time on 64 u squares people never used | 0% | 1.2% (1.2%) | 1.3% | 3.8% (4.3%) |
+| Deaths by falling per 100 minutes alive | 2.2-2.8 | 2.2 (2.6) | 2.5 | 1.3 (1.1) |
+
+The steps one at a time (seeds 201): letting go 8.5% -> 4.7% on the ledge, from the tick after the press 6.4% (seed
+noise of a point or two), the misses 5.2%, the jump's line 2.6% (kills 3.18 -> 3.45), the bot's own floor 2.5%. What is
+left on the ledge is mostly bots waiting there (holds and reloads on its cells, where people never wait) and fights
+through the railing; the time is 12203's, not yet people's.
+
+dm/brownffa + dm/flag (`bfl_201`, this build with the refit maps, against `bmn_201`, `6d9d5c6f` with them, and `bmo_201`
+without): kills 3,353 / 3,363 / 3,378, sight starts and time in sight within 0.5, no falls to death; their files list no
+jumps or drops, so the code takes the paths it took. The seven refit map files are committed (`fit_maps.py`, byte for byte
+`s26/maps_new`); the bundle is `20947943d80b`: the motor model of `8bfdcab646a6` with them. `test_hb_belief`'s checks that
+were tied to the 10-25 files' layout now choose by geometry: the spawn test spawns at the map's spawns facing their way
+(strafe in the first three ticks 2.2%), the hidden run stands in the open (the cell that sees the most), the second
+enemy's footsteps come from well aside of the first's loss, a fall is judged only where the bot runs at its landing
+(people's jumps onto the railing are the routes' way now), and the hold test's "off people's ground" spot is one with no
+cell (the south building's upper floor is people's ground since the 2026-10-30 games). Not on 12203.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

@@ -563,6 +563,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     plan.navDirect      = m_navOut.valid && m_navOut.direct;
     plan.navJumpLine    = m_navOut.valid && m_navOut.jumpLine;
     plan.navJumpYaw     = m_navOut.desiredYaw;
+    plan.navJumpLetGo   = m_navOut.valid && m_navOut.jumpLetGo;
     m_attackPrev        = attack;
 
     if (diag) {

@@ -837,8 +837,9 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
     if (plan.navJumpLine && !m_engaged) {
         // a jump up people take (hb::Navigator, dm/mohdm6's sills and railings): squared up on its line with the forward
         // key, as people run at it; the brain's keys and strafes drifted the bots 20-30 u off the south-west building's
-        // narrow window, and they hit its frame at the top of the jump
-        plan.chord       = hb::MakeChord(1, 0);
+        // narrow window, and they hit its frame at the top of the jump; no key on the way up a high one (a held key brakes
+        // the rise: dm/mohdm6's 68 u railings)
+        plan.chord       = plan.navJumpLetGo ? hb::CHORD_NEUTRAL : hb::MakeChord(1, 0);
         plan.lean        = 0;
         plan.crouch      = false;
         plan.yawDelta    = Q_clamp_float(AngleNormalize180(plan.navJumpYaw - view.yaw), -30.0f, 30.0f);

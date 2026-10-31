@@ -293,6 +293,7 @@ struct TickPlan {
     bool  navDirect      = false;   // no engine path: run straight at navVia (over a fall people take)
     bool  navJumpLine    = false;   // on the run-up of a jump up people take: square up on navJumpYaw, forward key
     float navJumpYaw     = 0.0f;
+    bool  navJumpLetGo   = false;   // rising in a jump up higher than one with a key held reaches: no keys
     // the fire gate of g_humanbot_skill: a round with the crosshair off the body is skipped with
     // fireGate (0 = off); the target direction at the tick's start and its change over the tick
     float fireGate     = 0.0f;
