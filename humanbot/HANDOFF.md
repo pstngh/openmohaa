@@ -93,9 +93,10 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `6d9d5c6f` (bundle
-  `8bfdcab646a6`: telemetry schema 15, every usercmd) with the bots-new engine since 2026-10-30 11:59 UTC (the owner:
-  "Deploy to 12203"; `9982e280`, the top speed rounded as the original, from 03:50, kept as `game.so.prev-9982e280`;
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `ed43461d` (bundle
+  `b2a749ef53b7`: Stalingrad's west ledge, the motor model at 1.1) with the bots-new engine since 2026-10-31 10:15 UTC
+  (the owner: "Yes, deploy"; `6d9d5c6f`, telemetry schema 15, from 2026-10-30 11:59, kept as `game.so.prev-6d9d5c6f`;
+  `9982e280`, the top speed rounded as the original, from 03:50, kept as `game.so.prev-9982e280`;
   `47e56da0`, the view's big turns wait, from 2026-10-29 19:06, kept as `game.so.prev-47e56da0`; `ffbce392`,
   telemetry schema 14, from 18:08, kept as `game.so.prev-ffbce392`; `4892b2d4` from 14:54, kept as
   `game.so.prev-4892b2d4`; `f967d130` from 13:34, kept as `game.so.prev-f967d130`, config `server_opm.cfg.bak-f967d130`). It records only with no bot in the game (`g_movelog_no_bots 1`, the owner: "can you
@@ -2956,7 +2957,11 @@ refit's habits from the 1.1 games (fewer strafe reversals, more counter strafes:
 "doesnt matter" with or without nullbinds), its lean chain, and slightly more jumps in fights. `test_hb_core`'s skill check
 reads the held draw (`skillDrawMin`, now 100 ms and 3.98 deg above the people's newest best), the spawn test allows the
 rare six dead ticks (0.3% since the 2026-10-30 games); `compare.py` pools only once `features.parquet` exists (the
-smoke tests start without it). Not on 12203.
+smoke tests start without it).
+
+**On 12203** since 2026-10-31 10:15 UTC (the owner: "Yes, deploy"; built on the VPS at `ed43461d`, backup
+`game.so.prev-6d9d5c6f`, nobody on, the three recordings there all saved in `2026-10-30-1v1-4`). It came back on
+dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1, recording only with no bot in.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
