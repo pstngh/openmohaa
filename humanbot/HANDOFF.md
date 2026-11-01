@@ -2963,6 +2963,38 @@ smoke tests start without it).
 `game.so.prev-6d9d5c6f`, nobody on, the three recordings there all saved in `2026-10-30-1v1-4`). It came back on
 dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1, recording only with no bot in.
 
+## Bots staying up on Stalingrad (2026-11-01): measured, not fixed yet
+
+The owner, after playing `ed43461d` on 12203 (with two bots, a three-player free-for-all): "not bad at all, they should
+jump down more, they tend they stay higher than ground level a lot". Bot against bot with three bots (`s27/run_stal3.sh`,
+`t3_201`; the 1v1 batches `c3_*`) against people's three-player game of 2026-10-30 and their 1v1s, every living row
+(`s28/upstays.py`, `godown.py`, `s27/heights3.py`, `byspawn.py`):
+
+| dm/mohdm6 | People, 3 players | Bots, 3 | People, 1v1 | Bots, 1v1 |
+|---|---:|---:|---:|---:|
+| Above the street (z > -60) | 32% | 35% | 24% | 25% |
+| Stays up over 20 s, an hour alive | 3.5 | 13.3 | 3.6 | 7.9 |
+| Time up spent in stays over 10 s | 27% | 59% | 33% | 45% |
+| Enemy hidden in the street: from a floor above, down within 5 s | 70% | 45% | 65% | 60% |
+| ... from the raised ground (z 32-48: the plaza south of the street, the west ledge), within 5 s | 77% | 55% | (31%) | 47% |
+| Upstairs spawns down within 5 s | 74% | 59% | 79% | 75% |
+
+Nearly every stay up starts at a spawn (bots almost never climb up from the street), so the long stays are lives that do not
+come down. In the three-player games the bots also spawn in the south building (-384, -768, z 300) three times as often,
+and from there they are down within 5 s 16% of the time (people 82%). In lives that stay up they hunt (63-69%), hold
+(10-17%), fight (10%) and reload from the raised ground and windows; 90% of their hunt goals come from the belief.
+
+Tried, measured, left out (patch `cache/move_wip/s28/stay-up-attempts.patch`, three-bot batches `tf_`, `tf2_`, `th_`,
+`tr_201`): the engine's path kept to the bot's own floor (it left the south building's lower roof by its south edge onto
+the raised floor people never use); off people's ground, the route from the nearest cell on the floor with a way on (on
+that raised floor no cell was within reach and the nearest one was a dead end) and back onto people's ground first; the
+soft wallhack's hunch carrying the enemy's height (the belief put a hidden enemy on the bot's own floor: with the bot up
+and him hidden in the street it had him on the street 73% of the time, with the height 92%, and the hunt goals of the long
+stays on the street 49% -> 65%). Time on the south raised floor 5.9% -> 4.3% (people 0.9%), on the roof slope 3.3% ->
+2.3% (0.4%), but the stays over 20 s stayed at 12-14 an hour and the descents from spawns at 59-61% within 5 s: the
+bots stay up wherever they are. Next: what holds a bot up with the enemy believed in the street (the hold and reload
+cover picking cells up there, the fight from a window, hunting the other bot upstairs in a three-player game).
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with
