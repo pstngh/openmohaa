@@ -93,9 +93,11 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `ed43461d` (bundle
-  `b2a749ef53b7`: Stalingrad's west ledge, the motor model at 1.1) with the bots-new engine since 2026-10-31 10:15 UTC
-  (the owner: "Yes, deploy"; `6d9d5c6f`, telemetry schema 15, from 2026-10-30 11:59, kept as `game.so.prev-6d9d5c6f`;
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `660a5c2d` (bundle
+  `b2a749ef53b7`: the bots come down more on Stalingrad) with the bots-new engine since 2026-11-01 23:36 UTC (the owner:
+  "Deploy it"; built in `~linuxuser/openmohaa-humanbot2-src`, `cmake --build build --target game` as linuxuser;
+  `ed43461d`, Stalingrad's west ledge and the motor model at 1.1, from 2026-10-31 10:15, kept as `game.so.prev-ed43461d`;
+  `6d9d5c6f`, telemetry schema 15, from 2026-10-30 11:59, kept as `game.so.prev-6d9d5c6f`;
   `9982e280`, the top speed rounded as the original, from 03:50, kept as `game.so.prev-9982e280`;
   `47e56da0`, the view's big turns wait, from 2026-10-29 19:06, kept as `game.so.prev-47e56da0`; `ffbce392`,
   telemetry schema 14, from 18:08, kept as `game.so.prev-ffbce392`; `4892b2d4` from 14:54, kept as
@@ -3019,8 +3021,11 @@ minute (`bc3_201` / `ba_201`, `dc3_201` / `da_201`). `test_hb_belief` checks the
 **Still open.** Three-player stays up are 2.8 times people's. From the north building's top-floor spawn (256, 1024, z 550)
 the bots are in the street within 10 s 31% of the time (people 79%): people jump onto a 68 u sill there and the bots make it
 about 60% of the time; after two misses the jump is out of their routes (20 s) and they turn back for the stairs. In a
-three-player game the bots also hunt the other bot upstairs (5% of their time), which people's game shows less of. Not on
-12203.
+three-player game the bots also hunt the other bot upstairs (5% of their time), which people's game shows less of.
+
+**On 12203** since 2026-11-01 23:36 UTC (the owner: "Deploy it"; backup `game.so.prev-ed43461d`, nobody on, no recording
+there to save). It came back on dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1,
+recording only with no bot in; `g_humanbot_skill` set back to the owner's 3 after the restart.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
