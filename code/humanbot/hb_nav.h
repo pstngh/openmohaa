@@ -63,6 +63,7 @@ struct NavOutput {
     bool  direct     = false;  // run straight at `via`, no engine path: over a fall people take (MapPrior::drops)
     bool  jump       = false;  // jump now: onto the take-off of such a fall (MapDrop::jump), or a jump up people take
     bool  jumpLine   = false;  // on the run-up of a jump up people take (MapPrior::jumps): square up, forward key
+    bool  dropKeys   = false;  // running off a fall people take (MapPrior::drops): the keys straight at desiredYaw
     bool  jumpLetGo  = false;  // rising in such a jump higher than one with a key held reaches: no keys, as people do
 };
 
@@ -128,6 +129,9 @@ private:
     std::vector<std::pair<int, int>>   m_blocked;
     std::vector<int>                   m_blockUntil;
     std::vector<std::pair<int, int>>   m_treeBlocked;   // the blocked edges m_next was built without
+    // the last of people's cells the bot stood on, and when (its way back onto their ground)
+    int                                m_lastCell   = -1;
+    int                                m_lastCellMs = 0;
 };
 
 } // namespace hb

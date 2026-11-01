@@ -846,6 +846,16 @@ void HumanBotAdapter::Owners(Player *p, const HbView& view, const hb::SelfState&
         plan.viewStill   = false;
         plan.flickShaped = false;
     }
+    if (plan.navDropKeys && !plan.navJumpLine && !m_engaged) {
+        // off a fall people take (hb::Navigator, dm/mohdm6): the chord nearest the way to its landing, the view left where
+        // the brain has it
+        const float rel  = AngleNormalize180(plan.navJumpYaw - view.yaw);
+        const int   fwd  = std::fabs(rel) < 67.5f ? 1 : (std::fabs(rel) > 112.5f ? -1 : 0);
+        const int   side = rel > 22.5f && rel < 157.5f ? -1 : (rel < -22.5f && rel > -157.5f ? 1 : 0);   // left of the view: left
+        plan.chord       = hb::MakeChord(fwd, side);
+        plan.walk        = false;
+        plan.crouch      = false;
+    }
     FallKey(view, self, plan);
     SetOwner(p, hb::OWNER_BRAIN);
 }

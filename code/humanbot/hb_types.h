@@ -243,6 +243,8 @@ struct SoundObs {
     float distLogSd = 0.35f;
     bool  frontBack = false;     // front/back ambiguous (mirror across the listener's lateral axis)
     float mirrorYaw = 0.0f;
+    bool  dzKnown   = false;     // the source's height over the listener is known (the soft wallhack's hunch)
+    float dz        = 0.0f;
 };
 
 struct DamageObs {
@@ -292,6 +294,7 @@ struct TickPlan {
     Vec3  navVia;
     bool  navDirect      = false;   // no engine path: run straight at navVia (over a fall people take)
     bool  navJumpLine    = false;   // on the run-up of a jump up people take: square up on navJumpYaw, forward key
+    bool  navDropKeys    = false;   // off a fall people take: the chord nearest navJumpYaw off the view, the view the brain's
     float navJumpYaw     = 0.0f;
     bool  navJumpLetGo   = false;   // rising in a jump up higher than one with a key held reaches: no keys
     // the fire gate of g_humanbot_skill: a round with the crosshair off the body is skipped with

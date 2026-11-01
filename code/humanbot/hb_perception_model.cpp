@@ -183,6 +183,11 @@ void Perceiver::Process(const RawInput& raw, float hfovDeg, float vfovDeg, float
                 h.dist      = std::max(16.0f, d.lengthXY() * std::exp(static_cast<float>(h2) * p.hunchDistLogSd));
                 h.distLogSd = p.hunchDistLogSd;
                 h.mirrorYaw = h.yaw;
+                // and his height: without it the belief put him on the bot's own floor (dm/mohdm6: a bot upstairs sensed
+                // the enemy in the street on its floor and hunted him there, 12-13 stays up of over 20 s an hour in a
+                // three-player game, people 3.5)
+                h.dzKnown = true;
+                h.dz      = d.z;
                 out.sounds.push_back(h);
             }
         }

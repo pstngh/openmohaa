@@ -892,6 +892,29 @@ static void TestStalingradDrops(const hb::ModelBundle& b)
         HB_REPORT("whole map, %s people's ground: %d hold ticks in 4000", onCell ? "on" : "off", holds);
         HB_CHECK(onCell ? holds > 0 : holds == 0);
     }
+    // off people's ground on its floor (the raised floor south of the street, west of where people step down): the way
+    // people go from the nearest cell on that floor with a way on, and the engine's path back onto their ground first
+    {
+        hb::SelfState s = self;
+        s.origin        = hb::Vec3(-300.0f, -700.0f, 32.0f);
+        s.eye           = s.origin + hb::Vec3(0, 0, 82);
+        s.onGround      = true;
+        s.timeMs        = 100000;
+        hb::BeliefEstimate bs = be;
+        bs.mode               = hb::Vec3(-250.0f, -600.0f, -152.0f);
+        hb::NavInput is;
+        is.focus     = &bs;
+        is.outOfAmmo = true;
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng       r(23);
+        hb::NavOutput out;
+        nav.Step(s, is, r, out);
+        const int on = m.CellAt(out.via);
+        HB_REPORT("off people's ground at (-300, -700, 32): via %d (%.0f, %.0f, %.0f)", out.viaValid, out.via.x, out.via.y, out.via.z);
+        HB_CHECK(m.CellAt(s.origin) < 0);
+        HB_CHECK(out.viaValid && on >= 0 && std::fabs(m.cells[on].z - s.origin.z) < 48.0f);
+    }
     for (const bool withDrops : {true, false}) {
         if (!withDrops) {
             m.drops.clear();

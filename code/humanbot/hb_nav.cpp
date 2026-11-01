@@ -33,6 +33,16 @@ namespace hb
 static constexpr int ENGAGE_MEMORY_MS = 1000;
 // A bot this many cells off the cells people stood in still takes its way from the nearest of them.
 static constexpr float VIA_HERE_CELLS = 3.0f;
+// On a map with drops (dm/mohdm6) the engine's path goes to a point on the bot's own floor (within FLOOR_VIA_DZ of the
+// route cell it is in) along the way people go, and from the floor's edge to the first cell below it, not to a point a
+// floor or two down: from the south building's lower roof the engine's own way down ran off its south edge onto a raised
+// floor people never use, and the bots stayed above the street there (3.5 s a stay, 6% of their time in a three-player
+// game, people 0.9%), where people walk the roof east and step down at its end.
+static constexpr float FLOOR_VIA_DZ = 48.0f;
+// The last of people's cells the bot stood on (within ON_CELL cells, on its floor) is its way back onto their ground for
+// LAST_CELL_MS (a map recorded whole with drops: dm/mohdm6).
+static constexpr float ON_CELL      = 1.5f;
+static constexpr int   LAST_CELL_MS = 8000;
 // A fall people take (MapPrior::drops): the bot runs straight at the landing from this close to the take-off, and keeps
 // at it while falling for at most DROP_MS; it jumps onto a raised take-off from DROP_JUMP_REACH. It looks for the fall
 // from cells up to DROP_HERE_CELLS away on its floor: dm/mohdm6's ledge is mostly off the cells people stood in.
@@ -86,6 +96,7 @@ void Navigator::SetMap(const MapPrior *map)
     m_jumpIdx    = -1;
     m_missJump   = -1;
     m_misses     = 0;
+    m_lastCell   = -1;
     m_blocked.clear();
     m_blockUntil.clear();
     m_treeBlocked.clear();
@@ -117,6 +128,26 @@ static int NearestOnFloor(const MapPrior& m, const Vec3& p, float maxDist)
     return best;
 }
 
+// The nearest cell on p's floor up to maxDist away horizontally that has a route toward the tree's goal (next >= 0), -1 if
+// none: people only fell onto some cells and never left them on foot (dm/mohdm6's raised floor south of the street).
+static int NearestRoutedOnFloor(const MapPrior& m, const Vec3& p, float maxDist, const std::vector<int>& next)
+{
+    int   best = -1;
+    float bd   = maxDist * maxDist;
+    for (int c = 0; c < m.NumCells(); c++) {
+        if (next[c] < 0 || std::fabs(m.cells[c].z - p.z) >= 48.0f) {
+            continue;
+        }
+        const Vec3  d  = m.cells[c].center - p;
+        const float d2 = d.x * d.x + d.y * d.y;
+        if (d2 < bd) {
+            bd   = d2;
+            best = c;
+        }
+    }
+    return best;
+}
+
 int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCells)
 {
     if (!m_map || m_map->NumCells() == 0) {
@@ -124,8 +155,20 @@ int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCe
     }
     int here = -1;
     if (!m_map->drops.empty() && self.onGround) {
-        // on a map with drops (dm/mohdm6) the cell on the bot's own floor: see NearestOnFloor
+        // on a map with drops (dm/mohdm6) the cell on the bot's own floor: see NearestOnFloor. Off people's ground on a
+        // map recorded whole, the nearest cell on its floor up to DROP_HERE_CELLS away: on the raised floor south of the
+        // street, west of where people step down, there was none within hereCells, no way people go and no fall, and the
+        // engine's path to a street goal far off kept the bots there (3.5 s a stay; people pass its east end in 0.8 s)
         here = NearestOnFloor(*m_map, self.origin, hereCells * m_map->cellSize);
+        if (here < 0 && m_map->wholeMap) {
+            // the way it came first: the last of people's cells it stood on, if lately and on this floor (the nearest one
+            // can lie behind a wall: from the flat roof above the south building's slope, which people never set foot
+            // on, the bots pressed toward the slope below it, 2.5% of their time in a three-player game)
+            const bool back = m_lastCell >= 0 && self.timeMs - m_lastCellMs < LAST_CELL_MS
+                              && std::fabs(m_map->cells[m_lastCell].z - self.origin.z) < 48.0f
+                              && (m_map->cells[m_lastCell].center - self.origin).lengthXY() < DROP_HERE_CELLS * m_map->cellSize;
+            here = back ? m_lastCell : NearestOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize);
+        }
     } else {
         here = m_map->CellAt(self.origin);
         if (here < 0) {
@@ -137,6 +180,10 @@ int Navigator::RouteFrom(const SelfState& self, const Vec3& target, float hereCe
         return -1;
     }
     TreeTo(goal);
+    if (m_next[here] < 0 && !m_map->drops.empty() && m_map->wholeMap && self.onGround) {
+        const int routed = NearestRoutedOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize, m_next);
+        here             = routed >= 0 ? routed : here;
+    }
     return here;
 }
 
@@ -211,10 +258,18 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
     }
     const bool keep = m_viaCell >= 0 && m_viaTree == m_treeTarget && m_dist[m_viaCell] < m_dist[here]
                       && m_dist[here] - m_dist[m_viaCell] >= 0.5f * d;
-    if (!keep) {
+    const bool ownFloor = !m_map->drops.empty();
+    if (!keep || ownFloor) {
         int c = here;
         for (int step = 0; step < 1024 && m_dist[here] - m_dist[c] < d && m_next[c] >= 0; step++) {
-            c = m_next[c];
+            const int nx = m_next[c];
+            if (ownFloor && std::fabs(m_map->cells[nx].z - m_map->cells[here].z) >= FLOOR_VIA_DZ) {
+                if (c == here) {
+                    c = nx;   // at the floor's edge: the first cell below (or above) it
+                }
+                break;
+            }
+            c = nx;
         }
         m_viaCell = c;
         m_viaTree = m_treeTarget;
@@ -229,6 +284,12 @@ bool Navigator::Via(const SelfState& self, const Vec3& target, Vec3& via)
         }
     }
     via = m_map->cells[m_viaCell].center;
+    // off people's ground on a map recorded whole with drops (RouteFrom took the nearest cell with a way on): back onto
+    // it first, then their way. From the south building's roof slope (z 256, people walk its lower edge at 170-200) the
+    // engine's path to a point further on wandered the slope, 4% of the bots' time (people 0.4%)
+    if (ownFloor && m_map->wholeMap && (m_map->cells[here].center - self.origin).lengthXY() > VIA_HERE_CELLS * m_map->cellSize) {
+        via = m_map->cells[here].center;
+    }
     return true;
 }
 
@@ -244,12 +305,17 @@ const MapDrop *Navigator::DropAhead(const SelfState& self, const Vec3& target, b
         return nullptr;
     }
     // from the bot's own floor only: a cell on another floor within reach would put the fall's take-off elsewhere
-    const int here = NearestOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize);
+    int       here = NearestOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize);
     const int goal = m_map->NearestCell(target, 4.0f * m_map->cellSize);
     if (here < 0 || goal < 0 || here == goal) {
         return nullptr;
     }
     TreeTo(goal);
+    if (m_next[here] < 0 && m_map->wholeMap) {
+        // a cell people only fell onto: the nearest one on this floor with a way on (NearestRoutedOnFloor)
+        const int routed = NearestRoutedOnFloor(*m_map, self.origin, DROP_HERE_CELLS * m_map->cellSize, m_next);
+        here             = routed >= 0 ? routed : here;
+    }
     const float within = m_p && m_p->viaDist > 0.0f ? m_p->viaDist : 384.0f;
     int         c      = here;
     for (int step = 0; step < 64 && m_next[c] >= 0 && m_dist[here] - m_dist[c] <= within; step++) {
@@ -483,6 +549,13 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     const MapDrop *drop   = nullptr;
     bool           isJump = false;
     Vec3           aim;
+    if (m_map && !m_map->drops.empty() && m_map->wholeMap && self.onGround) {
+        const int on = NearestOnFloor(*m_map, self.origin, ON_CELL * m_map->cellSize);
+        if (on >= 0) {
+            m_lastCell   = on;
+            m_lastCellMs = now;
+        }
+    }
     for (size_t k = m_blocked.size(); k-- > 0;) {
         if (now >= m_blockUntil[k]) {
             m_blocked.erase(m_blocked.begin() + k);
@@ -562,7 +635,11 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         }
     }
     if (drop && !isJump) {
-        out.via      = out.direct ? drop->landing : drop->takeoff;
+        // a take-off a floor below: the way people go on this floor first (FLOOR_VIA_DZ)
+        const bool floorVia = !out.direct && out.viaValid && drop->takeoff.z < self.origin.z - FLOOR_VIA_DZ;
+        if (!floorVia) {
+            out.via = out.direct ? drop->landing : drop->takeoff;
+        }
         out.viaValid = true;
         if (out.direct) {
             // through the take-off, then at the landing: from beside a window the straight line to the landing ran into
@@ -574,6 +651,14 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
             const float along   = (self.origin.x - d.takeoff.x) * dir.x + (self.origin.y - d.takeoff.y) * dir.y;
             const bool  falling = self.origin.z < d.takeoff.z - 16.0f && !self.onGround;
             aim                 = along < 0.0f && !falling ? d.takeoff + dir * DROP_THROUGH : d.landing;
+            // the keys straight at it (the chord nearest that way off the view), on the ground and in the air: off the
+            // 32 u step by the south building's drop into the street the brain's keys let the bots slide off with the
+            // step's momentum (heading -65 deg, people -145) onto the raised floor below it 89% of the time (people reach
+            // the street 74%), and they jumped up again. The view stays the brain's: people keep it where the enemy may
+            // show while they run off (aim error 7 deg when he does within a second of the fall, their usual 6); squared
+            // up on the landing as on a jump up's run-up, the bots' error there grew from 24 to 30 deg and their first
+            // press came 41 ms later
+            out.dropKeys = true;
         }
     }
     float routeYaw = 0.0f;

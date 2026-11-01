@@ -2963,37 +2963,64 @@ smoke tests start without it).
 `game.so.prev-6d9d5c6f`, nobody on, the three recordings there all saved in `2026-10-30-1v1-4`). It came back on
 dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1, recording only with no bot in.
 
-## Bots staying up on Stalingrad (2026-11-01): measured, not fixed yet
+## Bots staying up on Stalingrad (2026-11-01)
 
 The owner, after playing `ed43461d` on 12203 (with two bots, a three-player free-for-all): "not bad at all, they should
-jump down more, they tend they stay higher than ground level a lot". Bot against bot with three bots (`s27/run_stal3.sh`,
-`t3_201`; the 1v1 batches `c3_*`) against people's three-player game of 2026-10-30 and their 1v1s, every living row
-(`s28/upstays.py`, `godown.py`, `s27/heights3.py`, `byspawn.py`):
+jump down more, they tend they stay higher than ground level a lot"; then "Keep digging". Bot against bot with three bots
+(`s27/run_stal3.sh`) against people's three-player game of 2026-10-30, and in 1v1 against people's 1v1s; every living row
+(`s28/upstays.py`, `godown.py`, `southtrace.py`, `s27/heights3.py`, `byspawn.py`). Nearly every stay above the street
+starts at a spawn (the bots almost never climb up from the street), so the long stays are lives that do not come down.
 
-| dm/mohdm6 | People, 3 players | Bots, 3 | People, 1v1 | Bots, 1v1 |
-|---|---:|---:|---:|---:|
-| Above the street (z > -60) | 32% | 35% | 24% | 25% |
-| Stays up over 20 s, an hour alive | 3.5 | 13.3 | 3.6 | 7.9 |
-| Time up spent in stays over 10 s | 27% | 59% | 33% | 45% |
-| Enemy hidden in the street: from a floor above, down within 5 s | 70% | 45% | 65% | 60% |
-| ... from the raised ground (z 32-48: the plaza south of the street, the west ledge), within 5 s | 77% | 55% | (31%) | 47% |
-| Upstairs spawns down within 5 s | 74% | 59% | 79% | 75% |
+**What held them up, and the changes** (dm/mohdm6 only unless said: the navigator's parts act on maps whose file lists
+drops, recorded whole):
+- *Off a fall the brain's keys let them slide.* The south building's way to the street ends on a 32 u step; the bots got
+  onto it by people's jump up (a thousand tries a batch against people's seven), still moving east, and slid off its south
+  side onto the raised floor below 89% of the time (people reach the street 74%, heading -145 deg against the bots' -65),
+  then jumped up again. Running off a fall people take, the keys are now the chord nearest the way to its landing
+  (`NavOutput::dropKeys`, `TickPlan::navDropKeys`, the adapter), on the ground and in the air; the view stays the brain's.
+  Squaring the view up on the landing as on a jump's run-up got them down as well, but an enemy seen within a second of the
+  fall then met a view 30 deg off (24 before; people 7) and a first press 41 ms later: left out.
+- *Off people's ground the route gave up.* Where no cell of people's lay within 96 u on the bot's floor (the raised floor's
+  west half, the flat roof above the south building's slope, which people never set foot on) there was no way people go
+  and no fall, and the engine's path to a street goal far off kept them there. The route now starts from the last of
+  people's cells the bot stood on (8 s, its floor: the way it came, `m_lastCell`), else the nearest on its floor up to
+  384 u with a way on (`NearestRoutedOnFloor`: some cells people only fell onto), and the engine's path goes back onto
+  their ground first.
+- *The engine's path went a floor down at once.* The point it was sent to lay one or two floors down (the next fall's
+  take-off), and its own way down ran off the lower roof's south edge. On a map with drops the via stays on the bot's floor
+  along people's way, and from its edge goes to the first cell below (`FLOOR_VIA_DZ`).
+- *The hunch put the enemy on the bot's floor* (every map). The soft wallhack's hunch (40 a minute and on every respawn)
+  gave a direction and a distance at the bot's height, and the belief's cells there won: a bot upstairs sensed the enemy in
+  the street on its own floor and hunted him there. The hunch now carries his height (`SoundObs::dzKnown`, `dz`; the
+  belief's injection and likelihood use it). With the bot up and him hidden in the street the belief has him on the street
+  92% of the time (73% before).
 
-Nearly every stay up starts at a spawn (bots almost never climb up from the street), so the long stays are lives that do not
-come down. In the three-player games the bots also spawn in the south building (-384, -768, z 300) three times as often,
-and from there they are down within 5 s 16% of the time (people 82%). In lives that stay up they hunt (63-69%), hold
-(10-17%), fight (10%) and reload from the raised ground and windows; 90% of their hunt goals come from the belief.
+Three bots (seeds 201, 8 servers, 300 s at timescale 10, 1.1) and 1v1 (seeds 201 + 401) against `ed43461d`:
 
-Tried, measured, left out (patch `cache/move_wip/s28/stay-up-attempts.patch`, three-bot batches `tf_`, `tf2_`, `th_`,
-`tr_201`): the engine's path kept to the bot's own floor (it left the south building's lower roof by its south edge onto
-the raised floor people never use); off people's ground, the route from the nearest cell on the floor with a way on (on
-that raised floor no cell was within reach and the nearest one was a dead end) and back onto people's ground first; the
-soft wallhack's hunch carrying the enemy's height (the belief put a hidden enemy on the bot's own floor: with the bot up
-and him hidden in the street it had him on the street 73% of the time, with the height 92%, and the hunt goals of the long
-stays on the street 49% -> 65%). Time on the south raised floor 5.9% -> 4.3% (people 0.9%), on the roof slope 3.3% ->
-2.3% (0.4%), but the stays over 20 s stayed at 12-14 an hour and the descents from spawns at 59-61% within 5 s: the
-bots stay up wherever they are. Next: what holds a bot up with the enemy believed in the street (the hold and reload
-cover picking cells up there, the fight from a window, hunting the other bot upstairs in a three-player game).
+| dm/mohdm6 | People | `ed43461d` | Now |
+|---|---:|---:|---:|
+| 3 players: stays above the street over 20 s, an hour alive | 3.5 | 13.3 | 9.8 |
+| 3 players: on the street | 67.8% | 64.7% | 66.8% |
+| 3 players: upstairs spawns on the street within 5 s / 10 s | 74% / 90% | 59% / 78% | 70% / 85% |
+| 3 players: off the 32 u step into the street | 74% | 9% | 43% |
+| 1v1: both on the street | 48.8% | 44.1% | 47.6% |
+| 1v1: a floor apart, hidden, within 500 u | 2.6% | 10.6% | 6.6% |
+| 1v1: on the west ledge | 1.1% | 2.0% | 0.7% |
+| 1v1: kills / sight starts a minute | 3.86 / 26.1 | 3.54 / 22.7 | 4.00 / 23.7 |
+| 1v1: falls of 300 u or more a minute | 3.06 | 2.72 | 3.11 |
+| 1v1: deaths by falling, per 100 minutes alive | 2.2-2.8 | 2.7 | 3.4 |
+| 1v1: first press after a part comes on screen, mean | | 268 ms | 266 ms |
+
+The first press, the aim height, crouches and jumps when quiet and the presses with no part on screen are unchanged; more
+falls bring a few more deaths by falling. dm/brownffa + dm/flag and the duel maps (the hunch's height is the only part that
+reaches them) play as before: first press 147 / 148 ms and 176 / 179 ms on average, kills 7.32 / 7.33 and 8.66 / 8.87 a
+minute (`bc3_201` / `ba_201`, `dc3_201` / `da_201`). `test_hb_belief` checks the way back onto people's ground.
+
+**Still open.** Three-player stays up are 2.8 times people's. From the north building's top-floor spawn (256, 1024, z 550)
+the bots are in the street within 10 s 31% of the time (people 79%): people jump onto a 68 u sill there and the bots make it
+about 60% of the time; after two misses the jump is out of their routes (20 s) and they turn back for the stairs. In a
+three-player game the bots also hunt the other bot upstairs (5% of their time), which people's game shows less of. Not on
+12203.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 

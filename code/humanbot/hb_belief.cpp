@@ -407,6 +407,9 @@ void BeliefFilter::NegativeInfo(TrackState& t, const Observation& obs, float hfo
     }
 }
 
+// how far off the hunch's height a particle may be (about a floor's height: dm/mohdm6's floors are 150-300 u apart)
+static constexpr float HUNCH_FLOOR_SD = 96.0f;
+
 float BeliefFilter::SoundLikelihood(const Particle& p, const SoundObs& s, const Observation& obs) const
 {
     const Vec3  d     = p.pos - obs.self.origin;
@@ -419,14 +422,20 @@ float BeliefFilter::SoundLikelihood(const Particle& p, const SoundObs& s, const 
         const float e2 = Wrap180(yaw - s.mirrorYaw) / sig;
         ly             = (1.0f - c) * ly + c * std::exp(-0.5f * e2 * e2);
     }
-    const float dist = std::max(16.0f, d.length());
+    // a source of known height (the hunch): its distance is across, and a particle a floor off it is unlikely
+    const float dist = std::max(16.0f, s.dzKnown ? d.lengthXY() : d.length());
     const float lr   = std::log(dist / std::max(16.0f, s.dist)) / std::max(0.1f, s.distLogSd * 1.5f);
     const float ld   = std::exp(-0.5f * lr * lr);
-    return ly * ld;
+    float       lz   = 1.0f;
+    if (s.dzKnown) {
+        const float ez = (d.z - s.dz) / HUNCH_FLOOR_SD;
+        lz             = std::exp(-0.5f * ez * ez);
+    }
+    return ly * ld * lz;
 }
 
 void BeliefFilter::Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
-                          float share, bool needVisible, const Observation& obs)
+                          float share, bool needVisible, const Observation& obs, bool dzKnown, float dz)
 {
     if (share <= 0.0f || t.parts.empty()) {
         return;
@@ -452,7 +461,7 @@ void BeliefFilter::Inject(TrackState& t, float yaw, float yawSigma, float mirror
             const bool  mir = m_rng.Uniform() < mirrorP;
             const float y   = (mir ? mirrorYaw : yaw) + static_cast<float>(m_rng.Normal(0.0, yawSigma));
             const float d   = std::max(32.0f, dist * static_cast<float>(std::exp(m_rng.Normal(0.0, distLogSd))));
-            const Vec3  pos = obs.self.origin + YawDir(y) * d;
+            const Vec3  pos = obs.self.origin + YawDir(y) * d + Vec3(0.0f, 0.0f, dzKnown ? dz : 0.0f);
             if (m_map) {
                 const int c = m_map->NearestCell(pos, 96.0f);
                 if (c < 0) {
@@ -503,7 +512,8 @@ void BeliefFilter::ApplyHunch(TrackState& t, const SoundObs& s, const Observatio
     }
     lbar = wsum > 0.0 ? lbar / wsum : 0.0;
     if (lbar < 0.25) {
-        Inject(t, s.yaw, s.yawSigma, s.yaw, 0.0f, s.dist, s.distLogSd, m_p->injectMax * static_cast<float>(1.0 - lbar / 0.25), false, obs);
+        Inject(t, s.yaw, s.yawSigma, s.yaw, 0.0f, s.dist, s.distLogSd, m_p->injectMax * static_cast<float>(1.0 - lbar / 0.25), false, obs,
+               s.dzKnown, s.dz);
     }
     for (Particle& p : t.parts) {
         p.w *= 0.05f + SoundLikelihood(p, s, obs);

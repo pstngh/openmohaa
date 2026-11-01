@@ -127,7 +127,7 @@ private:
     void ApplyDamage(TrackState& t, const DamageObs& d, const Observation& obs);
     // Re-draws part of the cloud along a bearing when the cloud cannot explain an observation.
     void Inject(TrackState& t, float yaw, float yawSigma, float mirrorYaw, float mirrorP, float dist, float distLogSd,
-                float share, bool needVisible, const Observation& obs);
+                float share, bool needVisible, const Observation& obs, bool dzKnown = false, float dz = 0.0f);
     void Normalise(TrackState& t, const Observation& obs);
     void Summarise(TrackState& t, const Observation& obs, bool exposures);
     int  ParticlesPerTrack(const Observation& obs) const;
