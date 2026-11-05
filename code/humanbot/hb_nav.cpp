@@ -43,6 +43,16 @@ static constexpr float FLOOR_VIA_DZ = 48.0f;
 // LAST_CELL_MS (a map recorded whole with drops: dm/mohdm6).
 static constexpr float ON_CELL      = 1.5f;
 static constexpr int   LAST_CELL_MS = 8000;
+// Going down (a map recorded whole with drops: dm/mohdm6). Hunting a goal at least COMMIT_BELOW below it, the bot sets on the
+// first fall on the way and keeps to it until within COMMIT_DOWN of its landing or COMMIT_MS is up, whatever the goal does
+// meanwhile (a goal on its own floor within COMMIT_NEAR ends it), and it starts no hold on the way. The belief right after a
+// respawn is spread over the map and the goal follows its mode, a jump of hundreds of units every second or so, and some of
+// them turn the route round: from the north building's top-floor spawn the way down is east along the floor to a sill, and
+// the bots turned back on that run; people are on the sill or falling 4 s after the spawn and in the street at 6 s (68%).
+static constexpr float COMMIT_BELOW = 100.0f;
+static constexpr float COMMIT_DOWN  = 64.0f;
+static constexpr float COMMIT_NEAR  = 600.0f;
+static constexpr int   COMMIT_MS    = 10000;
 // A fall people take (MapPrior::drops): the bot runs straight at the landing from this close to the take-off, and keeps
 // at it while falling for at most DROP_MS; it jumps onto a raised take-off from DROP_JUMP_REACH. It looks for the fall
 // from cells up to DROP_HERE_CELLS away on its floor: dm/mohdm6's ledge is mostly off the cells people stood in.
@@ -97,6 +107,7 @@ void Navigator::SetMap(const MapPrior *map)
     m_missJump   = -1;
     m_misses     = 0;
     m_lastCell   = -1;
+    m_commitDrop = -1;
     m_blocked.clear();
     m_blockUntil.clear();
     m_treeBlocked.clear();
@@ -196,6 +207,34 @@ void Navigator::TreeTo(int goal)
         m_map->PathTreeTo(goal, m_next, m_dist, m_blocked.empty() ? nullptr : &m_blocked);
         m_treeTarget  = goal;
         m_treeBlocked = m_blocked;
+    }
+}
+
+void Navigator::DownCommit(const SelfState& self, Vec3& target)
+{
+    if (m_intent != INTENT_HUNT && m_intent != INTENT_SPAWN_PUSH) {
+        m_commitDrop = -1;
+        return;
+    }
+    const bool below = target.z <= self.origin.z - COMMIT_BELOW;
+    if (m_commitDrop >= 0
+        && (self.timeMs >= m_commitUntilMs || self.origin.z <= m_map->drops[m_commitDrop].landing.z + COMMIT_DOWN
+            || (!below && (target - self.origin).lengthXY() < COMMIT_NEAR))) {
+        m_commitDrop = -1;
+    }
+    if (m_commitDrop < 0 && below && self.onGround) {
+        const int here = RouteFrom(self, target, VIA_HERE_CELLS);
+        for (int c = here, step = 0; c >= 0 && step < 256 && m_next[c] >= 0; c = m_next[c], step++) {
+            const int k = m_map->DropIndex(c, m_next[c]);
+            if (k >= 0) {
+                m_commitDrop    = k;
+                m_commitUntilMs = self.timeMs + COMMIT_MS;
+                break;
+            }
+        }
+    }
+    if (m_commitDrop >= 0) {
+        target = m_map->drops[m_commitDrop].landing;
     }
 }
 
@@ -394,6 +433,7 @@ void Navigator::Reset()
     m_dropIdx     = -1;
     m_jumpIdx     = -1;
     m_jumpAir     = false;
+    m_commitDrop  = -1;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
@@ -522,6 +562,9 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
                 hz = 0.0f;
             }
         }
+        if (m_commitDrop >= 0 && now < m_commitUntilMs) {
+            hz = 0.0f;   // on its way down (DownCommit)
+        }
         if (uHold < hz) {
             m_intent      = INTENT_HOLD;
             m_holdUntilMs = now + static_cast<int>(rng.LogNormal(p.holdMedianMs, p.holdSigma));
@@ -541,6 +584,9 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     }
     out.intent    = m_intent;
     out.valid     = true;
+    if (m_map && !m_map->drops.empty() && m_map->wholeMap) {
+        DownCommit(self, out.target);
+    }
     m_target      = out.target;
     m_targetValid = true;
     out.viaValid  = Via(self, out.target, out.via);
@@ -579,9 +625,25 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         const float ldir = dir.lengthXY();
         aim              = ldir > 1.0f ? self.origin + dir * (64.0f / ldir) : drop->landing;
         m_jumpAir        = true;
+    } else if (m_map && m_jumpIdx >= 0 && m_jumpIdx < static_cast<int>(m_map->jumps.size()) && self.onGround
+               && now - m_jumpPressMs <= JUMP_PRESS_LAG) {
+        // the tick after the press: the jump comes at the next think and the bot is in the air before it knows, so it stays
+        // on this jump whatever the lane, the jump start's slower speed or the route say by now. Taken from the general
+        // path below, a press near the lane's end was forgotten a tick later: keys held, a rise of 48 u, and 22-31% of those
+        // tries made at dm/mohdm6's north sill, a third of all tries there (76-88% of the others)
+        drop          = &m_map->jumps[m_jumpIdx];
+        isJump        = true;
+        out.direct    = true;
+        out.jumpLine  = true;
+        out.jump      = true;
+        out.jumpLetGo = drop->landing.z - drop->takeoff.z > JUMP_LET_GO;
+        Vec3        dir  = Vec3(drop->landing.x - drop->takeoff.x, drop->landing.y - drop->takeoff.y, 0.0f);
+        const float ldir = dir.lengthXY();
+        aim              = ldir > 1.0f ? self.origin + dir * (64.0f / ldir) : drop->landing;
+        out.via          = drop->landing;
+        out.viaValid     = true;
     } else {
-        const int  prevJump    = m_jumpIdx;
-        const bool justPressed = prevJump >= 0 && now - m_jumpPressMs <= JUMP_PRESS_LAG;
+        const int prevJump = m_jumpIdx;
         if (m_jumpAir && prevJump >= 0 && prevJump < static_cast<int>(m_map->jumps.size()) && self.onGround) {
             JudgeJump(self, prevJump);
         }
@@ -602,15 +664,10 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
                 out.jumpLine = true;
                 aim          = drop->takeoff + dir * DROP_THROUGH;
                 const float speedAlong = self.velocity.x * dir.x + self.velocity.y * dir.y;
-                const int k = static_cast<int>(drop - m_map->jumps.data());
                 if (self.onGround && along > -JUMP_AT && speedAlong >= JUMP_SPEED) {
-                    out.jump = true;
-                    if (k == prevJump && justPressed) {
-                        out.jumpLetGo = drop->landing.z - drop->takeoff.z > JUMP_LET_GO;
-                    } else {
-                        m_jumpPressMs = now;
-                    }
-                    m_jumpIdx     = k;
+                    out.jump      = true;
+                    m_jumpPressMs = now;
+                    m_jumpIdx     = static_cast<int>(drop - m_map->jumps.data());
                     m_jumpUntilMs = now + JUMP_MS;
                 }
                 out.via      = drop->landing;

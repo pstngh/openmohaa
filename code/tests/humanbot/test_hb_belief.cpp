@@ -915,6 +915,91 @@ static void TestStalingradDrops(const hb::ModelBundle& b)
         HB_CHECK(m.CellAt(s.origin) < 0);
         HB_CHECK(out.viaValid && on >= 0 && std::fabs(m.cells[on].z - s.origin.z) < 48.0f);
     }
+    // going for a goal well below it the bot sets on the first fall on the way and keeps to it while the goal moves about;
+    // a goal on its floor close by ends that, and so does the time
+    {
+        const hb::MapDrop* high = nullptr;
+        for (const hb::MapDrop& d : m.drops) {
+            if (d.takeoff.z - d.landing.z >= 200.0f && (!high || d.count > high->count)) {
+                high = &d;
+            }
+        }
+        HB_CHECK(high != nullptr);
+        if (high) {
+            hb::SelfState s = self;
+            s.origin        = high->takeoff;
+            s.eye           = s.origin + hb::Vec3(0, 0, 82);
+            s.onGround      = true;
+            s.timeMs        = 100000;
+            hb::BeliefEstimate bc = be;
+            bc.mode               = high->landing;
+            hb::NavInput ic;
+            ic.focus     = &bc;
+            ic.outOfAmmo = true;
+            hb::Navigator nav;
+            nav.Init(&np, &m);
+            hb::Rng       r(29);
+            hb::NavOutput out;
+            nav.Step(s, ic, r, out);
+            const hb::Vec3 way = out.target;
+            HB_REPORT("the way down from (%.0f, %.0f, %.0f): (%.0f, %.0f, %.0f)", s.origin.x, s.origin.y, s.origin.z, way.x, way.y, way.z);
+            HB_CHECK(way.z <= s.origin.z - 100.0f);
+            bc.mode  = s.origin + hb::Vec3(900.0f, 0.0f, 0.0f);
+            s.timeMs += 50;
+            nav.Step(s, ic, r, out);
+            HB_CHECK((out.target - way).length() < 1.0f);
+            bc.mode  = s.origin + hb::Vec3(200.0f, 0.0f, 0.0f);
+            s.timeMs += 50;
+            nav.Step(s, ic, r, out);
+            HB_CHECK((out.target - bc.mode).length() < 1.0f);
+            nav.Reset();
+            bc.mode = high->landing;
+            nav.Step(s, ic, r, out);
+            bc.mode  = s.origin + hb::Vec3(900.0f, 0.0f, 0.0f);
+            s.timeMs += 10050;
+            nav.Step(s, ic, r, out);
+            HB_CHECK((out.target - bc.mode).length() < 1.0f);
+        }
+    }
+    // the tick after the press of a jump higher than one with a key held reaches: still on that jump, keys off, wherever
+    // the bot has got to on the ground by then (the jump comes at the next think)
+    {
+        const hb::MapDrop* top = nullptr;
+        for (const hb::MapDrop& d : m.jumps) {
+            if (d.landing.z - d.takeoff.z > 62.0f && (!top || d.count > top->count)) {
+                top = &d;
+            }
+        }
+        HB_CHECK(top != nullptr);
+        if (top) {
+            hb::Vec3 dir = hb::Vec3(top->landing.x - top->takeoff.x, top->landing.y - top->takeoff.y, 0.0f);
+            dir          = dir * (1.0f / std::max(1.0f, dir.lengthXY()));
+            hb::SelfState s = self;
+            s.origin        = top->takeoff;
+            s.eye           = s.origin + hb::Vec3(0, 0, 82);
+            s.velocity      = dir * 240.0f;
+            s.onGround      = true;
+            s.timeMs        = 100000;
+            hb::BeliefEstimate bj = be;
+            bj.mode               = top->landing;
+            hb::NavInput ij;
+            ij.focus     = &bj;
+            ij.outOfAmmo = true;
+            hb::Navigator nav;
+            nav.Init(&np, &m);
+            hb::Rng       r(31);
+            hb::NavOutput out;
+            nav.Step(s, ij, r, out);
+            HB_REPORT("a %.0f u jump: pressed %d at the take-off (%.0f, %.0f, %.0f)", top->landing.z - top->takeoff.z, out.jump, s.origin.x, s.origin.y, s.origin.z);
+            HB_CHECK(out.jump);
+            s.origin = s.origin + dir * 200.0f + hb::Vec3(-dir.y, dir.x, 0.0f) * 120.0f;
+            s.eye    = s.origin + hb::Vec3(0, 0, 82);
+            s.velocity = dir * 100.0f;
+            s.timeMs += 50;
+            nav.Step(s, ij, r, out);
+            HB_CHECK(out.jump && out.jumpLine && out.jumpLetGo);
+        }
+    }
     for (const bool withDrops : {true, false}) {
         if (!withDrops) {
             m.drops.clear();

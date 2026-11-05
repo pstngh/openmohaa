@@ -3027,6 +3027,77 @@ three-player game the bots also hunt the other bot upstairs (5% of their time), 
 there to save). It came back on dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1,
 recording only with no bot in; `g_humanbot_skill` set back to the owner's 3 after the restart.
 
+## The north building's way down (2026-11-05): the sill jump, and keeping to a way down
+
+The owner's "yes" to going on with the north building's top-floor spawn (256, 1024, z 512-550), the last long stays above.
+People run east along the top floor, jump onto a 68 u sill at (690, 490) and fall from it into the street: on the sill or
+falling at 4 s, 68% in the street at 6 s. Git-ignored scripts in `move_wip/s29/`: `northtrace.py` (places 2-14 s after that
+spawn), `silltries.py`, `latejumps.py`, `spawndither.py`, `firstsec.py`, `firstpath.py`, `spawnview.py`, `sideways.py`.
+
+**What held them up, and the changes** (`hb_nav.cpp`, dm/mohdm6 only: both parts need a map file with jumps or drops):
+- *A late press forgot its jump.* A third of the tries pressed 24-48 u past the take-off, near the end of the jump's lane.
+  The tick after the press the bot was still on the ground (the jump comes at the next think) and slower (the jump start),
+  so the general path no longer took it for the jump: keys held, a rise of 48 u, and 22-31% of those tries made against
+  76-88% of the others. The tick after a press now stays on that jump whatever the lane or the route say, with the keys let
+  go as on any jump higher than a held key reaches. The sill is made 81% of the time (68%; people 83%).
+- *The goal turned them round on the way.* Right after a respawn the belief is spread over the map and the hunt goal follows
+  its mode, a jump of hundreds of units about every second, and some of those goals route west: 14% of the lives from this
+  spawn turned back in their first 3 s, and holds begin when the spawn push ends at 2.5 s. Hunting a goal at least 100 u
+  below it the bot now sets on the first fall on the way (`Navigator::DownCommit`) and keeps to it until within 64 u of its
+  landing's height or 10 s are up, whatever the goal does; a goal on its own floor within 600 u ends that, and so does any
+  intent but hunting (a fight, a reload). It starts no hold on such a way.
+
+Three bots (`tm_201`) and 1v1 (`cm_201`, `cm_401`; seeds, length and timescale as in "Bots staying up") against `660a5c2d`
+(`tk_201`, `ck_201`, `ck_401`):
+
+| dm/mohdm6 | People | `660a5c2d` | Now |
+|---|---:|---:|---:|
+| 3 players: stays above the street over 20 s, an hour alive | 3.5 | 9.8 | 5.5 |
+| 3 players: of the time above the street, in stays over 10 s | 27% | 52% | 34% |
+| 3 players: on the street | 67.8% | 66.8% | 70.9% |
+| 3 players: upstairs spawns on the street within 5 s / 10 s | 74% / 90% | 70% / 85% | 73% / 91% |
+| 3 players: north top spawn, in the street at 8 s / 10 s | 57% / 50% (dead by then 18% / 32%) | 20% / 38% | 33% / 68% |
+| 3 players: the north sill made | 83% | 68% | 81% |
+| 3 players: kills a minute | | 3.17 | 3.54 |
+| 1v1: both on the street | 48.8% | 47.6% | 51.6% |
+| 1v1: a floor apart, hidden, within 500 u | 2.6% | 6.6% | 2.9% |
+| 1v1: on the west ledge | 1.1% | 0.7% | 0.6% |
+| 1v1: kills / sight starts a minute | 3.86 / 26.1 | 4.00 / 23.7 | 4.30 / 25.6 |
+| 1v1: falls of 300 u or more a minute | 3.06 | 3.11 | 3.35 |
+| 1v1: deaths by falling, per 100 minutes alive | 2.2-2.8 | 3.4 | 2.4 |
+| 1v1: first press after a part comes on screen, median / mean | | 200 / 266 ms | 200 / 275 ms |
+
+The mean first press is 7-9 ms later in both kinds of game, the median the same; the cause was not looked for. Aim height,
+crouches and jumps with no reason (0.14 and 0.08-0.09 a minute with three bots) are unchanged, and the presses with no part
+on screen follow the fights (1.6 a kill in 1v1, 2.4 with three bots, before and now). No other map's file lists jumps or
+drops, so neither part runs there; no games were played on them for this. `test_hb_belief` checks the way down kept against
+a moving goal, its two ends, and the tick after a press.
+
+**Still open.** Out of that spawn the bots are still about 2 s behind people (at 6 s, 1% in the street against 68%), and
+what is left is their first seconds, not the sill (`firstpath.py`, `spawnview.py`). Two causes, neither touched here:
+- First keys with a strafe (44% of these lives at 250 ms; people go forward 75% and strafe none): the bot drifts south along
+  the corridor into a recess at (368, 944) where people never go, and the route turns it back out, about a second lost.
+- The turn to a sound. It fires on any enemy footstep or gunfire heard over 48 deg off the view (`sound_turn_p` 1) and holds
+  that direction for 3 s, and with three players there is usually shooting downstairs: 32% of these lives hold such a
+  direction at 0.5 s and 69% at 3 s. The bot then goes along the corridor with its view on the floor, on strafe keys at 188 u/s
+  against people's 262. The fit behind it took enemies within 1000 u, on the duel maps; the rule has no distance.
+
+It may be wider than this spawn (`sideways.py`): moving with no enemy part on screen and not firing, the view is over 70 deg
+off the way run this share of the time:
+
+| Map | People | Bots | Speed p50, people / bots |
+|---|---:|---:|---:|
+| dm/mohdm6, all (three bots, `tm_201`) | 18.5% | 31.6% | 239 / 188 |
+| dm/mohdm6, above the street (z over 200) | 5.3% | 26.5% | 240 / 202 |
+| dm/brownffa (`bc3_201`) | 17.7% | 33.3% | 229 / 189 |
+| dm/flag (`bc3_201`) | 14.4% | 27.7% | 240 / 203 |
+| dm/vents (`dc3_201`) | 33.4% | 33.8% | 202 / 188 |
+| dm/main (`dc3_201`) | 29.6% | 41.4% | 204 / 188 |
+
+So on the big maps people run forward looking where they go about twice as much as the bots, and since `g_aastrafe` 1 the
+sideways run costs a quarter of the speed. Measured only, nothing changed for it; how much of it is the sound turn is not
+measured yet, and the bots' `bc3_201` and `dc3_201` columns are from `ed43461d`'s build.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

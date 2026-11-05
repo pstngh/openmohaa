@@ -98,6 +98,8 @@ private:
     void TreeTo(int goal);
     // On landing from a jump up: made or missed; a second miss in a row takes it out of this bot's routes for a while.
     void JudgeJump(const SelfState& self, int jump);
+    // Going for a goal well below it: `target` becomes the landing of the first fall on the way, kept until the bot is down.
+    void DownCommit(const SelfState& self, Vec3& target);
 
     const NavModel *m_p   = nullptr;
     const MapPrior *m_map = nullptr;
@@ -129,6 +131,9 @@ private:
     std::vector<std::pair<int, int>>   m_blocked;
     std::vector<int>                   m_blockUntil;
     std::vector<std::pair<int, int>>   m_treeBlocked;   // the blocked edges m_next was built without
+    // the fall the bot has set on to go down by (DownCommit)
+    int                                m_commitDrop    = -1;
+    int                                m_commitUntilMs = 0;
     // the last of people's cells the bot stood on, and when (its way back onto their ground)
     int                                m_lastCell   = -1;
     int                                m_lastCellMs = 0;
