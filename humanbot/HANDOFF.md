@@ -93,9 +93,10 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `660a5c2d` (bundle
-  `b2a749ef53b7`: the bots come down more on Stalingrad) with the bots-new engine since 2026-11-01 23:36 UTC (the owner:
-  "Deploy it"; built in `~linuxuser/openmohaa-humanbot2-src`, `cmake --build build --target game` as linuxuser;
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `c3e393e9` (bundle
+  `b2a749ef53b7`: the north building's way down on Stalingrad) with the bots-new engine since 2026-11-05 13:46 UTC (the
+  owner: "Deploy it"; built in `~linuxuser/openmohaa-humanbot2-src`, `cmake --build build --target game` as linuxuser;
+  `660a5c2d`, the bots come down more on Stalingrad, from 2026-11-01 23:36, kept as `game.so.prev-660a5c2d`;
   `ed43461d`, Stalingrad's west ledge and the motor model at 1.1, from 2026-10-31 10:15, kept as `game.so.prev-ed43461d`;
   `6d9d5c6f`, telemetry schema 15, from 2026-10-30 11:59, kept as `game.so.prev-6d9d5c6f`;
   `9982e280`, the top speed rounded as the original, from 03:50, kept as `game.so.prev-9982e280`;
@@ -3097,6 +3098,12 @@ off the way run this share of the time:
 So on the big maps people run forward looking where they go about twice as much as the bots, and since `g_aastrafe` 1 the
 sideways run costs a quarter of the speed. Measured only, nothing changed for it; how much of it is the sound turn is not
 measured yet, and the bots' `bc3_201` and `dc3_201` columns are from `ed43461d`'s build.
+
+**On 12203** since 2026-11-05 13:46 UTC (the owner: "Deploy it"; backup `game.so.prev-660a5c2d`, nobody on, no recording
+there to save). It came back on dm/mohdm6 with two bots on `b2a749ef53b7`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1,
+recording only with no bot in; `g_humanbot_skill` set back to the owner's 3 after the restart. `server_opm.cfg` starts the
+server with `devmap dm/mohdm6` since the owner's cheats restart of 2026-11-02, so cheats are on after a restart until the
+next `map` load (the rotation's turns these off too).
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
