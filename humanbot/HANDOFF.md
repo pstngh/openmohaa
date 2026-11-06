@@ -3105,6 +3105,88 @@ recording only with no bot in; `g_humanbot_skill` set back to the owner's 3 afte
 server with `devmap dm/mohdm6` since the owner's cheats restart of 2026-11-02, so cheats are on after a restart until the
 next `map` load (the rotation's turns these off too).
 
+## Running while reloading, and holds that stop (2026-11-06)
+
+The owner's "Yes, dig in" on the sideways running measured in the section above. Git-ignored scripts in `move_wip/s30/`:
+`reloadrun.py` (hidden reloads: keys, speed, closing), `reloadperson.py` (the same by person, no names), `lookreload.py`,
+`stands.py`, `huntonly.py`, `routeflip.py`, `flipkinds.py`, `travelkeys.py`, `firstsight.py`, `run.sh`, `statdiff.py`.
+
+**What a player sees.** With nobody on screen the bots ran with their view over 70 deg off their way 28-41% of the time
+against people's 14-33%, on the big maps at about four fifths of people's speed. About two thirds of that time the route itself lay
+well off the view: the keys followed it correctly and the view looked elsewhere. Two habits of people that the bots lacked,
+on every map:
+- *People run through a reload.* Over a reload with nobody on screen they hold forward 80-89% of the time, at full speed,
+  and the view is on their way 53-89% of the time, more the farther the enemy. By person (17 with 1.5 minutes or more) forward held runs 49-90%, median
+  80%, so this is not one person's style; with the enemy in sight it is 36-64%. The bots made for a cover cell two hops away, reached it, and
+  were left to the reload's keys, which pool in-sight reloads: forward 33-56%, a plain strafe 24-36%, speed 124-182 u/s, the
+  view on neither the way nor the enemy up to half the time.
+- *People stand still.* With nobody on screen stands of a second or more take 7-25% of their time, and they stand for
+  2 s or more 0.3-0.6 times a minute. The bots decided to hold an angle 12-20% of their hidden time, but the keys went on as
+  fitted through it, so they stood for only 11-23% of a hold: stands of a second or more took 0.5-4% of their time.
+
+**What changed** (bundle `d84b4e8b3307`, every map):
+- `nav.reload_run` 1 (`Navigator::Step`, `NavOutput::reloadRun`). Reloading with the enemy out of sight and none seen for a
+  second the bot runs on with no cover and no hold, the way leads the view (near him or not, `ViewInput::reloadRun`) and the
+  keys use the hidden tables, not the reload's. With him believed within 800 u it goes somewhere people spend time, not at
+  him: on the smaller maps people close at a median of -35 to 28 u/s, about as often away as toward. Farther off it hunts as
+  usual (people on dm/mohdm6 close at 132 u/s then). This goal rule does little so far: running away from him goes 4 -> 11% on
+  dm/brownffa and 0 -> 23% on dm/crnodoors, no change on dm/main or dm/flag, and toward him stays 62-79% (people 36-50%).
+- `movement.coupling.hold_still_logit` 3 (`Mover::StepSide`, `StepFwd`, `MoveInput::holding`). Holding an angle, letting go
+  of a key +3, pressing one -3, and the keys stop rather than reverse. A hold is then 77% standing.
+
+The route rules and the sound turn are as before. Tried and left out, the code removed: the enemy-believed-near rule off on
+dm/mohdm6 (`travel_far` 0: the sideways running unchanged, the view further off at a sighting, kills 3568 -> 3411); a
+sound's direction held 1 s with 3 s between turns when he is not believed near (time on sounds halved, but the sideways
+running unchanged, 25.6 -> 25.3%, and deaths by falling 16 -> 24 with kills 3679 -> 3547).
+
+| Seeds 201, against the live `c3e393e9` | People | Before | Now |
+|---|---:|---:|---:|
+| dm/mohdm6, 3 bots: hidden reload, forward held / plain strafe | 87 / 6% | 33 / 36% | 60 / 20% |
+| ... its speed, u/s | 240 | 124 | 175 |
+| ... running with the view over 70 deg off the way | 16.1% | 31.6% | 26.9% |
+| ... standing, of hidden time | 29.0% | 14.2% | 21.4% |
+| ... stands of 2 s or more a minute | 0.5 | 0.2 | 0.7 |
+| ... stays above the street over 20 s, an hour alive | 3.5 | 5.5 | 4.2 |
+| ... north top spawn, in the street at 10 s | 50% (dead by then 32%) | 68% | 74% |
+| ... kills / deaths by falling, 8 servers | | 3568 / 12 | 3596 / 13 |
+| dm/mohdm6, 1v1: hidden reload, forward held / plain strafe | 87 / 6% | 42 / 29% | 53 / 26% |
+| ... running with the view over 70 deg off the way | 20.9% | 29.6% | 26.3% |
+| ... standing, of hidden time (`stal2.py`) | 18.3% | 7.7% | 15.9% |
+| ... kills / sight starts a minute | 3.86 / 26.1 | 4.30 / 25.9 | 4.27 / 25.3 |
+| ... both on the street | 48.8% | 51.0% | 52.2% |
+| ... a floor apart, hidden, within 500 u | 2.6% | 3.1% | 4.2% |
+| dm/brownffa: over 70 deg off the way / standing | 17.7 / 18.2% | 32.7 / 9.9% | 28.5 / 14.1% |
+| dm/flag: over 70 deg off the way / standing | 14.4 / 12.2% | 27.7 / 7.7% | 24.1 / 12.6% |
+| dm/brownffa + dm/flag: kills, first press mean | | 3355, 148 ms | 3348, 148 ms |
+| dm/crnodoors: over 70 deg off the way | 28.4% | 30.2% | 27.6% |
+| dm/main | 29.6% | 31.7% | 28.8% |
+| dm/vents | 33.4% | 40.7% | 35.0% |
+| dm/downladder | 23.4% | 35.1% | 30.6% |
+| duel maps: kills, first press mean | | 3716, 178 ms | 3715, 181 ms |
+| duel maps: 281 statistics within 25% (median relative error) | | 50.2% (0.250) | 52.7% (0.245) |
+
+The first press stays at a median of 200 ms on dm/mohdm6; its mean moved 312 -> 324 ms with three bots and 283 -> 273 ms in
+1v1, in opposite directions, so it is taken as noise. Aim height, presses with no part on screen and crouches and jumps with no reason are unchanged.
+Costs: a floor apart rises a point in 1v1 (holds that stop, or lives spent differently; not traced), plain strafes with
+nobody on screen on the duel maps fall below people's (0.170, was 0.213, people 0.260), and the first hit after a sighting
+on the duel maps is 50 ms later at the median (350 ms, people 250). `test_hb_modules` checks a hold's keys stopping and the view on a reload's run,
+`test_hb_belief` the run and its goal near and far.
+
+**A trap in the comparison.** The first duel-map batches looked worse against `da_201` (fights pressing forward 0.39 -> 0.49,
+aim 500 ms after a sighting 5.9 -> 7.4 deg, 52.7 -> 51.2%), and each change alone showed the same. A control of the
+unchanged build, `dz_201`, showed it too (0.49, 7.6 deg, 50.2%): `s30/run.sh du` pairs seeds and maps differently from
+`s27/run_duel.sh`, and which style draw plays which map moves the pooled numbers that much. Compare only batches with the same pairing:
+`dz_201` for `s30/run.sh du`, `da_201` for `run_duel.sh`.
+
+**Still open.** Sideways running is still above people's (27% against 16-21% on dm/mohdm6), and a reload's run holds forward
+53-60% against 87%. The likeliest cause left is the route's direction: while hunting or out of a spawn it jumps by over 90 deg
+16 times a minute in a single tick (people's bodies turn round about 3 times a minute), 37-53% of those jumps come back within a second,
+and over half of the time the route is off the view comes within a second of such a jump (`routeflip.py`, `flipkinds.py`).
+Out of the north top spawn the first keys still drift into the recess at (368, 944).
+
+Captures from before 2026-10-29 and most of 2026-10-29's were deleted in a clean-up of the machine on 2026-11-06, among them
+`t4_*`, `j1_*`, `std*`, `ms*`: the figures above in this file stay as text, and `bh10_*`, `h10_*` and `live*_own` were kept.
+
 ## What the recorded map knowledge is worth (2026-10-25)
 
 Step 2 of the long-term direction, a measurement only (the owner: "do 1 and 2 overnight"). The bots of `78b5af52` with

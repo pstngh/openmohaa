@@ -60,6 +60,7 @@ struct ViewInput {
     bool  moving      = false;
     bool  navValid    = false;
     float navYaw      = 0.0f;  // world yaw of travel
+    bool  reloadRun   = false; // reloading with the enemy out of sight, running on (NavOutput::reloadRun): the view leads the way
     bool  travelling  = false; // hunting or out of the spawn, with a way to go
     bool  aheadValid  = false; // the point travelLead ahead on the way:
     Vec3  ahead;

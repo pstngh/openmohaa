@@ -508,7 +508,8 @@ void ViewControl::Step(const SelfState& self, const ViewInput& in, Rng& rng, Vie
         // gives way to the corners once the enemy is expected soon, and comes back only once it is expected half as
         // soon (near the threshold the view flipped between a corner and the way 16 times a minute)
         const float immMax = m_travel ? p.travelImminence : TRAVEL_REENTER * p.travelImminence;
-        const bool  travel = p.travelLead > 0.0f && in.travelling && in.aheadValid && out.imminence < immMax && !m_near;
+        // (reloading with the enemy out of sight it leads whatever is expected, near or not: NavOutput::reloadRun)
+        const bool  travel = p.travelLead > 0.0f && in.travelling && in.aheadValid && ((out.imminence < immMax && !m_near) || in.reloadRun);
         // turn toward a hit from an enemy not in sight (one in sight is tracked), wherever the hit is felt to come
         // from. Only hits felt more than 60 deg off used to turn the view: the felt direction is +-20 deg off, and the
         // bot sees 48 deg to each side, so a shooter just outside the view often went unanswered (the owner shot a

@@ -104,9 +104,12 @@ def build():
             # captures (2026-10-05, "Watching his side" in HANDOFF.md): within 700 u of a hidden enemy people hold a forward
             # diagonal where the bots held a plain strafe (with the way 22-67 deg off the view 65% and 9% against 47% and
             # 24%) and ran back and forth three times as often
+            # hold_still_logit set by hand on bot games of all map kinds (2026-11-05, "Running while reloading" in HANDOFF.md):
+            # at 3 a hold's keys stop within a few ticks, and stands of 2 s or more with nobody on screen come to people's
+            # 0.3-0.6 a minute (0-0.2 before).
             "coupling": {"nav_switch_logit": 3.0, "nav_choice_logit": 4.5, "nav_far_mult": 3.0, "nav_far_near": 500.0,
                          "nav_far_dist": 900.0, "nav_deadband": 0.1, "wall_pressure_logit": 2.0, "wall_reflex_ms": 300.0,
-                         "wall_reflex_logit": 4.0, "travel_pull": 3.0, "near_pull": 3.0},
+                         "wall_reflex_logit": 4.0, "travel_pull": 3.0, "near_pull": 3.0, "hold_still_logit": 3.0},
         },
         "spawn": {k: spawn[k] for k in ["dead_ticks_pmf", "chord_p", "age_edges", "side_switch_p", "fwd_switch_p",
                                          "click_first_p", "click_stay_p", "click_press_p"]},
@@ -274,6 +277,8 @@ def build():
                 # as many reloads in the enemy's view (1.6 a minute alive against 0.3); now 31-46% and 1.3. Twice the
                 # urgency did no better
                 "low_clip_cover": 0.25,
+                # reloading with the enemy out of sight, run on as people do (2026-11-05, "Running while reloading" in HANDOFF.md)
+                "reload_run": 1.0,
                 # On a map with a recorded prior the engine's path goes to a point via_dist along the route over the
                 # cells and moves people made, not straight to the goal (set on practice-map captures, 2026-10-05, "The
                 # way people go" in HANDOFF.md): the navmesh's shortest way on dm/flag runs round the ring through Door

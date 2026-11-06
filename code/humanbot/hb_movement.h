@@ -51,6 +51,7 @@ struct MoveInput {
     float navBearing     = 0.0f;    // desired travel direction relative to the view, + = left
     float urgency        = 0.0f;    // 0 = no preference, 1 = must travel
     bool  travelling     = false;   // going somewhere (hunting, out of the spawn), not after an enemy just lost
+    bool  holding        = false;   // holding an angle (INTENT_HOLD): the keys stop (MovementModel::holdStillLogit)
     bool  travelView     = false;   // the view leads along the way (its travel mode): the pull x travelPull
     bool  nearView       = false;   // the view watches the side of an enemy believed near: the pull x nearPull
     bool  mouseSteers    = false;   // the mouse steers along walls (ViewOutput::wallSteerFree): the reflex only when slowed

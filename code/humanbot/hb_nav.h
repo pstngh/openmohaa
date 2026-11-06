@@ -65,6 +65,7 @@ struct NavOutput {
     bool  jumpLine   = false;  // on the run-up of a jump up people take (MapPrior::jumps): square up, forward key
     bool  dropKeys   = false;  // running off a fall people take (MapPrior::drops): the keys straight at desiredYaw
     bool  jumpLetGo  = false;  // rising in such a jump higher than one with a key held reaches: no keys, as people do
+    bool  reloadRun  = false;  // reloading with the enemy out of sight, running on (NavModel::reloadRun): the way leads view and keys
 };
 
 class Navigator
@@ -131,6 +132,7 @@ private:
     std::vector<std::pair<int, int>>   m_blocked;
     std::vector<int>                   m_blockUntil;
     std::vector<std::pair<int, int>>   m_treeBlocked;   // the blocked edges m_next was built without
+    bool                               m_reloadRun     = false;   // running on through a reload (NavModel::reloadRun)
     // the fall the bot has set on to go down by (DownCommit)
     int                                m_commitDrop    = -1;
     int                                m_commitUntilMs = 0;

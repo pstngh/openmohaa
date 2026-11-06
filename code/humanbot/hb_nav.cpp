@@ -49,6 +49,7 @@ static constexpr int   LAST_CELL_MS = 8000;
 // respawn is spread over the map and the goal follows its mode, a jump of hundreds of units every second or so, and some of
 // them turn the route round: from the north building's top-floor spawn the way down is east along the floor to a sill, and
 // the bots turned back on that run; people are on the sill or falling 4 s after the spawn and in the street at 6 s (68%).
+static constexpr float RELOAD_NEAR  = 800.0f;   // (the view's travel_far)
 static constexpr float COMMIT_BELOW = 100.0f;
 static constexpr float COMMIT_DOWN  = 64.0f;
 static constexpr float COMMIT_NEAR  = 600.0f;
@@ -434,12 +435,16 @@ void Navigator::Reset()
     m_jumpIdx     = -1;
     m_jumpAir     = false;
     m_commitDrop  = -1;
+    m_reloadRun   = false;
 }
 
 Vec3 Navigator::PickHuntGoal(const SelfState& self, const NavInput& in, Rng& rng)
 {
     const BeliefEstimate *b = in.focus;
-    if (b && b->valid && !b->dead && b->spread < 600.0f) {
+    // reloading on the run with him believed near, somewhere people go and not at him: on the smaller maps people then close on
+    // him at a median of -35 to 28 u/s, about as often away as toward (running at the believed position, the bots 50-100% toward)
+    const bool nearReload = in.reloading && m_p->reloadRun > 0.5f && b && b->valid && !b->dead && (b->mode - self.origin).lengthXY() < RELOAD_NEAR;
+    if (b && b->valid && !b->dead && b->spread < 600.0f && !nearReload) {
         return b->mode;
     }
     if (m_map && m_map->NumCells() > 0) {
@@ -502,6 +507,11 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     const bool recentlySeen = b && b->valid && !b->dead && b->msSinceSeen < ENGAGE_MEMORY_MS;
 
     const bool lowClip = p.lowClipCover > 0.0f && in.clipFill < p.lowClipCover && !in.outOfAmmo;
+    const bool reloadRun = in.reloading && p.reloadRun > 0.5f && !in.detected && !recentlySeen;
+    if (reloadRun != m_reloadRun) {
+        m_goalValid = false;   // a goal of its own while it lasts
+        m_reloadRun = reloadRun;
+    }
     if ((in.detected || recentlySeen) && lowClip) {
         // little left in the clip in a fight: people make for cover. In sight with under a quarter of the clip they
         // are out of the enemy's sight 1-1.5 s later 54-59% of the time (30-35% with more) and move away from it 2.5
@@ -518,7 +528,7 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         // when people go after the enemy
         out.urgency = in.outOfAmmo ? 1.0f : in.detected ? 0.0f : p.engageUrgency;
         m_goalValid = false;
-    } else if (in.reloading && b && b->valid && !b->dead) {
+    } else if (in.reloading && b && b->valid && !b->dead && !reloadRun) {
         m_intent    = INTENT_RELOAD_COVER;
         out.target  = PickCover(self, b->mode);
         out.urgency = p.reloadUrgency;
@@ -541,7 +551,7 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         out.target  = b->mode;
         out.urgency = 1.0f;
         m_goalValid = false;
-    } else if (now < m_holdUntilMs) {
+    } else if (now < m_holdUntilMs && !reloadRun) {
         m_intent    = INTENT_HOLD;
         out.target  = self.origin;
         out.urgency = 0.0f;
@@ -565,6 +575,9 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
         if (m_commitDrop >= 0 && now < m_commitUntilMs) {
             hz = 0.0f;   // on its way down (DownCommit)
         }
+        if (reloadRun) {
+            hz = 0.0f;
+        }
         if (uHold < hz) {
             m_intent      = INTENT_HOLD;
             m_holdUntilMs = now + static_cast<int>(rng.LogNormal(p.holdMedianMs, p.holdSigma));
@@ -584,6 +597,7 @@ void Navigator::Step(const SelfState& self, const NavInput& in, Rng& rng, NavOut
     }
     out.intent    = m_intent;
     out.valid     = true;
+    out.reloadRun = reloadRun && (m_intent == INTENT_HUNT || m_intent == INTENT_SPAWN_PUSH);
     if (m_map && !m_map->drops.empty() && m_map->wholeMap) {
         DownCommit(self, out.target);
     }

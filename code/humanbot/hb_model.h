@@ -191,6 +191,9 @@ struct MovementModel {
     float travelPull          = 1.0f;
     // hunting with the enemy believed near and the view on his side (ViewModel::travelFar), the route pull x this
     float nearPull            = 1.0f;
+    // holding an angle (INTENT_HOLD): letting go of a key + this, pressing one - this (0 = off). People stand for 2 s or more
+    // 0.3-0.6 times a minute with nobody on screen; the bots' keys went on as fitted through a hold, standing 11-23% of it
+    float holdStillLogit      = 0.0f;
 };
 
 struct NoiseModel {
@@ -470,6 +473,11 @@ struct NavModel {
     float huntUrgency       = 0.8f;
     float engageUrgency     = 0.25f;  // toward the enemy for the second after losing sight (none while it is perceived)
     float reloadUrgency     = 0.4f;
+    // 1: reloading with the enemy out of sight (none seen for ENGAGE_MEMORY_MS) the bot runs on where it was going, keys and view
+    // as on any run, and starts no hold (0: to cover at reloadUrgency). Over such a reload people hold forward 80-89% of the
+    // time, at full speed and looking where they go, on every map and nearly every person; the bots, off to a cover cell two
+    // hops away and then left to the reload's keys, held it 33-56% and strafed a quarter to a third of it.
+    float reloadRun         = 0.0f;
     float lowClipCover      = 0.0f;   // in a fight with less than this share of the clip left, make for cover (0 = off)
     float waypointReach     = 48.0f;
     float repathMs          = 1000.0f;

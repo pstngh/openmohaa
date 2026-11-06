@@ -416,6 +416,9 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
     if (in.navValid && in.urgency > 0.0f) {
         z += m.navSwitchLogit * NavPull(in) * (NavGain(in, true, veto, m_side) - m.navDeadband);
     }
+    if (in.holding) {
+        z += m_side != 0 ? m.holdStillLogit : -m.holdStillLogit;
+    }
     p    = Sigmoid(z);
     side = m_side;
     if (u1 >= p) {
@@ -429,6 +432,9 @@ void Mover::StepSide(const MoveInput& in, const StyleOffsets& style, int ledge, 
         a  = -m_side; // reverse
         b  = 0;       // let go
         za = Logit(m.reverseP.At(in.ctx, m_fwd + 1, BinIndex(m_sideAge, m.ageEdges))) + m.reverseLogit + style.reverseLogit;
+        if (in.holding) {
+            za -= 2.0f * m.holdStillLogit;   // a stop, not a reverse
+        }
     } else {
         a = 1;        // right
         b = -1;       // left
@@ -511,6 +517,9 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
     if (in.navValid && in.urgency > 0.0f) {
         z += m.navSwitchLogit * NavPull(in) * (NavGain(in, false, veto, side) - m.navDeadband);
     }
+    if (in.holding) {
+        z += m_fwd != 0 ? m.holdStillLogit : -m.holdStillLogit;
+    }
 
     // the next state: a categorical over the other two, tilted toward or away from the enemy by distance
     float k = m.approach.At(in.ctx, BinIndex(in.enemyDist, m.distEdges));
@@ -537,6 +546,9 @@ void Mover::StepFwd(const MoveInput& in, const StyleOffsets& style, int ledge, i
             v += m.navChoiceLogit * NavPull(in) * NavAlign(in, MakeChord(to, side));
         }
         v += ChordWall(m.fwd.choiceWallLogit, m, in, MakeChord(to, side));
+        if (in.holding && to == 0) {
+            v += 2.0f * m.holdStillLogit;   // a stop, not a reverse
+        }
         zz[to + 1] = v;
         zmax       = std::max(zmax, v);
     }

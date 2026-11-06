@@ -443,6 +443,7 @@ void ParseMovement(const json& j, MovementModel& m)
         m.navDeadband       = NumOr(c, "nav_deadband", m.navDeadband);
         m.travelPull        = NumOr(c, "travel_pull", m.travelPull);
         m.nearPull          = NumOr(c, "near_pull", m.nearPull);
+        m.holdStillLogit    = NumOr(c, "hold_still_logit", m.holdStillLogit);
     }
 }
 
@@ -759,6 +760,7 @@ void ParseNav(const json& j, NavModel& n)
     n.huntUrgency   = NumOr(j, "hunt_urgency", n.huntUrgency);
     n.engageUrgency = NumOr(j, "engage_urgency", n.engageUrgency);
     n.reloadUrgency = NumOr(j, "reload_urgency", n.reloadUrgency);
+    n.reloadRun     = NumOr(j, "reload_run", n.reloadRun);
     n.lowClipCover  = NumOr(j, "low_clip_cover", n.lowClipCover);
     n.waypointReach = NumOr(j, "waypoint_reach", n.waypointReach);
     n.repathMs      = NumOr(j, "repath_ms", n.repathMs);

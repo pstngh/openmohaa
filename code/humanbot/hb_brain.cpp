@@ -441,6 +441,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     }
     vi.navYaw          = m_lookRouteValid ? m_lookRouteYaw : m_navOut.desiredYaw;
     vi.travelling      = vi.navValid && (m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH);
+    vi.reloadRun       = m_navOut.valid && m_navOut.reloadRun;
     vi.heldChord       = m_mover.Chord();
     vi.doorValid       = vi.navValid && self.doorAheadValid;
     vi.door            = self.doorAhead;
@@ -467,7 +468,8 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     // Movement, lean and stance
     //
     MoveInput mi;
-    mi.ctx        = ctx;
+    // (the reload's own keys hold what people do in sight as well: a plain strafe a third of the time)
+    mi.ctx        = m_navOut.valid && m_navOut.reloadRun && ctx == CTX_RELOAD ? CTX_HIDDEN_NOFIRE : ctx;
     mi.losChanged = m_lageMs <= TICK_MS;
     if (enemyKnown) {
         mi.enemyKnown   = true;
@@ -481,6 +483,7 @@ void Brain::Think(const Observation& obs, TickPlan& plan, Diag *diag)
     mi.navBearing     = Wrap180(m_navOut.desiredYaw - self.viewYaw + vo.wallSteer);
     mi.urgency        = m_navOut.urgency;
     mi.travelling     = m_navOut.intent == INTENT_HUNT || m_navOut.intent == INTENT_SPAWN_PUSH;
+    mi.holding        = m_navOut.intent == INTENT_HOLD;
     mi.travelView     = vo.travel;
     mi.nearView       = vo.near;
     mi.mouseSteers    = vo.wallSteerFree;

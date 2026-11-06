@@ -604,6 +604,52 @@ static void TestLowClipCover(const hb::ModelBundle& b, const hb::MapPrior& m)
             HB_CHECK(out.intent == hb::INTENT_ENGAGE);
         }
     }
+    // reloading with the enemy out of sight the bot runs on (no cover, no hold); with him in sight or just lost it does not
+    HB_CHECK(np.reloadRun > 0.5f);
+    {
+        hb::BeliefEstimate bh = be;
+        bh.msSinceSeen        = 5000;
+        hb::NavInput in;
+        in.focus     = &bh;
+        in.reloading = true;
+        np.holdHazard = 1.0f;
+        hb::Navigator nav;
+        nav.Init(&np, &m);
+        hb::Rng       r(5);
+        hb::NavOutput out;
+        hb::SelfState s = self;
+        s.timeMs        = 100000;
+        int runs = 0;
+        for (int k = 0; k < 100; k++) {
+            s.timeMs += 50;
+            nav.Step(s, in, r, out);
+            runs += out.reloadRun && out.intent == hb::INTENT_HUNT && out.urgency > 0.0f;
+        }
+        HB_REPORT("reloading, the enemy out of sight: running on %d of 100 ticks", runs);
+        HB_CHECK(runs == 100);
+        // believed near it runs somewhere people go, not at him; believed far it goes for him as on any hunt
+        for (const float dist : {300.0f, 2000.0f}) {
+            bh.spread = 100.0f;
+            bh.mode   = self.origin + hb::Vec3(dist, 0.0f, 0.0f);
+            hb::Navigator nr;
+            nr.Init(&np, &m);
+            hb::Rng       rr(7);
+            hb::NavOutput ro;
+            nr.Step(s, in, rr, ro);
+            HB_REPORT("  believed %.0f u off: the goal %.0f u from him", dist, (ro.target - bh.mode).lengthXY());
+            HB_CHECK(ro.reloadRun);
+            HB_CHECK(dist < 800.0f ? (ro.target - bh.mode).lengthXY() > 1.0f : (ro.target - bh.mode).lengthXY() < 1.0f);
+        }
+        in.reloading = false;
+        s.timeMs += 50;
+        nav.Step(s, in, r, out);
+        HB_CHECK(!out.reloadRun);
+        in.reloading   = true;
+        bh.msSinceSeen = 200;
+        s.timeMs += 50;
+        nav.Step(s, in, r, out);
+        HB_CHECK(!out.reloadRun && out.intent != hb::INTENT_HUNT);
+    }
 }
 
 // The way people go (NavModel::viaDist): on dm/flag the navmesh's shortest way from the bottom-west spawn to Pre-control

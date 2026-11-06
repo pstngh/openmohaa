@@ -602,6 +602,44 @@ static void TestRouteTurns(const hb::ModelBundle& b)
     HB_CHECK(now > before + 0.02);
 }
 
+// Holding an angle the keys stop: a bot that was moving lets go within half a second and stays standing.
+static void TestHoldStill(const hb::ModelBundle& b)
+{
+    HB_CHECK(b.shared.movement.holdStillLogit > 0.0f);
+    hb::StyleOffsets style;
+    auto             neutral = [&](bool holding) {
+        hb::Mover mv;
+        mv.Init(&b.shared.movement);
+        hb::MoveInput in;
+        in.ctx        = hb::CTX_HIDDEN_NOFIRE;
+        in.enemyKnown = true;
+        in.enemyDist  = 600.0f;
+        in.onGround   = true;
+        in.navValid   = true;
+        in.navBearing = 0.0f;
+        hb::Rng        rm(91), rs(92);
+        hb::MoveOutput out;
+        int            still = 0, n = 0;
+        for (int i = 0; i < 100000; i++) {
+            const int phase = i % 100;
+            // 2 s running, then 3 s (holding or not): the last 2.5 s of those counted
+            in.travelling = phase < 40;
+            in.urgency    = phase < 40 ? 0.8f : 0.0f;
+            in.holding    = holding && phase >= 40;
+            mv.Step(in, style, rm, rs, out);
+            if (phase >= 50) {
+                still += out.chord == hb::CHORD_NEUTRAL;
+                n++;
+            }
+        }
+        return static_cast<double>(still) / n;
+    };
+    const double held = neutral(true), free = neutral(false);
+    HB_REPORT("a hold after a run: no key held %.0f%% of it, %.0f%% with the keys left alone", 100.0 * held, 100.0 * free);
+    HB_CHECK(held > 0.8);
+    HB_CHECK(held > free + 0.3);
+}
+
 // Travelling with no enemy expected soon, the view leads along the way: it follows a point ahead on the path round a
 // turn, gives way to a corner once the enemy is expected out of it soon, and turns to a closed door across the way; and
 // while it leads, the keys hold forward or a forward diagonal more.
@@ -681,6 +719,22 @@ static void TestTravelLead(const hb::ModelBundle& b)
     HB_REPORT("the enemy expected out of a corner soon: travel %d, pre-aim seen %d", out.travel ? 1 : 0, preaim ? 1 : 0);
     HB_CHECK(!out.travel);
     HB_CHECK(preaim);
+
+    // reloading with the enemy out of sight, running on: the way leads the view all the same
+    h.reloadRun = true;
+    for (int t = 0; t < 10; t++) {
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+    }
+    HB_REPORT("and reloading on the run: travel %d", out.travel ? 1 : 0);
+    HB_CHECK(out.travel);
+    h.reloadRun = false;
+    for (int t = 0; t < 10; t++) {
+        self.timeMs += 50;
+        vc.Step(self, h, r, out);
+        self.viewYaw = hb::Wrap180(self.viewYaw + out.yawDelta);
+    }
 
     // a closed door across the way, 40 deg right, the bot at it: the view turns to it
     be.exposureEtaMs[0] = 3000.0f;
@@ -2049,6 +2103,7 @@ int main()
     TestStrafeMemory(b);
     TestHiddenDistance(b);
     TestRouteTurns(b);
+    TestHoldStill(b);
     TestTravelLead(b);
     TestNearSide(b);
     TestUnstick(b);
