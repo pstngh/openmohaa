@@ -93,9 +93,10 @@ over all bots, 47-52 us per bot): see "Wall contact" below.
 
 **The VPS since 2026-10-29 13:41 UTC (the owner's clean-up: "we only really need 1 (or 2 right) the new build u just
 made can be 12203").** Two game servers run:
-- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `c3e393e9` (bundle
-  `b2a749ef53b7`: the north building's way down on Stalingrad) with the bots-new engine since 2026-11-05 13:46 UTC (the
-  owner: "Deploy it"; built in `~linuxuser/openmohaa-humanbot2-src`, `cmake --build build --target game` as linuxuser;
+- **12203**, the owner's own server (service `openmohaa`, install `/home/linuxuser/moh`), on `cfc98d04` (bundle
+  `d84b4e8b3307`: bots run through a hidden reload and stop when they hold an angle) with the bots-new engine since
+  2026-11-06 18:01 UTC (the owner: "Deploy it"; built in `~linuxuser/openmohaa-humanbot2-src`, `cmake --build build --target game` as linuxuser;
+  `c3e393e9`, the north building's way down on Stalingrad, from 2026-11-05 13:46, kept as `game.so.prev-c3e393e9`;
   `660a5c2d`, the bots come down more on Stalingrad, from 2026-11-01 23:36, kept as `game.so.prev-660a5c2d`;
   `ed43461d`, Stalingrad's west ledge and the motor model at 1.1, from 2026-10-31 10:15, kept as `game.so.prev-ed43461d`;
   `6d9d5c6f`, telemetry schema 15, from 2026-10-30 11:59, kept as `game.so.prev-6d9d5c6f`;
@@ -3186,6 +3187,11 @@ Out of the north top spawn the first keys still drift into the recess at (368, 9
 
 Captures from before 2026-10-29 and most of 2026-10-29's were deleted in a clean-up of the machine on 2026-11-06, among them
 `t4_*`, `j1_*`, `std*`, `ms*`: the figures above in this file stay as text, and `bh10_*`, `h10_*` and `live*_own` were kept.
+
+**On 12203** since 2026-11-06 18:01 UTC (the owner: "Deploy it"; backup `game.so.prev-c3e393e9`, nobody on, no recording
+there to save). It came back on dm/mohdm6 with two bots on `d84b4e8b3307`, `sv_dmspeedmult` 1.1, `g_aastrafe` 1,
+recording only with no bot in; `g_humanbot_skill` set back to the owner's 3 after the restart. Cheats are on until the next
+`map` load (the `devmap` line in `server_opm.cfg`). The VPS has 3.6 GB free on its disk.
 
 ## What the recorded map knowledge is worth (2026-10-25)
 
